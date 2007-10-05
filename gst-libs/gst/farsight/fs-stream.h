@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight Participant
+ * Farsight2 - Farsight Stream
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Philippe Kalaf <philippe.kalaf@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-participant.h - A Farsight Participant gobject (base implementation)
+ * fs-stream.h - A Farsight Stream (base implementation)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -22,8 +22,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __FS_PARTICIPANT_H__
-#define __FS_PARTICIPANT_H__
+#ifndef __FS_STREAM_H__
+#define __FS_STREAM_H__
 
 #include <glib.h>
 #include <glib-object.h>
@@ -31,47 +31,48 @@
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
-#define FS_TYPE_PARTICIPANT \
-  (fs_participant_get_type())
-#define FS_PARTICIPANT(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_PARTICIPANT, FsParticipant))
-#define FS_PARTICIPANT_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_PARTICIPANT, FsParticipantClass))
-#define FS_IS_PARTICIPANT(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_PARTICIPANT))
-#define FS_IS_PARTICIPANT_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_PARTICIPANT))
-#define FS_PARTICIPANT_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_PARTICIPANT, FsParticipantClass))
+#define FS_TYPE_STREAM \
+  (fs_stream_get_type())
+#define FS_STREAM(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_STREAM, FsStream))
+#define FS_STREAM_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_STREAM, FsStreamClass))
+#define FS_IS_STREAM(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_STREAM))
+#define FS_IS_STREAM_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_STREAM))
+#define FS_STREAM_GET_CLASS(obj) \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_STREAM, FsStreamClass))
 
-typedef struct _FsParticipant FsParticipant;
-typedef struct _FsParticipantClass FsParticipantClass;
-typedef struct _FsParticipantPrivate FsParticipantPrivate;
+typedef struct _FsStream FsStream;
+typedef struct _FsStreamClass FsStreamClass;
+typedef struct _FsStreamPrivate FsStreamPrivate;
 
-struct _FsParticipantClass
+struct _FsStreamClass
 {
   GObjectClass parent_class;
 
   /*virtual functions */
 
   /*< private >*/
-  FsParticipantPrivate *priv;
   gpointer _padding[8];
 };
 
 /**
- * FsParticipant:
+ * FsStream:
  *
  */
-struct _FsParticipant
+struct _FsStream
 {
   GObject parent;
 
   /*< private >*/
   gpointer _padding[8];
-  FsParticipantPrivate *priv;
+  FsStreamPrivate *priv;
 };
 
-GType fs_participant_get_type (void);
+GType fs_stream_get_type (void);
 
-#endif /* __FS_PARTICIPANT_H__ */
+G_END_DECLS
+
+#endif /* __FS_STREAM_H__ */

@@ -69,7 +69,8 @@ typedef struct _FsConferenceInterface {
 GType fs_conference_get_type (void);
 
 /* virtual class function wrappers */
-FsSession *fs_conference_new_session (FsConference *conference, FsMediaType media_type);
+FsSession *fs_conference_new_session (FsConference *conference,
+                                      FsMediaType media_type);
 FsParticipant *fs_conference_new_participant (FsConference *conference);
 
 G_END_DECLS

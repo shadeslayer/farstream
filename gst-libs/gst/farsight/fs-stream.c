@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight Participant
+ * Farsight2 - Farsight Stream
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Philippe Kalaf <philippe.kalaf@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-participant.c - A Farsight Participant gobject (base implementation)
+ * fs-stream.c - A Farsight Stream gobject (base implementation)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -23,57 +23,58 @@
  */
 
 /**
- * SECTION:FsParticipant
- * @short_description: A gobject representing a farsight participant
+ * SECTION:FsStream
+ * @short_description: A gobject representing a stream inside a session
  *
- * This object is the base implementation of a Farsight Participant. It needs to be
- * derived and implemented by a farsight conference gstreamer element. A
- * participant represents any source of media in a conference. This could be a
- * human-participant or an automaton.
+ * This object is the base implementation of a Farsight Stream. It
+ * needs to be derived and implemented by a farsight conference gstreamer
+ * element. A Farsight Stream is a media stream originating from a participant
+ * inside a session. In fact, a FarsightStream instance is obtained by adding a
+ * participant into a session using #fs_session_add_participant.
+ *
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
-#include "fs-participant.h"
+#include "fs-stream.h"
 #include "fs-marshal.h"
 
 /* Signals */
 enum
 {
-  ERROR
+  ERROR,
+  SRC_PAD_ADDED,
+  RECV_CODEC_CHANGED,
+  CURRENT_CANDIDATE_PAIR,
+  LAST_SIGNAL
 };
 
 /* props */
 enum
 {
-  PROP_0,
-  /* TODO register this property */
-  PROP_CNAME
+  PROP_0
 };
 
-struct _FsPrivate
+struct _FsStreamPrivate
 {
   gboolean disposed;
-
-  gchar *cname;
 };
 
-#define FS_PARTICIPANT_GET_PRIVATE(o)  \
-   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
-   FsParticipantPrivate))
+#define FS_STREAM_GET_PRIVATE(o)  \
+   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsStreamPrivate))
 
-static void fs_participant_class_init (FsParticipantClass *klass);
-static void fs_participant_init (FsParticipant *self);
-static void fs_participant_dispose (GObject *object);
-static void fs_participant_finalize (GObject *object);
+static void fs_stream_class_init (FsStreamClass *klass);
+static void fs_stream_init (FsStream *self);
+static void fs_stream_dispose (GObject *object);
+static void fs_stream_finalize (GObject *object);
 
-static void fs_participant_get_property (GObject *object, 
+static void fs_stream_get_property (GObject *object, 
                                           guint prop_id, 
                                           GValue *value,
                                           GParamSpec *pspec);
-static void fs_participant_set_property (GObject *object, 
+static void fs_stream_set_property (GObject *object, 
                                           guint prop_id,
                                           const GValue *value, 
                                           GParamSpec *pspec);
@@ -82,44 +83,44 @@ static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
 GType
-fs_participant_get_type (void)
+fs_stream_get_type (void)
 {
   static GType type = 0;
 
   if (type == 0) {
     static const GTypeInfo info = {
-      sizeof (FsParticipantClass),
+      sizeof (FsStreamClass),
       NULL,
       NULL,
-      (GClassInitFunc) fs_participant_class_init,
+      (GClassInitFunc) fs_stream_class_init,
       NULL,
       NULL,
-      sizeof (FsParticipant),
+      sizeof (FsStream),
       0,
-      (GInstanceInitFunc) fs_participant_init
+      (GInstanceInitFunc) fs_stream_init
     };
 
     type = g_type_register_static (G_TYPE_OBJECT,
-        "FsParticipant", &info, 0);
+        "FsStream", &info, 0);
   }
 
   return type;
 }
 
 static void
-fs_participant_class_init (FsParticipantClass *klass)
+fs_stream_class_init (FsStreamClass *klass)
 {
   GObjectClass *gobject_class;
 
   gobject_class = (GObjectClass *) klass;
   parent_class = g_type_class_peek_parent (klass);
 
-  gobject_class->set_property = fs_participant_set_property;
-  gobject_class->get_property = fs_participant_get_property;
+  gobject_class->set_property = fs_stream_set_property;
+  gobject_class->get_property = fs_stream_get_property;
 
   /**
-   * FsParticipant::error:
-   * @self: #FsParticipant that emmitted the signal
+   * FsStream::error:
+   * @self: #FsStream that emmitted the signal
    * @errorno: The number of the error 
    * @message: Error message to be displayed to user
    * @message: Debugging error message
@@ -135,24 +136,24 @@ fs_participant_class_init (FsParticipantClass *klass)
       fs_marshal_VOID__INT_STRING_STRING,
       G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
-  gobject_class->dispose = fs_participant_dispose;
-  gobject_class->finalize = fs_participant_finalize;
+  gobject_class->dispose = fs_stream_dispose;
+  gobject_class->finalize = fs_stream_finalize;
 
-  g_type_class_add_private (klass, sizeof (FsParticipantPrivate));
+  g_type_class_add_private (klass, sizeof (FsStreamPrivate));
 }
 
 static void
-fs_participant_init (FsParticipant *self)
+fs_stream_init (FsStream *self)
 {
   /* member init */
-  self->priv = FS_PARTICIPANT_GET_PRIVATE (self);
+  self->priv = FS_STREAM_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
 }
 
 static void
-fs_participant_dispose (GObject *object)
+fs_stream_dispose (GObject *object)
 {
-  FsParticipant *self = FS_PARTICIPANT (object);
+  FsStream *self = FS_STREAM (object);
 
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
@@ -166,7 +167,7 @@ fs_participant_dispose (GObject *object)
 }
 
 static void
-fs_participant_finalize (GObject *object)
+fs_stream_finalize (GObject *object)
 {
   g_signal_handlers_destroy (object);
 

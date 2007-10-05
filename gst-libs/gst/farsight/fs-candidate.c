@@ -171,7 +171,7 @@ fs_candidate_list_copy (const GList *candidate_list)
  */
 FsCandidate *
 fs_candidate_get_by_id (const GList *candidate_list,
-    const gchar *candidate_id)
+                        const gchar *candidate_id)
 {
   FsCandidate *cand = NULL;
   const GList *lp;
@@ -199,7 +199,7 @@ fs_candidate_get_by_id (const GList *candidate_list,
  * Returns: True if equivalent.
  */
 gboolean fs_candidate_are_equal (const FsCandidate *cand1,
-    const FsCandidate *cand2)
+                                 const FsCandidate *cand2)
 {
   /* TODO we compare just the ip and port for now 
    * is this enough ? think about it some more */

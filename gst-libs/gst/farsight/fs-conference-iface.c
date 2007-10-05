@@ -80,7 +80,7 @@ fs_conference_iface_init (FsConferenceInterface * iface)
 
 /**
  * fs_conference_new_session
- * @FsConference: #FsConference interface of a #GstElement
+ * @conference: #FsConference interface of a #GstElement
  * @media_type: #FsMediaType of the new session
  *
  * Create a new Farsight session for the given conference.
@@ -88,7 +88,7 @@ fs_conference_iface_init (FsConferenceInterface * iface)
  * Returns: the new #FsSession that has been created
  */
 FsSession *
-fs_conference_new_session (FsConference *conference, FsMediaType media_type);
+fs_conference_new_session (FsConference *conference, FsMediaType media_type)
 {
   FsConferenceInterface *iface =
       FS_CONFERENCE_GET_IFACE (conference);
@@ -105,14 +105,14 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type);
 
 /**
  * fs_conference_new_participant
- * @FsConference: #FsConference interface of a #GstElement
+ * conference: #FsConference interface of a #GstElement
  *
  * Create a new Farsight participant for the given conference.
  *
  * Returns: the new #FsParticipant that has been created
  */
 FsParticipant *
-fs_conference_new_participant (FsConference *conference);
+fs_conference_new_participant (FsConference *conference)
 {
   FsConferenceInterface *iface =
       FS_CONFERENCE_GET_IFACE (conference);

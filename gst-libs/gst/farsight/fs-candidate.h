@@ -105,24 +105,19 @@ struct _FsCandidate
   gpointer _padding[4];
 };
 
-void
-fs_candidate_destroy (FsCandidate *cand);
+void fs_candidate_destroy (FsCandidate *cand);
 
-FsCandidate *
-fs_candidate_copy (const FsCandidate *cand);
+FsCandidate *fs_candidate_copy (const FsCandidate *cand);
 
-void
-fs_candidate_list_destroy (GList *candidate_list);
+void fs_candidate_list_destroy (GList *candidate_list);
 
-GList *
-fs_candidate_list_copy (const GList *candidate_list);
+GList *fs_candidate_list_copy (const GList *candidate_list);
 
-FsCandidate *
-fs_candidate_get_by_id (const GList *candidate_list,
-        const gchar *candidate_id);
+FsCandidate *fs_candidate_get_by_id (const GList *candidate_list,
+                                     const gchar *candidate_id);
 
 gboolean fs_candidate_are_equal (const FsCandidate *cand1,
-        const FsCandidate *cand2);
+                                 const FsCandidate *cand2);
 
 G_END_DECLS
 #endif /* __FS_CANDIDATE_H__ */

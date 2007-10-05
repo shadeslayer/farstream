@@ -34,6 +34,21 @@
  * @short_description: Structure representing a media codec
  */
 
+GType
+fs_codec_list_get_type (void)
+{
+  static GType codec_list_type = 0;
+  if (codec_list_type == 0)
+  {
+    codec_list_type = g_boxed_type_register_static (
+        "CodecGlist",
+        (GBoxedCopyFunc)fs_codec_list_destroy,
+        (GBoxedFreeFunc)fs_codec_list_copy);
+  }
+
+  return codec_list_type;
+}
+
 /**
  * fs_codec_init:
  * @codec: #FsCodec structure to initialise
@@ -46,7 +61,7 @@
  */
 void
 fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
-                     FarsightMediaType media_type, guint clock_rate)
+               FarsightMediaType media_type, guint clock_rate)
 {
   codec->id =id;
   if (encoding_name)

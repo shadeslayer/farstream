@@ -28,6 +28,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#include "fs-stream.h"
+
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
@@ -98,22 +100,16 @@ struct _FsSessionClass
   GObjectClass parent_class;
 
   /*virtual functions */
-  FsSessionParticipant *(* fs_session_add_participant)
-    (FsSession *session, FsParticipant *participant);
+  FsStream *(* add_participant) (FsSession *session,
+                                 FsParticipant *participant);
 
-  GstPad *(* fs_session_get_sink_pad) (FsSession *session);
-
-  G_CONST_RETURN GList *(* get_local_codecs) (FsSession *session);
-
-  void (* set_active_codec) (FsSession *session, gint payload_type);
-  gint (* get_active_codec) (FsSession *session);
-
-  gboolean (* start_telephony_event) (FsSession *session,
-                                      guint8 event,
-                                      guint8 volume,
-                                      FsDTMFMethod method);
-  gboolean (* stop_telephony_event) (FSession *session,
-                                     FsDTMFMethod method);
+  gboolean (* start_telephony_event) (FsSession *session, guint8 event,
+                                      guint8 volume, FsDTMFMethod method);
+  gboolean (* start_telephony_event_full) (FsSession *session, guint8 ev,
+                                           guint8 volume, FsDTMFMethod method);
+  gboolean (* stop_telephony_event) (FSession *session, FsDTMFMethod method);
+  gboolean (* stop_telephony_event_full) (FsSession *session,
+                                          FsDTMFMethod method);
 
   /*< private >*/
   gpointer _padding[8];
@@ -133,6 +129,15 @@ struct _FsSession
 };
 
 GType fs_session_get_type (void);
+
+FsStream *fs_session_add_participant (FsSession *session,
+                                      FsParticipant *participant);
+
+gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,
+                                           guint8 volume, FsDTMFMethod method);
+
+gboolean fs_session_stop_telephony_event (FSession *session,
+                                          FsDTMFMethod method);
 
 G_END_DECLS
 
