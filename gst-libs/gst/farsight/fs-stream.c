@@ -40,6 +40,7 @@
 
 #include "fs-stream.h"
 #include "fs-marshal.h"
+#include "fs-codec.h"
 
 /* Signals */
 enum
@@ -47,14 +48,21 @@ enum
   ERROR,
   SRC_PAD_ADDED,
   RECV_CODEC_CHANGED,
-  CURRENT_CANDIDATE_PAIR,
+  NEW_ACTIVE_CANDIDATE_PAIR,
   LAST_SIGNAL
 };
 
 /* props */
 enum
 {
-  PROP_0
+  PROP_0,
+#if 0
+  /* TODO Do we really need this? */
+  PROP_SOURCE_PADS,
+#endif
+  PROP_REMOTE_CODECS,
+  PROP_CURRENT_RECV_CODEC,
+  PROP_DIRECTION
 };
 
 struct _FsStreamPrivate
@@ -107,6 +115,25 @@ fs_stream_get_type (void)
   return type;
 }
 
+static GType
+fs_stream_direction_get_type (void)
+{
+  static GType gtype = 0;
+
+  if (gtype == 0) {
+    static const GEnumValue values[] = {
+      { FS_DIRECTION_NONE, "None (default)", "none"},
+      { FS_DIRECTION_BOTH, "Both (send and receive)", "both"},
+      { FS_DIRECTION_SEND, "Send only", "send" },
+      { FS_DIRECTION_RECV, "Receive only", "recv" },
+      {0, NULL, NULL}
+    };
+
+    gtype = g_enum_register_static ("FsStreamDirection", values);
+  }
+  return gtype;
+}
+
 static void
 fs_stream_class_init (FsStreamClass *klass)
 {
@@ -118,12 +145,77 @@ fs_stream_class_init (FsStreamClass *klass)
   gobject_class->set_property = fs_stream_set_property;
   gobject_class->get_property = fs_stream_get_property;
 
+#if 0
+  /**
+   * FsStream:source-pads:
+   *
+   * A #GList of #GstPad of source pads being used by this stream to receive the
+   * different codecs.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_SOURCE_PADS,
+      g_param_spec_object ("source-pads",
+        "A list of source pads being used in this stream",
+        "A GList of GstPads representing the source pads being used by this"
+        " stream for the different codecs",
+        ,
+        G_PARAM_READABLE));
+#endif
+
+  /**
+   * FsStream:remote-codecs:
+   *
+   * This is the list of remote codecs for this stream. They must be set by the
+   * user as soon as they are known (generally through external signaling).
+   * It is a #GList of #FsCodec.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_REMOTE_CODECS,
+      g_param_spec_boxed ("remote-codecs",
+        "List of remote codecs",
+        "A GList of FsCodecs of the remote codecs",
+        fs_codec_list_get_type(),
+        G_PARAM_READWRITE));
+
+  /**
+   * FsStream:curent-recv-codec:
+   *
+   * This is the codec that is currently being received. It is the same as the
+   * one emitted in the #recv-codec-changed signal.
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_CURRENT_RECV_CODEC,
+      g_param_spec_boxed ("current-recv-codec",
+        "The codec currently being received",
+        "A FsCodec of codec being currently received",
+        fs_codec_get_type(),
+        G_PARAM_READABLE));
+
+  /**
+   * FsStream:direction:
+   *
+   * The direction of the stream. This property is set initially as a parameter
+   * to the #fs_session_add_participant function. It can be changed later if
+   * required by setting this property.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_DIRECTION,
+      g_param_spec_enum ("direction",
+        "The direction of the stream",
+        "An enum to set and get the direction of the stream",
+        FS_TYPE_STREAM_DIRECTION,
+        FS_DIRECTION_NONE,
+        G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+
   /**
    * FsStream::error:
    * @self: #FsStream that emmitted the signal
    * @errorno: The number of the error 
-   * @message: Error message to be displayed to user
-   * @message: Debugging error message
+   * @error_msg: Error message to be displayed to user
+   * @debug_msg: Debugging error message
    *
    * This signal is emitted in any error condition
    */
@@ -135,6 +227,64 @@ fs_stream_class_init (FsStreamClass *klass)
       NULL,
       fs_marshal_VOID__INT_STRING_STRING,
       G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+
+  /**
+   * FsStream::src-pad-added:
+   * @self: #FsStream that emmitted the signal
+   * @pad: #GstPad of the new source pad
+   * @codec: #FsCodec of the codec being received on the new source pad
+   *
+   * This signal is emitted when a new gst source pad has been created for a
+   * specific codec being received. There will be a different source pad for
+   * each codec that is received.
+   */
+  signals[SRC_PAD_ADDED] = g_signal_new ("src-pad-added",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      fs_marshal_VOID__BOXED_BOXED,
+      G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
+
+  /**
+   * FsStream::recv-codec-changed:
+   * @self: #FsStream that emmitted the signal
+   * @pad: #GstPad of the current source pad
+   * @codec: #FsCodec of the new codec being received
+   *
+   * This signal is emitted when the currently received codec has changed. This
+   * is usefull for displaying the current active reception codec or for making
+   * changes to the pipeline.
+   */
+  signals[RECV_CODEC_CHANGED] = g_signal_new ("recv-codec-changed",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      fs_marshal_VOID__BOXED_BOXED,
+      G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
+
+  /**
+   * FsStream::new-active-candidate-pair:
+   * @self: #FsStream that emmitted the signal
+   * @native_candidate: #FsCandidate of the native candidate being used
+   * @remote_candidate: #FsCandidate of the remote candidate being used
+   *
+   * This signal is emitted when there is a new active chandidate pair that has
+   * been established. This is specially useful for ICE where the active
+   * candidate pair can change automatically due to network conditions.
+   */
+  signals[NEW_ACTIVE_CANDIDATE_PAIR] = g_signal_new
+    ("new-active-candidate-pair",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      fs_marshal_VOID__BOXED_BOXED,
+      G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
 
   gobject_class->dispose = fs_stream_dispose;
   gobject_class->finalize = fs_stream_finalize;

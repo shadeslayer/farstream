@@ -35,6 +35,21 @@
  */
 
 GType
+fs_codec_get_type (void)
+{
+  static GType codec_type = 0;
+  if (codec_type == 0)
+  {
+    codec_type = g_boxed_type_register_static (
+        "Codec",
+        (GBoxedCopyFunc)fs_codec_destroy,
+        (GBoxedFreeFunc)fs_codec_copy);
+  }
+
+  return codec_type;
+}
+
+GType
 fs_codec_list_get_type (void)
 {
   static GType codec_list_type = 0;
@@ -47,6 +62,24 @@ fs_codec_list_get_type (void)
   }
 
   return codec_list_type;
+}
+
+static GType
+fs_media_type_get_type (void)
+{
+  static GType gtype = 0;
+
+  if (gtype == 0) {
+    static const GEnumValue values[] = {
+      { FS_MEDIA_TYPE_AUDIO, "Audio (default)", "audio"},
+      { FS_MEDIA_TYPE_VIDEO, "Video", "video"},
+      { FS_MEDIA_TYPE_AV, "Audio/Video", "av" },
+      {0, NULL, NULL}
+    };
+
+    gtype = g_enum_register_static ("FsMediaType", values);
+  }
+  return gtype;
 }
 
 /**
@@ -135,7 +168,7 @@ fs_codec_copy (FsCodec * codec)
       param_copy->name = g_strdup (param->name);
       param_copy->value = g_strdup (param->value);
       /* prepend then reverse the list for efficiency */
-      copy->optional_params = g_list_prepend (copy->optional_params, 
+      copy->optional_params = g_list_prepend (copy->optional_params,
                                               param_copy);
     }
     copy->optional_params = g_list_reverse (copy->optional_params);

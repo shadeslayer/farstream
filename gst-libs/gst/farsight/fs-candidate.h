@@ -29,34 +29,37 @@
 
 G_BEGIN_DECLS
 
+#define FS_TYPE_CANDIDATE \
+  (fs_candidate_get_type())
+
 /**
  * FsCandidateType:
- * @FARSIGHT_CANDIDATE_TYPE_HOST: A host candidate (local)
- * @FARSIGHT_CANDIDATE_TYPE_SRFLX: A server reflexive candidate.
- * @FARSIGHT_CANDIDATE_TYPE_PRFLX: A peer reflexive candidate
- * @FARSIGHT_CANDIDATE_TYPE_RELAY: An relay candidate
+ * @FS_CANDIDATE_TYPE_HOST: A host candidate (local)
+ * @FS_CANDIDATE_TYPE_SRFLX: A server reflexive candidate.
+ * @FS_CANDIDATE_TYPE_PRFLX: A peer reflexive candidate
+ * @FS_CANDIDATE_TYPE_RELAY: An relay candidate
  *
  * An enum for the type of candidate used/reported
  */
 typedef enum
 {
-  FARSIGHT_CANDIDATE_TYPE_HOST,
-  FARSIGHT_CANDIDATE_TYPE_SRFLX,
-  FARSIGHT_CANDIDATE_TYPE_PRFLX,
-  FARSIGHT_CANDIDATE_TYPE_RELAY    /* An external stream relay */
+  FS_CANDIDATE_TYPE_HOST,
+  FS_CANDIDATE_TYPE_SRFLX,
+  FS_CANDIDATE_TYPE_PRFLX,
+  FS_CANDIDATE_TYPE_RELAY    /* An external stream relay */
 } FsCandidateType;
 
 /**
  * FsNetworkProtocol:
- * @FARSIGHT_NETWORK_PROTOCOL_UDP: A UDP based protocol
- * @FARSIGHT_NETWORK_PROTOCOL_TCP: A TCP based protocol
+ * @FS_NETWORK_PROTOCOL_UDP: A UDP based protocol
+ * @FS_NETWORK_PROTOCOL_TCP: A TCP based protocol
  *
  * An enum for the base IP protocol
  */
 typedef enum
 {
-  FARSIGHT_NETWORK_PROTOCOL_UDP,
-  FARSIGHT_NETWORK_PROTOCOL_TCP
+  FS_NETWORK_PROTOCOL_UDP,
+  FS_NETWORK_PROTOCOL_TCP
 } FsNetworkProtocol;
 
 typedef struct _FsCandidate FsCandidate;
@@ -87,6 +90,7 @@ struct _FsCandidate
   /* TODO We need some sort of way for the transmitter to know just from this
    * structure what kind of element to create (RAW udp, STUN udp, ICE, etc).
    * Maybe use FsNetworkProtocol if it is not required by ICE */
+  /* TODO Should this be made into a GstStructure? */
   const gchar *candidate_id;
   gchar foundation;
   guint component_id;

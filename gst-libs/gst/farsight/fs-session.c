@@ -48,9 +48,8 @@
 enum
 {
   ERROR,
-  SRC_PAD_ADDED,
-  RECV_CODEC_CHANGED,
-  CURRENT_CANDIDATE_PAIR,
+  SEND_CODEC_CHANGED,
+  NEW_NEGOTIATED_CODECS,
   LAST_SIGNAL
 };
 
@@ -58,6 +57,7 @@ enum
 enum
 {
   PROP_0,
+  PROP_MEDIA_TYPE,
   PROP_SINK_PAD,
   PROP_NATIVE_CODECS,
   PROP_NATIVE_CODECS_CONFIG,
@@ -127,6 +127,22 @@ fs_session_class_init (FsSessionClass *klass)
   gobject_class->get_property = fs_session_get_property;
 
   /**
+   * FsStream:media-type:
+   *
+   * The media-type of the session. This is either Audio or Video.
+   * This is a constructor parameter that cannot be changed.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_MEDIA_TYPE,
+      g_param_spec_enum ("media-type",
+        "The media type of the session",
+        "An enum that specifies the media type of the session",
+        FS_TYPE_MEDIA_TYPE,
+        FS_MEDIA_TYPE_AUDIO,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  /**
    * FsSession:sink-pad:
    *
    * The Gstreamer sink pad that must be used to send media data on this session
@@ -153,7 +169,7 @@ fs_session_class_init (FsSessionClass *klass)
       g_param_spec_boxed ("native-codecs",
         "List of native codecs",
         "A GList of FsCodecs that can be used for sending",
-        fs_codec_list_get_type(),
+        FS_TYPE_CODEC_LIST,
         G_PARAM_READABLE));
 
   /**
@@ -170,7 +186,7 @@ fs_session_class_init (FsSessionClass *klass)
         "List of user configuration for native codecs",
         "A GList of FsCodecs that allows user to set his codec options and"
         " priorities",
-        fs_codec_list_get_type(),
+        FS_TYPE_CODEC_LIST,
         G_PARAM_READWRITE));
 
   /**
@@ -187,11 +203,25 @@ fs_session_class_init (FsSessionClass *klass)
         "List of negotiated codecs",
         "A GList of FsCodecs indicating the codecs that have been successfully"
         " negotiated",
-        fs_codec_list_get_type(),
+        FS_TYPE_CODEC_LIST,
         G_PARAM_READWRITE));
 
-
-  PROP_CURRENT_SEND_CODEC
+  /**
+   * FsSession:current-send-codec:
+   *
+   * Indicates the currently active send codec. A user can change the active
+   * send codec by setting this property. The send codec could also be
+   * automatically changed for QoS without user intervention. This property is a
+   * #FsCodec.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_CURRENT_SEND_CODEC,
+      g_param_spec_boxed ("current-send-codec",
+        "Current active send codec",
+        "An FsCodec indicating the currently active send codec",
+        FS_TYPE_CODEC,
+        G_PARAM_READWRITE));
 
   /**
    * FsSession::error:
@@ -201,6 +231,7 @@ fs_session_class_init (FsSessionClass *klass)
    * @message: Debugging error message
    *
    * This signal is emitted in any error condition
+   *
    */
   signals[ERROR] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
@@ -212,21 +243,43 @@ fs_session_class_init (FsSessionClass *klass)
       G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   /**
-   * FsSession::sink-pad-ready:
+   * FsSession::send-codec-changed:
    * @self: #FsSession that emmitted the signal
-   * @pad: A GstPad that represents the sink
    *
-   * This signal is emitted when a sink pad has been created on the Farsight
-   * conference bin for this session.
+   * This signal is emitted when the active send codec has been changed
+   * manually by the user or automatically for QoS purposes. The user should
+   * look at the #current-send-codec property in the session to determine what
+   * the new active codec is
+   *
    */
-  signals[SINK_PAD_READY] = g_signal_new ("sink-pad-ready",
+  signals[SEND_CODEC_CHANGED] = g_signal_new ("send-codec-changed",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
       NULL,
       NULL,
-      g_cclosure_marshal_VOID__POINTER,
-      G_TYPE_NONE, 1, G_TYPE_POINTER);
+      g_cclosure_marshal_VOID,
+      G_TYPE_NONE, 0);
+
+  /**
+   * FsSession::new-negotiated-codec:
+   * @self: #FsSession that emmitted the signal
+   *
+   * This signal is emitted when the negotiated codecs list has changed for this
+   * session. This can happen when new remote codecs are added to the session
+   * (i.e. When a session is being initialized or a new participant joins an
+   * existing session). The user should look at the #negotiated-codecs property
+   * to determine what the new negotiated codec list is.
+   *
+   */
+  signals[NEW_NEGOTIATED_CODECS] = g_signal_new ("new-negotiated-codecs",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID,
+      G_TYPE_NONE, 0);
 
   gobject_class->dispose = fs_session_dispose;
   gobject_class->finalize = fs_session_finalize;
@@ -270,6 +323,8 @@ fs_session_finalize (GObject *object)
  * fs_session_add_participant
  * @session: #FsSession of a session in a conference
  * @participants: #FsParticipant of a participant in a conference
+ * @direction: #FsDirection describing the direction of the new stream that will
+ * be created for this participant
  *
  * This function adds a participant into an active session therefore creating
  * a new #FsStream for the given participant in the session
@@ -277,9 +332,11 @@ fs_session_finalize (GObject *object)
  * Returns: the new #FsStream that has been created
  */
 FsStream *
-fs_session_add_participant (FsSession *session, FsParticipant *participant)
+fs_session_add_participant (FsSession *session, FsParticipant *participant,
+                            FsDirection direction)
 {
   /* TODO make sure to link up to the error signal of the FsStream */
+  /* TODO make sure to set the direction as a construtor param */
 }
 
 /**

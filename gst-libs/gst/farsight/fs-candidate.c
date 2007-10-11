@@ -30,6 +30,21 @@
  * description is compatible with ICE-13.
  */
 
+GType
+fs_candidate_get_type (void)
+{
+  static GType candidate_type = 0;
+  if (candidate_type == 0)
+  {
+    candidate_type = g_boxed_type_register_static (
+        "Candidate",
+        (GBoxedCopyFunc)fs_candidate_destroy,
+        (GBoxedFreeFunc)fs_candidate_copy);
+  }
+
+  return codec_type;
+}
+
 /**
  * fs_candidate_destroy:
  * @cand: a #FsCandidate to delete

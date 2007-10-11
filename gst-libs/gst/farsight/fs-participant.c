@@ -49,7 +49,6 @@ enum
 enum
 {
   PROP_0,
-  /* TODO register this property */
   PROP_CNAME
 };
 
@@ -116,6 +115,21 @@ fs_participant_class_init (FsParticipantClass *klass)
 
   gobject_class->set_property = fs_participant_set_property;
   gobject_class->get_property = fs_participant_get_property;
+
+  /**
+   * FsParticipant:cname:
+   *
+   * A string representing the cname of the current participant. This is a
+   * constructor parameter that cannot be changed afterwards.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_DIRECTION,
+      g_param_spec_string ("cname",
+        "The cname of the participant",
+        "A string of the cname of the participant",
+        NULL,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**
    * FsParticipant::error:

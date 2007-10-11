@@ -36,6 +36,15 @@ typedef struct _FsCodec FsCodec;
 typedef struct _FsCodecParameter FsCodecParameter;
 typedef struct _FsCodecPreference FsCodecPreference;
 
+#define FS_TYPE_CODEC \
+  (fs_codec_get_type())
+
+#define FS_TYPE_CODEC_LIST \
+  (fs_codec_list_get_type())
+
+#define FS_TYPE_MEDIA_TYPE \
+  (fs_media_type_get_type())
+
 /**
  * FsMediaType:
  * @FS_MEDIA_TYPE_AUDIO: A media type that encodes audio.
@@ -61,6 +70,7 @@ typedef enum
  */
 struct _FsCodec
 {
+  /* TODO Should this be made into a GstStructure? */
   gint id;
   char *encoding_name;
   FsMediaType media_type;
@@ -96,15 +106,16 @@ struct _FsCodecPreference {
     gint clock_rate;
 };
 
+GType fs_codec_get_type (void);
 GType fs_codec_list_get_type (void);
 
 void fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
                     FsMediaType media_type, guint clock_rate);
 
 void fs_codec_destroy (FsCodec * codec);
-FsCodec * fs_codec_copy (FsCodec * codec);
+FsCodec *fs_codec_copy (FsCodec * codec);
 void fs_codec_list_destroy (GList *codec_list);
-GList * fs_codec_list_copy (const GList *codec_list);
+GList *fs_codec_list_copy (const GList *codec_list);
 
 GList *fs_codec_list_from_keyfile (const gchar *filename);
 gchar *fs_codec_to_string (FsCodec *codec);
