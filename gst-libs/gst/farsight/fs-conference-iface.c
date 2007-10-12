@@ -27,7 +27,7 @@
 #include "config.h"
 #endif
 
-#include "fs-conference.h"
+#include "fs-conference-iface.h"
 
 /**
  * SECTION:FsConference
@@ -105,7 +105,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type)
 
 /**
  * fs_conference_new_participant
- * conference: #FsConference interface of a #GstElement
+ * @conference: #FsConference interface of a #GstElement
  *
  * Create a new Farsight participant for the given conference.
  *

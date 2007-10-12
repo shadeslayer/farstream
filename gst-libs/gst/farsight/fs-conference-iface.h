@@ -29,15 +29,18 @@
 #include <gst/gst.h>
 #include <gst/interfaces/interfaces-enumtypes.h>
 
+#include "fs-session.h"
+#include "fs-codec.h"
+
 G_BEGIN_DECLS
 
 #define FS_TYPE_CONFERENCE \
   (fs_conference_get_type ())
 #define FS_CONFERENCE(obj) \
   (GST_IMPLEMENTS_INTERFACE_CHECK_INSTANCE_CAST ((obj), FS_TYPE_CONFERENCE, FsConference))
-#define GST_IS_VIDEO_ORIENTATION(obj) \
+#define FS_IS_CONFERENCE(obj) \
   (GST_IMPLEMENTS_INTERFACE_CHECK_INSTANCE_TYPE ((obj), FS_TYPE_CONFERENCE))
-#define GST_VIDEO_ORIENTATION_GET_IFACE(inst) \
+#define FS_CONFERENCE_GET_IFACE(inst) \
   (G_TYPE_INSTANCE_GET_INTERFACE ((inst), FS_TYPE_CONFERENCE, FsConferenceInterface))
 
 /**

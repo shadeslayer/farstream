@@ -42,7 +42,7 @@ fs_candidate_get_type (void)
         (GBoxedFreeFunc)fs_candidate_copy);
   }
 
-  return codec_type;
+  return candidate_type;
 }
 
 /**

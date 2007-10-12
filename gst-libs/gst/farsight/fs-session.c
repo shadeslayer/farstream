@@ -43,6 +43,7 @@
 #include "fs-session.h"
 #include "fs-marshal.h"
 #include "fs-codec.h"
+#include <gst/gst.h>
 
 /* Signals */
 enum
@@ -258,7 +259,7 @@ fs_session_class_init (FsSessionClass *klass)
       0,
       NULL,
       NULL,
-      g_cclosure_marshal_VOID,
+      g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
   /**
@@ -278,7 +279,7 @@ fs_session_class_init (FsSessionClass *klass)
       0,
       NULL,
       NULL,
-      g_cclosure_marshal_VOID,
+      g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
   gobject_class->dispose = fs_session_dispose;
@@ -323,7 +324,7 @@ fs_session_finalize (GObject *object)
  * fs_session_add_participant
  * @session: #FsSession of a session in a conference
  * @participants: #FsParticipant of a participant in a conference
- * @direction: #FsDirection describing the direction of the new stream that will
+ * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
  *
  * This function adds a participant into an active session therefore creating
@@ -333,7 +334,7 @@ fs_session_finalize (GObject *object)
  */
 FsStream *
 fs_session_add_participant (FsSession *session, FsParticipant *participant,
-                            FsDirection direction)
+                            FsStreamDirection direction)
 {
   /* TODO make sure to link up to the error signal of the FsStream */
   /* TODO make sure to set the direction as a construtor param */
@@ -400,7 +401,7 @@ fs_session_start_telephony_event_full (FsSession *session, guint8 ev,
  * does not support telephony events or if no telephony event is being sent
  */
 gboolean
-fs_session_stop_telephony_event (FSession *session, FsDTMFMethod method)
+fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 {
 }
 

@@ -87,14 +87,14 @@ fs_media_type_get_type (void)
  * @codec: #FsCodec structure to initialise
  * @id: codec identifier, if RTP this should be based on IETF RTP payload types
  * @encoding_name: Name of media type this encodes
- * @media_type: #FarsightMediaType for type of codec
+ * @media_type: #FsMediaType for type of codec
  * @clock_rate: The clock rate this codec encodes at, if applicable
  *
  * Initialises a #FsCodec structure
  */
 void
 fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
-               FarsightMediaType media_type, guint clock_rate)
+               FsMediaType media_type, guint clock_rate)
 {
   codec->id =id;
   if (encoding_name)
@@ -228,7 +228,6 @@ fs_codec_list_copy (const GList *codec_list)
  * a #GList of #FsCodec structures.
  *
  * Example:
- * <informalexample><programlisting>
  * [audio/codec1]
  * clock-rate=8000
  *
@@ -238,7 +237,6 @@ fs_codec_list_copy (const GList *codec_list)
  * [audio/codec2]
  * one_param=QCIF
  * another_param=WOW
- * </programlisting></informalexample>
  *
  * Return value: The read #GList of #FsCodec or %NULL if an error appended
  */
@@ -405,7 +403,7 @@ fs_codec_list_from_keyfile (const gchar *filename)
 }
 
 const gchar *
-fs_media_type_to_string (FarsightMediaType media_type)
+fs_media_type_to_string (FsMediaType media_type)
 {
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
     return "audio";

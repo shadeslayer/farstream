@@ -29,6 +29,7 @@
 #define __FS_CODEC_H__
 
 #include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 
@@ -56,6 +57,7 @@ typedef enum
 {
   FS_MEDIA_TYPE_AUDIO,
   FS_MEDIA_TYPE_VIDEO,
+  FS_MEDIA_TYPE_AV,
   FS_MEDIA_TYPE_LAST = FS_MEDIA_TYPE_VIDEO
 } FsMediaType;
 

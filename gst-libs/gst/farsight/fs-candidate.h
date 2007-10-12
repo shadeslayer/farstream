@@ -26,6 +26,7 @@
 #define __FS_CANDIDATE_H__
 
 #include <glib.h>
+#include <glib-object.h>
 
 G_BEGIN_DECLS
 

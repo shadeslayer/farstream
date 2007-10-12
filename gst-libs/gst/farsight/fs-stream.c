@@ -38,9 +38,13 @@
 #include "config.h"
 #endif
 
+#include "fs-session.h"
 #include "fs-stream.h"
 #include "fs-marshal.h"
 #include "fs-codec.h"
+#include "fs-candidate.h"
+
+#include <gst/gst.h>
 
 /* Signals */
 enum

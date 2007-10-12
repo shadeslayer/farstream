@@ -42,7 +42,8 @@
 /* Signals */
 enum
 {
-  ERROR
+  ERROR,
+  LAST_SIGNAL
 };
 
 /* props */
@@ -52,7 +53,7 @@ enum
   PROP_CNAME
 };
 
-struct _FsPrivate
+struct _FsParticipantPrivate
 {
   gboolean disposed;
 
@@ -124,7 +125,7 @@ fs_participant_class_init (FsParticipantClass *klass)
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_DIRECTION,
+      PROP_CNAME,
       g_param_spec_string ("cname",
         "The cname of the participant",
         "A string of the cname of the participant",

@@ -29,6 +29,7 @@
 #include <glib-object.h>
 
 #include "fs-stream.h"
+#include "fs-participant.h"
 
 G_BEGIN_DECLS
 
@@ -102,13 +103,13 @@ struct _FsSessionClass
   /*virtual functions */
   FsStream *(* add_participant) (FsSession *session,
                                  FsParticipant *participant,
-                                 FsDirection direction);
+                                 FsStreamDirection direction);
 
   gboolean (* start_telephony_event) (FsSession *session, guint8 event,
                                       guint8 volume, FsDTMFMethod method);
   gboolean (* start_telephony_event_full) (FsSession *session, guint8 ev,
                                            guint8 volume, FsDTMFMethod method);
-  gboolean (* stop_telephony_event) (FSession *session, FsDTMFMethod method);
+  gboolean (* stop_telephony_event) (FsSession *session, FsDTMFMethod method);
   gboolean (* stop_telephony_event_full) (FsSession *session,
                                           FsDTMFMethod method);
 
@@ -133,12 +134,12 @@ GType fs_session_get_type (void);
 
 FsStream *fs_session_add_participant (FsSession *session,
                                       FsParticipant *participant,
-                                      FsDirection direction);
+                                      FsStreamDirection direction);
 
 gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,
                                            guint8 volume, FsDTMFMethod method);
 
-gboolean fs_session_stop_telephony_event (FSession *session,
+gboolean fs_session_stop_telephony_event (FsSession *session,
                                           FsDTMFMethod method);
 
 G_END_DECLS
