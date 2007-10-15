@@ -23,8 +23,8 @@
  */
 
 /**
- * SECTION:FsStream
- * @short_description: A gobject representing a stream inside a session
+ * SECTION:fs-stream
+ * @short_description: A stream in a session in a conference
  *
  * This object is the base implementation of a Farsight Stream. It
  * needs to be derived and implemented by a farsight conference gstreamer
@@ -82,14 +82,14 @@ static void fs_stream_init (FsStream *self);
 static void fs_stream_dispose (GObject *object);
 static void fs_stream_finalize (GObject *object);
 
-static void fs_stream_get_property (GObject *object, 
-                                          guint prop_id, 
-                                          GValue *value,
-                                          GParamSpec *pspec);
-static void fs_stream_set_property (GObject *object, 
-                                          guint prop_id,
-                                          const GValue *value, 
-                                          GParamSpec *pspec);
+static void fs_stream_get_property (GObject *object,
+                                    guint prop_id,
+                                    GValue *value,
+                                    GParamSpec *pspec);
+static void fs_stream_set_property (GObject *object,
+                                    guint prop_id,
+                                    const GValue *value,
+                                    GParamSpec *pspec);
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -126,7 +126,7 @@ fs_stream_direction_get_type (void)
 
   if (gtype == 0) {
     static const GEnumValue values[] = {
-      { FS_DIRECTION_NONE, "None (default)", "none"},
+      { FS_DIRECTION_NONE, "No data transfer (default)", "none"},
       { FS_DIRECTION_BOTH, "Both (send and receive)", "both"},
       { FS_DIRECTION_SEND, "Send only", "send" },
       { FS_DIRECTION_RECV, "Receive only", "recv" },
@@ -184,16 +184,17 @@ fs_stream_class_init (FsStreamClass *klass)
         G_PARAM_READWRITE));
 
   /**
-   * FsStream:curent-recv-codec:
+   * FsStream:current-recv-codec:
    *
    * This is the codec that is currently being received. It is the same as the
    * one emitted in the #recv-codec-changed signal.
+   *
    */
   g_object_class_install_property (gobject_class,
       PROP_CURRENT_RECV_CODEC,
       g_param_spec_boxed ("current-recv-codec",
         "The codec currently being received",
-        "A FsCodec of codec being currently received",
+        "A FsCodec of the codec currently being received",
         fs_codec_get_type(),
         G_PARAM_READABLE));
 
@@ -326,4 +327,20 @@ fs_stream_finalize (GObject *object)
   g_signal_handlers_destroy (object);
 
   parent_class->finalize (object);
+}
+
+static void
+fs_stream_get_property (GObject *object,
+                        guint prop_id,
+                        GValue *value,
+                        GParamSpec *pspec)
+{
+}
+
+static void
+fs_stream_set_property (GObject *object,
+                        guint prop_id,
+                        const GValue *value,
+                        GParamSpec *pspec)
+{
 }

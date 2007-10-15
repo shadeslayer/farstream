@@ -7,7 +7,8 @@ libgstfarsightinclude_HEADERS = \
 		fs-participant.h \
 		fs-session.h \
 		fs-stream.h \
-		fs-conference-iface.h
+		fs-conference-iface.h \
+		fs-marshal.h
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
 
@@ -22,7 +23,8 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-participant.c \
 		fs-session.c \
 		fs-stream.c \
-		fs-conference-iface.c
+		fs-conference-iface.c \
+		fs-marshal.c
 
 EXTRA_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = fs-marshal.list
 
@@ -39,3 +41,5 @@ fs-marshal.c: Makefile fs-marshal.list
 libgstfarsight_@GST_MAJORMINOR@_la_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CFLAGS)
 libgstfarsight_@GST_MAJORMINOR@_la_LIBADD = $(GST_BASE_LIBS) $(GST_LIBS)
 libgstfarsight_@GST_MAJORMINOR@_la_LDFLAGS = $(GST_LIB_LDFLAGS) $(GST_ALL_LDFLAGS) $(GST_LT_LDFLAGS)
+
+noinst_HEADERS = fs-marshal.h

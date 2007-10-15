@@ -3,17 +3,24 @@
                "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
 <book id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
   <bookinfo>
-    <title>[Insert name here] Reference Manual</title>
+    <title>Farsight 0.3 Reference Manual</title>
   </bookinfo>
 
   <chapter>
-    <title>[Insert title here]</title>
+    <title>Farsight Core Library</title>
     <xi:include href="xml/fs-participant.xml"/>
     <xi:include href="xml/fs-stream.xml"/>
     <xi:include href="xml/fs-session.xml"/>
-    <xi:include href="xml/fs-conference-iface.xml"/>
     <xi:include href="xml/fs-candidate.xml"/>
     <xi:include href="xml/fs-codec.xml"/>
     <xi:include href="xml/fs-marshal.xml"/>
+  </chapter>
+  <chapter>
+    <title>Farsight GStreamer Interfaces</title>
+    <xi:include href="xml/fs-conference-iface.xml"/>
+  </chapter>
+  <chapter>
+    <title>Farsight GStreamer Base Implementations</title>
+    <xi:include href="xml/fs-base-conference.xml"/>
   </chapter>
 </book>

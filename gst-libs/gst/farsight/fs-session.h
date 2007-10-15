@@ -142,6 +142,13 @@ gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,
 gboolean fs_session_stop_telephony_event (FsSession *session,
                                           FsDTMFMethod method);
 
+gboolean fs_session_start_telephony_event_full (FsSession *session,
+                                                guint8 event, guint8 volume,
+                                                FsDTMFMethod method);
+
+gboolean fs_session_stop_telephony_event_full (FsSession *session,
+                                               FsDTMFMethod method);
+
 G_END_DECLS
 
 #endif /* __FS_SESSION_H__ */

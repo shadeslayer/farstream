@@ -23,8 +23,8 @@
  */
 
 /**
- * SECTION:FsParticipant
- * @short_description: A gobject representing a farsight participant
+ * SECTION:fs-participant
+ * @short_description: A participant in a conference
  *
  * This object is the base implementation of a Farsight Participant. It needs to be
  * derived and implemented by a farsight conference gstreamer element. A
@@ -69,14 +69,14 @@ static void fs_participant_init (FsParticipant *self);
 static void fs_participant_dispose (GObject *object);
 static void fs_participant_finalize (GObject *object);
 
-static void fs_participant_get_property (GObject *object, 
-                                          guint prop_id, 
-                                          GValue *value,
-                                          GParamSpec *pspec);
-static void fs_participant_set_property (GObject *object, 
-                                          guint prop_id,
-                                          const GValue *value, 
-                                          GParamSpec *pspec);
+static void fs_participant_get_property (GObject *object,
+                                         guint prop_id,
+                                         GValue *value,
+                                         GParamSpec *pspec);
+static void fs_participant_set_property (GObject *object,
+                                         guint prop_id,
+                                         const GValue *value,
+                                         GParamSpec *pspec);
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -118,7 +118,7 @@ fs_participant_class_init (FsParticipantClass *klass)
   gobject_class->get_property = fs_participant_get_property;
 
   /**
-   * FsParticipant:cname:
+   * FsParticipant::cname:
    *
    * A string representing the cname of the current participant. This is a
    * constructor parameter that cannot be changed afterwards.
@@ -136,8 +136,8 @@ fs_participant_class_init (FsParticipantClass *klass)
    * FsParticipant::error:
    * @self: #FsParticipant that emmitted the signal
    * @errorno: The number of the error 
-   * @message: Error message to be displayed to user
-   * @message: Debugging error message
+   * @error_msg: Error message to be displayed to user
+   * @dbg_msg: Debugging error message
    *
    * This signal is emitted in any error condition
    */
@@ -186,4 +186,20 @@ fs_participant_finalize (GObject *object)
   g_signal_handlers_destroy (object);
 
   parent_class->finalize (object);
+}
+
+static void
+fs_participant_get_property (GObject *object,
+                             guint prop_id,
+                             GValue *value,
+                             GParamSpec *pspec)
+{
+}
+
+static void
+fs_participant_set_property (GObject *object,
+                             guint prop_id,
+                             const GValue *value,
+                             GParamSpec *pspec)
+{
 }

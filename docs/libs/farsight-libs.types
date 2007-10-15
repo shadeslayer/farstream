@@ -1,0 +1,15 @@
+% add a _get_type for every GObject whose properties and signals you want
+% documented
+% add the relevant includes to be able to call those _get_type functions
+
+% adding a get_type here will:
+% - change output file name from gstreamer-(whatever).html to (whatever).html
+% - document properties and signals
+
+#include "../../gst-libs/gst/farsight/fs-participant.h"
+#include "../../gst-libs/gst/farsight/fs-session.h"
+#include "../../gst-libs/gst/farsight/fs-stream.h"
+
+fs_participant_get_type
+fs_session_get_type
+fs_stream_get_type

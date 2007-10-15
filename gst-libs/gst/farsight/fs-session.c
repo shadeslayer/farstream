@@ -23,8 +23,8 @@
  */
 
 /**
- * SECTION:FsSession
- * @short_description: A gobject representing a farsight session
+ * SECTION:fs-session
+ * @short_description: A session in a conference
  *
  * This object is the base implementation of a Farsight Session. It needs to be
  * derived and implemented by a farsight conference gstreamer element. A
@@ -79,14 +79,14 @@ static void fs_session_init (FsSession *self);
 static void fs_session_dispose (GObject *object);
 static void fs_session_finalize (GObject *object);
 
-static void fs_session_get_property (GObject *object, 
-                                          guint prop_id, 
-                                          GValue *value,
-                                          GParamSpec *pspec);
-static void fs_session_set_property (GObject *object, 
-                                          guint prop_id,
-                                          const GValue *value, 
-                                          GParamSpec *pspec);
+static void fs_session_get_property (GObject *object,
+                                     guint prop_id,
+                                     GValue *value,
+                                     GParamSpec *pspec);
+static void fs_session_set_property (GObject *object,
+                                     guint prop_id,
+                                     const GValue *value,
+                                     GParamSpec *pspec);
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
@@ -128,7 +128,7 @@ fs_session_class_init (FsSessionClass *klass)
   gobject_class->get_property = fs_session_get_property;
 
   /**
-   * FsStream:media-type:
+   * FsSession:media-type:
    *
    * The media-type of the session. This is either Audio or Video.
    * This is a constructor parameter that cannot be changed.
@@ -321,9 +321,9 @@ fs_session_finalize (GObject *object)
 }
 
 /**
- * fs_session_add_participant
+ * fs_session_add_participant:
  * @session: #FsSession of a session in a conference
- * @participants: #FsParticipant of a participant in a conference
+ * @participant: #FsParticipant of a participant in a conference
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
  *
@@ -341,12 +341,13 @@ fs_session_add_participant (FsSession *session, FsParticipant *participant,
 }
 
 /**
- * farsight_session_start_telephony_event:
+ * fs_session_start_telephony_event:
  * @session: an #FsSession
- * @ev: A #FarsightStreamDTMFEvent or another number defined at
+ * @event: A #FsStreamDTMFEvent or another number defined at
  * http://www.iana.org/assignments/audio-telephone-event-registry
  * @volume: The volume in dBm0 without the negative sign. Should be between
  * 0 and 36. Higher values mean lower volume
+ * @method: The method used to send the event
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsSession. You have to call the function
@@ -354,7 +355,7 @@ fs_session_add_participant (FsSession *session, FsParticipant *participant,
  * This function will use any available method, if you want to use a specific
  * method only, use #fs_session_start_telephony_event_full()
  *
- * Return value: %TRUE if sucessful, it can return %FALSE if the #FarsightStream
+ * Returns: %TRUE if sucessful, it can return %FALSE if the #FsStream
  * does not support this telephony event.
  */
 gboolean
@@ -366,30 +367,29 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
 /**
  * fs_session_start_telephony_event_full:
  * @session: a #FsSession
- * @ev: A #FarsightStreamDTMFEvent or another number defined at
+ * @event: A #FsStreamDTMFEvent or another number defined at
  * http://www.iana.org/assignments/audio-telephone-event-registry
  * @volume: The volume in dBm0 without the negative sign. Should be between
  * 0 and 36. Higher values mean lower volume
- * @type: The way the event should be sent
  * @method: The method used to send the event
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsSession, you have to call the function
  * #fs_session_stop_telephony_event_full() to stop it.
  *
- * Return value: %TRUE if sucessful, it can return %FALSE if the #FsSession
+ * Returns: %TRUE if sucessful, it can return %FALSE if the #FsSession
  * does not support this telephony event.
  */
 gboolean
-fs_session_start_telephony_event_full (FsSession *session, guint8 ev,
-                                       guint8 volume,
-                                       FsDTMFMethod method)
+fs_session_start_telephony_event_full (FsSession *session, guint8 event,
+                                       guint8 volume, FsDTMFMethod method)
 {
 }
 
 /**
  * fs_session_stop_telephony_event:
  * @session: an #FsSession
+ * @method: The method used to send the event
  *
  * This function will stop sending a telephony event started by
  * #fs_session_start_telephony_event(). If the event was being sent
@@ -397,7 +397,7 @@ fs_session_start_telephony_event_full (FsSession *session, guint8 ev,
  * duration was a positive and the event is not over, it will cut it
  * short.
  *
- * Return value: %TRUE if sucessful, it can return %FALSE if the #FsSession
+ * Returns: %TRUE if sucessful, it can return %FALSE if the #FsSession
  * does not support telephony events or if no telephony event is being sent
  */
 gboolean
@@ -417,11 +417,27 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
  * duration was a positive and the event is not over, it will cut it
  * short. The type parameters has to be the same type that was passed to
  *
- * Return value: %TRUE if sucessful, it can return %FALSE if the #FsSession
+ * Returns: %TRUE if sucessful, it can return %FALSE if the #FsSession
  * does not support telephony events or if no telephony event is being sent
  */
 gboolean
-farsight_stream_stop_telephony_event_full (FsSession *session,
-                                           FsDTMFMethod method)
+fs_session_stop_telephony_event_full (FsSession *session,
+                                      FsDTMFMethod method)
+{
+}
+
+static void
+fs_session_get_property (GObject *object,
+                         guint prop_id,
+                         GValue *value,
+                         GParamSpec *pspec)
+{
+}
+
+static void
+fs_session_set_property (GObject *object,
+                         guint prop_id,
+                         const GValue *value,
+                         GParamSpec *pspec)
 {
 }

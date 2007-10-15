@@ -25,9 +25,10 @@
 #include "fs-candidate.h"
 
 /**
- * SECTION:FsCandidate
- * @short_description: Structure representing a transport candidate. This
- * description is compatible with ICE-13.
+ * SECTION:fs-candidate
+ * @short_description: Structure describing a transport candidate. This
+ * description is compatible with ICE-13. It can also be a multicast address.
+ * Candidates are linked to streams.
  */
 
 GType
@@ -37,7 +38,7 @@ fs_candidate_get_type (void)
   if (candidate_type == 0)
   {
     candidate_type = g_boxed_type_register_static (
-        "Candidate",
+        "FsCandidate",
         (GBoxedCopyFunc)fs_candidate_destroy,
         (GBoxedFreeFunc)fs_candidate_copy);
   }

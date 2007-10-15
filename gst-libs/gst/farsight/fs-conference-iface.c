@@ -30,14 +30,15 @@
 #include "fs-conference-iface.h"
 
 /**
- * SECTION:FsConference
+ * SECTION:fs-conference-iface
  * @short_description: Interface for farsight conference elements
  *
- * This interface must be implemented by all farsight conference elements. One
- * example is the fsrtpconference element that implements an RTP conference. A
+ * This interface is implemented by the FsBaseConference base class element. A
  * Farsight conference is a conversation space that takes place between 2 or
  * more participants. Each conference must have one or more Farsight sessions
- * that are associated to the conference participants.
+ * that are associated to the conference participants. Different protocols
+ * simply need to derive from the FsBaseConference class and don't need to
+ * implement this interface directly.
  *
  */
 

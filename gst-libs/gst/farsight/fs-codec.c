@@ -30,7 +30,7 @@
 #include <string.h>
 
 /**
- * SECTION:FsCodec
+ * SECTION:fs-codec
  * @short_description: Structure representing a media codec
  */
 
@@ -41,7 +41,7 @@ fs_codec_get_type (void)
   if (codec_type == 0)
   {
     codec_type = g_boxed_type_register_static (
-        "Codec",
+        "FsCodec",
         (GBoxedCopyFunc)fs_codec_destroy,
         (GBoxedFreeFunc)fs_codec_copy);
   }
@@ -56,7 +56,7 @@ fs_codec_list_get_type (void)
   if (codec_list_type == 0)
   {
     codec_list_type = g_boxed_type_register_static (
-        "CodecGlist",
+        "FsCodecGList",
         (GBoxedCopyFunc)fs_codec_list_destroy,
         (GBoxedFreeFunc)fs_codec_list_copy);
   }
@@ -64,7 +64,7 @@ fs_codec_list_get_type (void)
   return codec_list_type;
 }
 
-static GType
+GType
 fs_media_type_get_type (void)
 {
   static GType gtype = 0;
