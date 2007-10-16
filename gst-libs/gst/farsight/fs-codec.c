@@ -227,7 +227,9 @@ fs_codec_list_copy (const GList *codec_list)
  * Reads the content of a #GKeyFile of the following format into
  * a #GList of #FsCodec structures.
  *
+ *
  * Example:
+ * |[
  * [audio/codec1]
  * clock-rate=8000
  *
@@ -237,6 +239,7 @@ fs_codec_list_copy (const GList *codec_list)
  * [audio/codec2]
  * one_param=QCIF
  * another_param=WOW
+ * ]|
  *
  * Return value: The read #GList of #FsCodec or %NULL if an error appended
  */
