@@ -26,9 +26,6 @@ AC_CONFIG_SRCDIR([gst-libs/gst/farsight/fs-candidate.c])
 dnl define the output header for config
 AM_CONFIG_HEADER([config.h])
 
-dnl AM_MAINTAINER_MODE only provides the option to configure to enable it
-AM_MAINTAINER_MODE
-
 dnl sets host_* variables
 AC_CANONICAL_HOST
 
