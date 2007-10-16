@@ -306,10 +306,9 @@ dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc
 dnl tests/Makefile
 docs/Makefile
- docs/libs/Makefile
-dnl docs/plugins/Makefile
+docs/libs/Makefile
 docs/version.entities
-dnl m4/Makefile
+dnl docs/plugins/Makefile
 )
 AC_OUTPUT
 
