@@ -118,10 +118,11 @@ fs_participant_class_init (FsParticipantClass *klass)
   gobject_class->get_property = fs_participant_get_property;
 
   /**
-   * FsParticipant::cname:
+   * FsParticipant:cname:
    *
    * A string representing the cname of the current participant. This is a
-   * constructor parameter that cannot be changed afterwards.
+   * constructor parameter that cannot be changed afterwards. User must free the
+   * string after getting it.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -134,7 +135,8 @@ fs_participant_class_init (FsParticipantClass *klass)
 
   /**
    * FsParticipant::error:
-   * @self: #FsParticipant that emmitted the signal
+   * @self: #FsParticipant that emitted the signal
+   * @object: The #Gobject that emitted the signal
    * @errorno: The number of the error 
    * @error_msg: Error message to be displayed to user
    * @dbg_msg: Debugging error message
@@ -147,8 +149,8 @@ fs_participant_class_init (FsParticipantClass *klass)
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      fs_marshal_VOID__OBJECT_INT_STRING_STRING,
+      G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   gobject_class->dispose = fs_participant_dispose;
   gobject_class->finalize = fs_participant_finalize;

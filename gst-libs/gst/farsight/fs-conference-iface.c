@@ -86,7 +86,8 @@ fs_conference_iface_init (FsConferenceInterface * iface)
  *
  * Create a new Farsight session for the given conference.
  *
- * Returns: the new #FsSession that has been created
+ * Returns: the new #FsSession that has been created. The #FsSession must be
+ * unref'd by the user when closing the session.
  */
 FsSession *
 fs_conference_new_session (FsConference *conference, FsMediaType media_type)
@@ -94,8 +95,6 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type)
   FsConferenceInterface *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
-/* TODO it needs to link up to the error signal of the new session that has been
- * created in order to forward those errors up on the gst bus */
   if (iface->new_session) {
     return iface->new_session (conference, media_type);
   } else {
@@ -110,7 +109,8 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type)
  *
  * Create a new Farsight participant for the given conference.
  *
- * Returns: the new #FsParticipant that has been created
+ * Returns: the new #FsParticipant that has been created. The #FsParticipant
+ * must be unref'd by the user when the participant leaves the conference.
  */
 FsParticipant *
 fs_conference_new_participant (FsConference *conference)
@@ -118,8 +118,6 @@ fs_conference_new_participant (FsConference *conference)
   FsConferenceInterface *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
-/* TODO it needs to link up to the error signal of the new participant that has been
- * created in order to forward those errors up on the gst bus */
   if (iface->new_participant) {
     return iface->new_participant (conference);
   } else {

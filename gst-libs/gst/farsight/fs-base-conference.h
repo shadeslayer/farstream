@@ -22,3 +22,63 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+
+#ifndef __FS_BASE_CONFERENCE_H__
+#define __FS_BASE_CONFERENCE_H__
+
+#include <gst/gst.h>
+
+#include "fs-conference-iface.h"
+#include "fs-session.h"
+#include "fs-participant.h"
+#include "fs-codec.h"
+
+G_BEGIN_DECLS
+
+#define FS_TYPE_BASE_CONFERENCE \
+  (fs_base_conference_get_type())
+#define FS_BASE_CONFERENCE(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),FS_TYPE_BASE_CONFERENCE,FsBaseConference))
+#define FS_BASE_CONFERENCE_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),FS_TYPE_BASE_CONFERENCE,FsBaseConferenceClass))
+#define FS_BASE_CONFERENCE_GET_CLASS(obj) \
+  (G_TYPE_INSTANCE_GET_CLASS((obj),FS_TYPE_BASE_CONFERENCE,FsBaseConferenceClass))
+#define GST_IS_BASE_TRANSFORM(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),FS_TYPE_BASE_CONFERENCE))
+#define GST_IS_BASE_TRANSFORM_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),FS_TYPE_BASE_CONFERENCE))
+/* since 0.10.4 */
+#define FS_BASE_CONFERENCE_CAST(obj) \
+  ((FsBaseConference *)(obj))
+
+typedef struct _FsBaseConference FsBaseConference;
+typedef struct _FsBaseConferenceClass FsBaseConferenceClass;
+typedef struct _FsBaseConferencePrivate FsBaseConferencePrivate;
+
+struct _FsBaseConference
+{
+  GstElement *element;
+
+  /*< private >*/
+  FsBaseConferencePrivate *priv;
+
+  gpointer _padding[8];
+};
+
+struct _FsBaseConferenceClass
+{
+  GstElementClass parent_class;
+
+  /*< public >*/
+  /* virtual methods */
+  FsSession *(*new_session) (FsConference *conference, FsMediaType media_type);
+  FsParticipant *(* new_participant) (FsConference *conference);
+
+  gpointer _padding[8];
+};
+
+GType fs_base_conference_get_type(void);
+
+G_END_DECLS
+
+#endif /* __ FS_BASE_CONFERENCE_H__ */

@@ -30,6 +30,7 @@
 
 #include "fs-stream.h"
 #include "fs-participant.h"
+#include "fs-codec.h"
 
 G_BEGIN_DECLS
 
@@ -88,6 +89,7 @@ typedef enum
  * @FS_DTMF_METHOD_IN_BAND: Send as tones as in-band audio sound
  *
  * An enum that represents the different ways a DTMF event can be sent
+ *
  */
 typedef enum
 {
@@ -107,11 +109,10 @@ struct _FsSessionClass
 
   gboolean (* start_telephony_event) (FsSession *session, guint8 event,
                                       guint8 volume, FsDTMFMethod method);
-  gboolean (* start_telephony_event_full) (FsSession *session, guint8 ev,
-                                           guint8 volume, FsDTMFMethod method);
   gboolean (* stop_telephony_event) (FsSession *session, FsDTMFMethod method);
-  gboolean (* stop_telephony_event_full) (FsSession *session,
-                                          FsDTMFMethod method);
+
+  gboolean (* set_send_codec) (FsSession *session, FsCodec *send_codec,
+                               GError **error);
 
   /*< private >*/
   gpointer _padding[8];
@@ -142,12 +143,8 @@ gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,
 gboolean fs_session_stop_telephony_event (FsSession *session,
                                           FsDTMFMethod method);
 
-gboolean fs_session_start_telephony_event_full (FsSession *session,
-                                                guint8 event, guint8 volume,
-                                                FsDTMFMethod method);
-
-gboolean fs_session_stop_telephony_event_full (FsSession *session,
-                                               FsDTMFMethod method);
+gboolean fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
+                                    GError **error);
 
 G_END_DECLS
 

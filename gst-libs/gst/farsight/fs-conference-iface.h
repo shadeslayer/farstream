@@ -50,6 +50,8 @@ G_BEGIN_DECLS
  */
 typedef struct _FsConference FsConference;
 
+typedef struct _FsConferenceInterface FsConferenceInterface;
+
 /**
  * FsConferenceInterface:
  * @parent: parent interface type.
@@ -58,7 +60,7 @@ typedef struct _FsConference FsConference;
  *
  * #FsConferenceInterface interface.
  */
-typedef struct _FsConferenceInterface {
+struct _FsConferenceInterface {
   GTypeInterface parent;
 
   /* virtual functions */
@@ -67,7 +69,7 @@ typedef struct _FsConferenceInterface {
 
   /*< private > */
   gpointer _gst_reserved[GST_PADDING];
-} FsConferenceInterface;
+};
 
 GType fs_conference_get_type (void);
 

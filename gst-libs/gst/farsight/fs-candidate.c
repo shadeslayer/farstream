@@ -26,9 +26,13 @@
 
 /**
  * SECTION:fs-candidate
- * @short_description: Structure describing a transport candidate. This
- * description is compatible with ICE-13. It can also be a multicast address.
- * Candidates are linked to streams.
+ * @short_description: Structure describing a transport candidate.
+ *
+ * An FsCandidate is a way to exchange candidate information between the client
+ * and Farsight. This description is compatible with ICE-13. It can also be a
+ * multicast address. Candidates are linked to streams. The information
+ * specified in this structure is usually representative of the codec
+ * information exchanged in the signaling.
  */
 
 GType
@@ -45,6 +49,8 @@ fs_candidate_get_type (void)
 
   return candidate_type;
 }
+
+/* TODO Create a fs_candidate_new() function since there is a _destroy() func */
 
 /**
  * fs_candidate_destroy:

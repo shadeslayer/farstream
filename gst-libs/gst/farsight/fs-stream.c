@@ -42,7 +42,6 @@
 #include "fs-stream.h"
 #include "fs-marshal.h"
 #include "fs-codec.h"
-#include "fs-candidate.h"
 
 #include <gst/gst.h>
 
@@ -171,8 +170,8 @@ fs_stream_class_init (FsStreamClass *klass)
    * FsStream:remote-codecs:
    *
    * This is the list of remote codecs for this stream. They must be set by the
-   * user as soon as they are known (generally through external signaling).
-   * It is a #GList of #FsCodec.
+   * user as soon as they are known using fs_stream_set_remote_codecs()
+   * (generally through external signaling). It is a #GList of #FsCodec.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -181,13 +180,14 @@ fs_stream_class_init (FsStreamClass *klass)
         "List of remote codecs",
         "A GList of FsCodecs of the remote codecs",
         fs_codec_list_get_type(),
-        G_PARAM_READWRITE));
+        G_PARAM_READABLE));
 
   /**
    * FsStream:current-recv-codec:
    *
    * This is the codec that is currently being received. It is the same as the
-   * one emitted in the #recv-codec-changed signal.
+   * one emitted in the ::recv-codec-changed signal. User must free the codec
+   * using fs_codec_destroy() when done.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -202,7 +202,7 @@ fs_stream_class_init (FsStreamClass *klass)
    * FsStream:direction:
    *
    * The direction of the stream. This property is set initially as a parameter
-   * to the #fs_session_add_participant function. It can be changed later if
+   * to the fs_session_add_participant() function. It can be changed later if
    * required by setting this property.
    *
    */
@@ -218,11 +218,13 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream::error:
    * @self: #FsStream that emmitted the signal
+   * @object: The #Gobject that emitted the signal
    * @errorno: The number of the error 
    * @error_msg: Error message to be displayed to user
    * @debug_msg: Debugging error message
    *
    * This signal is emitted in any error condition
+   *
    */
   signals[ERROR] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
@@ -230,8 +232,8 @@ fs_stream_class_init (FsStreamClass *klass)
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      fs_marshal_VOID__OBJECT_INT_STRING_STRING,
+      G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   /**
    * FsStream::src-pad-added:
@@ -241,7 +243,10 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    * This signal is emitted when a new gst source pad has been created for a
    * specific codec being received. There will be a different source pad for
-   * each codec that is received.
+   * each codec that is received. The user must ref the #GstPad if he wants to
+   * use it. The user should not modify the #FsCodec and must copy it if he
+   * wants to use it outside the callback scope.
+   *
    */
   signals[SRC_PAD_ADDED] = g_signal_new ("src-pad-added",
       G_TYPE_FROM_CLASS (klass),
@@ -259,8 +264,11 @@ fs_stream_class_init (FsStreamClass *klass)
    * @codec: #FsCodec of the new codec being received
    *
    * This signal is emitted when the currently received codec has changed. This
-   * is usefull for displaying the current active reception codec or for making
-   * changes to the pipeline.
+   * is useful for displaying the current active reception codec or for making
+   * changes to the pipeline. The user must ref the #GstPad if he wants to
+   * use it. The user should not modify the #FsCodec and must copy it if he
+   * wants to use it outside the callback scope.
+   *
    */
   signals[RECV_CODEC_CHANGED] = g_signal_new ("recv-codec-changed",
       G_TYPE_FROM_CLASS (klass),
@@ -279,7 +287,10 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    * This signal is emitted when there is a new active chandidate pair that has
    * been established. This is specially useful for ICE where the active
-   * candidate pair can change automatically due to network conditions.
+   * candidate pair can change automatically due to network conditions. The user
+   * must not modify the candidates and must copy them if he wants to use them
+   * outside the callback scope.
+   *
    */
   signals[NEW_ACTIVE_CANDIDATE_PAIR] = g_signal_new
     ("new-active-candidate-pair",
@@ -342,5 +353,56 @@ fs_stream_set_property (GObject *object,
                         guint prop_id,
                         const GValue *value,
                         GParamSpec *pspec)
+{
+}
+
+/**
+ * fs_stream_add_remote_candidate:
+ * @stream: an #FsStream
+ * @candidate: an #FsCandidate struct representing a remote candidate
+ *
+ * This function adds the given candidate into the remote candiate list of the
+ * stream. It will be used for establishing a connection with the peer. A copy
+ * will be made so the user must free the passed candidate using
+ * fs_candidate_destroy() when done.
+ */
+void
+fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate)
+{
+}
+
+/**
+ * fs_stream_preload_recv_codec:
+ * @stream: an #FsStream
+ * @payload_type: a codec payload type
+ *
+ * This function will preload the codec corresponding to the given payload type.
+ * This payload type must correspond to the native-codecs returned by the
+ * #FsSession that spawned this #FsStream. Preloading a codec is useful for
+ * machines where loading the codec is slow. When preloading, decoding can start
+ * as soon as a stream is received.
+ */
+void
+fs_stream_preload_recv_codec (FsStream *stream, gint payload_type)
+{
+}
+
+/**
+ * fs_stream_set_remote_codecs:
+ * @stream: an #FsStream
+ * @remote_codecs: a #GList of #FsCodec representing the remote codecs
+ * @error: location of a #GError, or NULL if no error occured
+ *
+ * This function will set the list of remote codecs for this stream. If
+ * the given remote codecs couldn't be negotiated with the list of native
+ * codecs or already negotiated codecs for the corresponding #FsSession, @error
+ * will be set and %FALSE will be returned. The @remote_codecs list will be
+ * copied so it must be free'd using fs_codec_list_destroy() when done.
+ *
+ * Returns: %FALSE if the remote codecs couldn't be set.
+ */
+gboolean
+fs_stream_set_remote_codecs (FsStream *stream,
+                             GList *remote_codecs, GError **error)
 {
 }

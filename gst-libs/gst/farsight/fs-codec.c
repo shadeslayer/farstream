@@ -32,7 +32,14 @@
 /**
  * SECTION:fs-codec
  * @short_description: Structure representing a media codec
+ *
+ * An #FsCodec is a way to exchange codec information between the client and
+ * Farsight. The information specified in this structure is usually
+ * representative of the codec information exchanged in the signaling.
+ *
  */
+
+/* TODO Make a fs_codec_new() function since there is a _destroy() */
 
 GType
 fs_codec_get_type (void)

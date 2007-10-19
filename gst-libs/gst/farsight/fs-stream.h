@@ -28,6 +28,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#include "fs-candidate.h"
+
 G_BEGIN_DECLS
 
 #define FS_TYPE_STREAM_DIRECTION (fs_stream_direction_get_type ())
@@ -40,6 +42,7 @@ G_BEGIN_DECLS
  * @FS_DIRECTION_RECV: Receive only
  *
  * An enum for specifying the direction of a stream
+ *
  */
 typedef enum
 {
@@ -72,6 +75,13 @@ struct _FsStreamClass
   GObjectClass parent_class;
 
   /*virtual functions */
+  void (*add_remote_candidate) (FsStream *stream,
+                                FsCandidate *candidate);
+
+  void (*preload_recv_codec) (FsStream *stream, gint payload_type);
+
+  gboolean (*set_remote_codecs) (FsStream *stream,
+                                 GList *remote_codecs, GError **error);
 
   /*< private >*/
   gpointer _padding[8];
@@ -91,6 +101,13 @@ struct _FsStream
 };
 
 GType fs_stream_get_type (void);
+
+void fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate);
+
+void fs_stream_preload_recv_codec (FsStream *stream, gint payload_type);
+
+gboolean fs_stream_set_remote_codecs (FsStream *stream,
+                                      GList *remote_codecs, GError **error);
 
 G_END_DECLS
 
