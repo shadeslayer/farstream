@@ -59,7 +59,10 @@ enum
 struct _FsBaseConferencePrivate
 {
   /* List of Sessions */
+  GPtrArray *session_list;
+
   /* List of Participants */
+  GPtrArray *participant_list;
 };
 
 static GstElementClass *parent_class = NULL;
@@ -120,7 +123,7 @@ FsParticipant *fs_base_conference_new_participant (FsConference *conf);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
                                gint error_no, gchar *error_msg,
-                               gchar *debug_msg, FsConference *conf);
+                               gchar *debug_msg, FsBaseConference *conf);
 
 static void
 fs_base_conference_base_init (gpointer g_class)
@@ -135,6 +138,19 @@ fs_base_conference_finalize (GObject * object)
   FsBaseConference *conf;
 
   conf = FS_BASE_CONFERENCE (object);
+
+  /* Let's check if we have any remaining sessions or participants in this
+   * conference, if we do we need to exit since this is a fatal error by the
+   * user because it results in unusable children objects */
+  if (conf->priv->session_list || conf->priv->participant_list)
+  {
+    g_error ("You may not unref your Farsight Conference Gstreamer "
+             "element without first unrefing all underlying sessions, "
+             "participants and streams! Exiting");
+  }
+
+  g_ptr_array_free (conf->priv->session_list, TRUE);
+  g_ptr_array_free (conf->priv->participant_list, TRUE);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -167,6 +183,9 @@ fs_base_conference_init (FsBaseConference *conf,
   GST_DEBUG ("fs_base_conference_init");
 
   conf->priv = FS_BASE_CONFERENCE_GET_PRIVATE (conf);
+
+  conf->priv->session_list = g_ptr_array_new();
+  conf->priv->participant_list = g_ptr_array_new();
 }
 
 static void
@@ -199,43 +218,76 @@ fs_base_conference_setcaps (GstPad * pad, GstCaps * caps)
 {
 }
 
+void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
+{
+  if (!g_ptr_array_remove (conf->priv->session_list, session))
+  {
+    GST_WARNING_OBJECT (conf, "FsSession not found in session ptr array");
+  }
+}
+
 FsSession *
 fs_base_conference_new_session (FsConference *conf,
                                  FsMediaType media_type)
 {
   FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
+  FsBaseConference *base_conf = FS_BASE_CONFERENCE (conf);
 
   FsSession *new_session = NULL;
 
   if (klass->new_session) {
-    new_session = klass->new_session (conf, media_type);
+    new_session = klass->new_session (base_conf, media_type);
 
     /* Let's catch all session errors and send them over the GstBus */
     g_signal_connect (new_session, "error",
-        G_CALLBACK (fs_base_conference_error), conf);
+        G_CALLBACK (fs_base_conference_error), base_conf);
+
+    /* Let's add a ptr to the new session into our ptr array */
+    g_ptr_array_add (base_conf->priv->session_list, new_session);
+
+    /* Let's add a weak reference to our new session, this way if it gets
+     * unrefed we can remove it from our ptr list */
+    g_object_weak_ref (G_OBJECT (new_session), (GWeakNotify)_remove_session_ptr,
+        base_conf);
   } else {
-    GST_WARNING ("new_session not defined in element");
+    GST_WARNING_OBJECT (conf, "new_session not defined in element");
   }
 
   return new_session;
+}
+
+void _remove_participant_ptr (FsBaseConference *conf, FsParticipant *participant)
+{
+  if (!g_ptr_array_remove (conf->priv->participant_list, participant))
+  {
+    GST_WARNING_OBJECT (conf, "FsSession not found in participant ptr array");
+  }
 }
 
 FsParticipant *
 fs_base_conference_new_participant (FsConference *conf)
 {
   FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
+  FsBaseConference *base_conf = FS_BASE_CONFERENCE (conf);
+
   FsParticipant *new_participant = NULL;
 
-  /* TODO it needs to link up to the error signal of the new session that has
-   * been created in order to forward those errors up on the gst bus */
   if (klass->new_participant) {
-    new_participant = klass->new_participant (conf);
+    new_participant = klass->new_participant (base_conf);
 
     /* Let's catch all participant errors and send them over the GstBus */
     g_signal_connect (new_participant, "error",
-        G_CALLBACK (fs_base_conference_error), conf);
+        G_CALLBACK (fs_base_conference_error), base_conf);
+
+    /* Let's add a ptr to the new session into our ptr array */
+    g_ptr_array_add (base_conf->priv->participant_list, new_participant);
+
+    /* Let's add a weak reference to our new participant, this way if it gets
+     * unrefed we can remove it from our ptr list */
+    g_object_weak_ref (G_OBJECT (new_participant),
+        (GWeakNotify)_remove_participant_ptr, base_conf);
   } else {
-    GST_WARNING ("new_session not defined in element");
+    GST_WARNING_OBJECT (base_conf, "new_participant not defined in element");
   }
 
   return new_participant;
@@ -244,7 +296,7 @@ fs_base_conference_new_participant (FsConference *conf)
 void
 fs_base_conference_error (GObject *signal_src, GObject *error_src,
                           gint error_no, gchar *error_msg,
-                          gchar *debug_msg, FsConference *conf)
+                          gchar *debug_msg, FsBaseConference *conf)
 {
   GstMessage *gst_msg = NULL;
   GstStructure *error_struct = NULL;
