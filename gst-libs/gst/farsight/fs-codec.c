@@ -419,6 +419,8 @@ fs_media_type_to_string (FsMediaType media_type)
     return "audio";
   } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     return "video";
+  } else if (media_type == FS_MEDIA_TYPE_AV) {
+    return "audiovideo";
   } else {
     return NULL;
   }
