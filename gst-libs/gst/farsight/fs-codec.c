@@ -351,7 +351,7 @@ fs_codec_list_from_keyfile (const gchar *filename)
          codec->id = g_key_file_get_integer (keyfile, groups[i], keys[j],
             &gerror);
         if (gerror) {
-          codec->id = 0;
+          codec->id = -1;
           goto keyerror;
         }
 
