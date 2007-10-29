@@ -122,6 +122,8 @@ GList *fs_codec_list_copy (const GList *codec_list);
 GList *fs_codec_list_from_keyfile (const gchar *filename);
 gchar *fs_codec_to_string (FsCodec *codec);
 
+gboolean fscodec_compare (FsCodec *codec1, FsCodec *codec2);
+
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 
 G_END_DECLS
