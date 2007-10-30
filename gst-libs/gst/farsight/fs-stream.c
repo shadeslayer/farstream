@@ -403,17 +403,31 @@ fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate)
 /**
  * fs_stream_preload_recv_codec:
  * @stream: an #FsStream
- * @payload_type: a codec payload type
+ * @codec: The #FsCodec to be preloaded
+ * @error: location of a #GError, or NULL if no error occured
  *
- * This function will preload the codec corresponding to the given payload type.
- * This payload type must correspond to the native-codecs returned by the
- * #FsSession that spawned this #FsStream. Preloading a codec is useful for
+ * This function will preload the codec corresponding to the given codec.
+ * This codec must correspond exactly to one of the native-codecs returned by
+ * the #FsSession that spawned this #FsStream. Preloading a codec is useful for
  * machines where loading the codec is slow. When preloading, decoding can start
  * as soon as a stream is received.
+ *
+ * Returns: TRUE of the codec could be preloaded, FALSE if there is an error
  */
-void
-fs_stream_preload_recv_codec (FsStream *stream, gint payload_type)
+gboolean
+fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
 {
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  *error = NULL;
+
+  if (klass->preload_recv_codec) {
+    return klass->preload_recv_codec (stream, codec, error);
+  } else {
+    GST_WARNING ("preload_recv_codec not defined in class");
+  }
+
+  return FALSE;
 }
 
 /**

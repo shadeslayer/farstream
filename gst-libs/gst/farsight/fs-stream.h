@@ -29,6 +29,7 @@
 #include <glib-object.h>
 
 #include "fs-candidate.h"
+#include "fs-codec.h"
 
 G_BEGIN_DECLS
 
@@ -78,7 +79,8 @@ struct _FsStreamClass
   void (*add_remote_candidate) (FsStream *stream,
                                 FsCandidate *candidate);
 
-  void (*preload_recv_codec) (FsStream *stream, gint payload_type);
+  gboolean (*preload_recv_codec) (FsStream *stream, FsCodec *codec,
+                                  GError **error);
 
   gboolean (*set_remote_codecs) (FsStream *stream,
                                  GList *remote_codecs, GError **error);
@@ -104,7 +106,8 @@ GType fs_stream_get_type (void);
 
 void fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate);
 
-void fs_stream_preload_recv_codec (FsStream *stream, gint payload_type);
+gboolean fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec,
+                                       GError **error);
 
 gboolean fs_stream_set_remote_codecs (FsStream *stream,
                                       GList *remote_codecs, GError **error);
