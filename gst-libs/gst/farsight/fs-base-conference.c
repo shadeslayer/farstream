@@ -138,7 +138,7 @@ fs_base_conference_finalize (GObject * object)
   /* Let's check if we have any remaining sessions in this
    * conference, if we do we need to exit since this is a fatal error by the
    * user because it results in unusable children objects */
-  if (conf->priv->session_list)
+  if (conf->priv->session_list->len)
   {
     g_error ("You may not unref your Farsight Conference Gstreamer "
              "element without first unrefing all underlying sessions, "

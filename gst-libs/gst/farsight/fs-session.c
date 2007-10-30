@@ -331,6 +331,15 @@ fs_session_finalize (GObject *object)
 {
   FsSession *self = FS_SESSION (object);
 
+  /* Let's check if we have any remaining streams in this
+   * session, if we do we need to exit since this is a fatal error by the
+   * user because it results in unusable children objects */
+  if (self->priv->stream_list->len)
+  {
+    g_error ("You may not unref your Farsight Session object"
+             " without first unrefing all underlying streams! Exiting");
+  }
+
   g_ptr_array_free (self->priv->stream_list, TRUE);
 
   parent_class->finalize (object);
