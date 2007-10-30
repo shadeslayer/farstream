@@ -398,6 +398,13 @@ fs_stream_set_property (GObject *object,
 void
 fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate)
 {
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  if (klass->add_remote_candidate) {
+    klass->add_remote_candidate (stream, candidate);
+  } else {
+    GST_WARNING ("add_remote_candidate not defined in class");
+  }
 }
 
 /**
@@ -448,4 +455,15 @@ gboolean
 fs_stream_set_remote_codecs (FsStream *stream,
                              GList *remote_codecs, GError **error)
 {
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  *error = NULL;
+
+  if (klass->set_remote_codecs) {
+    return klass->set_remote_codecs (stream, remote_codecs, error);
+  } else {
+    GST_WARNING ("set_remote_codecs not defined in class");
+  }
+
+  return FALSE;
 }
