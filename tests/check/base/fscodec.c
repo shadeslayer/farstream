@@ -27,19 +27,22 @@
 #include <gst/farsight/fs-codec.h>
 
 
-GST_START_TEST (test_fscodec_init)
+GST_START_TEST (test_fscodec_new)
 {
-  FsCodec codec;
+  FsCodec *codec = NULL;
 
-  fs_codec_init (&codec, 1, "aa", FS_MEDIA_TYPE_AV, 650);
+  codec = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
 
-  fail_unless (codec.id == 1, "Codec is incorrect");
-  fail_unless (!strcmp (codec.encoding_name, "aa"),
+  fail_if (codec == NULL, "Allocation failed");
+
+  fail_unless (codec->id == 1, "Codec is incorrect");
+  fail_unless (!strcmp (codec->encoding_name, "aa"),
       "Codec encoding name incorrect");;
-  fail_unless (codec.media_type == FS_MEDIA_TYPE_AV,
+  fail_unless (codec->media_type == FS_MEDIA_TYPE_AV,
       "Codec media type incorrect");
-  fail_unless (codec.clock_rate == 650, "Codec clock rate incorrect");
+  fail_unless (codec->clock_rate == 650, "Codec clock rate incorrect");
 
+  fs_codec_destroy (codec);
 }
 
 GST_END_TEST;
@@ -62,7 +65,7 @@ fscodec_suite (void)
 
   suite_add_tcase (s, tc_chain);
 
-  tcase_add_test (tc_chain, test_fscodec_init);
+  tcase_add_test (tc_chain, test_fscodec_new);
   tcase_add_test (tc_chain, test_fscodec_compare);
 
   return s;

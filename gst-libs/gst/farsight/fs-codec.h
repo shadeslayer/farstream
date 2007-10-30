@@ -111,8 +111,8 @@ struct _FsCodecPreference {
 GType fs_codec_get_type (void);
 GType fs_codec_list_get_type (void);
 
-void fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
-                    FsMediaType media_type, guint clock_rate);
+FsCodec *fs_codec_new (int id, const char *encoding_name,
+                       FsMediaType media_type, guint clock_rate);
 
 void fs_codec_destroy (FsCodec * codec);
 FsCodec *fs_codec_copy (FsCodec * codec);

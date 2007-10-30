@@ -97,19 +97,25 @@ fs_media_type_get_type (void)
  * @media_type: #FsMediaType for type of codec
  * @clock_rate: The clock rate this codec encodes at, if applicable
  *
- * Initialises a #FsCodec structure
+ * Allocates and initializes a #FsCodec structure
+ *
+ * Returns: A newly allocated #FsCodec
  */
-void
-fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
-               FsMediaType media_type, guint clock_rate)
+FsCodec *
+fs_codec_new (int id, const char *encoding_name,
+              FsMediaType media_type, guint clock_rate)
 {
-  codec->id =id;
+  FsCodec *codec = g_new0 (FsCodec, 1);
+
+  codec->id = id;
   if (encoding_name)
     codec->encoding_name = g_strdup (encoding_name);
   else
     codec->encoding_name = NULL;
   codec->media_type = media_type;
   codec->clock_rate = clock_rate;
+
+  return codec;
 }
 
 /**
