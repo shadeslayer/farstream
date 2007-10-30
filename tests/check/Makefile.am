@@ -34,5 +34,9 @@ check_PROGRAMS = \
 	base/fscodec
 
 
-base_fscodec_LDADD = $(LDADD)
-base_fscodec_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+AM_CFLAGS = $(GST_CFLAGS) $(GST_CHECK_CFLAGS)
+LDADD = $(GST_LIBS) $(GST_CHECK_LIBS)
+
+base_fscodec_LDADD = $(LDADD) \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
+base_fscodec_CFLAGS = $(FS2_PLUGINS_BASE_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
