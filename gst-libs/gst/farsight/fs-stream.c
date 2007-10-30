@@ -226,11 +226,11 @@ fs_stream_class_init (FsStreamClass *klass)
    */
   g_object_class_install_property (gobject_class,
       PROP_DIRECTION,
-      g_param_spec_enum ("participant",
+      g_param_spec_object ("participant",
         "The participant of the stream",
         "An FsParticipant represented by the stream",
         FS_TYPE_PARTICIPANT,
-        G_PARAM_CONSTRUCT | G_PARAM_READ));
+        G_PARAM_CONSTRUCT | G_PARAM_READABLE));
 
   /**
    * FsStream:session:
@@ -241,11 +241,11 @@ fs_stream_class_init (FsStreamClass *klass)
    */
   g_object_class_install_property (gobject_class,
       PROP_DIRECTION,
-      g_param_spec_enum ("session",
+      g_param_spec_object ("session",
         "The session of the stream",
         "An FsSession represented by the stream",
         FS_TYPE_PARTICIPANT,
-        G_PARAM_CONSTRUCT | G_PARAM_READ));
+        G_PARAM_CONSTRUCT | G_PARAM_READABLE));
 
   /**
    * FsStream::error:
