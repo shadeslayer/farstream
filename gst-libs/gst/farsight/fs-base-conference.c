@@ -231,6 +231,9 @@ fs_base_conference_new_session (FsConference *conf,
   if (klass->new_session) {
     new_session = klass->new_session (base_conf, media_type);
 
+    if (!new_session)
+      return NULL;
+
     /* Let's catch all session errors and send them over the GstBus */
     g_signal_connect (new_session, "error",
         G_CALLBACK (fs_base_conference_error), base_conf);
