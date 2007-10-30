@@ -403,6 +403,8 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
   g_return_val_if_fail (g_type_is_a (G_OBJECT_TYPE (session),
               FS_TYPE_SESSION), NULL);
 
+  *error = NULL;
+
   if (klass->new_stream) {
     new_stream = klass->new_stream (session, participant, direction,
         error);
@@ -506,6 +508,8 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                            GError **error)
 {
   FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+
+  *error = NULL;
 
   if (klass->set_send_codec) {
     return klass->set_send_codec (session, send_codec, error);
