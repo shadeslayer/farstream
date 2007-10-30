@@ -93,7 +93,7 @@ FS_TYPE_MEDIA_TYPE
 FsMediaType
 fs_codec_get_type
 fs_codec_list_get_type
-fs_codec_init
+fs_codec_new
 fs_codec_destroy
 fs_codec_copy
 fs_codec_list_destroy

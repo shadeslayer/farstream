@@ -90,8 +90,7 @@ fs_media_type_get_type (void)
 }
 
 /**
- * fs_codec_init:
- * @codec: #FsCodec structure to initialise
+ * fs_codec_new:
  * @id: codec identifier, if RTP this should be based on IETF RTP payload types
  * @encoding_name: Name of media type this encodes
  * @media_type: #FsMediaType for type of codec
