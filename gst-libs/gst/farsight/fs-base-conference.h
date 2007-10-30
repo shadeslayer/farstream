@@ -30,7 +30,6 @@
 
 #include "fs-conference-iface.h"
 #include "fs-session.h"
-#include "fs-participant.h"
 #include "fs-codec.h"
 
 G_BEGIN_DECLS
@@ -72,7 +71,6 @@ struct _FsBaseConferenceClass
   /*< public >*/
   /* virtual methods */
   FsSession *(*new_session) (FsBaseConference *conference, FsMediaType media_type);
-  FsParticipant *(* new_participant) (FsBaseConference *conference);
 
   gpointer _padding[8];
 };
