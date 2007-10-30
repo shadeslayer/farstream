@@ -76,7 +76,6 @@ fs_conference_iface_init (FsConferenceInterface * iface)
 {
   /* default virtual functions */
   iface->new_session = NULL;
-  iface->new_participant = NULL;
 }
 
 /**
@@ -99,29 +98,6 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type)
     return iface->new_session (conference, media_type);
   } else {
     GST_WARNING ("new_session not defined in element");
-  }
-  return NULL;
-}
-
-/**
- * fs_conference_new_participant
- * @conference: #FsConference interface of a #GstElement
- *
- * Create a new Farsight participant for the given conference.
- *
- * Returns: the new #FsParticipant that has been created. The #FsParticipant
- * must be unref'd by the user when the participant leaves the conference.
- */
-FsParticipant *
-fs_conference_new_participant (FsConference *conference)
-{
-  FsConferenceInterface *iface =
-      FS_CONFERENCE_GET_IFACE (conference);
-
-  if (iface->new_participant) {
-    return iface->new_participant (conference);
-  } else {
-    GST_WARNING ("new_participant not defined in element");
   }
   return NULL;
 }

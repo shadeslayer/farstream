@@ -67,6 +67,9 @@ enum
 
 struct _FsSessionPrivate
 {
+  /* List of Streams */
+  GPtrArray *stream_list;
+
   gboolean disposed;
 };
 
@@ -250,7 +253,7 @@ fs_session_class_init (FsSessionClass *klass)
       NULL,
       NULL,
       fs_marshal_VOID__OBJECT_INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      G_TYPE_NONE, 4, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   /**
    * FsSession::send-codec-changed:
@@ -303,6 +306,8 @@ fs_session_init (FsSession *self)
   /* member init */
   self->priv = FS_SESSION_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  self->priv->stream_list = g_ptr_array_new();
 }
 
 static void
@@ -324,7 +329,9 @@ fs_session_dispose (GObject *object)
 static void
 fs_session_finalize (GObject *object)
 {
-  g_signal_handlers_destroy (object);
+  FsSession *self = FS_SESSION (object);
+
+  g_ptr_array_free (self->priv->stream_list, TRUE);
 
   parent_class->finalize (object);
 }
@@ -345,25 +352,68 @@ fs_session_set_property (GObject *object,
 {
 }
 
+void
+fs_session_error_forward (GObject *signal_src,
+                          gint error_no, gchar *error_msg,
+                          gchar *debug_msg, FsSession *session)
+{
+  /* We just need to forward the error signal including a ref to the stream
+   * object (signal_src) */
+  g_signal_emit (session, signals[ERROR], 0, signal_src, error_no, error_msg,
+      debug_msg);
+}
+
+void
+_remove_stream_ptr (FsSession *session, FsStream *stream)
+{
+  if (!g_ptr_array_remove (session->priv->stream_list, stream))
+  {
+    g_warning ("FsStream not found in stream ptr array");
+  }
+}
+
 /**
- * fs_session_add_participant:
+ * fs_session_new_stream:
  * @session: an #FsSession
- * @participant: #FsParticipant of a participant in a conference
+ * @participant: #FsParticipant of a participant for the new stream
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
+ * @error: location of a #GError, or NULL if no error occured
  *
- * This function adds a participant into an active session therefore creating
- * a new #FsStream for the given participant in the session
+ * This function creates a stream for the given participant into the active session.
  *
  * Returns: the new #FsStream that has been created. User must unref the
- * #FsStream when the stream is ended.
+ * #FsStream when the stream is ended. If an error occured, returns NULL.
  */
 FsStream *
-fs_session_add_participant (FsSession *session, FsParticipant *participant,
-                            FsStreamDirection direction)
+fs_session_new_stream (FsSession *session, FsParticipant *participant,
+                            FsStreamDirection direction, GError **error)
 {
-  /* TODO make sure to link up to the error signal of the FsStream */
-  /* TODO make sure to set the direction as a construtor param */
+  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsStream *new_stream = NULL;
+  g_return_val_if_fail (g_type_is_a (G_OBJECT_TYPE (session),
+              FS_TYPE_SESSION), NULL);
+
+  if (klass->new_stream) {
+    new_stream = klass->new_stream (session, participant, direction,
+        error);
+
+    /* Let's catch all stream errors and forward them */
+    g_signal_connect (new_stream, "error",
+        G_CALLBACK (fs_session_error_forward), session);
+
+    /* Let's add a ptr to the new stream into our ptr array */
+    g_ptr_array_add (session->priv->stream_list, new_stream);
+
+    /* Let's add a weak reference to our new stream, this way if it gets
+     * unrefed we can remove it from our ptr list */
+    g_object_weak_ref (G_OBJECT (new_stream), (GWeakNotify)_remove_stream_ptr,
+        session);
+  } else {
+    g_warning ("new_stream not defined for %s",
+        G_OBJECT_TYPE_NAME (session));
+  }
+  return new_stream; // this shouldn't happen
 }
 
 /**

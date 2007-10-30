@@ -65,7 +65,9 @@ enum
 #endif
   PROP_REMOTE_CODECS,
   PROP_CURRENT_RECV_CODEC,
-  PROP_DIRECTION
+  PROP_DIRECTION,
+  PROP_PARTICIPANT,
+  PROP_SESSION
 };
 
 struct _FsStreamPrivate
@@ -179,7 +181,7 @@ fs_stream_class_init (FsStreamClass *klass)
       g_param_spec_boxed ("remote-codecs",
         "List of remote codecs",
         "A GList of FsCodecs of the remote codecs",
-        fs_codec_list_get_type(),
+        FS_TYPE_CODEC_LIST,
         G_PARAM_READABLE));
 
   /**
@@ -195,7 +197,7 @@ fs_stream_class_init (FsStreamClass *klass)
       g_param_spec_boxed ("current-recv-codec",
         "The codec currently being received",
         "A FsCodec of the codec currently being received",
-        fs_codec_get_type(),
+        FS_TYPE_CODEC,
         G_PARAM_READABLE));
 
   /**
@@ -216,9 +218,38 @@ fs_stream_class_init (FsStreamClass *klass)
         G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 
   /**
+   * FsStream:participant:
+   *
+   * The #FsParticipant for this stream. This property is a construct param and
+   * is read-only construction.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_DIRECTION,
+      g_param_spec_enum ("participant",
+        "The participant of the stream",
+        "An FsParticipant represented by the stream",
+        FS_TYPE_PARTICIPANT,
+        G_PARAM_CONSTRUCT | G_PARAM_READ));
+
+  /**
+   * FsStream:session:
+   *
+   * The #FsSession for this stream. This property is a construct param and
+   * is read-only construction.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_DIRECTION,
+      g_param_spec_enum ("session",
+        "The session of the stream",
+        "An FsSession represented by the stream",
+        FS_TYPE_PARTICIPANT,
+        G_PARAM_CONSTRUCT | G_PARAM_READ));
+
+  /**
    * FsStream::error:
    * @self: #FsStream that emmitted the signal
-   * @object: The #Gobject that emitted the signal
    * @errorno: The number of the error 
    * @error_msg: Error message to be displayed to user
    * @debug_msg: Debugging error message
@@ -233,7 +264,7 @@ fs_stream_class_init (FsStreamClass *klass)
       NULL,
       NULL,
       fs_marshal_VOID__OBJECT_INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   /**
    * FsStream::src-pad-added:
@@ -335,8 +366,6 @@ fs_stream_dispose (GObject *object)
 static void
 fs_stream_finalize (GObject *object)
 {
-  g_signal_handlers_destroy (object);
-
   parent_class->finalize (object);
 }
 
