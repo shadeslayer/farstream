@@ -185,8 +185,6 @@ fs_participant_dispose (GObject *object)
 static void
 fs_participant_finalize (GObject *object)
 {
-  g_signal_handlers_destroy (object);
-
   parent_class->finalize (object);
 }
 

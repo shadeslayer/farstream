@@ -56,7 +56,6 @@ typedef struct _FsConferenceInterface FsConferenceInterface;
  * FsConferenceInterface:
  * @parent: parent interface type.
  * @new_session: virtual method to create a new conference session
- * @new_participant: virtual method to create a new conference participant
  *
  * #FsConferenceInterface interface.
  */
@@ -65,7 +64,6 @@ struct _FsConferenceInterface {
 
   /* virtual functions */
   FsSession *(* new_session) (FsConference *conference, FsMediaType media_type);
-  FsParticipant *(* new_participant) (FsConference *conference);
 
   /*< private > */
   gpointer _gst_reserved[GST_PADDING];
@@ -76,7 +74,6 @@ GType fs_conference_get_type (void);
 /* virtual class function wrappers */
 FsSession *fs_conference_new_session (FsConference *conference,
                                       FsMediaType media_type);
-FsParticipant *fs_conference_new_participant (FsConference *conference);
 
 G_END_DECLS
 
