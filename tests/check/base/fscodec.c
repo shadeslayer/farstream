@@ -162,9 +162,24 @@ GST_START_TEST (test_fscodec_compare_opt_params)
 
  fs_codec_destroy (codec1);
 
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_fscodec_copy)
+{
+  FsCodec *codec1 = init_codec_with_three_params ();
+  FsCodec *codec2 = NULL;
+
+  codec2 = fs_codec_copy (codec1);
+
+  fail_unless (fs_codec_compare (codec1, codec2) == TRUE,
+      "Copy is not identical to the original");
 
 }
 GST_END_TEST;
+
+
 
 static Suite *
 fscodec_suite (void)
@@ -177,6 +192,7 @@ fscodec_suite (void)
   tcase_add_test (tc_chain, test_fscodec_new);
   tcase_add_test (tc_chain, test_fscodec_compare);
   tcase_add_test (tc_chain, test_fscodec_compare_opt_params);
+  tcase_add_test (tc_chain, test_fscodec_copy);
 
   return s;
 }
