@@ -47,33 +47,33 @@ GST_START_TEST (test_fscodec_new)
 GST_END_TEST;
 
 
-GST_START_TEST (test_fscodec_compare)
+GST_START_TEST (test_fscodec_are_equal)
 {
   FsCodec *codec1 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
   FsCodec *codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
 
-  fail_unless (fs_codec_compare (codec1, codec2) == TRUE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs not recognized");
 
   fs_codec_destroy (codec2);
 
   codec2 = fs_codec_new (2, "aa", FS_MEDIA_TYPE_AV, 650);
-  fail_unless (fs_codec_compare (codec1, codec2) == FALSE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different codec ids not recognized");
   fs_codec_destroy (codec2);
 
   codec2 = fs_codec_new (1, "aaa", FS_MEDIA_TYPE_AV, 650);
-  fail_unless (fs_codec_compare (codec1, codec2) == FALSE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different codec types not recognized");
   fs_codec_destroy (codec2);
 
   codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_VIDEO, 650);
-  fail_unless (fs_codec_compare (codec1, codec2) == FALSE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different media types not recognized");
   fs_codec_destroy (codec2);
 
   codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 651);
-  fail_unless (fs_codec_compare (codec1, codec2) == FALSE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different clock rates not recognized");
   fs_codec_destroy (codec2);
 }
@@ -103,7 +103,7 @@ init_codec_with_three_params (void)
   return codec;
 }
 
-GST_START_TEST (test_fscodec_compare_opt_params)
+GST_START_TEST (test_fscodec_are_equal_opt_params)
 {
   FsCodec *codec1;
   FsCodec *codec2;
@@ -112,7 +112,7 @@ GST_START_TEST (test_fscodec_compare_opt_params)
   codec1 = init_codec_with_three_params ();
   codec2 = init_codec_with_three_params ();
 
-  fail_unless (fs_codec_compare (codec1, codec2) == TRUE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params) not recognized");
 
   codec1->optional_params = g_list_remove (codec1->optional_params,
@@ -123,7 +123,7 @@ GST_START_TEST (test_fscodec_compare_opt_params)
   p1->value = g_strdup ("bb1");
   codec1->optional_params = g_list_append (codec1->optional_params, p1);
 
-  fail_unless (fs_codec_compare (codec1, codec2) == TRUE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 1) not recognized");
 
  codec1->optional_params = g_list_remove (codec1->optional_params,
@@ -134,7 +134,7 @@ GST_START_TEST (test_fscodec_compare_opt_params)
   p1->value = g_strdup ("bb2");
   codec1->optional_params = g_list_append (codec1->optional_params, p1);
 
-  fail_unless (fs_codec_compare (codec1, codec2) == TRUE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 2) not recognized");
 
   fs_codec_destroy (codec1);
@@ -144,9 +144,9 @@ GST_START_TEST (test_fscodec_compare_opt_params)
   codec1->optional_params = g_list_remove (codec1->optional_params,
       g_list_first (codec1->optional_params)->data);
 
- fail_unless (fs_codec_compare (codec1, codec2) == FALSE,
+ fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
      "Did not detect removal of first parameter of first codec");
- fail_unless (fs_codec_compare (codec2, codec1) == FALSE,
+ fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
      "Did not detect removal of first parameter of second codec");
 
  fs_codec_destroy (codec1);
@@ -155,9 +155,9 @@ GST_START_TEST (test_fscodec_compare_opt_params)
  codec1->optional_params = g_list_remove (codec1->optional_params,
      g_list_last (codec1->optional_params)->data);
 
- fail_unless (fs_codec_compare (codec1, codec2) == FALSE,
+ fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
      "Did not detect removal of last parameter of first codec");
- fail_unless (fs_codec_compare (codec2, codec1) == FALSE,
+ fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
      "Did not detect removal of last parameter of second codec");
 
  fs_codec_destroy (codec1);
@@ -173,7 +173,7 @@ GST_START_TEST (test_fscodec_copy)
 
   codec2 = fs_codec_copy (codec1);
 
-  fail_unless (fs_codec_compare (codec1, codec2) == TRUE,
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Copy is not identical to the original");
 
 }
@@ -190,8 +190,8 @@ fscodec_suite (void)
   suite_add_tcase (s, tc_chain);
 
   tcase_add_test (tc_chain, test_fscodec_new);
-  tcase_add_test (tc_chain, test_fscodec_compare);
-  tcase_add_test (tc_chain, test_fscodec_compare_opt_params);
+  tcase_add_test (tc_chain, test_fscodec_are_equal);
+  tcase_add_test (tc_chain, test_fscodec_are_equal_opt_params);
   tcase_add_test (tc_chain, test_fscodec_copy);
 
   return s;

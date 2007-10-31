@@ -498,7 +498,7 @@ compare_lists(GList *list1, GList *list2)
 
 
 /**
- * farsight_codec_compare
+ * farsight_codec_are_equal
  * @codec1: First codec
  * @codec2: Second codec
  *
@@ -509,7 +509,7 @@ compare_lists(GList *list1, GList *list2)
  */
 
 gboolean
-fs_codec_compare (FsCodec *codec1, FsCodec *codec2)
+fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2)
 {
   if (codec1 == codec2)
     return TRUE;
