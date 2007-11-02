@@ -498,7 +498,7 @@ compare_lists(GList *list1, GList *list2)
 
 
 /**
- * farsight_codec_are_equal
+ * fs_codec_are_equal
  * @codec1: First codec
  * @codec2: Second codec
  *
