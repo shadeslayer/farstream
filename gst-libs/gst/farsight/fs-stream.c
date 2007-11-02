@@ -226,11 +226,11 @@ fs_stream_class_init (FsStreamClass *klass)
    */
   g_object_class_install_property (gobject_class,
       PROP_DIRECTION,
-      g_param_spec_enum ("participant",
+      g_param_spec_object ("participant",
         "The participant of the stream",
         "An FsParticipant represented by the stream",
         FS_TYPE_PARTICIPANT,
-        G_PARAM_CONSTRUCT | G_PARAM_READ));
+        G_PARAM_CONSTRUCT | G_PARAM_READABLE));
 
   /**
    * FsStream:session:
@@ -241,11 +241,11 @@ fs_stream_class_init (FsStreamClass *klass)
    */
   g_object_class_install_property (gobject_class,
       PROP_DIRECTION,
-      g_param_spec_enum ("session",
+      g_param_spec_object ("session",
         "The session of the stream",
         "An FsSession represented by the stream",
         FS_TYPE_PARTICIPANT,
-        G_PARAM_CONSTRUCT | G_PARAM_READ));
+        G_PARAM_CONSTRUCT | G_PARAM_READABLE));
 
   /**
    * FsStream::error:
@@ -398,22 +398,43 @@ fs_stream_set_property (GObject *object,
 void
 fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate)
 {
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  if (klass->add_remote_candidate) {
+    klass->add_remote_candidate (stream, candidate);
+  } else {
+    g_warning ("add_remote_candidate not defined in class");
+  }
 }
 
 /**
  * fs_stream_preload_recv_codec:
  * @stream: an #FsStream
- * @payload_type: a codec payload type
+ * @codec: The #FsCodec to be preloaded
+ * @error: location of a #GError, or NULL if no error occured
  *
- * This function will preload the codec corresponding to the given payload type.
- * This payload type must correspond to the native-codecs returned by the
- * #FsSession that spawned this #FsStream. Preloading a codec is useful for
+ * This function will preload the codec corresponding to the given codec.
+ * This codec must correspond exactly to one of the native-codecs returned by
+ * the #FsSession that spawned this #FsStream. Preloading a codec is useful for
  * machines where loading the codec is slow. When preloading, decoding can start
  * as soon as a stream is received.
+ *
+ * Returns: TRUE of the codec could be preloaded, FALSE if there is an error
  */
-void
-fs_stream_preload_recv_codec (FsStream *stream, gint payload_type)
+gboolean
+fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
 {
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  *error = NULL;
+
+  if (klass->preload_recv_codec) {
+    return klass->preload_recv_codec (stream, codec, error);
+  } else {
+    g_warning ("preload_recv_codec not defined in class");
+  }
+
+  return FALSE;
 }
 
 /**
@@ -434,4 +455,15 @@ gboolean
 fs_stream_set_remote_codecs (FsStream *stream,
                              GList *remote_codecs, GError **error)
 {
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  *error = NULL;
+
+  if (klass->set_remote_codecs) {
+    return klass->set_remote_codecs (stream, remote_codecs, error);
+  } else {
+    g_warning ("set_remote_codecs not defined in class");
+  }
+
+  return FALSE;
 }

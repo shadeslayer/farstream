@@ -331,6 +331,15 @@ fs_session_finalize (GObject *object)
 {
   FsSession *self = FS_SESSION (object);
 
+  /* Let's check if we have any remaining streams in this
+   * session, if we do we need to exit since this is a fatal error by the
+   * user because it results in unusable children objects */
+  if (self->priv->stream_list->len)
+  {
+    g_error ("You may not unref your Farsight Session object"
+             " without first unrefing all underlying streams! Exiting");
+  }
+
   g_ptr_array_free (self->priv->stream_list, TRUE);
 
   parent_class->finalize (object);
@@ -394,9 +403,14 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
   g_return_val_if_fail (g_type_is_a (G_OBJECT_TYPE (session),
               FS_TYPE_SESSION), NULL);
 
+  *error = NULL;
+
   if (klass->new_stream) {
     new_stream = klass->new_stream (session, participant, direction,
         error);
+
+    if (!new_stream)
+      return NULL;
 
     /* Let's catch all stream errors and forward them */
     g_signal_connect (new_stream, "error",
@@ -438,6 +452,14 @@ gboolean
 fs_session_start_telephony_event (FsSession *session, guint8 event,
                                   guint8 volume, FsDTMFMethod method)
 {
+  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+
+  if (klass->start_telephony_event) {
+    return klass->start_telephony_event (session, event, volume, method);
+  } else {
+    g_warning ("start_telephony_event not defined in class");
+  }
+  return FALSE;
 }
 
 /**
@@ -457,6 +479,14 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
 gboolean
 fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 {
+  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+
+  if (klass->stop_telephony_event) {
+    return klass->stop_telephony_event (session, method);
+  } else {
+    g_warning ("stop_telephony_event not defined in class");
+  }
+  return FALSE;
 }
 
 /**
@@ -477,4 +507,14 @@ gboolean
 fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                            GError **error)
 {
+  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+
+  *error = NULL;
+
+  if (klass->set_send_codec) {
+    return klass->set_send_codec (session, send_codec, error);
+  } else {
+    g_warning ("set_send_codec not defined in class");
+  }
+  return FALSE;
 }

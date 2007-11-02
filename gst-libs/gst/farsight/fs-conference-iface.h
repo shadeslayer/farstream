@@ -65,6 +65,9 @@ struct _FsConferenceInterface {
   /* virtual functions */
   FsSession *(* new_session) (FsConference *conference, FsMediaType media_type);
 
+  FsParticipant *(* new_participant) (FsConference *conference,
+                                  gchar *cname);
+
   /*< private > */
   gpointer _gst_reserved[GST_PADDING];
 };
@@ -74,6 +77,9 @@ GType fs_conference_get_type (void);
 /* virtual class function wrappers */
 FsSession *fs_conference_new_session (FsConference *conference,
                                       FsMediaType media_type);
+
+FsParticipant *fs_conference_new_participant (FsConference *conference,
+                                              gchar *cname);
 
 G_END_DECLS
 
