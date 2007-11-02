@@ -68,23 +68,23 @@ typedef struct _FsCandidate FsCandidate;
 /**
  * FsCandidate:
  * @candidate_id: string identifier of the candidate
- * @foundation: a single char representing the foundation of this candidate
+ * @foundation: a string representing the foundation of this candidate (maximum 32 chars)
  * @component_id: value between 1 and 256 indicating which component this candidate represents
  * @ip: IP in dotted format
  * @port: Port to use
- * @base_ip: IP of base in dotted format as defined in ICE-13.
- * @base_port: Port of base as defined in ICE-13.
+ * @base_ip: IP of base in dotted format as defined in ICE-19.
+ * @base_port: Port of base as defined in ICE-19.
  * @proto: #FsNetworkProtocol for ip protocol to use as candidate
  * @proto_subtype: a string specifying subtype of this protocol type if needed
  * @proto_profile: a string specifying a profile type for this protocol, if applicable
- * @priority: Value between 0 and 2^31 representing the priority
+ * @priority: Value between 0 and (2^31 - 1) representing the priority
  * @type: The #FsCandidateType of the candidate
  * @username: Username to use to connect to client if necessary,
  *            NULL otherwise
  * @password: Username to use to connect to client if necessary,
  *            NULL otherwise
  *
- * Struct to hold information about ICE-13 compliant candidates
+ * Struct to hold information about ICE-19 compliant candidates
  */
 struct _FsCandidate
 {
@@ -93,7 +93,7 @@ struct _FsCandidate
    * Maybe use FsNetworkProtocol if it is not required by ICE */
   /* TODO Should this be made into a GstStructure? */
   const gchar *candidate_id;
-  gchar foundation;
+  gchar *foundation;
   guint component_id;
   const gchar *ip;
   guint16 port;

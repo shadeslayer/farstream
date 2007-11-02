@@ -98,7 +98,11 @@ fs_candidate_copy (const FsCandidate * cand)
   copy->proto = cand->proto;
   copy->priority = cand->priority;
   copy->type = cand->type;
-  copy->foundation = cand->foundation;
+
+  if (cand->foundation)
+    copy->foundation = g_strdup (cand->foundation);
+  else
+    copy->candidate_id = NULL;
 
   if (cand->candidate_id)
     copy->candidate_id = g_strdup (cand->candidate_id);
