@@ -126,10 +126,11 @@ struct _FsSessionClass
 struct _FsSession
 {
   GObject parent;
+  FsSessionPrivate *priv;
 
   /*< private >*/
+
   gpointer _padding[8];
-  FsSessionPrivate *priv;
 };
 
 GType fs_session_get_type (void);

@@ -57,9 +57,9 @@ typedef struct _FsBaseConferencePrivate FsBaseConferencePrivate;
 struct _FsBaseConference
 {
   GstElement parent;
+  FsBaseConferencePrivate *priv;
 
   /*< private >*/
-  FsBaseConferencePrivate *priv;
 
   gpointer _padding[8];
 };

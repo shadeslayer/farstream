@@ -66,10 +66,11 @@ struct _FsParticipantClass
 struct _FsParticipant
 {
   GObject parent;
+  FsParticipantPrivate *priv;
 
   /*< private >*/
+
   gpointer _padding[8];
-  FsParticipantPrivate *priv;
 };
 
 GType fs_participant_get_type (void);

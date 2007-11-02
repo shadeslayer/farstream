@@ -96,10 +96,11 @@ struct _FsStreamClass
 struct _FsStream
 {
   GObject parent;
+  FsStreamPrivate *priv;
 
   /*< private >*/
+
   gpointer _padding[8];
-  FsStreamPrivate *priv;
 };
 
 GType fs_stream_get_type (void);
