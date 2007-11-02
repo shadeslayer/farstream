@@ -9,7 +9,9 @@
 #include "../../gst-libs/gst/farsight/fs-participant.h"
 #include "../../gst-libs/gst/farsight/fs-session.h"
 #include "../../gst-libs/gst/farsight/fs-stream.h"
+#include "../../gst-libs/gst/farsight/fs-base-conference.h"
 
 fs_participant_get_type
 fs_session_get_type
 fs_stream_get_type
+fs_base_conference_get_type

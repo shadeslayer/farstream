@@ -2,6 +2,7 @@
 <FILE>fs-participant</FILE>
 <TITLE>FsParticipant</TITLE>
 FsParticipant
+FsParticipantClass
 <SUBSECTION Standard>
 FS_PARTICIPANT
 FS_IS_PARTICIPANT
@@ -15,13 +16,14 @@ FsParticipantPrivate
 
 <SECTION>
 <FILE>fs-stream</FILE>
+FsStream
+FsStreamClass
 FsStreamDirection
 <TITLE>FsStream</TITLE>
 fs_stream_add_remote_candidate
 fs_stream_preload_recv_codec
 fs_stream_set_remote_codecs
 <SUBSECTION Standard>
-FsStream
 FS_TYPE_STREAM_DIRECTION
 FS_STREAM
 FS_IS_STREAM
@@ -38,12 +40,13 @@ FsStreamPrivate
 FsDTMFEvent
 FsDTMFMethod
 <TITLE>FsSession</TITLE>
-fs_session_add_participant
+FsSession
+FsSessionClass
+fs_session_new_stream
 fs_session_start_telephony_event
 fs_session_stop_telephony_event
 fs_session_set_send_codec
 <SUBSECTION Standard>
-FsSession
 FS_SESSION
 FS_IS_SESSION
 FS_TYPE_SESSION
@@ -56,7 +59,7 @@ FsSessionPrivate
 
 <SECTION>
 <FILE>fs-conference-iface</FILE>
-FsConference
+<TITLE>FsConferenceIface</TITLE>
 FsConferenceInterface
 fs_conference_new_session
 fs_conference_new_participant
@@ -66,11 +69,12 @@ FS_IS_CONFERENCE
 FS_TYPE_CONFERENCE
 fs_conference_get_type
 FS_CONFERENCE_GET_IFACE
+FsConference
 </SECTION>
 
 <SECTION>
 <FILE>fs-candidate</FILE>
-FS_TYPE_CANDIDATE
+<TITLE>FsCandidate</TITLE>
 FsCandidateType
 FsNetworkProtocol
 FsCandidate
@@ -80,14 +84,18 @@ fs_candidate_list_destroy
 fs_candidate_list_copy
 fs_candidate_get_by_id
 fs_candidate_are_equal
+<SUBSECTION Standard>
+FS_TYPE_CANDIDATE
 </SECTION>
 
 <SECTION>
 <FILE>fs-codec</FILE>
+<TITLE>FsCodec</TITLE>
+FsMediaType
+fs_media_type_to_string
 FsCodec
 FsCodecParameter
 FsCodecPreference
-FsMediaType
 fs_codec_new
 fs_codec_destroy
 fs_codec_copy
@@ -95,7 +103,7 @@ fs_codec_list_destroy
 fs_codec_list_copy
 fs_codec_list_from_keyfile
 fs_codec_to_string
-fs_media_type_to_string
+fs_codec_are_equal
 <SUBSECTION Standard>
 FS_TYPE_CODEC
 FS_TYPE_CODEC_LIST
@@ -106,11 +114,22 @@ fs_codec_list_get_type
 
 <SECTION>
 <FILE>fs-base-conference</FILE>
+<TITLE>FsBaseConference</TITLE>
+FsBaseConference
+FsBaseConferenceClass
+<SUBSECTION Standard>
+FS_BASE_CONFERENCE
+FS_BASE_CONFERENCE_CAST
+FS_BASE_CONFERENCE_CLASS
+FS_BASE_CONFERENCE_GET_CLASS
+FS_TYPE_BASE_CONFERENCE
+fs_base_conference_get_type
+FsBaseConferencePrivate
 </SECTION>
 
 <SECTION>
 <FILE>fs-marshal</FILE>
-fs_marshal_VOID__INT_STRING_STRING
 fs_marshal_VOID__BOXED_BOXED
+fs_marshal_VOID__OBJECT_INT_STRING_STRING
 </SECTION>
 

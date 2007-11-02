@@ -50,6 +50,7 @@ typedef struct _FsCodecPreference FsCodecPreference;
  * FsMediaType:
  * @FS_MEDIA_TYPE_AUDIO: A media type that encodes audio.
  * @FS_MEDIA_TYPE_VIDEO: A media type that encodes video.
+ * @FS_MEDIA_TYPE_AV: A media type that encodes muxed audio and video.
  *
  * Enum used to signify the media type of a codec or stream.
  */

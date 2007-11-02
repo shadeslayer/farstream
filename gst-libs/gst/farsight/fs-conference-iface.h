@@ -56,6 +56,7 @@ typedef struct _FsConferenceInterface FsConferenceInterface;
  * FsConferenceInterface:
  * @parent: parent interface type.
  * @new_session: virtual method to create a new conference session
+ * @new_participant: virtual method to create a new participant
  *
  * #FsConferenceInterface interface.
  */

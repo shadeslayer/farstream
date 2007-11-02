@@ -275,7 +275,7 @@ fs_session_class_init (FsSessionClass *klass)
       G_TYPE_NONE, 0);
 
   /**
-   * FsSession::new-negotiated-codec:
+   * FsSession::new-negotiated-codecs:
    * @self: #FsSession that emmitted the signal
    *
    * This signal is emitted when the negotiated codecs list has changed for this

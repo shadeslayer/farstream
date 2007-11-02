@@ -417,6 +417,15 @@ fs_codec_list_from_keyfile (const gchar *filename)
   return codecs;
 }
 
+/**
+ * fs_media_type_to_string
+ * @media_type: A media type
+ *
+ * Gives a user-printable string representing the media type
+ *
+ * Return value: a static string representing the media type
+ */
+
 const gchar *
 fs_media_type_to_string (FsMediaType media_type)
 {
