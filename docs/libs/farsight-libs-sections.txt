@@ -59,7 +59,7 @@ FsSessionPrivate
 
 <SECTION>
 <FILE>fs-conference-iface</FILE>
-<TITLE>FsConferenceIface</TITLE>
+<TITLE>FsConferenceInterface</TITLE>
 FsConferenceInterface
 fs_conference_new_session
 fs_conference_new_participant
