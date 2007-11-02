@@ -66,7 +66,7 @@ struct _FsConferenceInterface {
   FsSession *(* new_session) (FsConference *conference, FsMediaType media_type);
 
   FsParticipant *(* new_participant) (FsConference *conference,
-                                  gchar *cname);
+                                      gchar *cname);
 
   /*< private > */
   gpointer _gst_reserved[GST_PADDING];
