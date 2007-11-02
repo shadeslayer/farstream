@@ -457,7 +457,7 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
   if (klass->start_telephony_event) {
     return klass->start_telephony_event (session, event, volume, method);
   } else {
-    GST_WARNING ("start_telephony_event not defined in class");
+    g_warning ("start_telephony_event not defined in class");
   }
   return FALSE;
 }
@@ -484,7 +484,7 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
   if (klass->stop_telephony_event) {
     return klass->stop_telephony_event (session, method);
   } else {
-    GST_WARNING ("stop_telephony_event not defined in class");
+    g_warning ("stop_telephony_event not defined in class");
   }
   return FALSE;
 }
@@ -514,7 +514,7 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   if (klass->set_send_codec) {
     return klass->set_send_codec (session, send_codec, error);
   } else {
-    GST_WARNING ("set_send_codec not defined in class");
+    g_warning ("set_send_codec not defined in class");
   }
   return FALSE;
 }

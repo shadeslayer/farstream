@@ -98,7 +98,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type)
   if (iface->new_session) {
     return iface->new_session (conference, media_type);
   } else {
-    GST_WARNING ("new_session not defined in element");
+    GST_WARNING_OBJECT (conference, "new_session not defined in element");
   }
   return NULL;
 }
@@ -123,7 +123,7 @@ fs_conference_new_participant (FsConference *conference, gchar *cname)
   if (iface->new_session) {
     return iface->new_participant (conference, cname);
   } else {
-    GST_WARNING ("new_participant not defined in element");
+    GST_WARNING_OBJECT (conference, "new_participant not defined in element");
   }
   return NULL;
 }
