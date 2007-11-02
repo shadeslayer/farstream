@@ -90,26 +90,31 @@ fs_media_type_get_type (void)
 }
 
 /**
- * fs_codec_init:
- * @codec: #FsCodec structure to initialise
+ * fs_codec_new:
  * @id: codec identifier, if RTP this should be based on IETF RTP payload types
  * @encoding_name: Name of media type this encodes
  * @media_type: #FsMediaType for type of codec
  * @clock_rate: The clock rate this codec encodes at, if applicable
  *
- * Initialises a #FsCodec structure
+ * Allocates and initializes a #FsCodec structure
+ *
+ * Returns: A newly allocated #FsCodec
  */
-void
-fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
-               FsMediaType media_type, guint clock_rate)
+FsCodec *
+fs_codec_new (int id, const char *encoding_name,
+              FsMediaType media_type, guint clock_rate)
 {
-  codec->id =id;
+  FsCodec *codec = g_new0 (FsCodec, 1);
+
+  codec->id = id;
   if (encoding_name)
     codec->encoding_name = g_strdup (encoding_name);
   else
     codec->encoding_name = NULL;
   codec->media_type = media_type;
   codec->clock_rate = clock_rate;
+
+  return codec;
 }
 
 /**
@@ -419,6 +424,8 @@ fs_media_type_to_string (FsMediaType media_type)
     return "audio";
   } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     return "video";
+  } else if (media_type == FS_MEDIA_TYPE_AV) {
+    return "audiovideo";
   } else {
     return NULL;
   }
@@ -454,4 +461,76 @@ fs_codec_to_string (FsCodec *codec)
   g_string_free (string, FALSE);
 
   return charstring;
+}
+
+
+
+/*
+ * Check if all of the elements of list1 are in list2
+ * It compares GLists of FarsightCodecParameter
+ */
+static gboolean
+compare_lists(GList *list1, GList *list2)
+{
+  GList *item1;
+
+  for (item1 = g_list_first (list1);
+       item1;
+       item1 = g_list_next (item1)) {
+    FsCodecParameter *param1 = item1->data;
+    GList *item2 = NULL;
+
+    for (item2 = g_list_first (list2);
+         item2;
+         item2 = g_list_next (item2)) {
+      FsCodecParameter *param2 = item2->data;
+
+      if (!strcmp (param1->name, param2->name) &&
+          !strcmp (param1->value, param2->value))
+        break;
+    }
+    if (!item2)
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+/**
+ * farsight_codec_are_equal
+ * @codec1: First codec
+ * @codec2: Second codec
+ *
+ * Compare two codecs, it will declare two codecs to be identical even
+ * if their optional parameters are in a different order.
+ *
+ * Return value: TRUE of the codecs are identical, FALSE otherwise
+ */
+
+gboolean
+fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2)
+{
+  if (codec1 == codec2)
+    return TRUE;
+
+  if (!codec1 || !codec2)
+    return FALSE;
+
+  if (codec1->id != codec2->id ||
+      codec1->media_type != codec2->media_type ||
+      codec1->clock_rate != codec2->clock_rate ||
+      codec1->channels != codec2->channels ||
+      strcmp (codec1->encoding_name, codec2->encoding_name))
+    return FALSE;
+
+
+  /* Is there a smarter way to compare to un-ordered linked lists
+   * to make sure they contain exactly the same elements??
+   */
+  if (!compare_lists (codec1->optional_params, codec2->optional_params) ||
+      !compare_lists (codec2->optional_params, codec1->optional_params))
+    return FALSE;
+
+  return TRUE;
 }

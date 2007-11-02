@@ -301,7 +301,8 @@ gst-libs/gst/farsight/Makefile
 dnl pkgconfig/Makefile
 dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc
-dnl tests/Makefile
+tests/Makefile
+tests/check/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/version.entities

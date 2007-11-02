@@ -58,7 +58,7 @@ typedef enum
   FS_MEDIA_TYPE_AUDIO,
   FS_MEDIA_TYPE_VIDEO,
   FS_MEDIA_TYPE_AV,
-  FS_MEDIA_TYPE_LAST = FS_MEDIA_TYPE_VIDEO
+  FS_MEDIA_TYPE_LAST = FS_MEDIA_TYPE_AV
 } FsMediaType;
 
 /**
@@ -111,8 +111,8 @@ struct _FsCodecPreference {
 GType fs_codec_get_type (void);
 GType fs_codec_list_get_type (void);
 
-void fs_codec_init (FsCodec *codec, int id, const char *encoding_name,
-                    FsMediaType media_type, guint clock_rate);
+FsCodec *fs_codec_new (int id, const char *encoding_name,
+                       FsMediaType media_type, guint clock_rate);
 
 void fs_codec_destroy (FsCodec * codec);
 FsCodec *fs_codec_copy (FsCodec * codec);
@@ -121,6 +121,8 @@ GList *fs_codec_list_copy (const GList *codec_list);
 
 GList *fs_codec_list_from_keyfile (const gchar *filename);
 gchar *fs_codec_to_string (FsCodec *codec);
+
+gboolean fscodec_compare (FsCodec *codec1, FsCodec *codec2);
 
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 

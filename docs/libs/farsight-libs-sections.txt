@@ -87,13 +87,8 @@ fs_candidate_are_equal
 FsCodec
 FsCodecParameter
 FsCodecPreference
-FS_TYPE_CODEC
-FS_TYPE_CODEC_LIST
-FS_TYPE_MEDIA_TYPE
 FsMediaType
-fs_codec_get_type
-fs_codec_list_get_type
-fs_codec_init
+fs_codec_new
 fs_codec_destroy
 fs_codec_copy
 fs_codec_list_destroy
@@ -101,6 +96,12 @@ fs_codec_list_copy
 fs_codec_list_from_keyfile
 fs_codec_to_string
 fs_media_type_to_string
+<SUBSECTION Standard>
+FS_TYPE_CODEC
+FS_TYPE_CODEC_LIST
+FS_TYPE_MEDIA_TYPE
+fs_codec_get_type
+fs_codec_list_get_type
 </SECTION>
 
 <SECTION>
