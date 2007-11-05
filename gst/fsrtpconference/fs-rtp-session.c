@@ -36,6 +36,8 @@
 #include <gst/gst.h>
 
 #include "fs-rtp-session.h"
+#include "fs-rtp-stream.h"
+#include "fs-rtp-participant.h"
 
 /* Signals */
 enum
@@ -255,7 +257,18 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
                            FsStreamDirection direction, gchar *transmitter,
                            GError **error)
 {
-  FsStream *new_stream = NULL;
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  FsRtpParticipant *rtpparticipant = NULL;
+  FsRtpStream *new_stream = NULL;
+
+  if (!FS_IS_RTP_PARTICIPANT (participant)) {
+    // *error = g_error_new ();
+    return NULL;
+  }
+  rtpparticipant = FS_RTP_PARTICIPANT (participant);
+
+  new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
+                                                  direction, NULL));
 
   return new_stream;
 }
