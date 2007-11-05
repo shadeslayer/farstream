@@ -52,6 +52,8 @@ enum
   SRC_PAD_ADDED,
   RECV_CODEC_CHANGED,
   NEW_ACTIVE_CANDIDATE_PAIR,
+  NEW_NATIVE_CANDIDATE,
+  NATIVE_CANDIDATES_PREPARED,
   LAST_SIGNAL
 };
 
@@ -332,6 +334,42 @@ fs_stream_class_init (FsStreamClass *klass)
       NULL,
       fs_marshal_VOID__BOXED_BOXED,
       G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
+
+ /**
+   * FsStream::new-native-candidate:
+   * @self: #FsStream that emitted the signal
+   * @native_candidate: #FsCandidate of the native candidate
+   *
+   * This signal is emitted when a new native candidate is discovered.
+   *
+   */
+  signals[NEW_NATIVE_CANDIDATE] = g_signal_new
+    ("new-native-candidate",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__BOXED,
+      G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
+
+ /**
+   * FsStream::native-candidates-prepared:
+   * @self: #FsStream that emitted the signal
+   *
+   * This signal is emitted when all native candidates have been
+   * prepared, an ICE implementation would send its SDP offer or answer.
+   *
+   */
+  signals[NATIVE_CANDIDATES_PREPARED] = g_signal_new
+    ("native-candidates-prepared",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 
   gobject_class->dispose = fs_stream_dispose;
   gobject_class->finalize = fs_stream_finalize;
