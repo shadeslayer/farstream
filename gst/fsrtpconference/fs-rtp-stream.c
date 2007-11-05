@@ -59,16 +59,16 @@ enum
   PROP_STREAM_TRANSMITTER
 };
 
-struct _FsStreamPrivate
+struct _FsRtpStreamPrivate
 {
   gboolean disposed;
 };
 
 #define FS_RTP_STREAM_GET_PRIVATE(o)  \
-   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_STREAM, FsStreamPrivate))
+   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_STREAM, FsRtpStreamPrivate))
 
-static void fs_rtp_stream_class_init (FsStreamClass *klass);
-static void fs_rtp_stream_init (FsStream *self);
+static void fs_rtp_stream_class_init (FsRtpStreamClass *klass);
+static void fs_rtp_stream_init (FsRtpStream *self);
 static void fs_rtp_stream_dispose (GObject *object);
 static void fs_rtp_stream_finalize (GObject *object);
 
@@ -101,13 +101,13 @@ fs_rtp_stream_get_type (void)
 
   if (type == 0) {
     static const GTypeInfo info = {
-      sizeof (FsStreamClass),
+      sizeof (FsRtpStreamClass),
       NULL,
       NULL,
       (GClassInitFunc) fs_rtp_stream_class_init,
       NULL,
       NULL,
-      sizeof (FsStream),
+      sizeof (FsRtpStream),
       0,
       (GInstanceInitFunc) fs_rtp_stream_init
     };
@@ -120,7 +120,7 @@ fs_rtp_stream_get_type (void)
 
 
 static void
-fs_rtp_stream_class_init (FsStreamClass *klass)
+fs_rtp_stream_class_init (FsRtpStreamClass *klass)
 {
   GObjectClass *gobject_class;
   FsStreamClass *stream_class = FS_STREAM_CLASS (klass);
@@ -164,21 +164,23 @@ fs_rtp_stream_class_init (FsStreamClass *klass)
   gobject_class->dispose = fs_rtp_stream_dispose;
   gobject_class->finalize = fs_rtp_stream_finalize;
 
-  g_type_class_add_private (klass, sizeof (FsStreamPrivate));
+  g_type_class_add_private (klass, sizeof (FsRtpStreamPrivate));
 }
 
 static void
-fs_rtp_stream_init (FsStream *self)
+fs_rtp_stream_init (FsRtpStream *self)
 {
   /* member init */
   self->priv = FS_RTP_STREAM_GET_PRIVATE (self);
+
   self->priv->disposed = FALSE;
+  self->priv->session = NULL;
 }
 
 static void
 fs_rtp_stream_dispose (GObject *object)
 {
-  FsStream *self = FS_RTP_STREAM (object);
+  FsRtpStream *self = FS_RTP_STREAM (object);
 
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
