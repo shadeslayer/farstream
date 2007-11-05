@@ -105,7 +105,7 @@ fs_stream_transmitter_get_type (void)
     };
 
     type = g_type_register_static (G_TYPE_OBJECT,
-        "FsStreamTransmitter", &info, 0);
+        "FsStreamTransmitter", &info, G_TYPE_FLAG_ABSTRACT);
   }
 
   return type;

@@ -102,7 +102,7 @@ fs_transmitter_get_type (void)
     };
 
     type = g_type_register_static (G_TYPE_OBJECT,
-        "FsTransmitter", &info, 0);
+        "FsTransmitter", &info, G_TYPE_FLAG_ABSTRACT);
   }
 
   return type;

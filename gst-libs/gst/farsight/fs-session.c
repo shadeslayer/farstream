@@ -112,7 +112,7 @@ fs_session_get_type (void)
     };
 
     type = g_type_register_static (G_TYPE_OBJECT,
-        "FsSession", &info, 0);
+        "FsSession", &info, G_TYPE_FLAG_ABSTRACT);
   }
 
   return type;

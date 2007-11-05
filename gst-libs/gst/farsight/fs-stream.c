@@ -116,7 +116,7 @@ fs_stream_get_type (void)
     };
 
     type = g_type_register_static (G_TYPE_OBJECT,
-        "FsStream", &info, 0);
+        "FsStream", &info, G_TYPE_FLAG_ABSTRACT);
   }
 
   return type;
