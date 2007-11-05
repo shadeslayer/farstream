@@ -78,7 +78,7 @@ struct _FsStreamPrivate
 };
 
 #define FS_STREAM_GET_PRIVATE(o)  \
-   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsStreamPrivate))
+   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_STREAM, FsStreamPrivate))
 
 static void fs_stream_class_init (FsStreamClass *klass);
 static void fs_stream_init (FsStream *self);
@@ -232,7 +232,7 @@ fs_stream_class_init (FsStreamClass *klass)
         "The participant of the stream",
         "An FsParticipant represented by the stream",
         FS_TYPE_PARTICIPANT,
-        G_PARAM_CONSTRUCT | G_PARAM_READABLE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**
    * FsStream:session:
