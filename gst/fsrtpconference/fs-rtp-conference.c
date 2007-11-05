@@ -171,16 +171,16 @@ fs_rtp_conference_get_property (GObject *object, guint prop_id,
 
 static FsSession *
 fs_rtp_conference_new_session (FsBaseConference *conf,
-                                 FsMediaType media_type)
+                               FsMediaType media_type)
 {
   FsRtpConference *rtp_conf = FS_RTP_CONFERENCE (conf);
 
   FsSession *new_session = NULL;
 
+  new_session = FS_SESSION (fs_rtp_session_new (media_type));
 
   return new_session;
 }
-
 
 
 static FsParticipant *
@@ -191,7 +191,7 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
 
   FsParticipant *new_participant = NULL;
 
-  new_participant = fs_rtp_participant_new (cname);
+  new_participant = FS_PARTICIPANT (fs_rtp_participant_new (cname));
 
   return new_participant;
 }
