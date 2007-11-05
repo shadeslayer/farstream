@@ -387,6 +387,7 @@ _remove_stream_ptr (FsSession *session, FsStream *stream)
  * @participant: #FsParticipant of a participant for the new stream
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
+ * @transmitter: Name of the type of transmitter to use for this session
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function creates a stream for the given participant into the active session.
@@ -396,7 +397,8 @@ _remove_stream_ptr (FsSession *session, FsStream *stream)
  */
 FsStream *
 fs_session_new_stream (FsSession *session, FsParticipant *participant,
-                            FsStreamDirection direction, GError **error)
+                       FsStreamDirection direction, gchar *transmitter,
+                       GError **error)
 {
   FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
   FsStream *new_stream = NULL;
@@ -407,7 +409,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
 
   if (klass->new_stream) {
     new_stream = klass->new_stream (session, participant, direction,
-        error);
+                                    transmitter, error);
 
     if (!new_stream)
       return NULL;

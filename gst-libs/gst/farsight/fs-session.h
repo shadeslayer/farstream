@@ -104,9 +104,10 @@ struct _FsSessionClass
 
   /*virtual functions */
   FsStream *(* new_stream) (FsSession *session,
-                             FsParticipant *participant,
-                             FsStreamDirection direction,
-                             GError **error);
+                            FsParticipant *participant,
+                            FsStreamDirection direction,
+                            gchar *transmitter,
+                            GError **error);
 
   gboolean (* start_telephony_event) (FsSession *session, guint8 event,
                                       guint8 volume, FsDTMFMethod method);
@@ -138,6 +139,7 @@ GType fs_session_get_type (void);
 FsStream *fs_session_new_stream (FsSession *session,
                                  FsParticipant *participant,
                                  FsStreamDirection direction,
+                                 gchar *transmitter,
                                  GError **error);
 
 gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,
