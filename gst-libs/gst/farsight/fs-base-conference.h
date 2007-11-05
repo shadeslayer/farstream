@@ -70,7 +70,10 @@ struct _FsBaseConferenceClass
 
   /*< public >*/
   /* virtual methods */
-  FsSession *(*new_session) (FsBaseConference *conference, FsMediaType media_type);
+  FsSession *(*new_session) (FsBaseConference *conference,
+                             FsMediaType media_type);
+  FsParticipant *(*new_participant) (FsBaseConference *conference,
+                                     gchar *cname);
 
   gpointer _padding[8];
 };

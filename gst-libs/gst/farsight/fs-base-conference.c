@@ -127,8 +127,10 @@ static GstFlowReturn fs_base_conference_chain (GstPad *pad, GstBuffer *buffer);
 static GstCaps *fs_base_conference_getcaps (GstPad *pad);
 static gboolean fs_base_conference_setcaps (GstPad *pad, GstCaps *caps);
 
-FsSession *fs_base_conference_new_session (FsConference *conf,
-                                           FsMediaType media_type);
+static FsSession *fs_base_conference_new_session (FsConference *conf,
+                                                  FsMediaType media_type);
+static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
+                                                          gchar *cname);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
                                gint error_no, gchar *error_msg,
@@ -202,6 +204,7 @@ fs_base_conference_interface_init (gpointer g_iface,
   FsConferenceInterface *iface = (FsConferenceInterface *)g_iface;
 
   iface->new_session = fs_base_conference_new_session;
+  iface->new_participant = fs_base_conference_new_participant;
 }
 
 static gboolean
@@ -248,7 +251,7 @@ void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
   }
 }
 
-FsSession *
+static FsSession *
 fs_base_conference_new_session (FsConference *conf,
                                  FsMediaType media_type)
 {
@@ -318,3 +321,19 @@ fs_base_conference_get_property (GObject *object, guint prop_id,
 {
 }
 
+
+static FsParticipant *
+fs_base_conference_new_participant (FsConference *conf,
+                                    gchar *cname)
+{
+  FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);
+  FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
+
+  if (klass->new_participant) {
+    return klass->new_participant (baseconf, cname);
+  } else {
+    GST_WARNING_OBJECT (conf, "new_session not defined in element");
+  }
+
+  return NULL;
+}
