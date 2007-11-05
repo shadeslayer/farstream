@@ -70,6 +70,8 @@ static void fs_base_conference_base_init (gpointer g_class);
 static void fs_base_conference_class_init (FsBaseConferenceClass *klass);
 static void fs_base_conference_init (FsBaseConference *conf,
                                      FsBaseConferenceClass *klass);
+static void fs_base_conference_implements_interface_init (
+    GstImplementsInterfaceClass * klass);
 
 GType
 fs_base_conference_get_type (void)
@@ -89,17 +91,28 @@ fs_base_conference_get_type (void)
       (GInstanceInitFunc) fs_base_conference_init,
     };
 
+    static const GInterfaceInfo iface_info = {
+      (GInterfaceInitFunc) fs_base_conference_implements_interface_init,
+      NULL,
+      NULL,
+    };
+
     static const GInterfaceInfo conference_info = {
       (GInterfaceInitFunc) fs_base_conference_interface_init,
       NULL,
       NULL,
     };
 
+
+
     base_conference_type = g_type_register_static (GST_TYPE_ELEMENT,
         "FsBaseConference", &base_conference_info, G_TYPE_FLAG_ABSTRACT);
 
+    g_type_add_interface_static (base_conference_type,
+                                 GST_TYPE_IMPLEMENTS_INTERFACE,
+                                 &iface_info);
     g_type_add_interface_static (base_conference_type, FS_TYPE_CONFERENCE,
-        &conference_info);
+                                 &conference_info);
   }
   return base_conference_type;
 }
@@ -190,6 +203,22 @@ fs_base_conference_interface_init (gpointer g_iface,
 
   iface->new_session = fs_base_conference_new_session;
 }
+
+static gboolean
+fs_base_conference_interface_supported (GstImplementsInterface * iface,
+                                         GType type)
+{
+  g_assert (type == FS_TYPE_CONFERENCE);
+  return TRUE;
+}
+
+static void
+fs_base_conference_implements_interface_init (
+    GstImplementsInterfaceClass * klass)
+{
+  klass->supported = fs_base_conference_interface_supported;
+}
+
 
 static GstCaps *
 fs_base_conference_getcaps (GstPad * pad)
