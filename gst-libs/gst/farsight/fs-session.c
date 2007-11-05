@@ -237,7 +237,7 @@ fs_session_class_init (FsSessionClass *klass)
 
   /**
    * FsSession::error:
-   * @self: #FsSession that emmitted the signal
+   * @self: #FsSession that emitted the signal
    * @object: The #Gobject that emitted the signal
    * @error_no: The number of the error 
    * @error_msg: Error message to be displayed to user
@@ -257,7 +257,7 @@ fs_session_class_init (FsSessionClass *klass)
 
   /**
    * FsSession::send-codec-changed:
-   * @self: #FsSession that emmitted the signal
+   * @self: #FsSession that emitted the signal
    *
    * This signal is emitted when the active send codec has been changed
    * manually by the user or automatically for QoS purposes. The user should
@@ -276,7 +276,7 @@ fs_session_class_init (FsSessionClass *klass)
 
   /**
    * FsSession::new-negotiated-codecs:
-   * @self: #FsSession that emmitted the signal
+   * @self: #FsSession that emitted the signal
    *
    * This signal is emitted when the negotiated codecs list has changed for this
    * session. This can happen when new remote codecs are added to the session

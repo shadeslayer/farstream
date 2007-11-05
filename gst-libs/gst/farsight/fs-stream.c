@@ -245,12 +245,12 @@ fs_stream_class_init (FsStreamClass *klass)
         "The session of the stream",
         "An FsSession represented by the stream",
         FS_TYPE_PARTICIPANT,
-        G_PARAM_CONSTRUCT | G_PARAM_READABLE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**
    * FsStream::error:
-   * @self: #FsStream that emmitted the signal
-   * @errorno: The number of the error 
+   * @self: #FsStream that emitted the signal
+   * @errorno: The number of the error
    * @error_msg: Error message to be displayed to user
    * @debug_msg: Debugging error message
    *
@@ -268,7 +268,7 @@ fs_stream_class_init (FsStreamClass *klass)
 
   /**
    * FsStream::src-pad-added:
-   * @self: #FsStream that emmitted the signal
+   * @self: #FsStream that emitted the signal
    * @pad: #GstPad of the new source pad
    * @codec: #FsCodec of the codec being received on the new source pad
    *
@@ -290,7 +290,7 @@ fs_stream_class_init (FsStreamClass *klass)
 
   /**
    * FsStream::recv-codec-changed:
-   * @self: #FsStream that emmitted the signal
+   * @self: #FsStream that emitted the signal
    * @pad: #GstPad of the current source pad
    * @codec: #FsCodec of the new codec being received
    *
@@ -312,7 +312,7 @@ fs_stream_class_init (FsStreamClass *klass)
 
   /**
    * FsStream::new-active-candidate-pair:
-   * @self: #FsStream that emmitted the signal
+   * @self: #FsStream that emitted the signal
    * @native_candidate: #FsCandidate of the native candidate being used
    * @remote_candidate: #FsCandidate of the remote candidate being used
    *
