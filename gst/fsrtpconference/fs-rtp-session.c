@@ -57,8 +57,7 @@ enum
 
 struct _FsRtpSessionPrivate
 {
-  /* List of Streams */
-  GPtrArray *stream_list;
+  FsMediaType media_type;
 
   gboolean disposed;
 };
@@ -72,13 +71,13 @@ static void fs_rtp_session_dispose (GObject *object);
 static void fs_rtp_session_finalize (GObject *object);
 
 static void fs_rtp_session_get_property (GObject *object,
-                                     guint prop_id,
-                                     GValue *value,
-                                     GParamSpec *pspec);
+                                         guint prop_id,
+                                         GValue *value,
+                                         GParamSpec *pspec);
 static void fs_rtp_session_set_property (GObject *object,
-                                     guint prop_id,
-                                     const GValue *value,
-                                     GParamSpec *pspec);
+                                         guint prop_id,
+                                         const GValue *value,
+                                         GParamSpec *pspec);
 
 static FsStream *fs_rtp_session_new_stream (FsSession *session,
                                             FsParticipant *participant,
@@ -294,6 +293,16 @@ fs_rtp_session_get_property (GObject *object,
                              GValue *value,
                              GParamSpec *pspec)
 {
+  FsRtpSession *self = FS_RTP_SESSION (object);
+
+  switch (prop_id) {
+    case PROP_MEDIA_TYPE:
+      g_value_set_enum (value, self->priv->media_type);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+ }
 }
 
 static void
@@ -302,6 +311,16 @@ fs_rtp_session_set_property (GObject *object,
                              const GValue *value,
                              GParamSpec *pspec)
 {
+  FsRtpSession *self = FS_RTP_SESSION (object);
+
+  switch (prop_id) {
+    case PROP_MEDIA_TYPE:
+      self->priv->media_type = g_value_get_enum (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+ }
 }
 
 /**
