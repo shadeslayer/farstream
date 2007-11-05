@@ -13,7 +13,7 @@
     <xi:include href="xml/fs-session.xml"/>
     <xi:include href="xml/fs-candidate.xml"/>
     <xi:include href="xml/fs-codec.xml"/>
-    <xi:include href="xml/fs-marshal.xml"/>
+    <!-- <xi:include href="xml/fs-marshal.xml"/> -->h
   </chapter>
   <chapter>
     <title>Farsight GStreamer Interfaces</title>
@@ -22,5 +22,10 @@
   <chapter>
     <title>Farsight GStreamer Base Implementations</title>
     <xi:include href="xml/fs-base-conference.xml"/>
+  </chapter>
+  <chapter>
+    <title>Farsight Transmitter objects</title>
+    <xi:include href="xml/fs-transmitter.xml"/>
+    <xi:include href="xml/fs-stream-transmitter.xml"/>
   </chapter>
 </book>

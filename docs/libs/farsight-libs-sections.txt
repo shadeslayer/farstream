@@ -128,8 +128,44 @@ FsBaseConferencePrivate
 </SECTION>
 
 <SECTION>
+<FILE>fs-transmitter</FILE>
+<TITLE>FsTransmitter</TITLE>
+FsTransmitter
+FsTransmitterClass
+fs_transmitter_new_stream_transmitter
+<SUBSECTION Standard>
+FS_IS_TRANSMITTER
+FS_IS_TRANSMITTER_CLASS
+FS_TRANSMITTER
+FS_TRANSMITTER_CLASS
+FS_TRANSMITTER_GET_CLASS
+FS_TYPE_TRANSMITTER
+FsTransmitterPrivate
+GST_IS_BASE_TRANSFORM
+GST_IS_BASE_TRANSFORM_CLASS
+fs_transmitter_get_type
+</SECTION>
+
+<SECTION>
+<FILE>fs-stream-transmitter</FILE>
+<TITLE>FsStreamTransmitter</TITLE>
+FsStreamTransmitter
+FsStreamTransmitterClass
+fs_stream_transmitter_add_remote_candidate
+<SUBSECTION Standard>
+FS_IS_STREAM_TRANSMITTER
+FS_IS_STREAM_TRANSMITTER_CLASS
+FS_STREAM_TRANSMITTER
+FS_STREAM_TRANSMITTER_CLASS
+FS_STREAM_TRANSMITTER_GET_CLASS
+FS_TYPE_STREAM_TRANSMITTER
+FsStreamTransmitterPrivate
+fs_stream_transmitter_get_type
+</SECTION>
+
+
+<SECTION>
 <FILE>fs-marshal</FILE>
 fs_marshal_VOID__BOXED_BOXED
 fs_marshal_VOID__OBJECT_INT_STRING_STRING
 </SECTION>
-
