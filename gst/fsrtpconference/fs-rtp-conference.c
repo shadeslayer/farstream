@@ -74,7 +74,7 @@ fs_rtp_conference_get_type (void)
   if (!rtp_conference_type) {
     static const GTypeInfo rtp_conference_info = {
       sizeof (FsRtpConferenceClass),
-      (GRtpInitFunc) fs_rtp_conference_base_init,
+      (GBaseInitFunc) fs_rtp_conference_base_init,
       NULL,
       (GClassInitFunc) fs_rtp_conference_class_init,
       NULL,
@@ -85,8 +85,9 @@ fs_rtp_conference_get_type (void)
     };
 
 
-    rtp_conference_type = g_type_register_static (FS_BASE_CONFERENCE,
+    rtp_conference_type = g_type_register_static (FS_TYPE_BASE_CONFERENCE,
         "FsRtpConference", &rtp_conference_info, 0);
+  }
 
   return rtp_conference_type;
 }
@@ -123,13 +124,14 @@ static void
 fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  FsBaseConferenceClass *baseconf_class = FS_BASE_CONFERENCE_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (FsRtpConferencePrivate));
 
   parent_class = g_type_class_peek_parent (klass);
 
-  parent_class->new_session = fs_rtp_conference_new_session;
-  parent_class->new_participant = fs_rtp_conference_new_participant;
+  baseconf_class->new_session = fs_rtp_conference_new_session;
+  baseconf_class->new_participant = fs_rtp_conference_new_participant;
 
 
   gobject_class->set_property =
@@ -149,37 +151,8 @@ fs_rtp_conference_init (FsRtpConference *conf,
   GST_DEBUG ("fs_rtp_conference_init");
 
   conf->priv = FS_RTP_CONFERENCE_GET_PRIVATE (conf);
-
-  conf->priv->session_list = g_ptr_array_new();
 }
 
-static GstCaps *
-fs_rtp_conference_getcaps (GstPad * pad)
-{
-  FsRtpConference *conf;
-  GstPad *otherpad;
-  GstCaps *caps;
-
-  conf = FS_RTP_CONFERENCE (gst_pad_get_parent (pad));
-
-  //otherpad = (pad == conf->srcpad) ? conf->sinkpad : trans->srcpad;
-
-  return caps;
-}
-
-/* called when new caps arrive on the sink or source pad */
-static gboolean
-fs_rtp_conference_setcaps (GstPad * pad, GstCaps * caps)
-{
-}
-
-void _remove_session_ptr (FsRtpConference *conf, FsSession *session)
-{
-  if (!g_ptr_array_remove (conf->priv->session_list, session))
-  {
-    GST_WARNING_OBJECT (conf, "FsSession not found in session ptr array");
-  }
-}
 
 static void
 fs_rtp_conference_set_property (GObject *object, guint prop_id,

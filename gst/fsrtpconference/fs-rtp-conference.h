@@ -55,18 +55,11 @@ struct _FsRtpConference
   FsBaseConference parent;
   FsRtpConferencePrivate *priv;
 
-  /*< private >*/
-
-  gpointer _padding[8];
 };
 
 struct _FsRtpConferenceClass
 {
-  FsBaseConfereneClass parent_class;
-
-  /*< public >*/
-
-  gpointer _padding[8];
+  FsBaseConferenceClass parent_class;
 };
 
 GType fs_rtp_conference_get_type(void);
