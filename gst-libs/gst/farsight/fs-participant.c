@@ -185,6 +185,13 @@ fs_participant_dispose (GObject *object)
 static void
 fs_participant_finalize (GObject *object)
 {
+  FsParticipant *self = FS_PARTICIPANT (object);
+
+  if (self->priv->cname) {
+    g_free (self->priv->cname);
+    self->priv->cname = NULL;
+  }
+
   parent_class->finalize (object);
 }
 
@@ -194,6 +201,16 @@ fs_participant_get_property (GObject *object,
                              GValue *value,
                              GParamSpec *pspec)
 {
+  FsParticipant *self = FS_PARTICIPANT (object);
+
+  switch (prop_id) {
+    case PROP_CNAME:
+      g_value_set_string (value, self->priv->cname);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
@@ -202,4 +219,14 @@ fs_participant_set_property (GObject *object,
                              const GValue *value,
                              GParamSpec *pspec)
 {
+  FsParticipant *self = FS_PARTICIPANT (object);
+
+  switch (prop_id) {
+    case PROP_CNAME:
+      self->priv->cname = g_value_dup_string (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
