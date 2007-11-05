@@ -61,6 +61,8 @@ enum
 
 struct _FsRtpStreamPrivate
 {
+  FsRtpSession *session;
+
   gboolean disposed;
 };
 
@@ -205,6 +207,17 @@ fs_rtp_stream_get_property (GObject *object,
                             GValue *value,
                             GParamSpec *pspec)
 {
+  FsRtpStream *self = FS_RTP_STREAM (object);
+
+  switch (prop_id) {
+    case PROP_SESSION:
+      g_value_set_object (value, self->priv->session);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+
 }
 
 static void
@@ -213,6 +226,17 @@ fs_rtp_stream_set_property (GObject *object,
                             const GValue *value,
                             GParamSpec *pspec)
 {
+  FsRtpStream *self = FS_RTP_STREAM (object);
+
+  switch (prop_id) {
+    case PROP_SESSION:
+      self->priv->session = FS_RTP_SESSION (g_value_get_object (value));
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+
 }
 
 /**
