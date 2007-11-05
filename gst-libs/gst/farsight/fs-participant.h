@@ -75,4 +75,6 @@ struct _FsParticipant
 
 GType fs_participant_get_type (void);
 
+G_END_DECLS
+
 #endif /* __FS_PARTICIPANT_H__ */
