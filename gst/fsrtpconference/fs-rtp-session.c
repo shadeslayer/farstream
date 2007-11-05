@@ -143,111 +143,24 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->stop_telephony_event = fs_rtp_session_stop_telephony_event;
   session_class->set_send_codec = fs_rtp_session_set_send_codec;
 
-  /**
-   * FsRtpSession:media-type:
-   *
-   * The media-type of the session. This is either Audio, Video or both.
-   * This is a constructor parameter that cannot be changed.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_MEDIA_TYPE,
-      g_param_spec_enum ("media-type",
-        "The media type of the session",
-        "An enum that specifies the media type of the session",
-        FS_TYPE_MEDIA_TYPE,
-        FS_MEDIA_TYPE_AUDIO,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
-
-  /**
-   * FsRtpSession:sink-pad:
-   *
-   * The Gstreamer sink pad that must be used to send media data on this
-   * session. User must unref this GstPad when done with it.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_SINK_PAD,
-      g_param_spec_object ("sink-pad",
-        "A gstreamer sink pad for this session",
-        "A pad used for sending data on this session",
-        GST_TYPE_PAD,
-        G_PARAM_READABLE));
-
-  /**
-   * FsRtpSession:native-codecs:
-   *
-   * This is the list of native codecs that have been auto-detected based on
-   * installed GStreamer plugins. This list is unchanged during the lifecycle of
-   * the session unless native-codecs-config is changed by the user. It is a
-   * #GList of #FsCodec. User must free this codec list using
-   * #fs_codec_list_destroy() when done.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_NATIVE_CODECS,
-      g_param_spec_boxed ("native-codecs",
-        "List of native codecs",
-        "A GList of FsCodecs that can be used for sending",
-        FS_TYPE_CODEC_LIST,
-        G_PARAM_READABLE));
-
-  /**
-   * FsRtpSession:native-codecs-config:
-   *
-   * This is the current configuration list for the native codecs. It is usually
-   * set by the user to specify the codec options and priorities. The user may
-   * change this value during an ongoing session. Note that doing this can cause
-   * the native-codecs to be changed. Therefore this requires the user to fetch
-   * the new native-codecs and renegotiate them with the peers. It is a #GList
-   * of #FsCodec. User must free this codec list using #fs_codec_list_destroy()
-   * when done.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_NATIVE_CODECS_CONFIG,
-      g_param_spec_boxed ("native-codecs-config",
-        "List of user configuration for native codecs",
-        "A GList of FsCodecs that allows user to set his codec options and"
-        " priorities",
-        FS_TYPE_CODEC_LIST,
-        G_PARAM_READWRITE));
-
-  /**
-   * FsRtpSession:negotiated-codecs:
-   *
-   * This list indicated what codecs have been successfully negotiated with the
-   * session participants. This list can change based on participants
-   * joining/leaving the session. It is a #GList of #FsCodec. User must free
-   * this codec list using #fs_codec_list_destroy() when done.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_NEGOTIATED_CODECS,
-      g_param_spec_boxed ("negotiated-codecs",
-        "List of negotiated codecs",
-        "A GList of FsCodecs indicating the codecs that have been successfully"
-        " negotiated",
-        FS_TYPE_CODEC_LIST,
-        G_PARAM_READABLE));
-
-  /**
-   * FsRtpSession:current-send-codec:
-   *
-   * Indicates the currently active send codec. A user can change the active
-   * send codec by calling fs_rtp_session_set_send_codec(). The send codec could
-   * also be automatically changed by Farsight. In both cases the
-   * ::send-codec-changed signal will be emited. This property is an
-   * #FsCodec. User must free the codec using fs_codec_destroy() when done.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_CURRENT_SEND_CODEC,
-      g_param_spec_boxed ("current-send-codec",
-        "Current active send codec",
-        "An FsCodec indicating the currently active send codec",
-        FS_TYPE_CODEC,
-        G_PARAM_READABLE));
+  g_object_class_override_property (gobject_class,
+                                    PROP_MEDIA_TYPE,
+                                    "media-type");
+  g_object_class_override_property (gobject_class,
+                                    PROP_SINK_PAD,
+                                    "sink-pad");
+  g_object_class_override_property (gobject_class,
+                                    PROP_NATIVE_CODECS,
+                                    "native-codecs");
+  g_object_class_override_property (gobject_class,
+                                    PROP_NATIVE_CODECS_CONFIG,
+                                    "native-codecs-config");
+  g_object_class_override_property (gobject_class,
+                                    PROP_NEGOTIATED_CODECS,
+                                    "negotiated-codecs");
+  g_object_class_override_property (gobject_class,
+                                    PROP_CURRENT_SEND_CODEC,
+                                    "current-send-codec");
 
   gobject_class->dispose = fs_rtp_session_dispose;
   gobject_class->finalize = fs_rtp_session_finalize;
