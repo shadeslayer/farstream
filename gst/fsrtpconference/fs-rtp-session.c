@@ -257,7 +257,7 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
 {
   FsStream *new_stream = NULL;
 
-  return new_stream; // this shouldn't happen
+  return new_stream;
 }
 
 /**
