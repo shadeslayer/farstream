@@ -47,6 +47,7 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_SESSION))
 #define FS_SESSION_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_SESSION, FsSessionClass))
+#define FS_SESSION_CAST(obj) ((FsSession *) (obj))
 
 typedef struct _FsSession FsSession;
 typedef struct _FsSessionClass FsSessionClass;

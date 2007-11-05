@@ -66,6 +66,7 @@ typedef enum
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_STREAM))
 #define FS_STREAM_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_STREAM, FsStreamClass))
+#define FS_STREAM_CAST(obj) ((FsStream *) (obj))
 
 typedef struct _FsStream FsStream;
 typedef struct _FsStreamClass FsStreamClass;
