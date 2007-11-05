@@ -123,9 +123,6 @@ static void fs_base_conference_set_property (GObject *object, guint prop_id,
                                              GParamSpec *pspec);
 static void fs_base_conference_get_property (GObject *object, guint prop_id,
                                              GValue *value, GParamSpec *pspec);
-static GstFlowReturn fs_base_conference_chain (GstPad *pad, GstBuffer *buffer);
-static GstCaps *fs_base_conference_getcaps (GstPad *pad);
-static gboolean fs_base_conference_setcaps (GstPad *pad, GstCaps *caps);
 
 static FsSession *fs_base_conference_new_session (FsConference *conf,
                                                   FsMediaType media_type);
@@ -222,26 +219,6 @@ fs_base_conference_implements_interface_init (
   klass->supported = fs_base_conference_interface_supported;
 }
 
-
-static GstCaps *
-fs_base_conference_getcaps (GstPad * pad)
-{
-  FsBaseConference *conf;
-  GstPad *otherpad;
-  GstCaps *caps;
-
-  conf = FS_BASE_CONFERENCE (gst_pad_get_parent (pad));
-
-  //otherpad = (pad == conf->srcpad) ? conf->sinkpad : trans->srcpad;
-
-  return caps;
-}
-
-/* called when new caps arrive on the sink or source pad */
-static gboolean
-fs_base_conference_setcaps (GstPad * pad, GstCaps * caps)
-{
-}
 
 void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
 {
