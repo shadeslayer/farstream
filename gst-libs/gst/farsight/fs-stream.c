@@ -229,7 +229,7 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_DIRECTION,
+      PROP_PARTICIPANT,
       g_param_spec_object ("participant",
         "The participant of the stream",
         "An FsParticipant represented by the stream",
@@ -244,7 +244,7 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_DIRECTION,
+      PROP_SESSION,
       g_param_spec_object ("session",
         "The session of the stream",
         "An FsSession represented by the stream",
