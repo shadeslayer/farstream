@@ -29,8 +29,8 @@
 #include <gst/gst.h>
 #include <gst/interfaces/interfaces-enumtypes.h>
 
-#include "fs-session.h"
-#include "fs-codec.h"
+#include <gst/farsight/fs-session.h>
+#include <gst/farsight/fs-codec.h>
 
 G_BEGIN_DECLS
 

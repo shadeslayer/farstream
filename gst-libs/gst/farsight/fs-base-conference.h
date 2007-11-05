@@ -28,9 +28,9 @@
 
 #include <gst/gst.h>
 
-#include "fs-conference-iface.h"
-#include "fs-session.h"
-#include "fs-codec.h"
+#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-session.h>
+#include <gst/farsight/fs-codec.h>
 
 G_BEGIN_DECLS
 

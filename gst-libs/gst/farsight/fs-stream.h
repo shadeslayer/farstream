@@ -28,8 +28,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "fs-candidate.h"
-#include "fs-codec.h"
+#include <gst/farsight/fs-candidate.h>
+#include <gst/farsight/fs-codec.h>
 
 G_BEGIN_DECLS
 

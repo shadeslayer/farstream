@@ -28,9 +28,9 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include "fs-stream.h"
-#include "fs-participant.h"
-#include "fs-codec.h"
+#include <gst/farsight/fs-stream.h>
+#include <gst/farsight/fs-participant.h>
+#include <gst/farsight/fs-codec.h>
 
 G_BEGIN_DECLS
 
