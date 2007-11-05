@@ -34,6 +34,7 @@
 #endif
 
 #include "fs-rtp-conference.h"
+#include "fs-rtp-participant.h"
 
 GST_DEBUG_CATEGORY_STATIC (fs_rtp_conference_debug);
 #define GST_CAT_DEFAULT fs_rtp_conference_debug
@@ -190,6 +191,7 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
 
   FsParticipant *new_participant = NULL;
 
+  new_participant = fs_rtp_participant_new (cname);
 
   return new_participant;
 }
