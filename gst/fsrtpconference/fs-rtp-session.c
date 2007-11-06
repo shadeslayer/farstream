@@ -69,14 +69,17 @@ struct _FsRtpSessionPrivate
    */
   FsRtpConference *conference;
 
-  /* We dont keep explicit references to the pads, the Bin does that for us
-   * only this element's methods can add/remote it
+  /* We keep references to these elements
    */
-  GstPad *media_sink_pad;
 
   GstElement *media_sink_valve;
   GstElement *transmitter_rtp_tee;
   GstElement *transmitter_rtcp_tee;
+
+  /* We dont keep explicit references to the pads, the Bin does that for us
+   * only this element's methods can add/remote it
+   */
+  GstPad *media_sink_pad;
 
   /* Request pad to release on dispose */
   GstPad *rtpbin_send_rtp_sink;
