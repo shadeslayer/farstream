@@ -280,8 +280,9 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsSession *new_session = NULL;
+  guint id = 0;
 
-  new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type));
+  new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type, id));
 
   GST_OBJECT_LOCK (self);
   self->priv->sessions = g_list_append (self->priv->sessions, new_session);

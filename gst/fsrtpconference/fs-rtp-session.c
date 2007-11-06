@@ -50,6 +50,7 @@ enum
 {
   PROP_0,
   PROP_MEDIA_TYPE,
+  PROP_ID,
   PROP_SINK_PAD,
   PROP_NATIVE_CODECS,
   PROP_NATIVE_CODECS_CONFIG,
@@ -60,6 +61,7 @@ enum
 struct _FsRtpSessionPrivate
 {
   FsMediaType media_type;
+  guint id;
 
   gboolean disposed;
 };
@@ -145,9 +147,12 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->stop_telephony_event = fs_rtp_session_stop_telephony_event;
   session_class->set_send_codec = fs_rtp_session_set_send_codec;
 
-  g_object_class_override_property (gobject_class,
+   g_object_class_override_property (gobject_class,
                                     PROP_MEDIA_TYPE,
                                     "media-type");
+  g_object_class_override_property (gobject_class,
+                                    PROP_ID,
+                                    "id");
   g_object_class_override_property (gobject_class,
                                     PROP_SINK_PAD,
                                     "sink-pad");
@@ -212,6 +217,9 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_MEDIA_TYPE:
       g_value_set_enum (value, self->priv->media_type);
       break;
+    case PROP_ID:
+      g_value_set_uint (value, self->priv->id);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -229,6 +237,9 @@ fs_rtp_session_set_property (GObject *object,
   switch (prop_id) {
     case PROP_MEDIA_TYPE:
       self->priv->media_type = g_value_get_enum (value);
+      break;
+    case PROP_ID:
+      self->priv->id = g_value_get_uint (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -338,9 +349,12 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 }
 
 FsRtpSession *
-fs_rtp_session_new (FsMediaType media_type)
+fs_rtp_session_new (FsMediaType media_type, guint id)
 {
-  return g_object_new (FS_TYPE_RTP_SESSION, "media-type", media_type, NULL);
+  return g_object_new (FS_TYPE_RTP_SESSION,
+                       "media-type", media_type,
+                       "id", id,
+                       NULL);
 }
 
 
