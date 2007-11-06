@@ -51,47 +51,42 @@ enum
   PROP_0
 };
 
+
+static GstElementDetails fs_rtp_conference_details = {
+  "Farsight RTP Conference",
+  "Generic/Bin/RTP",
+  "A Farsight RTP Conference",
+  "Olivier Crete <olivier.crete@collabora.co.uk>"
+};
+
+
+
+static GstStaticPadTemplate fs_rtp_conference_sink_template =
+  GST_STATIC_PAD_TEMPLATE ("sink_%d",
+                           GST_PAD_SINK,
+                           GST_PAD_SOMETIMES,
+                           GST_STATIC_CAPS_ANY);
+
+static GstStaticPadTemplate fs_rtp_conference_src_template =
+  GST_STATIC_PAD_TEMPLATE ("src_%d",
+                           GST_PAD_SRC,
+                           GST_PAD_SOMETIMES,
+                           GST_STATIC_CAPS_ANY);
+
+
 #define FS_RTP_CONFERENCE_GET_PRIVATE(obj) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((obj), FS_TYPE_RTP_CONFERENCE, FsRtpConferencePrivate))
 
 struct _FsRtpConferencePrivate
 {
+  gint something;
 };
 
-static GstElementClass *parent_class = NULL;
-
-static void fs_rtp_conference_base_init (gpointer g_class);
-static void fs_rtp_conference_class_init (FsRtpConferenceClass *klass);
-static void fs_rtp_conference_init (FsRtpConference *conf,
-                                     FsRtpConferenceClass *klass);
-static void fs_rtp_conference_implements_interface_init (
-    GstImplementsInterfaceClass * klass);
-
-GType
-fs_rtp_conference_get_type (void)
-{
-  static GType rtp_conference_type = 0;
-
-  if (!rtp_conference_type) {
-    static const GTypeInfo rtp_conference_info = {
-      sizeof (FsRtpConferenceClass),
-      (GBaseInitFunc) fs_rtp_conference_base_init,
-      NULL,
-      (GClassInitFunc) fs_rtp_conference_class_init,
-      NULL,
-      NULL,
-      sizeof (FsRtpConference),
-      0,
-      (GInstanceInitFunc) fs_rtp_conference_init,
-    };
+static void fs_rtp_conference_do_init (gpointer g_class);
 
 
-    rtp_conference_type = g_type_register_static (FS_TYPE_BASE_CONFERENCE,
-        "FsRtpConference", &rtp_conference_info, 0);
-  }
-
-  return rtp_conference_type;
-}
+GST_BOILERPLATE_FULL (FsRtpConference, fs_rtp_conference, FsBaseConference,
+                      FS_TYPE_BASE_CONFERENCE, fs_rtp_conference_do_init);
 
 static void fs_rtp_conference_finalize (GObject *object);
 static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
@@ -101,7 +96,7 @@ static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
 
 
 static void
-fs_rtp_conference_rtp_init (gpointer g_class)
+fs_rtp_conference_do_init (gpointer g_class)
 {
   GST_DEBUG_CATEGORY_INIT (fs_rtp_conference_debug, "fsrtpconference", 0,
       "farsight rtp conference element");
@@ -119,8 +114,8 @@ static void
 fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
   FsBaseConferenceClass *baseconf_class = FS_BASE_CONFERENCE_CLASS (klass);
-
   g_type_class_add_private (klass, sizeof (FsRtpConferencePrivate));
 
   parent_class = g_type_class_peek_parent (klass);
@@ -131,6 +126,20 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
     GST_DEBUG_FUNCPTR (fs_rtp_conference_new_participant);
 
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
+
+  gst_element_class_set_details (gstelement_class, &fs_rtp_conference_details);
+
+  gst_element_class_add_pad_template (gstelement_class,
+            gst_static_pad_template_get (&fs_rtp_conference_sink_template));
+  gst_element_class_add_pad_template (gstelement_class,
+            gst_static_pad_template_get (&fs_rtp_conference_src_template));
+
+
+}
+
+static void
+fs_rtp_conference_base_init (gpointer g_class)
+{
 }
 
 static void
