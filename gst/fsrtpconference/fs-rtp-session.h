@@ -44,6 +44,7 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_RTP_SESSION))
 #define FS_RTP_SESSION_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_RTP_SESSION, FsRtpSessionClass))
+#define FS_RTP_SESSION_CAST(obj) ((FsRtpSession *) (obj))
 
 typedef struct _FsRtpSession FsRtpSession;
 typedef struct _FsRtpSessionClass FsRtpSessionClass;

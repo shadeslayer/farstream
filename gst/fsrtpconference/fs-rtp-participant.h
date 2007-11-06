@@ -44,6 +44,7 @@ G_BEGIN_DECLS
 #define FS_RTP_PARTICIPANT_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_RTP_PARTICIPANT, \
                               FsRtpParticipantClass))
+#define FS_RTP_PARTICIPANT_CAST(obj) ((FsRtpParticipant *) (obj))
 
 typedef struct _FsRtpParticipant FsRtpParticipant;
 typedef struct _FsRtpParticipantClass FsRtpParticipantClass;

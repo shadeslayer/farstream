@@ -46,6 +46,7 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_RTP_STREAM))
 #define FS_RTP_STREAM_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_RTP_STREAM, FsRtpStreamClass))
+#define FS_RTP_STREAM_CAST(obj) ((FsRtpStream*) (obj))
 
 typedef struct _FsRtpStream FsRtpStream;
 typedef struct _FsRtpStreamClass FsRtpStreamClass;
