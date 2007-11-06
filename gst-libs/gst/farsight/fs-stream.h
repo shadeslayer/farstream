@@ -72,6 +72,25 @@ typedef struct _FsStream FsStream;
 typedef struct _FsStreamClass FsStreamClass;
 typedef struct _FsStreamPrivate FsStreamPrivate;
 
+
+/**
+ * FsStreamError:
+ * @FS_STREAM_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
+ * @FS_STREAM_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function
+ *
+ * This is the enum of error numbers that will come either on the "error" signal
+ * or from the Gst Bus.
+ */
+
+typedef enum {
+  FS_STREAM_ERROR_CONSTRUCTION,
+  FS_STREAM_ERROR_INVALID_ARGUMENTS
+} FsStreamError;
+
+#define FS_STREAM_ERROR (fs_stream_error_quark ())
+
+GQuark fs_stream_error_quark (void);
+
 struct _FsStreamClass
 {
   GObjectClass parent_class;

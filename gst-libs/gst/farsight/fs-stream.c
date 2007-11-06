@@ -101,6 +101,13 @@ static void fs_stream_set_property (GObject *object,
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
+GQuark
+fs_stream_error_quark (void)
+{
+  return g_quark_from_static_string ("fs-stream-error");
+}
+
+
 GType
 fs_stream_get_type (void)
 {
