@@ -183,7 +183,7 @@ fs_rtp_conference_init (FsRtpConference *conf,
   conf->priv = FS_RTP_CONFERENCE_GET_PRIVATE (conf);
 
   conf->priv->disposed = FALSE;
-  conf->priv->max_session_id = 0;
+  conf->priv->max_session_id = 1;
 
   conf->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
 

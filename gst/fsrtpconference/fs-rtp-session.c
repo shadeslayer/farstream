@@ -64,7 +64,19 @@ struct _FsRtpSessionPrivate
   FsMediaType media_type;
   guint id;
 
+  /* We dont need a reference to this one per our reference model
+   * This Session object can only exist while its parent conference exists
+   */
   GstElement *conference;
+
+  /* We dont keep explicit references to the pads, the Bin does that for us
+   * only this element's methods can add/remote it
+   */
+  GstPad *media_sink_pad;
+
+  GstElement *media_sink_valve;
+
+  GError *construction_error;
 
   gboolean disposed;
 };
@@ -86,9 +98,7 @@ static void fs_rtp_session_set_property (GObject *object,
                                          const GValue *value,
                                          GParamSpec *pspec);
 
-static GObject * fs_rtp_session_constructor (GType type,
-                                             guint n_props,
-                                             GObjectConstructParam *props);
+static void fs_rtp_session_constructed (GObject *object);
 
 static FsStream *fs_rtp_session_new_stream (FsSession *session,
                                             FsParticipant *participant,
@@ -148,7 +158,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
 
   gobject_class->set_property = fs_rtp_session_set_property;
   gobject_class->get_property = fs_rtp_session_get_property;
-  gobject_class->constructor = fs_rtp_session_constructor;
+  gobject_class->constructed = fs_rtp_session_constructed;
 
   session_class->new_stream = fs_rtp_session_new_stream;
   session_class->start_telephony_event = fs_rtp_session_start_telephony_event;
@@ -197,6 +207,7 @@ fs_rtp_session_init (FsRtpSession *self)
   /* member init */
   self->priv = FS_RTP_SESSION_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+  self->priv->construction_error = NULL;
 }
 
 static void
@@ -207,6 +218,20 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
     return;
+  }
+
+  if (self->priv->media_sink_pad) {
+    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
+    gst_element_remove_pad (self->priv->conference, self->priv->media_sink_pad);
+    self->priv->media_sink_pad = NULL;
+  }
+
+  if (self->priv->media_sink_valve) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->media_sink_valve);
+    gst_element_set_state (self->priv->media_sink_valve, GST_STATE_NULL);
+    gst_object_unref (self->priv->media_sink_valve);
+    self->priv->media_sink_valve = NULL;
   }
 
   /* Make sure dispose does not run twice. */
@@ -269,19 +294,56 @@ fs_rtp_session_set_property (GObject *object,
   }
 }
 
-static GObject *
-fs_rtp_session_constructor (GType type,
-                            guint n_props,
-                            GObjectConstructParam *props)
+static void
+fs_rtp_session_constructed (GObject *object)
 {
-  GObject *obj;
-  FsRtpSession *self = NULL;
+  FsRtpSession *self = FS_RTP_SESSION_CAST (object);
+  GstElement *valve = NULL;
+  GstPad *valve_sink_pad = NULL;
+  gchar *tmp;
 
-  obj = G_OBJECT_CLASS (parent_class)->constructor (type, n_props, props);
-  self = FS_RTP_SESSION_CAST (obj);
+  G_OBJECT_CLASS (parent_class)->constructed (object);
 
+  if (self->priv->id == 0) {
+    g_error ("You can no instantiate this element directly, you MUST"
+      " call fs_rtp_session_new()");
+    return;
+  }
 
-  return obj;
+  tmp = g_strdup_printf ("valve_send_%d", self->priv->id);
+  valve = gst_element_factory_make ("fsvalve", tmp);
+  g_free (tmp);
+
+  if (!valve) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not create the fsvalve element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), valve)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the valve element to the FsRtpConference");
+    gst_object_unref (valve);
+    return;
+  }
+
+  g_object_set (G_OBJECT (valve), "drop", TRUE, NULL);
+  gst_element_set_state (valve, GST_STATE_PLAYING);
+
+  self->priv->media_sink_valve = gst_object_ref (valve);
+
+  valve_sink_pad = gst_element_get_static_pad (valve, "sink");
+
+  tmp = g_strdup_printf ("sink_%u", self->priv->id);
+  self->priv->media_sink_pad = gst_ghost_pad_new (tmp, valve_sink_pad);
+  g_free (tmp);
+
+  gst_pad_set_active (self->priv->media_sink_pad, TRUE);
+  gst_element_add_pad (self->priv->conference, self->priv->media_sink_pad);
+
+  gst_object_unref (valve_sink_pad);
 }
 
 
