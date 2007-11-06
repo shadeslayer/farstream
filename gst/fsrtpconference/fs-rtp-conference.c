@@ -79,7 +79,9 @@ static GstStaticPadTemplate fs_rtp_conference_src_template =
 
 struct _FsRtpConferencePrivate
 {
-  gint something;
+  GstElement *gstrtpbin;
+
+  gboolean disposed;
 };
 
 static void fs_rtp_conference_do_init (gpointer g_class);
@@ -101,6 +103,25 @@ fs_rtp_conference_do_init (gpointer g_class)
   GST_DEBUG_CATEGORY_INIT (fs_rtp_conference_debug, "fsrtpconference", 0,
       "farsight rtp conference element");
 }
+
+static void
+fs_rtp_conference_dispose (GObject * object)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (object);
+
+  if (self->priv->disposed)
+    return;
+
+  if (self->priv->gstrtpbin) {
+    gst_object_unref (self->priv->gstrtpbin);
+    self->priv->gstrtpbin = NULL;
+  }
+
+  self->priv->disposed = TRUE;
+
+  G_OBJECT_CLASS (parent_class)->dispose (object);
+}
+
 
 static void
 fs_rtp_conference_finalize (GObject * object)
@@ -126,6 +147,7 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
     GST_DEBUG_FUNCPTR (fs_rtp_conference_new_participant);
 
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
+  gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_rtp_conference_dispose);
 
   gst_element_class_set_details (gstelement_class, &fs_rtp_conference_details);
 
@@ -146,11 +168,27 @@ static void
 fs_rtp_conference_init (FsRtpConference *conf,
     FsRtpConferenceClass *bclass)
 {
-  GstPadTemplate *pad_template;
-
-  GST_DEBUG ("fs_rtp_conference_init");
+  GST_DEBUG_OBJECT (conf, "fs_rtp_conference_init");
 
   conf->priv = FS_RTP_CONFERENCE_GET_PRIVATE (conf);
+
+  conf->priv->disposed = FALSE;
+
+  conf->priv->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
+
+  if (!conf->priv->gstrtpbin) {
+    GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (conf), conf->priv->gstrtpbin)) {
+    GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
+    gst_object_unref (conf->priv->gstrtpbin);
+    return;
+  }
+
+  gst_object_ref (conf->priv->gstrtpbin);
+
 }
 
 
