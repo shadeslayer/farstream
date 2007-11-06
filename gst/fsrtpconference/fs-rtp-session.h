@@ -67,7 +67,8 @@ struct _FsRtpSession
 
 GType fs_rtp_session_get_type (void);
 
-FsRtpSession *fs_rtp_session_new (FsMediaType media_type, GstElement *gstrtpbin,
+FsRtpSession *fs_rtp_session_new (FsMediaType media_type,
+                                  FsRtpConference *conference,
                                   guint id);
 
 GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
