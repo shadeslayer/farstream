@@ -63,6 +63,7 @@ struct _FsRtpStreamPrivate
 {
   FsRtpSession *session;
   FsRtpParticipant *participant;
+  FsStreamTransmitter *stream_transmitter;
 
   gboolean disposed;
 };
@@ -179,6 +180,7 @@ fs_rtp_stream_init (FsRtpStream *self)
   self->priv->disposed = FALSE;
   self->priv->session = NULL;
   self->priv->participant = NULL;
+  self->priv->stream_transmitter = NULL;
 }
 
 static void
@@ -218,6 +220,9 @@ fs_rtp_stream_get_property (GObject *object,
     case PROP_PARTICIPANT:
       g_value_set_object (value, self->priv->participant);
       break;
+    case PROP_STREAM_TRANSMITTER:
+      g_value_set_object (value, self->priv->stream_transmitter);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -240,7 +245,11 @@ fs_rtp_stream_set_property (GObject *object,
     case PROP_PARTICIPANT:
       self->priv->participant = FS_RTP_PARTICIPANT (g_value_dup_object (value));
       break;
-   default:
+    case PROP_STREAM_TRANSMITTER:
+      self->priv->stream_transmitter =
+        FS_STREAM_TRANSMITTER (g_value_dup_object (value));
+      break;
+    default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
