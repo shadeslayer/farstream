@@ -95,6 +95,13 @@ static void fs_session_set_property (GObject *object,
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
+GQuark
+fs_session_error_quark (void)
+{
+  return g_quark_from_static_string ("fs-session-error");
+}
+
+
 GType
 fs_session_get_type (void)
 {
@@ -256,11 +263,12 @@ fs_session_class_init (FsSessionClass *klass)
    * FsSession::error:
    * @self: #FsSession that emitted the signal
    * @object: The #Gobject that emitted the signal
-   * @error_no: The number of the error 
+   * @error_no: The number of the error
    * @error_msg: Error message to be displayed to user
    * @debug_msg: Debugging error message
    *
-   * This signal is emitted in any error condition
+   * This signal is emitted in any error condition, it can be emitted on any
+   * thread. Applications should listen to the GstBus for errors.
    *
    */
   signals[ERROR] = g_signal_new ("error",
@@ -536,4 +544,13 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
     g_warning ("set_send_codec not defined in class");
   }
   return FALSE;
+}
+
+
+void
+fs_session_error (FsSession *session, gint error_no, gchar *error_msg,
+                  gchar *debug_msg)
+{
+  g_signal_emit (session, signals[ERROR], 0, session, error_no, error_msg,
+                 debug_msg, NULL);
 }

@@ -99,6 +99,22 @@ typedef enum
   FS_DTMF_METHOD_IN_BAND
 } FsDTMFMethod;
 
+/**
+ * FsSessionError:
+ * @FS_SESSION_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
+ *
+ * This is the enum of error numbers that will come either on the "error" signal
+ * or from the Gst Bus.
+ */
+
+typedef enum {
+  FS_SESSION_ERROR_CONSTRUCTION
+} FsSessionError;
+
+#define FS_SESSION_ERROR (fs_session_error_quark ())
+
+GQuark fs_session_error_quark (void);
+
 struct _FsSessionClass
 {
   GObjectClass parent_class;
@@ -151,6 +167,9 @@ gboolean fs_session_stop_telephony_event (FsSession *session,
 
 gboolean fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                     GError **error);
+
+void fs_session_error (FsSession *session, gint error_no, gchar *error_msg,
+                       gchar *debug_msg);
 
 G_END_DECLS
 
