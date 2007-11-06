@@ -125,8 +125,10 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 
   parent_class = g_type_class_peek_parent (klass);
 
-  baseconf_class->new_session = fs_rtp_conference_new_session;
-  baseconf_class->new_participant = fs_rtp_conference_new_participant;
+  baseconf_class->new_session =
+    GST_DEBUG_FUNCPTR (fs_rtp_conference_new_session);
+  baseconf_class->new_participant =
+    GST_DEBUG_FUNCPTR (fs_rtp_conference_new_participant);
 
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
 }
