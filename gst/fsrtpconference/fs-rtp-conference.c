@@ -82,10 +82,11 @@ struct _FsRtpConferencePrivate
 {
   GstElement *gstrtpbin;
 
+  gboolean disposed;
+
   /* Protected by GST_OBJECT_LOCK */
   GList *sessions;
-
-  gboolean disposed;
+  guint max_session_id;
 };
 
 static void fs_rtp_conference_do_init (GType type);
@@ -100,6 +101,8 @@ static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
 static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
                                                          gchar *cname);
 
+static FsRtpSession *fs_rtp_conference_get_session_by_id_locked (
+    FsRtpConference *self, guint session_id);
 static FsRtpSession *fs_rtp_conference_get_session_by_id (
     FsRtpConference *self, guint session_id);
 static GstCaps *fs_rtp_conference_request_pt_map (GstElement *element,
@@ -181,6 +184,7 @@ fs_rtp_conference_init (FsRtpConference *conf,
   conf->priv = FS_RTP_CONFERENCE_GET_PRIVATE (conf);
 
   conf->priv->disposed = FALSE;
+  conf->priv->max_session_id = 0;
 
   conf->priv->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
 
@@ -224,20 +228,20 @@ fs_rtp_conference_request_pt_map (GstElement *element, guint session_id,
 }
 
 /**
- * fs_rtp_conference_get_session_by_id
+ * fs_rtp_conference_get_session_by_id_locked
  * @self: The #FsRtpConference
  * @session_id: The session id
  *
  * Gets the #FsRtpSession from a list of sessions or NULL if it doesnt exist
+ * You have to hold the GST_OBJECT_LOCK to call this function.
  *
  * Return value: A #FsRtpSession (unref after use) or NULL if it doesn't exist
  */
 static FsRtpSession *
-fs_rtp_conference_get_session_by_id (FsRtpConference *self, guint session_id)
+fs_rtp_conference_get_session_by_id_locked (FsRtpConference *self,
+                                            guint session_id)
 {
   GList *item = NULL;
-
-  GST_OBJECT_LOCK (self->priv->sessions);
 
   for (item = g_list_first (self->priv->sessions);
        item;
@@ -253,13 +257,32 @@ fs_rtp_conference_get_session_by_id (FsRtpConference *self, guint session_id)
     */
   }
 
-  GST_OBJECT_UNLOCK (self->priv->sessions);
-
   if (item)
     return FS_RTP_SESSION (item->data);
   else
     return NULL;
+}
 
+/**
+ * fs_rtp_conference_get_session_by_id
+ * @self: The #FsRtpConference
+ * @session_id: The session id
+ *
+ * Gets the #FsRtpSession from a list of sessions or NULL if it doesnt exist
+ * You have to hold the GST_OBJECT_LOCK to call this function.
+ *
+ * Return value: A #FsRtpSession (unref after use) or NULL if it doesn't exist
+ */
+static FsRtpSession *
+fs_rtp_conference_get_session_by_id (FsRtpConference *self, guint session_id)
+{
+  FsRtpSession *session = NULL;
+
+  GST_OBJECT_LOCK (self->priv->sessions);
+  session = fs_rtp_conference_get_session_by_id_locked (self, session_id);
+  GST_OBJECT_UNLOCK (self->priv->sessions);
+
+  return session;
 }
 
 static void
@@ -280,7 +303,13 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsSession *new_session = NULL;
-  guint id = 0;
+  guint id;
+
+  GST_OBJECT_LOCK (self);
+  do {
+    id = self->priv->max_session_id++;
+  } while (fs_rtp_conference_get_session_by_id_locked (self, id));
+  GST_OBJECT_UNLOCK (self);
 
   new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type, id));
 
