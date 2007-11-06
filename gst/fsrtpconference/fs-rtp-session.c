@@ -466,7 +466,9 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
   FsStream *new_stream = NULL;
 
   if (!FS_IS_RTP_PARTICIPANT (participant)) {
-    // *error = g_error_new ();
+    *error = g_error_new (FS_STREAM_ERROR,
+      FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      "You have to provide a participant of type RTP");
     return NULL;
   }
   rtpparticipant = FS_RTP_PARTICIPANT (participant);
