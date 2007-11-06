@@ -321,3 +321,18 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
 {
   return FALSE;
 }
+
+
+FsRtpStream *
+fs_rtp_stream_new (FsRtpSession *session,
+                   FsRtpParticipant *participant,
+                   FsStreamDirection direction,
+                   FsStreamTransmitter *transmitter)
+{
+  return g_object_new (FS_TYPE_RTP_STREAM,
+                       "session", session,
+                       "participant", participant,
+                       "direction", direction,
+                       "transmitter", transmitter,
+                       NULL);
+}
