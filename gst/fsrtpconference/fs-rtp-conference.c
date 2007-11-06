@@ -35,6 +35,7 @@
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-session.h"
+#include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
 
 GST_DEBUG_CATEGORY_STATIC (fs_rtp_conference_debug);
@@ -108,6 +109,9 @@ static GstCaps *fs_rtp_conference_rtpbin_request_pt_map (GstElement *element,
                                                          guint session_id,
                                                          guint pt,
                                                          gpointer user_data);
+static void fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin,
+                                                GstPad *new_pad,
+                                                gpointer user_data);
 
 
 static void
@@ -203,6 +207,8 @@ fs_rtp_conference_init (FsRtpConference *conf,
 
   g_signal_connect (conf->gstrtpbin, "request-pt-map",
                     G_CALLBACK (fs_rtp_conference_rtpbin_request_pt_map), conf);
+  g_signal_connect (conf->gstrtpbin, "pad-added",
+                    G_CALLBACK (fs_rtp_conference_rtpbin_pad_added), conf);
 }
 
 static GstCaps *
@@ -226,6 +232,39 @@ fs_rtp_conference_rtpbin_request_pt_map (GstElement *element, guint session_id,
 
   return caps;
 }
+
+static void
+fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
+  gpointer user_data)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+  gchar *name;
+
+  GST_DEBUG_OBJECT (self, "pad added %"GST_PTR_FORMAT, GST_PAD_CAPS (new_pad));
+
+  name = gst_pad_get_name (new_pad);
+
+  if (g_str_has_prefix (name, "recv_rtp_src_")) {
+    guint session_id, stream_id, pt;
+
+    if (sscanf (name, "recv_rtp_src_%u_%u_%u",
+        &session_id, &stream_id, &pt) == 3) {
+      FsRtpSession *session =
+        fs_rtp_conference_get_session_by_id (self, session_id);
+
+      if (session) {
+        FsRtpStream *stream =FS_RTP_STREAM_CAST (
+            fs_rtp_session_get_stream_by_id (session, stream_id));
+
+        if (stream)
+          fs_rtp_stream_new_recv_pad (stream, new_pad, pt);
+      }
+    }
+  }
+
+  g_free (name);
+}
+
 
 /**
  * fs_rtp_conference_get_session_by_id_locked

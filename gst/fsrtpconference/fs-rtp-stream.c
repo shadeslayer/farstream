@@ -336,3 +336,9 @@ fs_rtp_stream_new (FsRtpSession *session,
                        "transmitter", transmitter,
                        NULL);
 }
+
+
+void
+fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt)
+{
+}

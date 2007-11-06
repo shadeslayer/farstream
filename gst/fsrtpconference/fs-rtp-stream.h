@@ -75,6 +75,7 @@ FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
                                 FsStreamDirection direction,
                                 FsStreamTransmitter *transmitter);
 
+void fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt);
 
 G_END_DECLS
 

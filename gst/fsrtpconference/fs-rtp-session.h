@@ -29,6 +29,7 @@
 
 #include <gst/farsight/fs-session.h>
 
+#include "fs-rtp-session.h"
 #include "fs-rtp-conference.h"
 
 G_BEGIN_DECLS
@@ -74,6 +75,9 @@ FsRtpSession *fs_rtp_session_new (FsMediaType media_type,
                                   guint id, GError **error);
 
 GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
+
+FsStream *fs_rtp_session_get_stream_by_id (FsRtpSession *session,
+                                           guint stream_id);
 
 G_END_DECLS
 
