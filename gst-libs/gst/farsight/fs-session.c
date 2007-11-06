@@ -59,6 +59,7 @@ enum
 {
   PROP_0,
   PROP_MEDIA_TYPE,
+  PROP_ID,
   PROP_SINK_PAD,
   PROP_NATIVE_CODECS,
   PROP_NATIVE_CODECS_CONFIG,
@@ -144,6 +145,21 @@ fs_session_class_init (FsSessionClass *klass)
         "An enum that specifies the media type of the session",
         FS_TYPE_MEDIA_TYPE,
         FS_MEDIA_TYPE_AUDIO,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  /**
+   * FsSession:id:
+   *
+   * The ID of the session, the first number of the pads linked to this session
+   * will be this id
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_ID,
+      g_param_spec_uint ("id",
+        "The ID of the session",
+        "This ID is used on pad related to this session",
+        0, G_MAXUINT, 0,
         G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**

@@ -63,6 +63,7 @@ enum
 enum
 {
   PROP_0,
+  PROP_ID,
 #if 0
   /* TODO Do we really need this? */
   PROP_SOURCE_PADS,
@@ -154,6 +155,21 @@ fs_stream_class_init (FsStreamClass *klass)
 
   gobject_class->set_property = fs_stream_set_property;
   gobject_class->get_property = fs_stream_get_property;
+
+  /**
+   * FsStream:id:
+   *
+   * The ID of the stream, the second number of the pads linked to this stream
+   * will be this id
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_ID,
+      g_param_spec_uint ("id",
+        "The ID of the stream",
+        "This ID is used on pad related to this stream",
+        0, G_MAXUINT, 0,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
 #if 0
   /**
