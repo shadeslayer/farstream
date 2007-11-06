@@ -94,12 +94,6 @@ fs_rtp_conference_get_type (void)
 }
 
 static void fs_rtp_conference_finalize (GObject *object);
-static void fs_rtp_conference_set_property (GObject *object, guint prop_id,
-                                             const GValue *value,
-                                             GParamSpec *pspec);
-static void fs_rtp_conference_get_property (GObject *object, guint prop_id,
-                                             GValue *value, GParamSpec *pspec);
-
 static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
                                                  FsMediaType media_type);
 static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
@@ -134,12 +128,6 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
   baseconf_class->new_session = fs_rtp_conference_new_session;
   baseconf_class->new_participant = fs_rtp_conference_new_participant;
 
-
-  gobject_class->set_property =
-      GST_DEBUG_FUNCPTR (fs_rtp_conference_set_property);
-  gobject_class->get_property =
-      GST_DEBUG_FUNCPTR (fs_rtp_conference_get_property);
-
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
 }
 
@@ -152,20 +140,6 @@ fs_rtp_conference_init (FsRtpConference *conf,
   GST_DEBUG ("fs_rtp_conference_init");
 
   conf->priv = FS_RTP_CONFERENCE_GET_PRIVATE (conf);
-}
-
-
-static void
-fs_rtp_conference_set_property (GObject *object, guint prop_id,
-                                 const GValue *value,
-                                 GParamSpec *pspec)
-{
-}
-
-static void
-fs_rtp_conference_get_property (GObject *object, guint prop_id,
-                                 GValue *value, GParamSpec *pspec)
-{
 }
 
 
