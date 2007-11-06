@@ -5,7 +5,7 @@ libfsrtpconference_la_SOURCES = \
 	fs-rtp-participant.c \
 	fs-rtp-session.c \
 	fs-rtp-stream.c
-libfsrtpconference_la_CFLAGS = $(FS2_PLUGINS_BASE_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
+libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrtpconference_la_LIBADD = $(GST_BASE_LIBS) $(GST_LIBS)
 

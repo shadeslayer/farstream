@@ -238,7 +238,7 @@ dnl *** finalize CFLAGS, LDFLAGS, LIBS
 dnl Overview:
 dnl FS2_OPTION_CFLAGS:  common flags for profiling, debugging, errors, ...
 dnl GST_*:              flags shared by built objects to link against GStreamer
-dnl FS2_PLUGINS_BASE_CFLAGS: to link internally against the plugins base libs
+dnl FS2_INTERNAL_CFLAGS: to link internally against the farsight libs
 dnl                          (compare to other modules) or for i18n
 dnl FS2_ALL_LDFLAGS:    linker flags shared by all
 dnl FS2_LIB_LDFLAGS:    additional linker flags for all libaries
@@ -258,11 +258,11 @@ AC_SUBST(FS2_OPTION_CFLAGS)
 dnl our libraries need to be versioned correctly
 AC_SUBST(FS2_LT_LDFLAGS)
 
-dnl FS2_PLUGINS_BASE_CFLAGS
+dnl FS2_INTERNAL_CFLAGS
 dnl prefer internal headers to already installed ones
 dnl also add builddir include for enumtypes and marshal
-FS2_PLUGINS_BASE_CFLAGS="-I\$(top_srcdir)/gst-libs -I\$(top_builddir)/gst-libs"
-AC_SUBST(FS2_PLUGINS_BASE_CFLAGS)
+FS2_INTERNAL_CFLAGS="-I\$(top_srcdir)/gst-libs -I\$(top_builddir)/gst-libs"
+AC_SUBST(FS2_INTERNAL_CFLAGS)
 
 dnl FIXME: do we want to rename to GST_ALL_* ?
 dnl add FS2_OPTION_CFLAGS, but overridable
