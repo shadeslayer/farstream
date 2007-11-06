@@ -11,6 +11,7 @@ fs_participant_get_type
 FS_PARTICIPANT_CLASS
 FS_IS_PARTICIPANT_CLASS
 FS_PARTICIPANT_GET_CLASS
+FS_PARTICIPANT_CAST
 FsParticipantPrivate
 </SECTION>
 
@@ -32,6 +33,7 @@ fs_stream_get_type
 FS_STREAM_CLASS
 FS_IS_STREAM_CLASS
 FS_STREAM_GET_CLASS
+FS_STREAM_CAST
 FsStreamPrivate
 </SECTION>
 
@@ -50,6 +52,7 @@ fs_session_set_send_codec
 FS_SESSION
 FS_IS_SESSION
 FS_TYPE_SESSION
+FS_SESSION_CAST
 fs_session_get_type
 FS_SESSION_CLASS
 FS_IS_SESSION_CLASS
@@ -86,6 +89,7 @@ fs_candidate_get_by_id
 fs_candidate_are_equal
 <SUBSECTION Standard>
 FS_TYPE_CANDIDATE
+fs_candidate_get_type
 </SECTION>
 
 <SECTION>
@@ -110,6 +114,7 @@ FS_TYPE_CODEC_LIST
 FS_TYPE_MEDIA_TYPE
 fs_codec_get_type
 fs_codec_list_get_type
+fs_media_type_get_type
 </SECTION>
 
 <SECTION>
@@ -143,6 +148,7 @@ FS_TYPE_TRANSMITTER
 FsTransmitterPrivate
 GST_IS_BASE_TRANSFORM
 GST_IS_BASE_TRANSFORM_CLASS
+FS_TRANSMITTER_CAST
 fs_transmitter_get_type
 </SECTION>
 
@@ -159,6 +165,7 @@ FS_STREAM_TRANSMITTER
 FS_STREAM_TRANSMITTER_CLASS
 FS_STREAM_TRANSMITTER_GET_CLASS
 FS_TYPE_STREAM_TRANSMITTER
+FS_STREAM_TRANSMITTER_CAST
 FsStreamTransmitterPrivate
 fs_stream_transmitter_get_type
 </SECTION>
