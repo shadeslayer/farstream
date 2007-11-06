@@ -55,9 +55,7 @@ enum
 {
   PROP_0,
   PROP_GST_SINK,
-  PROP_GST_RTCP_SINK,
   PROP_GST_SRC,
-  PROP_GST_RTCP_SRC
 };
 
 struct _FsTransmitterPrivate
@@ -127,6 +125,8 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
    * FsTransmitter:gst-src:
    *
    * A network source #GstElement to be used by the #FsSession
+   * This element MUST provide a "src" pad and MAY provide a "rtcpsrc" pad
+   * to be used for RTCP. Both of these pads MUST be static pads.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -138,23 +138,13 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         G_PARAM_READABLE));
 
   /**
-   * FsTransmitter:gst-rtcp-src:
-   *
-   * A network source #GstElement to be used by the #FsSession for RTCP messages
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_GST_RTCP_SRC,
-      g_param_spec_object ("gst-rtcp-src",
-        "The network source",
-        "A source GstElement to be used by a FsSession for RTCP messages",
-        GST_TYPE_ELEMENT,
-        G_PARAM_READABLE));
-
-  /**
    * FsTransmitter:gst-sink:
    *
    * A network source #GstElement to be used by the #FsSession
+   * This element MUST provide a "sink" pad and MAY provide a "rtcpsink" pad
+   * to be used for RTCP. Both of these pads MUST be static pads.
+   * This element MUST NOT block on state changes, etc and should therefore
+   * contain of a queue or something similar, or have "async=FALSE" for rtcp
    *
    */
   g_object_class_install_property (gobject_class,
@@ -164,21 +154,6 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         "A source GstElement to be used by a FsSession",
         GST_TYPE_ELEMENT,
         G_PARAM_READABLE));
-
-  /**
-   * FsTransmitter:gst-rtcp-sink:
-   *
-   * A network source #GstElement to be used by the #FsSession
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_GST_RTCP_SINK,
-      g_param_spec_object ("gst-rtcp-sink",
-        "The network source",
-        "A source GstElement to be used by a FsSession",
-        GST_TYPE_ELEMENT,
-        G_PARAM_READABLE));
-
 
   /**
    * FsTransmitter::error:
