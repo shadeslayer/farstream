@@ -41,6 +41,7 @@
 #endif
 
 #include "fs-session.h"
+#include "fs-codec.h"
 #include "fs-marshal.h"
 #include <gst/gst.h>
 

@@ -185,8 +185,6 @@ static void
 fs_base_conference_init (FsBaseConference *conf,
     FsBaseConferenceClass *bclass)
 {
-  GstPadTemplate *pad_template;
-
   GST_DEBUG ("fs_base_conference_init");
 
   conf->priv = FS_BASE_CONFERENCE_GET_PRIVATE (conf);

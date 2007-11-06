@@ -34,6 +34,7 @@
 #endif
 
 #include "fs-rtp-conference.h"
+#include "fs-rtp-session.h"
 #include "fs-rtp-participant.h"
 
 GST_DEBUG_CATEGORY_STATIC (fs_rtp_conference_debug);
@@ -81,10 +82,13 @@ struct _FsRtpConferencePrivate
 {
   GstElement *gstrtpbin;
 
+  /* Protected by GST_OBJECT_LOCK */
+  GList *sessions;
+
   gboolean disposed;
 };
 
-static void fs_rtp_conference_do_init (gpointer g_class);
+static void fs_rtp_conference_do_init (GType type);
 
 
 GST_BOILERPLATE_FULL (FsRtpConference, fs_rtp_conference, FsBaseConference,
@@ -96,9 +100,15 @@ static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
 static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
                                                          gchar *cname);
 
+static FsRtpSession *fs_rtp_conference_get_session_by_id (
+    FsRtpConference *self, guint session_id);
+static GstCaps *fs_rtp_conference_request_pt_map (GstElement *element,
+                                                  guint session_id,
+                                                  guint pt, gpointer user_data);
+
 
 static void
-fs_rtp_conference_do_init (gpointer g_class)
+fs_rtp_conference_do_init (GType type)
 {
   GST_DEBUG_CATEGORY_INIT (fs_rtp_conference_debug, "fsrtpconference", 0,
       "farsight rtp conference element");
@@ -126,8 +136,6 @@ fs_rtp_conference_dispose (GObject * object)
 static void
 fs_rtp_conference_finalize (GObject * object)
 {
-  FsRtpConference *conf = FS_RTP_CONFERENCE (object);
-
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
@@ -210,8 +218,6 @@ static FsParticipant *
 fs_rtp_conference_new_participant (FsBaseConference *conf,
                                    gchar *cname)
 {
-  FsRtpConference *rtp_conf = FS_RTP_CONFERENCE (conf);
-
   FsParticipant *new_participant = NULL;
 
   new_participant = FS_PARTICIPANT_CAST (fs_rtp_participant_new (cname));

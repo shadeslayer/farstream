@@ -197,8 +197,6 @@ fs_rtp_session_dispose (GObject *object)
 static void
 fs_rtp_session_finalize (GObject *object)
 {
-  FsRtpSession *self = FS_RTP_SESSION (object);
-
   parent_class->finalize (object);
 }
 
@@ -259,7 +257,7 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
   FsRtpParticipant *rtpparticipant = NULL;
-  FsRtpStream *new_stream = NULL;
+  FsStream *new_stream = NULL;
 
   if (!FS_IS_RTP_PARTICIPANT (participant)) {
     // *error = g_error_new ();

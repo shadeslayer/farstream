@@ -60,7 +60,7 @@ struct _FsStreamTransmitterClass
 
   /*virtual functions */
   gboolean (*add_remote_candidate) (FsStreamTransmitter *streamtransmitter,
-                                    FsCandidate *candidate, GError *error);
+                                    FsCandidate *candidate, GError **error);
 
   /*< private >*/
   gpointer _padding[8];

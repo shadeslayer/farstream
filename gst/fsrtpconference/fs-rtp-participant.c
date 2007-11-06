@@ -47,17 +47,17 @@ enum
   PROP_0,
 };
 
-struct _FsParticipantPrivate
+struct _FsRtpParticipantPrivate
 {
   gboolean disposed;
 };
 
 #define FS_RTP_PARTICIPANT_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
-   FsParticipantPrivate))
+   FsRtpParticipantPrivate))
 
-static void fs_rtp_participant_class_init (FsParticipantClass *klass);
-static void fs_rtp_participant_init (FsParticipant *self);
+static void fs_rtp_participant_class_init (FsRtpParticipantClass *klass);
+static void fs_rtp_participant_init (FsRtpParticipant *self);
 static void fs_rtp_participant_dispose (GObject *object);
 static void fs_rtp_participant_finalize (GObject *object);
 
@@ -71,7 +71,7 @@ static void fs_rtp_participant_set_property (GObject *object,
                                          GParamSpec *pspec);
 
 static GObjectClass *parent_class = NULL;
-static guint signals[LAST_SIGNAL] = { 0 };
+// static guint signals[LAST_SIGNAL] = { 0 };
 
 GType
 fs_rtp_participant_get_type (void)
@@ -80,7 +80,7 @@ fs_rtp_participant_get_type (void)
 
   if (type == 0) {
     static const GTypeInfo info = {
-      sizeof (FsParticipantClass),
+      sizeof (FsRtpParticipantClass),
       NULL,
       NULL,
       (GClassInitFunc) fs_rtp_participant_class_init,
@@ -99,7 +99,7 @@ fs_rtp_participant_get_type (void)
 }
 
 static void
-fs_rtp_participant_class_init (FsParticipantClass *klass)
+fs_rtp_participant_class_init (FsRtpParticipantClass *klass)
 {
   GObjectClass *gobject_class;
 
@@ -113,11 +113,11 @@ fs_rtp_participant_class_init (FsParticipantClass *klass)
   gobject_class->dispose = fs_rtp_participant_dispose;
   gobject_class->finalize = fs_rtp_participant_finalize;
 
-  g_type_class_add_private (klass, sizeof (FsParticipantPrivate));
+  g_type_class_add_private (klass, sizeof (FsRtpParticipantPrivate));
 }
 
 static void
-fs_rtp_participant_init (FsParticipant *self)
+fs_rtp_participant_init (FsRtpParticipant *self)
 {
   /* member init */
   self->priv = FS_RTP_PARTICIPANT_GET_PRIVATE (self);
@@ -127,7 +127,7 @@ fs_rtp_participant_init (FsParticipant *self)
 static void
 fs_rtp_participant_dispose (GObject *object)
 {
-  FsParticipant *self = FS_RTP_PARTICIPANT (object);
+  FsRtpParticipant *self = FS_RTP_PARTICIPANT (object);
 
   if (self->priv->disposed) {
     /* If dispose did already run, return. */

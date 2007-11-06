@@ -42,6 +42,7 @@
 #include "fs-stream.h"
 #include "fs-marshal.h"
 #include "fs-codec.h"
+#include "fs-candidate.h"
 #include "fs-stream-transmitter.h"
 
 #include <gst/gst.h>
