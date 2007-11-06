@@ -76,7 +76,7 @@ FsRtpSession *fs_rtp_session_new (FsMediaType media_type,
 
 GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
 
-void fs_rtp_session_link_transmitter (FsRtpSession *session, GstPad *pad);
+void fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *pad);
 
 FsStream *fs_rtp_session_get_stream_by_id (FsRtpSession *session,
                                            guint stream_id);

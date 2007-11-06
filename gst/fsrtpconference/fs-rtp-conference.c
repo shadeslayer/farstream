@@ -240,7 +240,8 @@ fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
   FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
   gchar *name;
 
-  GST_DEBUG_OBJECT (self, "pad added %"GST_PTR_FORMAT, GST_PAD_CAPS (new_pad));
+  GST_DEBUG_OBJECT (self, "pad %s added %" GST_PTR_FORMAT,
+    GST_PAD_NAME (new_pad), GST_PAD_CAPS (new_pad));
 
   name = gst_pad_get_name (new_pad);
 
@@ -268,7 +269,7 @@ fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
          fs_rtp_conference_get_session_by_id (self, session_id);
 
        if (session) {
-         fs_rtp_session_link_transmitter (session, new_pad);
+         fs_rtp_session_link_network_sink (session, new_pad);
        }
      }
   }
