@@ -104,9 +104,10 @@ static FsRtpSession *fs_rtp_conference_get_session_by_id_locked (
     FsRtpConference *self, guint session_id);
 static FsRtpSession *fs_rtp_conference_get_session_by_id (
     FsRtpConference *self, guint session_id);
-static GstCaps *fs_rtp_conference_request_pt_map (GstElement *element,
-                                                  guint session_id,
-                                                  guint pt, gpointer user_data);
+static GstCaps *fs_rtp_conference_rtpbin_request_pt_map (GstElement *element,
+                                                         guint session_id,
+                                                         guint pt,
+                                                         gpointer user_data);
 
 
 static void
@@ -201,12 +202,12 @@ fs_rtp_conference_init (FsRtpConference *conf,
   gst_object_ref (conf->gstrtpbin);
 
   g_signal_connect (conf->gstrtpbin, "request-pt-map",
-                    G_CALLBACK (fs_rtp_conference_request_pt_map), conf);
+                    G_CALLBACK (fs_rtp_conference_rtpbin_request_pt_map), conf);
 }
 
 static GstCaps *
-fs_rtp_conference_request_pt_map (GstElement *element, guint session_id,
-                                  guint pt, gpointer user_data)
+fs_rtp_conference_rtpbin_request_pt_map (GstElement *element, guint session_id,
+                                         guint pt, gpointer user_data)
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
   FsRtpSession *session = NULL;
