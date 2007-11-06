@@ -86,6 +86,10 @@ static void fs_rtp_session_set_property (GObject *object,
                                          const GValue *value,
                                          GParamSpec *pspec);
 
+static GObject * fs_rtp_session_constructor (GType type,
+                                             guint n_props,
+                                             GObjectConstructParam *props);
+
 static FsStream *fs_rtp_session_new_stream (FsSession *session,
                                             FsParticipant *participant,
                                             FsStreamDirection direction,
@@ -144,6 +148,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
 
   gobject_class->set_property = fs_rtp_session_set_property;
   gobject_class->get_property = fs_rtp_session_get_property;
+  gobject_class->constructor = fs_rtp_session_constructor;
 
   session_class->new_stream = fs_rtp_session_new_stream;
   session_class->start_telephony_event = fs_rtp_session_start_telephony_event;
@@ -263,6 +268,22 @@ fs_rtp_session_set_property (GObject *object,
       break;
   }
 }
+
+static GObject *
+fs_rtp_session_constructor (GType type,
+                            guint n_props,
+                            GObjectConstructParam *props)
+{
+  GObject *obj;
+  FsRtpSession *self = NULL;
+
+  obj = G_OBJECT_CLASS (parent_class)->constructor (type, n_props, props);
+  self = FS_RTP_SESSION_CAST (obj);
+
+
+  return obj;
+}
+
 
 /**
  * fs_rtp_session_new_stream:
