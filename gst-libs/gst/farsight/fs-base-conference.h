@@ -71,7 +71,8 @@ struct _FsBaseConferenceClass
   /*< public >*/
   /* virtual methods */
   FsSession *(*new_session) (FsBaseConference *conference,
-                             FsMediaType media_type);
+                             FsMediaType media_type,
+                             GError **error);
   FsParticipant *(*new_participant) (FsBaseConference *conference,
                                      gchar *cname);
 

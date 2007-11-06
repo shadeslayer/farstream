@@ -387,13 +387,22 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 }
 
 FsRtpSession *
-fs_rtp_session_new (FsMediaType media_type, GstElement *conference, guint id)
+fs_rtp_session_new (FsMediaType media_type, FsRtpConference *conference,
+                    guint id, GError **error)
 {
-  return g_object_new (FS_TYPE_RTP_SESSION,
-                       "media-type", media_type,
-                       "conference", conference,
-                       "id", id,
-                       NULL);
+  FsRtpSession *session = g_object_new (FS_TYPE_RTP_SESSION,
+    "media-type", media_type,
+    "conference", conference,
+    "id", id,
+    NULL);
+
+  if (session->priv->construction_error) {
+    *error = session->priv->construction_error;
+    g_object_unref (session);
+    return NULL;
+  }
+
+  return session;
 }
 
 

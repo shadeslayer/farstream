@@ -29,6 +29,8 @@
 
 #include <gst/farsight/fs-session.h>
 
+#include "fs-rtp-conference.h"
+
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
@@ -69,7 +71,7 @@ GType fs_rtp_session_get_type (void);
 
 FsRtpSession *fs_rtp_session_new (FsMediaType media_type,
                                   FsRtpConference *conference,
-                                  guint id);
+                                  guint id, GError **error);
 
 GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
 

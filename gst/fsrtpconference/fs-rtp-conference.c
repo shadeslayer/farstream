@@ -95,7 +95,8 @@ GST_BOILERPLATE_FULL (FsRtpConference, fs_rtp_conference, FsBaseConference,
 
 static void fs_rtp_conference_finalize (GObject *object);
 static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
-                                                 FsMediaType media_type);
+                                                 FsMediaType media_type,
+                                                 GError **error);
 static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
                                                          gchar *cname);
 
@@ -297,7 +298,8 @@ _remove_session (gpointer user_data,
 
 static FsSession *
 fs_rtp_conference_new_session (FsBaseConference *conf,
-                               FsMediaType media_type)
+                               FsMediaType media_type,
+                               GError **error)
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsSession *new_session = NULL;
@@ -309,7 +311,12 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
   } while (fs_rtp_conference_get_session_by_id_locked (self, id));
   GST_OBJECT_UNLOCK (self);
 
-  new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type, self, id));
+  new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type, self, id,
+     error));
+
+  if (!new_session) {
+    return NULL;
+  }
 
   GST_OBJECT_LOCK (self);
   self->priv->sessions = g_list_append (self->priv->sessions, new_session);

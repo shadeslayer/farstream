@@ -90,13 +90,14 @@ fs_conference_iface_init (FsConferenceInterface * iface)
  * unref'd by the user when closing the session.
  */
 FsSession *
-fs_conference_new_session (FsConference *conference, FsMediaType media_type)
+fs_conference_new_session (FsConference *conference, FsMediaType media_type,
+                           GError **error)
 {
   FsConferenceInterface *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
   if (iface->new_session) {
-    return iface->new_session (conference, media_type);
+    return iface->new_session (conference, media_type, error);
   } else {
     GST_WARNING_OBJECT (conference, "new_session not defined in element");
   }

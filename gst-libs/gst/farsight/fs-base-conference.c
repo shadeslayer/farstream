@@ -37,6 +37,7 @@
 #endif
 
 #include "fs-base-conference.h"
+#include "fs-session.h"
 
 GST_DEBUG_CATEGORY_STATIC (fs_base_conference_debug);
 #define GST_CAT_DEFAULT fs_base_conference_debug
@@ -125,7 +126,8 @@ static void fs_base_conference_get_property (GObject *object, guint prop_id,
                                              GValue *value, GParamSpec *pspec);
 
 static FsSession *fs_base_conference_new_session (FsConference *conf,
-                                                  FsMediaType media_type);
+                                                  FsMediaType media_type,
+                                                  GError **error);
 static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
                                                           gchar *cname);
 
@@ -228,7 +230,8 @@ void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
 
 static FsSession *
 fs_base_conference_new_session (FsConference *conf,
-                                 FsMediaType media_type)
+                                FsMediaType media_type,
+                                GError **error)
 {
   FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
   FsBaseConference *base_conf = FS_BASE_CONFERENCE (conf);
@@ -236,7 +239,7 @@ fs_base_conference_new_session (FsConference *conf,
   FsSession *new_session = NULL;
 
   if (klass->new_session) {
-    new_session = klass->new_session (base_conf, media_type);
+    new_session = klass->new_session (base_conf, media_type, error);
 
     if (!new_session)
       return NULL;
@@ -254,6 +257,8 @@ fs_base_conference_new_session (FsConference *conf,
         base_conf);
   } else {
     GST_WARNING_OBJECT (conf, "new_session not defined in element");
+    *error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION, "new_session not defined in element");
   }
 
   return new_session;
