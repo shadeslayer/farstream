@@ -311,7 +311,8 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
   } while (fs_rtp_conference_get_session_by_id_locked (self, id));
   GST_OBJECT_UNLOCK (self);
 
-  new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type, id));
+  new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type,
+      self->priv->gstrtpbin, id));
 
   GST_OBJECT_LOCK (self);
   self->priv->sessions = g_list_append (self->priv->sessions, new_session);
