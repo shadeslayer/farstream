@@ -261,6 +261,9 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_ID:
       g_value_set_uint (value, self->priv->id);
       break;
+    case PROP_GST_SINK_PAD:
+      g_value_set_object (value, self->priv->media_sink_pad);
+      break;
     case PROP_CONFERENCE:
       g_value_take_object (value, self->priv->conference);
       break;
