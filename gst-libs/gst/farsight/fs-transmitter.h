@@ -46,6 +46,7 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_TRANSMITTER))
 #define FS_TRANSMITTER_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_TRANSMITTER, FsTransmitterClass))
+#define FS_TRANSMITTER_CAST(obj) ((FsTransmitter *) (obj))
 
 typedef struct _FsTransmitter FsTransmitter;
 typedef struct _FsTransmitterClass FsTransmitterClass;

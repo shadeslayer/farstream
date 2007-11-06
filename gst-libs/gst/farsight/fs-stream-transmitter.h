@@ -48,6 +48,7 @@ G_BEGIN_DECLS
 #define FS_STREAM_TRANSMITTER_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_STREAM_TRANSMITTER, \
                               FsStreamTransmitterClass))
+#define FS_STREAM_TRANSMITTER_CAST(obj) ((FsStreamTransmitter *) (obj))
 
 typedef struct _FsStreamTransmitter FsStreamTransmitter;
 typedef struct _FsStreamTransmitterClass FsStreamTransmitterClass;
@@ -59,7 +60,7 @@ struct _FsStreamTransmitterClass
 
   /*virtual functions */
   gboolean (*add_remote_candidate) (FsStreamTransmitter *streamtransmitter,
-                                    FsCandidate *candidate, GError *error);
+                                    FsCandidate *candidate, GError **error);
 
   /*< private >*/
   gpointer _padding[8];

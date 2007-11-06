@@ -123,12 +123,11 @@ static void fs_base_conference_set_property (GObject *object, guint prop_id,
                                              GParamSpec *pspec);
 static void fs_base_conference_get_property (GObject *object, guint prop_id,
                                              GValue *value, GParamSpec *pspec);
-static GstFlowReturn fs_base_conference_chain (GstPad *pad, GstBuffer *buffer);
-static GstCaps *fs_base_conference_getcaps (GstPad *pad);
-static gboolean fs_base_conference_setcaps (GstPad *pad, GstCaps *caps);
 
-FsSession *fs_base_conference_new_session (FsConference *conf,
-                                           FsMediaType media_type);
+static FsSession *fs_base_conference_new_session (FsConference *conf,
+                                                  FsMediaType media_type);
+static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
+                                                          gchar *cname);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
                                gint error_no, gchar *error_msg,
@@ -186,8 +185,6 @@ static void
 fs_base_conference_init (FsBaseConference *conf,
     FsBaseConferenceClass *bclass)
 {
-  GstPadTemplate *pad_template;
-
   GST_DEBUG ("fs_base_conference_init");
 
   conf->priv = FS_BASE_CONFERENCE_GET_PRIVATE (conf);
@@ -202,6 +199,7 @@ fs_base_conference_interface_init (gpointer g_iface,
   FsConferenceInterface *iface = (FsConferenceInterface *)g_iface;
 
   iface->new_session = fs_base_conference_new_session;
+  iface->new_participant = fs_base_conference_new_participant;
 }
 
 static gboolean
@@ -220,26 +218,6 @@ fs_base_conference_implements_interface_init (
 }
 
 
-static GstCaps *
-fs_base_conference_getcaps (GstPad * pad)
-{
-  FsBaseConference *conf;
-  GstPad *otherpad;
-  GstCaps *caps;
-
-  conf = FS_BASE_CONFERENCE (gst_pad_get_parent (pad));
-
-  //otherpad = (pad == conf->srcpad) ? conf->sinkpad : trans->srcpad;
-
-  return caps;
-}
-
-/* called when new caps arrive on the sink or source pad */
-static gboolean
-fs_base_conference_setcaps (GstPad * pad, GstCaps * caps)
-{
-}
-
 void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
 {
   if (!g_ptr_array_remove (conf->priv->session_list, session))
@@ -248,7 +226,7 @@ void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
   }
 }
 
-FsSession *
+static FsSession *
 fs_base_conference_new_session (FsConference *conf,
                                  FsMediaType media_type)
 {
@@ -318,3 +296,19 @@ fs_base_conference_get_property (GObject *object, guint prop_id,
 {
 }
 
+
+static FsParticipant *
+fs_base_conference_new_participant (FsConference *conf,
+                                    gchar *cname)
+{
+  FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);
+  FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
+
+  if (klass->new_participant) {
+    return klass->new_participant (baseconf, cname);
+  } else {
+    GST_WARNING_OBJECT (conf, "new_session not defined in element");
+  }
+
+  return NULL;
+}

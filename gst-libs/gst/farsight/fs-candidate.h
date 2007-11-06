@@ -110,6 +110,8 @@ struct _FsCandidate
   gpointer _padding[4];
 };
 
+GType fs_candidate_get_type (void);
+
 void fs_candidate_destroy (FsCandidate *cand);
 
 FsCandidate *fs_candidate_copy (const FsCandidate *cand);

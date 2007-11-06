@@ -41,6 +41,7 @@
 #endif
 
 #include "fs-session.h"
+#include "fs-codec.h"
 #include "fs-marshal.h"
 #include <gst/gst.h>
 
@@ -429,7 +430,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
     g_warning ("new_stream not defined for %s",
         G_OBJECT_TYPE_NAME (session));
   }
-  return new_stream; // this shouldn't happen
+  return new_stream;
 }
 
 /**

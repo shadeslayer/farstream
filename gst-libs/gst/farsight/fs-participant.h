@@ -43,6 +43,7 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_PARTICIPANT))
 #define FS_PARTICIPANT_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_PARTICIPANT, FsParticipantClass))
+#define FS_PARTICIPANT_CAST(obj) ((FsParticipant *) (obj))
 
 typedef struct _FsParticipant FsParticipant;
 typedef struct _FsParticipantClass FsParticipantClass;
@@ -74,5 +75,7 @@ struct _FsParticipant
 };
 
 GType fs_participant_get_type (void);
+
+G_END_DECLS
 
 #endif /* __FS_PARTICIPANT_H__ */
