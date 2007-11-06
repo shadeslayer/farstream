@@ -197,18 +197,97 @@ fs_rtp_conference_init (FsRtpConference *conf,
 
   gst_object_ref (conf->priv->gstrtpbin);
 
+  g_signal_connect (conf->priv->gstrtpbin, "request-pt-map",
+                    G_CALLBACK (fs_rtp_conference_request_pt_map), conf);
 }
 
+static GstCaps *
+fs_rtp_conference_request_pt_map (GstElement *element, guint session_id,
+                                  guint pt, gpointer user_data)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+  FsRtpSession *session = NULL;
+  GstCaps *caps = NULL;
+
+  session = fs_rtp_conference_get_session_by_id (self, session_id);
+
+  if (session) {
+    caps = fs_rtp_session_request_pt_map (session, pt);
+    g_object_unref (session);
+  } else {
+    GST_WARNING_OBJECT(self,"GstRtpBin %p tried to request the caps for "
+                       " payload type %u for non-existent session %u",
+                       element, pt, session_id);
+  }
+
+  return caps;
+}
+
+/**
+ * fs_rtp_conference_get_session_by_id
+ * @self: The #FsRtpConference
+ * @session_id: The session id
+ *
+ * Gets the #FsRtpSession from a list of sessions or NULL if it doesnt exist
+ *
+ * Return value: A #FsRtpSession (unref after use) or NULL if it doesn't exist
+ */
+static FsRtpSession *
+fs_rtp_conference_get_session_by_id (FsRtpConference *self, guint session_id)
+{
+  GList *item = NULL;
+
+  GST_OBJECT_LOCK (self->priv->sessions);
+
+  for (item = g_list_first (self->priv->sessions);
+       item;
+       item = g_list_next (item)) {
+    /*
+      Must implement ID
+
+    FsRtpSession *session = item->data;
+    if (session->id == session_id) {
+      g_object_ref(session);
+      break;
+    }
+    */
+  }
+
+  GST_OBJECT_UNLOCK (self->priv->sessions);
+
+  if (item)
+    return FS_RTP_SESSION (item->data);
+  else
+    return NULL;
+
+}
+
+static void
+_remove_session (gpointer user_data,
+                 GObject *where_the_object_was)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+
+  GST_OBJECT_LOCK (self);
+  self->priv->sessions =
+    g_list_remove_all (self->priv->sessions, where_the_object_was);
+  GST_OBJECT_UNLOCK (self);
+}
 
 static FsSession *
 fs_rtp_conference_new_session (FsBaseConference *conf,
                                FsMediaType media_type)
 {
-  FsRtpConference *rtp_conf = FS_RTP_CONFERENCE (conf);
-
+  FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsSession *new_session = NULL;
 
   new_session = FS_SESSION_CAST (fs_rtp_session_new (media_type));
+
+  GST_OBJECT_LOCK (self);
+  self->priv->sessions = g_list_append (self->priv->sessions, new_session);
+  GST_OBJECT_UNLOCK (self);
+
+  g_object_weak_ref (G_OBJECT (new_session), _remove_session, self);
 
   return new_session;
 }

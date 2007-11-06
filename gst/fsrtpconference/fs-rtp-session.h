@@ -25,6 +25,8 @@
 #ifndef __FS_RTP_SESSION_H__
 #define __FS_RTP_SESSION_H__
 
+#include <gst/gst.h>
+
 #include <gst/farsight/fs-session.h>
 
 G_BEGIN_DECLS
@@ -65,6 +67,8 @@ struct _FsRtpSession
 GType fs_rtp_session_get_type (void);
 
 FsRtpSession *fs_rtp_session_new (FsMediaType media_type);
+
+GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
 
 G_END_DECLS
 

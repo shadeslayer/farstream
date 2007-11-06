@@ -342,3 +342,10 @@ fs_rtp_session_new (FsMediaType media_type)
 {
   return g_object_new (FS_TYPE_RTP_SESSION, "media-type", media_type, NULL);
 }
+
+
+GstCaps *
+fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
+{
+  return NULL;
+}
