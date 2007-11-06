@@ -6,6 +6,8 @@ Makefile.in
 .deps
 .libs
 *~
+*#
+.#*
 *.stamp
 
 gst-libs/gst/farsight/fs-marshal.c
