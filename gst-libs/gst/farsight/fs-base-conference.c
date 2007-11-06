@@ -62,7 +62,7 @@ struct _FsBaseConferencePrivate
   GPtrArray *session_list;
 };
 
-static GstElementClass *parent_class = NULL;
+static GstBinClass *parent_class = NULL;
 
 static void fs_base_conference_interface_init (gpointer g_iface,
                                                gpointer iface_data);
@@ -105,7 +105,7 @@ fs_base_conference_get_type (void)
 
 
 
-    base_conference_type = g_type_register_static (GST_TYPE_ELEMENT,
+    base_conference_type = g_type_register_static (GST_TYPE_BIN,
         "FsBaseConference", &base_conference_info, G_TYPE_FLAG_ABSTRACT);
 
     g_type_add_interface_static (base_conference_type,

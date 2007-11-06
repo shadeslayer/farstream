@@ -56,7 +56,7 @@ typedef struct _FsBaseConferencePrivate FsBaseConferencePrivate;
 
 struct _FsBaseConference
 {
-  GstElement parent;
+  GstBin parent;
   FsBaseConferencePrivate *priv;
 
   /*< private >*/
@@ -66,7 +66,7 @@ struct _FsBaseConference
 
 struct _FsBaseConferenceClass
 {
-  GstElementClass parent_class;
+  GstBinClass parent_class;
 
   /*< public >*/
   /* virtual methods */
