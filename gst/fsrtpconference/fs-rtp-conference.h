@@ -55,6 +55,8 @@ struct _FsRtpConference
   FsBaseConference parent;
   FsRtpConferencePrivate *priv;
 
+  /* Do not modify the pointer */
+  GstElement *gstrtpbin;
 };
 
 struct _FsRtpConferenceClass

@@ -80,8 +80,6 @@ static GstStaticPadTemplate fs_rtp_conference_src_template =
 
 struct _FsRtpConferencePrivate
 {
-  GstElement *gstrtpbin;
-
   gboolean disposed;
 
   /* Protected by GST_OBJECT_LOCK */
@@ -125,9 +123,9 @@ fs_rtp_conference_dispose (GObject * object)
   if (self->priv->disposed)
     return;
 
-  if (self->priv->gstrtpbin) {
-    gst_object_unref (self->priv->gstrtpbin);
-    self->priv->gstrtpbin = NULL;
+  if (self->gstrtpbin) {
+    gst_object_unref (self->gstrtpbin);
+    self->gstrtpbin = NULL;
   }
 
   self->priv->disposed = TRUE;
@@ -186,22 +184,22 @@ fs_rtp_conference_init (FsRtpConference *conf,
   conf->priv->disposed = FALSE;
   conf->priv->max_session_id = 0;
 
-  conf->priv->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
+  conf->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
 
-  if (!conf->priv->gstrtpbin) {
+  if (!conf->gstrtpbin) {
     GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
     return;
   }
 
-  if (!gst_bin_add (GST_BIN (conf), conf->priv->gstrtpbin)) {
+  if (!gst_bin_add (GST_BIN (conf), conf->gstrtpbin)) {
     GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
-    gst_object_unref (conf->priv->gstrtpbin);
+    gst_object_unref (conf->gstrtpbin);
     return;
   }
 
-  gst_object_ref (conf->priv->gstrtpbin);
+  gst_object_ref (conf->gstrtpbin);
 
-  g_signal_connect (conf->priv->gstrtpbin, "request-pt-map",
+  g_signal_connect (conf->gstrtpbin, "request-pt-map",
                     G_CALLBACK (fs_rtp_conference_request_pt_map), conf);
 }
 
