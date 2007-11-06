@@ -67,7 +67,7 @@ struct _FsRtpSessionPrivate
   /* We dont need a reference to this one per our reference model
    * This Session object can only exist while its parent conference exists
    */
-  GstElement *conference;
+  FsRtpConference *conference;
 
   /* We dont keep explicit references to the pads, the Bin does that for us
    * only this element's methods can add/remote it
@@ -75,6 +75,16 @@ struct _FsRtpSessionPrivate
   GstPad *media_sink_pad;
 
   GstElement *media_sink_valve;
+  GstElement *transmitter_rtp_tee;
+  GstElement *transmitter_rtcp_tee;
+
+  /* Request pad to release on dispose */
+  GstPad *rtpbin_send_rtp_sink;
+  GstPad *rtpbin_send_rtcp_sink;
+  GstPad *rtpbin_send_rtcp_src;
+
+  GstPad *rtpbin_recv_rtp_sink;
+  GstPad *rtpbin_recv_rtcp_sink;
 
   GError *construction_error;
 
@@ -220,18 +230,42 @@ fs_rtp_session_dispose (GObject *object)
     return;
   }
 
-  if (self->priv->media_sink_pad) {
-    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
-    gst_element_remove_pad (self->priv->conference, self->priv->media_sink_pad);
-    self->priv->media_sink_pad = NULL;
-  }
-
   if (self->priv->media_sink_valve) {
     gst_bin_remove (GST_BIN (self->priv->conference),
       self->priv->media_sink_valve);
     gst_element_set_state (self->priv->media_sink_valve, GST_STATE_NULL);
     gst_object_unref (self->priv->media_sink_valve);
     self->priv->media_sink_valve = NULL;
+  }
+
+  if (self->priv->media_sink_pad) {
+    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
+    gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
+      self->priv->media_sink_pad);
+    self->priv->media_sink_pad = NULL;
+  }
+
+  if (self->priv->transmitter_rtp_tee) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->transmitter_rtp_tee);
+    gst_element_set_state (self->priv->transmitter_rtp_tee, GST_STATE_NULL);
+    gst_object_unref (self->priv->transmitter_rtp_tee);
+    self->priv->transmitter_rtp_tee = NULL;
+  }
+
+  if (self->priv->transmitter_rtcp_tee) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->transmitter_rtcp_tee);
+    gst_element_set_state (self->priv->transmitter_rtcp_tee, GST_STATE_NULL);
+    gst_object_unref (self->priv->transmitter_rtcp_tee);
+    self->priv->transmitter_rtcp_tee = NULL;
+  }
+
+  if (self->priv->rtpbin_send_rtcp_src) {
+    gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
+    gst_element_release_request_pad (self->priv->conference->gstrtpbin,
+      self->priv->rtpbin_send_rtcp_src);
+    self->priv->rtpbin_send_rtcp_src = NULL;
   }
 
   /* Make sure dispose does not run twice. */
@@ -261,7 +295,7 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_ID:
       g_value_set_uint (value, self->priv->id);
       break;
-    case PROP_GST_SINK_PAD:
+    case PROP_SINK_PAD:
       g_value_set_object (value, self->priv->media_sink_pad);
       break;
     case PROP_CONFERENCE:
@@ -302,6 +336,7 @@ fs_rtp_session_constructed (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION_CAST (object);
   GstElement *valve = NULL;
+  GstElement *tee = NULL;
   GstPad *valve_sink_pad = NULL;
   gchar *tmp;
 
@@ -344,9 +379,63 @@ fs_rtp_session_constructed (GObject *object)
   g_free (tmp);
 
   gst_pad_set_active (self->priv->media_sink_pad, TRUE);
-  gst_element_add_pad (self->priv->conference, self->priv->media_sink_pad);
+  gst_element_add_pad (GST_ELEMENT (self->priv->conference),
+    self->priv->media_sink_pad);
 
   gst_object_unref (valve_sink_pad);
+
+
+  /* Now create the transmitter RTP tee */
+
+  tmp = g_strdup_printf ("send_rtp_tee_%d", self->priv->id);
+  tee = gst_element_factory_make ("tee", tmp);
+  g_free (tmp);
+
+  if (!tee) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not create the rtp tee element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the rtp tee element to the FsRtpConference");
+    gst_object_unref (tee);
+    return;
+  }
+
+  gst_element_set_state (tee, GST_STATE_PLAYING);
+
+  self->priv->transmitter_rtp_tee = gst_object_ref (tee);
+
+
+  /* Now create the transmitter RTCP tee */
+
+  tmp = g_strdup_printf ("send_rtcp_tee_%d", self->priv->id);
+  tee = gst_element_factory_make ("tee", tmp);
+  g_free (tmp);
+
+  if (!tee) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not create the rtcp tee element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the rtcp tee element to the FsRtpConference");
+    gst_object_unref (tee);
+    return;
+  }
+
+  gst_element_set_state (tee, GST_STATE_PLAYING);
+
+  self->priv->transmitter_rtcp_tee = gst_object_ref (tee);
+
 }
 
 
@@ -483,3 +572,61 @@ fs_rtp_session_get_stream_by_id (FsRtpSession *session, guint stream_id)
   return NULL;
 }
 
+void
+fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
+{
+  GstPad *transmitter_rtp_tee_sink_pad;
+  GstPad *transmitter_rtcp_tee_sink_pad;
+  GstPadLinkReturn ret;
+  gchar *tmp;
+
+  transmitter_rtp_tee_sink_pad =
+    gst_element_get_static_pad (session->priv->transmitter_rtp_tee, "sink");
+  g_assert (transmitter_rtp_tee_sink_pad);
+
+  ret = gst_pad_link (src_pad, transmitter_rtp_tee_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (ret)) {
+    tmp = g_strdup_printf ("Could not link pad %s (%p) with pad %s (%p)",
+      GST_PAD_NAME (src_pad), GST_PAD_CAPS (src_pad),
+      GST_PAD_NAME (transmitter_rtp_tee_sink_pad),
+      GST_PAD_CAPS (transmitter_rtp_tee_sink_pad));
+    fs_session_error (FS_SESSION (session), FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not link rtpbin network src to tee", tmp);
+    g_free (tmp);
+
+    gst_object_unref (transmitter_rtp_tee_sink_pad);
+    return;
+  }
+
+  gst_object_unref (transmitter_rtp_tee_sink_pad);
+
+
+  transmitter_rtcp_tee_sink_pad =
+    gst_element_get_static_pad (session->priv->transmitter_rtcp_tee, "sink");
+  g_assert (transmitter_rtcp_tee_sink_pad);
+
+  tmp = g_strdup_printf ("send_rtcp_src_%u", session->priv->id);
+  session->priv->rtpbin_send_rtcp_src =
+    gst_element_get_request_pad (session->priv->conference->gstrtpbin, tmp);
+
+  ret = gst_pad_link (session->priv->rtpbin_send_rtcp_src,
+    transmitter_rtcp_tee_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (ret)) {
+    tmp = g_strdup_printf ("Could not link pad %s (%p) with pad %s (%p)",
+      GST_PAD_NAME (session->priv->rtpbin_send_rtcp_src),
+      GST_PAD_CAPS (session->priv->rtpbin_send_rtcp_src),
+      GST_PAD_NAME (transmitter_rtcp_tee_sink_pad),
+      GST_PAD_CAPS (transmitter_rtcp_tee_sink_pad));
+    fs_session_error (FS_SESSION (session), FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not link rtpbin network rtcp src to tee", tmp);
+    g_free (tmp);
+
+    gst_object_unref (transmitter_rtcp_tee_sink_pad);
+    return;
+  }
+
+  gst_object_unref (transmitter_rtcp_tee_sink_pad);
+
+}
