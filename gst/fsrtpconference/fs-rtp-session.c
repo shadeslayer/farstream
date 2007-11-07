@@ -273,6 +273,14 @@ fs_rtp_session_dispose (GObject *object)
     self->priv->transmitter_rtp_funnel = NULL;
   }
 
+  if (self->priv->transmitter_rtcp_funnel) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->transmitter_rtcp_funnel);
+    gst_element_set_state (self->priv->transmitter_rtcp_funnel, GST_STATE_NULL);
+    gst_object_unref (self->priv->transmitter_rtcp_funnel);
+    self->priv->transmitter_rtcp_funnel = NULL;
+  }
+
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
@@ -485,6 +493,56 @@ fs_rtp_session_constructed (GObject *object)
       GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (funnel_src_pad),
       GST_PAD_NAME (self->priv->rtpbin_recv_rtp_sink),
       GST_PAD_CAPS (self->priv->rtpbin_recv_rtp_sink));
+
+    gst_object_unref (funnel_src_pad);
+    return;
+  }
+
+  gst_object_unref (funnel_src_pad);
+
+  gst_element_set_state (funnel, GST_STATE_PLAYING);
+
+
+  /* Now create the transmitter RTCP funnel */
+
+  tmp = g_strdup_printf ("recv_rtcp_funnel_%d", self->priv->id);
+  funnel = gst_element_factory_make ("fsfunnel", tmp);
+  g_free (tmp);
+
+  if (!funnel) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not create the rtcp funnel element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), funnel)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the rtcp funnel element to the FsRtcpConference");
+    gst_object_unref (funnel);
+    return;
+  }
+
+  self->priv->transmitter_rtcp_funnel = gst_object_ref (funnel);
+
+  tmp = g_strdup_printf ("recv_rtcp_sink_%u", self->priv->id);
+  self->priv->rtpbin_recv_rtcp_sink =
+    gst_element_get_request_pad (self->priv->conference->gstrtpbin,
+      tmp);
+  g_free (tmp);
+
+  funnel_src_pad = gst_element_get_static_pad (funnel, "src");
+
+  ret = gst_pad_link (funnel_src_pad, self->priv->rtpbin_recv_rtcp_sink);
+
+  if (GST_PAD_LINK_FAILED (ret)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not link pad %s (%p) with pad %s (%p)",
+      GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (funnel_src_pad),
+      GST_PAD_NAME (self->priv->rtpbin_recv_rtcp_sink),
+      GST_PAD_CAPS (self->priv->rtpbin_recv_rtcp_sink));
 
     gst_object_unref (funnel_src_pad);
     return;
