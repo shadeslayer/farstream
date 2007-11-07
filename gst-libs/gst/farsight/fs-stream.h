@@ -96,8 +96,9 @@ struct _FsStreamClass
   GObjectClass parent_class;
 
   /*virtual functions */
-  void (*add_remote_candidate) (FsStream *stream,
-                                FsCandidate *candidate);
+  gboolean (*add_remote_candidate) (FsStream *stream,
+                                    FsCandidate *candidate,
+                                    GError **error);
 
   gboolean (*preload_recv_codec) (FsStream *stream, FsCodec *codec,
                                   GError **error);
@@ -125,7 +126,9 @@ struct _FsStream
 
 GType fs_stream_get_type (void);
 
-void fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate);
+gboolean fs_stream_add_remote_candidate (FsStream *stream,
+                                         FsCandidate *candidate,
+                                         GError **error);
 
 gboolean fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec,
                                        GError **error);

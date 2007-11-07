@@ -467,22 +467,28 @@ fs_stream_set_property (GObject *object,
  * fs_stream_add_remote_candidate:
  * @stream: an #FsStream
  * @candidate: an #FsCandidate struct representing a remote candidate
+ * @error: location of a #GError, or NULL if no error occured
  *
  * This function adds the given candidate into the remote candiate list of the
  * stream. It will be used for establishing a connection with the peer. A copy
  * will be made so the user must free the passed candidate using
  * fs_candidate_destroy() when done.
+ *
+ * Return value: TRUE if the candidate was valid, FALSE otherwise
  */
-void
-fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate)
+gboolean
+fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
+                                GError **error)
 {
   FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
 
   if (klass->add_remote_candidate) {
-    klass->add_remote_candidate (stream, candidate);
+    return klass->add_remote_candidate (stream, candidate, error);
   } else {
     g_warning ("add_remote_candidate not defined in class");
   }
+
+  return FALSE;
 }
 
 /**

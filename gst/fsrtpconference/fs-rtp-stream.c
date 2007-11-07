@@ -86,8 +86,9 @@ static void fs_rtp_stream_set_property (GObject *object,
                                     guint prop_id,
                                     const GValue *value,
                                     GParamSpec *pspec);
-static void fs_rtp_stream_add_remote_candidate (FsStream *stream,
-                                                FsCandidate *candidate);
+static gboolean fs_rtp_stream_add_remote_candidate (FsStream *stream,
+                                                    FsCandidate *candidate,
+                                                    GError **error);
 static gboolean fs_rtp_stream_preload_recv_codec (FsStream *stream,
                                                   FsCodec *codec,
                                                   GError **error);
@@ -269,14 +270,16 @@ fs_rtp_stream_set_property (GObject *object,
  * fs_rtp_stream_add_remote_candidate:
  * @stream: an #FsStream
  * @candidate: an #FsCandidate struct representing a remote candidate
+ * @error: location of a #GError, or NULL if no error occured
  *
  * This function adds the given candidate into the remote candiate list of the
  * stream. It will be used for establishing a connection with the peer. A copy
  * will be made so the user must free the passed candidate using
  * fs_candidate_destroy() when done.
  */
-static void
-fs_rtp_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate)
+static gboolean
+fs_rtp_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
+                                    GError **error)
 {
 }
 
