@@ -327,13 +327,13 @@ FsRtpStream *
 fs_rtp_stream_new (FsRtpSession *session,
                    FsRtpParticipant *participant,
                    FsStreamDirection direction,
-                   FsStreamTransmitter *transmitter)
+                   FsStreamTransmitter *stream_transmitter)
 {
   return g_object_new (FS_TYPE_RTP_STREAM,
                        "session", session,
                        "participant", participant,
                        "direction", direction,
-                       "transmitter", transmitter,
+                       "stream-transmitter", stream_transmitter,
                        NULL);
 }
 
