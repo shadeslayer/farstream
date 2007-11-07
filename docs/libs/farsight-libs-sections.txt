@@ -17,10 +17,12 @@ FsParticipantPrivate
 
 <SECTION>
 <FILE>fs-stream</FILE>
+<TITLE>FsStream</TITLE>
 FsStream
 FsStreamClass
 FsStreamDirection
-<TITLE>FsStream</TITLE>
+FS_STREAM_ERROR
+FsStreamError
 fs_stream_add_remote_candidate
 fs_stream_preload_recv_codec
 fs_stream_set_remote_codecs
@@ -35,6 +37,7 @@ FS_IS_STREAM_CLASS
 FS_STREAM_GET_CLASS
 FS_STREAM_CAST
 FsStreamPrivate
+fs_stream_error_quark
 </SECTION>
 
 <SECTION>
@@ -44,10 +47,13 @@ FsDTMFMethod
 <TITLE>FsSession</TITLE>
 FsSession
 FsSessionClass
+FS_SESSION_ERROR
+FsSessionError
 fs_session_new_stream
 fs_session_start_telephony_event
 fs_session_stop_telephony_event
 fs_session_set_send_codec
+fs_session_emit_error
 <SUBSECTION Standard>
 FS_SESSION
 FS_IS_SESSION
@@ -58,6 +64,7 @@ FS_SESSION_CLASS
 FS_IS_SESSION_CLASS
 FS_SESSION_GET_CLASS
 FsSessionPrivate
+fs_session_error_quark
 </SECTION>
 
 <SECTION>
