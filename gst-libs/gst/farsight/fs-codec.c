@@ -548,7 +548,7 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
  * fs_codec_to_gst_caps
  * @codec: A #FsCodec to be converted
  *
- * This function converts a #FsCodec to a #GstCaps object with media type
+ * This function converts a #FsCodec to a fixed #GstCaps with media type
  * application/x-rtp.
  *
  * Return value: A newly-allocated #GstCaps
