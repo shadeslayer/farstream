@@ -186,23 +186,28 @@ GST_START_TEST (test_fscodec_to_gst_caps)
 {
   FsCodec *codec = init_codec_with_three_params ();
   GstCaps *compare_caps = gst_caps_new_simple ("application/x-rtp",
-    "media", G_TYPE_STRING, "audiovideo",
-    "payload", G_TYPE_INT, 1,
+    "encoding-name", G_TYPE_STRING, "AA", // encoding names are in caps in gst
     "clock-rate", G_TYPE_INT, 650,
-    "encoding-name", G_TYPE_STRING, "aa",
+    "payload", G_TYPE_INT, 1,
+    "media", G_TYPE_STRING, "application",
     "aa1", G_TYPE_STRING, "bb1",
     "aa2", G_TYPE_STRING, "bb2",
     "aa3", G_TYPE_STRING, "bb3",
     NULL);
   GstCaps *caps = fs_codec_to_gst_caps (codec);
+  gchar *caps_string = gst_caps_to_string (caps);
+  gchar *compare_caps_string = gst_caps_to_string (compare_caps);
 
   fail_if (caps == NULL, "Could not create caps");
 
   fail_unless (gst_caps_is_fixed (caps), "Generated caps are not fixed");
 
   fail_unless (gst_caps_is_equal_fixed (caps, compare_caps),
-    "The generate caps are incorrect");
+    "The generated caps are incorrect (caps (%s) != compare_caps (%s))",
+    caps_string, compare_caps_string);
 
+  g_free (caps_string);
+  g_free (compare_caps_string);
   gst_caps_unref (caps);
   gst_caps_unref (compare_caps);
   fs_codec_destroy (codec);
@@ -223,6 +228,7 @@ fscodec_suite (void)
   tcase_add_test (tc_chain, test_fscodec_are_equal);
   tcase_add_test (tc_chain, test_fscodec_are_equal_opt_params);
   tcase_add_test (tc_chain, test_fscodec_copy);
+  tcase_add_test (tc_chain, test_fscodec_to_gst_caps);
 
   return s;
 }
