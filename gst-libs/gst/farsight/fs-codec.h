@@ -28,8 +28,7 @@
 #ifndef __FS_CODEC_H__
 #define __FS_CODEC_H__
 
-#include <glib.h>
-#include <glib-object.h>
+#include <gst/gst.h>
 
 G_BEGIN_DECLS
 
@@ -126,6 +125,8 @@ GList *fs_codec_list_from_keyfile (const gchar *filename);
 gchar *fs_codec_to_string (FsCodec *codec);
 
 gboolean fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2);
+
+GstCaps *fs_codec_to_gst_caps (FsCodec *codec);
 
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 

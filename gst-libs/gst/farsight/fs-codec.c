@@ -543,3 +543,61 @@ fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2)
 
   return TRUE;
 }
+
+/**
+ * fs_codec_to_gst_caps
+ * @codec: A #FsCodec to be converted
+ *
+ * This function converts a #FsCodec to a #GstCaps object with media type
+ * application/x-rtp.
+ *
+ * Return value: A newly-allocated #GstCaps
+ */
+
+GstCaps *
+fs_codec_to_gst_caps (FsCodec *codec)
+{
+  GstCaps *caps;
+  GstStructure *structure;
+  GList *item;
+
+  gchar *encoding_name = g_ascii_strup (codec->encoding_name, -1);
+  if (!g_ascii_strcasecmp (encoding_name, "H263-N800")) {
+    g_free (encoding_name);
+    encoding_name = g_strdup ("H263-1998");
+  }
+  structure = gst_structure_new ("application/x-rtp",
+    "encoding-name", G_TYPE_STRING, encoding_name,
+    NULL);
+  g_free (encoding_name);
+
+  if (codec->clock_rate)
+    gst_structure_set (structure,
+      "clock-rate", G_TYPE_INT, codec->clock_rate, NULL);
+
+  if (codec->media_type == FS_MEDIA_TYPE_AUDIO)
+    gst_structure_set (structure, "media", G_TYPE_STRING, "audio", NULL);
+  else if (codec->media_type == FS_MEDIA_TYPE_VIDEO)
+    gst_structure_set (structure, "media", G_TYPE_STRING, "video", NULL);
+
+  if (codec->id >= 0 && codec->id < 128)
+    gst_structure_set (structure, "payload", G_TYPE_INT, codec->id, NULL);
+
+  if (codec->channels)
+    gst_structure_set (structure, "channels", G_TYPE_INT, codec->channels,
+      NULL);
+
+  for (item = codec->optional_params;
+       item;
+       item = g_list_next (item)) {
+    FsCodecParameter *param = item->data;
+    gchar *lower_name = g_ascii_strdown (param->name, -1);
+    gst_structure_set (structure, lower_name, G_TYPE_STRING, param->value,
+      NULL);
+    g_free (lower_name);
+  }
+
+  caps = gst_caps_new_full (structure, NULL);
+
+  return caps;
+}
