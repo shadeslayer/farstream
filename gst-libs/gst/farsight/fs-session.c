@@ -546,10 +546,20 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   return FALSE;
 }
 
-
+/**
+ * fs_session_emit_error:
+ * @session: #FsSession on which to emit the error signal
+ * @object: The #Gobject that the error refers to
+ * @error_no: The number of the error
+ * @error_msg: Error message to be displayed to user
+ * @debug_msg: Debugging error message
+ *
+ * This function emit the "error" signal on a #FsSession, it should only be
+ * called by subclasses
+ */
 void
-fs_session_error (FsSession *session, gint error_no, gchar *error_msg,
-                  gchar *debug_msg)
+fs_session_emit_error (FsSession *session, GObject *object, gint error_no,
+                       gchar *error_msg, gchar *debug_msg)
 {
   g_signal_emit (session, signals[ERROR], 0, session, error_no, error_msg,
                  debug_msg, NULL);

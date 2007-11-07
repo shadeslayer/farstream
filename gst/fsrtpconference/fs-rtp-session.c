@@ -596,7 +596,8 @@ fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
       GST_PAD_NAME (src_pad), GST_PAD_CAPS (src_pad),
       GST_PAD_NAME (transmitter_rtp_tee_sink_pad),
       GST_PAD_CAPS (transmitter_rtp_tee_sink_pad));
-    fs_session_error (FS_SESSION (session), FS_SESSION_ERROR_CONSTRUCTION,
+    fs_session_emit_error (FS_SESSION (session), G_OBJECT (session),
+      FS_SESSION_ERROR_CONSTRUCTION,
       "Could not link rtpbin network src to tee", tmp);
     g_free (tmp);
 
@@ -624,7 +625,8 @@ fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
       GST_PAD_CAPS (session->priv->rtpbin_send_rtcp_src),
       GST_PAD_NAME (transmitter_rtcp_tee_sink_pad),
       GST_PAD_CAPS (transmitter_rtcp_tee_sink_pad));
-    fs_session_error (FS_SESSION (session), FS_SESSION_ERROR_CONSTRUCTION,
+    fs_session_emit_error (FS_SESSION (session), G_OBJECT (session),
+      FS_SESSION_ERROR_CONSTRUCTION,
       "Could not link rtpbin network rtcp src to tee", tmp);
     g_free (tmp);
 
