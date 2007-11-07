@@ -176,6 +176,8 @@ GST_START_TEST (test_fscodec_copy)
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Copy is not identical to the original");
 
+  fs_codec_destroy (codec1);
+  fs_codec_destroy (codec2);
 }
 GST_END_TEST;
 
