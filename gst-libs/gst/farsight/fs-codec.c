@@ -80,7 +80,7 @@ fs_media_type_get_type (void)
     static const GEnumValue values[] = {
       { FS_MEDIA_TYPE_AUDIO, "Audio (default)", "audio"},
       { FS_MEDIA_TYPE_VIDEO, "Video", "video"},
-      { FS_MEDIA_TYPE_AV, "Audio/Video", "av" },
+      { FS_MEDIA_TYPE_APPLICATION, "Applicaton", "application" },
       {0, NULL, NULL}
     };
 
@@ -433,8 +433,8 @@ fs_media_type_to_string (FsMediaType media_type)
     return "audio";
   } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     return "video";
-  } else if (media_type == FS_MEDIA_TYPE_AV) {
-    return "audiovideo";
+  } else if (media_type == FS_MEDIA_TYPE_APPLICATION) {
+    return "application";
   } else {
     return NULL;
   }
@@ -575,10 +575,9 @@ fs_codec_to_gst_caps (const FsCodec *codec)
     gst_structure_set (structure,
       "clock-rate", G_TYPE_INT, codec->clock_rate, NULL);
 
-  if (codec->media_type == FS_MEDIA_TYPE_AUDIO)
-    gst_structure_set (structure, "media", G_TYPE_STRING, "audio", NULL);
-  else if (codec->media_type == FS_MEDIA_TYPE_VIDEO)
-    gst_structure_set (structure, "media", G_TYPE_STRING, "video", NULL);
+  if (fs_media_type_to_string (codec->media_type))
+    gst_structure_set (structure, "media", G_TYPE_STRING,
+      fs_media_type_to_string (codec->media_type), NULL);
 
   if (codec->id >= 0 && codec->id < 128)
     gst_structure_set (structure, "payload", G_TYPE_INT, codec->id, NULL);

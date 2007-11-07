@@ -31,14 +31,14 @@ GST_START_TEST (test_fscodec_new)
 {
   FsCodec *codec = NULL;
 
-  codec = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
+  codec = fs_codec_new (1, "aa", FS_MEDIA_TYPE_APPLICATION, 650);
 
   fail_if (codec == NULL, "Allocation failed");
 
   fail_unless (codec->id == 1, "Codec is incorrect");
   fail_unless (!strcmp (codec->encoding_name, "aa"),
       "Codec encoding name incorrect");;
-  fail_unless (codec->media_type == FS_MEDIA_TYPE_AV,
+  fail_unless (codec->media_type == FS_MEDIA_TYPE_APPLICATION,
       "Codec media type incorrect");
   fail_unless (codec->clock_rate == 650, "Codec clock rate incorrect");
 
@@ -49,20 +49,20 @@ GST_END_TEST;
 
 GST_START_TEST (test_fscodec_are_equal)
 {
-  FsCodec *codec1 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
-  FsCodec *codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
+  FsCodec *codec1 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_APPLICATION, 650);
+  FsCodec *codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_APPLICATION, 650);
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs not recognized");
 
   fs_codec_destroy (codec2);
 
-  codec2 = fs_codec_new (2, "aa", FS_MEDIA_TYPE_AV, 650);
+  codec2 = fs_codec_new (2, "aa", FS_MEDIA_TYPE_APPLICATION, 650);
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different codec ids not recognized");
   fs_codec_destroy (codec2);
 
-  codec2 = fs_codec_new (1, "aaa", FS_MEDIA_TYPE_AV, 650);
+  codec2 = fs_codec_new (1, "aaa", FS_MEDIA_TYPE_APPLICATION, 650);
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different codec types not recognized");
   fs_codec_destroy (codec2);
@@ -72,7 +72,7 @@ GST_START_TEST (test_fscodec_are_equal)
       "Different media types not recognized");
   fs_codec_destroy (codec2);
 
-  codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 651);
+  codec2 = fs_codec_new (1, "aa", FS_MEDIA_TYPE_APPLICATION, 651);
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different clock rates not recognized");
   fs_codec_destroy (codec2);
@@ -82,7 +82,7 @@ GST_END_TEST;
 static FsCodec *
 init_codec_with_three_params (void)
 {
-  FsCodec *codec = fs_codec_new (1, "aa", FS_MEDIA_TYPE_AV, 650);
+  FsCodec *codec = fs_codec_new (1, "aa", FS_MEDIA_TYPE_APPLICATION, 650);
   FsCodecParameter *p1 = NULL;
 
   p1 = g_new0 (FsCodecParameter, 1);
