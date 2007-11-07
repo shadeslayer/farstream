@@ -551,3 +551,21 @@ fs_stream_set_remote_codecs (FsStream *stream,
 
   return FALSE;
 }
+
+
+/**
+ * fs_stream_emit_error:
+ * @stream: #FsStream on which to emit the error signal
+ * @error_no: The number of the error
+ * @error_msg: Error message to be displayed to user
+ * @debug_msg: Debugging error message
+ *
+ * This function emit the "error" signal on a #FsStream, it should only be
+ * called by subclasses.
+ */
+void
+fs_stream_emit_error (FsStream *stream, gint error_no,
+                      gchar *error_msg, gchar *debug_msg)
+{
+  g_signal_emit (stream, signals[ERROR], 0, error_no, error_msg, debug_msg);
+}

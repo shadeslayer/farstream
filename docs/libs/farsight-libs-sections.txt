@@ -26,6 +26,7 @@ FsStreamError
 fs_stream_add_remote_candidate
 fs_stream_preload_recv_codec
 fs_stream_set_remote_codecs
+fs_stream_emit_error
 <SUBSECTION Standard>
 FS_TYPE_STREAM_DIRECTION
 FS_STREAM

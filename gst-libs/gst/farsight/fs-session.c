@@ -561,5 +561,5 @@ fs_session_emit_error (FsSession *session, gint error_no,
                        gchar *error_msg, gchar *debug_msg)
 {
   g_signal_emit (session, signals[ERROR], 0, session, error_no, error_msg,
-                 debug_msg, NULL);
+                 debug_msg);
 }
