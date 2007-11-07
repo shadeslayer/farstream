@@ -178,35 +178,28 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->stop_telephony_event = fs_rtp_session_stop_telephony_event;
   session_class->set_send_codec = fs_rtp_session_set_send_codec;
 
-   g_object_class_override_property (gobject_class,
-                                    PROP_MEDIA_TYPE,
-                                    "media-type");
   g_object_class_override_property (gobject_class,
-                                    PROP_ID,
-                                    "id");
+    PROP_MEDIA_TYPE, "media-type");
   g_object_class_override_property (gobject_class,
-                                    PROP_SINK_PAD,
-                                    "sink-pad");
+    PROP_ID, "id");
   g_object_class_override_property (gobject_class,
-                                    PROP_NATIVE_CODECS,
-                                    "native-codecs");
+    PROP_SINK_PAD, "sink-pad");
   g_object_class_override_property (gobject_class,
-                                    PROP_NATIVE_CODECS_CONFIG,
-                                    "native-codecs-config");
+    PROP_NATIVE_CODECS, "native-codecs");
   g_object_class_override_property (gobject_class,
-                                    PROP_NEGOTIATED_CODECS,
-                                    "negotiated-codecs");
+    PROP_NATIVE_CODECS_CONFIG, "native-codecs-config");
   g_object_class_override_property (gobject_class,
-                                    PROP_CURRENT_SEND_CODEC,
-                                    "current-send-codec");
+    PROP_NEGOTIATED_CODECS, "negotiated-codecs");
+  g_object_class_override_property (gobject_class,
+    PROP_CURRENT_SEND_CODEC, "current-send-codec");
 
-    g_object_class_install_property (gobject_class,
-      PROP_CONFERENCE,
-      g_param_spec_object ("conference",
-        "The Conference this stream refers to",
-        "This is a convience pointer for the Conference",
-        FS_TYPE_RTP_CONFERENCE,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+  g_object_class_install_property (gobject_class,
+    PROP_CONFERENCE,
+    g_param_spec_object ("conference",
+      "The Conference this stream refers to",
+      "This is a convience pointer for the Conference",
+      FS_TYPE_RTP_CONFERENCE,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_rtp_session_dispose;
   gobject_class->finalize = fs_rtp_session_finalize;
