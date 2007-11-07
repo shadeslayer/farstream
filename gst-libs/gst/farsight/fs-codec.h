@@ -50,6 +50,7 @@ typedef struct _FsCodecPreference FsCodecPreference;
  * @FS_MEDIA_TYPE_AUDIO: A media type that encodes audio.
  * @FS_MEDIA_TYPE_VIDEO: A media type that encodes video.
  * @FS_MEDIA_TYPE_APPLICATION: A media type that ???
+ * @FS_MEDIA_TYPE_LAST: Largest valid #FsMediaType
  *
  * Enum used to signify the media type of a codec or stream.
  */
@@ -69,6 +70,8 @@ typedef enum
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
  * @optional_params:  key pairs of param name to param data
+ *
+ * This structure reprensents one codec that can be offered or received
  */
 struct _FsCodec
 {
