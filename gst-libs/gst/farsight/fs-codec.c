@@ -153,7 +153,7 @@ fs_codec_destroy (FsCodec * codec)
  * Returns: a copy of the codec
  */
 FsCodec *
-fs_codec_copy (FsCodec * codec)
+fs_codec_copy (const FsCodec * codec)
 {
   FsCodec *copy = g_new0 (FsCodec, 1);
 
@@ -449,7 +449,7 @@ fs_media_type_to_string (FsMediaType media_type)
  * Return value: the newly-allocated string
  */
 gchar *
-fs_codec_to_string (FsCodec *codec)
+fs_codec_to_string (const FsCodec *codec)
 {
   GString *string = g_string_new ("");
   GList *item;
@@ -518,7 +518,7 @@ compare_lists(GList *list1, GList *list2)
  */
 
 gboolean
-fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2)
+fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
 {
   if (codec1 == codec2)
     return TRUE;
@@ -555,7 +555,7 @@ fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2)
  */
 
 GstCaps *
-fs_codec_to_gst_caps (FsCodec *codec)
+fs_codec_to_gst_caps (const FsCodec *codec)
 {
   GstCaps *caps;
   GstStructure *structure;

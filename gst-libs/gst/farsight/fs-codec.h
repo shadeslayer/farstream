@@ -117,16 +117,16 @@ FsCodec *fs_codec_new (int id, const char *encoding_name,
                        FsMediaType media_type, guint clock_rate);
 
 void fs_codec_destroy (FsCodec * codec);
-FsCodec *fs_codec_copy (FsCodec * codec);
+FsCodec *fs_codec_copy (const FsCodec * codec);
 void fs_codec_list_destroy (GList *codec_list);
 GList *fs_codec_list_copy (const GList *codec_list);
 
 GList *fs_codec_list_from_keyfile (const gchar *filename);
-gchar *fs_codec_to_string (FsCodec *codec);
+gchar *fs_codec_to_string (const FsCodec *codec);
 
-gboolean fs_codec_are_equal (FsCodec *codec1, FsCodec *codec2);
+gboolean fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2);
 
-GstCaps *fs_codec_to_gst_caps (FsCodec *codec);
+GstCaps *fs_codec_to_gst_caps (const FsCodec *codec);
 
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 
