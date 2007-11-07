@@ -75,6 +75,8 @@ struct _FsRtpSessionPrivate
   GstElement *media_sink_valve;
   GstElement *transmitter_rtp_tee;
   GstElement *transmitter_rtcp_tee;
+  GstElement *transmitter_rtp_funnel;
+  GstElement *transmitter_rtcp_funnel;
 
   /* We dont keep explicit references to the pads, the Bin does that for us
    * only this element's methods can add/remote it
@@ -167,7 +169,6 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   gobject_class = (GObjectClass *) klass;
   parent_class = g_type_class_peek_parent (klass);
   session_class = FS_SESSION_CLASS (klass);
-
 
   gobject_class->set_property = fs_rtp_session_set_property;
   gobject_class->get_property = fs_rtp_session_get_property;
@@ -264,7 +265,15 @@ fs_rtp_session_dispose (GObject *object)
     self->priv->rtpbin_send_rtcp_src = NULL;
   }
 
-  /* Make sure dispose does not run twice. */
+  if (self->priv->transmitter_rtp_funnel) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->transmitter_rtp_funnel);
+    gst_element_set_state (self->priv->transmitter_rtp_funnel, GST_STATE_NULL);
+    gst_object_unref (self->priv->transmitter_rtp_funnel);
+    self->priv->transmitter_rtp_funnel = NULL;
+  }
+
+  /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
   parent_class->dispose (object);
@@ -333,7 +342,10 @@ fs_rtp_session_constructed (GObject *object)
   FsRtpSession *self = FS_RTP_SESSION_CAST (object);
   GstElement *valve = NULL;
   GstElement *tee = NULL;
+  GstElement *funnel = NULL;
   GstPad *valve_sink_pad = NULL;
+  GstPad *funnel_src_pad = NULL;
+  GstPadLinkReturn ret;
   gchar *tmp;
 
   G_OBJECT_CLASS (parent_class)->constructed (object);
@@ -432,6 +444,55 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->transmitter_rtcp_tee = gst_object_ref (tee);
 
+
+  /* Now create the transmitter RTP funnel */
+
+  tmp = g_strdup_printf ("recv_rtp_funnel_%d", self->priv->id);
+  funnel = gst_element_factory_make ("fsfunnel", tmp);
+  g_free (tmp);
+
+  if (!funnel) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not create the rtp funnel element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), funnel)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the rtp funnel element to the FsRtpConference");
+    gst_object_unref (funnel);
+    return;
+  }
+
+  self->priv->transmitter_rtp_funnel = gst_object_ref (funnel);
+
+  tmp = g_strdup_printf ("recv_rtp_sink_%u", self->priv->id);
+  self->priv->rtpbin_recv_rtp_sink =
+    gst_element_get_request_pad (self->priv->conference->gstrtpbin,
+      tmp);
+  g_free (tmp);
+
+  funnel_src_pad = gst_element_get_static_pad (funnel, "src");
+
+  ret = gst_pad_link (funnel_src_pad, self->priv->rtpbin_recv_rtp_sink);
+
+  if (GST_PAD_LINK_FAILED (ret)) {
+    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not link pad %s (%p) with pad %s (%p)",
+      GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (funnel_src_pad),
+      GST_PAD_NAME (self->priv->rtpbin_recv_rtp_sink),
+      GST_PAD_CAPS (self->priv->rtpbin_recv_rtp_sink));
+
+    gst_object_unref (funnel_src_pad);
+    return;
+  }
+
+  gst_object_unref (funnel_src_pad);
+
+  gst_element_set_state (funnel, GST_STATE_PLAYING);
 }
 
 
