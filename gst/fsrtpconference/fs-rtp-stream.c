@@ -294,6 +294,10 @@ fs_rtp_stream_set_property (GObject *object,
       break;
     case PROP_DIRECTION:
       self->priv->direction = g_value_get_enum (value);
+      if (self->priv->stream_transmitter) {
+        g_object_set (self->priv->stream_transmitter, "sending",
+          self->priv->direction & FS_DIRECTION_SEND, NULL);
+      }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -312,6 +316,10 @@ fs_rtp_stream_constructed (GObject *object)
       "The Stream Transmitter has not been set");
     return;
   }
+
+
+  g_object_set (self->priv->stream_transmitter, "sending",
+    self->priv->direction & FS_DIRECTION_SEND, NULL);
 
   g_signal_connect (self->priv->stream_transmitter,
     "native-candidates-prepared",
