@@ -86,6 +86,9 @@ static void fs_rtp_stream_set_property (GObject *object,
                                     guint prop_id,
                                     const GValue *value,
                                     GParamSpec *pspec);
+static void fs_rtp_stream_constructed (GObject *object);
+
+
 static gboolean fs_rtp_stream_add_remote_candidate (FsStream *stream,
                                                     FsCandidate *candidate,
                                                     GError **error);
@@ -96,6 +99,27 @@ static gboolean fs_rtp_stream_preload_recv_codec (FsStream *stream,
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
+
+static void fs_rtp_stream_native_candidates_prepared (
+    FsStreamTransmitter *stream_transmitter,
+    gpointer user_data);
+static void fs_rtp_stream_new_active_candidate_pair (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate1,
+    FsCandidate *candidate2,
+    gpointer user_data);
+static void fs_rtp_stream_new_native_candidate (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate,
+    gpointer user_data);
+static void
+fs_rtp_stream_transmitter_error (
+    FsStreamTransmitter *stream_transmitter,
+    gint errorno,
+    gchar *error_msg,
+    gchar *debug_msg,
+    gpointer user_data);
+
 
 
 static GObjectClass *parent_class = NULL;
@@ -137,6 +161,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
 
   gobject_class->set_property = fs_rtp_stream_set_property;
   gobject_class->get_property = fs_rtp_stream_get_property;
+  gobject_class->constructed = fs_rtp_stream_constructed;
 
   stream_class->add_remote_candidate = fs_rtp_stream_add_remote_candidate;
   stream_class->preload_recv_codec = fs_rtp_stream_preload_recv_codec;
@@ -266,6 +291,38 @@ fs_rtp_stream_set_property (GObject *object,
 
 }
 
+static void
+fs_rtp_stream_constructed (GObject *object)
+{
+  FsRtpStream *self = FS_RTP_STREAM_CAST (object);
+
+  if (!self->priv->stream_transmitter) {
+    g_error_new (FS_STREAM_ERROR,
+      FS_STREAM_ERROR_CONSTRUCTION,
+      "The Stream Transmitter has not been set");
+    return;
+  }
+
+  g_signal_connect (self->priv->stream_transmitter,
+    "native-candidates-prepared",
+    G_CALLBACK (fs_rtp_stream_native_candidates_prepared),
+    self);
+  g_signal_connect (self->priv->stream_transmitter,
+    "new-active-candidate-pair",
+    G_CALLBACK (fs_rtp_stream_new_active_candidate_pair),
+    self);
+  g_signal_connect (self->priv->stream_transmitter,
+    "new-native-candidate",
+    G_CALLBACK (fs_rtp_stream_new_native_candidate),
+    self);
+  g_signal_connect (self->priv->stream_transmitter,
+    "error",
+    G_CALLBACK (fs_rtp_stream_transmitter_error),
+    self);
+
+}
+
+
 /**
  * fs_rtp_stream_add_remote_candidate:
  * @stream: an #FsStream
@@ -281,6 +338,10 @@ static gboolean
 fs_rtp_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
                                     GError **error)
 {
+  FsRtpStream *self = FS_RTP_STREAM (stream);
+
+  return fs_stream_transmitter_add_remote_candidate (
+      self->priv->stream_transmitter, candidate, error);
 }
 
 /**
@@ -344,4 +405,52 @@ fs_rtp_stream_new (FsRtpSession *session,
 void
 fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt)
 {
+}
+
+static void
+fs_rtp_stream_native_candidates_prepared (
+    FsStreamTransmitter *stream_transmitter, gpointer user_data)
+{
+  FsRtpStream *self = FS_RTP_STREAM (user_data);
+
+  g_signal_emit_by_name (self, "native-candidates-prepared", 0);
+}
+
+
+static void
+fs_rtp_stream_new_active_candidate_pair (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate1,
+    FsCandidate *candidate2,
+    gpointer user_data)
+{
+  FsRtpStream *self = FS_RTP_STREAM (user_data);
+
+  g_signal_emit_by_name (self, "new-active-candidate-pair", 0,
+    candidate1, candidate2);
+}
+
+
+static void
+fs_rtp_stream_new_native_candidate (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate,
+    gpointer user_data)
+{
+  FsRtpStream *self = FS_RTP_STREAM (user_data);
+
+  g_signal_emit_by_name (self, "new-native-candidate", 0, candidate);
+}
+
+static void
+fs_rtp_stream_transmitter_error (
+    FsStreamTransmitter *stream_transmitter,
+    gint errorno,
+    gchar *error_msg,
+    gchar *debug_msg,
+    gpointer user_data)
+{
+  FsRtpStream *self = FS_RTP_STREAM (user_data);
+
+  g_signal_emit_by_name (self, "error", 0, errorno, error_msg, debug_msg);
 }
