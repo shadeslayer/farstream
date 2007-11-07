@@ -87,6 +87,12 @@ typedef enum {
   FS_STREAM_ERROR_INVALID_ARGUMENTS
 } FsStreamError;
 
+/**
+ * FS_STREAM_ERROR:
+ *
+ * This quark is used to denote errors coming from the #FsStream object
+ */
+
 #define FS_STREAM_ERROR (fs_stream_error_quark ())
 
 GQuark fs_stream_error_quark (void);

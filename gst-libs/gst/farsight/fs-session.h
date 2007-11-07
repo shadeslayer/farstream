@@ -111,6 +111,12 @@ typedef enum {
   FS_SESSION_ERROR_CONSTRUCTION
 } FsSessionError;
 
+/**
+ * FS_SESSION_ERROR
+ *
+ * This quark is used to denote errors coming from the #FsSession object
+ */
+
 #define FS_SESSION_ERROR (fs_session_error_quark ())
 
 GQuark fs_session_error_quark (void);
