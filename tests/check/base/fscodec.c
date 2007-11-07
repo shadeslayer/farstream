@@ -182,6 +182,34 @@ GST_START_TEST (test_fscodec_copy)
 GST_END_TEST;
 
 
+GST_START_TEST (test_fscodec_to_gst_caps)
+{
+  FsCodec *codec = init_codec_with_three_params ();
+  GstCaps *compare_caps = gst_caps_new_simple ("application/x-rtp",
+    "media", G_TYPE_STRING, "audiovideo",
+    "payload", G_TYPE_INT, 1,
+    "clock-rate", G_TYPE_INT, 650,
+    "encoding-name", G_TYPE_STRING, "aa",
+    "aa1", G_TYPE_STRING, "bb1",
+    "aa2", G_TYPE_STRING, "bb2",
+    "aa3", G_TYPE_STRING, "bb3",
+    NULL);
+  GstCaps *caps = fs_codec_to_gst_caps (codec);
+
+  fail_if (caps == NULL, "Could not create caps");
+
+  fail_unless (gst_caps_is_fixed (caps), "Generated caps are not fixed");
+
+  fail_unless (gst_caps_is_equal_fixed (caps, compare_caps),
+    "The generate caps are incorrect");
+
+  gst_caps_unref (caps);
+  gst_caps_unref (compare_caps);
+  fs_codec_destroy (codec);
+}
+GST_END_TEST;
+
+
 
 static Suite *
 fscodec_suite (void)
