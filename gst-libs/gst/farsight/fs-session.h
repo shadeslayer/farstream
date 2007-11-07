@@ -174,7 +174,7 @@ gboolean fs_session_stop_telephony_event (FsSession *session,
 gboolean fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                     GError **error);
 
-void fs_session_emit_error (FsSession *session, GObject *object, gint error_no,
+void fs_session_emit_error (FsSession *session, gint error_no,
                             gchar *error_msg, gchar *debug_msg);
 
 G_END_DECLS
