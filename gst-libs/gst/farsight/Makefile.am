@@ -10,6 +10,7 @@ libgstfarsightinclude_HEADERS = \
 		fs-conference-iface.h \
 		fs-transmitter.h \
 		fs-stream-transmitter.h \
+		fs-plugin.h \
 		fs-marshal.h
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
@@ -28,6 +29,7 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-conference-iface.c \
 		fs-transmitter.c \
 		fs-stream-transmitter.c \
+		fs-plugin.c \
 		fs-marshal.c
 
 EXTRA_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = fs-marshal.list

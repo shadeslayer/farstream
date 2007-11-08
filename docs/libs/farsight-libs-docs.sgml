@@ -28,4 +28,8 @@
     <xi:include href="xml/fs-transmitter.xml"/>
     <xi:include href="xml/fs-stream-transmitter.xml"/>
   </chapter>
+  <chapter>
+    <title>Farsight Plugins infrastructure</title>
+    <xi:include href="xml/fs-plugin.xml"/>
+  </chapter>
 </book>

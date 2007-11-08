@@ -179,6 +179,23 @@ FsStreamTransmitterPrivate
 fs_stream_transmitter_get_type
 </SECTION>
 
+<SECTION>
+<FILE>fs-plugin</FILE>
+<TITLE>FsPlugin</TITLE>
+fs_plugin_create_valist
+FS_INIT_PLUGIN
+<SUBSECTION Standard>
+FsPlugin
+FsPluginClass
+FS_IS_PLUGIN
+FS_IS_PLUGIN_CLASS
+FS_PLUGIN
+FS_PLUGIN_CLASS
+FS_PLUGIN_GET_CLASS
+FS_TYPE_PLUGIN
+FsPluginPrivate
+fs_plugin_get_type
+</SECTION>
 
 <SECTION>
 <FILE>fs-marshal</FILE>

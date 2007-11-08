@@ -131,6 +131,14 @@ AG_GST_CHECK_FEATURE(EXTERNAL, [enable building of plug-ins with external deps],
   ])
 AM_CONDITIONAL(BUILD_EXTERNAL, test "x$BUILD_EXTERNAL" = "xyes")
 
+dnl *** path for our local plugins ***
+
+dnl set the plugindir where plugins should be installed
+AS_AC_EXPAND(FS2_PLUGIN_PATH, ${libdir}/farsight-$FS2_MAJORMINOR)
+AC_SUBST(FS2_PLUGIN_PATH)
+AC_DEFINE_UNQUOTED(FS2_PLUGIN_PATH, "${FS2_PLUGIN_PATH}", [The path were plugins are installed and search by default])
+
+
 dnl *** checks for platform ***
 
 dnl * hardware/architecture *
