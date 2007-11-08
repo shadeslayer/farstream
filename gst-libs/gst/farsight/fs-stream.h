@@ -97,6 +97,17 @@ typedef enum {
 
 GQuark fs_stream_error_quark (void);
 
+/**
+ * FsStreamClass:
+ * @parent_class: Our parent
+ * @add_remote_candidate: Adds a remote candidate
+ * @preload_recv_codec: Set which codec to prelaod
+ * @set_remote_codecs: Sets the list of remote codecs
+ *
+ * You must override add_remote_candidate in a subclass.
+ * If you have to negotiate codecs, then you must override set_remote_codecs too
+ */
+
 struct _FsStreamClass
 {
   GObjectClass parent_class;
@@ -119,13 +130,15 @@ struct _FsStreamClass
 /**
  * FsStream:
  *
+ * All members are private, access them using methods and properties
  */
 struct _FsStream
 {
   GObject parent;
-  FsStreamPrivate *priv;
 
   /*< private >*/
+
+  FsStreamPrivate *priv;
 
   gpointer _padding[8];
 };

@@ -54,6 +54,14 @@ typedef struct _FsStreamTransmitter FsStreamTransmitter;
 typedef struct _FsStreamTransmitterClass FsStreamTransmitterClass;
 typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
 
+/**
+ * FsStreamTransmitterClass:
+ * @parent_class: Our parent
+ * @add_remote_candidate: Sets the remote candidate
+ *
+ * You must override the add_remote_candidate in a subclass
+ */
+
 struct _FsStreamTransmitterClass
 {
   GObjectClass parent_class;
@@ -69,6 +77,7 @@ struct _FsStreamTransmitterClass
 /**
  * FsStreamTransmitter:
  *
+ * All members are private, access them using methods and properties
  */
 struct _FsStreamTransmitter
 {

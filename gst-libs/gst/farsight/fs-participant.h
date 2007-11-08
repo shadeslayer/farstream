@@ -49,11 +49,19 @@ typedef struct _FsParticipant FsParticipant;
 typedef struct _FsParticipantClass FsParticipantClass;
 typedef struct _FsParticipantPrivate FsParticipantPrivate;
 
+/**
+ * FsParticipantClass:
+ * @parent_class: Our parent
+ *
+ * The FsParticipant class has no virtual methods to implement,
+ * but you may want to override the properties or attach more date to it
+ */
+
 struct _FsParticipantClass
 {
   GObjectClass parent_class;
 
-  /*virtual functions */
+  /* virtual functions */
 
   /*< private >*/
   FsParticipantPrivate *priv;
@@ -63,13 +71,15 @@ struct _FsParticipantClass
 /**
  * FsParticipant:
  *
+ * All members are private (access them using the properties)
  */
 struct _FsParticipant
 {
   GObject parent;
-  FsParticipantPrivate *priv;
 
   /*< private >*/
+
+  FsParticipantPrivate *priv;
 
   gpointer _padding[8];
 };

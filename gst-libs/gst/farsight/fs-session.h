@@ -121,6 +121,18 @@ typedef enum {
 
 GQuark fs_session_error_quark (void);
 
+/**
+ * FsSessionClass:
+ * @parent_class: Our parent
+ * @new_stream: Create a new #FsStream
+ * @start_telephony_event: Starts a telephony event
+ * @stop_telephony_event: Stops a telephony event
+ * @set_send_codec: Forces sending with a specific codec
+ *
+ * You must override at least new_stream in a subclass.
+ */
+
+
 struct _FsSessionClass
 {
   GObjectClass parent_class;
@@ -146,13 +158,15 @@ struct _FsSessionClass
 /**
  * FsSession:
  *
+ * All members are private, access them using methods and properties
  */
 struct _FsSession
 {
   GObject parent;
+  /*< private >*/
+
   FsSessionPrivate *priv;
 
-  /*< private >*/
 
   gpointer _padding[8];
 };

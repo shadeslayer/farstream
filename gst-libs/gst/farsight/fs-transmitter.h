@@ -52,6 +52,14 @@ typedef struct _FsTransmitter FsTransmitter;
 typedef struct _FsTransmitterClass FsTransmitterClass;
 typedef struct _FsTransmitterPrivate FsTransmitterPrivate;
 
+/**
+ * FsTransmitterClass:
+ * @parent_class: Our parent
+ * @new_stream_transmitter: Creates a new #FsStreamTransmitter
+ *
+ * You must override the new_stream_transmitter method in a subclass
+ */
+
 struct _FsTransmitterClass
 {
   GObjectClass parent_class;
@@ -67,6 +75,7 @@ struct _FsTransmitterClass
 /**
  * FsTransmitter:
  *
+ * All members are private, access them using methods and properties
  */
 struct _FsTransmitter
 {

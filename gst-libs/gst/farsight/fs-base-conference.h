@@ -54,15 +54,33 @@ typedef struct _FsBaseConference FsBaseConference;
 typedef struct _FsBaseConferenceClass FsBaseConferenceClass;
 typedef struct _FsBaseConferencePrivate FsBaseConferencePrivate;
 
+/**
+ * FsBaseConference
+ *
+ * The #FsBaseConference structure, all the members are private
+ */
+
 struct _FsBaseConference
 {
   GstBin parent;
-  FsBaseConferencePrivate *priv;
 
   /*< private >*/
 
+  FsBaseConferencePrivate *priv;
+
   gpointer _padding[8];
 };
+
+/**
+ * FsBaseConferenceClass:
+ * @parent_class: Our parent
+ * @new_session: allocates a new #FsSession for this conference
+ * @new_participant: Creates a new #FsParticipant of the type required for
+ * this conference
+ *
+ * The class structure of #FsBaseConference. Derived classes should override
+ * all members.
+ */
 
 struct _FsBaseConferenceClass
 {
@@ -75,6 +93,8 @@ struct _FsBaseConferenceClass
                              GError **error);
   FsParticipant *(*new_participant) (FsBaseConference *conference,
                                      gchar *cname);
+
+  /*< private >*/
 
   gpointer _padding[8];
 };
