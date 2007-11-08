@@ -84,6 +84,8 @@ FsStreamTransmitter *fs_transmitter_new_stream_transmitter (
     FsParticipant *participant);
 
 
+FsTransmitter *fs_transmitter_new (gchar *type);
+
 G_END_DECLS
 
 #endif /* __FS_TRANSMITTER_H__ */

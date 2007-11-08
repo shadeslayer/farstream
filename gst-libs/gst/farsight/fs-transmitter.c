@@ -41,6 +41,8 @@
 #include "fs-marshal.h"
 #include "fs-transmitter.h"
 
+#include "fs-plugin.h"
+
 #include <gst/gst.h>
 
 /* Signals */
@@ -253,4 +255,23 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   }
 
   return NULL;
+}
+
+/**
+ * fs_transmitter_new:
+ * @type: The type of transmitter to create
+ *
+ * This function creates a new transmitter of the requested type.
+ * It will load the appropriate plugin as required.
+ *
+ * Returns: a newly-created #FsTransmitter of the requested type
+ *    (or NULL if there is an error)
+ */
+
+FsTransmitter *fs_transmitter_new (gchar *type)
+{
+  g_return_val_if_fail (type != NULL, NULL);
+
+  return FS_TRANSMITTER(fs_plugin_create_valist(type, "transmitter",
+      NULL, NULL));
 }

@@ -146,6 +146,7 @@ FsBaseConferencePrivate
 <TITLE>FsTransmitter</TITLE>
 FsTransmitter
 FsTransmitterClass
+fs_transmitter_new
 fs_transmitter_new_stream_transmitter
 <SUBSECTION Standard>
 FS_IS_TRANSMITTER
