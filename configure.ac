@@ -133,6 +133,30 @@ AM_CONDITIONAL(BUILD_EXTERNAL, test "x$BUILD_EXTERNAL" = "xyes")
 
 dnl *** path for our local plugins ***
 
+
+dnl these are all the transmitter plug-ins
+FS2_TRANSMITTER_PLUGINS_ALL=" \
+	rawudp
+	"
+AC_SUBST(FS2_TRANSMITTER_PLUGINS_ALL)
+
+FS2_TRANSMITTER_PLUGINS_SELECTED=""
+
+AC_ARG_WITH(transmitter-plugins,
+    AC_HELP_STRING([--with-transmitter-plugins],
+      [comma-separated list of plug-ins to compile]),
+    [for i in `echo $withval | tr , ' '`; do
+        if echo $FS2_TRANSMITTER_PLUGINS_ALL | grep $i > /dev/null
+        then
+            FS2_TRANSMITTER_PLUGINS_SELECTED="$FS2_TRANSMITTER_PLUGINS_SELECTED $i"
+        else
+            echo "plug-in $i not recognized, ignoring..."
+        fi
+    done],
+    [FS2_TRANSMITTER_PLUGINS_SELECTED=$FS2_TRANSMITTER_PLUGINS_ALL])
+
+AC_SUBST(FS2_TRANSMITTER_PLUGINS_SELECTED)
+
 dnl set the plugindir where plugins should be installed
 AS_AC_EXPAND(FS2_PLUGIN_PATH, ${libdir}/farsight-$FS2_MAJORMINOR)
 AC_SUBST(FS2_PLUGIN_PATH)
@@ -308,6 +332,8 @@ gst/funnel/Makefile
 gst-libs/Makefile
 gst-libs/gst/Makefile
 gst-libs/gst/farsight/Makefile
+transmitters/Makefile
+transmitters/rawudp/Makefile
 dnl pkgconfig/Makefile
 dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc

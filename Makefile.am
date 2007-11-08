@@ -5,6 +5,7 @@ SUBDIRS_EXT =
 SUBDIRS = 			\
 	gst-libs 		\
 	gst $(SUBDIRS_EXT)	\
+	transmitters		\
 	tests 			\
 	docs
 #
@@ -15,6 +16,7 @@ SUBDIRS = 			\
 DIST_SUBDIRS = 			\
 	gst-libs		\
 	gst $(SUBDIRS_EXT)	\
+	transmitters		\
 	tests 			\
 	docs
 #
