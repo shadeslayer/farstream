@@ -36,6 +36,9 @@
 
 #include "fs-rawudp-transmitter.h"
 
+#include <gst/farsight/fs-session.h>
+
+
 /* Signals */
 enum
 {
@@ -47,16 +50,28 @@ enum
 {
   PROP_0,
   PROP_GST_SINK,
-  PROP_GST_SRC,
+  PROP_GST_SRC
 };
 
 struct _FsRawUdpTransmitterPrivate
 {
+  /* We hold references to this element */
+  GstElement *gst_sink;
+  GstElement *gst_src;
+
+  /* We don't hold a reference to these elements, they are owned
+     by the bins */
+  GstElement *udpsrc_funnel;
+  GstElement *udprtcpsrc_funnel;
+  GstElement *udpsink_tee;
+  GstElement *udprtcpsink_tee;
+
   gboolean disposed;
 };
 
 #define FS_RAWUDP_TRANSMITTER_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_TRANSMITTER, FsRawUdpTransmitterPrivate))
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_TRANSMITTER, \
+    FsRawUdpTransmitterPrivate))
 
 static void fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass);
 static void fs_rawudp_transmitter_init (FsRawUdpTransmitter *self);
@@ -64,13 +79,13 @@ static void fs_rawudp_transmitter_dispose (GObject *object);
 static void fs_rawudp_transmitter_finalize (GObject *object);
 
 static void fs_rawudp_transmitter_get_property (GObject *object,
-                                         guint prop_id,
-                                         GValue *value,
-                                         GParamSpec *pspec);
+                                                guint prop_id,
+                                                GValue *value,
+                                                GParamSpec *pspec);
 static void fs_rawudp_transmitter_set_property (GObject *object,
-                                         guint prop_id,
-                                         const GValue *value,
-                                         GParamSpec *pspec);
+                                                guint prop_id,
+                                                const GValue *value,
+                                                GParamSpec *pspec);
 
 static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
     FsTransmitter *transmitter, FsParticipant *participant);
@@ -130,9 +145,134 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
 static void
 fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 {
+  FsTransmitter *trans = FS_TRANSMITTER_CAST (self);
+  GstPad *pad = NULL;
+  GstPad *ghostpad = NULL;
+
   /* member init */
   self->priv = FS_RAWUDP_TRANSMITTER_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  /* First we need the src elemnet */
+
+  self->priv->gst_src = gst_element_factory_make ("bin", NULL);
+
+  if (!self->priv->gst_src) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not build the transmitter src bin");
+    return;
+  }
+
+  /* Lets create the RTP source funnel */
+
+  self->priv->udpsrc_funnel = gst_element_factory_make ("fsfunnel", NULL);
+
+  if (!self->priv->udpsrc_funnel) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not make the fsfunnel element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->gst_src), self->priv->udpsrc_funnel)) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the fsfunnel element to the transmitter src bin");
+  }
+
+  pad = gst_element_get_static_pad (self->priv->udpsrc_funnel, "src");
+  ghostpad = gst_ghost_pad_new ("src", pad);
+  gst_object_unref (pad);
+
+  gst_pad_set_active (ghostpad, TRUE);
+  gst_element_add_pad (self->priv->gst_src, ghostpad);
+
+  /* Lets create the RTCP source funnel*/
+
+  self->priv->udprtcpsrc_funnel = gst_element_factory_make ("fsfunnel", NULL);
+
+  if (!self->priv->udprtcpsrc_funnel) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not make the fsfunnnel element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->gst_src),
+      self->priv->udprtcpsrc_funnel)) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the rtcp fsfunnel element to the transmitter src bin");
+  }
+
+  pad = gst_element_get_static_pad (self->priv->udprtcpsrc_funnel, "src");
+  ghostpad = gst_ghost_pad_new ("rtcpsrc", pad);
+  gst_object_unref (pad);
+
+  gst_pad_set_active (ghostpad, TRUE);
+  gst_element_add_pad (self->priv->gst_src, ghostpad);
+
+
+  /* Second, we do the sink element */
+
+  self->priv->gst_sink = gst_element_factory_make ("bin", NULL);
+
+  if (!self->priv->gst_sink) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not build the transmitter sink bin");
+    return;
+  }
+
+  /* Lets create the RTP source tee */
+
+  self->priv->udpsink_tee = gst_element_factory_make ("tee", NULL);
+
+  if (!self->priv->udpsink_tee) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not make the tee element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->gst_sink), self->priv->udpsink_tee)) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the tee element to the transmitter sink bin");
+  }
+
+  pad = gst_element_get_static_pad (self->priv->udpsink_tee, "sink");
+  ghostpad = gst_ghost_pad_new ("sink", pad);
+  gst_object_unref (pad);
+
+  gst_pad_set_active (ghostpad, TRUE);
+  gst_element_add_pad (self->priv->gst_sink, ghostpad);
+
+  /* Lets create the RTCP source tee*/
+
+  self->priv->udprtcpsink_tee = gst_element_factory_make ("tee", NULL);
+
+  if (!self->priv->udprtcpsink_tee) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not make the fsfunnnel element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
+      self->priv->udprtcpsink_tee)) {
+    trans->construction_error = g_error_new (FS_SESSION_ERROR,
+      FS_SESSION_ERROR_CONSTRUCTION,
+      "Could not add the rtcp tee element to the transmitter sink bin");
+  }
+
+  pad = gst_element_get_static_pad (self->priv->udprtcpsink_tee, "sink");
+  ghostpad = gst_ghost_pad_new ("rtcpsink", pad);
+  gst_object_unref (pad);
+
+  gst_pad_set_active (ghostpad, TRUE);
+  gst_element_add_pad (self->priv->gst_sink, ghostpad);
 }
 
 static void
@@ -143,6 +283,16 @@ fs_rawudp_transmitter_dispose (GObject *object)
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
     return;
+  }
+
+  if (self->priv->gst_src) {
+    gst_object_unref (self->priv->gst_src);
+    self->priv->gst_src = NULL;
+  }
+
+  if (self->priv->gst_sink) {
+    gst_object_unref (self->priv->gst_sink);
+    self->priv->gst_sink = NULL;
   }
 
   /* Make sure dispose does not run twice. */
@@ -163,13 +313,26 @@ fs_rawudp_transmitter_get_property (GObject *object,
                              GValue *value,
                              GParamSpec *pspec)
 {
+  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+
+  switch (prop_id) {
+    case PROP_GST_SINK:
+      g_value_set_object (value, self->priv->gst_sink);
+      break;
+    case PROP_GST_SRC:
+      g_value_set_object (value, self->priv->gst_src);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
 fs_rawudp_transmitter_set_property (GObject *object,
-                             guint prop_id,
-                             const GValue *value,
-                             GParamSpec *pspec)
+                                    guint prop_id,
+                                    const GValue *value,
+                                    GParamSpec *pspec)
 {
 }
 
