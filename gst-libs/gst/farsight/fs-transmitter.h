@@ -83,6 +83,12 @@ struct _FsTransmitter
 
   /*< private >*/
   FsTransmitterPrivate *priv;
+
+  /* This parameter should only be set by the construction methods
+   * of the subclasses
+   */
+  GError *construction_error;
+
   gpointer _padding[8];
 };
 
@@ -92,8 +98,7 @@ FsStreamTransmitter *fs_transmitter_new_stream_transmitter (
     FsTransmitter *transmitter,
     FsParticipant *participant);
 
-
-FsTransmitter *fs_transmitter_new (gchar *type);
+FsTransmitter *fs_transmitter_new (gchar *type, GError **error);
 
 G_END_DECLS
 

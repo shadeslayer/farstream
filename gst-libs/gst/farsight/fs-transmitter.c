@@ -260,6 +260,7 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 /**
  * fs_transmitter_new:
  * @type: The type of transmitter to create
+ * @error: location of a #GError, or NULL if no error occured
  *
  * This function creates a new transmitter of the requested type.
  * It will load the appropriate plugin as required.
@@ -268,10 +269,21 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
  *    (or NULL if there is an error)
  */
 
-FsTransmitter *fs_transmitter_new (gchar *type)
+FsTransmitter *
+fs_transmitter_new (gchar *type, GError **error)
 {
+  FsTransmitter *self = NULL;
+
   g_return_val_if_fail (type != NULL, NULL);
 
-  return FS_TRANSMITTER(fs_plugin_create_valist(type, "transmitter",
+  self = FS_TRANSMITTER(fs_plugin_create_valist(type, "transmitter",
       NULL, NULL));
+
+  if (self->construction_error) {
+    *error = self->construction_error;
+    g_object_unref (self);
+    self = NULL;
+  }
+
+  return self;
 }
