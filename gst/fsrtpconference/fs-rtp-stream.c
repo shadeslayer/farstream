@@ -100,7 +100,7 @@ static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
 
-static void fs_rtp_stream_native_candidates_prepared (
+static void fs_rtp_stream_local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
     gpointer user_data);
 static void fs_rtp_stream_new_active_candidate_pair (
@@ -108,7 +108,7 @@ static void fs_rtp_stream_new_active_candidate_pair (
     FsCandidate *candidate1,
     FsCandidate *candidate2,
     gpointer user_data);
-static void fs_rtp_stream_new_native_candidate (
+static void fs_rtp_stream_new_local_candidate (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate,
     gpointer user_data);
@@ -322,16 +322,16 @@ fs_rtp_stream_constructed (GObject *object)
     self->priv->direction & FS_DIRECTION_SEND, NULL);
 
   g_signal_connect (self->priv->stream_transmitter,
-    "native-candidates-prepared",
-    G_CALLBACK (fs_rtp_stream_native_candidates_prepared),
+    "local-candidates-prepared",
+    G_CALLBACK (fs_rtp_stream_local_candidates_prepared),
     self);
   g_signal_connect (self->priv->stream_transmitter,
     "new-active-candidate-pair",
     G_CALLBACK (fs_rtp_stream_new_active_candidate_pair),
     self);
   g_signal_connect (self->priv->stream_transmitter,
-    "new-native-candidate",
-    G_CALLBACK (fs_rtp_stream_new_native_candidate),
+    "new-local-candidate",
+    G_CALLBACK (fs_rtp_stream_new_local_candidate),
     self);
   g_signal_connect (self->priv->stream_transmitter,
     "error",
@@ -369,7 +369,7 @@ fs_rtp_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function will preload the codec corresponding to the given codec.
- * This codec must correspond exactly to one of the native-codecs returned by
+ * This codec must correspond exactly to one of the local-codecs returned by
  * the #FsSession that spawned this #FsStream. Preloading a codec is useful for
  * machines where loading the codec is slow. When preloading, decoding can start
  * as soon as a stream is received.
@@ -390,7 +390,7 @@ fs_rtp_stream_preload_recv_codec (FsStream *stream, FsCodec *codec,
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function will set the list of remote codecs for this stream. If
- * the given remote codecs couldn't be negotiated with the list of native
+ * the given remote codecs couldn't be negotiated with the list of local
  * codecs or already negotiated codecs for the corresponding #FsSession, @error
  * will be set and %FALSE will be returned. The @remote_codecs list will be
  * copied so it must be free'd using fs_codec_list_destroy() when done.
@@ -426,12 +426,12 @@ fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt)
 }
 
 static void
-fs_rtp_stream_native_candidates_prepared (
+fs_rtp_stream_local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter, gpointer user_data)
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "native-candidates-prepared", 0);
+  g_signal_emit_by_name (self, "local-candidates-prepared", 0);
 }
 
 
@@ -450,14 +450,14 @@ fs_rtp_stream_new_active_candidate_pair (
 
 
 static void
-fs_rtp_stream_new_native_candidate (
+fs_rtp_stream_new_local_candidate (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate,
     gpointer user_data)
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "new-native-candidate", 0, candidate);
+  g_signal_emit_by_name (self, "new-local-candidate", 0, candidate);
 }
 
 static void

@@ -61,8 +61,8 @@ enum
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
-  PROP_NATIVE_CODECS,
-  PROP_NATIVE_CODECS_CONFIG,
+  PROP_LOCAL_CODECS,
+  PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_SEND_CODEC
 };
@@ -185,39 +185,39 @@ fs_session_class_init (FsSessionClass *klass)
         G_PARAM_READABLE));
 
   /**
-   * FsSession:native-codecs:
+   * FsSession:local-codecs:
    *
-   * This is the list of native codecs that have been auto-detected based on
+   * This is the list of local codecs that have been auto-detected based on
    * installed GStreamer plugins. This list is unchanged during the lifecycle of
-   * the session unless native-codecs-config is changed by the user. It is a
+   * the session unless local-codecs-config is changed by the user. It is a
    * #GList of #FsCodec. User must free this codec list using
    * #fs_codec_list_destroy() when done.
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_NATIVE_CODECS,
-      g_param_spec_boxed ("native-codecs",
-        "List of native codecs",
+      PROP_LOCAL_CODECS,
+      g_param_spec_boxed ("local-codecs",
+        "List of local codecs",
         "A GList of FsCodecs that can be used for sending",
         FS_TYPE_CODEC_LIST,
         G_PARAM_READABLE));
 
   /**
-   * FsSession:native-codecs-config:
+   * FsSession:local-codecs-config:
    *
-   * This is the current configuration list for the native codecs. It is usually
+   * This is the current configuration list for the local codecs. It is usually
    * set by the user to specify the codec options and priorities. The user may
    * change this value during an ongoing session. Note that doing this can cause
-   * the native-codecs to be changed. Therefore this requires the user to fetch
-   * the new native-codecs and renegotiate them with the peers. It is a #GList
+   * the local-codecs to be changed. Therefore this requires the user to fetch
+   * the new local-codecs and renegotiate them with the peers. It is a #GList
    * of #FsCodec. User must free this codec list using #fs_codec_list_destroy()
    * when done.
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_NATIVE_CODECS_CONFIG,
-      g_param_spec_boxed ("native-codecs-config",
-        "List of user configuration for native codecs",
+      PROP_LOCAL_CODECS_CONFIG,
+      g_param_spec_boxed ("local-codecs-config",
+        "List of user configuration for local codecs",
         "A GList of FsCodecs that allows user to set his codec options and"
         " priorities",
         FS_TYPE_CODEC_LIST,

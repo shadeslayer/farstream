@@ -52,8 +52,8 @@ enum
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
-  PROP_NATIVE_CODECS,
-  PROP_NATIVE_CODECS_CONFIG,
+  PROP_LOCAL_CODECS,
+  PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_SEND_CODEC,
   PROP_CONFERENCE
@@ -186,9 +186,9 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   g_object_class_override_property (gobject_class,
     PROP_SINK_PAD, "sink-pad");
   g_object_class_override_property (gobject_class,
-    PROP_NATIVE_CODECS, "native-codecs");
+    PROP_LOCAL_CODECS, "local-codecs");
   g_object_class_override_property (gobject_class,
-    PROP_NATIVE_CODECS_CONFIG, "native-codecs-config");
+    PROP_LOCAL_CODECS_CONFIG, "local-codecs-config");
   g_object_class_override_property (gobject_class,
     PROP_NEGOTIATED_CODECS, "negotiated-codecs");
   g_object_class_override_property (gobject_class,

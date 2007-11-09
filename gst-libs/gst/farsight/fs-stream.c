@@ -54,8 +54,8 @@ enum
   SRC_PAD_ADDED,
   RECV_CODEC_CHANGED,
   NEW_ACTIVE_CANDIDATE_PAIR,
-  NEW_NATIVE_CANDIDATE,
-  NATIVE_CANDIDATES_PREPARED,
+  NEW_LOCAL_CANDIDATE,
+  LOCAL_CANDIDATES_PREPARED,
   LAST_SIGNAL
 };
 
@@ -355,7 +355,7 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream::new-active-candidate-pair:
    * @self: #FsStream that emitted the signal
-   * @native_candidate: #FsCandidate of the native candidate being used
+   * @local_candidate: #FsCandidate of the local candidate being used
    * @remote_candidate: #FsCandidate of the remote candidate being used
    *
    * This signal is emitted when there is a new active chandidate pair that has
@@ -376,15 +376,15 @@ fs_stream_class_init (FsStreamClass *klass)
       G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
 
  /**
-   * FsStream::new-native-candidate:
+   * FsStream::new-local-candidate:
    * @self: #FsStream that emitted the signal
-   * @native_candidate: #FsCandidate of the native candidate
+   * @local_candidate: #FsCandidate of the local candidate
    *
-   * This signal is emitted when a new native candidate is discovered.
+   * This signal is emitted when a new local candidate is discovered.
    *
    */
-  signals[NEW_NATIVE_CANDIDATE] = g_signal_new
-    ("new-native-candidate",
+  signals[NEW_LOCAL_CANDIDATE] = g_signal_new
+    ("new-local-candidate",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -394,15 +394,15 @@ fs_stream_class_init (FsStreamClass *klass)
       G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
 
  /**
-   * FsStream::native-candidates-prepared:
+   * FsStream::local-candidates-prepared:
    * @self: #FsStream that emitted the signal
    *
-   * This signal is emitted when all native candidates have been
+   * This signal is emitted when all local candidates have been
    * prepared, an ICE implementation would send its SDP offer or answer.
    *
    */
-  signals[NATIVE_CANDIDATES_PREPARED] = g_signal_new
-    ("native-candidates-prepared",
+  signals[LOCAL_CANDIDATES_PREPARED] = g_signal_new
+    ("local-candidates-prepared",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -498,7 +498,7 @@ fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function will preload the codec corresponding to the given codec.
- * This codec must correspond exactly to one of the native-codecs returned by
+ * This codec must correspond exactly to one of the local-codecs returned by
  * the #FsSession that spawned this #FsStream. Preloading a codec is useful for
  * machines where loading the codec is slow. When preloading, decoding can start
  * as soon as a stream is received.
@@ -528,7 +528,7 @@ fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function will set the list of remote codecs for this stream. If
- * the given remote codecs couldn't be negotiated with the list of native
+ * the given remote codecs couldn't be negotiated with the list of local
  * codecs or already negotiated codecs for the corresponding #FsSession, @error
  * will be set and %FALSE will be returned. The @remote_codecs list will be
  * copied so it must be free'd using fs_codec_list_destroy() when done.

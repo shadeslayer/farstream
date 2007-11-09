@@ -47,9 +47,9 @@
 enum
 {
   ERROR,
-  NEW_NATIVE_CANDIDATE,
+  NEW_LOCAL_CANDIDATE,
   NEW_ACTIVE_CANDIDATE_PAIR,
-  NATIVE_CANDIDATES_PREPARED,
+  LOCAL_CANDIDATES_PREPARED,
   LAST_SIGNAL
 };
 
@@ -160,7 +160,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
     /**
    * FsStreamTransmitter::new-active-candidate-pair:
    * @self: #FsStream that emitted the signal
-   * @native_candidate: #FsCandidate of the native candidate being used
+   * @local_candidate: #FsCandidate of the local candidate being used
    * @remote_candidate: #FsCandidate of the remote candidate being used
    *
    * This signal is emitted when there is a new active chandidate pair that has
@@ -181,15 +181,15 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
 
  /**
-   * FsStreamTransmitter::new-native-candidate:
+   * FsStreamTransmitter::new-local-candidate:
    * @self: #FsStream that emitted the signal
-   * @native_candidate: #FsCandidate of the native candidate
+   * @local_candidate: #FsCandidate of the local candidate
    *
-   * This signal is emitted when a new native candidate is discovered.
+   * This signal is emitted when a new local candidate is discovered.
    *
    */
-  signals[NEW_NATIVE_CANDIDATE] = g_signal_new
-    ("new-native-candidate",
+  signals[NEW_LOCAL_CANDIDATE] = g_signal_new
+    ("new-local-candidate",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -199,15 +199,15 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
 
  /**
-   * FsStreamTransmitter::native-candidates-prepared:
+   * FsStreamTransmitter::local-candidates-prepared:
    * @self: #FsStream that emitted the signal
    *
-   * This signal is emitted when all native candidates have been
+   * This signal is emitted when all local candidates have been
    * prepared, an ICE implementation would send its SDP offer or answer.
    *
    */
-  signals[NATIVE_CANDIDATES_PREPARED] = g_signal_new
-    ("native-candidates-prepared",
+  signals[LOCAL_CANDIDATES_PREPARED] = g_signal_new
+    ("local-candidates-prepared",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
