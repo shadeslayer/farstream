@@ -235,21 +235,29 @@ fs_transmitter_set_property (GObject *object,
  * @transmitter: a #FsTranmitter
  * @participant: the #FsParticipant for which the #FsStream using this
  * new #FsStreamTransmitter is created
+ * @n_parameters: The number of parameters to pass to the newly created
+ * #FsStreamTransmitter
+ * @parameters: an array of #GParameter
+ * @error: location of a #GError, or NULL if no error occured
  *
  * This function will create a new #FsStreamTransmitter element for a
  * specific participant for this #FsTransmitter
  *
- * Returns: a new #FsStreamTransmitter
+ * Returns: a new #FsStreamTransmitter, or NULL if there is an error
  */
 
 FsStreamTransmitter *
 fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
-                                       FsParticipant *participant)
+                                       FsParticipant *participant,
+                                       guint n_parameters,
+                                       GParameter *parameters,
+                                       GError **error)
 {
   FsTransmitterClass *klass = FS_TRANSMITTER_GET_CLASS (transmitter);
 
   if (klass->new_stream_transmitter) {
-    return klass->new_stream_transmitter (transmitter, participant);
+    return klass->new_stream_transmitter (transmitter, participant,
+      n_parameters, parameters, error);
   } else {
     g_warning ("new_stream_transmitter not defined in class");
   }

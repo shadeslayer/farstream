@@ -88,7 +88,8 @@ static void fs_rawudp_transmitter_set_property (GObject *object,
                                                 GParamSpec *pspec);
 
 static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
-    FsTransmitter *transmitter, FsParticipant *participant);
+    FsTransmitter *transmitter, FsParticipant *participant,
+    guint n_parameters, GParameter *parameters, GError **error);
 
 
 static GObjectClass *parent_class = NULL;
@@ -351,7 +352,8 @@ fs_rawudp_transmitter_set_property (GObject *object,
 
 static FsStreamTransmitter *
 fs_rawudp_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
-  FsParticipant *participant)
+  FsParticipant *participant, guint n_parameters, GParameter *parameters,
+  GError **error)
 {
 
   return NULL;

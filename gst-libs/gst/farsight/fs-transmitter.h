@@ -66,7 +66,10 @@ struct _FsTransmitterClass
 
   /*virtual functions */
   FsStreamTransmitter *(*new_stream_transmitter) (FsTransmitter *transmitter,
-                                                  FsParticipant *participant);
+                                                  FsParticipant *participant,
+                                                  guint n_parameters,
+                                                  GParameter *parameters,
+                                                  GError **error);
 
   /*< private >*/
   gpointer _padding[8];
@@ -95,8 +98,8 @@ struct _FsTransmitter
 GType fs_transmitter_get_type (void);
 
 FsStreamTransmitter *fs_transmitter_new_stream_transmitter (
-    FsTransmitter *transmitter,
-    FsParticipant *participant);
+    FsTransmitter *transmitter, FsParticipant *participant,
+    guint n_parameters, GParameter *parameters, GError **error);
 
 FsTransmitter *fs_transmitter_new (gchar *type, GError **error);
 
