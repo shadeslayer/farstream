@@ -25,6 +25,7 @@ FS_STREAM_ERROR
 FsStreamError
 fs_stream_add_remote_candidate
 fs_stream_remote_candidates_added
+fs_stream_select_candidate_pair
 fs_stream_preload_recv_codec
 fs_stream_set_remote_codecs
 fs_stream_emit_error

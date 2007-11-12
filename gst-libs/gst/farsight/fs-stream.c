@@ -512,6 +512,35 @@ fs_stream_remote_candidates_added (FsStream *stream)
 }
 
 /**
+ * fs_stream_select_candidate_pair:
+ * @stream: a #FsStream
+ * @lfoundation: The foundation of the local candidate to be selected
+ * @rfoundation: The foundation of the remote candidate to be selected
+ * @error: location of a #GError, or NULL if no error occured
+ *
+ * This function selects one pair of candidates to be selected to start
+ * sending media on.
+ *
+ * Returns: TRUE if the candidate pair could be selected, FALSE otherwise
+ */
+
+gboolean
+fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
+                                 gchar *rfoundation, GError **error)
+{
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  if (klass->select_candidate_pair) {
+    return klass->select_candidate_pair (stream, lfoundation, rfoundation,
+    error);
+  } else {
+    g_warning ("select_candidate_pair not defined in class");
+  }
+
+  return FALSE;
+}
+
+/**
  * fs_stream_preload_recv_codec:
  * @stream: an #FsStream
  * @codec: The #FsCodec to be preloaded
