@@ -70,6 +70,12 @@ struct _FsStreamTransmitterClass
   gboolean (*add_remote_candidate) (FsStreamTransmitter *streamtransmitter,
                                     FsCandidate *candidate, GError **error);
 
+  void (*remote_candidates_added) (FsStreamTransmitter *streamtransmitter);
+
+  gboolean (*select_candidate_pair) (FsStreamTransmitter *streamtransmitter,
+                                     gchar *lfoundation, gchar *rfoundation,
+                                     GError **error);
+
   /*< private >*/
   gpointer _padding[8];
 };
@@ -93,6 +99,13 @@ GType fs_stream_transmitter_get_type (void);
 gboolean fs_stream_transmitter_add_remote_candidate (
     FsStreamTransmitter *streamtransmitter,
     FsCandidate *candidate, GError **error);
+
+void fs_stream_transmitter_remote_candidates_added (
+    FsStreamTransmitter *streamtransmitter);
+
+gboolean fs_stream_transmitter_select_candidate_pair (
+    FsStreamTransmitter *streamtransmitter, gchar *lfoundation,
+    gchar *rfoundation, GError **error);
 
 
 G_END_DECLS

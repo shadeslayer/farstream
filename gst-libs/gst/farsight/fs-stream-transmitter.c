@@ -302,3 +302,56 @@ fs_stream_transmitter_add_remote_candidate (
   return FALSE;
 }
 
+
+/**
+ * fs_stream_transmitter_remote_candidates_added:
+ * @streamtransmitter: a #FsStreamTransmitter
+ *
+ * Call this function when the remotes candidates have been set and the
+ * checks can start. More candidates can be added afterwards
+ */
+
+void
+fs_stream_transmitter_remote_candidates_added (
+    FsStreamTransmitter *streamtransmitter)
+{
+  FsStreamTransmitterClass *klass =
+    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+
+  if (klass->remote_candidates_added) {
+    klass->remote_candidates_added (streamtransmitter);
+  } else {
+    g_warning ("remote_candidates_added not defined in class");
+  }
+}
+
+/**
+ * fs_stream_transmitter_select_candidate_pair:
+ * @streamtransmitter: a #FsStreamTransmitter
+ * @lfoundation: The foundation of the local candidate to be selected
+ * @rfoundation: The foundation of the remote candidate to be selected
+ * @error: location of a #GErrorh, or NULL if no error occured
+ *
+ * This function selects one pair of candidates to be selected to start
+ * sending media on.
+ *
+ * Returns: TRUE if the candidate pair could be selected, FALSE otherwise
+ */
+
+gboolean
+fs_stream_transmitter_select_candidate_pair (
+    FsStreamTransmitter *streamtransmitter, gchar *lfoundation,
+    gchar *rfoundation, GError **error)
+{
+  FsStreamTransmitterClass *klass =
+    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+
+  if (klass->select_candidate_pair) {
+    return klass->select_candidate_pair (streamtransmitter, lfoundation, rfoundation,
+    error);
+  } else {
+    g_warning ("select_candidate_pair not defined in class");
+  }
+
+  return FALSE;
+}
