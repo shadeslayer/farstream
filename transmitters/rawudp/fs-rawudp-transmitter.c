@@ -35,6 +35,7 @@
 #endif
 
 #include "fs-rawudp-transmitter.h"
+#include "fs-rawudp-stream-transmitter.h"
 
 #include <gst/farsight/fs-session.h>
 
@@ -356,5 +357,6 @@ fs_rawudp_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   GError **error)
 {
 
-  return NULL;
+  return FS_STREAM_TRANSMITTER (fs_rawudp_stream_transmitter_newv (
+        n_parameters, parameters, error));
 }

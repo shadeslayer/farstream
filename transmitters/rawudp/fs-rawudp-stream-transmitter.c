@@ -197,3 +197,17 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
   return FALSE;
 }
 
+
+FsRawUdpStreamTransmitter *
+fs_rawudp_stream_transmitter_newv (guint n_parameters, GParameter *parameters,
+  GError **error)
+{
+  FsRawUdpStreamTransmitter *streamtransmitter = NULL;
+
+  error = NULL;
+
+  streamtransmitter = g_object_newv (FS_TYPE_RAWUDP_STREAM_TRANSMITTER,
+    n_parameters, parameters);
+
+  return streamtransmitter;
+}
