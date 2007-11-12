@@ -117,6 +117,8 @@ struct _FsStreamClass
                                     FsCandidate *candidate,
                                     GError **error);
 
+  void (*remote_candidates_added) (FsStream *stream);
+
   gboolean (*preload_recv_codec) (FsStream *stream, FsCodec *codec,
                                   GError **error);
 
@@ -148,6 +150,8 @@ GType fs_stream_get_type (void);
 gboolean fs_stream_add_remote_candidate (FsStream *stream,
                                          FsCandidate *candidate,
                                          GError **error);
+
+void fs_stream_remote_candidates_added (FsStream *stream);
 
 gboolean fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec,
                                        GError **error);

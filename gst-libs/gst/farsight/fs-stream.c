@@ -492,6 +492,26 @@ fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
 }
 
 /**
+ * fs_stream_remote_candidates_added:
+ * @stream: a #FsStream
+ *
+ * Call this function when the remotes candidates have been set and the
+ * checks can start. More candidates can be added afterwards
+ */
+
+void
+fs_stream_remote_candidates_added (FsStream *stream)
+{
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  if (klass->remote_candidates_added) {
+    klass->remote_candidates_added (stream);
+  } else {
+    g_warning ("remote_candidates_added not defined in class");
+  }
+}
+
+/**
  * fs_stream_preload_recv_codec:
  * @stream: an #FsStream
  * @codec: The #FsCodec to be preloaded
