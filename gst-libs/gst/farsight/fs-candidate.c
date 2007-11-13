@@ -50,6 +50,21 @@ fs_candidate_get_type (void)
   return candidate_type;
 }
 
+GType
+fs_candidate_list_get_type (void)
+{
+  static GType candidate_list_type = 0;
+  if (candidate_list_type == 0)
+  {
+    candidate_list_type = g_boxed_type_register_static (
+        "FsCandidateList",
+        (GBoxedCopyFunc)fs_candidate_list_destroy,
+        (GBoxedFreeFunc)fs_candidate_list_copy);
+  }
+
+  return candidate_list_type;
+}
+
 /* TODO Create a fs_candidate_new() function since there is a _destroy() func */
 
 /**

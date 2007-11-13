@@ -100,6 +100,8 @@ fs_candidate_are_equal
 <SUBSECTION Standard>
 FS_TYPE_CANDIDATE
 fs_candidate_get_type
+FS_TYPE_CANDIDATE_LIST
+fs_candidate_list_get_type
 </SECTION>
 
 <SECTION>

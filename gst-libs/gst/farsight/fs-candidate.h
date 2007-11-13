@@ -33,6 +33,10 @@ G_BEGIN_DECLS
 #define FS_TYPE_CANDIDATE \
   (fs_candidate_get_type())
 
+
+#define FS_TYPE_CANDIDATE_LIST \
+  (fs_candidate_list_get_type())
+
 /**
  * FsCandidateType:
  * @FS_CANDIDATE_TYPE_HOST: A host candidate (local)
@@ -111,6 +115,7 @@ struct _FsCandidate
 };
 
 GType fs_candidate_get_type (void);
+GType fs_candidate_list_get_type (void);
 
 void fs_candidate_destroy (FsCandidate *cand);
 
