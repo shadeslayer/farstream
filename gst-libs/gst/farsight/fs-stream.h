@@ -77,6 +77,7 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
  * FsStreamError:
  * @FS_STREAM_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
  * @FS_STREAM_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function
+ * @FS_STREAM_ERROR_NETWORK: A network related error
  *
  * This is the enum of error numbers that will come either on the "error" signal
  * or from the Gst Bus.
@@ -84,7 +85,8 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
 
 typedef enum {
   FS_STREAM_ERROR_CONSTRUCTION,
-  FS_STREAM_ERROR_INVALID_ARGUMENTS
+  FS_STREAM_ERROR_INVALID_ARGUMENTS,
+  FS_STREAM_ERROR_NETWORK
 } FsStreamError;
 
 /**
