@@ -58,6 +58,7 @@ enum
 {
   PROP_0,
   PROP_SENDING,
+  PROP_PREFERED_LOCAL_CANDIDATES
 };
 
 struct _FsStreamTransmitterPrivate
@@ -137,6 +138,22 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
         "If set to FALSE, the transmitter will stop sending to this person",
         TRUE,
         G_PARAM_READWRITE));
+
+  /**
+   * FsStreamTransmitter:prefered-local-candidate:
+   *
+   * The list of prefered local candidates for this stream
+   * It is a #GList of #FsCandidates
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_PREFERED_LOCAL_CANDIDATES,
+      g_param_spec_boxed ("prefered-local-candidates",
+        "The prefered candidates",
+        "A GList of FsCandidates",
+        FS_TYPE_CANDIDATE_LIST,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
 
   /**
    * FsStreamTransmitter::error:
