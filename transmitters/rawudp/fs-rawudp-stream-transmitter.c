@@ -49,6 +49,7 @@ enum
 {
   PROP_0,
   PROP_SENDING,
+  PROP_PREFERED_LOCAL_CANDIDATES,
   PROP_STUN_IP,
   PROP_STUN_PORT
 };
@@ -61,6 +62,8 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   gchar *stun_ip;
   guint stun_port;
+
+  GList *prefered_local_candidates;
 };
 
 #define FS_RAWUDP_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -130,6 +133,8 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
     fs_rawudp_stream_transmitter_add_remote_candidate;
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
+  g_object_class_override_property (gobject_class,
+    PROP_PREFERED_LOCAL_CANDIDATES, "prefered-local-candidates");
 
   g_object_class_install_property (gobject_class,
     PROP_STUN_IP,
@@ -189,6 +194,11 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->stun_ip = NULL;
   }
 
+  if (self->priv->prefered_local_candidates) {
+    fs_candidate_list_destroy (self->priv->prefered_local_candidates);
+    self->priv->prefered_local_candidates = NULL;
+  }
+
   parent_class->finalize (object);
 }
 
@@ -203,6 +213,9 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
   switch (prop_id) {
     case PROP_SENDING:
       g_value_set_boolean (value, self->priv->sending);
+      break;
+    case PROP_PREFERED_LOCAL_CANDIDATES:
+      g_value_set_boxed (value, self->priv->prefered_local_candidates);
       break;
     case PROP_STUN_IP:
       g_value_set_string (value, self->priv->stun_ip);
@@ -228,6 +241,9 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
     case PROP_SENDING:
       self->priv->sending = g_value_get_boolean (value);
       /* COMPLETE ME .. we have to do something here */
+      break;
+    case PROP_PREFERED_LOCAL_CANDIDATES:
+      self->priv->prefered_local_candidates = g_value_dup_boxed (value);
       break;
     case PROP_STUN_IP:
       self->priv->stun_ip = g_value_dup_string (value);
