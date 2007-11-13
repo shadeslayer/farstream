@@ -559,8 +559,6 @@ fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
 {
   FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
 
-  *error = NULL;
-
   if (klass->preload_recv_codec) {
     return klass->preload_recv_codec (stream, codec, error);
   } else {
@@ -589,8 +587,6 @@ fs_stream_set_remote_codecs (FsStream *stream,
                              GList *remote_codecs, GError **error)
 {
   FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
-
-  *error = NULL;
 
   if (klass->set_remote_codecs) {
     return klass->set_remote_codecs (stream, remote_codecs, error);

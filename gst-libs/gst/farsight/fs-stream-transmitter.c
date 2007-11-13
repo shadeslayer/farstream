@@ -308,8 +308,6 @@ fs_stream_transmitter_add_remote_candidate (
   FsStreamTransmitterClass *klass =
     FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
-  *error = NULL;
-
   if (klass->add_remote_candidate) {
     return klass->add_remote_candidate (streamtransmitter, candidate, error);
   } else {

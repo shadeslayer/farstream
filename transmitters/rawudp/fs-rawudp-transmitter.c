@@ -545,8 +545,6 @@ fs_rawudp_transmitter_get_udpstream (FsRawUdpTransmitter *trans,
   UdpStream *udpstream;
   GList *udpstream_e;
 
-  *error = NULL;
-
   /* First lets check if we already have one */
 
   for (udpstream_e = g_list_first (trans->priv->udpstreams);
