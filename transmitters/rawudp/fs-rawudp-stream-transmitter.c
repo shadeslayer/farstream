@@ -36,6 +36,8 @@
 
 #include "fs-rawudp-stream-transmitter.h"
 
+#include <gst/farsight/fs-stream.h>
+
 #include <gst/gst.h>
 
 /* Signals */
@@ -65,6 +67,8 @@ struct _FsRawUdpStreamTransmitterPrivate
   FsRawUdpTransmitter *transmitter;
 
   gboolean sending;
+
+  UdpStream *udpstream;
 
   gchar *stun_ip;
   guint stun_port;
@@ -205,6 +209,12 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->prefered_local_candidates = NULL;
   }
 
+  if (self->priv->udpstream) {
+    fs_rawudp_transmitter_put_udpstream (self->priv->transmitter,
+      self->priv->udpstream);
+    self->priv->udpstream = NULL;
+  }
+
   parent_class->finalize (object);
 }
 
@@ -263,6 +273,65 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
   }
 }
 
+static gboolean
+fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
+  GError **error)
+{
+  const gchar *ip = NULL, *rtcp_ip = NULL;
+  guint port = 0, rtcp_port = 0;
+  GList *item;
+
+  for (item = g_list_first (self->priv->prefered_local_candidates);
+       item;
+       item = g_list_next (item)) {
+    FsCandidate *candidate = item->data;
+
+    if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
+      *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+        "You set prefered candidate of a type %d that is not"
+        " FS_NETWORK_PROTOCOL_UDP",
+        candidate->proto);
+      return FALSE;
+    }
+
+    switch (candidate->component_id) {
+      case 1:  /* RTP */
+        if (ip) {
+          *error = g_error_new (FS_STREAM_ERROR,
+            FS_STREAM_ERROR_INVALID_ARGUMENTS,
+            "You set more than one candidate for component 1");
+          return FALSE;
+        }
+        ip = candidate->ip;
+        port = candidate->port;
+        break;
+      case 2:  /* RTCP */
+        if (rtcp_ip) {
+          *error = g_error_new (FS_STREAM_ERROR,
+            FS_STREAM_ERROR_INVALID_ARGUMENTS,
+            "You set more than one candidate for component 2");
+          return FALSE;
+        }
+        rtcp_ip = candidate->ip;
+        rtcp_port = candidate->port;
+        break;
+      default:
+      *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+        "Only components 1 and 2 are supported, %d isnt",
+        candidate->component_id);
+      return FALSE;
+    }
+  }
+
+
+  self->priv->udpstream =
+    fs_rawudp_transmitter_get_udpstream (self->priv->transmitter, ip, port,
+      rtcp_ip, rtcp_port, error);
+  if (!self->priv->udpstream)
+    return FALSE;
+
+  return TRUE;
+}
 
 /**
  * fs_rawudp_stream_transmitter_add_remote_candidate
