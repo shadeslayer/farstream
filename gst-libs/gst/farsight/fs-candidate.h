@@ -73,7 +73,7 @@ typedef struct _FsCandidate FsCandidate;
  * FsCandidate:
  * @candidate_id: string identifier of the candidate
  * @foundation: a string representing the foundation of this candidate (maximum 32 chars)
- * @component_id: value between 1 and 256 indicating which component this candidate represents
+ * @component_id: value between 1 and 256 indicating which component this candidate represents (1 is RTP, 2 is RTCP)
  * @ip: IP in dotted format
  * @port: Port to use
  * @base_ip: IP of base in dotted format as defined in ICE-19.
