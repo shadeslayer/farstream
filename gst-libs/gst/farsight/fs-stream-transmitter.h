@@ -58,6 +58,8 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
  * FsStreamTransmitterClass:
  * @parent_class: Our parent
  * @add_remote_candidate: Sets the remote candidate
+ * @remote_candidates_added: Tell the stream to start the connectivity checks
+ * @select_candidate_pair: Select the candidate pair
  *
  * You must override the add_remote_candidate in a subclass
  */

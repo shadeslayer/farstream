@@ -101,6 +101,8 @@ GQuark fs_stream_error_quark (void);
  * FsStreamClass:
  * @parent_class: Our parent
  * @add_remote_candidate: Adds a remote candidate
+ * @remote_candidates_added: Tell the stream to start the connectivity checks
+ * @select_candidate_pair: Select the candidate pair
  * @preload_recv_codec: Set which codec to prelaod
  * @set_remote_codecs: Sets the list of remote codecs
  *
