@@ -58,6 +58,12 @@ struct _FsRawUdpStreamTransmitterPrivate
 {
   gboolean disposed;
 
+  /* We don't actually hold a ref to this,
+   * But since our parent FsStream can not exist without its parent
+   * FsSession, we should be safe
+   */
+  FsRawUdpTransmitter *transmitter;
+
   gboolean sending;
 
   gchar *stun_ip;
@@ -149,7 +155,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
     g_param_spec_uint ("stun-port",
       "The port of the STUN server",
       "The IPv4 UDP port of the STUN server as a ",
-      0, 65535, 3478,
+      1, 65535, 3478,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
@@ -280,8 +286,9 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
 
 
 FsRawUdpStreamTransmitter *
-fs_rawudp_stream_transmitter_newv (guint n_parameters, GParameter *parameters,
-  GError **error)
+  fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
+    guint n_parameters, GParameter *parameters,
+    GError **error)
 {
   FsRawUdpStreamTransmitter *streamtransmitter = NULL;
 
@@ -289,6 +296,8 @@ fs_rawudp_stream_transmitter_newv (guint n_parameters, GParameter *parameters,
 
   streamtransmitter = g_object_newv (FS_TYPE_RAWUDP_STREAM_TRANSMITTER,
     n_parameters, parameters);
+
+  streamtransmitter->priv->transmitter = transmitter;
 
   return streamtransmitter;
 }

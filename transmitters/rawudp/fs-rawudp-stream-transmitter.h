@@ -29,6 +29,7 @@
 #include <glib-object.h>
 
 #include <gst/farsight/fs-stream-transmitter.h>
+#include "fs-rawudp-transmitter.h"
 
 G_BEGIN_DECLS
 
@@ -87,8 +88,8 @@ struct _FsRawUdpStreamTransmitter
 GType fs_rawudp_stream_transmitter_get_type (void);
 
 FsRawUdpStreamTransmitter *
-fs_rawudp_stream_transmitter_newv (guint n_parameters, GParameter *parameters,
-  GError **error);
+fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
+  guint n_parameters, GParameter *parameters, GError **error);
 
 G_END_DECLS
 

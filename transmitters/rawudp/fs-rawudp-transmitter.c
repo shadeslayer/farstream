@@ -367,9 +367,10 @@ fs_rawudp_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   FsParticipant *participant, guint n_parameters, GParameter *parameters,
   GError **error)
 {
+  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (transmitter);
 
   return FS_STREAM_TRANSMITTER (fs_rawudp_stream_transmitter_newv (
-        n_parameters, parameters, error));
+        self, n_parameters, parameters, error));
 }
 
 
