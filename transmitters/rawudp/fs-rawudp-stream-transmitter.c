@@ -49,11 +49,18 @@ enum
 {
   PROP_0,
   PROP_SENDING,
+  PROP_STUN_IP,
+  PROP_STUN_PORT
 };
 
 struct _FsRawUdpStreamTransmitterPrivate
 {
   gboolean disposed;
+
+  gboolean sending;
+
+  gchar *stun_ip;
+  guint stun_port;
 };
 
 #define FS_RAWUDP_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -124,6 +131,22 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
 
+  g_object_class_install_property (gobject_class,
+    PROP_STUN_IP,
+    g_param_spec_string ("stun-ip",
+      "The IP address of the STUN server",
+      "The IPv4 address of the STUN server as a x.x.x.x string",
+      NULL,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+    PROP_STUN_IP,
+    g_param_spec_uint ("stun-port",
+      "The port of the STUN server",
+      "The IPv4 UDP port of the STUN server as a ",
+      0, 65535, 3478,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_stream_transmitter_finalize;
 
@@ -136,6 +159,8 @@ fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self)
   /* member init */
   self->priv = FS_RAWUDP_STREAM_TRANSMITTER_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  self->priv->sending = TRUE;
 }
 
 static void
@@ -157,6 +182,13 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
 static void
 fs_rawudp_stream_transmitter_finalize (GObject *object)
 {
+  FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
+
+  if (self->priv->stun_ip) {
+    g_free (self->priv->stun_ip);
+    self->priv->stun_ip = NULL;
+  }
+
   parent_class->finalize (object);
 }
 
@@ -166,6 +198,22 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
                                            GValue *value,
                                            GParamSpec *pspec)
 {
+  FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
+
+  switch (prop_id) {
+    case PROP_SENDING:
+      g_value_set_boolean (value, self->priv->sending);
+      break;
+    case PROP_STUN_IP:
+      g_value_set_string (value, self->priv->stun_ip);
+      break;
+    case PROP_STUN_PORT:
+      g_value_set_uint (value, self->priv->stun_port);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
@@ -174,6 +222,23 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
                                            const GValue *value,
                                            GParamSpec *pspec)
 {
+  FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
+
+  switch (prop_id) {
+    case PROP_SENDING:
+      self->priv->sending = g_value_get_boolean (value);
+      /* COMPLETE ME .. we have to do something here */
+      break;
+    case PROP_STUN_IP:
+      self->priv->stun_ip = g_value_dup_string (value);
+      break;
+    case PROP_STUN_PORT:
+      self->priv->stun_port = g_value_get_uint (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 
