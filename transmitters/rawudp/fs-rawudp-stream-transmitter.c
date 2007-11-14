@@ -68,6 +68,9 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   gboolean sending;
 
+  FsCandidate *remote_rtp_candidate;
+  FsCandidate *remote_rtcp_candidate;
+
   UdpStream *udpstream;
 
   gchar *stun_ip;
@@ -207,6 +210,28 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
   if (self->priv->prefered_local_candidates) {
     fs_candidate_list_destroy (self->priv->prefered_local_candidates);
     self->priv->prefered_local_candidates = NULL;
+  }
+
+  if (self->priv->remote_rtp_candidate) {
+    if (self->priv->sending) {
+      fs_rawudp_transmitter_udpstream_remove_dest (self->priv->udpstream,
+        self->priv->remote_rtp_candidate->ip,
+        self->priv->remote_rtp_candidate->port,
+        FALSE);
+    }
+    fs_candidate_destroy (self->priv->remote_rtp_candidate);
+    self->priv->remote_rtp_candidate = NULL;
+  }
+
+  if (self->priv->remote_rtcp_candidate) {
+    if (self->priv->sending) {
+      fs_rawudp_transmitter_udpstream_remove_dest (self->priv->udpstream,
+        self->priv->remote_rtcp_candidate->ip,
+        self->priv->remote_rtcp_candidate->port,
+        TRUE);
+    }
+    fs_candidate_destroy (self->priv->remote_rtcp_candidate);
+    self->priv->remote_rtcp_candidate = NULL;
   }
 
   if (self->priv->udpstream) {
@@ -350,7 +375,66 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
     FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
     GError **error)
 {
-  return FALSE;
+  FsRawUdpStreamTransmitter *self =
+    FS_RAWUDP_STREAM_TRANSMITTER (streamtransmitter);
+
+  if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
+      candidate->proto);
+    return FALSE;
+  }
+
+  if (!candidate->ip || !candidate->port) {
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      "The candidate passed does not contain a valid ip or port");
+    return FALSE;
+  }
+
+  /*
+   * IMPROVE ME: We should probably check that the candidate's IP
+   *  has the format x.x.x.x where x is [0,255] using GRegex, etc
+   */
+
+  switch (candidate->component_id) {
+    case 1:  /* RTP */
+      if (self->priv->sending) {
+        fs_rawudp_transmitter_udpstream_add_dest (self->priv->udpstream,
+          candidate->ip, candidate->port, FALSE);
+      }
+      if (self->priv->remote_rtp_candidate) {
+        fs_rawudp_transmitter_udpstream_remove_dest (self->priv->udpstream,
+            self->priv->remote_rtp_candidate->ip,
+            self->priv->remote_rtp_candidate->port,
+            FALSE);
+        fs_candidate_destroy (self->priv->remote_rtp_candidate);
+      }
+      self->priv->remote_rtp_candidate = fs_candidate_copy (candidate);
+      break;
+
+    case 2:  /* RTCP */
+      if (self->priv->sending) {
+        fs_rawudp_transmitter_udpstream_add_dest (self->priv->udpstream,
+          candidate->ip, candidate->port, TRUE);
+      }
+      if (self->priv->remote_rtcp_candidate) {
+        fs_rawudp_transmitter_udpstream_remove_dest (self->priv->udpstream,
+            self->priv->remote_rtcp_candidate->ip,
+            self->priv->remote_rtcp_candidate->port,
+            TRUE);
+        fs_candidate_destroy (self->priv->remote_rtcp_candidate);
+      }
+      self->priv->remote_rtcp_candidate = fs_candidate_copy (candidate);
+      break;
+
+    default:
+      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+        "Only components 1 and 2 are supported, %d isn't",
+        candidate->component_id);
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
 
