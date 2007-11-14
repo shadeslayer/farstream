@@ -449,8 +449,8 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
     g_object_weak_ref (G_OBJECT (new_stream), (GWeakNotify)_remove_stream_ptr,
         session);
   } else {
-    g_warning ("new_stream not defined for %s",
-        G_OBJECT_TYPE_NAME (session));
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_NOT_IMPLEMENTED,
+      "new_stream not defined for %s", G_OBJECT_TYPE_NAME (session));
   }
   return new_stream;
 }
@@ -537,7 +537,8 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   if (klass->set_send_codec) {
     return klass->set_send_codec (session, send_codec, error);
   } else {
-    g_warning ("set_send_codec not defined in class");
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_NOT_IMPLEMENTED,
+      "set_send_codec not defined in class");
   }
   return FALSE;
 }
