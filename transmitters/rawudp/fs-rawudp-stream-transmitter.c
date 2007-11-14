@@ -368,5 +368,10 @@ FsRawUdpStreamTransmitter *
 
   streamtransmitter->priv->transmitter = transmitter;
 
+  if (!fs_rawudp_stream_transmitter_build (streamtransmitter, error)) {
+    g_object_unref (streamtransmitter);
+    return NULL;
+  }
+
   return streamtransmitter;
 }
