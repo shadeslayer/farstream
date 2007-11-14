@@ -708,3 +708,28 @@ fs_rawudp_transmitter_put_udpstream (FsRawUdpTransmitter *trans,
   g_free (udpstream->requested_rtcp_ip);
   g_free (udpstream);
 }
+
+void
+fs_rawudp_transmitter_udpstream_add_dest (UdpStream *udpstream,
+  const gchar *ip, gint port, gboolean is_rtcp)
+{
+  if (is_rtcp)
+    g_signal_emit_by_name (udpstream->udpsink, "add", 0,
+      ip, port, NULL);
+  else
+    g_signal_emit_by_name (udpstream->udprtcpsink, "add", 0,
+      ip, port, NULL);
+}
+
+
+void
+fs_rawudp_transmitter_udpstream_remove_dest (UdpStream *udpstream,
+  const gchar *ip, gint port, gboolean is_rtcp)
+{
+  if (is_rtcp)
+    g_signal_emit_by_name (udpstream->udpsink, "remove", 0,
+      ip, port, NULL);
+  else
+    g_signal_emit_by_name (udpstream->udprtcpsink, "remove", 0,
+      ip, port, NULL);
+}

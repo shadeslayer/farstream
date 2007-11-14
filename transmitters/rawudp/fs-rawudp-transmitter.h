@@ -87,14 +87,19 @@ GType fs_rawudp_transmitter_get_type (void);
 
 
 
-UdpStream *
-fs_rawudp_transmitter_get_udpstream (FsRawUdpTransmitter *trans,
+UdpStream *fs_rawudp_transmitter_get_udpstream (FsRawUdpTransmitter *trans,
   const gchar *requested_ip, guint requested_port,
   const gchar *requested_rtcp_ip, guint requested_rtcp_port,
   GError **error);
 
 void fs_rawudp_transmitter_put_udpstream (FsRawUdpTransmitter *trans,
   UdpStream *udpstream);
+
+void fs_rawudp_transmitter_udpstream_add_dest (UdpStream *udpstream,
+  const gchar *ip, gint port, gboolean is_rtcp);
+void fs_rawudp_transmitter_udpstream_remove_dest (UdpStream *udpstream,
+  const gchar *ip, gint port, gboolean is_rtcp);
+
 
 
 G_END_DECLS
