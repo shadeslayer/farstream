@@ -287,7 +287,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     FsCandidate *candidate = item->data;
 
     if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
-      *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
         "You set prefered candidate of a type %d that is not"
         " FS_NETWORK_PROTOCOL_UDP",
         candidate->proto);
@@ -297,7 +297,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     switch (candidate->component_id) {
       case 1:  /* RTP */
         if (ip) {
-          *error = g_error_new (FS_STREAM_ERROR,
+          g_set_error (error, FS_STREAM_ERROR,
             FS_STREAM_ERROR_INVALID_ARGUMENTS,
             "You set more than one candidate for component 1");
           return FALSE;
@@ -307,7 +307,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         break;
       case 2:  /* RTCP */
         if (rtcp_ip) {
-          *error = g_error_new (FS_STREAM_ERROR,
+          g_set_error (error, FS_STREAM_ERROR,
             FS_STREAM_ERROR_INVALID_ARGUMENTS,
             "You set more than one candidate for component 2");
           return FALSE;
@@ -316,7 +316,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         rtcp_port = candidate->port;
         break;
       default:
-      *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
         "Only components 1 and 2 are supported, %d isnt",
         candidate->component_id);
       return FALSE;

@@ -474,7 +474,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
   elem = gst_element_factory_make (elementname, NULL);
   if (!elem) {
-    *error = g_error_new (FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
       "Could not create the %s element", elementname);
     return NULL;
   }
@@ -485,7 +485,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     NULL);
 
   if (!gst_bin_add (bin, elem)) {
-    *error = g_error_new (FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
       "Could not add the udpsrc element to the gst sink");
     gst_object_unref (elem);
     return NULL;
@@ -497,7 +497,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     *requested_pad = gst_element_get_request_pad (teefunnel, "src%d");
 
   if (!*requested_pad) {
-    *error = g_error_new (FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
       "Could not get the %s request pad from the %s",
       (direction == GST_PAD_SINK) ? "sink" : "src",
       (direction == GST_PAD_SINK) ? "tee" : "funnel");
@@ -515,13 +515,13 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     ret = gst_pad_link (ourpad, *requested_pad);
 
   if (GST_PAD_LINK_FAILED(ret)) {
-    *error = g_error_new (FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
       "Could not link the new element %s (%d)", elementname, ret);
     goto error;
   }
 
   if (!gst_element_sync_state_with_parent (elem)) {
-    *error = g_error_new (FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
       "Could not sync the state of the new %s with its parent",
       elementname);
     goto error;

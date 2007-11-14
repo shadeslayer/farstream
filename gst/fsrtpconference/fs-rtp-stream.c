@@ -320,9 +320,11 @@ fs_rtp_stream_constructed (GObject *object)
   FsRtpStream *self = FS_RTP_STREAM_CAST (object);
 
   if (!self->priv->stream_transmitter) {
+    /* FIXME
     g_error_new (FS_STREAM_ERROR,
       FS_STREAM_ERROR_CONSTRUCTION,
       "The Stream Transmitter has not been set");
+    */
     return;
   }
 

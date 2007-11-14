@@ -257,8 +257,8 @@ fs_base_conference_new_session (FsConference *conf,
         base_conf);
   } else {
     GST_WARNING_OBJECT (conf, "new_session not defined in element");
-    *error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION, "new_session not defined in element");
+    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+      "new_session not defined in element");
   }
 
   return new_session;
