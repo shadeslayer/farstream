@@ -316,10 +316,10 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         rtcp_port = candidate->port;
         break;
       default:
-      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
-        "Only components 1 and 2 are supported, %d isnt",
-        candidate->component_id);
-      return FALSE;
+        g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+          "Only components 1 and 2 are supported, %d isnt",
+          candidate->component_id);
+        return FALSE;
     }
   }
 
