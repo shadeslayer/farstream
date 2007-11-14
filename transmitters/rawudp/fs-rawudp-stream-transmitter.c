@@ -53,7 +53,8 @@ enum
   PROP_SENDING,
   PROP_PREFERED_LOCAL_CANDIDATES,
   PROP_STUN_IP,
-  PROP_STUN_PORT
+  PROP_STUN_PORT,
+  PROP_STUN_TIMEOUT
 };
 
 struct _FsRawUdpStreamTransmitterPrivate
@@ -75,6 +76,8 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   gchar *stun_ip;
   guint stun_port;
+
+  guint stun_timeout;
 
   GList *prefered_local_candidates;
 };
@@ -163,6 +166,14 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
       "The port of the STUN server",
       "The IPv4 UDP port of the STUN server as a ",
       1, 65535, 3478,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+    PROP_STUN_TIMEOUT,
+    g_param_spec_uint ("stun-timeout",
+      "The timeout for the STUN reply",
+      "How long to wait for for the STUN reply (in seconds) before giving up",
+      0, G_MAXUINT, 30,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
@@ -264,6 +275,9 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_STUN_PORT:
       g_value_set_uint (value, self->priv->stun_port);
       break;
+    case PROP_STUN_TIMEOUT:
+      g_value_set_uint (value, self->priv->stun_timeout);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -322,6 +336,9 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
       self->priv->stun_ip = g_value_dup_string (value);
       break;
     case PROP_STUN_PORT:
+      self->priv->stun_port = g_value_get_uint (value);
+      break;
+    case PROP_STUN_TIMEOUT:
       self->priv->stun_port = g_value_get_uint (value);
       break;
     default:
