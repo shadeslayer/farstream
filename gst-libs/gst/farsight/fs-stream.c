@@ -485,7 +485,8 @@ fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
   if (klass->add_remote_candidate) {
     return klass->add_remote_candidate (stream, candidate, error);
   } else {
-    g_warning ("add_remote_candidate not defined in class");
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+      "add_remote_candidate not defined in class");
   }
 
   return FALSE;
@@ -534,7 +535,8 @@ fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
     return klass->select_candidate_pair (stream, lfoundation, rfoundation,
     error);
   } else {
-    g_warning ("select_candidate_pair not defined in class");
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+      "select_candidate_pair not defined in class");
   }
 
   return FALSE;
@@ -562,7 +564,8 @@ fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
   if (klass->preload_recv_codec) {
     return klass->preload_recv_codec (stream, codec, error);
   } else {
-    g_warning ("preload_recv_codec not defined in class");
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+      "preload_recv_codec not defined in class");
   }
 
   return FALSE;
@@ -591,7 +594,8 @@ fs_stream_set_remote_codecs (FsStream *stream,
   if (klass->set_remote_codecs) {
     return klass->set_remote_codecs (stream, remote_codecs, error);
   } else {
-    g_warning ("set_remote_codecs not defined in class");
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+      "set_remote_codecs not defined in class");
   }
 
   return FALSE;
