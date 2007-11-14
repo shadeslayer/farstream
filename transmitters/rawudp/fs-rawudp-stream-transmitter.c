@@ -471,9 +471,9 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
 
 
 FsRawUdpStreamTransmitter *
-  fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
-    guint n_parameters, GParameter *parameters,
-    GError **error)
+fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
+  guint n_parameters, GParameter *parameters,
+  GError **error)
 {
   FsRawUdpStreamTransmitter *streamtransmitter = NULL;
 
