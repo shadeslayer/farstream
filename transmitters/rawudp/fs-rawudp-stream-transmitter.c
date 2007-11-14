@@ -280,8 +280,40 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
 
   switch (prop_id) {
     case PROP_SENDING:
-      self->priv->sending = g_value_get_boolean (value);
-      /* COMPLETE ME .. we have to do something here */
+      {
+        gboolean old_sending = self->priv->sending;
+        self->priv->sending = g_value_get_boolean (value);
+
+        if (self->priv->sending != old_sending) {
+          if (self->priv->sending) {
+            if (self->priv->remote_rtp_candidate)
+              fs_rawudp_transmitter_udpstream_add_dest (
+                  self->priv->udpstream,
+                self->priv->remote_rtp_candidate->ip,
+                self->priv->remote_rtp_candidate->port,
+                FALSE);
+            if (self->priv->remote_rtcp_candidate)
+              fs_rawudp_transmitter_udpstream_add_dest (
+                  self->priv->udpstream,
+                self->priv->remote_rtcp_candidate->ip,
+                self->priv->remote_rtcp_candidate->port,
+                FALSE);
+          } else {
+            if (self->priv->remote_rtp_candidate)
+              fs_rawudp_transmitter_udpstream_remove_dest (
+                  self->priv->udpstream,
+                self->priv->remote_rtp_candidate->ip,
+                self->priv->remote_rtp_candidate->port,
+                FALSE);
+            if (self->priv->remote_rtcp_candidate)
+              fs_rawudp_transmitter_udpstream_remove_dest (
+                  self->priv->udpstream,
+                  self->priv->remote_rtcp_candidate->ip,
+                  self->priv->remote_rtcp_candidate->port,
+                  FALSE);
+          }
+        }
+      }
       break;
     case PROP_PREFERED_LOCAL_CANDIDATES:
       self->priv->prefered_local_candidates = g_value_dup_boxed (value);
