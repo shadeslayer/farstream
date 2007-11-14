@@ -41,6 +41,8 @@
 #include "fs-marshal.h"
 #include "fs-stream-transmitter.h"
 
+#include "fs-stream.h"
+
 #include <gst/gst.h>
 
 /* Signals */
@@ -311,7 +313,8 @@ fs_stream_transmitter_add_remote_candidate (
   if (klass->add_remote_candidate) {
     return klass->add_remote_candidate (streamtransmitter, candidate, error);
   } else {
-    g_warning ("add_remote_candidate not defined in class");
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+      "add_remote_candidate not defined in stream transmitter class");
   }
 
   return FALSE;
@@ -336,7 +339,7 @@ fs_stream_transmitter_remote_candidates_added (
   if (klass->remote_candidates_added) {
     klass->remote_candidates_added (streamtransmitter);
   } else {
-    g_warning ("remote_candidates_added not defined in class");
+    g_warning ("remote_candidates_added not defined in transmitter class");
   }
 }
 
@@ -365,7 +368,8 @@ fs_stream_transmitter_select_candidate_pair (
     return klass->select_candidate_pair (streamtransmitter, lfoundation, rfoundation,
     error);
   } else {
-    g_warning ("select_candidate_pair not defined in class");
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+      "select_candidate_pair not defined in stream transmitter class");
   }
 
   return FALSE;
