@@ -369,15 +369,15 @@ fs_rtp_session_constructed (GObject *object)
   g_free (tmp);
 
   if (!valve) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not create the fsvalve element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), valve)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the valve element to the FsRtpConference");
     gst_object_unref (valve);
     return;
@@ -408,15 +408,15 @@ fs_rtp_session_constructed (GObject *object)
   g_free (tmp);
 
   if (!tee) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not create the rtp tee element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the rtp tee element to the FsRtpConference");
     gst_object_unref (tee);
     return;
@@ -434,15 +434,15 @@ fs_rtp_session_constructed (GObject *object)
   g_free (tmp);
 
   if (!tee) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not create the rtcp tee element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the rtcp tee element to the FsRtpConference");
     gst_object_unref (tee);
     return;
@@ -460,15 +460,15 @@ fs_rtp_session_constructed (GObject *object)
   g_free (tmp);
 
   if (!funnel) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not create the rtp funnel element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), funnel)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the rtp funnel element to the FsRtpConference");
     gst_object_unref (funnel);
     return;
@@ -487,8 +487,8 @@ fs_rtp_session_constructed (GObject *object)
   ret = gst_pad_link (funnel_src_pad, self->priv->rtpbin_recv_rtp_sink);
 
   if (GST_PAD_LINK_FAILED (ret)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not link pad %s (%p) with pad %s (%p)",
       GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (funnel_src_pad),
       GST_PAD_NAME (self->priv->rtpbin_recv_rtp_sink),
@@ -510,15 +510,15 @@ fs_rtp_session_constructed (GObject *object)
   g_free (tmp);
 
   if (!funnel) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not create the rtcp funnel element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), funnel)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the rtcp funnel element to the FsRtcpConference");
     gst_object_unref (funnel);
     return;
@@ -537,8 +537,8 @@ fs_rtp_session_constructed (GObject *object)
   ret = gst_pad_link (funnel_src_pad, self->priv->rtpbin_recv_rtcp_sink);
 
   if (GST_PAD_LINK_FAILED (ret)) {
-    self->priv->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not link pad %s (%p) with pad %s (%p)",
       GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (funnel_src_pad),
       GST_PAD_NAME (self->priv->rtpbin_recv_rtcp_sink),
@@ -578,7 +578,7 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
   FsStream *new_stream = NULL;
 
   if (!FS_IS_RTP_PARTICIPANT (participant)) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "You have to provide a participant of type RTP");
     return NULL;
   }
@@ -707,7 +707,7 @@ fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
       GST_PAD_NAME (src_pad), GST_PAD_CAPS (src_pad),
       GST_PAD_NAME (transmitter_rtp_tee_sink_pad),
       GST_PAD_CAPS (transmitter_rtp_tee_sink_pad));
-    fs_session_emit_error (FS_SESSION (session), FS_SESSION_ERROR_CONSTRUCTION,
+    fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
       "Could not link rtpbin network src to tee", tmp);
     g_free (tmp);
 
@@ -735,7 +735,7 @@ fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
       GST_PAD_CAPS (session->priv->rtpbin_send_rtcp_src),
       GST_PAD_NAME (transmitter_rtcp_tee_sink_pad),
       GST_PAD_CAPS (transmitter_rtcp_tee_sink_pad));
-    fs_session_emit_error (FS_SESSION (session), FS_SESSION_ERROR_CONSTRUCTION,
+    fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
       "Could not link rtpbin network rtcp src to tee", tmp);
     g_free (tmp);
 

@@ -41,7 +41,7 @@
 #include "fs-marshal.h"
 #include "fs-stream-transmitter.h"
 
-#include "fs-stream.h"
+#include "fs-conference-iface.h"
 
 #include <gst/gst.h>
 
@@ -313,7 +313,7 @@ fs_stream_transmitter_add_remote_candidate (
   if (klass->add_remote_candidate) {
     return klass->add_remote_candidate (streamtransmitter, candidate, error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "add_remote_candidate not defined in stream transmitter class");
   }
 
@@ -368,7 +368,7 @@ fs_stream_transmitter_select_candidate_pair (
     return klass->select_candidate_pair (streamtransmitter, lfoundation, rfoundation,
     error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "select_candidate_pair not defined in stream transmitter class");
   }
 

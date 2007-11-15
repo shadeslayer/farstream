@@ -40,6 +40,7 @@
 #include "config.h"
 #endif
 
+#include "fs-conference-iface.h"
 #include "fs-session.h"
 #include "fs-codec.h"
 #include "fs-marshal.h"
@@ -94,13 +95,6 @@ static void fs_session_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
-
-GQuark
-fs_session_error_quark (void)
-{
-  return g_quark_from_static_string ("fs-session-error");
-}
-
 
 GType
 fs_session_get_type (void)
@@ -449,7 +443,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
     g_object_weak_ref (G_OBJECT (new_stream), (GWeakNotify)_remove_stream_ptr,
         session);
   } else {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "new_stream not defined for %s", G_OBJECT_TYPE_NAME (session));
   }
   return new_stream;
@@ -537,7 +531,7 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   if (klass->set_send_codec) {
     return klass->set_send_codec (session, send_codec, error);
   } else {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "set_send_codec not defined in class");
   }
   return FALSE;

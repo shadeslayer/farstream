@@ -43,7 +43,7 @@
 
 #include "fs-plugin.h"
 
-#include "fs-stream.h"
+#include "fs-conference-iface.h"
 
 #include <gst/gst.h>
 
@@ -261,7 +261,7 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
     return klass->new_stream_transmitter (transmitter, participant,
       n_parameters, parameters, error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "new_stream_transmitter not defined in class");
   }
 

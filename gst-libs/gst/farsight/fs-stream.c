@@ -38,12 +38,14 @@
 #include "config.h"
 #endif
 
-#include "fs-session.h"
 #include "fs-stream.h"
+
+#include "fs-session.h"
 #include "fs-marshal.h"
 #include "fs-codec.h"
 #include "fs-candidate.h"
 #include "fs-stream-transmitter.h"
+#include "fs-conference-iface.h"
 
 #include <gst/gst.h>
 
@@ -100,13 +102,6 @@ static void fs_stream_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
-
-GQuark
-fs_stream_error_quark (void)
-{
-  return g_quark_from_static_string ("fs-stream-error");
-}
-
 
 GType
 fs_stream_get_type (void)
@@ -485,7 +480,7 @@ fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
   if (klass->add_remote_candidate) {
     return klass->add_remote_candidate (stream, candidate, error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "add_remote_candidate not defined in class");
   }
 
@@ -535,7 +530,7 @@ fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
     return klass->select_candidate_pair (stream, lfoundation, rfoundation,
     error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "select_candidate_pair not defined in class");
   }
 
@@ -564,7 +559,7 @@ fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
   if (klass->preload_recv_codec) {
     return klass->preload_recv_codec (stream, codec, error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "preload_recv_codec not defined in class");
   }
 
@@ -594,7 +589,7 @@ fs_stream_set_remote_codecs (FsStream *stream,
   if (klass->set_remote_codecs) {
     return klass->set_remote_codecs (stream, remote_codecs, error);
   } else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NOT_IMPLEMENTED,
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "set_remote_codecs not defined in class");
   }
 

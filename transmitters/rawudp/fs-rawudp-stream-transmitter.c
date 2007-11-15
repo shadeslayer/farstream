@@ -39,8 +39,8 @@
 #include "stun.h"
 #include "fs-interfaces.h"
 
-#include <gst/farsight/fs-stream.h>
 #include <gst/farsight/fs-candidate.h>
+#include <gst/farsight/fs-conference-iface.h>
 
 #include <gst/gst.h>
 
@@ -441,7 +441,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     FsCandidate *candidate = item->data;
 
     if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
-      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "You set prefered candidate of a type %d that is not"
         " FS_NETWORK_PROTOCOL_UDP",
         candidate->proto);
@@ -451,8 +451,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     switch (candidate->component_id) {
       case 1:  /* RTP */
         if (ip) {
-          g_set_error (error, FS_STREAM_ERROR,
-            FS_STREAM_ERROR_INVALID_ARGUMENTS,
+          g_set_error (error, FS_ERROR,
+            FS_ERROR_INVALID_ARGUMENTS,
             "You set more than one candidate for component 1");
           return FALSE;
         }
@@ -461,8 +461,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         break;
       case 2:  /* RTCP */
         if (rtcp_ip) {
-          g_set_error (error, FS_STREAM_ERROR,
-            FS_STREAM_ERROR_INVALID_ARGUMENTS,
+          g_set_error (error, FS_ERROR,
+            FS_ERROR_INVALID_ARGUMENTS,
             "You set more than one candidate for component 2");
           return FALSE;
         }
@@ -470,7 +470,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         rtcp_port = candidate->port;
         break;
       default:
-        g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Only components 1 and 2 are supported, %d isnt",
           candidate->component_id);
         return FALSE;
@@ -548,14 +548,14 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
     FS_RAWUDP_STREAM_TRANSMITTER (streamtransmitter);
 
   if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
       candidate->proto);
     return FALSE;
   }
 
   if (!candidate->ip || !candidate->port) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "The candidate passed does not contain a valid ip or port");
     return FALSE;
   }
@@ -595,7 +595,7 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
       break;
 
     default:
-      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Only components 1 and 2 are supported, %d isn't",
         candidate->component_id);
       return FALSE;
@@ -802,7 +802,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   else if (component_id == FS_COMPONENT_RTCP)
     udpport = self->priv->rtcp_udpport;
   else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "Only components RTP(1) and RTCP(2) are support, %u isnt",
       component_id);
     return FALSE;
@@ -813,7 +813,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   hints.ai_flags = AI_NUMERICHOST;
   retval = getaddrinfo (self->priv->stun_ip, NULL, &hints, &result);
   if (retval != 0) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NETWORK,
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
       "Invalid IP address %s passed for STUN: %s",
       self->priv->stun_ip, gai_strerror (retval));
     return FALSE;
@@ -836,7 +836,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   msg = stun_message_new (STUN_MESSAGE_BINDING_REQUEST,
     self->priv->stun_cookie, 0);
   if (!msg) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NETWORK,
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
       "Could not create a new STUN binding request");
     return FALSE;
   }

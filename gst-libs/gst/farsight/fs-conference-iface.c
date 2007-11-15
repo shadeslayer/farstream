@@ -71,6 +71,14 @@ fs_conference_get_type (void)
   return fs_conference_type;
 }
 
+
+GQuark
+fs_error_quark (void)
+{
+  return g_quark_from_static_string ("fs-error");
+}
+
+
 static void
 fs_conference_iface_init (FsConferenceInterface * iface)
 {

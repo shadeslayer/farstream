@@ -31,7 +31,7 @@
 
 #include "fs-plugin.h"
 
-#include <gst/farsight/fs-stream.h>
+#include "fs-conference-iface.h"
 
 #include <string.h>
 
@@ -304,12 +304,12 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   FsPlugin *plugin;
 
   if (name == NULL) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "You need to pass a name");
     return NULL;
   }
   if (type_suffix == NULL) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "You need to pass a type suffix");
     return NULL;
   }
@@ -319,7 +319,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   if (!plugin) {
     plugin = g_object_new (FS_TYPE_PLUGIN, NULL);
     if (!plugin) {
-      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_CONSTRUCTION,
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not create a fsplugin object");
       return NULL;
     }
@@ -329,7 +329,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   }
 
   if (!g_type_module_use (G_TYPE_MODULE (plugin))) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not load the %s-%s transmitter plugin", name, type_suffix);
     return NULL;
   }

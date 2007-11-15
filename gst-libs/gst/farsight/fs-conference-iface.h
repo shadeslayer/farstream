@@ -76,6 +76,38 @@ struct _FsConferenceInterface {
 
 GType fs_conference_get_type (void);
 
+
+
+/**
+ * FsError:
+ * @FS_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
+ * @FS_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function
+ * @FS_ERROR_NETWORK: A network related error
+ * @FS_ERROR_NOT_IMPLEMENTED: This functionality is not implemented
+ * by this plugins
+ *
+ * This is the enum of error numbers that will come either on the "error"
+ * signal or from the Gst Bus.
+ */
+
+typedef enum {
+  FS_ERROR_CONSTRUCTION,
+  FS_ERROR_INVALID_ARGUMENTS,
+  FS_ERROR_NETWORK,
+  FS_ERROR_NOT_IMPLEMENTED
+} FsError;
+
+/**
+ * FS_ERROR:
+ *
+ * This quark is used to denote errors coming from Farsight objects
+ */
+
+#define FS_ERROR (fs_error_quark ())
+
+GQuark fs_error_quark (void);
+
+
 /* virtual class function wrappers */
 FsSession *fs_conference_new_session (FsConference *conference,
                                       FsMediaType media_type,
@@ -84,6 +116,9 @@ FsSession *fs_conference_new_session (FsConference *conference,
 FsParticipant *fs_conference_new_participant (FsConference *conference,
                                               gchar *cname);
 
+
 G_END_DECLS
 
 #endif /* __FS_CONFERENCE_H__ */
+
+

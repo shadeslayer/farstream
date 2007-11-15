@@ -37,8 +37,7 @@
 #include "fs-rawudp-transmitter.h"
 #include "fs-rawudp-stream-transmitter.h"
 
-#include <gst/farsight/fs-session.h>
-#include <gst/farsight/fs-stream.h>
+#include <gst/farsight/fs-conference-iface.h>
 
 #include <string.h>
 #include <sys/types.h>
@@ -172,8 +171,8 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->gst_src = gst_element_factory_make ("bin", NULL);
 
   if (!self->priv->gst_src) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not build the transmitter src bin");
     return;
   }
@@ -183,15 +182,15 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->udpsrc_funnel = gst_element_factory_make ("fsfunnel", NULL);
 
   if (!self->priv->udpsrc_funnel) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not make the fsfunnel element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->gst_src), self->priv->udpsrc_funnel)) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the fsfunnel element to the transmitter src bin");
   }
 
@@ -207,16 +206,16 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->udprtcpsrc_funnel = gst_element_factory_make ("fsfunnel", NULL);
 
   if (!self->priv->udprtcpsrc_funnel) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not make the fsfunnnel element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->gst_src),
       self->priv->udprtcpsrc_funnel)) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the rtcp fsfunnel element to the transmitter src bin");
   }
 
@@ -233,8 +232,8 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->gst_sink = gst_element_factory_make ("bin", NULL);
 
   if (!self->priv->gst_sink) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not build the transmitter sink bin");
     return;
   }
@@ -244,15 +243,15 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->udpsink_tee = gst_element_factory_make ("tee", NULL);
 
   if (!self->priv->udpsink_tee) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not make the tee element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->gst_sink), self->priv->udpsink_tee)) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the tee element to the transmitter sink bin");
   }
 
@@ -268,16 +267,16 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->udprtcpsink_tee = gst_element_factory_make ("tee", NULL);
 
   if (!self->priv->udprtcpsink_tee) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not make the fsfunnnel element");
     return;
   }
 
   if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
       self->priv->udprtcpsink_tee)) {
-    trans->construction_error = g_error_new (FS_SESSION_ERROR,
-      FS_SESSION_ERROR_CONSTRUCTION,
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
       "Could not add the rtcp tee element to the transmitter sink bin");
   }
 
@@ -418,7 +417,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
     hints.ai_flags = AI_NUMERICHOST;
     retval = getaddrinfo (ip, NULL, &hints, &result);
     if (retval != 0) {
-      *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_NETWORK,
+      *error = g_error_new (FS_ERROR, FS_ERROR_NETWORK,
         "Invalid IP address %s passed: %s", ip, gai_strerror (retval));
       return -1;
     }
@@ -432,7 +431,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
 
 
   if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0) {
-    *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_NETWORK,
+    *error = g_error_new (FS_ERROR, FS_ERROR_NETWORK,
       "Error creating socket: %s", g_strerror (errno));
     return -1;
   }
@@ -447,7 +446,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
       g_debug ("could not bind port %d", port);
       port += 2;
       if (port > 65535) {
-        *error = g_error_new (FS_STREAM_ERROR, FS_STREAM_ERROR_NETWORK,
+        *error = g_error_new (FS_ERROR, FS_ERROR_NETWORK,
           "Could not bind the socket to a port");
         close (sock);
         return -1;
@@ -473,7 +472,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
   elem = gst_element_factory_make (elementname, NULL);
   if (!elem) {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not create the %s element", elementname);
     return NULL;
   }
@@ -484,7 +483,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     NULL);
 
   if (!gst_bin_add (bin, elem)) {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the %s element to the gst %s bin", elementname,
       (direction == GST_PAD_SINK) ? "sink" : "src");
     gst_object_unref (elem);
@@ -497,7 +496,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     *requested_pad = gst_element_get_request_pad (teefunnel, "src%d");
 
   if (!*requested_pad) {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not get the %s request pad from the %s",
       (direction == GST_PAD_SINK) ? "sink" : "src",
       (direction == GST_PAD_SINK) ? "tee" : "funnel");
@@ -514,13 +513,13 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
     *queue = gst_element_factory_make ("queue", NULL);
     if (!*queue) {
-        g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not create the queue element");
         goto error;
     }
 
     if (!gst_bin_add (bin, *queue)) {
-      g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add the queue element to the gst %s bin",
         (direction == GST_PAD_SINK) ? "sink" : "src");
       gst_object_unref (*queue);
@@ -533,14 +532,14 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     ret = gst_pad_link (*requested_pad, queuesink);
 
     if (GST_PAD_LINK_FAILED(ret)) {
-      g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not link the new element %s (%d)", elementname, ret);
       goto error;
     }
 
 
     if (GST_PAD_LINK_FAILED(ret)) {
-      g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not link the new queue (%d)", ret);
       gst_object_unref (queuesink);
       goto error;
@@ -552,7 +551,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
 
     if (!gst_element_sync_state_with_parent (*queue)) {
-      g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not sync the state of the new queue with its parent");
       goto error;
     }
@@ -567,13 +566,13 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   gst_object_unref (ourpad);
 
   if (GST_PAD_LINK_FAILED(ret)) {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not link the new element %s (%d)", elementname, ret);
     goto error;
   }
 
   if (!gst_element_sync_state_with_parent (elem)) {
-    g_set_error (error, FS_SESSION_ERROR, FS_SESSION_ERROR_CONSTRUCTION,
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not sync the state of the new %s with its parent",
       elementname);
     goto error;
@@ -610,7 +609,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   else if (component_id == FS_COMPONENT_RTCP)
     udpport_e = g_list_first (trans->priv->rtcp_udpports);
   else {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "Invalid component %d", component_id);
     return NULL;
   }
@@ -765,7 +764,7 @@ fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
   GError **error)
 {
   if (sendto (udpport->fd, msg, len, 0, to, tolen) != len) {
-    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_NETWORK,
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
       "Could not send STUN request: %s", g_strerror (errno));
     return FALSE;
   }

@@ -74,35 +74,6 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
 
 
 /**
- * FsStreamError:
- * @FS_STREAM_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
- * @FS_STREAM_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function
- * @FS_STREAM_ERROR_NETWORK: A network related error
- * @FS_STREAM_ERROR_NOT_IMPLEMENTED: This functionality is not implemented
- * by this plugins
- *
- * This is the enum of error numbers that will come either on the "error" signal
- * or from the Gst Bus.
- */
-
-typedef enum {
-  FS_STREAM_ERROR_CONSTRUCTION,
-  FS_STREAM_ERROR_INVALID_ARGUMENTS,
-  FS_STREAM_ERROR_NETWORK,
-  FS_STREAM_ERROR_NOT_IMPLEMENTED
-} FsStreamError;
-
-/**
- * FS_STREAM_ERROR:
- *
- * This quark is used to denote errors coming from the #FsStream object
- */
-
-#define FS_STREAM_ERROR (fs_stream_error_quark ())
-
-GQuark fs_stream_error_quark (void);
-
-/**
  * FsStreamClass:
  * @parent_class: Our parent
  * @add_remote_candidate: Adds a remote candidate
