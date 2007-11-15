@@ -287,8 +287,11 @@ fs_transmitter_new (gchar *type, GError **error)
 
   g_return_val_if_fail (type != NULL, NULL);
 
-  self = FS_TRANSMITTER(fs_plugin_create_valist(type, "transmitter",
+  self = FS_TRANSMITTER(fs_plugin_create_valist(type, "transmitter", error,
       NULL, NULL));
+
+  if (!self)
+    return NULL;
 
   if (self->construction_error) {
     *error = self->construction_error;

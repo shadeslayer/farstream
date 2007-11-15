@@ -31,6 +31,8 @@
 
 #include "fs-plugin.h"
 
+#include <gst/farsight/fs-stream.h>
+
 #include <string.h>
 
 /**
@@ -296,27 +298,41 @@ fs_plugin_get_by_name (const gchar * name, const gchar * type_suffix)
 
 GObject *
 fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
-  const gchar *first_property_name, va_list var_args)
+  GError **error, const gchar *first_property_name, va_list var_args)
 {
   GObject *object;
   FsPlugin *plugin;
 
-  g_return_val_if_fail (name != NULL, NULL);
-  g_return_val_if_fail (type_suffix != NULL, NULL);
+  if (name == NULL) {
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      "You need to pass a name");
+    return NULL;
+  }
+  if (type_suffix == NULL) {
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_INVALID_ARGUMENTS,
+      "You need to pass a type suffix");
+    return NULL;
+  }
 
   plugin = fs_plugin_get_by_name (name, type_suffix);
 
   if (!plugin) {
     plugin = g_object_new (FS_TYPE_PLUGIN, NULL);
-    if (!plugin)
+    if (!plugin) {
+      g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_CONSTRUCTION,
+        "Could not create a fsplugin object");
       return NULL;
+    }
     plugin->name = g_strdup_printf ("%s-%s",name,type_suffix);
     g_type_module_set_name (G_TYPE_MODULE (plugin), plugin->name);
     plugins = g_list_append(plugins, plugin);
   }
 
-  if (!g_type_module_use (G_TYPE_MODULE (plugin)))
+  if (!g_type_module_use (G_TYPE_MODULE (plugin))) {
+    g_set_error (error, FS_STREAM_ERROR, FS_STREAM_ERROR_CONSTRUCTION,
+      "Could not load the %s-%s transmitter plugin", name, type_suffix);
     return NULL;
+  }
 
   object = g_object_new_valist (plugin->type, first_property_name, var_args);
 
