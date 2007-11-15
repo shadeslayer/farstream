@@ -393,13 +393,15 @@ struct _UdpPort {
   gchar *requested_ip;
   guint requested_port;
 
+  guint port;
+
   gint fd;
 
   guint component_id;
 };
 
 static gint
-_bind_port (const gchar *ip, guint port, GError **error)
+_bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
 {
   int sock;
   struct sockaddr_in address;
@@ -450,6 +452,8 @@ _bind_port (const gchar *ip, guint port, GError **error)
       }
     }
   } while (retval != 0);
+
+  *used_port = port;
 
   return sock;
 }
@@ -570,7 +574,8 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   /* Now lets bind both ports */
 
-  udpport->fd = _bind_port (requested_ip, requested_port, error);
+  udpport->fd = _bind_port (requested_ip, requested_port, &udpport->port,
+    error);
   if (udpport->fd < 0)
     goto error;
 
@@ -736,3 +741,8 @@ fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
 }
 
 
+gboolean
+fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport)
+{
+  return udpport->port;
+}
