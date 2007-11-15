@@ -19,13 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef __FARSIGHT_INTERFACES_H_ 
-#define __FARSIGHT_INTERFACES_H_ 
+#ifndef __FARSIGHT_INTERFACES_H__
+#define __FARSIGHT_INTERFACES_H__
 
 #include <glib.h>
 
-gchar * farsight_get_ip_for_interface(gchar *interface_name);
-GList * farsight_get_local_ips(gboolean include_loopback);
-GList * farsight_get_local_interfaces();
+gchar * farsight_get_ip_for_interface (gchar *interface_name);
+GList * farsight_get_local_ips (gboolean include_loopback);
+GList * farsight_get_local_interfaces (void);
 
 #endif

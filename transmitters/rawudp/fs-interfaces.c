@@ -23,7 +23,7 @@
 
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+ #include "config.h"
 #endif
 
 
@@ -37,8 +37,8 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #ifdef HAVE_GETIFADDRS
-#include <sys/socket.h>
-#include <ifaddrs.h>
+ #include <sys/socket.h>
+ #include <ifaddrs.h>
 #endif
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -52,11 +52,13 @@
  * Returns: a #GList of strings.
  */
 #ifdef HAVE_GETIFADDRS
-GList * farsight_get_local_interfaces() {
+GList *
+farsight_get_local_interfaces(void)
+{
   GList *interfaces = NULL;
   struct ifaddrs *ifa, *results;
 
-  if (getifaddrs(&results) < 0) {
+  if (getifaddrs (&results) < 0) {
     if (errno == ENOMEM)
       return NULL;
     else
@@ -73,22 +75,25 @@ GList * farsight_get_local_interfaces() {
       continue;
 
     g_debug("Found interface : %s", ifa->ifa_name);
-    interfaces = g_list_prepend(interfaces, g_strdup(ifa->ifa_name));
+    interfaces = g_list_prepend (interfaces, g_strdup(ifa->ifa_name));
   }
 
   return interfaces;
 }
 
-#else
-GList * farsight_get_local_interfaces() {
+#else /* ! HAVE_GETIFADDRS */
+
+GList *
+farsight_get_local_interfaces (void)
+{
   GList *interfaces = NULL;
   gint sockfd;
   gint size = 0;
   struct ifreq *ifr;
   struct ifconf ifc;
 
-  if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
-    g_warning("Cannot open socket to retreive interface list");
+  if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+    g_warning ("Cannot open socket to retreive interface list");
     return NULL;
   }
 
@@ -99,48 +104,54 @@ GList * farsight_get_local_interfaces() {
   do {
     size += sizeof(struct ifreq);
     /* realloc buffer size until no overflow occurs  */
-    if (NULL == (ifc.ifc_req = realloc(ifc.ifc_req, size))) {
+    if (NULL == (ifc.ifc_req = realloc (ifc.ifc_req, size))) {
       g_warning ("Out of memory while allocation interface configuration structure");
-      close(sockfd);
+      close (sockfd);
       return NULL;
     }
     ifc.ifc_len = size;
 
-    if (ioctl(sockfd, SIOCGIFCONF, &ifc)) {
-      perror("ioctl SIOCFIFCONF");
-      close(sockfd);
+    if (ioctl (sockfd, SIOCGIFCONF, &ifc)) {
+      perror ("ioctl SIOCFIFCONF");
+      close (sockfd);
       return NULL;
     }
-  } while  (size <= ifc.ifc_len);
+  } while (size <= ifc.ifc_len);
 
 
   /* Loop throught the interface list and get the IP address of each IF */
-  for (ifr = ifc.ifc_req;(gchar *) ifr < (gchar *) ifc.ifc_req + ifc.ifc_len; ++ifr) {
-    g_debug("Found interface : %s", ifr->ifr_name);
-    interfaces = g_list_prepend(interfaces, g_strdup(ifr->ifr_name));
+  for (ifr = ifc.ifc_req;
+       (gchar *) ifr < (gchar *) ifc.ifc_req + ifc.ifc_len;
+       ++ifr) {
+    g_debug ("Found interface : %s", ifr->ifr_name);
+    interfaces = g_list_prepend (interfaces, g_strdup(ifr->ifr_name));
   }
 
   close(sockfd);
 
   return interfaces;
 }
-#endif
+#endif /* HAVE_GETIFADDRS */
 
 
-static gboolean farsight_is_private_ip (const struct in_addr in)
+static gboolean
+farsight_is_private_ip (const struct in_addr in)
 {
-  if (in.s_addr >> 24 == 0x0A) /* 10.x.x.x/8 */
+  /* 10.x.x.x/8 */
+  if (in.s_addr >> 24 == 0x0A)
     return TRUE;
 
-  if (in.s_addr >> 22 == 0x2B0) /* 172.16.0.0 - 172.31.255.255  = 172.16.0.0/10 */
+  /* 172.16.0.0 - 172.31.255.255 = 172.16.0.0/10 */
+  if (in.s_addr >> 22 == 0x2B0)
     return TRUE;
 
-  if (in.s_addr >> 16 == 0xc0A8) /* 192.168.x.x/16 */
+  /* 192.168.x.x/16 */
+  if (in.s_addr >> 16 == 0xc0A8)
     return TRUE;
 
-  if (in.s_addr >> 16 == 0xA9FE) /* 169.254.x.x/16  (for APIPA) */
+  /* 169.254.x.x/16  (for APIPA) */
+  if (in.s_addr >> 16 == 0xA9FE)
     return TRUE;
-
 
   return FALSE;
 }
@@ -153,15 +164,18 @@ static gboolean farsight_is_private_ip (const struct in_addr in)
  *
  * Returns: A #GList of strings
  */
+
 #ifdef HAVE_GETIFADDRS
-GList * farsight_get_local_ips(gboolean include_loopback)
+
+GList *
+farsight_get_local_ips (gboolean include_loopback)
 {
   GList *ips = NULL;
   struct sockaddr_in *sa;
   struct ifaddrs *ifa, *results;
 
 
-  if (getifaddrs(&results) < 0) {
+  if (getifaddrs (&results) < 0) {
     if (errno == ENOMEM)
       return NULL;
     else
@@ -181,13 +195,14 @@ GList * farsight_get_local_ips(gboolean include_loopback)
 
     g_debug("Interface:  %s", ifa->ifa_name);
     g_debug("IP Address: %s", inet_ntoa(sa->sin_addr));
-    if ( !include_loopback && (ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK) {
+    if ( !include_loopback &&
+      (ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK) {
       g_debug("Ignoring loopback interface");
     } else {
       if (farsight_is_private_ip (sa->sin_addr)) {
-        ips = g_list_append(ips, g_strdup(inet_ntoa(sa->sin_addr)));
+        ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
       } else {
-        ips = g_list_prepend(ips, g_strdup(inet_ntoa(sa->sin_addr)));
+        ips = g_list_prepend (ips, g_strdup (inet_ntoa (sa->sin_addr)));
       }
     }
   }
@@ -195,9 +210,10 @@ GList * farsight_get_local_ips(gboolean include_loopback)
   return ips;
 }
 
-#else
+#else /* ! HAVE_GETIFADDRS */
 
-GList * farsight_get_local_ips(gboolean include_loopback)
+GList *
+farsight_get_local_ips (gboolean include_loopback)
 {
   GList *ips = NULL;
   gint sockfd;
@@ -206,7 +222,7 @@ GList * farsight_get_local_ips(gboolean include_loopback)
   struct ifconf ifc;
   struct sockaddr_in *sa;
 
-  if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+  if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
     g_warning("Cannot open socket to retreive interface list");
     return NULL;
   }
@@ -218,38 +234,42 @@ GList * farsight_get_local_ips(gboolean include_loopback)
   do {
     size += sizeof(struct ifreq);
     /* realloc buffer size until no overflow occurs  */
-    if (NULL == (ifc.ifc_req = realloc(ifc.ifc_req, size))) {
-      g_warning ("Out of memory while allocation interface configuration structure");
-      close(sockfd);
+    if (NULL == (ifc.ifc_req = realloc (ifc.ifc_req, size))) {
+      g_warning ("Out of memory while allocation interface configuration"
+        " structure");
+      close (sockfd);
       return NULL;
     }
     ifc.ifc_len = size;
 
-    if (ioctl(sockfd, SIOCGIFCONF, &ifc)) {
-      perror("ioctl SIOCFIFCONF");
-      close(sockfd);
+    if (ioctl (sockfd, SIOCGIFCONF, &ifc)) {
+      perror ("ioctl SIOCFIFCONF");
+      close (sockfd);
       return NULL;
     }
   } while  (size <= ifc.ifc_len);
 
 
   /* Loop throught the interface list and get the IP address of each IF */
-  for (ifr = ifc.ifc_req;(gchar *) ifr < (gchar *) ifc.ifc_req + ifc.ifc_len; ++ifr) {
+  for (ifr = ifc.ifc_req;
+       (gchar *) ifr < (gchar *) ifc.ifc_req + ifc.ifc_len;
+       ++ifr) {
 
-    if (ioctl(sockfd, SIOCGIFFLAGS, ifr)) {
-      g_warning("Unable to get IP information for interface %s. Skipping...", ifr->ifr_name);
+    if (ioctl (sockfd, SIOCGIFFLAGS, ifr)) {
+      g_warning ("Unable to get IP information for interface %s. Skipping...",
+        ifr->ifr_name);
       continue;  /* failed to get flags, skip it */
     }
     sa = (struct sockaddr_in *) &ifr->ifr_addr;
     g_debug("Interface:  %s", ifr->ifr_name);
     g_debug("IP Address: %s", inet_ntoa(sa->sin_addr));
-    if ( !include_loopback && (ifr->ifr_flags & IFF_LOOPBACK) == IFF_LOOPBACK) {
+    if (!include_loopback && (ifr->ifr_flags & IFF_LOOPBACK) == IFF_LOOPBACK){
       g_debug("Ignoring loopback interface");
     } else {
       if (farsight_is_private_ip (sa->sin_addr)) {
-        ips = g_list_append(ips, g_strdup(inet_ntoa(sa->sin_addr)));
+        ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
       } else {
-        ips = g_list_prepend(ips, g_strdup(inet_ntoa(sa->sin_addr)));
+        ips = g_list_prepend (ips, g_strdup (inet_ntoa (sa->sin_addr)));
       }
     }
   }
@@ -258,7 +278,8 @@ GList * farsight_get_local_ips(gboolean include_loopback)
 
   return ips;
 }
-#endif
+
+#endif /* HAVE_GETIFADDRS */
 
 
 /**
@@ -269,30 +290,33 @@ GList * farsight_get_local_ips(gboolean include_loopback)
  *
  * Returns:
  **/
-gchar * farsight_get_ip_for_interface(gchar *interface_name) {
+gchar *
+farsight_get_ip_for_interface (gchar *interface_name)
+{
   struct ifreq ifr;
   struct sockaddr_in *sa;
   gint sockfd;
 
 
   ifr.ifr_addr.sa_family = AF_INET;
-  memset(ifr.ifr_name, 0, sizeof(ifr.ifr_name));
-  strcpy(ifr.ifr_name, interface_name);
+  memset (ifr.ifr_name, 0, sizeof(ifr.ifr_name));
+  strcpy (ifr.ifr_name, interface_name);
 
-  if (0 > (sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+  if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
     g_warning("Cannot open socket to retreive interface list");
     return NULL;
   }
 
-  if (ioctl(sockfd, SIOCGIFADDR, &ifr) < 0) {
-    g_warning("Unable to get IP information for interface %s",interface_name );
-    close(sockfd);
+  if (ioctl (sockfd, SIOCGIFADDR, &ifr) < 0) {
+    g_warning ("Unable to get IP information for interface %s",
+      interface_name);
+    close (sockfd);
     return NULL;
   }
 
-  close(sockfd);
+  close (sockfd);
   sa = (struct sockaddr_in *) &ifr.ifr_addr;
-  g_debug("Address for %s: %s", interface_name, inet_ntoa(sa->sin_addr));
+  g_debug ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
   return inet_ntoa(sa->sin_addr);
 }
 
@@ -307,7 +331,8 @@ static gboolean started_wsa_engine = FALSE;
 #error Windows support is not yet implemented
 
 /**
- * private function that initializes the WinSock engine and returns a prebuilt socket
+ * private function that initializes the WinSock engine and
+ *  returns a prebuilt socket
  **/
 SOCKET farsight_get_WSA_socket() {
 
