@@ -266,6 +266,8 @@ echo
 
 fi dnl of EXT plugins
 
+AC_CHECK_FUNCS(getifaddrs)
+
 dnl *** finalize CFLAGS, LDFLAGS, LIBS
 
 dnl Overview:
