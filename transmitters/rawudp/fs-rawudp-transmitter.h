@@ -27,6 +27,10 @@
 
 #include <gst/farsight/fs-transmitter.h>
 
+#include <gst/gst.h>
+
+#include <arpa/inet.h>
+
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
@@ -81,24 +85,34 @@ struct _FsRawUdpTransmitter
 };
 
 /* Private declaration */
-typedef struct _UdpStream UdpStream;
+typedef struct _UdpPort UdpPort;
 
 GType fs_rawudp_transmitter_get_type (void);
 
 
 
-UdpStream *fs_rawudp_transmitter_get_udpstream (FsRawUdpTransmitter *trans,
-  const gchar *requested_ip, guint requested_port,
-  const gchar *requested_rtcp_ip, guint requested_rtcp_port,
+UdpPort *fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
+  guint component_id, const gchar *requested_ip, guint requested_port,
   GError **error);
 
-void fs_rawudp_transmitter_put_udpstream (FsRawUdpTransmitter *trans,
-  UdpStream *udpstream);
+void fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
+  UdpPort *udpport);
 
-void fs_rawudp_transmitter_udpstream_add_dest (UdpStream *udpstream,
-  const gchar *ip, gint port, gboolean is_rtcp);
-void fs_rawudp_transmitter_udpstream_remove_dest (UdpStream *udpstream,
-  const gchar *ip, gint port, gboolean is_rtcp);
+void fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
+  const gchar *ip, gint port);
+void fs_rawudp_transmitter_udpport_remove_dest (UdpPort *udpport,
+  const gchar *ip, gint port);
+
+gboolean fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
+  gchar *msg, size_t len, const struct sockaddr *to, socklen_t tolen,
+  GError **error);
+
+gulong fs_rawudp_transmitter_udpport_connect_recv (UdpPort *udpport,
+  GCallback callback, gpointer user_data);
+void fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport,
+  gulong id);
+
+gboolean fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad);
 
 
 
