@@ -67,6 +67,13 @@ typedef enum
   FS_NETWORK_PROTOCOL_TCP
 } FsNetworkProtocol;
 
+/*
+ * These are defined in the ICE-19 draft
+ */
+
+#define FS_COMPONENT_RTP        (1)
+#define FS_COMPONENT_RTCP       (2)
+
 typedef struct _FsCandidate FsCandidate;
 
 /**
