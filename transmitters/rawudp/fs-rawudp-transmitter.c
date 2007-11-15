@@ -38,6 +38,7 @@
 #include "fs-rawudp-stream-transmitter.h"
 
 #include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-plugin.h>
 
 #include <string.h>
 #include <sys/types.h>
@@ -106,6 +107,13 @@ static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
 
 static GObjectClass *parent_class = NULL;
 //static guint signals[LAST_SIGNAL] = { 0 };
+
+
+/*
+ * Lets register the plugin
+ */
+
+FS_INIT_PLUGIN(FS_TYPE_RAWUDP_TRANSMITTER, NULL)
 
 GType
 fs_rawudp_transmitter_get_type (void)
@@ -821,3 +829,4 @@ fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport)
 {
   return udpport->port;
 }
+
