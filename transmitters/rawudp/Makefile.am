@@ -7,6 +7,7 @@ plugin_LTLIBRARIES = librawudp-transmitter.la
 librawudp_transmitter_la_SOURCES = \
 	fs-rawudp-transmitter.c \
 	fs-rawudp-stream-transmitter.c \
+	fs-interfaces.c \
 	stun.c
 
 # flags used to compile this plugin
@@ -20,4 +21,5 @@ librawudp_transmitter_la_LIBADD = \
 noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
+	fs-interfaces.h \
 	stun.h
