@@ -100,12 +100,11 @@ GObject *fs_plugin_create_valist (const gchar *name,
  * in any farsight plugin.
  */
 
-#define FS_INIT_PLUGIN(type,unload)                             \
-    G_MODULE_EXPORT GType fs_init_plugin(FsPlugin *plugin) {    \
-      plugin->name = name;                                      \
-      plugin->type = type;                                      \
-      plugin->unload = unload;                                  \
-      return type;                                              \
+#define FS_INIT_PLUGIN(intype, inunload)                        \
+    G_MODULE_EXPORT GType fs_init_plugin (FsPlugin *plugin) {   \
+      plugin->type = (intype);                                  \
+      plugin->unload = (inunload);                              \
+      return intype;                                            \
     }
 
 
