@@ -65,7 +65,7 @@ typedef struct _FsRawUdpStreamTransmitterPrivate FsRawUdpStreamTransmitterPrivat
 
 struct _FsRawUdpStreamTransmitterClass
 {
-  FsStreamTransmitter parent_class;
+  FsStreamTransmitterClass parent_class;
 
   /*virtual functions */
   /*< private >*/
@@ -78,7 +78,7 @@ struct _FsRawUdpStreamTransmitterClass
  */
 struct _FsRawUdpStreamTransmitter
 {
-  FsStreamTransmitterClass parent;
+  FsStreamTransmitter parent;
 
   /*< private >*/
   FsRawUdpStreamTransmitterPrivate *priv;
