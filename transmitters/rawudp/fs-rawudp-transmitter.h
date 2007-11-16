@@ -65,9 +65,6 @@ typedef struct _FsRawUdpTransmitterPrivate FsRawUdpTransmitterPrivate;
 struct _FsRawUdpTransmitterClass
 {
   FsTransmitterClass parent_class;
-
-  /*< private >*/
-  gpointer _padding[8];
 };
 
 /**
@@ -81,7 +78,6 @@ struct _FsRawUdpTransmitter
 
   /*< private >*/
   FsRawUdpTransmitterPrivate *priv;
-  gpointer _padding[8];
 };
 
 /* Private declaration */

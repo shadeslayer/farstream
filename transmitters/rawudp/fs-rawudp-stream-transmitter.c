@@ -147,27 +147,31 @@ static gboolean fs_rawudp_stream_transmitter_finish_candidate_generation (
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
 
+static GType type = 0;
+
 GType
 fs_rawudp_stream_transmitter_get_type (void)
 {
-  static GType type = 0;
+  return type;
+}
 
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsRawUdpStreamTransmitterClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_rawudp_stream_transmitter_class_init,
-      NULL,
-      NULL,
-      sizeof (FsRawUdpStreamTransmitter),
-      0,
-      (GInstanceInitFunc) fs_rawudp_stream_transmitter_init
-    };
+GType
+fs_rawudp_stream_transmitter_register_type (FsPlugin *module)
+{
+  static const GTypeInfo info = {
+    sizeof (FsRawUdpStreamTransmitterClass),
+    NULL,
+    NULL,
+    (GClassInitFunc) fs_rawudp_stream_transmitter_class_init,
+    NULL,
+    NULL,
+    sizeof (FsRawUdpStreamTransmitter),
+    0,
+    (GInstanceInitFunc) fs_rawudp_stream_transmitter_init
+  };
 
-    type = g_type_register_static (G_TYPE_OBJECT,
-        "FsRawUdpStreamTransmitter", &info, G_TYPE_FLAG_ABSTRACT);
-  }
+  type = g_type_module_register_type (G_TYPE_MODULE (module),
+    FS_TYPE_STREAM_TRANSMITTER, "FsRawUdpStreamTransmitter", &info, 0);
 
   return type;
 }

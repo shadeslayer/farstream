@@ -217,8 +217,8 @@ static gboolean fs_plugin_load (GTypeModule *module)
     return FALSE;
   }
 
-
-  if (!fs_init_plugin (plugin)) {
+  fs_init_plugin (plugin);
+  if (!plugin->type) {
     /* TODO error handling (init error or no info defined) */
     g_warning ("init error or no info defined");
     goto err_close_module;

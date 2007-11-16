@@ -29,6 +29,7 @@
 #include <glib-object.h>
 
 #include <gst/farsight/fs-stream-transmitter.h>
+#include <gst/farsight/fs-plugin.h>
 #include "fs-rawudp-transmitter.h"
 
 G_BEGIN_DECLS
@@ -68,7 +69,6 @@ struct _FsRawUdpStreamTransmitterClass
 
   /*virtual functions */
   /*< private >*/
-  gpointer _padding[8];
 };
 
 /**
@@ -82,8 +82,9 @@ struct _FsRawUdpStreamTransmitter
 
   /*< private >*/
   FsRawUdpStreamTransmitterPrivate *priv;
-  gpointer _padding[8];
 };
+
+GType fs_rawudp_stream_transmitter_register_type (FsPlugin *module);
 
 GType fs_rawudp_stream_transmitter_get_type (void);
 

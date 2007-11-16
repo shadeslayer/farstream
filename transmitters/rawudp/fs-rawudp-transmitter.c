@@ -113,32 +113,40 @@ static GObjectClass *parent_class = NULL;
  * Lets register the plugin
  */
 
-FS_INIT_PLUGIN(FS_TYPE_RAWUDP_TRANSMITTER, NULL)
+static GType type = 0;
 
 GType
 fs_rawudp_transmitter_get_type (void)
 {
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsRawUdpTransmitterClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_rawudp_transmitter_class_init,
-      NULL,
-      NULL,
-      sizeof (FsRawUdpTransmitter),
-      0,
-      (GInstanceInitFunc) fs_rawudp_transmitter_init
-    };
-
-    type = g_type_register_static (FS_TYPE_TRANSMITTER,
-        "FsRawUdpTransmitter", &info, 0);
-  }
-
+  g_assert (type);
   return type;
 }
+
+static GType
+fs_rawudp_transmitter_register_type (FsPlugin *module)
+{
+  static const GTypeInfo info = {
+    sizeof (FsRawUdpTransmitterClass),
+    NULL,
+    NULL,
+    (GClassInitFunc) fs_rawudp_transmitter_class_init,
+    NULL,
+    NULL,
+    sizeof (FsRawUdpTransmitter),
+    0,
+    (GInstanceInitFunc) fs_rawudp_transmitter_init
+  };
+
+  fs_rawudp_stream_transmitter_register_type (module);
+
+  type = g_type_module_register_type (G_TYPE_MODULE (module),
+    FS_TYPE_TRANSMITTER, "FsRawUdpTransmitter", &info, 0);
+  
+  return type;
+}
+
+FS_INIT_PLUGIN (fs_rawudp_transmitter_register_type, NULL)
+
 
 static void
 fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
