@@ -90,6 +90,9 @@ struct _FsRawUdpStreamTransmitterPrivate
   FsCandidate *local_stun_rtp_candidate;
   FsCandidate *local_stun_rtcp_candidate;
 
+  FsCandidate *local_active_rtp_candidate;
+  FsCandidate *local_active_rtcp_candidate;
+
   UdpPort *rtp_udpport;
   UdpPort *rtcp_udpport;
 
@@ -142,6 +145,8 @@ static FsCandidate * fs_rawudp_stream_transmitter_build_forced_candidate (
     guint component_id);
 static gboolean fs_rawudp_stream_transmitter_finish_candidate_generation (
     gpointer user_data);
+static void fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
+    FsRawUdpStreamTransmitter *self, guint component_id);
 
 
 static GObjectClass *parent_class = NULL;
@@ -327,6 +332,26 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
   if (self->priv->local_forced_rtcp_candidate) {
     fs_candidate_destroy (self->priv->local_forced_rtcp_candidate);
     self->priv->local_forced_rtcp_candidate = NULL;
+  }
+
+  if (self->priv->local_stun_rtp_candidate) {
+    fs_candidate_destroy (self->priv->local_stun_rtp_candidate);
+    self->priv->local_stun_rtp_candidate = NULL;
+  }
+
+  if (self->priv->local_stun_rtcp_candidate) {
+    fs_candidate_destroy (self->priv->local_stun_rtcp_candidate);
+    self->priv->local_stun_rtcp_candidate = NULL;
+  }
+
+  if (self->priv->local_active_rtp_candidate) {
+    fs_candidate_destroy (self->priv->local_active_rtp_candidate);
+    self->priv->local_active_rtp_candidate = NULL;
+  }
+
+  if (self->priv->local_active_rtcp_candidate) {
+    fs_candidate_destroy (self->priv->local_active_rtcp_candidate);
+    self->priv->local_active_rtcp_candidate = NULL;
   }
 
   if (self->priv->sources_mutex) {
@@ -603,6 +628,9 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
       return FALSE;
   }
 
+  fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
+    candidate->component_id);
+
   return TRUE;
 }
 
@@ -643,10 +671,15 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
 {
   struct CandidateTransit *data = user_data;
 
-  if (data->component_id == FS_COMPONENT_RTP)
+  if (data->component_id == FS_COMPONENT_RTP) {
     data->self->priv->local_stun_rtp_candidate = data->candidate;
-  else if (data->component_id == FS_COMPONENT_RTCP)
+    data->self->priv->local_active_rtp_candidate =
+      fs_candidate_copy (data->candidate);
+  } else if (data->component_id == FS_COMPONENT_RTCP) {
     data->self->priv->local_stun_rtcp_candidate = data->candidate;
+    data->self->priv->local_active_rtcp_candidate =
+      fs_candidate_copy (data->candidate);
+  }
 
   g_signal_emit_by_name (data->self, "new-local-candidate", data->candidate);
 
@@ -667,6 +700,9 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
       g_mutex_unlock (data->self->priv->sources_mutex);
     }
   }
+
+  fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (data->self,
+    data->component_id);
 
   g_free (data);
 
@@ -940,13 +976,20 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
 
     g_signal_emit_by_name (self, "new-local-candidate", candidate);
 
+    if (component_id == FS_COMPONENT_RTP)
+      self->priv->local_active_rtp_candidate = fs_candidate_copy (candidate);
+    else if (component_id == FS_COMPONENT_RTCP)
+      self->priv->local_active_rtcp_candidate = fs_candidate_copy (candidate);
+
     fs_candidate_destroy (candidate);
   }
-
 
   /* free list of ips */
   g_list_foreach (ips, (GFunc) g_free, NULL);
   g_list_free (ips);
+
+  fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
+    component_id);
 }
 
 /*
@@ -962,22 +1005,32 @@ fs_rawudp_stream_transmitter_finish_candidate_generation (gpointer user_data)
   /* If we have a STUN'd rtp candidate, dont send the locally generated
    * ones */
   if (!self->priv->local_stun_rtp_candidate) {
-    if (self->priv->local_forced_rtp_candidate)
+    if (self->priv->local_forced_rtp_candidate) {
+      self->priv->local_active_rtp_candidate = fs_candidate_copy (
+          self->priv->local_forced_rtp_candidate);
       g_signal_emit_by_name (self, "new-local-candidate",
         self->priv->local_forced_rtp_candidate);
-    else
+      fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
+        FS_COMPONENT_RTP);
+    } else {
       fs_rawudp_stream_transmitter_emit_local_candidates (self,
         FS_COMPONENT_RTP);
+    }
   }
 
   /* Lets do the same for rtcp */
   if (!self->priv->local_stun_rtcp_candidate) {
-    if (self->priv->local_forced_rtcp_candidate)
+    if (self->priv->local_forced_rtcp_candidate) {
+      self->priv->local_active_rtcp_candidate = fs_candidate_copy (
+          self->priv->local_forced_rtcp_candidate);
       g_signal_emit_by_name (self, "new-local-candidate",
         self->priv->local_forced_rtcp_candidate);
-    else
+      fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
+        FS_COMPONENT_RTCP);
+    } else {
       fs_rawudp_stream_transmitter_emit_local_candidates (self,
         FS_COMPONENT_RTCP);
+    }
   }
 
   g_signal_emit_by_name (self, "local-candidates-prepared");
@@ -996,4 +1049,28 @@ fs_rawudp_stream_transmitter_finish_candidate_generation (gpointer user_data)
   }
 
   return FALSE;
+}
+
+static void
+fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
+    FsRawUdpStreamTransmitter *self, guint component_id)
+{
+  switch (component_id) {
+    case FS_COMPONENT_RTP:
+      if (self->priv->local_active_rtp_candidate &&
+        self->priv->remote_rtcp_candidate) {
+        g_signal_emit_by_name (self, "new-active-candidate-pair",
+          self->priv->local_active_rtp_candidate,
+          self->priv->remote_rtp_candidate);
+      }
+      break;
+    case FS_COMPONENT_RTCP:
+      if (self->priv->local_active_rtcp_candidate &&
+        self->priv->remote_rtcp_candidate) {
+        g_signal_emit_by_name (self, "new-active-candidate-pair",
+          self->priv->local_active_rtcp_candidate,
+          self->priv->remote_rtcp_candidate);
+      }
+      break;
+  }
 }
