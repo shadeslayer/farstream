@@ -130,7 +130,7 @@ fs_funnel_request_new_pad (GstElement * element, GstPadTemplate * templ,
 
   //  gst_pad_set_setcaps_function ()
 
-  gst_pad_set_chain_function (sinkpad, fs_funnel_chain);
+  gst_pad_set_chain_function (sinkpad, GST_DEBUG_FUNCPTR (fs_funnel_chain));
 
   gst_pad_set_active (sinkpad, TRUE);
 
@@ -159,7 +159,7 @@ fs_funnel_chain (GstPad * pad, GstBuffer * buffer)
 
   GST_DEBUG_OBJECT (funnel, "received buffer %p", buffer);
 
-  res = gst_pad_chain (funnel->srcpad, buffer);
+  res = gst_pad_push (funnel->srcpad, buffer);
 
   GST_DEBUG_OBJECT (funnel, "handled buffer %s", gst_flow_get_name (res));
 
