@@ -485,7 +485,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 {
   GstElement *elem;
   GstPadLinkReturn ret;
-  GstPad *ourpad = NULL;
+  GstPad *elempad = NULL;
 
   g_assert (direction == GST_PAD_SINK || direction == GST_PAD_SRC);
 
@@ -510,25 +510,25 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   }
 
   if (direction == GST_PAD_SINK)
-    *requested_pad = gst_element_get_request_pad (teefunnel, "sink%d");
-  else
     *requested_pad = gst_element_get_request_pad (teefunnel, "src%d");
+  else
+    *requested_pad = gst_element_get_request_pad (teefunnel, "sink%d");
 
   if (!*requested_pad) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not get the %s request pad from the %s",
-      (direction == GST_PAD_SINK) ? "sink" : "src",
+      (direction == GST_PAD_SINK) ? "src" : "sink",
       (direction == GST_PAD_SINK) ? "tee" : "funnel");
     goto error;
   }
 
   if (direction == GST_PAD_SINK)
-    ourpad = gst_element_get_static_pad (elem, "src");
+    elempad = gst_element_get_static_pad (elem, "sink");
   else
-    ourpad = gst_element_get_static_pad (elem, "sink");
+    elempad = gst_element_get_static_pad (elem, "src");
 
   if (queue) {
-    GstPad *queuesink;
+    GstPad *queuesrc;
 
     *queue = gst_element_factory_make ("queue", NULL);
     if (!*queue) {
@@ -546,27 +546,18 @@ _create_sinksource (gchar *elementname, GstBin *bin,
       goto error;
     }
 
-    queuesink = gst_element_get_static_pad (*queue, "sink");
-
-    ret = gst_pad_link (*requested_pad, queuesink);
-
-    if (GST_PAD_LINK_FAILED(ret)) {
-      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the new element %s (%d)", elementname, ret);
-      goto error;
-    }
-
+    queuesrc = gst_element_get_static_pad (*queue, "src");
+    ret = gst_pad_link (queuesrc, elempad);
+    gst_object_unref (queuesrc);
 
     if (GST_PAD_LINK_FAILED(ret)) {
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the new queue (%d)", ret);
-      gst_object_unref (queuesink);
+        "Could not link the new queue (%d) to the new %s", ret, elementname);
       goto error;
     }
 
-    gst_object_unref (queuesink);
-    gst_object_unref (ourpad);
-    ourpad = gst_element_get_static_pad (*queue, "src");
+    gst_object_unref (elempad);
+    elempad = gst_element_get_static_pad (*queue, "sink");
 
 
     if (!gst_element_sync_state_with_parent (*queue)) {
@@ -576,13 +567,12 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     }
   }
 
-
   if (direction == GST_PAD_SINK)
-    ret = gst_pad_link (*requested_pad, ourpad);
+    ret = gst_pad_link (*requested_pad, elempad);
   else
-    ret = gst_pad_link (ourpad, *requested_pad);
+    ret = gst_pad_link (elempad, *requested_pad);
 
-  gst_object_unref (ourpad);
+  gst_object_unref (elempad);
 
   if (GST_PAD_LINK_FAILED(ret)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -604,10 +594,13 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     gst_element_set_state (*queue, GST_STATE_NULL);
     gst_bin_remove (bin, *queue);
   }
+
   gst_element_set_state (elem, GST_STATE_NULL);
   gst_bin_remove (bin, elem);
-  if (ourpad)
-    gst_object_unref (ourpad);
+
+  if (elempad)
+    gst_object_unref (elempad);
+
   return NULL;
 }
 
