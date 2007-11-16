@@ -30,9 +30,12 @@ docs/libs/html
 docs/libs/tmpl
 docs/libs/xml
 
+tests/check/test-registry.xml
 tests/check/base/.dirstamp
 tests/check/base/fscodec
-tests/check/test-registry.xml
+tests/check/base/fstransmitter
+tests/check/transmitter/.dirstamp
+tests/check/transmitter/rawudp
 
 aclocal.m4
 autom4te.cache
