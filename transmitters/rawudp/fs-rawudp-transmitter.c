@@ -437,7 +437,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
     hints.ai_flags = AI_NUMERICHOST;
     retval = getaddrinfo (ip, NULL, &hints, &result);
     if (retval != 0) {
-      *error = g_error_new (FS_ERROR, FS_ERROR_NETWORK,
+      g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
         "Invalid IP address %s passed: %s", ip, gai_strerror (retval));
       return -1;
     }
@@ -449,9 +449,8 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
   address.sin_family = AF_INET;
   address.sin_port = htons (port);
 
-
   if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0) {
-    *error = g_error_new (FS_ERROR, FS_ERROR_NETWORK,
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
       "Error creating socket: %s", g_strerror (errno));
     return -1;
   }
@@ -466,7 +465,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
       g_debug ("could not bind port %d", port);
       port += 2;
       if (port > 65535) {
-        *error = g_error_new (FS_ERROR, FS_ERROR_NETWORK,
+        g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
           "Could not bind the socket to a port");
         close (sock);
         return -1;
