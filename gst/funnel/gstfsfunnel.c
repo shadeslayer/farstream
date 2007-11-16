@@ -132,6 +132,8 @@ fs_funnel_request_new_pad (GstElement * element, GstPadTemplate * templ,
 
   gst_pad_set_chain_function (sinkpad, fs_funnel_chain);
 
+  gst_pad_set_active (sinkpad, TRUE);
+
   gst_element_add_pad (element, sinkpad);
 
   return sinkpad;
