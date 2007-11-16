@@ -28,5 +28,8 @@
 
 GstElement * setup_pipeline (FsTransmitter *trans, GstElement **fakesrc);
 
+void _stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
+  gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data);
+
 
 #endif /* __GENERIC_H__ */

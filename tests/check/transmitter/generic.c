@@ -38,6 +38,14 @@ _transmitter_error (FsTransmitter *transmitter, gint errorno, gchar *error_msg,
     error_msg, debug_msg);
 }
 
+void
+_stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
+  gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data)
+{
+  fail ("StreamTransmitter(%x) error(%d) msg:%s debug:%s", streamtransmitter,
+    errorno, error_msg, debug_msg);
+}
+
 GstElement *
 setup_pipeline (FsTransmitter *trans, GstElement **fakesrc)
 {
