@@ -37,7 +37,7 @@ check_PROGRAMS = \
 	transmitter/rawudp
 
 
-AM_CFLAGS = $(GST_CFLAGS) $(GST_CHECK_CFLAGS)
+AM_CFLAGS =  $(FS2_CFLAGS) $(GST_CFLAGS) $(GST_CHECK_CFLAGS)
 LDADD = $(GST_LIBS) $(GST_CHECK_LIBS)
 
 base_fscodec_LDADD = $(LDADD) \
