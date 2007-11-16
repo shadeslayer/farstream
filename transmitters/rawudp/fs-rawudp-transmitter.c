@@ -184,7 +184,7 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
   /* First we need the src elemnet */
 
-  self->priv->gst_src = gst_element_factory_make ("bin", NULL);
+  self->priv->gst_src = gst_bin_new (NULL);
 
   if (!self->priv->gst_src) {
     trans->construction_error = g_error_new (FS_ERROR,
@@ -192,6 +192,8 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
       "Could not build the transmitter src bin");
     return;
   }
+
+  gst_object_ref (self->priv->gst_src);
 
   /* Lets create the RTP source funnel */
 
@@ -245,7 +247,7 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
   /* Second, we do the sink element */
 
-  self->priv->gst_sink = gst_element_factory_make ("bin", NULL);
+  self->priv->gst_sink = gst_bin_new (NULL);
 
   if (!self->priv->gst_sink) {
     trans->construction_error = g_error_new (FS_ERROR,
@@ -253,6 +255,8 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
       "Could not build the transmitter sink bin");
     return;
   }
+
+  gst_object_ref (self->priv->gst_sink);
 
   /* Lets create the RTP source tee */
 
