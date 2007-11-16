@@ -204,7 +204,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
-    PROP_STUN_IP,
+    PROP_STUN_PORT,
     g_param_spec_uint ("stun-port",
       "The port of the STUN server",
       "The IPv4 UDP port of the STUN server as a ",
@@ -417,6 +417,7 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
       self->priv->prefered_local_candidates = g_value_dup_boxed (value);
       break;
     case PROP_STUN_IP:
+      g_free (self->priv->stun_ip);
       self->priv->stun_ip = g_value_dup_string (value);
       break;
     case PROP_STUN_PORT:
@@ -487,14 +488,11 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   if (!self->priv->rtp_udpport)
     return FALSE;
 
-
   self->priv->rtcp_udpport =
     fs_rawudp_transmitter_get_udpport (self->priv->transmitter,
       FS_COMPONENT_RTCP, rtcp_ip, rtcp_port, error);
   if (!self->priv->rtcp_udpport)
     return FALSE;
-
-
 
   if (ip) {
     self->priv->local_forced_rtp_candidate =
@@ -611,15 +609,18 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
 
 FsRawUdpStreamTransmitter *
 fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
-  guint n_parameters, GParameter *parameters,
-  GError **error)
+  guint n_parameters, GParameter *parameters, GError **error)
 {
   FsRawUdpStreamTransmitter *streamtransmitter = NULL;
 
-  error = NULL;
-
   streamtransmitter = g_object_newv (FS_TYPE_RAWUDP_STREAM_TRANSMITTER,
     n_parameters, parameters);
+
+  if (!streamtransmitter) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not build the stream transmitter");
+    return NULL;
+  }
 
   streamtransmitter->priv->transmitter = transmitter;
 
