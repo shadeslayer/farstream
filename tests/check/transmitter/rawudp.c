@@ -34,6 +34,7 @@ GST_START_TEST (test_rawudptransmitter_new)
   GError *error = NULL;
   FsTransmitter *trans;
   GstElement *pipeline;
+  GstElement *fakesrc;
   GstElement *trans_sink, *trans_src;
 
   trans = fs_transmitter_new ("rawudp", &error);
@@ -44,9 +45,11 @@ GST_START_TEST (test_rawudptransmitter_new)
 
   fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
-  pipeline = setup_pipeline (trans);
+  pipeline = setup_pipeline (trans, &fakesrc);
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
+
+  gst_object_unref (fakesrc);
 
   g_object_unref (trans);
 

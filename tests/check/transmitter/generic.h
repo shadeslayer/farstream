@@ -26,7 +26,7 @@
 #ifndef __GENERIC_H__
 #define  __GENERIC_H__
 
-GstElement * setup_pipeline (FsTransmitter *trans);
+GstElement * setup_pipeline (FsTransmitter *trans, GstElement **fakesrc);
 
 
 #endif /* __GENERIC_H__ */

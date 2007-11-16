@@ -39,10 +39,9 @@ _transmitter_error (FsTransmitter *transmitter, gint errorno, gchar *error_msg,
 }
 
 GstElement *
-setup_pipeline (FsTransmitter *trans)
+setup_pipeline (FsTransmitter *trans, GstElement **fakesrc)
 {
   GstElement *pipeline;
-  GstElement *fakesrc;
   GstElement *fakesink;
   GstElement *trans_sink, *trans_src;
 
@@ -50,7 +49,7 @@ setup_pipeline (FsTransmitter *trans)
       G_CALLBACK (_transmitter_error), NULL), "Could not connect signal");
 
   pipeline = gst_pipeline_new ("pipeline");
-  fakesrc = gst_element_factory_make ("fakesrc", "fakesrc");
+  *fakesrc = gst_element_factory_make ("fakesrc", "fakesrc");
   fakesink = gst_element_factory_make ("fakesink", "fakesink");
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
@@ -58,17 +57,14 @@ setup_pipeline (FsTransmitter *trans)
   fail_if (trans_sink == NULL, "No transmitter sink");
   fail_if (trans_src == NULL, "No transmitter src");
 
-  gst_bin_add_many (GST_BIN (pipeline), fakesrc, fakesink,
-    trans_sink, trans_src, NULL);
-
-  fail_unless (gst_element_link (fakesrc, trans_sink),
-    "Coult not link fakesrc and transmitter sink");
+  gst_bin_add_many (GST_BIN (pipeline), fakesink, trans_sink, trans_src, NULL);
 
   fail_unless (gst_element_link (trans_src, fakesink),
     "Coult not link transmitter src and fakesink");
 
   g_object_unref (trans_src);
   g_object_unref (trans_sink);
+
 
   return pipeline;
 }
