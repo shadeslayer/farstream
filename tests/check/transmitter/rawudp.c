@@ -65,6 +65,8 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
 {
   gboolean has_stun = GPOINTER_TO_INT (user_data);
+  GError *error;
+  gboolean ret;
 
   fail_if (candidate == NULL, "Passed NULL candidate");
   fail_unless (candidate->ip != NULL, "Null IP in candidate");
@@ -91,6 +93,35 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
       "Has stun, but candidate is not host");
 
   candidates[candidate->component_id-1] = 1;
+
+  ret = fs_stream_transmitter_add_remote_candidate (st, candidate, &error);
+
+  if (error)
+    fail ("Error while adding candidate: %s", error->message);
+
+  fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
+
+}
+
+static void
+_local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
+{
+  fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
+  fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
+
+  fs_stream_transmitter_remote_candidates_added (st);
+}
+
+static void
+_new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
+  FsCandidate *remote, gpointer user_data)
+{
+  fail_if (local == NULL, "Local candidate NULL");
+  fail_if (remote == NULL, "Remote candidate NULL");
+
+  fail_unless (local->component_id == remote->component_id,
+    "Local and remote candidates dont have the same component id");
+
 }
 
 GST_START_TEST (test_rawudptransmitter_run_nostun)
@@ -121,8 +152,6 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
   fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
 
-  g_debug ("PRE-ALLO");
-
   /*
   params[0].name = "stun-ip";
   g_value_set_static_string (params[0].value, "192.245.12.229");
@@ -132,22 +161,24 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
   st = fs_transmitter_new_stream_transmitter (trans, NULL, N_PARAMS, params,
     &error);
 
-  g_debug ("ALLO");
-
   if (error) {
     fail("Error creating stream transmitter: %s", error->message);
   }
 
   fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
-  g_debug ("ALLO2");
-
-  g_signal_connect (st, "new-local-candidate",
-    G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (0));
-  g_debug ("ALLO2.5");
-  g_signal_connect (st, "error", G_CALLBACK (_stream_transmitter_error), NULL);
-
-  g_debug ("ALLO3");
+  fail_unless (g_signal_connect (st, "new-local-candidate",
+      G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (0)),
+    "Coult not connect new-local-candidate signal");
+  fail_unless (g_signal_connect (st, "local-candidates-prepared",
+      G_CALLBACK (_local_candidates_prepared), NULL),
+    "Coult not connect local-candidates-prepared signal");
+  fail_unless (g_signal_connect (st, "new-active-candidate-pair",
+      G_CALLBACK (_new_active_candidate_pair), NULL),
+    "Coult not connect new-active-candidate-pair signal");
+  fail_unless (g_signal_connect (st, "error",
+      G_CALLBACK (_stream_transmitter_error), NULL),
+    "Could not connect error signal");
 
   g_object_unref (st);
 
