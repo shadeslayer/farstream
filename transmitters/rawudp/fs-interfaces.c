@@ -26,6 +26,12 @@
  #include "config.h"
 #endif
 
+#if 0
+#define DEBUG(args...) g_debug (args)
+#else
+#define DEBUG(args...) while(0) {}
+#endif
+
 
 #ifdef G_OS_UNIX
 
@@ -74,7 +80,7 @@ farsight_get_local_interfaces(void)
     if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
       continue;
 
-    g_debug("Found interface : %s", ifa->ifa_name);
+    DEBUG("Found interface : %s", ifa->ifa_name);
     interfaces = g_list_prepend (interfaces, g_strdup(ifa->ifa_name));
   }
 
@@ -123,7 +129,7 @@ farsight_get_local_interfaces (void)
   for (ifr = ifc.ifc_req;
        (gchar *) ifr < (gchar *) ifc.ifc_req + ifc.ifc_len;
        ++ifr) {
-    g_debug ("Found interface : %s", ifr->ifr_name);
+    DEBUG ("Found interface : %s", ifr->ifr_name);
     interfaces = g_list_prepend (interfaces, g_strdup(ifr->ifr_name));
   }
 
@@ -193,11 +199,11 @@ farsight_get_local_ips (gboolean include_loopback)
 
     sa = (struct sockaddr_in *) ifa->ifa_addr;
 
-    g_debug("Interface:  %s", ifa->ifa_name);
-    g_debug("IP Address: %s", inet_ntoa(sa->sin_addr));
+    DEBUG("Interface:  %s", ifa->ifa_name);
+    DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
     if ( !include_loopback &&
       (ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK) {
-      g_debug("Ignoring loopback interface");
+      DEBUG("Ignoring loopback interface");
     } else {
       if (farsight_is_private_ip (sa->sin_addr)) {
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
@@ -261,10 +267,10 @@ farsight_get_local_ips (gboolean include_loopback)
       continue;  /* failed to get flags, skip it */
     }
     sa = (struct sockaddr_in *) &ifr->ifr_addr;
-    g_debug("Interface:  %s", ifr->ifr_name);
-    g_debug("IP Address: %s", inet_ntoa(sa->sin_addr));
+    DEBUG("Interface:  %s", ifr->ifr_name);
+    DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
     if (!include_loopback && (ifr->ifr_flags & IFF_LOOPBACK) == IFF_LOOPBACK){
-      g_debug("Ignoring loopback interface");
+      DEBUG("Ignoring loopback interface");
     } else {
       if (farsight_is_private_ip (sa->sin_addr)) {
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
@@ -316,7 +322,7 @@ farsight_get_ip_for_interface (gchar *interface_name)
 
   close (sockfd);
   sa = (struct sockaddr_in *) &ifr.ifr_addr;
-  g_debug ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
+  DEBUG ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
   return inet_ntoa(sa->sin_addr);
 }
 
