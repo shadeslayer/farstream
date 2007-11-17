@@ -462,7 +462,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   GError **error)
 {
   const gchar *ip = NULL, *rtcp_ip = NULL;
-  guint port = 0, rtcp_port = 0;
+  guint port = 7078, rtcp_port = 0;
   GList *item;
 
   for (item = g_list_first (self->priv->prefered_local_candidates);
@@ -512,6 +512,10 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
       FS_COMPONENT_RTP, ip, port, error);
   if (!self->priv->rtp_udpport)
     return FALSE;
+
+  if (!rtcp_port)
+    rtcp_port = fs_rawudp_transmitter_udpport_get_port (
+        self->priv->rtp_udpport) + 1;
 
   self->priv->rtcp_udpport =
     fs_rawudp_transmitter_get_udpport (self->priv->transmitter,
@@ -609,7 +613,7 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
 
     case FS_COMPONENT_RTCP:
       if (self->priv->sending) {
-        fs_rawudp_transmitter_udpport_add_dest (self->priv->rtp_udpport,
+        fs_rawudp_transmitter_udpport_add_dest (self->priv->rtcp_udpport,
           candidate->ip, candidate->port);
       }
       if (self->priv->remote_rtcp_candidate) {
@@ -961,6 +965,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
        current;
        current = g_list_next(current)) {
     FsCandidate *candidate = g_new0 (FsCandidate, 1);
+
     candidate->candidate_id = g_strdup_printf ("L%u",
       self->priv->next_candidate_id++);
     candidate->component_id = component_id;
@@ -1058,7 +1063,7 @@ fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
   switch (component_id) {
     case FS_COMPONENT_RTP:
       if (self->priv->local_active_rtp_candidate &&
-        self->priv->remote_rtcp_candidate) {
+        self->priv->remote_rtp_candidate) {
         g_signal_emit_by_name (self, "new-active-candidate-pair",
           self->priv->local_active_rtp_candidate,
           self->priv->remote_rtp_candidate);

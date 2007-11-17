@@ -416,6 +416,10 @@ struct _UdpPort {
 
   gint fd;
 
+  /* These are just convenience pointers to our parent transmitter */
+  GstElement *funnel;
+  GstElement *tee;
+
   guint component_id;
 };
 
@@ -607,20 +611,23 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   /* Now lets create the elements */
 
+  if (component_id == FS_COMPONENT_RTP) {
+    udpport->tee = trans->priv->udpsink_tee;
+    udpport->funnel = trans->priv->udpsrc_funnel;
+  } else if (component_id == FS_COMPONENT_RTCP) {
+    udpport->tee = trans->priv->udprtcpsink_tee;
+    udpport->funnel = trans->priv->udprtcpsrc_funnel;
+  }
+
   udpport->udpsrc = _create_sinksource ("udpsrc",
-    GST_BIN (trans->priv->gst_src), trans->priv->udpsrc_funnel,
-    udpport->fd, GST_PAD_SRC, NULL, &udpport->udpsrc_requested_pad,
-    error);
+    GST_BIN (trans->priv->gst_src), udpport->funnel, udpport->fd, GST_PAD_SRC,
+    &udpport->udpsrc_requested_pad, error);
   if (!udpport->udpsrc)
     goto error;
 
-  if (component_id == FS_COMPONENT_RTP)
-    queue = &udpport->queue;
-
-  udpport->udpsink = _create_sinksource ("udpsink",
-    GST_BIN (trans->priv->gst_sink), trans->priv->udpsink_tee,
-    udpport->fd, GST_PAD_SINK, queue, &udpport->udpsink_requested_pad,
-    error);
+  udpport->udpsink = _create_sinksource ("multiudpsink",
+    GST_BIN (trans->priv->gst_sink), udpport->tee, udpport->fd, GST_PAD_SINK,
+    &udpport->udpsink_requested_pad, error);
   if (!udpport->udpsink)
     goto error;
 
@@ -667,7 +674,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   }
 
   if (udpport->udpsrc_requested_pad) {
-    gst_element_release_request_pad (trans->priv->udpsrc_funnel,
+    gst_element_release_request_pad (udpport->funnel,
       udpport->udpsrc_requested_pad);
   }
 
@@ -683,7 +690,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   }
 
   if (udpport->udpsink_requested_pad) {
-    gst_element_release_request_pad (trans->priv->udpsink_tee,
+    gst_element_release_request_pad (udpport->tee,
       udpport->udpsink_requested_pad);
   }
 
@@ -698,8 +705,8 @@ void
 fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
-  g_signal_emit_by_name (udpport->udpsink, "add", 0,
-    ip, port, NULL);
+  g_debug ("Adding dest %s:%d", ip, port);
+  g_signal_emit_by_name (udpport->udpsink, "add", ip, port);
 }
 
 
@@ -707,8 +714,7 @@ void
 fs_rawudp_transmitter_udpport_remove_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
-  g_signal_emit_by_name (udpport->udpsink, "remove", 0,
-    ip, port, NULL);
+  g_signal_emit_by_name (udpport->udpsink, "remove", ip, port);
 }
 
 gboolean
