@@ -67,12 +67,20 @@ typedef enum
   FS_NETWORK_PROTOCOL_TCP
 } FsNetworkProtocol;
 
-/*
- * These are defined in the ICE-19 draft
+/**
+ * FsComponentType:
+ * @FS_COMPONENT_RTP: This component is for RTP data
+ * @FS_COMPONENT_RTCP: This component is for RTCP control
+ *
+ * This enum contains the component IDs defined in ICE-19
  */
 
-#define FS_COMPONENT_RTP        (1)
-#define FS_COMPONENT_RTCP       (2)
+typedef enum
+{
+  FS_COMPONENT_RTP = 1,
+  FS_COMPONENT_RTCP = 2
+} FsComponentType;
+
 
 typedef struct _FsCandidate FsCandidate;
 
@@ -80,7 +88,7 @@ typedef struct _FsCandidate FsCandidate;
  * FsCandidate:
  * @candidate_id: string identifier of the candidate
  * @foundation: a string representing the foundation of this candidate (maximum 32 chars)
- * @component_id: value between 1 and 256 indicating which component this candidate represents (1 is RTP, 2 is RTCP)
+ * @component_id: value between 1 and 256 indicating which component this candidate represents (1 is RTP, 2 is RTCP, #FsComponentType can be used here)
  * @ip: IP in dotted format
  * @port: Port to use
  * @base_ip: IP of base in dotted format as defined in ICE-19.

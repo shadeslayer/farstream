@@ -87,6 +87,7 @@ fs_error_quark
 <TITLE>FsCandidate</TITLE>
 FsCandidateType
 FsNetworkProtocol
+FsComponentType
 FsCandidate
 fs_candidate_destroy
 fs_candidate_copy
