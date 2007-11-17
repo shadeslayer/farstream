@@ -286,6 +286,7 @@ fs_plugin_get_by_name (const gchar * name, const gchar * type_suffix)
  * fs_plugin_create_valist:
  * @name: The name of the plugin to load
  * @type_suffix: The type of plugin to load (normally "transmitter")
+ * @error: location of a #GError, or NULL if no error occured
  * @first_property_name: The name of the first property to be set on the
  *   object
  * @var_args: The rest of the arguments

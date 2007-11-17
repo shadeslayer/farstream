@@ -92,9 +92,9 @@ GObject *fs_plugin_create_valist (const gchar *name,
 
 /**
  * FS_INIT_PLUGIN:
- * @type: The #GType that this plugin provides
- * @unload: a function of type void (*unload) (FsPlugin * plugin) to be called
- * when the plugin is unloaded
+ * @type_register_func: A function that register a #GType and returns it
+ * @inunload: a function of type void (*unload) (FsPlugin * plugin) to be
+ * called when the plugin is unloaded
  *
  * This macro is used to declare Farsight plugins and must be used once
  * in any farsight plugin.
