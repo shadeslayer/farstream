@@ -43,8 +43,8 @@ fs_candidate_get_type (void)
   {
     candidate_type = g_boxed_type_register_static (
         "FsCandidate",
-        (GBoxedCopyFunc)fs_candidate_destroy,
-        (GBoxedFreeFunc)fs_candidate_copy);
+        (GBoxedCopyFunc)fs_candidate_copy,
+        (GBoxedFreeFunc)fs_candidate_destroy);
   }
 
   return candidate_type;
@@ -58,8 +58,8 @@ fs_candidate_list_get_type (void)
   {
     candidate_list_type = g_boxed_type_register_static (
         "FsCandidateList",
-        (GBoxedCopyFunc)fs_candidate_list_destroy,
-        (GBoxedFreeFunc)fs_candidate_list_copy);
+        (GBoxedCopyFunc)fs_candidate_list_copy,
+        (GBoxedFreeFunc)fs_candidate_list_destroy);
   }
 
   return candidate_list_type;

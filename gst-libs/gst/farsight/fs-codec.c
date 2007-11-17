@@ -49,8 +49,8 @@ fs_codec_get_type (void)
   {
     codec_type = g_boxed_type_register_static (
         "FsCodec",
-        (GBoxedCopyFunc)fs_codec_destroy,
-        (GBoxedFreeFunc)fs_codec_copy);
+        (GBoxedCopyFunc)fs_codec_copy,
+        (GBoxedFreeFunc)fs_codec_destroy);
   }
 
   return codec_type;
@@ -64,8 +64,8 @@ fs_codec_list_get_type (void)
   {
     codec_list_type = g_boxed_type_register_static (
         "FsCodecGList",
-        (GBoxedCopyFunc)fs_codec_list_destroy,
-        (GBoxedFreeFunc)fs_codec_list_copy);
+        (GBoxedCopyFunc)fs_codec_list_copy,
+        (GBoxedFreeFunc)fs_codec_list_destroy);
   }
 
   return codec_list_type;
