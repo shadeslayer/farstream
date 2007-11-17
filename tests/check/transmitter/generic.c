@@ -46,33 +46,73 @@ _stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
     errorno, error_msg, debug_msg);
 }
 
+void
+setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
+{
+  GstElement *src;
+  GstElement *trans_sink;
+
+  src = gst_element_factory_make ("fakesrc", NULL);
+  g_object_set (src, "num-buffers", 20, "sizetype", 2, "sizemax",
+    component_id * 10, "is-live", TRUE, NULL);
+
+  fail_unless (gst_bin_add (GST_BIN (pipeline), src),
+    "Could not add the fakesrc");
+
+  g_object_get (trans, "gst-sink", &trans_sink, NULL);
+
+  fail_unless (gst_element_link_pads (src, "src", trans_sink,
+      (component_id == 1) ? "sink": "rtcpsink"),
+    "Could not link the fakesrc to %s",
+    (component_id == 1) ? "sink": "rtcpsink");
+
+  fail_if (gst_element_set_state (src, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE, "Could not set the fakesrc to playing");
+
+  gst_object_unref (trans_sink);
+}
+
 GstElement *
-setup_pipeline (FsTransmitter *trans, GstElement **fakesrc)
+setup_pipeline (FsTransmitter *trans, GCallback cb)
 {
   GstElement *pipeline;
-  GstElement *fakesink;
+  GstElement *rtpfakesink, *rtcpfakesink;
   GstElement *trans_sink, *trans_src;
 
   fail_unless (g_signal_connect (trans, "error",
       G_CALLBACK (_transmitter_error), NULL), "Could not connect signal");
 
   pipeline = gst_pipeline_new ("pipeline");
-  *fakesrc = gst_element_factory_make ("fakesrc", "fakesrc");
-  fakesink = gst_element_factory_make ("fakesink", "fakesink");
+  rtpfakesink = gst_element_factory_make ("fakesink", "rtpfakesink");
+  rtcpfakesink = gst_element_factory_make ("fakesink", "rtcpfakesink");
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
+
+
+  g_object_set (rtpfakesink, "signal-handoffs", TRUE, "sync", FALSE, NULL);
+  g_object_set (rtcpfakesink, "signal-handoffs", TRUE, "sync", FALSE,
+    "async", FALSE, NULL);
+
+  if (cb) {
+    g_signal_connect (rtpfakesink, "handoff", cb, GINT_TO_POINTER (1));
+    g_signal_connect (rtcpfakesink, "handoff", cb, GINT_TO_POINTER (2));
+  }
 
   fail_if (trans_sink == NULL, "No transmitter sink");
   fail_if (trans_src == NULL, "No transmitter src");
 
-  gst_bin_add_many (GST_BIN (pipeline), fakesink, trans_sink, trans_src, NULL);
+  gst_bin_add_many (GST_BIN (pipeline), rtpfakesink, rtcpfakesink,
+    trans_sink, trans_src, NULL);
 
-  fail_unless (gst_element_link (trans_src, fakesink),
+  fail_unless (gst_element_link_pads (trans_src, "src",
+      rtpfakesink, "sink"),
+    "Coult not link transmitter src and fakesink");
+  fail_unless (gst_element_link_pads (trans_src, "rtcpsrc",
+      rtcpfakesink, "sink"),
     "Coult not link transmitter src and fakesink");
 
   g_object_unref (trans_src);
   g_object_unref (trans_sink);
-
 
   return pipeline;
 }

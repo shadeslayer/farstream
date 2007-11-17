@@ -26,7 +26,10 @@
 #ifndef __GENERIC_H__
 #define  __GENERIC_H__
 
-GstElement * setup_pipeline (FsTransmitter *trans, GstElement **fakesrc);
+GstElement *setup_pipeline (FsTransmitter *trans, GCallback cb);
+
+void setup_fakesrc (FsTransmitter *trans, GstElement *pipeline,
+  guint component_id);
 
 void _stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
   gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data);

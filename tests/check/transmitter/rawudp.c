@@ -34,22 +34,20 @@ GST_START_TEST (test_rawudptransmitter_new)
   GError *error = NULL;
   FsTransmitter *trans;
   GstElement *pipeline;
-  GstElement *fakesrc;
   GstElement *trans_sink, *trans_src;
 
   trans = fs_transmitter_new ("rawudp", &error);
 
   if (error) {
-    fail("Error creating transmitter: %s", error->message);
+    fail("Error creating transmitter: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
   }
 
   fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
-  pipeline = setup_pipeline (trans, &fakesrc);
+  pipeline = setup_pipeline (trans, NULL);
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
-
-  gst_object_unref (fakesrc);
 
   g_object_unref (trans);
 
@@ -65,7 +63,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
 {
   gboolean has_stun = GPOINTER_TO_INT (user_data);
-  GError *error;
+  GError *error = NULL;
   gboolean ret;
 
   fail_if (candidate == NULL, "Passed NULL candidate");
@@ -79,7 +77,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
       "Proto subtype %s does not match component %d", candidate->proto_subtype,
       candidate->component_id);
   else if (candidate->component_id == FS_COMPONENT_RTCP)
-    fail_unless (strcmp (candidate->proto_subtype, "RTP") == 0,
+    fail_unless (strcmp (candidate->proto_subtype, "RTCP") == 0,
       "Proto subtype %s does not match component %d", candidate->proto_subtype,
       candidate->component_id);
   else
@@ -94,10 +92,14 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 
   candidates[candidate->component_id-1] = 1;
 
+  g_debug ("New local candidate %s:%d of type %d for component %d",
+    candidate->ip, candidate->port, candidate->type, candidate->component_id);
+
   ret = fs_stream_transmitter_add_remote_candidate (st, candidate, &error);
 
   if (error)
-    fail ("Error while adding candidate: %s", error->message);
+    fail ("Error while adding candidate: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
 
   fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
 
@@ -109,8 +111,11 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
   fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
   fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
 
-  fs_stream_transmitter_remote_candidates_added (st);
+  g_debug ("Local Candidates Prepared");
 }
+
+
+GstElement *pipeline = NULL;
 
 static void
 _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
@@ -122,35 +127,78 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   fail_unless (local->component_id == remote->component_id,
     "Local and remote candidates dont have the same component id");
 
+  g_debug ("New active candidate pair for component %d", local->component_id);
+
+  setup_fakesrc (user_data, pipeline, local->component_id);
 }
+
+static gboolean
+_start_pipeline (gpointer user_data)
+{
+  GstElement *pipeline = user_data;
+
+  g_debug ("Starting pipeline");
+
+  fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
+
+  return FALSE;
+}
+
+gint buffer_count[2] = {0,0};
+
+GMainLoop *loop = NULL;
+
+static void
+_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
+  gpointer user_data)
+{
+  gint component_id = GPOINTER_TO_INT (user_data);
+
+  g_debug ("comp: %d buffer %d size: %u", component_id,
+    buffer_count[component_id-1], GST_BUFFER_SIZE (buffer));
+
+  fail_unless (GST_BUFFER_SIZE (buffer) == component_id * 10,
+    "Buffer is size %d but component_id is %d", GST_BUFFER_SIZE (buffer),
+    component_id);
+
+  buffer_count[component_id-1]++;
+
+  fail_if (buffer_count[component_id-1] > 20,
+    "Too many buffers %d > 20 for component",
+    buffer_count[component_id-1], component_id);
+
+  if (buffer_count[0] == 20 && buffer_count[1] == 20) {
+    /* TEST OVER */
+    g_main_loop_quit (loop);
+  }
+}
+
 
 GST_START_TEST (test_rawudptransmitter_run_nostun)
 {
   GError *error = NULL;
   FsTransmitter *trans;
   FsStreamTransmitter *st;
-  GstElement *pipeline;
-  GstElement *fakesrc;
   GstElement *trans_sink, *trans_src;
 
   const gint N_PARAMS = 0;
   GParameter params[N_PARAMS];
 
+  loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("rawudp", &error);
 
   if (error) {
-    fail("Error creating transmitter: %s", error->message);
+    fail("Error creating transmitter: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
   }
 
   fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
-  pipeline = setup_pipeline (trans, &fakesrc);
+  pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler));
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
 
-
-  fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
-    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
 
   /*
   params[0].name = "stun-ip";
@@ -162,10 +210,13 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
     &error);
 
   if (error) {
-    fail("Error creating stream transmitter: %s", error->message);
+    fail("Error creating stream transmitter: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
   }
 
   fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
+
+  g_debug ("I am : %p", st);
 
   fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (0)),
@@ -174,17 +225,24 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
       G_CALLBACK (_local_candidates_prepared), NULL),
     "Coult not connect local-candidates-prepared signal");
   fail_unless (g_signal_connect (st, "new-active-candidate-pair",
-      G_CALLBACK (_new_active_candidate_pair), NULL),
+      G_CALLBACK (_new_active_candidate_pair), trans),
     "Coult not connect new-active-candidate-pair signal");
   fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (_stream_transmitter_error), NULL),
     "Could not connect error signal");
+
+  g_idle_add (_start_pipeline, pipeline);
+
+  g_main_run (loop);
+
 
   g_object_unref (st);
 
   g_object_unref (trans);
 
   gst_object_unref (pipeline);
+
+  g_main_loop_unref (loop);
 
 }
 GST_END_TEST;
@@ -198,6 +256,8 @@ rawudptransmitter_suite (void)
   TCase *tc_chain = tcase_create ("rawudptransmitter");
 
   suite_add_tcase (s, tc_chain);
+
+  tcase_set_timeout (tc_chain, 5);
 
   tcase_add_test (tc_chain, test_rawudptransmitter_new);
   tcase_add_test (tc_chain, test_rawudptransmitter_run_nostun);
