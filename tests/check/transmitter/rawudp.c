@@ -155,9 +155,6 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 {
   gint component_id = GPOINTER_TO_INT (user_data);
 
-  g_debug ("comp: %d buffer %d size: %u", component_id,
-    buffer_count[component_id-1], GST_BUFFER_SIZE (buffer));
-
   fail_unless (GST_BUFFER_SIZE (buffer) == component_id * 10,
     "Buffer is size %d but component_id is %d", GST_BUFFER_SIZE (buffer),
     component_id);
@@ -215,8 +212,6 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
   }
 
   fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
-
-  g_debug ("I am : %p", st);
 
   fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (0)),
