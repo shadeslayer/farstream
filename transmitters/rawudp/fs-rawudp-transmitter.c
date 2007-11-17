@@ -409,8 +409,6 @@ struct _UdpPort {
   GstElement *udpsink;
   GstPad *udpsink_requested_pad;
 
-  GstElement *queue;
-
   gchar *requested_ip;
   guint requested_port;
 
@@ -481,7 +479,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
 static GstElement *
 _create_sinksource (gchar *elementname, GstBin *bin,
   GstElement *teefunnel, gint fd, GstPadDirection direction,
-  GstElement **queue, GstPad **requested_pad, GError **error)
+  GstPad **requested_pad, GError **error)
 {
   GstElement *elem;
   GstPadLinkReturn ret;
@@ -527,46 +525,6 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   else
     elempad = gst_element_get_static_pad (elem, "src");
 
-  if (queue) {
-    GstPad *queuesrc;
-
-    *queue = gst_element_factory_make ("queue", NULL);
-    if (!*queue) {
-        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not create the queue element");
-        goto error;
-    }
-
-    if (!gst_bin_add (bin, *queue)) {
-      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add the queue element to the gst %s bin",
-        (direction == GST_PAD_SINK) ? "sink" : "src");
-      gst_object_unref (*queue);
-      *queue = NULL;
-      goto error;
-    }
-
-    queuesrc = gst_element_get_static_pad (*queue, "src");
-    ret = gst_pad_link (queuesrc, elempad);
-    gst_object_unref (queuesrc);
-
-    if (GST_PAD_LINK_FAILED(ret)) {
-      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the new queue (%d) to the new %s", ret, elementname);
-      goto error;
-    }
-
-    gst_object_unref (elempad);
-    elempad = gst_element_get_static_pad (*queue, "sink");
-
-
-    if (!gst_element_sync_state_with_parent (*queue)) {
-      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not sync the state of the new queue with its parent");
-      goto error;
-    }
-  }
-
   if (direction == GST_PAD_SINK)
     ret = gst_pad_link (*requested_pad, elempad);
   else
@@ -590,10 +548,6 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   return elem;
 
  error:
-  if (queue && *queue) {
-    gst_element_set_state (*queue, GST_STATE_NULL);
-    gst_bin_remove (bin, *queue);
-  }
 
   gst_element_set_state (elem, GST_STATE_NULL);
   gst_bin_remove (bin, elem);
@@ -612,7 +566,6 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 {
   UdpPort *udpport;
   GList *udpport_e;
-  GstElement **queue = NULL;
 
   /* First lets check if we already have one */
 
@@ -671,8 +624,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   if (!udpport->udpsink)
     goto error;
 
-  if (component_id != FS_COMPONENT_RTP)
-    g_object_set (udpport->udpsink, "async", FALSE, NULL);
+  g_object_set (udpport->udpsink, "async", FALSE, NULL);
 
   if (component_id == FS_COMPONENT_RTP)
     trans->priv->rtp_udpports = g_list_prepend (trans->priv->rtp_udpports,
@@ -717,17 +669,6 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   if (udpport->udpsrc_requested_pad) {
     gst_element_release_request_pad (trans->priv->udpsrc_funnel,
       udpport->udpsrc_requested_pad);
-  }
-
-  if (udpport->queue) {
-    GstStateChangeReturn ret;
-    gst_object_ref (udpport->queue);
-    gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->queue);
-    ret = gst_element_set_state (udpport->queue, GST_STATE_NULL);
-    if (ret != GST_STATE_CHANGE_SUCCESS) {
-      g_warning ("Error changing state of udpsink: %d", ret);
-    }
-    gst_object_unref (udpport->queue);
   }
 
   if (udpport->udpsink) {
