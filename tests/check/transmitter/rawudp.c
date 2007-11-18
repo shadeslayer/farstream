@@ -115,8 +115,6 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   }
 
   if (is_local) {
-    if (strcmp (candidate->ip, "127.0.0.1"))
-      G_BREAKPOINT ();
     fail_unless (!strcmp (candidate->ip, "127.0.0.1"),
       "IP is wrong, it is %s but should be 127.0.0.1 when local candidate set",
       candidate->ip);

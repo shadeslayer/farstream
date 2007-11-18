@@ -71,8 +71,8 @@ struct _FsRawUdpTransmitterPrivate
 
   /* We don't hold a reference to these elements, they are owned
      by the bins */
-  GstElement *udpsrc_funnel;
-  GstElement *udprtcpsrc_funnel;
+  /* They are tables of elements, one per component */
+  GstElement **udpsrc_funnels;
   GstElement *udpsink_tee;
   GstElement *udprtcpsink_tee;
 
@@ -177,12 +177,16 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   FsTransmitter *trans = FS_TRANSMITTER_CAST (self);
   GstPad *pad = NULL;
   GstPad *ghostpad = NULL;
+  int c; /* component_id */
 
   /* member init */
   self->priv = FS_RAWUDP_TRANSMITTER_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
 
   self->components = 2;
+
+  /* We waste one space in order to have the index be the component_id */
+  self->priv->udpsrc_funnels = g_new0 (GstElement*, self->components+1);
 
   /* First we need the src elemnet */
 
@@ -199,53 +203,33 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
   /* Lets create the RTP source funnel */
 
-  self->priv->udpsrc_funnel = gst_element_factory_make ("fsfunnel", NULL);
+  for (c = 1; c <= self->components; c++) {
+    self->priv->udpsrc_funnels[c] = gst_element_factory_make ("fsfunnel", NULL);
 
-  if (!self->priv->udpsrc_funnel) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not make the fsfunnel element");
-    return;
+    if (!self->priv->udpsrc_funnels[c]) {
+      trans->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not make the fsfunnel element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->gst_src),
+        self->priv->udpsrc_funnels[c])) {
+      trans->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not add the fsfunnel element to the transmitter src bin");
+    }
+
+    pad = gst_element_get_static_pad (self->priv->udpsrc_funnels[c], "src");
+    if (c == FS_COMPONENT_RTP)
+      ghostpad = gst_ghost_pad_new ("src", pad);
+    else if (c == FS_COMPONENT_RTCP)
+      ghostpad = gst_ghost_pad_new ("rtcpsrc", pad);
+    gst_object_unref (pad);
+
+    gst_pad_set_active (ghostpad, TRUE);
+    gst_element_add_pad (self->priv->gst_src, ghostpad);
   }
-
-  if (!gst_bin_add (GST_BIN (self->priv->gst_src), self->priv->udpsrc_funnel)) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the fsfunnel element to the transmitter src bin");
-  }
-
-  pad = gst_element_get_static_pad (self->priv->udpsrc_funnel, "src");
-  ghostpad = gst_ghost_pad_new ("src", pad);
-  gst_object_unref (pad);
-
-  gst_pad_set_active (ghostpad, TRUE);
-  gst_element_add_pad (self->priv->gst_src, ghostpad);
-
-  /* Lets create the RTCP source funnel*/
-
-  self->priv->udprtcpsrc_funnel = gst_element_factory_make ("fsfunnel", NULL);
-
-  if (!self->priv->udprtcpsrc_funnel) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not make the fsfunnnel element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->gst_src),
-      self->priv->udprtcpsrc_funnel)) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the rtcp fsfunnel element to the transmitter src bin");
-  }
-
-  pad = gst_element_get_static_pad (self->priv->udprtcpsrc_funnel, "src");
-  ghostpad = gst_ghost_pad_new ("rtcpsrc", pad);
-  gst_object_unref (pad);
-
-  gst_pad_set_active (ghostpad, TRUE);
-  gst_element_add_pad (self->priv->gst_src, ghostpad);
-
 
   /* Second, we do the sink element */
 
@@ -615,11 +599,11 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   if (component_id == FS_COMPONENT_RTP) {
     udpport->tee = trans->priv->udpsink_tee;
-    udpport->funnel = trans->priv->udpsrc_funnel;
   } else if (component_id == FS_COMPONENT_RTCP) {
     udpport->tee = trans->priv->udprtcpsink_tee;
-    udpport->funnel = trans->priv->udprtcpsrc_funnel;
   }
+
+  udpport->funnel = trans->priv->udpsrc_funnels[component_id];
 
   udpport->udpsrc = _create_sinksource ("udpsrc",
     GST_BIN (trans->priv->gst_src), udpport->funnel, udpport->fd, GST_PAD_SRC,
