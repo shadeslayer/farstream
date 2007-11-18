@@ -150,6 +150,9 @@ static gboolean fs_rawudp_stream_transmitter_finish_candidate_generation (
     gpointer user_data);
 static void fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
     FsRawUdpStreamTransmitter *self, guint component_id);
+static void
+fs_rawudp_stream_transmitter_emit_local_candidates (
+    FsRawUdpStreamTransmitter *self, guint component_id);
 
 
 static GObjectClass *parent_class = NULL;
@@ -692,11 +695,9 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
   g_signal_emit_by_name (data->self, "new-local-candidate", data->candidate);
 
   /* Lets call it over if its over */
-  g_mutex_lock (data->self->priv->sources_mutex);
-  if (data->self->priv->stun_rtp_recv_id == 0 &&
-    data->self->priv->stun_rtcp_recv_id == 0 ) {
-    g_mutex_unlock (data->self->priv->sources_mutex);
-    fs_rawudp_stream_transmitter_finish_candidate_generation (data->self);
+  if (data->self->priv->local_active_rtp_candidate &&
+    data->self->priv->local_active_rtcp_candidate ) {
+    g_signal_emit_by_name (data->self, "local-candidates-prepared");
   } else {
     /* Lets remove this source from the list of sources to destroy */
     GSource * source = g_main_current_source ();
@@ -704,10 +705,11 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
     if (source)  {
       guint id = g_source_get_id (source);
 
+      g_mutex_lock (data->self->priv->sources_mutex);
       data->self->priv->sources =
         g_list_remove (data->self->priv->sources, GUINT_TO_POINTER (id));
+      g_mutex_unlock (data->self->priv->sources_mutex);
     }
-    g_mutex_unlock (data->self->priv->sources_mutex);
   }
 
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (data->self,
@@ -844,15 +846,20 @@ fs_rawudp_stream_transmitter_stun_timeout_cb (gpointer user_data)
   struct CandidateTransit *data = user_data;
 
   g_mutex_lock (data->self->priv->sources_mutex);
-
   fs_rawudp_stream_transmitter_stop_stun (data->self, data->component_id);
+  g_mutex_unlock (data->self->priv->sources_mutex);
+
+  fs_rawudp_stream_transmitter_emit_local_candidates (data->self,
+    data->component_id);
+
+  if (data->self->priv->local_active_rtp_candidate &&
+    data->self->priv->local_active_rtcp_candidate ) {
+    g_signal_emit_by_name (data->self, "local-candidates-prepared");
+  }
+
 
   if (data->self->priv->stun_rtp_recv_id == 0 &&
     data->self->priv->stun_rtcp_recv_id == 0 ) {
-    g_mutex_unlock (data->self->priv->sources_mutex);
-    fs_rawudp_stream_transmitter_finish_candidate_generation (data->self);
-  } else {
-    g_mutex_unlock (data->self->priv->sources_mutex);
   }
 
   return FALSE;
@@ -1011,12 +1018,39 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
   GList *current;
   guint port;
 
+  if (component_id == FS_COMPONENT_RTP) {
+    if (self->priv->local_forced_rtp_candidate) {
+      self->priv->local_active_rtp_candidate = fs_candidate_copy (
+          self->priv->local_forced_rtp_candidate);
+      g_signal_emit_by_name (self, "new-local-candidate",
+        self->priv->local_forced_rtp_candidate);
+      fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
+        FS_COMPONENT_RTP);
+      return;
+    }
+  } else if (component_id == FS_COMPONENT_RTCP) {
+    if (self->priv->local_forced_rtcp_candidate) {
+      self->priv->local_active_rtcp_candidate = fs_candidate_copy (
+          self->priv->local_forced_rtcp_candidate);
+      g_signal_emit_by_name (self, "new-local-candidate",
+        self->priv->local_forced_rtcp_candidate);
+      fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
+        FS_COMPONENT_RTCP);
+      return;
+    }
+  } else {
+    gchar *text = g_strdup_printf ("Internal error: invalid component %d",
+      component_id);
+    fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+      FS_ERROR_INVALID_ARGUMENTS, text, text);
+    g_free (text);
+    return;
+  }
+
   if (component_id == FS_COMPONENT_RTP)
     port = fs_rawudp_transmitter_udpport_get_port (self->priv->rtp_udpport);
   else if (component_id == FS_COMPONENT_RTCP)
     port = fs_rawudp_transmitter_udpport_get_port (self->priv->rtcp_udpport);
-  else
-    return;
 
   ips = farsight_get_local_ips(FALSE);
 
@@ -1057,7 +1091,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
 }
 
 /*
- * This is called when the local candidates have been generated
+ * This is called when there is no stun
  */
 
 static gboolean
@@ -1068,34 +1102,19 @@ fs_rawudp_stream_transmitter_finish_candidate_generation (gpointer user_data)
 
   /* If we have a STUN'd rtp candidate, dont send the locally generated
    * ones */
-  if (!self->priv->local_stun_rtp_candidate) {
-    if (self->priv->local_forced_rtp_candidate) {
-      self->priv->local_active_rtp_candidate = fs_candidate_copy (
-          self->priv->local_forced_rtp_candidate);
-      g_signal_emit_by_name (self, "new-local-candidate",
-        self->priv->local_forced_rtp_candidate);
-      fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-        FS_COMPONENT_RTP);
-    } else {
-      fs_rawudp_stream_transmitter_emit_local_candidates (self,
-        FS_COMPONENT_RTP);
-    }
+  if (!self->priv->local_active_rtp_candidate) {
+    fs_rawudp_stream_transmitter_emit_local_candidates (self,
+      FS_COMPONENT_RTP);
   }
 
   /* Lets do the same for rtcp */
-  if (!self->priv->local_stun_rtcp_candidate) {
-    if (self->priv->local_forced_rtcp_candidate) {
-      self->priv->local_active_rtcp_candidate = fs_candidate_copy (
-          self->priv->local_forced_rtcp_candidate);
-      g_signal_emit_by_name (self, "new-local-candidate",
-        self->priv->local_forced_rtcp_candidate);
-      fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-        FS_COMPONENT_RTCP);
-    } else {
-      fs_rawudp_stream_transmitter_emit_local_candidates (self,
-        FS_COMPONENT_RTCP);
-    }
+  if (!self->priv->local_active_rtcp_candidate) {
+    fs_rawudp_stream_transmitter_emit_local_candidates (self,
+      FS_COMPONENT_RTCP);
   }
+
+  g_assert (self->priv->local_active_rtp_candidate &&
+    self->priv->local_active_rtcp_candidate);
 
   g_signal_emit_by_name (self, "local-candidates-prepared");
 
