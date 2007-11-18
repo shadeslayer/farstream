@@ -141,7 +141,7 @@ fs_rawudp_transmitter_register_type (FsPlugin *module)
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
     FS_TYPE_TRANSMITTER, "FsRawUdpTransmitter", &info, 0);
-  
+
   return type;
 }
 
