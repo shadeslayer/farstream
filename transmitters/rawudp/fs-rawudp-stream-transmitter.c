@@ -224,7 +224,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
     g_param_spec_uint ("stun-timeout",
       "The timeout for the STUN reply",
       "How long to wait for for the STUN reply (in seconds) before giving up",
-      0, G_MAXUINT, 30,
+      1, G_MAXUINT, 30,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
@@ -453,7 +453,7 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
       self->priv->stun_port = g_value_get_uint (value);
       break;
     case PROP_STUN_TIMEOUT:
-      self->priv->stun_port = g_value_get_uint (value);
+      self->priv->stun_timeout = g_value_get_uint (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -807,7 +807,6 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
       candidate->proto_profile = g_strdup ("AVP");
       candidate->type = FS_CANDIDATE_TYPE_SRFLX;
 
-
       g_debug ("Stun server says we are %u.%u.%u.%u %u\n",
           ((*attr)->address.ip & 0xff000000) >> 24,
           ((*attr)->address.ip & 0x00ff0000) >> 16,
@@ -843,7 +842,6 @@ static gboolean
 fs_rawudp_stream_transmitter_stun_timeout_cb (gpointer user_data)
 {
   struct CandidateTransit *data = user_data;
-
 
   g_mutex_lock (data->self->priv->sources_mutex);
 
