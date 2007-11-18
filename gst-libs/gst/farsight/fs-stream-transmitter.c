@@ -374,3 +374,22 @@ fs_stream_transmitter_select_candidate_pair (
 
   return FALSE;
 }
+
+
+/**
+ * fs_stream_transmitter_emit_error:
+ * @streamtransmitter: #FsStreamTransmitter on which to emit the error signal
+ * @error_no: The number of the error
+ * @error_msg: Error message to be displayed to user
+ * @debug_msg: Debugging error message
+ *
+ * This function emit the "error" signal on a #FsStreamTransmitter, it should
+ * only be called by subclasses.
+ */
+void
+fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
+  gint error_no, gchar *error_msg, gchar *debug_msg)
+{
+  g_signal_emit (streamtransmitter, signals[ERROR], 0, error_no, error_msg,
+    debug_msg);
+}

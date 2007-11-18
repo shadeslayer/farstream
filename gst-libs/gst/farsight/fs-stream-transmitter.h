@@ -109,6 +109,9 @@ gboolean fs_stream_transmitter_select_candidate_pair (
     FsStreamTransmitter *streamtransmitter, gchar *lfoundation,
     gchar *rfoundation, GError **error);
 
+void fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
+  gint error_no, gchar *error_msg, gchar *debug_msg);
+
 
 G_END_DECLS
 
