@@ -146,7 +146,7 @@ static void fs_rawudp_stream_transmitter_stop_stun (
 static FsCandidate * fs_rawudp_stream_transmitter_build_forced_candidate (
     FsRawUdpStreamTransmitter *self, const char *ip, gint port,
     guint component_id);
-static gboolean fs_rawudp_stream_transmitter_finish_candidate_generation (
+static gboolean fs_rawudp_stream_transmitter_no_stun (
     gpointer user_data);
 static void fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
     FsRawUdpStreamTransmitter *self, guint component_id);
@@ -554,8 +554,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
       return FALSE;
   } else {
     guint id;
-    id = g_idle_add (fs_rawudp_stream_transmitter_finish_candidate_generation,
-      self);
+    id = g_idle_add (fs_rawudp_stream_transmitter_no_stun, self);
     g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_prepend (self->priv->sources,
       GUINT_TO_POINTER(id));
@@ -995,7 +994,8 @@ fs_rawudp_stream_transmitter_build_forced_candidate (
   FsCandidate *candidate = g_new0 (FsCandidate, 1);
 
   candidate = g_new0 (FsCandidate,1);
-  candidate->candidate_id = g_strdup ("L1");
+  candidate->candidate_id = g_strdup_printf ("L%u",
+    self->priv->next_candidate_id++);
   candidate->component_id = component_id;
   candidate->ip = g_strdup (ip);
   candidate->port = port;
@@ -1095,7 +1095,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
  */
 
 static gboolean
-fs_rawudp_stream_transmitter_finish_candidate_generation (gpointer user_data)
+fs_rawudp_stream_transmitter_no_stun (gpointer user_data)
 {
   FsRawUdpStreamTransmitter *self = user_data;
   GSource *source;
