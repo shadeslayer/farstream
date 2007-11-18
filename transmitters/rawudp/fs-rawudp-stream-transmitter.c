@@ -483,7 +483,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     }
 
     switch (candidate->component_id) {
-      case 1:  /* RTP */
+      case FS_COMPONENT_RTP:  /* RTP */
         if (ip) {
           g_set_error (error, FS_ERROR,
             FS_ERROR_INVALID_ARGUMENTS,
@@ -493,7 +493,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         ip = candidate->ip;
         port = candidate->port;
         break;
-      case 2:  /* RTCP */
+      case FS_COMPONENT_RTCP:  /* RTCP */
         if (rtcp_ip) {
           g_set_error (error, FS_ERROR,
             FS_ERROR_INVALID_ARGUMENTS,
@@ -535,7 +535,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   }
 
   if (rtcp_ip) {
-    self->priv->local_forced_rtp_candidate =
+    self->priv->local_forced_rtcp_candidate =
       fs_rawudp_stream_transmitter_build_forced_candidate (self, rtcp_ip,
         fs_rawudp_transmitter_udpport_get_port (self->priv->rtcp_udpport),
         FS_COMPONENT_RTCP);
