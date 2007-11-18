@@ -666,11 +666,13 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 
   if (udpport->udpsrc) {
     GstStateChangeReturn ret;
+    gst_object_ref (udpport->udpsrc);
+    gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc);
     ret = gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
       g_warning ("Error changing state of udpsrc: %d", ret);
     }
-    gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc);
+    gst_object_unref (udpport->udpsrc);
   }
 
   if (udpport->udpsrc_requested_pad) {
