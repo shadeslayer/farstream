@@ -34,6 +34,14 @@ gint candidates[2] = {0, 0};
 GstElement *pipeline = NULL;
 gboolean src_setup[2] = {FALSE, FALSE};
 
+enum {
+  FLAG_HAS_STUN = 1 << 0,
+  FLAG_IS_LOCAL = 1 << 1
+};
+
+#define RTP_PORT 9828
+#define RTCP_PORT 9829
+
 
 GST_START_TEST (test_rawudptransmitter_new)
 {
@@ -66,9 +74,13 @@ static void
 _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
 {
-  gboolean has_stun = GPOINTER_TO_INT (user_data);
+  gboolean has_stun = GPOINTER_TO_INT (user_data) & FLAG_HAS_STUN;
+  gboolean is_local = GPOINTER_TO_INT (user_data) & FLAG_IS_LOCAL;
   GError *error = NULL;
   gboolean ret;
+
+  g_debug ("Has local candidate %s:%u of type %d",
+    candidate->ip, candidate->port, candidate->type);
 
   fail_if (candidate == NULL, "Passed NULL candidate");
   fail_unless (candidate->ip != NULL, "Null IP in candidate");
@@ -92,9 +104,30 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
       "Has stun, but candidate is not server reflexive,"
       " it is: %s:%u of type %d on component %u",
       candidate->ip, candidate->port, candidate->type, candidate->component_id);
-  else
+  else {
     fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
       "Does not have stun, but candidate is not host");
+    if (candidate->component_id == FS_COMPONENT_RTP) {
+      fail_unless (candidate->port % 2 == 0, "RTP port should be odd");
+    } else if (candidate->component_id == FS_COMPONENT_RTCP) {
+      fail_unless (candidate->port % 2 == 1, "RTCP port should be event");
+    }
+  }
+
+  if (is_local) {
+    if (strcmp (candidate->ip, "127.0.0.1"))
+      G_BREAKPOINT ();
+    fail_unless (!strcmp (candidate->ip, "127.0.0.1"),
+      "IP is wrong, it is %s but should be 127.0.0.1 when local candidate set",
+      candidate->ip);
+
+    if (candidate->component_id == FS_COMPONENT_RTP) {
+      fail_unless (candidate->port >= RTP_PORT  , "RTP port invalid");
+    } else if (candidate->component_id == FS_COMPONENT_RTCP) {
+      fail_unless (candidate->port >= RTCP_PORT, "RTCP port invalid");
+    }
+  }
+
 
   candidates[candidate->component_id-1] = 1;
 
@@ -114,7 +147,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 static void
 _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
 {
-  gboolean has_stun = GPOINTER_TO_INT (user_data);
+  gboolean has_stun = GPOINTER_TO_INT (user_data) & FLAG_HAS_STUN;
 
   fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
   fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
@@ -190,7 +223,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 static void
 run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
-  gboolean has_stun)
+  gint flags)
 {
   GError *error = NULL;
   FsTransmitter *trans;
@@ -222,10 +255,10 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
   fail_unless (g_signal_connect (st, "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (has_stun)),
+      G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (flags)),
     "Coult not connect new-local-candidate signal");
   fail_unless (g_signal_connect (st, "local-candidates-prepared",
-      G_CALLBACK (_local_candidates_prepared), GINT_TO_POINTER (has_stun)),
+      G_CALLBACK (_local_candidates_prepared), GINT_TO_POINTER (flags)),
     "Coult not connect local-candidates-prepared signal");
   fail_unless (g_signal_connect (st, "new-active-candidate-pair",
       G_CALLBACK (_new_active_candidate_pair), trans),
@@ -253,8 +286,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
 GST_START_TEST (test_rawudptransmitter_run_nostun)
 {
-  g_message ("No stun, nothing");
-  run_rawudp_transmitter_test (0, NULL, FALSE);
+  run_rawudp_transmitter_test (0, NULL, 0);
 }
 GST_END_TEST;
 
@@ -265,8 +297,6 @@ GST_START_TEST (test_rawudptransmitter_run_invalid_stun)
   /*
    * Hopefully not one is runing a stun server on local port 7777
    */
-
-  g_message ("Invalid STUN, it should timeout");
 
   memset (params, 0, sizeof(GParameter) * 3);
 
@@ -282,7 +312,7 @@ GST_START_TEST (test_rawudptransmitter_run_invalid_stun)
   g_value_init (&params[2].value, G_TYPE_UINT);
   g_value_set_uint (&params[2].value, 3);
 
-  run_rawudp_transmitter_test (3, params, FALSE);
+  run_rawudp_transmitter_test (3, params, 0);
 
 }
 GST_END_TEST;
@@ -294,8 +324,6 @@ GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
   /*
    * Hopefully not one is runing a stun server on local port 7777
    */
-
-  g_message ("Using stunserver.org (192.245.12.229)");
 
   memset (params, 0, sizeof(GParameter) * 3);
 
@@ -311,8 +339,45 @@ GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
   g_value_init (&params[2].value, G_TYPE_UINT);
   g_value_set_uint (&params[2].value, 5);
 
-  run_rawudp_transmitter_test (3, params, TRUE);
+  run_rawudp_transmitter_test (3, params, FLAG_HAS_STUN);
 
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_rawudptransmitter_run_local_candidates)
+{
+  GParameter params[1];
+  GList *list = NULL;
+  FsCandidate *candidate;
+
+  memset (params, 0, sizeof(GParameter) * 1);
+
+  candidate = g_new0 (FsCandidate, 1);
+  candidate->candidate_id = g_strdup ("L1");
+  candidate->component_id = FS_COMPONENT_RTP;
+  candidate->ip = g_strdup ("127.0.0.1");
+  candidate->port = RTP_PORT;
+  candidate->proto = FS_NETWORK_PROTOCOL_UDP;
+  candidate->type = FS_CANDIDATE_TYPE_HOST;
+  list = g_list_prepend (list, candidate);
+
+  candidate = g_new0 (FsCandidate, 1);
+  candidate->candidate_id = g_strdup ("L2");
+  candidate->component_id = FS_COMPONENT_RTCP;
+  candidate->ip = g_strdup ("127.0.0.1");
+  candidate->port = RTCP_PORT;
+  candidate->proto = FS_NETWORK_PROTOCOL_UDP;
+  candidate->type = FS_CANDIDATE_TYPE_HOST;
+  list = g_list_prepend (list, candidate);
+
+  params[0].name = "prefered-local-candidates";
+  g_value_init (&params[0].value, FS_TYPE_CANDIDATE_LIST);
+  g_value_set_boxed (&params[0].value, list);
+
+  run_rawudp_transmitter_test (1, params, FLAG_IS_LOCAL);
+
+  fs_candidate_list_destroy (list);
 }
 GST_END_TEST;
 
@@ -325,10 +390,12 @@ rawudptransmitter_suite (void)
   TCase *tc_chain = tcase_create ("rawudptransmitter");
   TCase *tc_chain2 = tcase_create ("rawudptransmitter-stun-timeout");
   TCase *tc_chain3 = tcase_create ("rawudptransmitter-stunserver-org");
+  TCase *tc_chain4 = tcase_create ("rawudptransmitter-local-candidates");
 
   suite_add_tcase (s, tc_chain);
   suite_add_tcase (s, tc_chain2);
   suite_add_tcase (s, tc_chain3);
+  suite_add_tcase (s, tc_chain4);
 
   tcase_set_timeout (tc_chain, 5);
   tcase_add_test (tc_chain, test_rawudptransmitter_new);
@@ -339,6 +406,8 @@ rawudptransmitter_suite (void)
 
   tcase_set_timeout (tc_chain3, 10);
   tcase_add_test (tc_chain3, test_rawudptransmitter_run_stunserver_dot_org);
+
+  tcase_add_test (tc_chain4, test_rawudptransmitter_run_local_candidates);
 
   return s;
 }
