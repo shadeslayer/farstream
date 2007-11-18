@@ -28,6 +28,12 @@
 
 #include "generic.h"
 
+gint buffer_count[2] = {0, 0};
+GMainLoop *loop = NULL;
+gint candidates[2] = {0, 0};
+GstElement *pipeline = NULL;
+gboolean src_setup[2] = {FALSE, FALSE};
+
 
 GST_START_TEST (test_rawudptransmitter_new)
 {
@@ -56,8 +62,6 @@ GST_START_TEST (test_rawudptransmitter_new)
 }
 GST_END_TEST;
 
-gint candidates[2] = {0,0};
-
 static void
 _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
@@ -85,10 +89,12 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 
   if (has_stun)
     fail_unless (candidate->type == FS_CANDIDATE_TYPE_SRFLX,
-      "Has stun, but candidate is not server reflexive");
+      "Has stun, but candidate is not server reflexive,"
+      " it is: %s:%u of type %d on component %u",
+      candidate->ip, candidate->port, candidate->type, candidate->component_id);
   else
     fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
-      "Has stun, but candidate is not host");
+      "Does not have stun, but candidate is not host");
 
   candidates[candidate->component_id-1] = 1;
 
@@ -108,14 +114,21 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 static void
 _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
 {
+  gboolean has_stun = GPOINTER_TO_INT (user_data);
+
   fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
   fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
 
   g_debug ("Local Candidates Prepared");
+
+  /*
+   * This doesn't work on my router
+   */
+
+  if (has_stun)
+    g_main_loop_quit (loop);
 }
 
-
-GstElement *pipeline = NULL;
 
 static void
 _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
@@ -129,7 +142,9 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
 
   g_debug ("New active candidate pair for component %d", local->component_id);
 
-  setup_fakesrc (user_data, pipeline, local->component_id);
+  if (!src_setup[local->component_id-1])
+    setup_fakesrc (user_data, pipeline, local->component_id);
+  src_setup[local->component_id-1] = TRUE;
 }
 
 static gboolean
@@ -145,10 +160,6 @@ _start_pipeline (gpointer user_data)
   return FALSE;
 }
 
-gint buffer_count[2] = {0,0};
-
-GMainLoop *loop = NULL;
-
 static void
 _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gpointer user_data)
@@ -161,6 +172,11 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   buffer_count[component_id-1]++;
 
+  /*
+  g_debug ("Buffer %d component: %d size: %u", buffer_count[component_id-1],
+    component_id, GST_BUFFER_SIZE (buffer));
+  */
+
   fail_if (buffer_count[component_id-1] > 20,
     "Too many buffers %d > 20 for component",
     buffer_count[component_id-1], component_id);
@@ -172,15 +188,14 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 }
 
 
-GST_START_TEST (test_rawudptransmitter_run_nostun)
+static void
+run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
+  gboolean has_stun)
 {
   GError *error = NULL;
   FsTransmitter *trans;
   FsStreamTransmitter *st;
   GstElement *trans_sink, *trans_src;
-
-  const gint N_PARAMS = 0;
-  GParameter params[N_PARAMS];
 
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("rawudp", &error);
@@ -196,14 +211,7 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
 
-
-  /*
-  params[0].name = "stun-ip";
-  g_value_set_static_string (params[0].value, "192.245.12.229");
-  params[1].name = "stun-port";
-  g_value_set_uint (params[0].value, 3478);
-  */
-  st = fs_transmitter_new_stream_transmitter (trans, NULL, N_PARAMS, params,
+  st = fs_transmitter_new_stream_transmitter (trans, NULL, n_parameters, params,
     &error);
 
   if (error) {
@@ -214,10 +222,10 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
   fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
   fail_unless (g_signal_connect (st, "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (0)),
+      G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (has_stun)),
     "Coult not connect new-local-candidate signal");
   fail_unless (g_signal_connect (st, "local-candidates-prepared",
-      G_CALLBACK (_local_candidates_prepared), NULL),
+      G_CALLBACK (_local_candidates_prepared), GINT_TO_POINTER (has_stun)),
     "Coult not connect local-candidates-prepared signal");
   fail_unless (g_signal_connect (st, "new-active-candidate-pair",
       G_CALLBACK (_new_active_candidate_pair), trans),
@@ -235,9 +243,75 @@ GST_START_TEST (test_rawudptransmitter_run_nostun)
 
   g_object_unref (trans);
 
+  gst_element_set_state (pipeline, GST_STATE_NULL);
+
   gst_object_unref (pipeline);
 
   g_main_loop_unref (loop);
+
+}
+
+GST_START_TEST (test_rawudptransmitter_run_nostun)
+{
+  g_message ("No stun, nothing");
+  run_rawudp_transmitter_test (0, NULL, FALSE);
+}
+GST_END_TEST;
+
+GST_START_TEST (test_rawudptransmitter_run_invalid_stun)
+{
+  GParameter params[3];
+
+  /*
+   * Hopefully not one is runing a stun server on local port 7777
+   */
+
+  g_message ("Invalid STUN, it should timeout");
+
+  memset (params, 0, sizeof(GParameter) * 3);
+
+  params[0].name = "stun-ip";
+  g_value_init (&params[0].value, G_TYPE_STRING);
+  g_value_set_static_string (&params[0].value, "127.0.0.1");
+
+  params[1].name = "stun-port";
+  g_value_init (&params[1].value, G_TYPE_UINT);
+  g_value_set_uint (&params[1].value, 7777);
+
+  params[2].name = "stun-timeout";
+  g_value_init (&params[2].value, G_TYPE_UINT);
+  g_value_set_uint (&params[2].value, 3);
+
+  run_rawudp_transmitter_test (3, params, FALSE);
+
+}
+GST_END_TEST;
+
+GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
+{
+  GParameter params[3];
+
+  /*
+   * Hopefully not one is runing a stun server on local port 7777
+   */
+
+  g_message ("Using stunserver.org (192.245.12.229)");
+
+  memset (params, 0, sizeof(GParameter) * 3);
+
+  params[0].name = "stun-ip";
+  g_value_init (&params[0].value, G_TYPE_STRING);
+  g_value_set_static_string (&params[0].value, "192.245.12.229");
+
+  params[1].name = "stun-port";
+  g_value_init (&params[1].value, G_TYPE_UINT);
+  g_value_set_uint (&params[1].value, 3478);
+
+  params[2].name = "stun-timeout";
+  g_value_init (&params[2].value, G_TYPE_UINT);
+  g_value_set_uint (&params[2].value, 5);
+
+  run_rawudp_transmitter_test (3, params, TRUE);
 
 }
 GST_END_TEST;
@@ -249,13 +323,22 @@ rawudptransmitter_suite (void)
 {
   Suite *s = suite_create ("rawudptransmitter");
   TCase *tc_chain = tcase_create ("rawudptransmitter");
+  TCase *tc_chain2 = tcase_create ("rawudptransmitter-stun-timeout");
+  TCase *tc_chain3 = tcase_create ("rawudptransmitter-stunserver-org");
 
   suite_add_tcase (s, tc_chain);
+  suite_add_tcase (s, tc_chain2);
+  suite_add_tcase (s, tc_chain3);
 
   tcase_set_timeout (tc_chain, 5);
-
   tcase_add_test (tc_chain, test_rawudptransmitter_new);
   tcase_add_test (tc_chain, test_rawudptransmitter_run_nostun);
+
+  tcase_set_timeout (tc_chain2, 5);
+  tcase_add_test (tc_chain2, test_rawudptransmitter_run_invalid_stun);
+
+  tcase_set_timeout (tc_chain3, 10);
+  tcase_add_test (tc_chain3, test_rawudptransmitter_run_stunserver_dot_org);
 
   return s;
 }
