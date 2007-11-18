@@ -73,8 +73,7 @@ struct _FsRawUdpTransmitterPrivate
      by the bins */
   /* They are tables of elements, one per component */
   GstElement **udpsrc_funnels;
-  GstElement *udpsink_tee;
-  GstElement *udprtcpsink_tee;
+  GstElement **udpsink_tees;
 
   GList *rtp_udpports;
   GList *rtcp_udpports;
@@ -187,6 +186,7 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
   /* We waste one space in order to have the index be the component_id */
   self->priv->udpsrc_funnels = g_new0 (GstElement*, self->components+1);
+  self->priv->udpsink_tees = g_new0 (GstElement*, self->components+1);
 
   /* First we need the src elemnet */
 
@@ -201,9 +201,24 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
   gst_object_ref (self->priv->gst_src);
 
-  /* Lets create the RTP source funnel */
+
+  /* Second, we do the sink element */
+
+  self->priv->gst_sink = gst_bin_new (NULL);
+
+  if (!self->priv->gst_sink) {
+    trans->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not build the transmitter sink bin");
+    return;
+  }
+
+  gst_object_ref (self->priv->gst_sink);
 
   for (c = 1; c <= self->components; c++) {
+
+    /* Lets create the RTP source funnel */
+
     self->priv->udpsrc_funnels[c] = gst_element_factory_make ("fsfunnel", NULL);
 
     if (!self->priv->udpsrc_funnels[c]) {
@@ -229,69 +244,37 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
     gst_pad_set_active (ghostpad, TRUE);
     gst_element_add_pad (self->priv->gst_src, ghostpad);
+
+
+    /* Lets create the RTP source tee */
+
+    self->priv->udpsink_tees[c] = gst_element_factory_make ("tee", NULL);
+
+    if (!self->priv->udpsink_tees[c]) {
+      trans->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not make the tee element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
+        self->priv->udpsink_tees[c])) {
+      trans->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not add the tee element to the transmitter sink bin");
+    }
+
+    pad = gst_element_get_static_pad (self->priv->udpsink_tees[c], "sink");
+    if (c == FS_COMPONENT_RTP)
+      ghostpad = gst_ghost_pad_new ("sink", pad);
+    else if (c == FS_COMPONENT_RTCP)
+      ghostpad = gst_ghost_pad_new ("rtcpsink", pad);
+    gst_object_unref (pad);
+
+    gst_pad_set_active (ghostpad, TRUE);
+    gst_element_add_pad (self->priv->gst_sink, ghostpad);
+
   }
-
-  /* Second, we do the sink element */
-
-  self->priv->gst_sink = gst_bin_new (NULL);
-
-  if (!self->priv->gst_sink) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not build the transmitter sink bin");
-    return;
-  }
-
-  gst_object_ref (self->priv->gst_sink);
-
-  /* Lets create the RTP source tee */
-
-  self->priv->udpsink_tee = gst_element_factory_make ("tee", NULL);
-
-  if (!self->priv->udpsink_tee) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not make the tee element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->gst_sink), self->priv->udpsink_tee)) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the tee element to the transmitter sink bin");
-  }
-
-  pad = gst_element_get_static_pad (self->priv->udpsink_tee, "sink");
-  ghostpad = gst_ghost_pad_new ("sink", pad);
-  gst_object_unref (pad);
-
-  gst_pad_set_active (ghostpad, TRUE);
-  gst_element_add_pad (self->priv->gst_sink, ghostpad);
-
-  /* Lets create the RTCP source tee*/
-
-  self->priv->udprtcpsink_tee = gst_element_factory_make ("tee", NULL);
-
-  if (!self->priv->udprtcpsink_tee) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not make the fsfunnnel element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
-      self->priv->udprtcpsink_tee)) {
-    trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the rtcp tee element to the transmitter sink bin");
-  }
-
-  pad = gst_element_get_static_pad (self->priv->udprtcpsink_tee, "sink");
-  ghostpad = gst_ghost_pad_new ("rtcpsink", pad);
-  gst_object_unref (pad);
-
-  gst_pad_set_active (ghostpad, TRUE);
-  gst_element_add_pad (self->priv->gst_sink, ghostpad);
 }
 
 static void
@@ -323,6 +306,18 @@ fs_rawudp_transmitter_dispose (GObject *object)
 static void
 fs_rawudp_transmitter_finalize (GObject *object)
 {
+  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+
+  if (self->priv->udpsrc_funnels) {
+    g_free (self->priv->udpsrc_funnels);
+    self->priv->udpsrc_funnels = NULL;
+  }
+
+  if (self->priv->udpsink_tees) {
+    g_free (self->priv->udpsink_tees);
+    self->priv->udpsink_tees = NULL;
+  }
+
   parent_class->finalize (object);
 }
 
@@ -597,12 +592,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   /* Now lets create the elements */
 
-  if (component_id == FS_COMPONENT_RTP) {
-    udpport->tee = trans->priv->udpsink_tee;
-  } else if (component_id == FS_COMPONENT_RTCP) {
-    udpport->tee = trans->priv->udprtcpsink_tee;
-  }
-
+  udpport->tee = trans->priv->udpsink_tees[component_id];
   udpport->funnel = trans->priv->udpsrc_funnels[component_id];
 
   udpport->udpsrc = _create_sinksource ("udpsrc",
