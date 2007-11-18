@@ -76,6 +76,9 @@ struct _FsRawUdpTransmitter
 {
   FsTransmitter parent;
 
+  /* The number of components (READONLY)*/
+  gint components;
+
   /*< private >*/
   FsRawUdpTransmitterPrivate *priv;
 };

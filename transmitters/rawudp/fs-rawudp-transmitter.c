@@ -182,6 +182,8 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv = FS_RAWUDP_TRANSMITTER_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
 
+  self->components = 2;
+
   /* First we need the src elemnet */
 
   self->priv->gst_src = gst_bin_new (NULL);
