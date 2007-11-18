@@ -100,8 +100,11 @@ struct _FsRawUdpStreamTransmitterPrivate
   guint stun_port;
   guint stun_timeout;
 
+  /* These are protected by the sources_mutex too */
   gulong stun_rtp_recv_id;
   gulong stun_rtcp_recv_id;
+  guint  stun_rtp_timeout_id;
+  guint  stun_rtcp_timeout_id;
 
   gchar stun_cookie[16];
 
@@ -258,12 +261,13 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
     return;
   }
 
+  g_mutex_lock (self->priv->sources_mutex);
   if (self->priv->stun_rtp_recv_id)
     fs_rawudp_stream_transmitter_stop_stun (self, FS_COMPONENT_RTP);
   if (self->priv->stun_rtp_recv_id)
     fs_rawudp_stream_transmitter_stop_stun (self, FS_COMPONENT_RTCP);
 
-  g_mutex_lock (self->priv->sources_mutex);
+
   if (self->priv->sources) {
     g_list_foreach (self->priv->sources, (GFunc) g_source_remove, NULL);
     g_list_free (self->priv->sources);
@@ -688,8 +692,10 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
   g_signal_emit_by_name (data->self, "new-local-candidate", data->candidate);
 
   /* Lets call it over if its over */
+  g_mutex_lock (data->self->priv->sources_mutex);
   if (data->self->priv->stun_rtp_recv_id == 0 &&
     data->self->priv->stun_rtcp_recv_id == 0 ) {
+    g_mutex_unlock (data->self->priv->sources_mutex);
     fs_rawudp_stream_transmitter_finish_candidate_generation (data->self);
   } else {
     /* Lets remove this source from the list of sources to destroy */
@@ -698,11 +704,10 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
     if (source)  {
       guint id = g_source_get_id (source);
 
-      g_mutex_lock (data->self->priv->sources_mutex);
       data->self->priv->sources =
         g_list_remove (data->self->priv->sources, GUINT_TO_POINTER (id));
-      g_mutex_unlock (data->self->priv->sources_mutex);
     }
+    g_mutex_unlock (data->self->priv->sources_mutex);
   }
 
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (data->self,
@@ -764,14 +769,18 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
   }
 
   if (msg->type == STUN_MESSAGE_BINDING_ERROR_RESPONSE) {
+    fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+      FS_ERROR_NETWORK, "Got an error message from the STUN server",
+      "The STUN process produced an error");
     stun_message_free (msg);
-    fs_rawudp_stream_transmitter_stop_stun (self, component_id);
-    /* FIXME: Return local candidate */
+    // fs_rawudp_stream_transmitter_stop_stun (self, component_id);
+    /* Lets not stop the STUN now and wait for the timeout
+     * in case the server answers with the right reply
+     */
     return FALSE;
   }
 
   if (msg->type != STUN_MESSAGE_BINDING_RESPONSE) {
-    /* Some other stun message */
     stun_message_free (msg);
     return TRUE;
   }
@@ -808,7 +817,9 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     }
   }
 
+  g_mutex_lock (self->priv->sources_mutex);
   fs_rawudp_stream_transmitter_stop_stun (self, component_id);
+  g_mutex_unlock (self->priv->sources_mutex);
 
   if (candidate) {
     guint id;
@@ -829,6 +840,27 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 }
 
 static gboolean
+fs_rawudp_stream_transmitter_stun_timeout_cb (gpointer user_data)
+{
+  struct CandidateTransit *data = user_data;
+
+
+  g_mutex_lock (data->self->priv->sources_mutex);
+
+  fs_rawudp_stream_transmitter_stop_stun (data->self, data->component_id);
+
+  if (data->self->priv->stun_rtp_recv_id == 0 &&
+    data->self->priv->stun_rtcp_recv_id == 0 ) {
+    g_mutex_unlock (data->self->priv->sources_mutex);
+    fs_rawudp_stream_transmitter_finish_candidate_generation (data->self);
+  } else {
+    g_mutex_unlock (data->self->priv->sources_mutex);
+  }
+
+  return FALSE;
+}
+
+static gboolean
 fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   guint component_id, GError **error)
 {
@@ -841,6 +873,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   StunMessage *msg;
   gboolean ret = TRUE;
   UdpPort *udpport;
+  struct CandidateTransit *data;
 
   if (component_id == FS_COMPONENT_RTP)
     udpport = self->priv->rtp_udpport;
@@ -869,6 +902,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   address.sin_family = AF_INET;
   address.sin_port = htons (self->priv->stun_port);
 
+  g_mutex_lock (self->priv->sources_mutex);
   if (component_id == FS_COMPONENT_RTP)
     self->priv->stun_rtp_recv_id =
       fs_rawudp_transmitter_udpport_connect_recv (udpport,
@@ -877,6 +911,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
     self->priv->stun_rtcp_recv_id =
       fs_rawudp_transmitter_udpport_connect_recv (udpport,
         G_CALLBACK (fs_rawudp_stream_transmitter_stun_recv_cb), self);
+  g_mutex_unlock (self->priv->sources_mutex);
 
   msg = stun_message_new (STUN_MESSAGE_BINDING_REQUEST,
     self->priv->stun_cookie, 0);
@@ -897,9 +932,27 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   g_free (packed);
   stun_message_free (msg);
 
+  data = g_new0 (struct CandidateTransit, 1);
+  data->self = self;
+  data->component_id = component_id;
+
+  g_mutex_lock (data->self->priv->sources_mutex);
+  if (component_id == FS_COMPONENT_RTP)
+    self->priv->stun_rtp_timeout_id = g_timeout_add_seconds_full (
+        G_PRIORITY_DEFAULT,self->priv->stun_timeout,
+        fs_rawudp_stream_transmitter_stun_timeout_cb, data, g_free);
+  else if (component_id == FS_COMPONENT_RTCP)
+    self->priv->stun_rtcp_timeout_id = g_timeout_add_seconds_full (
+        G_PRIORITY_DEFAULT, self->priv->stun_timeout,
+        fs_rawudp_stream_transmitter_stun_timeout_cb, data, g_free);
+  g_mutex_unlock (data->self->priv->sources_mutex);
+
   return ret;
 }
 
+/*
+ * This function MUST be called with the sources_mutex held
+ */
 
 static void
 fs_rawudp_stream_transmitter_stop_stun (FsRawUdpStreamTransmitter *self,
@@ -911,12 +964,20 @@ fs_rawudp_stream_transmitter_stop_stun (FsRawUdpStreamTransmitter *self,
         self->priv->stun_rtp_recv_id);
       self->priv->stun_rtp_recv_id = 0;
     }
+    if (self->priv->stun_rtp_timeout_id) {
+      g_source_remove (self->priv->stun_rtp_timeout_id);
+      self->priv->stun_rtp_timeout_id = 0;
+    }
   }
   else if (component_id == FS_COMPONENT_RTCP) {
     if (self->priv->stun_rtcp_recv_id) {
       fs_rawudp_transmitter_udpport_disconnect_recv (self->priv->rtcp_udpport,
         self->priv->stun_rtcp_recv_id);
       self->priv->stun_rtcp_recv_id = 0;
+    }
+    if (self->priv->stun_rtcp_timeout_id) {
+      g_source_remove (self->priv->stun_rtcp_timeout_id);
+      self->priv->stun_rtcp_timeout_id = 0;
     }
   }
 }
