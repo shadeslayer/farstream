@@ -35,9 +35,12 @@
 
 #include <gst/gst.h>
 
+#include <gst/farsight/fs-transmitter.h>
+
 #include "fs-rtp-session.h"
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
+
 
 /* Signals */
 enum
@@ -68,6 +71,8 @@ struct _FsRtpSessionPrivate
    * This Session object can only exist while its parent conference exists
    */
   FsRtpConference *conference;
+
+  GHashTable *transmitters;
 
   /* We keep references to these elements
    */
@@ -132,6 +137,10 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
                                                FsCodec *send_codec,
                                                GError **error);
 
+
+static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
+    FsRtpSession *self, gchar *transmitter_name, FsParticipant *participant,
+    guint n_parameters, GParameter *parameters, GError **error);
 
 static GObjectClass *parent_class = NULL;
 
@@ -217,6 +226,30 @@ fs_rtp_session_init (FsRtpSession *self)
   self->priv = FS_RTP_SESSION_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
   self->priv->construction_error = NULL;
+
+  self->priv->transmitters = g_hash_table_new_full (g_str_hash, g_str_equal,
+    g_free, g_object_unref);
+}
+
+static gboolean
+_remove_transmitter (gpointer key, gpointer value, gpointer user_data)
+{
+  FsRtpSession *self = FS_RTP_SESSION (user_data);
+  FsTransmitter *transmitter = FS_TRANSMITTER (value);
+  GstElement *src, *sink;
+
+  g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
+
+  gst_bin_remove (GST_BIN (self->priv->conference), src);
+  gst_element_set_state (src, GST_STATE_NULL);
+
+  gst_bin_remove (GST_BIN (self->priv->conference), sink);
+  gst_element_set_state (sink, GST_STATE_NULL);
+
+  gst_object_unref (src);
+  gst_object_unref (sink);
+
+  return TRUE;
 }
 
 static void
@@ -281,6 +314,14 @@ fs_rtp_session_dispose (GObject *object)
     gst_element_set_state (self->priv->transmitter_rtcp_funnel, GST_STATE_NULL);
     gst_object_unref (self->priv->transmitter_rtcp_funnel);
     self->priv->transmitter_rtcp_funnel = NULL;
+  }
+
+  if (self->priv->transmitters) {
+    g_hash_table_foreach_remove (self->priv->transmitters, _remove_transmitter,
+      self);
+
+    g_hash_table_destroy (self->priv->transmitters);
+    self->priv->transmitters = NULL;
   }
 
   /* MAKE sure dispose does not run twice. */
@@ -573,12 +614,13 @@ fs_rtp_session_constructed (GObject *object)
 static FsStream *
 fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
                            FsStreamDirection direction, gchar *transmitter,
-                           guint g_parameters, GParameter *parameters,
+                           guint n_parameters, GParameter *parameters,
                            GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
   FsRtpParticipant *rtpparticipant = NULL;
   FsStream *new_stream = NULL;
+  FsStreamTransmitter *st;
 
   if (!FS_IS_RTP_PARTICIPANT (participant)) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -587,8 +629,14 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
   }
   rtpparticipant = FS_RTP_PARTICIPANT (participant);
 
+  st = fs_rtp_session_get_new_stream_transmitter (self, transmitter,
+    participant, n_parameters, parameters, error);
+
+  if (!st)
+    return NULL;
+
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
-                                                  direction, NULL));
+      direction, st));
 
   return new_stream;
 }
@@ -748,4 +796,124 @@ fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
 
   gst_object_unref (transmitter_rtcp_tee_sink_pad);
 
+}
+
+static gboolean
+_get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
+  GstElement *sinksrc, const gchar *sinksrc_padname, GstPadDirection direction,
+  GError **error)
+{
+  GstPad *requestpad = NULL;
+  GstPad *transpad = NULL;
+  GstPadLinkReturn ret;
+  gchar *requestpad_name = (direction == GST_PAD_SINK) ? "src%d" : "sink%d";
+
+  /* The transmitter will only be removed when the whole session is disposed,
+   * then the
+   */
+  requestpad = gst_element_get_request_pad (tee_funnel, requestpad_name);
+
+
+  if (!requestpad) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Can not get the %s pad from the transmitter %s element",
+      requestpad_name, tee_funnel_name);
+    goto error;
+  }
+
+  transpad = gst_element_get_static_pad (sinksrc, sinksrc_padname);
+
+  if (direction == GST_PAD_SINK)
+    ret = gst_pad_link (requestpad, transpad);
+  else
+    ret = gst_pad_link (transpad, requestpad);
+
+  gst_object_unref (transpad);
+
+  if (GST_PAD_LINK_FAILED(ret)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Can not link the %s to the transmitter %s", tee_funnel_name,
+      (direction == GST_PAD_SINK) ? "sink" : "src");
+    goto error;
+  }
+
+  return TRUE;
+
+ error:
+  if (requestpad)
+    gst_element_release_request_pad (tee_funnel, requestpad);
+
+  return FALSE;
+}
+
+static FsStreamTransmitter *
+fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
+  gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
+  GParameter *parameters, GError **error)
+{
+  FsTransmitter *transmitter;
+  GstElement *src, *sink;
+
+  transmitter = g_hash_table_lookup (self->priv->transmitters,
+    transmitter_name);
+
+  if (transmitter) {
+    return fs_transmitter_new_stream_transmitter (transmitter, participant,
+      n_parameters, parameters, error);
+  }
+
+  transmitter = fs_transmitter_new (transmitter_name, 2, error);
+  if (!transmitter)
+    return NULL;
+
+  g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
+
+  if(!gst_bin_add (GST_BIN (self->priv->conference), sink)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not add the transmitter sink for %s to the conference",
+      transmitter_name);
+    goto error;
+  }
+
+  if(!gst_bin_add (GST_BIN (self->priv->conference), src)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not add the transmitter src for %s to the conference",
+      transmitter_name);
+    goto error;
+  }
+
+  if(!_get_request_pad_and_link (self->priv->transmitter_rtp_tee,
+      "rtp tee", sink, "sink1", GST_PAD_SINK, error))
+    goto error;
+
+  if(!_get_request_pad_and_link (self->priv->transmitter_rtcp_tee,
+      "rtcp tee", sink, "sink2", GST_PAD_SINK, error))
+    goto error;
+
+  if(!_get_request_pad_and_link (self->priv->transmitter_rtp_funnel,
+      "rtp funnel", src, "src1", GST_PAD_SRC, error))
+    goto error;
+
+  if(!_get_request_pad_and_link (self->priv->transmitter_rtcp_funnel,
+      "rtcp funnel", src, "src2", GST_PAD_SRC, error))
+    goto error;
+
+  g_hash_table_insert (self->priv->transmitters, g_strdup (transmitter_name),
+    transmitter);
+
+  gst_object_unref (src);
+  gst_object_unref (sink);
+
+  return fs_transmitter_new_stream_transmitter (transmitter, participant,
+    n_parameters, parameters, error);
+
+ error:
+  if (src)
+    gst_object_unref (src);
+  if (sink)
+    gst_object_unref (sink);
+  if (transmitter)
+    g_object_unref (transmitter);
+
+  return NULL;
 }
