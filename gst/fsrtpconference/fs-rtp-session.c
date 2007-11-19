@@ -90,7 +90,6 @@ struct _FsRtpSessionPrivate
 
   /* Request pad to release on dispose */
   GstPad *rtpbin_send_rtp_sink;
-  GstPad *rtpbin_send_rtcp_sink;
   GstPad *rtpbin_send_rtcp_src;
 
   GstPad *rtpbin_recv_rtp_sink;
