@@ -73,7 +73,8 @@ GType fs_rtp_stream_get_type (void);
 FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
                                 FsRtpParticipant *participant,
                                 FsStreamDirection direction,
-                                FsStreamTransmitter *stream_transmitter);
+                                FsStreamTransmitter *stream_transmitter,
+                                GError **error);
 
 void fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt);
 

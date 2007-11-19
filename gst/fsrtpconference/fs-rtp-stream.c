@@ -67,6 +67,8 @@ struct _FsRtpStreamPrivate
 
   FsStreamDirection direction;
 
+  GError *construction_error;
+
   gboolean disposed;
 };
 
@@ -320,11 +322,8 @@ fs_rtp_stream_constructed (GObject *object)
   FsRtpStream *self = FS_RTP_STREAM_CAST (object);
 
   if (!self->priv->stream_transmitter) {
-    /* FIXME
-    g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "The Stream Transmitter has not been set");
-    */
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "The Stream Transmitter has not been set");
     return;
   }
 
@@ -462,14 +461,23 @@ FsRtpStream *
 fs_rtp_stream_new (FsRtpSession *session,
                    FsRtpParticipant *participant,
                    FsStreamDirection direction,
-                   FsStreamTransmitter *stream_transmitter)
+                   FsStreamTransmitter *stream_transmitter,
+                   GError **error)
 {
-  return g_object_new (FS_TYPE_RTP_STREAM,
-                       "session", session,
-                       "participant", participant,
-                       "direction", direction,
-                       "stream-transmitter", stream_transmitter,
-                       NULL);
+  FsRtpStream *self = g_object_new (FS_TYPE_RTP_STREAM,
+    "session", session,
+    "participant", participant,
+    "direction", direction,
+    "stream-transmitter", stream_transmitter,
+    NULL);
+
+  if (self->priv->construction_error) {
+    g_propagate_error (error, self->priv->construction_error);
+    g_object_unref (self);
+    return NULL;
+  }
+
+  return self;
 }
 
 

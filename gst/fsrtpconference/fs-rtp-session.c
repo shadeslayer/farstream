@@ -636,7 +636,7 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
     return NULL;
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
-      direction, st));
+      direction, st, error));
 
   return new_stream;
 }
