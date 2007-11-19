@@ -562,6 +562,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   } else {
     guint id;
     id = g_idle_add (fs_rawudp_stream_transmitter_no_stun, self);
+    g_assert (id);
     g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_prepend (self->priv->sources,
       GUINT_TO_POINTER(id));
@@ -836,6 +837,7 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     data->candidate = candidate;
     data->component_id = component_id;
     id = g_idle_add (fs_rawudp_stream_transmitter_emit_stun_candidate, data);
+    g_assert (id);
     g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_prepend (self->priv->sources,
       GUINT_TO_POINTER(id));
@@ -935,9 +937,17 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   data->component_id = component_id;
 
   g_mutex_lock (data->self->priv->sources_mutex);
+  /*
+   * This is broken in GLib 2.14
   self->priv->stun_timeout_id[component_id] = g_timeout_add_seconds_full (
       G_PRIORITY_DEFAULT, self->priv->stun_timeout,
       fs_rawudp_stream_transmitter_stun_timeout_cb, data, g_free);
+  */
+  self->priv->stun_timeout_id[component_id] = g_timeout_add_full (
+      G_PRIORITY_DEFAULT, self->priv->stun_timeout * 1000,
+      fs_rawudp_stream_transmitter_stun_timeout_cb, data, g_free);
+
+  g_assert (self->priv->stun_timeout_id[component_id]);
   g_mutex_unlock (data->self->priv->sources_mutex);
 
   return ret;
