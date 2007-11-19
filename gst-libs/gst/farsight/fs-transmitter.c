@@ -60,6 +60,7 @@ enum
   PROP_0,
   PROP_GST_SINK,
   PROP_GST_SRC,
+  PROP_COMPONENTS
 };
 
 struct _FsTransmitterPrivate
@@ -129,8 +130,10 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
    * FsTransmitter:gst-src:
    *
    * A network source #GstElement to be used by the #FsSession
-   * This element MUST provide a "src" pad and MAY provide a "rtcpsrc" pad
-   * to be used for RTCP. Both of these pads MUST be static pads.
+   * This element MUST provide a source pad named "src%d" per component.
+   * These pads number must start at 1 (the %d corresponds to the component
+   * number).
+   * These pads MUST be static pads.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -145,10 +148,10 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
    * FsTransmitter:gst-sink:
    *
    * A network source #GstElement to be used by the #FsSession
-   * This element MUST provide a "sink" pad and MAY provide a "rtcpsink" pad
-   * to be used for RTCP. Both of these pads MUST be static pads.
-   * This element MUST NOT block on state changes, etc and should therefore
-   * contain of a queue or something similar, or have "async=FALSE" for rtcp
+   * This element MUST provide a pad named "sink\%d" per component.
+   * These pads number must start at 1 (the \%d corresponds to the component
+   * number).
+   * These pads MUST be static pads.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -158,6 +161,19 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         "A source GstElement to be used by a FsSession",
         GST_TYPE_ELEMENT,
         G_PARAM_READABLE));
+
+  /**
+   * FsTransmitter:components:
+   *
+   * The number of components to create
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_COMPONENTS,
+      g_param_spec_uint ("components",
+        "Number of componnets",
+        "The number of components to create",
+        1, 255, 1,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**
    * FsTransmitter::error:
