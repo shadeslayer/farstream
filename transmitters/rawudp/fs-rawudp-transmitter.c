@@ -71,12 +71,11 @@ struct _FsRawUdpTransmitterPrivate
 
   /* We don't hold a reference to these elements, they are owned
      by the bins */
-  /* They are tables of elements, one per component */
+  /* They are tables of pointers, one per component */
   GstElement **udpsrc_funnels;
   GstElement **udpsink_tees;
 
-  GList *rtp_udpports;
-  GList *rtcp_udpports;
+  GList **udpports;
 
   gboolean disposed;
 };
@@ -185,8 +184,9 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->components = 2;
 
   /* We waste one space in order to have the index be the component_id */
-  self->priv->udpsrc_funnels = g_new0 (GstElement*, self->components+1);
-  self->priv->udpsink_tees = g_new0 (GstElement*, self->components+1);
+  self->priv->udpsrc_funnels = g_new0 (GstElement *, self->components+1);
+  self->priv->udpsink_tees = g_new0 (GstElement *, self->components+1);
+  self->priv->udpports = g_new0 (GList *, self->components+1);
 
   /* First we need the src elemnet */
 
@@ -316,6 +316,11 @@ fs_rawudp_transmitter_finalize (GObject *object)
   if (self->priv->udpsink_tees) {
     g_free (self->priv->udpsink_tees);
     self->priv->udpsink_tees = NULL;
+  }
+
+  if (self->priv->udpports) {
+    g_free (self->priv->udpports);
+    self->priv->udpports = NULL;
   }
 
   parent_class->finalize (object);
@@ -553,18 +558,14 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   GList *udpport_e;
 
   /* First lets check if we already have one */
-
-  if (component_id == FS_COMPONENT_RTP)
-    udpport_e = g_list_first (trans->priv->rtp_udpports);
-  else if (component_id == FS_COMPONENT_RTCP)
-    udpport_e = g_list_first (trans->priv->rtcp_udpports);
-  else {
+  if (component_id > trans->components) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "Invalid component %d", component_id);
+      "Invalid component %d > %d", component_id, trans->components);
     return NULL;
   }
 
-  for (; udpport_e;
+  for (udpport_e = g_list_first (trans->priv->udpports[component_id]);
+       udpport_e;
        udpport_e = g_list_next (udpport_e)) {
     udpport = udpport_e->data;
     if (requested_port == udpport->requested_port &&
@@ -609,12 +610,8 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   g_object_set (udpport->udpsink, "async", FALSE, NULL);
 
-  if (component_id == FS_COMPONENT_RTP)
-    trans->priv->rtp_udpports = g_list_prepend (trans->priv->rtp_udpports,
-      udpport);
-  else if (component_id == FS_COMPONENT_RTCP)
-    trans->priv->rtcp_udpports = g_list_prepend (trans->priv->rtcp_udpports,
-      udpport);
+  trans->priv->udpports[component_id] =
+    g_list_prepend (trans->priv->udpports[component_id], udpport);
 
   return udpport;
 
@@ -633,12 +630,8 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
     return;
   }
 
-  if (udpport->component_id == FS_COMPONENT_RTP)
-    trans->priv->rtp_udpports = g_list_remove (trans->priv->rtp_udpports,
-      udpport);
-  else if (udpport->component_id == FS_COMPONENT_RTCP)
-    trans->priv->rtcp_udpports = g_list_remove (trans->priv->rtcp_udpports,
-      udpport);
+  trans->priv->udpports[udpport->component_id] =
+    g_list_remove (trans->priv->udpports[udpport->component_id], udpport);
 
   if (udpport->udpsrc) {
     GstStateChangeReturn ret;
