@@ -33,7 +33,7 @@ GST_START_TEST (test_fstransmitter_new_fail)
   GError *error = NULL;
   FsTransmitter *transmitter = NULL;
 
-  transmitter = fs_transmitter_new ("invalidname", &error);
+  transmitter = fs_transmitter_new ("invalidname", 1,  &error);
 
   fail_if (transmitter);
 

@@ -50,7 +50,7 @@ GST_START_TEST (test_rawudptransmitter_new)
   GstElement *pipeline;
   GstElement *trans_sink, *trans_src;
 
-  trans = fs_transmitter_new ("rawudp", &error);
+  trans = fs_transmitter_new ("rawudp", 2, &error);
 
   if (error) {
     fail("Error creating transmitter: (%s:%d) %s",
@@ -229,7 +229,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   GstElement *trans_sink, *trans_src;
 
   loop = g_main_loop_new (NULL, FALSE);
-  trans = fs_transmitter_new ("rawudp", &error);
+  trans = fs_transmitter_new ("rawudp", 2, &error);
 
   if (error) {
     fail("Error creating transmitter: (%s:%d) %s",

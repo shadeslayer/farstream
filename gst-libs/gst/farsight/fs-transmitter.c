@@ -287,6 +287,7 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 /**
  * fs_transmitter_new:
  * @type: The type of transmitter to create
+ * @components: The number of components to create
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function creates a new transmitter of the requested type.
@@ -297,14 +298,14 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
  */
 
 FsTransmitter *
-fs_transmitter_new (gchar *type, GError **error)
+fs_transmitter_new (gchar *type, guint components, GError **error)
 {
   FsTransmitter *self = NULL;
 
   g_return_val_if_fail (type != NULL, NULL);
 
-  self = FS_TRANSMITTER(fs_plugin_create_valist(type, "transmitter", error,
-      NULL, NULL));
+  self = FS_TRANSMITTER(fs_plugin_create(type, "transmitter", error,
+      "components", components, NULL));
 
   if (!self)
     return NULL;
