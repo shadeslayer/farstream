@@ -60,7 +60,8 @@ enum
 {
   PROP_0,
   PROP_GST_SINK,
-  PROP_GST_SRC
+  PROP_GST_SRC,
+  PROP_COMPONENTS
 };
 
 struct _FsRawUdpTransmitterPrivate
@@ -86,6 +87,7 @@ struct _FsRawUdpTransmitterPrivate
 
 static void fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass);
 static void fs_rawudp_transmitter_init (FsRawUdpTransmitter *self);
+static void fs_rawudp_transmitter_constructed (GObject *object);
 static void fs_rawudp_transmitter_dispose (GObject *object);
 static void fs_rawudp_transmitter_finalize (GObject *object);
 
@@ -157,8 +159,12 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
   gobject_class->set_property = fs_rawudp_transmitter_set_property;
   gobject_class->get_property = fs_rawudp_transmitter_get_property;
 
+  gobject_class->constructed = fs_rawudp_transmitter_constructed;
+
   g_object_class_override_property (gobject_class, PROP_GST_SRC, "gst-src");
   g_object_class_override_property (gobject_class, PROP_GST_SINK, "gst-sink");
+  g_object_class_override_property (gobject_class, PROP_COMPONENTS,
+    "components");
 
   transmitter_class->new_stream_transmitter =
     fs_rawudp_transmitter_new_stream_transmitter;
@@ -172,16 +178,24 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
 static void
 fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 {
-  FsTransmitter *trans = FS_TRANSMITTER_CAST (self);
-  GstPad *pad = NULL;
-  GstPad *ghostpad = NULL;
-  int c; /* component_id */
 
   /* member init */
   self->priv = FS_RAWUDP_TRANSMITTER_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
 
   self->components = 2;
+}
+
+static void
+fs_rawudp_transmitter_constructed (GObject *object)
+{
+  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER_CAST (object);
+  FsTransmitter *trans = FS_TRANSMITTER_CAST (self);
+  GstPad *pad = NULL;
+  GstPad *ghostpad = NULL;
+  gchar *padname;
+  int c; /* component_id */
+
 
   /* We waste one space in order to have the index be the component_id */
   self->priv->udpsrc_funnels = g_new0 (GstElement *, self->components+1);
@@ -236,10 +250,9 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
     }
 
     pad = gst_element_get_static_pad (self->priv->udpsrc_funnels[c], "src");
-    if (c == FS_COMPONENT_RTP)
-      ghostpad = gst_ghost_pad_new ("src", pad);
-    else if (c == FS_COMPONENT_RTCP)
-      ghostpad = gst_ghost_pad_new ("rtcpsrc", pad);
+    padname = g_strdup_printf ("src%d", c);
+    ghostpad = gst_ghost_pad_new (padname, pad);
+    g_free (padname);
     gst_object_unref (pad);
 
     gst_pad_set_active (ghostpad, TRUE);
@@ -265,10 +278,9 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
     }
 
     pad = gst_element_get_static_pad (self->priv->udpsink_tees[c], "sink");
-    if (c == FS_COMPONENT_RTP)
-      ghostpad = gst_ghost_pad_new ("sink", pad);
-    else if (c == FS_COMPONENT_RTCP)
-      ghostpad = gst_ghost_pad_new ("rtcpsink", pad);
+    padname = g_strdup_printf ("sink%d", c);
+    ghostpad = gst_ghost_pad_new (padname, pad);
+    g_free (padname);
     gst_object_unref (pad);
 
     gst_pad_set_active (ghostpad, TRUE);
@@ -353,6 +365,16 @@ fs_rawudp_transmitter_set_property (GObject *object,
                                     const GValue *value,
                                     GParamSpec *pspec)
 {
+  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+
+  switch (prop_id) {
+    case PROP_COMPONENTS:
+      self->components = g_value_get_uint (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 

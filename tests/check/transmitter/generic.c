@@ -51,6 +51,7 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
 {
   GstElement *src;
   GstElement *trans_sink;
+  gchar *padname;
 
   src = gst_element_factory_make ("fakesrc", NULL);
   g_object_set (src, "num-buffers", 20, "sizetype", 2, "sizemax",
@@ -61,10 +62,10 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
 
   g_object_get (trans, "gst-sink", &trans_sink, NULL);
 
-  fail_unless (gst_element_link_pads (src, "src", trans_sink,
-      (component_id == 1) ? "sink": "rtcpsink"),
-    "Could not link the fakesrc to %s",
-    (component_id == 1) ? "sink": "rtcpsink");
+  padname = g_strdup_printf ("sink%d", component_id);
+  fail_unless (gst_element_link_pads (src, "src", trans_sink, padname),
+    "Could not link the fakesrc to %s", padname);
+  g_free (padname);
 
   fail_if (gst_element_set_state (src, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the fakesrc to playing");
@@ -104,10 +105,10 @@ setup_pipeline (FsTransmitter *trans, GCallback cb)
   gst_bin_add_many (GST_BIN (pipeline), rtpfakesink, rtcpfakesink,
     trans_sink, trans_src, NULL);
 
-  fail_unless (gst_element_link_pads (trans_src, "src",
+  fail_unless (gst_element_link_pads (trans_src, "src1",
       rtpfakesink, "sink"),
     "Coult not link transmitter src and fakesink");
-  fail_unless (gst_element_link_pads (trans_src, "rtcpsrc",
+  fail_unless (gst_element_link_pads (trans_src, "src2",
       rtcpfakesink, "sink"),
     "Coult not link transmitter src and fakesink");
 
