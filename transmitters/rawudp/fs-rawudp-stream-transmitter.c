@@ -84,9 +84,7 @@ struct _FsRawUdpStreamTransmitterPrivate
   FsCandidate **remote_candidate;
 
   FsCandidate **local_forced_candidate;
-
-  FsCandidate *local_stun_rtp_candidate;
-  FsCandidate *local_stun_rtcp_candidate;
+  FsCandidate **local_stun_candidate;
 
   FsCandidate *local_active_rtp_candidate;
   FsCandidate *local_active_rtcp_candidate;
@@ -334,14 +332,13 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     }
   }
 
-  if (self->priv->local_stun_rtp_candidate) {
-    fs_candidate_destroy (self->priv->local_stun_rtp_candidate);
-    self->priv->local_stun_rtp_candidate = NULL;
-  }
-
-  if (self->priv->local_stun_rtcp_candidate) {
-    fs_candidate_destroy (self->priv->local_stun_rtcp_candidate);
-    self->priv->local_stun_rtcp_candidate = NULL;
+  if (self->priv->local_stun_candidate) {
+    for (c = 1; c <= self->priv->transmitter->components; c++) {
+      if (self->priv->local_stun_candidate[c]) {
+        fs_candidate_destroy (self->priv->local_stun_candidate[c]);
+        self->priv->local_stun_candidate[c] = NULL;
+      }
+    }
   }
 
   if (self->priv->local_active_rtp_candidate) {
@@ -461,6 +458,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   self->priv->remote_candidate = g_new0 (FsCandidate *,
     self->priv->transmitter->components + 1);
   self->priv->local_forced_candidate = g_new0 (FsCandidate *,
+    self->priv->transmitter->components + 1);
+  self->priv->local_stun_candidate = g_new0 (FsCandidate *,
     self->priv->transmitter->components + 1);
 
   for (item = g_list_first (self->priv->prefered_local_candidates);
@@ -659,11 +658,13 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
   struct CandidateTransit *data = user_data;
 
   if (data->component_id == FS_COMPONENT_RTP) {
-    data->self->priv->local_stun_rtp_candidate = data->candidate;
+    data->self->priv->local_stun_candidate[data->component_id] =
+      data->candidate;
     data->self->priv->local_active_rtp_candidate =
       fs_candidate_copy (data->candidate);
   } else if (data->component_id == FS_COMPONENT_RTCP) {
-    data->self->priv->local_stun_rtcp_candidate = data->candidate;
+    data->self->priv->local_stun_candidate[data->component_id] =
+      data->candidate;
     data->self->priv->local_active_rtcp_candidate =
       fs_candidate_copy (data->candidate);
   }
