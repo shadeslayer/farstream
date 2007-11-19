@@ -119,6 +119,8 @@ static FsStream *fs_rtp_session_new_stream (FsSession *session,
                                             FsParticipant *participant,
                                             FsStreamDirection direction,
                                             gchar *transmitter,
+                                            guint n_parameters,
+                                            GParameter *parameters,
                                             GError **error);
 static gboolean fs_rtp_session_start_telephony_event (FsSession *session,
                                                       guint8 event,
@@ -571,6 +573,7 @@ fs_rtp_session_constructed (GObject *object)
 static FsStream *
 fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
                            FsStreamDirection direction, gchar *transmitter,
+                           guint g_parameters, GParameter *parameters,
                            GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);

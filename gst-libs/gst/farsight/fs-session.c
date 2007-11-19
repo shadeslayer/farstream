@@ -407,6 +407,9 @@ _remove_stream_ptr (FsSession *session, FsStream *stream)
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
  * @transmitter: Name of the type of transmitter to use for this session
+ * @n_parameters: Number of parametrs passed to the stream transmitter
+ * @parameters: an array of n_parameters #GParameter struct that will be passed
+ *   to the newly-create #FsStreamTransmitter
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function creates a stream for the given participant into the active session.
@@ -417,6 +420,7 @@ _remove_stream_ptr (FsSession *session, FsStream *stream)
 FsStream *
 fs_session_new_stream (FsSession *session, FsParticipant *participant,
                        FsStreamDirection direction, gchar *transmitter,
+                       guint n_parameters, GParameter *parameters,
                        GError **error)
 {
   FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
@@ -426,7 +430,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
 
   if (klass->new_stream) {
     new_stream = klass->new_stream (session, participant, direction,
-                                    transmitter, error);
+      transmitter, n_parameters, parameters, error);
 
     if (!new_stream)
       return NULL;
