@@ -83,6 +83,8 @@ struct _FsRtpSessionPrivate
   GstElement *transmitter_rtp_funnel;
   GstElement *transmitter_rtcp_funnel;
 
+  GstElement *rtpmuxer;
+
   /* We dont keep explicit references to the pads, the Bin does that for us
    * only this element's methods can add/remote it
    */
@@ -269,6 +271,14 @@ fs_rtp_session_dispose (GObject *object)
     self->priv->media_sink_valve = NULL;
   }
 
+  if (self->priv->rtpmuxer) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->rtpmuxer);
+    gst_element_set_state (self->priv->rtpmuxer, GST_STATE_NULL);
+    gst_object_unref (self->priv->rtpmuxer);
+    self->priv->rtpmuxer = NULL;
+ }
+
   if (self->priv->media_sink_pad) {
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
     gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
@@ -393,8 +403,10 @@ fs_rtp_session_constructed (GObject *object)
   GstElement *valve = NULL;
   GstElement *tee = NULL;
   GstElement *funnel = NULL;
+  GstElement *muxer = NULL;
   GstPad *valve_sink_pad = NULL;
   GstPad *funnel_src_pad = NULL;
+  GstPad *muxer_src_pad = NULL;
   GstPadLinkReturn ret;
   gchar *tmp;
 
@@ -593,6 +605,55 @@ fs_rtp_session_constructed (GObject *object)
   gst_object_unref (funnel_src_pad);
 
   gst_element_set_state (funnel, GST_STATE_PLAYING);
+
+  /* Lets now create the RTP muxer */
+
+  tmp = g_strdup_printf ("send_rtp_muxer_%d", self->priv->id);
+  muxer = gst_element_factory_make ("rtpmuxer", tmp);
+  g_free (tmp);
+
+  if (!muxer) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not create the rtp muxer element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), muxer)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not add the rtp muxer element to the FsRtpConference");
+    gst_object_unref (muxer);
+    return;
+  }
+
+  self->priv->rtpmuxer = gst_object_ref (muxer);
+
+  tmp = g_strdup_printf ("send_rtp_sink_%u", self->priv->id);
+  self->priv->rtpbin_send_rtp_sink =
+    gst_element_get_request_pad (self->priv->conference->gstrtpbin,
+      tmp);
+  g_free (tmp);
+
+  muxer_src_pad = gst_element_get_static_pad (muxer, "src");
+
+  ret = gst_pad_link (muxer_src_pad, self->priv->rtpbin_send_rtp_sink);
+
+  if (GST_PAD_LINK_FAILED (ret)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not link pad %s (%p) with pad %s (%p)",
+      GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (muxer_src_pad),
+      GST_PAD_NAME (self->priv->rtpbin_send_rtp_sink),
+      GST_PAD_CAPS (self->priv->rtpbin_send_rtp_sink));
+
+    gst_object_unref (muxer_src_pad);
+    return;
+  }
+
+  gst_object_unref (muxer_src_pad);
+
+  gst_element_set_state (muxer, GST_STATE_PLAYING);
 }
 
 
