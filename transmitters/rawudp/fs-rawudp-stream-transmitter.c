@@ -610,9 +610,10 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
     return FALSE;
   }
 
-  if (candidate->component_id > self->priv->transmitter->components) {
+  if (candidate->component_id == 0 ||
+    candidate->component_id > self->priv->transmitter->components) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "The candidate passed has has an invalid component id %u (> %u)",
+      "The candidate passed has has an invalid component id %u (not in [0,%u])",
       candidate->component_id, self->priv->transmitter->components);
     return FALSE;
   }
