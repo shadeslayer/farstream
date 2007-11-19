@@ -148,6 +148,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
    * FsTransmitter:gst-sink:
    *
    * A network source #GstElement to be used by the #FsSession
+   * These element's sink must have async=FALSE
    * This element MUST provide a pad named "sink\%d" per component.
    * These pads number must start at 1 (the \%d corresponds to the component
    * number).
