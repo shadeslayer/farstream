@@ -121,8 +121,7 @@ static void fs_rtp_stream_new_local_candidate (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate,
     gpointer user_data);
-static void
-fs_rtp_stream_transmitter_error (
+static void fs_rtp_stream_transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
