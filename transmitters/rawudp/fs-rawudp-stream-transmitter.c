@@ -81,12 +81,11 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   gboolean sending;
 
-  FsCandidate *remote_rtp_candidate;
-  FsCandidate *remote_rtcp_candidate;
+  FsCandidate **remote_candidate;
 
   FsCandidate *local_forced_rtp_candidate;
-  FsCandidate *local_forced_rtcp_candidate
-;
+  FsCandidate *local_forced_rtcp_candidate;
+
   FsCandidate *local_stun_rtp_candidate;
   FsCandidate *local_stun_rtcp_candidate;
 
@@ -300,23 +299,18 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->prefered_local_candidates = NULL;
   }
 
-  if (self->priv->remote_rtp_candidate) {
-    if (self->priv->sending)
-      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[1],
-        self->priv->remote_rtp_candidate->ip,
-        self->priv->remote_rtp_candidate->port);
-    fs_candidate_destroy (self->priv->remote_rtp_candidate);
-    self->priv->remote_rtp_candidate = NULL;
-  }
-
-  if (self->priv->remote_rtcp_candidate) {
-    if (self->priv->sending) {
-      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[2],
-        self->priv->remote_rtcp_candidate->ip,
-        self->priv->remote_rtcp_candidate->port);
+  if (self->priv->remote_candidate) {
+    for (c = 1; c <= self->priv->transmitter->components; c++) {
+      if (self->priv->sending)
+        fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[c],
+        self->priv->remote_candidate[c]->ip,
+        self->priv->remote_candidate[c]->port);
+      fs_candidate_destroy (self->priv->remote_candidate[c]);
+      self->priv->remote_candidate[c] = NULL;
     }
-    fs_candidate_destroy (self->priv->remote_rtcp_candidate);
-    self->priv->remote_rtcp_candidate = NULL;
+
+    g_free (self->priv->remote_candidate);
+    self->priv->remote_candidate = NULL;
   }
 
   if (self->priv->udpports) {
@@ -412,36 +406,27 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
     case PROP_SENDING:
       {
         gboolean old_sending = self->priv->sending;
+        gint c;
+
         self->priv->sending = g_value_get_boolean (value);
 
         if (self->priv->sending != old_sending) {
           if (self->priv->sending) {
 
-            if (self->priv->remote_rtp_candidate)
-              fs_rawudp_transmitter_udpport_add_dest (
-                  self->priv->udpports[1],
-                  self->priv->remote_rtp_candidate->ip,
-                  self->priv->remote_rtp_candidate->port);
-
-            if (self->priv->remote_rtcp_candidate)
-              fs_rawudp_transmitter_udpport_add_dest (
-                  self->priv->udpports[2],
-                  self->priv->remote_rtcp_candidate->ip,
-                  self->priv->remote_rtcp_candidate->port);
-
+            for (c = 1; c <= self->priv->transmitter->components; c++)
+              if (self->priv->remote_candidate[c])
+                fs_rawudp_transmitter_udpport_add_dest (
+                    self->priv->udpports[c],
+                    self->priv->remote_candidate[c]->ip,
+                    self->priv->remote_candidate[c]->port);
           } else {
 
-            if (self->priv->remote_rtp_candidate)
-              fs_rawudp_transmitter_udpport_remove_dest (
-                  self->priv->udpports[1],
-                self->priv->remote_rtp_candidate->ip,
-                self->priv->remote_rtp_candidate->port);
-
-            if (self->priv->remote_rtcp_candidate)
-              fs_rawudp_transmitter_udpport_remove_dest (
-                  self->priv->udpports[2],
-                  self->priv->remote_rtcp_candidate->ip,
-                  self->priv->remote_rtcp_candidate->port);
+            for (c = 1; c <= self->priv->transmitter->components; c++)
+              if (self->priv->remote_candidate[c])
+                fs_rawudp_transmitter_udpport_remove_dest (
+                    self->priv->udpports[c],
+                    self->priv->remote_candidate[c]->ip,
+                    self->priv->remote_candidate[c]->port);
           }
         }
       }
@@ -474,6 +459,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   GList *item;
 
   self->priv->udpports = g_new0 (UdpPort *,
+    self->priv->transmitter->components + 1);
+  self->priv->remote_candidate = g_new0 (FsCandidate *,
     self->priv->transmitter->components + 1);
 
   for (item = g_list_first (self->priv->prefered_local_candidates);
@@ -601,50 +588,32 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
     return FALSE;
   }
 
+  if (candidate->component_id > self->priv->transmitter->components) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "The candidate passed has has an invalid component id %u (> %u)",
+      candidate->component_id, self->priv->transmitter->components);
+    return FALSE;
+  }
+
   /*
    * IMPROVE ME: We should probably check that the candidate's IP
    *  has the format x.x.x.x where x is [0,255] using GRegex, etc
    */
-
-  switch (candidate->component_id) {
-    case FS_COMPONENT_RTP:
-      if (self->priv->sending) {
-        fs_rawudp_transmitter_udpport_add_dest (
-            self->priv->udpports[candidate->component_id],
-            candidate->ip, candidate->port);
-      }
-      if (self->priv->remote_rtp_candidate) {
-        fs_rawudp_transmitter_udpport_remove_dest (
-            self->priv->udpports[candidate->component_id],
-            self->priv->remote_rtp_candidate->ip,
-            self->priv->remote_rtp_candidate->port);
-        fs_candidate_destroy (self->priv->remote_rtp_candidate);
-      }
-      self->priv->remote_rtp_candidate = fs_candidate_copy (candidate);
-      break;
-
-    case FS_COMPONENT_RTCP:
-      if (self->priv->sending) {
-        fs_rawudp_transmitter_udpport_add_dest (
-            self->priv->udpports[candidate->component_id],
-            candidate->ip, candidate->port);
-      }
-      if (self->priv->remote_rtcp_candidate) {
-        fs_rawudp_transmitter_udpport_remove_dest (
-            self->priv->udpports[candidate->component_id],
-            self->priv->remote_rtcp_candidate->ip,
-            self->priv->remote_rtcp_candidate->port);
-        fs_candidate_destroy (self->priv->remote_rtcp_candidate);
-      }
-      self->priv->remote_rtcp_candidate = fs_candidate_copy (candidate);
-      break;
-
-    default:
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Only components 1 and 2 are supported, %d isn't",
-        candidate->component_id);
-      return FALSE;
+  if (self->priv->sending) {
+    fs_rawudp_transmitter_udpport_add_dest (
+        self->priv->udpports[candidate->component_id],
+        candidate->ip, candidate->port);
   }
+  if (self->priv->remote_candidate[candidate->component_id]) {
+    fs_rawudp_transmitter_udpport_remove_dest (
+        self->priv->udpports[candidate->component_id],
+        self->priv->remote_candidate[candidate->component_id]->ip,
+        self->priv->remote_candidate[candidate->component_id]->port);
+    fs_candidate_destroy (
+        self->priv->remote_candidate[candidate->component_id]);
+  }
+  self->priv->remote_candidate[candidate->component_id] =
+    fs_candidate_copy (candidate);
 
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
     candidate->component_id);
@@ -1144,18 +1113,18 @@ fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
   switch (component_id) {
     case FS_COMPONENT_RTP:
       if (self->priv->local_active_rtp_candidate &&
-        self->priv->remote_rtp_candidate) {
+        self->priv->remote_candidate[component_id]) {
         g_signal_emit_by_name (self, "new-active-candidate-pair",
           self->priv->local_active_rtp_candidate,
-          self->priv->remote_rtp_candidate);
+          self->priv->remote_candidate[component_id]);
       }
       break;
     case FS_COMPONENT_RTCP:
       if (self->priv->local_active_rtcp_candidate &&
-        self->priv->remote_rtcp_candidate) {
+        self->priv->remote_candidate[component_id]) {
         g_signal_emit_by_name (self, "new-active-candidate-pair",
           self->priv->local_active_rtcp_candidate,
-          self->priv->remote_rtcp_candidate);
+          self->priv->remote_candidate[component_id]);
       }
       break;
   }
