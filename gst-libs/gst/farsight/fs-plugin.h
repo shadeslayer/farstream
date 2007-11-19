@@ -89,6 +89,10 @@ GObject *fs_plugin_create_valist (const gchar *name,
                                   const gchar *first_property_name,
                                   va_list var_args);
 
+GObject *fs_plugin_create (const gchar *name,
+                           const gchar *type_suffix,
+                           GError **error,
+                           const gchar *first_property_name, ...);
 
 /**
  * FS_INIT_PLUGIN:

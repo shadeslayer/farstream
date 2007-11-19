@@ -341,3 +341,34 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
 
   return object;
 }
+
+
+/**
+ * fs_plugin_create:
+ * @name: The name of the plugin to load
+ * @type_suffix: The type of plugin to load (normally "transmitter")
+ * @error: location of a #GError, or NULL if no error occured
+ * @first_property_name: The name of the first property to be set on the
+ *   object
+ * @...: The NULL-terminated list of properties to set on the transmitter 
+ *
+ * Loads the appropriate plugin if necessary and creates a GObject of
+ * the requested type
+ *
+ * Returns: The object created (or NULL if there is an error)
+ **/
+
+GObject *
+fs_plugin_create (const gchar *name, const gchar *type_suffix,
+  GError **error, const gchar *first_property_name, ...)
+{
+  va_list var_args;
+  GObject *obj;
+
+  va_start (var_args, first_property_name);
+  obj = fs_plugin_create_valist (name, type_suffix, error, first_property_name,
+    var_args);
+  va_end (var_args);
+
+  return obj;
+}

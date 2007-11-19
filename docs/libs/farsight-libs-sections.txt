@@ -189,6 +189,7 @@ fs_stream_transmitter_get_type
 <FILE>fs-plugin</FILE>
 <TITLE>FsPlugin</TITLE>
 fs_plugin_create_valist
+fs_plugin_create
 FS_INIT_PLUGIN
 <SUBSECTION Standard>
 FsPlugin
