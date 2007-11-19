@@ -83,8 +83,7 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   FsCandidate **remote_candidate;
 
-  FsCandidate *local_forced_rtp_candidate;
-  FsCandidate *local_forced_rtcp_candidate;
+  FsCandidate **local_forced_candidate;
 
   FsCandidate *local_stun_rtp_candidate;
   FsCandidate *local_stun_rtcp_candidate;
@@ -326,14 +325,13 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->udpports = NULL;
   }
 
-  if (self->priv->local_forced_rtp_candidate) {
-    fs_candidate_destroy (self->priv->local_forced_rtp_candidate);
-    self->priv->local_forced_rtp_candidate = NULL;
-  }
-
-  if (self->priv->local_forced_rtcp_candidate) {
-    fs_candidate_destroy (self->priv->local_forced_rtcp_candidate);
-    self->priv->local_forced_rtcp_candidate = NULL;
+  if (self->priv->local_forced_candidate) {
+    for (c = 1; c <= self->priv->transmitter->components; c++) {
+      if (self->priv->local_forced_candidate[c]) {
+        fs_candidate_destroy (self->priv->local_forced_candidate[c]);
+        self->priv->local_forced_candidate[c] = NULL;
+      }
+    }
   }
 
   if (self->priv->local_stun_rtp_candidate) {
@@ -462,6 +460,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     self->priv->transmitter->components + 1);
   self->priv->remote_candidate = g_new0 (FsCandidate *,
     self->priv->transmitter->components + 1);
+  self->priv->local_forced_candidate = g_new0 (FsCandidate *,
+    self->priv->transmitter->components + 1);
 
   for (item = g_list_first (self->priv->prefered_local_candidates);
        item;
@@ -522,14 +522,14 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     return FALSE;
 
   if (ip) {
-    self->priv->local_forced_rtp_candidate =
+    self->priv->local_forced_candidate[1] =
       fs_rawudp_stream_transmitter_build_forced_candidate (self, ip,
         fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[1]),
         FS_COMPONENT_RTP);
   }
 
   if (rtcp_ip) {
-    self->priv->local_forced_rtcp_candidate =
+    self->priv->local_forced_candidate[2] =
       fs_rawudp_stream_transmitter_build_forced_candidate (self, rtcp_ip,
         fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[2]),
         FS_COMPONENT_RTCP);
@@ -993,23 +993,23 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
   guint port;
 
   if (component_id == FS_COMPONENT_RTP) {
-    if (self->priv->local_forced_rtp_candidate) {
+    if (self->priv->local_forced_candidate[component_id]) {
       self->priv->local_active_rtp_candidate = fs_candidate_copy (
-          self->priv->local_forced_rtp_candidate);
+          self->priv->local_forced_candidate[component_id]);
       g_signal_emit_by_name (self, "new-local-candidate",
-        self->priv->local_forced_rtp_candidate);
+        self->priv->local_forced_candidate[component_id]);
       fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-        FS_COMPONENT_RTP);
+       component_id);
       return;
     }
   } else if (component_id == FS_COMPONENT_RTCP) {
-    if (self->priv->local_forced_rtcp_candidate) {
+    if (self->priv->local_forced_candidate[component_id]) {
       self->priv->local_active_rtcp_candidate = fs_candidate_copy (
-          self->priv->local_forced_rtcp_candidate);
+          self->priv->local_forced_candidate[component_id]);
       g_signal_emit_by_name (self, "new-local-candidate",
-        self->priv->local_forced_rtcp_candidate);
+        self->priv->local_forced_candidate[component_id]);
       fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-        FS_COMPONENT_RTCP);
+        component_id);
       return;
     }
   } else {
