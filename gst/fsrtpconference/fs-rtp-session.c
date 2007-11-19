@@ -897,6 +897,9 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
       "rtcp funnel", src, "src2", GST_PAD_SRC, error))
     goto error;
 
+  gst_element_sync_state_with_parent (src);
+  gst_element_sync_state_with_parent (sink);
+
   g_hash_table_insert (self->priv->transmitters, g_strdup (transmitter_name),
     transmitter);
 
