@@ -81,6 +81,9 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   gboolean sending;
 
+  /*
+   * We have at most of those per component (index 0 is unused)
+   */
   FsCandidate **remote_candidate;
 
   FsCandidate **local_forced_candidate;
@@ -93,7 +96,9 @@ struct _FsRawUdpStreamTransmitterPrivate
   guint stun_port;
   guint stun_timeout;
 
-  /* These are protected by the sources_mutex too */
+  /* These are protected by the sources_mutex too
+   * And there is one per component (+1)
+   */
   gulong *stun_recv_id;
   guint  *stun_timeout_id;
 
@@ -464,9 +469,13 @@ static gboolean
 fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   GError **error)
 {
-  const gchar *ip = NULL, *rtcp_ip = NULL;
-  guint port = 7078, rtcp_port = 0;
+  const gchar **ips = g_new0 (const gchar *,
+    self->priv->transmitter->components + 1);
+  guint16 *ports = g_new0 (guint16, self->priv->transmitter->components + 1);
+
   GList *item;
+  gint c;
+  guint16 next_port = 7078;
 
   self->priv->udpports = g_new0 (UdpPort *,
     self->priv->transmitter->components + 1);
@@ -493,76 +502,63 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         "You set prefered candidate of a type %d that is not"
         " FS_NETWORK_PROTOCOL_UDP",
         candidate->proto);
-      return FALSE;
+      goto error;
     }
 
-    switch (candidate->component_id) {
-      case FS_COMPONENT_RTP:  /* RTP */
-        if (ip) {
-          g_set_error (error, FS_ERROR,
-            FS_ERROR_INVALID_ARGUMENTS,
-            "You set more than one candidate for component 1");
-          return FALSE;
-        }
-        ip = candidate->ip;
-        port = candidate->port;
-        break;
-      case FS_COMPONENT_RTCP:  /* RTCP */
-        if (rtcp_ip) {
-          g_set_error (error, FS_ERROR,
-            FS_ERROR_INVALID_ARGUMENTS,
-            "You set more than one candidate for component 2");
-          return FALSE;
-        }
-        rtcp_ip = candidate->ip;
-        rtcp_port = candidate->port;
-        break;
-      default:
-        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "Only components 1 and 2 are supported, %d isnt",
-          candidate->component_id);
-        return FALSE;
+    if (candidate->component_id == 0) {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Component id 0 is invalid");
+      goto error;
     }
+
+    if (candidate->component_id > self->priv->transmitter->components) {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "You specified an invalid component id %d with is higher"
+        " than the maximum %d", candidate->component_id,
+        self->priv->transmitter->components);
+      goto error;
+    }
+
+    if (ips[candidate->component_id] || ports[candidate->component_id]) {
+      g_set_error (error, FS_ERROR,
+        FS_ERROR_INVALID_ARGUMENTS,
+        "You set more than one candidate for component %u",
+        candidate->component_id);
+      goto error;
+    }
+
+    /*
+     * We should verify that the IP is valid now!!
+     *
+     */
+
+    ips[candidate->component_id] = candidate->ip;
+    ports[candidate->component_id] = candidate->port;
   }
 
-  self->priv->udpports[1] =
-    fs_rawudp_transmitter_get_udpport (self->priv->transmitter,
-      FS_COMPONENT_RTP, ip, port, error);
-  if (!self->priv->udpports[1])
-    return FALSE;
+  for (c = 1; c <= self->priv->transmitter->components; c++) {
 
-  if (!rtcp_port)
-    rtcp_port = fs_rawudp_transmitter_udpport_get_port (
-        self->priv->udpports[1]) + 1;
+    if (!ports[c])
+      ports[c] = next_port;
 
-  self->priv->udpports[2] =
-    fs_rawudp_transmitter_get_udpport (self->priv->transmitter,
-      FS_COMPONENT_RTCP, rtcp_ip, rtcp_port, error);
-  if (!self->priv->udpports[2])
-    return FALSE;
+    self->priv->udpports[c] =
+      fs_rawudp_transmitter_get_udpport (self->priv->transmitter, c, ips[c],
+        ports[c], error);
+    if (!self->priv->udpports[c])
+      goto error;
 
-  if (ip) {
-    self->priv->local_forced_candidate[1] =
-      fs_rawudp_stream_transmitter_build_forced_candidate (self, ip,
-        fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[1]),
-        FS_COMPONENT_RTP);
+    if (ips[c])
+      self->priv->local_forced_candidate[c] =
+        fs_rawudp_stream_transmitter_build_forced_candidate (self, ips[c],
+          fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[c]), c);
+
+    next_port = ports[c]+1;
   }
-
-  if (rtcp_ip) {
-    self->priv->local_forced_candidate[2] =
-      fs_rawudp_stream_transmitter_build_forced_candidate (self, rtcp_ip,
-        fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[2]),
-        FS_COMPONENT_RTCP);
-  }
-
 
   if (self->priv->stun_ip && self->priv->stun_port) {
-    if (!fs_rawudp_stream_transmitter_start_stun (self, FS_COMPONENT_RTP,
-        error))
-      return FALSE;
-    if (!fs_rawudp_stream_transmitter_start_stun (self, FS_COMPONENT_RTCP,
-        error))
-      return FALSE;
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+      if (!fs_rawudp_stream_transmitter_start_stun (self, c, error))
+        goto error;
   } else {
     guint id;
     id = g_idle_add (fs_rawudp_stream_transmitter_no_stun, self);
@@ -573,6 +569,12 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   }
 
   return TRUE;
+
+ error:
+  g_free (ips);
+  g_free (ports);
+
+  return FALSE;
 }
 
 /**
@@ -1062,7 +1064,7 @@ fs_rawudp_stream_transmitter_no_stun (gpointer user_data)
   GSource *source;
   gint c;
 
-  /* If we have a STUN'd rtp candidate, dont send the locally generated
+  /* If we have a STUN'd candidate, dont send the locally generated
    * ones */
 
   for (c = 1; c <= self->priv->transmitter->components; c++) {
