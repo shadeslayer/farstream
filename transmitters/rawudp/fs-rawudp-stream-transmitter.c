@@ -93,8 +93,7 @@ struct _FsRawUdpStreamTransmitterPrivate
   FsCandidate *local_active_rtp_candidate;
   FsCandidate *local_active_rtcp_candidate;
 
-  UdpPort *rtp_udpport;
-  UdpPort *rtcp_udpport;
+  UdpPort **udpports;
 
   gchar *stun_ip;
   guint stun_port;
@@ -289,6 +288,7 @@ static void
 fs_rawudp_stream_transmitter_finalize (GObject *object)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
+  gint c; /* component_id */
 
   if (self->priv->stun_ip) {
     g_free (self->priv->stun_ip);
@@ -302,7 +302,7 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
 
   if (self->priv->remote_rtp_candidate) {
     if (self->priv->sending)
-      fs_rawudp_transmitter_udpport_remove_dest (self->priv->rtp_udpport,
+      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[1],
         self->priv->remote_rtp_candidate->ip,
         self->priv->remote_rtp_candidate->port);
     fs_candidate_destroy (self->priv->remote_rtp_candidate);
@@ -311,7 +311,7 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
 
   if (self->priv->remote_rtcp_candidate) {
     if (self->priv->sending) {
-      fs_rawudp_transmitter_udpport_remove_dest (self->priv->rtcp_udpport,
+      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[2],
         self->priv->remote_rtcp_candidate->ip,
         self->priv->remote_rtcp_candidate->port);
     }
@@ -319,16 +319,17 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->remote_rtcp_candidate = NULL;
   }
 
-  if (self->priv->rtp_udpport) {
-    fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
-      self->priv->rtp_udpport);
-    self->priv->rtp_udpport = NULL;
-  }
+  if (self->priv->udpports) {
+    for (c = 1; c <= self->priv->transmitter->components; c++) {
+      if (self->priv->udpports[c]) {
+        fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
+          self->priv->udpports[c]);
+        self->priv->udpports[c] = NULL;
+      }
+    }
 
-  if (self->priv->rtcp_udpport) {
-    fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
-      self->priv->rtcp_udpport);
-    self->priv->rtcp_udpport = NULL;
+    g_free (self->priv->udpports);
+    self->priv->udpports = NULL;
   }
 
   if (self->priv->local_forced_rtp_candidate) {
@@ -418,13 +419,13 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
 
             if (self->priv->remote_rtp_candidate)
               fs_rawudp_transmitter_udpport_add_dest (
-                  self->priv->rtp_udpport,
+                  self->priv->udpports[1],
                   self->priv->remote_rtp_candidate->ip,
                   self->priv->remote_rtp_candidate->port);
 
             if (self->priv->remote_rtcp_candidate)
               fs_rawudp_transmitter_udpport_add_dest (
-                  self->priv->rtcp_udpport,
+                  self->priv->udpports[2],
                   self->priv->remote_rtcp_candidate->ip,
                   self->priv->remote_rtcp_candidate->port);
 
@@ -432,13 +433,13 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
 
             if (self->priv->remote_rtp_candidate)
               fs_rawudp_transmitter_udpport_remove_dest (
-                  self->priv->rtp_udpport,
+                  self->priv->udpports[1],
                 self->priv->remote_rtp_candidate->ip,
                 self->priv->remote_rtp_candidate->port);
 
             if (self->priv->remote_rtcp_candidate)
               fs_rawudp_transmitter_udpport_remove_dest (
-                  self->priv->rtcp_udpport,
+                  self->priv->udpports[2],
                   self->priv->remote_rtcp_candidate->ip,
                   self->priv->remote_rtcp_candidate->port);
           }
@@ -471,6 +472,9 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   const gchar *ip = NULL, *rtcp_ip = NULL;
   guint port = 7078, rtcp_port = 0;
   GList *item;
+
+  self->priv->udpports = g_new0 (UdpPort *,
+    self->priv->transmitter->components + 1);
 
   for (item = g_list_first (self->priv->prefered_local_candidates);
        item;
@@ -514,33 +518,33 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     }
   }
 
-  self->priv->rtp_udpport =
+  self->priv->udpports[1] =
     fs_rawudp_transmitter_get_udpport (self->priv->transmitter,
       FS_COMPONENT_RTP, ip, port, error);
-  if (!self->priv->rtp_udpport)
+  if (!self->priv->udpports[1])
     return FALSE;
 
   if (!rtcp_port)
     rtcp_port = fs_rawudp_transmitter_udpport_get_port (
-        self->priv->rtp_udpport) + 1;
+        self->priv->udpports[1]) + 1;
 
-  self->priv->rtcp_udpport =
+  self->priv->udpports[2] =
     fs_rawudp_transmitter_get_udpport (self->priv->transmitter,
       FS_COMPONENT_RTCP, rtcp_ip, rtcp_port, error);
-  if (!self->priv->rtcp_udpport)
+  if (!self->priv->udpports[2])
     return FALSE;
 
   if (ip) {
     self->priv->local_forced_rtp_candidate =
       fs_rawudp_stream_transmitter_build_forced_candidate (self, ip,
-        fs_rawudp_transmitter_udpport_get_port (self->priv->rtp_udpport),
+        fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[1]),
         FS_COMPONENT_RTP);
   }
 
   if (rtcp_ip) {
     self->priv->local_forced_rtcp_candidate =
       fs_rawudp_stream_transmitter_build_forced_candidate (self, rtcp_ip,
-        fs_rawudp_transmitter_udpport_get_port (self->priv->rtcp_udpport),
+        fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[2]),
         FS_COMPONENT_RTCP);
   }
 
@@ -605,13 +609,15 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
   switch (candidate->component_id) {
     case FS_COMPONENT_RTP:
       if (self->priv->sending) {
-        fs_rawudp_transmitter_udpport_add_dest (self->priv->rtp_udpport,
-          candidate->ip, candidate->port);
+        fs_rawudp_transmitter_udpport_add_dest (
+            self->priv->udpports[candidate->component_id],
+            candidate->ip, candidate->port);
       }
       if (self->priv->remote_rtp_candidate) {
-        fs_rawudp_transmitter_udpport_remove_dest (self->priv->rtp_udpport,
-          self->priv->remote_rtp_candidate->ip,
-          self->priv->remote_rtp_candidate->port);
+        fs_rawudp_transmitter_udpport_remove_dest (
+            self->priv->udpports[candidate->component_id],
+            self->priv->remote_rtp_candidate->ip,
+            self->priv->remote_rtp_candidate->port);
         fs_candidate_destroy (self->priv->remote_rtp_candidate);
       }
       self->priv->remote_rtp_candidate = fs_candidate_copy (candidate);
@@ -619,13 +625,15 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
 
     case FS_COMPONENT_RTCP:
       if (self->priv->sending) {
-        fs_rawudp_transmitter_udpport_add_dest (self->priv->rtcp_udpport,
-          candidate->ip, candidate->port);
+        fs_rawudp_transmitter_udpport_add_dest (
+            self->priv->udpports[candidate->component_id],
+            candidate->ip, candidate->port);
       }
       if (self->priv->remote_rtcp_candidate) {
-        fs_rawudp_transmitter_udpport_remove_dest (self->priv->rtcp_udpport,
-          self->priv->remote_rtcp_candidate->ip,
-          self->priv->remote_rtcp_candidate->port);
+        fs_rawudp_transmitter_udpport_remove_dest (
+            self->priv->udpports[candidate->component_id],
+            self->priv->remote_rtcp_candidate->ip,
+            self->priv->remote_rtcp_candidate->port);
         fs_candidate_destroy (self->priv->remote_rtcp_candidate);
       }
       self->priv->remote_rtcp_candidate = fs_candidate_copy (candidate);
@@ -732,10 +740,11 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
   gpointer user_data)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
-  guint component_id;
+  gint component_id = -1;
   FsCandidate *candidate = NULL;
   StunMessage *msg;
   StunAttribute **attr;
+  gint c;
 
 
   if (GST_BUFFER_SIZE (buffer) < 4) {
@@ -748,13 +757,17 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     return TRUE;
   }
 
-  if (fs_rawudp_transmitter_udpport_is_pad (self->priv->rtp_udpport, pad))
-    component_id = FS_COMPONENT_RTP;
-  else if (fs_rawudp_transmitter_udpport_is_pad (
-        self->priv->rtcp_udpport, pad))
-    component_id = FS_COMPONENT_RTCP;
-  else
+  for (c = 1; c <= self->priv->transmitter->components; c++) {
+    if (fs_rawudp_transmitter_udpport_is_pad (self->priv->udpports[c], pad)) {
+      component_id = c;
+      break;
+    }
+  }
+
+  if (component_id < 0) {
+    g_error ("We've been called from a pad we shouldn't be listening to");
     return FALSE;
+  }
 
   msg = stun_message_unpack (GST_BUFFER_SIZE (buffer),
     (const gchar *) GST_BUFFER_DATA (buffer));
@@ -876,19 +889,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   int retval;
   StunMessage *msg;
   gboolean ret = TRUE;
-  UdpPort *udpport;
   struct CandidateTransit *data;
-
-  if (component_id == FS_COMPONENT_RTP)
-    udpport = self->priv->rtp_udpport;
-  else if (component_id == FS_COMPONENT_RTCP)
-    udpport = self->priv->rtcp_udpport;
-  else {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "Only components RTP(1) and RTCP(2) are support, %u isnt",
-      component_id);
-    return FALSE;
-  }
 
   memset (&hints, 0, sizeof (struct addrinfo));
   hints.ai_family = AF_INET;
@@ -909,12 +910,14 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   g_mutex_lock (self->priv->sources_mutex);
   if (component_id == FS_COMPONENT_RTP)
     self->priv->stun_rtp_recv_id =
-      fs_rawudp_transmitter_udpport_connect_recv (udpport,
-        G_CALLBACK (fs_rawudp_stream_transmitter_stun_recv_cb), self);
+      fs_rawudp_transmitter_udpport_connect_recv (
+          self->priv->udpports[component_id],
+          G_CALLBACK (fs_rawudp_stream_transmitter_stun_recv_cb), self);
   else if (component_id == FS_COMPONENT_RTCP)
     self->priv->stun_rtcp_recv_id =
-      fs_rawudp_transmitter_udpport_connect_recv (udpport,
-        G_CALLBACK (fs_rawudp_stream_transmitter_stun_recv_cb), self);
+      fs_rawudp_transmitter_udpport_connect_recv (
+          self->priv->udpports[component_id],
+          G_CALLBACK (fs_rawudp_stream_transmitter_stun_recv_cb), self);
   g_mutex_unlock (self->priv->sources_mutex);
 
   msg = stun_message_new (STUN_MESSAGE_BINDING_REQUEST,
@@ -927,7 +930,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
 
   length = stun_message_pack (msg, &packed);
 
-  if (!fs_rawudp_transmitter_udpport_sendto (udpport,
+  if (!fs_rawudp_transmitter_udpport_sendto (self->priv->udpports[component_id],
       packed, length, (const struct sockaddr *)&address, sizeof(address),
       error)) {
     ret = FALSE;
@@ -964,8 +967,9 @@ fs_rawudp_stream_transmitter_stop_stun (FsRawUdpStreamTransmitter *self,
 {
   if (component_id == FS_COMPONENT_RTP) {
     if (self->priv->stun_rtp_recv_id) {
-      fs_rawudp_transmitter_udpport_disconnect_recv (self->priv->rtp_udpport,
-        self->priv->stun_rtp_recv_id);
+      fs_rawudp_transmitter_udpport_disconnect_recv (
+          self->priv->udpports[component_id],
+          self->priv->stun_rtp_recv_id);
       self->priv->stun_rtp_recv_id = 0;
     }
     if (self->priv->stun_rtp_timeout_id) {
@@ -975,8 +979,9 @@ fs_rawudp_stream_transmitter_stop_stun (FsRawUdpStreamTransmitter *self,
   }
   else if (component_id == FS_COMPONENT_RTCP) {
     if (self->priv->stun_rtcp_recv_id) {
-      fs_rawudp_transmitter_udpport_disconnect_recv (self->priv->rtcp_udpport,
-        self->priv->stun_rtcp_recv_id);
+      fs_rawudp_transmitter_udpport_disconnect_recv (
+          self->priv->udpports[component_id],
+          self->priv->stun_rtcp_recv_id);
       self->priv->stun_rtcp_recv_id = 0;
     }
     if (self->priv->stun_rtcp_timeout_id) {
@@ -1047,10 +1052,8 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
     return;
   }
 
-  if (component_id == FS_COMPONENT_RTP)
-    port = fs_rawudp_transmitter_udpport_get_port (self->priv->rtp_udpport);
-  else if (component_id == FS_COMPONENT_RTCP)
-    port = fs_rawudp_transmitter_udpport_get_port (self->priv->rtcp_udpport);
+  port = fs_rawudp_transmitter_udpport_get_port (
+      self->priv->udpports[component_id]);
 
   ips = farsight_get_local_ips(FALSE);
 
