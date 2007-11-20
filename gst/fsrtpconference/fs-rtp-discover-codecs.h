@@ -47,7 +47,7 @@ typedef struct _CodecBlueprint
   GstElement *receive_unique_bin;
 } CodecBlueprint;
 
-gboolean load_codecs (FsMediaType media_type);
+gboolean load_codecs (FsMediaType media_type, GError **error);
 void unload_codecs (FsMediaType media_type);
 
 void codec_blueprint_destroy (CodecBlueprint *codec_blueprint);

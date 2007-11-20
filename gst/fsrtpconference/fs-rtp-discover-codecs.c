@@ -32,6 +32,8 @@
 
 #include "fs-rtp-codec-cache.h"
 
+#include <gst/farsight/fs-conference-iface.h>
+
 #include <string.h>
 
 
@@ -200,7 +202,7 @@ codec_cap_list_free (GList *list)
  * Returns : TRUE if load_codecs suceeded, FALSE otherwsie
  */
 gboolean
-load_codecs (FsMediaType media_type)
+load_codecs (FsMediaType media_type, GError **error)
 {
   GstCaps *caps;
   GList *recv_list = NULL;
@@ -241,7 +243,8 @@ load_codecs (FsMediaType media_type)
   }
   else
   {
-    g_warning ("Invalid media type given to load_codecs");
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "Invalid media type given to load_codecs");
     codecs_lists_ref[media_type]--;
     return FALSE;
   }
@@ -254,8 +257,9 @@ load_codecs (FsMediaType media_type)
   if (!recv_list && !send_list)
   {
     codecs_lists_ref[media_type]--;
-    g_warning ("No codecs for media type %s detected",
-        fs_media_type_to_string (media_type));
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+      "No codecs for media type %s detected",
+      fs_media_type_to_string (media_type));
 
     ret = FALSE;
     goto out;
