@@ -267,7 +267,7 @@ fs_stream_class_init (FsStreamClass *klass)
       g_param_spec_object ("session",
         "The session of the stream",
         "An FsSession represented by the stream",
-        FS_TYPE_PARTICIPANT,
+        FS_TYPE_SESSION,
         G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**
