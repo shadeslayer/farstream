@@ -385,27 +385,28 @@ static Suite *
 rawudptransmitter_suite (void)
 {
   Suite *s = suite_create ("rawudptransmitter");
-  TCase *tc_chain = tcase_create ("rawudptransmitter");
-  TCase *tc_chain2 = tcase_create ("rawudptransmitter-stun-timeout");
-  TCase *tc_chain3 = tcase_create ("rawudptransmitter-stunserver-org");
-  TCase *tc_chain4 = tcase_create ("rawudptransmitter-local-candidates");
+  TCase *tc_chain;
 
-  suite_add_tcase (s, tc_chain);
-  suite_add_tcase (s, tc_chain2);
-  suite_add_tcase (s, tc_chain3);
-  suite_add_tcase (s, tc_chain4);
 
+  tc_chain = tcase_create ("rawudptransmitter");
   tcase_set_timeout (tc_chain, 5);
   tcase_add_test (tc_chain, test_rawudptransmitter_new);
   tcase_add_test (tc_chain, test_rawudptransmitter_run_nostun);
+  suite_add_tcase (s, tc_chain);
 
-  tcase_set_timeout (tc_chain2, 5);
-  tcase_add_test (tc_chain2, test_rawudptransmitter_run_invalid_stun);
+  tc_chain = tcase_create ("rawudptransmitter-stun-timeout");
+  tcase_set_timeout (tc_chain, 5);
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_invalid_stun);
+  suite_add_tcase (s, tc_chain);
 
-  tcase_set_timeout (tc_chain3, 10);
-  tcase_add_test (tc_chain3, test_rawudptransmitter_run_stunserver_dot_org);
+  tc_chain = tcase_create ("rawudptransmitter-stunserver-org");
+  tcase_set_timeout (tc_chain, 10);
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_stunserver_dot_org);
+  suite_add_tcase (s, tc_chain);
 
-  tcase_add_test (tc_chain4, test_rawudptransmitter_run_local_candidates);
+  tc_chain = tcase_create ("rawudptransmitter-local-candidates");
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_local_candidates);
+  suite_add_tcase (s, tc_chain);
 
   return s;
 }
