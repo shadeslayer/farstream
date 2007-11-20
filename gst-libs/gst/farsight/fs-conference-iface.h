@@ -85,6 +85,7 @@ GType fs_conference_get_type (void);
  * @FS_ERROR_NETWORK: A network related error
  * @FS_ERROR_NOT_IMPLEMENTED: This functionality is not implemented
  * by this plugins
+ * @FS_ERROR_INTERNAL: An internal error happened in Farsight
  *
  * This is the enum of error numbers that will come either on the "error"
  * signal or from the Gst Bus.
@@ -94,7 +95,8 @@ typedef enum {
   FS_ERROR_CONSTRUCTION,
   FS_ERROR_INVALID_ARGUMENTS,
   FS_ERROR_NETWORK,
-  FS_ERROR_NOT_IMPLEMENTED
+  FS_ERROR_NOT_IMPLEMENTED,
+  FS_ERROR_INTERNAL
 } FsError;
 
 /**

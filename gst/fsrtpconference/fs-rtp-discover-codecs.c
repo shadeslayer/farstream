@@ -222,8 +222,8 @@ load_codecs (FsMediaType media_type)
     elem_config = load_config_file();
   }
 #endif
-
-  if (load_codecs_cache(media_type)) {
+  list_codec_blueprints[media_type] = load_codecs_cache(media_type, NULL);
+  if (list_codec_blueprints[media_type]) {
     g_debug("Loaded codec blueprints from cache file");
     return TRUE;
   }

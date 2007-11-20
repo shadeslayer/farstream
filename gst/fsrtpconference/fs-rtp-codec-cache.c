@@ -30,6 +30,8 @@
 
 #include "fs-rtp-codec-cache.h"
 
+#include <gst/farsight/fs-conference-iface.h>
+
 #include <string.h>
 #include <unistd.h>
 
@@ -80,7 +82,7 @@ static gboolean codecs_cache_valid(gchar *cache_path) {
 }
 
 static gchar *
-get_codecs_cache_path(FsMediaType media_type) {
+get_codecs_cache_path (FsMediaType media_type, GError **error) {
   gchar *cache_path;
 
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
@@ -96,7 +98,8 @@ get_codecs_cache_path(FsMediaType media_type) {
           "codecs.video." HOST_CPU ".cache", NULL);
     }
   } else {
-    g_warning ("Unknown media type %d for cache loading", media_type);
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "Unknown media type %d for cache loading", media_type);
     return NULL;
   }
 
@@ -237,7 +240,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
  *
  */
 GList *
-load_codecs_cache (FsMediaType media_type)
+load_codecs_cache (FsMediaType media_type, GError **error)
 {
   GMappedFile *mapped = NULL;
   gchar *contents = NULL;
@@ -258,11 +261,15 @@ load_codecs_cache (FsMediaType media_type)
   } else if(media_type == FS_MEDIA_TYPE_VIDEO) {
     magic_media = 'V';
   } else {
-    g_warning ("Invalid media type %d", media_type);
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "Invalid media type %d", media_type);
     return FALSE;
   }
 
-  cache_path = get_codecs_cache_path(media_type);
+  cache_path = get_codecs_cache_path(media_type, error);
+
+  if (!cache_path)
+    return FALSE;
 
   if (!codecs_cache_valid(cache_path)) {
     g_debug ("Codecs cache %s is outdated or does not exist", cache_path);
@@ -273,20 +280,17 @@ load_codecs_cache (FsMediaType media_type)
   g_debug ("Loading codecs cache %s", cache_path);
 
   mapped = g_mapped_file_new (cache_path, FALSE, &err);
-  if (err != NULL) {
-    g_debug ("Unable to mmap file %s : %s", cache_path, err->message);
-    g_error_free (err);
-    err = NULL;
+  if (mapped == NULL) {
+    g_debug ("Unable to mmap file %s : %s", cache_path,
+      err ? err->message: "unknown error");
+    g_clear_error (&err);
 
-    g_file_get_contents (cache_path, &contents, &size, &err);
-    if (err != NULL) {
-      g_warning ("Unable to read file %s : %s", cache_path, err->message);
-      g_error_free (err);
+    if(!g_file_get_contents (cache_path, &contents, &size, error))
       goto error;
-    }
   } else {
     if ((contents = g_mapped_file_get_contents (mapped)) == NULL) {
-      g_warning ("Can't load file %s : %s", cache_path, g_strerror (errno));
+      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Can't load file %s : %s", cache_path, g_strerror (errno));
       goto error;
     }
     /* check length for header */
@@ -298,7 +302,7 @@ load_codecs_cache (FsMediaType media_type)
   in = contents;
 
   if (size < sizeof (magic)) {
-    g_warning ("Cache file corrupt");
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL, "Cache file corrupt");
     goto error;
   }
 
@@ -312,12 +316,14 @@ load_codecs_cache (FsMediaType media_type)
       magic[3] != 'C' ||
       magic[4] != '1' ||
       magic[5] != '0') {
-    g_warning ("Cache file has incorrect magic header. File corrupted");
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+      "Cache file has incorrect magic header. File corrupted");
     goto error;
   }
 
   if (size < sizeof(gint)) {
-    g_warning ("Cache file corrupt");
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+      "Cache file corrupt (size: %d < sizeof(int))", size);
     goto error;
   }
 
@@ -328,7 +334,8 @@ load_codecs_cache (FsMediaType media_type)
   for (i = 0; i < num_blueprints; i++) {
     CodecBlueprint *blueprint = load_codec_blueprint (media_type, &in, &size);
     if (!blueprint) {
-      g_warning ("Problem reading codecs cache. File corrupt");
+      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Can not load all of the blueprints, cache corrupted");
 
       if (blueprints) {
         g_list_foreach (blueprints, (GFunc) codec_blueprint_destroy, NULL);
@@ -446,7 +453,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
   int size;
   gchar magic[8] = {0};
 
-  cache_path = get_codecs_cache_path(media_type);
+  cache_path = get_codecs_cache_path(media_type, NULL);
   if (!cache_path)
     return FALSE;
 
