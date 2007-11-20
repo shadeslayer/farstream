@@ -496,6 +496,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   GstElement *elem;
   GstPadLinkReturn ret;
   GstPad *elempad = NULL;
+  GstStateChangeReturn state_ret;
 
   g_assert (direction == GST_PAD_SINK || direction == GST_PAD_SRC);
 
@@ -561,8 +562,14 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
  error:
 
-  gst_element_set_state (elem, GST_STATE_NULL);
+  gst_object_ref (elem);
   gst_bin_remove (bin, elem);
+  state_ret = gst_element_set_state (elem, GST_STATE_NULL);
+  if (state_ret != GST_STATE_CHANGE_SUCCESS) {
+    g_warning ("On error, could not reset %s to state NULL (%s)", elementname,
+      gst_element_state_change_return_get_name (state_ret));
+  }
+  gst_object_unref (elem);
 
   if (elempad)
     gst_object_unref (elempad);
@@ -661,7 +668,8 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
     gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc);
     ret = gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
-      g_warning ("Error changing state of udpsrc: %d", ret);
+      g_warning ("Error changing state of udpsrc: %s",
+        gst_element_state_change_return_get_name (ret));
     }
     gst_object_unref (udpport->udpsrc);
   }
@@ -677,7 +685,8 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
     gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->udpsink);
     ret = gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
-      g_warning ("Error changing state of udpsink: %d", ret);
+      g_warning ("Error changing state of udpsink: %s",
+        gst_element_state_change_return_get_name (ret));
     }
     gst_object_unref (udpport->udpsink);
   }
