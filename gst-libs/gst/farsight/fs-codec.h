@@ -62,6 +62,10 @@ typedef enum
   FS_MEDIA_TYPE_LAST = FS_MEDIA_TYPE_APPLICATION
 } FsMediaType;
 
+
+#define FS_CODEC_ID_ANY            (-1)
+#define FS_CODEC_ID_DISABLE        (-2)
+
 /**
  * FsCodec:
  * @id: numeric identifier for encoding, eg. PT for SDP

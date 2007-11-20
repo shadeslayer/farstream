@@ -293,7 +293,7 @@ fs_codec_list_from_keyfile (const gchar *filename)
     gchar *encoding_name = NULL;
     gchar *next_tok = NULL;
 
-    codec->id = -1;
+    codec->id = FS_CODEC_ID_ANY;
 
     keys = g_key_file_get_keys (keyfile, groups[i], &keys_count, &gerror);
 
@@ -356,9 +356,12 @@ fs_codec_list_from_keyfile (const gchar *filename)
          codec->id = g_key_file_get_integer (keyfile, groups[i], keys[j],
             &gerror);
         if (gerror) {
-          codec->id = -1;
+          codec->id = FS_CODEC_ID_ANY;
           goto keyerror;
         }
+
+        if (codec->id < 0)
+          codec->id = FS_CODEC_ID_DISABLE;
 
       } else if (!strcmp ("channels", keys[j])) {
          codec->channels = g_key_file_get_integer (keyfile, groups[i], keys[j],
@@ -372,7 +375,7 @@ fs_codec_list_from_keyfile (const gchar *filename)
         FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
 
         param->name = g_strdup (keys[j]);
-        param->value = g_key_file_get_string (keyfile, groups[i], keys[j], 
+        param->value = g_key_file_get_string (keyfile, groups[i], keys[j],
             &gerror);
         if (gerror) {
           g_free (param->name);
