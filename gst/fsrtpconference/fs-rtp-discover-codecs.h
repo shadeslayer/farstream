@@ -50,6 +50,8 @@ typedef struct _CodecBlueprint
 gboolean load_codecs (FsMediaType media_type);
 void unload_codecs (FsMediaType media_type);
 
+void codec_blueprint_destroy (CodecBlueprint *codec_blueprint);
+
 
 
 G_END_DECLS

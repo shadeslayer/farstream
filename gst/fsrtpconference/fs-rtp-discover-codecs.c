@@ -77,7 +77,6 @@ static GList *list_codec_blueprints[FS_MEDIA_TYPE_LAST+1] = { NULL };
 static gint codecs_lists_ref[FS_MEDIA_TYPE_LAST+1] = { 0 };
 
 
-
 static void
 debug_pipeline (GList *pipeline)
 {
@@ -271,7 +270,7 @@ load_codecs (FsMediaType media_type)
     codec_cap_list_free (send_list);
 
   /* Save the codecs blueprint cache */
-  save_codecs_cache(media_type);
+  save_codecs_cache(media_type, list_codec_blueprints[media_type]);
 
   return ret;
 }
@@ -876,10 +875,9 @@ codec_cap_list_intersect (GList *list1, GList *list2)
 }
 
 
-static void
-codec_blueprint_destroy (gpointer data)
+void
+codec_blueprint_destroy (CodecBlueprint *codec_blueprint)
 {
-  CodecBlueprint *codec_blueprint = data;
   GList *walk;
 
   if (codec_blueprint->codec)

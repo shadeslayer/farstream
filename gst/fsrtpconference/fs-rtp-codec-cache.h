@@ -31,8 +31,8 @@
 
 G_BEGIN_DECLS
 
-gboolean load_codecs_cache(FsMediaType media_type);
-void save_codecs_cache(FsMediaType media_type);
+GList *load_codecs_cache(FsMediaType media_type);
+gboolean save_codecs_cache(FsMediaType media_type, GList *codec_blueprints);
 
 
 G_END_DECLS

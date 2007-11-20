@@ -145,9 +145,9 @@ read_codec_blueprint_string (gchar **in, gsize *size, gchar **str) {
 }
 
 
-#define READ_CHECK(x) if(!x) return FALSE;
+#define READ_CHECK(x) if(!x) goto error;
 
-static gboolean
+static CodecBlueprint *
 load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
   CodecBlueprint *codec_blueprint = g_new0 (CodecBlueprint, 1);
   gchar *tmp;
@@ -213,15 +213,17 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
   READ_CHECK (read_codec_blueprint_int
       (in, size, &(codec_blueprint->receive_has_unique)));
 
-  /* insert new information into tables */
-  list_codec_blueprints[media_type] = g_list_append (
-      list_codec_blueprints[media_type], codec_blueprint);
   g_debug ("adding codec %s with pt %d, send_pipeline %p, receive_pipeline %p",
       codec_blueprint->codec->encoding_name, codec_blueprint->codec->id,
       codec_blueprint->send_pipeline_factory,
       codec_blueprint->receive_pipeline_factory);
 
-  return TRUE;
+  return codec_blueprint;
+
+ error:
+  codec_blueprint_destroy (codec_blueprint);
+
+  return NULL;
 }
 
 
@@ -234,7 +236,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
  * Returns : TRUE if successful, FALSE if error, or cache outdated
  *
  */
-gboolean
+GList *
 load_codecs_cache (FsMediaType media_type)
 {
   GMappedFile *mapped = NULL;
@@ -242,7 +244,7 @@ load_codecs_cache (FsMediaType media_type)
   gchar *in = NULL;
   gsize size;
   GError *err = NULL;
-  gboolean ret = FALSE;
+  GList *blueprints = NULL;
 
   gchar magic[8] = {0};
   gchar magic_media = '?';
@@ -324,13 +326,21 @@ load_codecs_cache (FsMediaType media_type)
   size -= sizeof(gint);
 
   for (i = 0; i < num_blueprints; i++) {
-    if (!load_codec_blueprint (media_type, &in, &size)) {
+    CodecBlueprint *blueprint = load_codec_blueprint (media_type, &in, &size);
+    if (!blueprint) {
       g_warning ("Problem reading codecs cache. File corrupt");
+
+      if (blueprints) {
+        g_list_foreach (blueprints, (GFunc) codec_blueprint_destroy, NULL);
+        g_list_free (blueprints);
+        blueprints = NULL;
+      }
+
       goto error;
     }
+    blueprints = g_list_prepend (blueprints, blueprint);
   }
 
-  ret = TRUE;
  error:
   if (mapped) {
     g_mapped_file_free (mapped);
@@ -338,8 +348,7 @@ load_codecs_cache (FsMediaType media_type)
     g_free (contents);
   }
   g_free (cache_path);
-  return ret;
-
+  return blueprints;
 }
 
 #define WRITE_CHECK(x) if(!x) return FALSE;
@@ -427,8 +436,8 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
 }
 
 
-static gboolean
-save_codecs_cache(FsMediaType media_type)
+gboolean
+save_codecs_cache(FsMediaType media_type, GList *blueprints)
 {
   gchar *cache_path;
   GList *item;
@@ -487,12 +496,13 @@ save_codecs_cache(FsMediaType media_type)
     return FALSE;
 
 
-  size = g_list_length (list_codec_blueprints[media_type]);
+  size = g_list_length (blueprints);
   if (write (fd, &size, sizeof(gint)) != sizeof(gint))
     return FALSE;
 
 
-  for (item = list_codec_blueprints[media_type]; item;
+  for (item = g_list_first (blueprints);
+       item;
        item = g_list_next (item)) {
     CodecBlueprint *codec_blueprint = item->data;
     if (!save_codec_blueprint (fd, codec_blueprint)) {
