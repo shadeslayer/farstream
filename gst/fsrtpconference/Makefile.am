@@ -4,7 +4,9 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
 	fs-rtp-conference.c \
 	fs-rtp-participant.c \
 	fs-rtp-session.c \
-	fs-rtp-stream.c
+	fs-rtp-stream.c \
+	fs-rtp-discover-codecs.c \
+	fs-rtp-codec-cache.c
 libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrtpconference_la_LIBADD = \
@@ -16,4 +18,6 @@ noinst_HEADERS = \
 	fs-rtp-conference.h \
 	fs-rtp-participant.h \
 	fs-rtp-session.h \
-	fs-rtp-stream.h
+	fs-rtp-stream.h \
+	fs-rtp-discover-codecs.h \
+	fs-rtp-codec-cache.h
