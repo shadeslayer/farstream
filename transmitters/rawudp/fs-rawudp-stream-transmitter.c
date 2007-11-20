@@ -303,12 +303,14 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
 
   if (self->priv->remote_candidate) {
     for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->sending)
-        fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[c],
-        self->priv->remote_candidate[c]->ip,
-        self->priv->remote_candidate[c]->port);
-      fs_candidate_destroy (self->priv->remote_candidate[c]);
-      self->priv->remote_candidate[c] = NULL;
+      if (self->priv->remote_candidate[c]) {
+        if (self->priv->udpports && self->priv->udpports[c] &&
+          self->priv->sending)
+          fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[c],
+            self->priv->remote_candidate[c]->ip,
+            self->priv->remote_candidate[c]->port);
+        fs_candidate_destroy (self->priv->remote_candidate[c]);
+      }
     }
 
     g_free (self->priv->remote_candidate);
@@ -475,7 +477,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 
   GList *item;
   gint c;
-  guint16 next_port = 7078;
+  guint16 next_port;
 
   self->priv->udpports = g_new0 (UdpPort *,
     self->priv->transmitter->components + 1);
@@ -522,7 +524,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     if (ips[candidate->component_id] || ports[candidate->component_id]) {
       g_set_error (error, FS_ERROR,
         FS_ERROR_INVALID_ARGUMENTS,
-        "You set more than one candidate for component %u",
+        "You set more than one prefered local candidate for component %u",
         candidate->component_id);
       goto error;
     }
@@ -533,26 +535,60 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
      */
 
     ips[candidate->component_id] = candidate->ip;
-    ports[candidate->component_id] = candidate->port;
+    if (candidate->port)
+      ports[candidate->component_id] = candidate->port;
   }
 
-  for (c = 1; c <= self->priv->transmitter->components; c++) {
+  /* Lets make sure we start from a reasonnable value */
+  if (ports[1] == 0)
+    ports[1] = 7078;
 
-    if (!ports[c])
-      ports[c] = next_port;
+  next_port = ports[1];
+
+  for (c = 1; c <= self->priv->transmitter->components; c++) {
+    gint requested_port = ports[c];
+    gint used_port;
+
+    if (!requested_port)
+      requested_port = next_port;
 
     self->priv->udpports[c] =
       fs_rawudp_transmitter_get_udpport (self->priv->transmitter, c, ips[c],
-        ports[c], error);
+        requested_port, error);
     if (!self->priv->udpports[c])
       goto error;
+
+    used_port = fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[c]);
+
+    /* If we dont get the requested port and it wasnt a forced port,
+     * then we rewind up to the last forced port and jump to the next
+     * package of components, all non-forced ports must be consecutive!
+     */
+
+    if (used_port != requested_port  &&  !ports[c]) {
+      do {
+        fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
+          self->priv->udpports[c]);
+        self->priv->udpports[c] = NULL;
+
+        if (self->priv->local_forced_candidate[c]) {
+          fs_candidate_destroy (self->priv->local_forced_candidate[c]);
+          self->priv->local_forced_candidate[c] = NULL;
+        }
+
+        c--;
+      } while (!ports[c]);  /* Will always stop because ports[1] != 0 */
+      ports[c] += self->priv->transmitter->components;
+      next_port = ports[c];
+      continue;
+    }
 
     if (ips[c])
       self->priv->local_forced_candidate[c] =
         fs_rawudp_stream_transmitter_build_forced_candidate (self, ips[c],
-          fs_rawudp_transmitter_udpport_get_port (self->priv->udpports[c]), c);
+          used_port, c);
 
-    next_port = ports[c]+1;
+    next_port = used_port+1;
   }
 
   if (self->priv->stun_ip && self->priv->stun_port) {
