@@ -267,14 +267,14 @@ load_codecs (FsMediaType media_type, GError **error)
 
   ret = create_codec_lists (media_type, recv_list, send_list);
 
+  /* Save the codecs blueprint cache */
+  save_codecs_cache(media_type, list_codec_blueprints[media_type]);
+
  out:
   if (recv_list)
     codec_cap_list_free (recv_list);
   if (send_list)
     codec_cap_list_free (send_list);
-
-  /* Save the codecs blueprint cache */
-  save_codecs_cache(media_type, list_codec_blueprints[media_type]);
 
   return ret;
 }
@@ -1438,7 +1438,7 @@ extract_field_data (GQuark field_id,
 }
 
 
-/* checks if there is a Source element in the give 
+/* checks if there is a Source element in the give
  * list of GstElementFactories */
 static gboolean
 check_for_src (GList *pipeline)
@@ -1457,7 +1457,7 @@ check_for_src (GList *pipeline)
   return FALSE;
 }
 
-/* checks if there is a Sink element in the give 
+/* checks if there is a Sink element in the give
  * list of GstElementFactories */
 static gboolean
 check_for_sink (GList *pipeline)
