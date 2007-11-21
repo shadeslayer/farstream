@@ -35,11 +35,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifndef GST_MAJORMINOR
-#define GST_MAJORMINOR "0.10"
-#endif
-
-#define HOST_CPU "x86"
 
 static gboolean codecs_cache_valid(gchar *cache_path) {
   time_t cache_ts = 0;

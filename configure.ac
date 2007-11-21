@@ -35,6 +35,9 @@ AC_SUBST(FS2_MAJORMINOR)
 
 GST_MAJORMINOR=0.10
 AC_SUBST(GST_MAJORMINOR)
+AC_DEFINE_UNQUOTED(GST_MAJORMINOR, "$GST_MAJORMINOR",
+  [GStreamer major.minor version])
+
 
 dnl CURRENT, REVISION, AGE
 dnl - library source changed -> increment REVISION
@@ -166,6 +169,8 @@ AC_DEFINE_UNQUOTED(FS2_PLUGIN_PATH, "${FS2_PLUGIN_PATH}", [The path were plugins
 dnl *** checks for platform ***
 
 dnl * hardware/architecture *
+
+AG_GST_ARCH
 
 dnl *** checks for programs ***
 
