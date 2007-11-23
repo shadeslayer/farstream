@@ -36,6 +36,8 @@
 
 #include <string.h>
 
+#undef ENABLE_DEBUG_CAPS
+
 
 /*
  * Local TYPES
@@ -87,24 +89,17 @@ debug_pipeline (GList *pipeline)
   g_debug ("pipeline: ");
   for (walk = pipeline; walk; walk = g_list_next (walk))
   {
-    g_debug ("%p:%d:%s ", walk->data,
-        GST_OBJECT_REFCOUNT_VALUE(GST_OBJECT (walk->data)),
-        gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (walk->data)));
+    GList *walk2;
+    for (walk2 = g_list_first (walk->data); walk2; walk2 = g_list_next (walk2))
+      g_debug ("%p:%d:%s ", walk2->data,
+        GST_OBJECT_REFCOUNT_VALUE(GST_OBJECT (walk2->data)),
+        gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (walk2->data)));
+    g_debug ("--");
   }
   g_debug ("\n");
 }
 
-#if ENABLE_DEBUG_CAPS
-static void
-debug_codec_cap_list (GList *codec_cap_list)
-{
-  GList *walk;
-  g_debug ("size of codec_cap list is %d", g_list_length (codec_cap_list));
-  for (walk = codec_cap_list; walk; walk = g_list_next (walk))
-  {
-    debug_codec_cap ((CodecCap *)walk->data);
-  }
-}
+#ifdef ENABLE_DEBUG_CAPS
 
 static void
 debug_codec_cap (CodecCap *codec_cap)
@@ -134,6 +129,18 @@ debug_codec_cap (CodecCap *codec_cap)
   g_debug ("element_list2 -> ");
   debug_pipeline (codec_cap->element_list2);
 }
+
+static void
+debug_codec_cap_list (GList *codec_cap_list)
+{
+  GList *walk;
+  g_debug ("size of codec_cap list is %d", g_list_length (codec_cap_list));
+  for (walk = codec_cap_list; walk; walk = g_list_next (walk))
+  {
+    debug_codec_cap ((CodecCap *)walk->data);
+  }
+}
+
 
 #endif
 
@@ -295,7 +302,7 @@ create_codec_lists (FsMediaType media_type,
     return FALSE;
   }
 
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   g_debug ("*******Intersection of send_list and recv_list");
   debug_codec_cap_list(duplex_list);
 #endif
@@ -679,7 +686,7 @@ detect_send_codecs (GstCaps *caps)
     g_warning ("No RTP Payloaders found");
     return NULL;
   }
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   else {
     g_debug ("**Payloaders");
     debug_codec_cap_list(payloaders);
@@ -694,7 +701,7 @@ detect_send_codecs (GstCaps *caps)
     g_warning ("No encoders found");
     return NULL;
   }
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   else {
     g_debug ("**Encoders");
     debug_codec_cap_list(encoders);
@@ -709,7 +716,7 @@ detect_send_codecs (GstCaps *caps)
   {
     g_warning ("No compatible encoder/payloader pairs found");
   }
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   else {
     g_debug ("**intersection of payloaders and encoders");
     debug_codec_cap_list(send_list);
@@ -742,7 +749,7 @@ detect_recv_codecs (GstCaps *caps)
     g_warning ("No RTP Depayloaders found");
     return NULL;
   }
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   else {
     g_debug ("**Depayloaders");
     debug_codec_cap_list(depayloaders);
@@ -758,7 +765,7 @@ detect_recv_codecs (GstCaps *caps)
     g_warning ("No decoders found");
     return NULL;
   }
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   else {
     g_debug ("**Decoders");
     debug_codec_cap_list(decoders);
@@ -773,7 +780,7 @@ detect_recv_codecs (GstCaps *caps)
   {
     g_warning ("No compatible decoder/depayloader pairs found");
   }
-#if ENABLE_DEBUG_CAPS
+#ifdef ENABLE_DEBUG_CAPS
   else {
     g_debug ("**intersection of depayloaders and decoders");
     debug_codec_cap_list(recv_list);
