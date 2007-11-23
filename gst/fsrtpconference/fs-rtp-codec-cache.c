@@ -216,15 +216,6 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
       g_list_append (codec_blueprint->receive_pipeline_factory, tmplist);
   }
 
-  READ_CHECK (read_codec_blueprint_int
-      (in, size, &(codec_blueprint->has_sink)));
-  READ_CHECK (read_codec_blueprint_int
-      (in, size, &(codec_blueprint->has_src)));
-  READ_CHECK (read_codec_blueprint_int
-      (in, size, &(codec_blueprint->send_has_unique)));
-  READ_CHECK (read_codec_blueprint_int
-      (in, size, &(codec_blueprint->receive_has_unique)));
-
   g_debug ("adding codec %s with pt %d, send_pipeline %p, receive_pipeline %p",
       codec_blueprint->codec->encoding_name, codec_blueprint->codec->id,
       codec_blueprint->send_pipeline_factory,
@@ -449,16 +440,6 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
       WRITE_CHECK (write_codec_blueprint_string (fd, factory_name));
     }
   }
-
-
-  WRITE_CHECK (write_codec_blueprint_int
-      (fd, (gint) codec_blueprint->has_sink));
-  WRITE_CHECK (write_codec_blueprint_int
-      (fd, (gint) codec_blueprint->has_src));
-  WRITE_CHECK (write_codec_blueprint_int
-      (fd, codec_blueprint->send_has_unique));
-  WRITE_CHECK (write_codec_blueprint_int
-      (fd, codec_blueprint->receive_has_unique));
 
   return TRUE;
 }

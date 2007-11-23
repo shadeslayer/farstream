@@ -41,13 +41,6 @@ typedef struct _CodecBlueprint
    */
   GList *send_pipeline_factory;
   GList *receive_pipeline_factory;
-  gboolean has_sink;
-  gboolean has_src;
-
-  gint send_has_unique;
-  gint receive_has_unique;
-  GstElement *send_unique_bin;
-  GstElement *receive_unique_bin;
 } CodecBlueprint;
 
 GList *load_codecs (FsMediaType media_type, GError **error);

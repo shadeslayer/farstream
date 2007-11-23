@@ -71,9 +71,6 @@ static gboolean extract_field_data (GQuark field_id,
                                     const GValue *value,
                                     gpointer user_data);
 
-static gboolean check_for_sink (GList *pipeline);
-static gboolean check_for_src (GList *pipeline);
-
 
 /* GLOBAL variables */
 
@@ -225,14 +222,6 @@ load_codecs (FsMediaType media_type, GError **error)
   if (codecs_lists_ref[media_type] > 1)
     return list_codec_blueprints[media_type];
 
-
-#if 0
-  /* let's not reload if already loaded */
-  if (!elem_config)
-  {
-    elem_config = load_config_file();
-  }
-#endif
   list_codec_blueprints[media_type] = load_codecs_cache(media_type, NULL);
   if (list_codec_blueprints[media_type]) {
     g_debug("Loaded codec blueprints from cache file");
@@ -322,42 +311,6 @@ create_codec_lists (FsMediaType media_type,
 
   return TRUE;
 }
-
-/* Check if any of the element factories in the pipeline that
-   has the unique property set */
-static gint
-pipeline_has_unique (GList *list)
-{
-#if 0
-  GList *elem;
-  gint val;
-  const gchar *name;
-
-  if (!elem_config)
-    return 0;
-  for (elem = list;
-       elem;
-       elem = g_list_next (elem)) {
-    GstElementFactory *elem_factory = elem->data;
-    if (elem_factory == NULL)
-      g_error ("NULL factory");
-    name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (elem_factory));
-    if (name && g_key_file_has_key (elem_config, name, "unique", NULL)) {
-      GError *error = NULL;
-      val = g_key_file_get_integer (elem_config, name, "unique", &error);
-
-      if (error) {
-        g_error_free (error);
-        return 0;
-      } else {
-        return val;
-      }
-    }
-  }
-#endif
-  return 0;
-}
-
 
 static gboolean
 validate_h263_codecs (CodecCap *codec_cap)
@@ -594,16 +547,6 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
     codec_blueprint->receive_pipeline_factory =
       copy_element_list (codec_cap->element_list1);
 
-    codec_blueprint->has_sink =
-      check_for_sink (codec_blueprint->receive_pipeline_factory);
-    codec_blueprint->has_src =
-      check_for_src (codec_blueprint->send_pipeline_factory);
-
-    codec_blueprint->send_has_unique = pipeline_has_unique (
-        codec_blueprint->send_pipeline_factory);
-    codec_blueprint->receive_has_unique = pipeline_has_unique (
-        codec_blueprint->receive_pipeline_factory);
-
     /* insert new information into tables */
     list_codec_blueprints[media_type] = g_list_append (
         list_codec_blueprints[media_type], codec_blueprint);
@@ -667,8 +610,7 @@ is_encoder (GstElementFactory *factory)
 {
   const gchar *klass = gst_element_factory_get_klass (factory);
   /* we might have some sources that provide a non raw stream */
-  return (klass_contains (klass, "Encoder") ||
-          klass_contains (klass, "Source"));
+  return (klass_contains (klass, "Encoder"));
 }
 
 static gboolean
@@ -676,8 +618,7 @@ is_decoder (GstElementFactory *factory)
 {
   const gchar *klass = gst_element_factory_get_klass (factory);
   /* we might have some sinks that provide decoding */
-  return (klass_contains (klass, "Decoder") ||
-          klass_contains (klass, "Sink"));
+  return (klass_contains (klass, "Decoder"));
 }
 
 
@@ -1423,41 +1364,3 @@ extract_field_data (GQuark field_id,
   return TRUE;
 }
 
-
-/* checks if there is a Source element in the give
- * list of GstElementFactories */
-static gboolean
-check_for_src (GList *pipeline)
-{
-  GList *walk;
-  const gchar *class;
-
-  for (walk = pipeline; walk; walk = g_list_next (walk))
-  {
-    class = gst_element_factory_get_klass (GST_ELEMENT_FACTORY (walk->data));
-    if (g_strrstr (class, "Source") != NULL)
-    {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-/* checks if there is a Sink element in the give
- * list of GstElementFactories */
-static gboolean
-check_for_sink (GList *pipeline)
-{
-  GList *walk;
-  const gchar *class;
-
-  for (walk = pipeline; walk; walk = g_list_next (walk))
-  {
-      class = gst_element_factory_get_klass (GST_ELEMENT_FACTORY (walk->data));
-      if (g_strrstr (class, "Sink") != NULL)
-      {
-          return TRUE;
-      }
-  }
-  return FALSE;
-}
