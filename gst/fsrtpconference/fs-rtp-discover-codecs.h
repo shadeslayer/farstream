@@ -46,9 +46,12 @@ typedef struct _CodecBlueprint
 GList *load_codecs (FsMediaType media_type, GError **error);
 void unload_codecs (FsMediaType media_type);
 
+
+/*
+ * Only exported for the caching stuff
+ */
+
 void codec_blueprint_destroy (CodecBlueprint *codec_blueprint);
-
-
 
 G_END_DECLS
 
