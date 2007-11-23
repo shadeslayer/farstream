@@ -184,22 +184,36 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
   for(i = 0; i < tmp_size; i++) {
-    GstElementFactory *fact = NULL;
-    READ_CHECK (read_codec_blueprint_string (in, size, &(tmp)));
-    fact = gst_element_factory_find (tmp);
-    g_free (tmp);
+    int j, tmp_size2;
+    GList *tmplist = NULL;
+
+    READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size2));
+    for (j = 0; j < tmp_size2; j++) {
+      GstElementFactory *fact = NULL;
+      READ_CHECK (read_codec_blueprint_string (in, size, &(tmp)));
+      fact = gst_element_factory_find (tmp);
+      g_free (tmp);
+      tmplist = g_list_append (tmplist, fact);
+    }
     codec_blueprint->send_pipeline_factory =
-        g_list_append (codec_blueprint->send_pipeline_factory, fact);
+      g_list_append (codec_blueprint->send_pipeline_factory, tmplist);
   }
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
   for(i = 0; i < tmp_size; i++) {
-    GstElementFactory *fact = NULL;
-    READ_CHECK (read_codec_blueprint_string (in, size, &(tmp)));
-    fact = gst_element_factory_find (tmp);
-    g_free (tmp);
+    int j, tmp_size2;
+    GList *tmplist = NULL;
+
+    READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size2));
+    for (j = 0; j < tmp_size2; j++) {
+      GstElementFactory *fact = NULL;
+      READ_CHECK (read_codec_blueprint_string (in, size, &(tmp)));
+      fact = gst_element_factory_find (tmp);
+      g_free (tmp);
+      tmplist = g_list_append (tmplist, fact);
+    }
     codec_blueprint->receive_pipeline_factory =
-        g_list_append (codec_blueprint->receive_pipeline_factory, fact);
+      g_list_append (codec_blueprint->receive_pipeline_factory, tmplist);
   }
 
   READ_CHECK (read_codec_blueprint_int
@@ -408,9 +422,15 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
     return FALSE;
 
   for (; walk; walk = g_list_next (walk)) {
-    GstElementFactory *fact = walk->data;
-    factory_name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (fact));
-    WRITE_CHECK (write_codec_blueprint_string (fd, factory_name));
+    GList *walk2 = walk->data;
+    size = g_list_length (walk2);
+    if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+      return FALSE;
+    for (; walk2; walk2 = g_list_next (walk2)) {
+      GstElementFactory *fact = walk2->data;
+      factory_name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (fact));
+      WRITE_CHECK (write_codec_blueprint_string (fd, factory_name));
+    }
   }
 
   walk = codec_blueprint->receive_pipeline_factory;
@@ -419,9 +439,15 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
     return FALSE;
 
   for (; walk; walk = g_list_next (walk)) {
-    GstElementFactory *fact = walk->data;
-    factory_name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (fact));
-    WRITE_CHECK (write_codec_blueprint_string (fd, factory_name));
+    GList *walk2 = walk->data;
+    size = g_list_length (walk2);
+    if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+      return FALSE;
+    for (; walk2; walk2 = g_list_next (walk2)) {
+      GstElementFactory *fact = walk2->data;
+      factory_name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (fact));
+      WRITE_CHECK (write_codec_blueprint_string (fd, factory_name));
+    }
   }
 
 

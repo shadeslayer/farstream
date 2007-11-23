@@ -162,14 +162,16 @@ codec_cap_free (CodecCap *codec_cap)
   {
     if (walk->data)
     {
-      gst_object_unref ((GstElementFactory *)walk->data);
+      g_list_foreach (walk->data, (GFunc) gst_object_unref, NULL);
+      g_list_free (walk->data);
     }
   }
   for (walk = codec_cap->element_list2; walk; walk = g_list_next (walk))
   {
     if (walk->data)
     {
-      gst_object_unref ((GstElementFactory *)walk->data);
+      g_list_foreach (walk->data, (GFunc) gst_object_unref, NULL);
+      g_list_free (walk->data);
     }
   }
 
@@ -505,6 +507,19 @@ remove_dynamic_duplicates (GList *list)
   return list;
 }
 
+static GList *
+copy_element_list (GList *inlist)
+{
+  GList *outlist = NULL;
+  GList *tmp1;
+
+  for (tmp1 = g_list_first (inlist); tmp1; tmp1 = g_list_next (tmp1)) {
+    outlist = g_list_append (outlist, g_list_copy (tmp1->data));
+    g_list_foreach (tmp1->data, (GFunc) gst_object_ref, NULL);
+  }
+  return outlist;
+}
+
 /* insert given codec_cap list into list_codecs and list_codec_blueprints */
 static void
 parse_codec_cap_list (GList *list, FsMediaType media_type)
@@ -514,7 +529,7 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
   FsCodec *codec;
   CodecBlueprint *codec_blueprint;
   gint i;
-  GList *w;
+  gchar *tmp;
 
   /* go thru all common caps */
   for (walk = list; walk; walk = g_list_next (walk))
@@ -575,17 +590,9 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
     codec_blueprint->rtp_caps = gst_caps_copy (codec_cap->rtp_caps);
 
     codec_blueprint->send_pipeline_factory =
-      g_list_copy (codec_cap->element_list2);
-    for (w = codec_blueprint->send_pipeline_factory; w; w = g_list_next (w))
-    {
-      gst_object_ref (GST_OBJECT (w->data));
-    }
+      copy_element_list (codec_cap->element_list2);
     codec_blueprint->receive_pipeline_factory =
-      g_list_copy (codec_cap->element_list1);
-    for (w = codec_blueprint->receive_pipeline_factory; w; w = g_list_next (w))
-    {
-      gst_object_ref (GST_OBJECT (w->data));
-    }
+      copy_element_list (codec_cap->element_list1);
 
     codec_blueprint->has_sink =
       check_for_sink (codec_blueprint->receive_pipeline_factory);
@@ -604,6 +611,12 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
         codec->encoding_name, codec->id,
         codec_blueprint->send_pipeline_factory,
         codec_blueprint->receive_pipeline_factory);
+    tmp = gst_caps_to_string (codec_blueprint->media_caps);
+    g_debug ("media_caps: %s", tmp);
+    g_free (tmp);
+    tmp = gst_caps_to_string (codec_blueprint->rtp_caps);
+    g_debug ("rtp_caps: %s", tmp);
+    g_free (tmp);
     debug_pipeline (codec_blueprint->send_pipeline_factory);
     debug_pipeline (codec_blueprint->receive_pipeline_factory);
 
@@ -803,14 +816,16 @@ codec_cap_list_intersect (GList *list1, GList *list2)
   GstCaps *rtp_caps1, *rtp_caps2;
   GList *intersection_list = NULL;
 
-  for (walk1 = list1; walk1; walk1 = g_list_next (walk1))
+  for (walk1 = g_list_first (list1); walk1; walk1 = g_list_next (walk1))
   {
+    CodecCap *item = NULL;
+
     codec_cap1 = (CodecCap *)(walk1->data);
     caps1 = codec_cap1->caps;
     rtp_caps1 = codec_cap1->rtp_caps;
     for (walk2 = list2; walk2; walk2 = g_list_next (walk2))
     {
-      GstCaps *intersection;
+      GstCaps *intersection = NULL;
       GstCaps *rtp_intersection = NULL;
 
       codec_cap2 = (CodecCap *)(walk2->data);
@@ -827,58 +842,62 @@ codec_cap_list_intersect (GList *list1, GList *list2)
       if (!gst_caps_is_empty (intersection) &&
           (rtp_intersection == NULL || !gst_caps_is_empty (rtp_intersection)))
       {
-        CodecCap *item = g_new0 (CodecCap, 1);
-        GList *swalk;
-        item->caps = intersection;
+        if (item) {
+          GstCaps *new_caps = gst_caps_union (item->caps, intersection);
+          GList *tmplist;
+          item->caps = new_caps;
 
-        if (rtp_caps1 && rtp_caps2)
-        {
-          item->rtp_caps = rtp_intersection;
-        }
-        else if (rtp_caps1)
-        {
-          item->rtp_caps = rtp_caps1;
-          gst_caps_ref (rtp_caps1);
-        }
-        else if (rtp_caps2)
-        {
-          item->rtp_caps = rtp_caps2;
-          gst_caps_ref (rtp_caps2);
-        }
+          for (tmplist = g_list_first (codec_cap2->element_list1->data);
+               tmplist;
+               tmplist = g_list_next (tmplist)) {
+            if (g_list_index (item->element_list2->data, tmplist->data) < 0) {
+              item->element_list2->data = g_list_concat (
+                  item->element_list2->data,
+                  g_list_copy (codec_cap2->element_list1->data));
+              g_list_foreach (codec_cap2->element_list1->data,
+                (GFunc) gst_object_ref, NULL);
+            }
+          }
+        } else {
 
-        /* during an intersect, we concat/copy previous lists together and put them
-         * into 1 and 2 */
-        for (swalk = codec_cap1->element_list1; swalk;
-            swalk = g_list_next(swalk))
-        {
-          item->element_list1 = g_list_prepend (item->element_list1,
-              gst_object_ref(swalk->data));
-        }
-        for (swalk = codec_cap1->element_list2; swalk;
-            swalk = g_list_next(swalk))
-        {
-          item->element_list1 = g_list_prepend (item->element_list1,
-              gst_object_ref(swalk->data));
-        }
-        for (swalk = codec_cap2->element_list1; swalk;
-            swalk = g_list_next(swalk))
-        {
-          item->element_list2 = g_list_prepend (item->element_list2,
-              gst_object_ref(swalk->data));
-        }
-        for (swalk = codec_cap2->element_list2; swalk;
-            swalk = g_list_next(swalk))
-        {
-          item->element_list2 = g_list_prepend (item->element_list2,
-              gst_object_ref(swalk->data));
-        }
+          item = g_new0 (CodecCap, 1);
+          item->caps = intersection;
 
-        intersection_list = g_list_prepend (intersection_list, item);
-        break;
+          if (rtp_caps1 && rtp_caps2)
+          {
+            item->rtp_caps = rtp_intersection;
+          }
+          else if (rtp_caps1)
+          {
+            item->rtp_caps = rtp_caps1;
+            gst_caps_ref (rtp_caps1);
+          }
+          else if (rtp_caps2)
+          {
+            item->rtp_caps = rtp_caps2;
+            gst_caps_ref (rtp_caps2);
+          }
+
+          /* during an intersect, we concat/copy previous lists together and put them
+           * into 1 and 2 */
+
+
+          item->element_list1 = g_list_concat (
+              copy_element_list (codec_cap1->element_list1),
+              copy_element_list (codec_cap1->element_list2));
+          item->element_list2 = g_list_concat (
+              copy_element_list (codec_cap2->element_list1),
+              copy_element_list (codec_cap2->element_list2));
+
+          intersection_list = g_list_append (intersection_list, item);
+          if (rtp_intersection)
+            break;
+        }
+      } else {
+        gst_caps_unref (intersection);
+        if (rtp_intersection)
+          gst_caps_unref (rtp_intersection);
       }
-      gst_caps_unref (intersection);
-      if (rtp_intersection)
-        gst_caps_unref (rtp_intersection);
     }
   }
 
@@ -911,7 +930,8 @@ codec_blueprint_destroy (CodecBlueprint *codec_blueprint)
   {
     if (walk->data)
     {
-      gst_object_unref ((GstElementFactory *)walk->data);
+      g_list_foreach (walk->data, (GFunc) gst_object_unref, NULL);
+      g_list_free (walk->data);
     }
   }
   for (walk = codec_blueprint->receive_pipeline_factory;
@@ -919,7 +939,8 @@ codec_blueprint_destroy (CodecBlueprint *codec_blueprint)
   {
     if (walk->data)
     {
-      gst_object_unref ((GstElementFactory *)walk->data);
+      g_list_foreach (walk->data, (GFunc) gst_object_unref, NULL);
+      g_list_free (walk->data);
     }
   }
   g_list_free (codec_blueprint->send_pipeline_factory);
@@ -1135,84 +1156,42 @@ create_codec_cap_list (GstElementFactory *factory,
           entry->rtp_caps = rtp_caps;
           gst_caps_ref (rtp_caps);
         }
-        list = g_list_prepend (list, entry);
-        entry->element_list1 = g_list_prepend (NULL, factory);
+        list = g_list_append (list, entry);
+        entry->element_list1 = g_list_prepend (NULL,
+          g_list_prepend (NULL, factory));
         gst_object_ref (factory);
       }
       else
       {
-        const gchar *name;
+        GstCaps *newcaps;
 
+        g_debug ("EXTRA: %s to %s", gst_plugin_feature_get_name (
+              GST_PLUGIN_FEATURE (factory)), gst_caps_to_string (cur_caps));
+
+        entry->element_list1->data =
+          g_list_append (entry->element_list1->data, factory);
+        gst_object_ref (factory);
+
+        if (rtp_caps) {
+          if (entry->rtp_caps) {
+            GstCaps *new_rtp_caps;
+            new_rtp_caps = gst_caps_union (rtp_caps, entry->rtp_caps);
+            gst_caps_unref (entry->rtp_caps);
+            entry->rtp_caps = new_rtp_caps;
+          } else {
+            entry->rtp_caps = rtp_caps;
+            /* This shouldn't happen, its we're looking at rtp elements
+             * or we're not */
+            g_assert_not_reached();
+          }
+          gst_caps_unref (rtp_caps);
+        }
+
+        newcaps = gst_caps_union (cur_caps, entry->caps);
+        gst_caps_unref (entry->caps);
         gst_caps_unref (cur_caps);
-        /* FIXME Should we unionize RTP info from several elements even if they
-         * will not be used? For now won't do it... */
+        entry->caps = newcaps;
 
-        /* already exists, let's check if this element is in our config file, if
-         * so give it priority */
-        name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
-#if 0
-        if (elem_config &&
-            g_key_file_get_boolean (elem_config, name, "prioritize", NULL))
-        {
-          /* should be only one element, let's free it */
-          if (entry->element_list1)
-          {
-            gst_object_unref (entry->element_list1->data);
-            g_list_free (entry->element_list1);
-          }
-          entry->element_list1 = g_list_prepend (NULL, factory);
-          gst_object_ref (factory);
-        }
-        else
-#endif
-        {
-          const gchar *prev_klass, *cur_klass, *prev_name;
-
-          /* if previous element is a Source/Sink and current element is not,
-           * and if the previous element has no priority, let's replace the
-           * previous element with the current element */
-          GstElementFactory *prev_factory = NULL;
-          if (entry->element_list1)
-          {
-            prev_factory = entry->element_list1->data;
-          }
-
-          if (!prev_factory)
-          {
-            continue;
-          }
-
-          prev_klass = gst_element_factory_get_klass(prev_factory);
-          if (g_strrstr (prev_klass, "Sink") == NULL &&
-              g_strrstr (prev_klass, "Source") == NULL)
-          {
-            /* previous element is not a sink/source, don't do anything */
-            continue;
-          }
-
-          cur_klass = gst_element_factory_get_klass (factory);
-          if (g_strrstr (cur_klass, "Sink") != NULL ||
-              g_strrstr (cur_klass, "Source") != NULL)
-          {
-            /* current element is a sink/source, don't do anything */
-            continue;
-          }
-
-          prev_name = gst_plugin_feature_get_name
-              (GST_PLUGIN_FEATURE (prev_factory));
-#if 0
-          if (elem_config &&
-              !g_key_file_get_boolean (elem_config, prev_name, "prioritize",
-                  NULL))
-          {
-            /* previous element is not prioritised, make the switch */
-            gst_object_unref (prev_factory);
-            g_list_free (entry->element_list1);
-            entry->element_list1 = g_list_prepend (NULL, factory);
-            gst_object_ref (factory);
-          }
-#endif
-        }
       }
     }
   done:

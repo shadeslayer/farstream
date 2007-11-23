@@ -36,6 +36,9 @@ typedef struct _CodecBlueprint
   FsCodec *codec;
   GstCaps *media_caps;
   GstCaps *rtp_caps;
+  /*
+   * These are #GList of #GList of #GstElementFactory
+   */
   GList *send_pipeline_factory;
   GList *receive_pipeline_factory;
   gboolean has_sink;
