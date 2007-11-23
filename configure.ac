@@ -346,6 +346,7 @@ dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc
 tests/Makefile
 tests/check/Makefile
+tests/rtp/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/version.entities

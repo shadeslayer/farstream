@@ -36,6 +36,7 @@ tests/check/base/fscodec
 tests/check/base/fstransmitter
 tests/check/transmitter/.dirstamp
 tests/check/transmitter/rawudp
+tests/rtp/codec-discovery
 
 aclocal.m4
 autom4te.cache
