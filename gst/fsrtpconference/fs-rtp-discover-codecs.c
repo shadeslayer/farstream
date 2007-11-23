@@ -208,9 +208,9 @@ codec_cap_list_free (GList *list)
  * network  -> rtp depayloader -> N* -> output (soundcard)
  * media_type defines if we want audio or video codecs
  *
- * Returns : TRUE if load_codecs suceeded, FALSE otherwsie
+ * Returns : a #GList of #CodecBlueprint or NULL on error
  */
-gboolean
+GList *
 load_codecs (FsMediaType media_type, GError **error)
 {
   GstCaps *caps;
@@ -223,7 +223,7 @@ load_codecs (FsMediaType media_type, GError **error)
 
   /* if already computed just return list */
   if (codecs_lists_ref[media_type] > 1)
-    return TRUE;
+    return list_codec_blueprints[media_type];
 
 
 #if 0
@@ -236,7 +236,7 @@ load_codecs (FsMediaType media_type, GError **error)
   list_codec_blueprints[media_type] = load_codecs_cache(media_type, NULL);
   if (list_codec_blueprints[media_type]) {
     g_debug("Loaded codec blueprints from cache file");
-    return TRUE;
+    return list_codec_blueprints[media_type];
   }
 
   /* caps used to find the payloaders and depayloaders based on media type */
@@ -255,7 +255,7 @@ load_codecs (FsMediaType media_type, GError **error)
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "Invalid media type given to load_codecs");
     codecs_lists_ref[media_type]--;
-    return FALSE;
+    return NULL;
   }
 
   recv_list = detect_recv_codecs (caps);
@@ -270,7 +270,7 @@ load_codecs (FsMediaType media_type, GError **error)
       "No codecs for media type %s detected",
       fs_media_type_to_string (media_type));
 
-    ret = FALSE;
+    list_codec_blueprints[media_type] = NULL;
     goto out;
   }
 
@@ -285,7 +285,7 @@ load_codecs (FsMediaType media_type, GError **error)
   if (send_list)
     codec_cap_list_free (send_list);
 
-  return ret;
+  return list_codec_blueprints[media_type];;
 }
 
 static gboolean
