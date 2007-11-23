@@ -44,8 +44,6 @@ static gboolean codecs_cache_valid(gchar *cache_path) {
   gchar *registry_xml_path;
   gchar *registry_bin_path;
 
-  return FALSE;
-
   registry_xml_path = g_strdup (g_getenv ("GST_REGISTRY"));
   if (registry_xml_path == NULL) {
     registry_bin_path = g_build_filename (g_get_home_dir (),
@@ -314,8 +312,8 @@ load_codecs_cache (FsMediaType media_type, GError **error)
       magic[1] != 'S' ||
       magic[2] != magic_media ||
       magic[3] != 'C' ||
-      magic[4] != '1' ||
-      magic[5] != '0') {
+      magic[4] != '1' ||   /* This is the version number */
+      magic[5] != '1') {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
       "Cache file has incorrect magic header. File corrupted");
     goto error;
@@ -499,7 +497,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
 
   /* version of the binary format */
   magic[4] = '1';
-  magic[5] = '0';
+  magic[5] = '1';
 
   if (write (fd, magic, 8) != 8)
     return FALSE;
