@@ -5,7 +5,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-discover-codecs.c - A Farsight RTP Codec Discovery gobject
+ * fs-discover-codecs.c - A Farsight RTP Codec Discovery
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
