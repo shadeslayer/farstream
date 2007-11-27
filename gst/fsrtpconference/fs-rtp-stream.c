@@ -103,11 +103,6 @@ static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
                                                      gchar *rfoundatihon,
                                                      GError **error);
 
-
-static gboolean fs_rtp_stream_preload_recv_codec (FsStream *stream,
-                                                  FsCodec *codec,
-                                                  GError **error);
-
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
@@ -175,7 +170,6 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   gobject_class->constructed = fs_rtp_stream_constructed;
 
   stream_class->add_remote_candidate = fs_rtp_stream_add_remote_candidate;
-  stream_class->preload_recv_codec = fs_rtp_stream_preload_recv_codec;
   stream_class->set_remote_codecs = fs_rtp_stream_set_remote_codecs;
   stream_class->remote_candidates_added = fs_rtp_stream_remote_candidates_added;
   stream_class->select_candidate_pair = fs_rtp_stream_select_candidate_pair;
@@ -426,27 +420,6 @@ fs_rtp_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
       self->priv->stream_transmitter, lfoundation, rfoundation, error);
 }
 
-
-/**
- * fs_rtp_stream_preload_recv_codec:
- * @stream: an #FsStream
- * @codec: The #FsCodec to be preloaded
- * @error: location of a #GError, or NULL if no error occured
- *
- * This function will preload the codec corresponding to the given codec.
- * This codec must correspond exactly to one of the local-codecs returned by
- * the #FsSession that spawned this #FsStream. Preloading a codec is useful for
- * machines where loading the codec is slow. When preloading, decoding can start
- * as soon as a stream is received.
- *
- * Returns: TRUE of the codec could be preloaded, FALSE if there is an error
- */
-static gboolean
-fs_rtp_stream_preload_recv_codec (FsStream *stream, FsCodec *codec,
-                                  GError **error)
-{
-  return FALSE;
-}
 
 /**
  * fs_rtp_stream_set_remote_codecs:
