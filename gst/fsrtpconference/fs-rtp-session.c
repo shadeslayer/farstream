@@ -98,6 +98,9 @@ struct _FsRtpSessionPrivate
 
   GError *construction_error;
 
+  /* This list is protected by the session mutex */
+  GList *streams;
+
   GMutex *mutex;
 
   gboolean disposed;
@@ -667,6 +670,19 @@ fs_rtp_session_constructed (GObject *object)
 }
 
 
+
+static void
+_remove_stream (gpointer user_data,
+                 GObject *where_the_object_was)
+{
+  FsRtpSession *self = FS_RTP_SESSION (user_data);
+
+  FS_SESSION_LOCK (self);
+  self->priv->streams =
+    g_list_remove_all (self->priv->streams, where_the_object_was);
+  FS_SESSION_UNLOCK (self);
+}
+
 /**
  * fs_rtp_session_new_stream:
  * @session: an #FsRtpSession
@@ -707,6 +723,12 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
       direction, st, error));
+
+  FS_SESSION_LOCK (self);
+  self->priv->streams = g_list_append (self->priv->streams, new_stream);
+  FS_SESSION_UNLOCK (self);
+
+  g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
 
   return new_stream;
 }
