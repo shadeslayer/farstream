@@ -65,6 +65,11 @@ struct _FsRtpSessionClass
 struct _FsRtpSession
 {
   FsSession parent;
+
+  guint id;
+
+  /*< private >*/
+
   FsRtpSessionPrivate *priv;
 };
 

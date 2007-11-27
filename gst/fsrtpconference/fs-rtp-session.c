@@ -65,7 +65,6 @@ enum
 struct _FsRtpSessionPrivate
 {
   FsMediaType media_type;
-  guint id;
 
   /* We dont need a reference to this one per our reference model
    * This Session object can only exist while its parent conference exists
@@ -369,7 +368,7 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_enum (value, self->priv->media_type);
       break;
     case PROP_ID:
-      g_value_set_uint (value, self->priv->id);
+      g_value_set_uint (value, self->id);
       break;
     case PROP_SINK_PAD:
       g_value_set_object (value, self->priv->media_sink_pad);
@@ -396,7 +395,7 @@ fs_rtp_session_set_property (GObject *object,
       self->priv->media_type = g_value_get_enum (value);
       break;
     case PROP_ID:
-      self->priv->id = g_value_get_uint (value);
+      self->id = g_value_get_uint (value);
       break;
     case PROP_CONFERENCE:
       self->priv->conference = g_value_get_object (value);
@@ -423,13 +422,13 @@ fs_rtp_session_constructed (GObject *object)
 
   G_OBJECT_CLASS (parent_class)->constructed (object);
 
-  if (self->priv->id == 0) {
+  if (self->id == 0) {
     g_error ("You can no instantiate this element directly, you MUST"
       " call fs_rtp_session_new()");
     return;
   }
 
-  tmp = g_strdup_printf ("valve_send_%d", self->priv->id);
+  tmp = g_strdup_printf ("valve_send_%d", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
   g_free (tmp);
 
@@ -455,7 +454,7 @@ fs_rtp_session_constructed (GObject *object)
 
   valve_sink_pad = gst_element_get_static_pad (valve, "sink");
 
-  tmp = g_strdup_printf ("sink_%u", self->priv->id);
+  tmp = g_strdup_printf ("sink_%u", self->id);
   self->priv->media_sink_pad = gst_ghost_pad_new (tmp, valve_sink_pad);
   g_free (tmp);
 
@@ -468,7 +467,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTP tee */
 
-  tmp = g_strdup_printf ("send_rtp_tee_%d", self->priv->id);
+  tmp = g_strdup_printf ("send_rtp_tee_%d", self->id);
   tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
 
@@ -494,7 +493,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTCP tee */
 
-  tmp = g_strdup_printf ("send_rtcp_tee_%d", self->priv->id);
+  tmp = g_strdup_printf ("send_rtcp_tee_%d", self->id);
   tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
 
@@ -520,7 +519,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTP funnel */
 
-  tmp = g_strdup_printf ("recv_rtp_funnel_%d", self->priv->id);
+  tmp = g_strdup_printf ("recv_rtp_funnel_%d", self->id);
   funnel = gst_element_factory_make ("fsfunnel", tmp);
   g_free (tmp);
 
@@ -541,7 +540,7 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->transmitter_rtp_funnel = gst_object_ref (funnel);
 
-  tmp = g_strdup_printf ("recv_rtp_sink_%u", self->priv->id);
+  tmp = g_strdup_printf ("recv_rtp_sink_%u", self->id);
   self->priv->rtpbin_recv_rtp_sink =
     gst_element_get_request_pad (self->priv->conference->gstrtpbin,
       tmp);
@@ -570,7 +569,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTCP funnel */
 
-  tmp = g_strdup_printf ("recv_rtcp_funnel_%d", self->priv->id);
+  tmp = g_strdup_printf ("recv_rtcp_funnel_%d", self->id);
   funnel = gst_element_factory_make ("fsfunnel", tmp);
   g_free (tmp);
 
@@ -591,7 +590,7 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->transmitter_rtcp_funnel = gst_object_ref (funnel);
 
-  tmp = g_strdup_printf ("recv_rtcp_sink_%u", self->priv->id);
+  tmp = g_strdup_printf ("recv_rtcp_sink_%u", self->id);
   self->priv->rtpbin_recv_rtcp_sink =
     gst_element_get_request_pad (self->priv->conference->gstrtpbin,
       tmp);
@@ -619,7 +618,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Lets now create the RTP muxer */
 
-  tmp = g_strdup_printf ("send_rtp_muxer_%d", self->priv->id);
+  tmp = g_strdup_printf ("send_rtp_muxer_%d", self->id);
   muxer = gst_element_factory_make ("rtpmuxer", tmp);
   g_free (tmp);
 
@@ -640,7 +639,7 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->rtpmuxer = gst_object_ref (muxer);
 
-  tmp = g_strdup_printf ("send_rtp_sink_%u", self->priv->id);
+  tmp = g_strdup_printf ("send_rtp_sink_%u", self->id);
   self->priv->rtpbin_send_rtp_sink =
     gst_element_get_request_pad (self->priv->conference->gstrtpbin,
       tmp);
@@ -844,7 +843,7 @@ fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
     gst_element_get_static_pad (session->priv->transmitter_rtcp_tee, "sink");
   g_assert (transmitter_rtcp_tee_sink_pad);
 
-  tmp = g_strdup_printf ("send_rtcp_src_%u", session->priv->id);
+  tmp = g_strdup_printf ("send_rtcp_src_%u", session->id);
   session->priv->rtpbin_send_rtcp_src =
     gst_element_get_request_pad (session->priv->conference->gstrtpbin, tmp);
 

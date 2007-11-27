@@ -297,15 +297,12 @@ fs_rtp_conference_get_session_by_id_locked (FsRtpConference *self,
   for (item = g_list_first (self->priv->sessions);
        item;
        item = g_list_next (item)) {
-    /*
-      Must implement ID
-
     FsRtpSession *session = item->data;
+
     if (session->id == session_id) {
       g_object_ref(session);
       break;
     }
-    */
   }
 
   if (item)
