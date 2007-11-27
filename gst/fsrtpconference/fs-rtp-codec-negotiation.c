@@ -462,6 +462,7 @@ GHashTable *
 negotiate_codecs (const GList *remote_codecs,
     GHashTable *negotiated_codec_associations,
     GHashTable *local_codec_associations, GList *local_codecs,
+    gboolean use_local_ids,
     GList **negotiated_codecs_out)
 {
   GHashTable *new_codec_associations = NULL;
@@ -510,6 +511,8 @@ negotiate_codecs (const GList *remote_codecs,
       if (tmpdata.local_ca && tmpdata.nego_codec) {
         local_ca = tmpdata.local_ca;
         nego_codec = tmpdata.nego_codec;
+        if (use_local_ids)
+          nego_codec->id = local_ca->codec->id;
       }
     }
 
