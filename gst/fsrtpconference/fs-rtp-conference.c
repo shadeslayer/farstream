@@ -255,6 +255,7 @@ fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
 
       if (session) {
         fs_rtp_session_new_recv_pad (session, new_pad, ssrc, pt);
+        g_object_unref (session);
       }
     }
   } else if (g_str_has_prefix (name, "send_rtp_src_")) {
