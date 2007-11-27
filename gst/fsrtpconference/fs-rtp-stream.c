@@ -47,6 +47,7 @@ enum
 enum
 {
   PROP_0,
+  PROP_ID,
 #if 0
   /* TODO Do we really need this? */
   PROP_SOURCE_PADS,
@@ -66,6 +67,8 @@ struct _FsRtpStreamPrivate
   FsStreamTransmitter *stream_transmitter;
 
   FsStreamDirection direction;
+
+  guint ssrc;
 
   GError *construction_error;
 
@@ -177,6 +180,9 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   stream_class->remote_candidates_added = fs_rtp_stream_remote_candidates_added;
   stream_class->select_candidate_pair = fs_rtp_stream_select_candidate_pair;
 
+  g_object_class_override_property (gobject_class,
+                                    PROP_ID,
+                                    "id");
 #if 0
   g_object_class_override_property (gobject_class,
                                     PROP_SOURCE_PADS,
@@ -264,6 +270,9 @@ fs_rtp_stream_get_property (GObject *object,
   FsRtpStream *self = FS_RTP_STREAM (object);
 
   switch (prop_id) {
+    case PROP_ID:
+      g_value_set_uint (value, self->priv->ssrc);
+      break;
     case PROP_SESSION:
       g_value_set_object (value, self->priv->session);
       break;
@@ -292,6 +301,9 @@ fs_rtp_stream_set_property (GObject *object,
   FsRtpStream *self = FS_RTP_STREAM (object);
 
   switch (prop_id) {
+    case PROP_ID:
+      self->priv->ssrc = g_value_get_uint (value);
+      break;
     case PROP_SESSION:
       self->priv->session = FS_RTP_SESSION (g_value_get_object (value));
       break;
