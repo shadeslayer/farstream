@@ -24,6 +24,7 @@
 
 #include "fs-rtp-codec-negotiation.h"
 
+#include "fs-rtp-specific-nego.h"
 
 /**
  * validate_codecs_configuration:
@@ -422,3 +423,198 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
   return codec_associations;
 }
 
+
+
+
+
+struct SDPNegoData {
+  /* in  */
+  FsCodec *remote_codec;
+  /* out */
+  CodecAssociation *local_ca;
+  FsCodec *nego_codec;
+};
+
+
+static gboolean
+_do_sdp_codec_nego (gpointer key, gpointer value, gpointer user_data)
+{
+  struct SDPNegoData *tmpdata = user_data;
+  CodecAssociation *local_ca = value;
+  FsCodec *nego_codec = NULL;
+
+  if (local_ca == NULL)
+    return FALSE;
+
+  nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
+      local_ca->codec, tmpdata->remote_codec);
+
+  if (nego_codec) {
+    tmpdata->nego_codec = nego_codec;
+    tmpdata->local_ca = local_ca;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+GHashTable *
+negotiate_codecs (const GList *remote_codecs,
+    GHashTable *negotiated_codec_associations,
+    GHashTable *local_codec_associations, GList *local_codecs,
+    GList **negotiated_codecs_out)
+{
+  GHashTable *new_codec_associations = NULL;
+  GList *new_negotiated_codecs = NULL;
+  const GList *rcodec_e = NULL;
+  int i;
+
+  g_return_val_if_fail (remote_codecs, NULL);
+  g_return_val_if_fail (local_codec_associations, NULL);
+  g_return_val_if_fail (local_codecs, NULL);
+
+  new_codec_associations = g_hash_table_new_full (g_direct_hash,
+      g_direct_equal, NULL, (GDestroyNotify) _codec_association_destroy);
+
+  for (rcodec_e = remote_codecs;
+       rcodec_e;
+       rcodec_e = g_list_next (rcodec_e)) {
+    FsCodec *remote_codec = rcodec_e->data;
+    FsCodec *nego_codec = NULL;
+    CodecAssociation *local_ca = NULL;
+
+    gchar *tmp = fs_codec_to_string (remote_codec);
+    g_debug ("Remote codec %s", tmp);
+    g_free (tmp);
+
+    /* First lets try the codec that is in the same PT */
+
+    local_ca = lookup_codec_association_by_pt (local_codec_associations,
+      remote_codec->id);
+
+    if (local_ca) {
+      g_debug ("Have local codec in the same PT, lets try it first");
+      nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
+          local_ca->codec, remote_codec);
+    }
+
+    if (!nego_codec) {
+      struct SDPNegoData tmpdata;
+      tmpdata.remote_codec = remote_codec;
+      tmpdata.local_ca = NULL;
+      tmpdata.nego_codec = NULL;
+
+      g_hash_table_find (local_codec_associations, _do_sdp_codec_nego,
+          &tmpdata);
+
+      if (tmpdata.local_ca && tmpdata.nego_codec) {
+        local_ca = tmpdata.local_ca;
+        nego_codec = tmpdata.nego_codec;
+      }
+    }
+
+    if (nego_codec) {
+      CodecAssociation *new_ca = g_new0 (CodecAssociation, 1);
+      gchar *tmp;
+
+      new_ca->codec = fs_codec_copy (nego_codec);
+      new_ca->blueprint = local_ca->blueprint;
+      tmp = fs_codec_to_string (nego_codec);
+      g_debug ("Negotiated codec %s", tmp);
+      g_free (tmp);
+
+      g_hash_table_insert (new_codec_associations,
+          GINT_TO_POINTER (remote_codec->id), new_ca);
+      new_negotiated_codecs = g_list_append (new_negotiated_codecs, new_ca->codec);
+    } else {
+      gchar *tmp = fs_codec_to_string (remote_codec);
+      g_debug ("Could not find a valid intersection... for codec %s",
+                 tmp);
+      g_free (tmp);
+      g_hash_table_insert (new_codec_associations,
+          GINT_TO_POINTER (remote_codec->id), NULL);
+    }
+  }
+
+  /* If no intersection was found, lets return NULL */
+  if (g_hash_table_size (new_codec_associations) == 0) {
+    g_hash_table_destroy (new_codec_associations);
+    return NULL;
+  }
+
+  /* Now, lets fill all of the PTs that were previously used in the session
+   * even if they are not currently used, so they can't be re-used
+   */
+  for (i=0; i < 128; i++) {
+    CodecAssociation *local_ca = NULL;
+
+    /* We can skip those currently in use */
+    if (g_hash_table_lookup_extended (new_codec_associations,
+            GINT_TO_POINTER (i), NULL, NULL))
+      continue;
+
+    /* We check if our local table (our offer) and if we offered
+       something, we add it. Some broken implementation (like Tandberg's)
+       send packets on PTs that they did not put in their response
+    */
+    local_ca = lookup_codec_association_by_pt (local_codec_associations, i);
+    if (local_ca) {
+      CodecAssociation *new_ca = g_new0 (CodecAssociation, 1);
+      new_ca->codec = fs_codec_copy (local_ca->codec);
+      new_ca->blueprint = local_ca->blueprint;
+
+      g_hash_table_insert (new_codec_associations,
+          GINT_TO_POINTER (i), new_ca);
+      /*
+       * We dont insert it into the list, because the list is used for offers
+       * and answers.. and we shouldn't offer/answer with codecs that
+       * were not in the remote codecs
+       */
+      //new_negotiated_codecs = g_list_append (new_negotiated_codecs, new_ca->codec);
+      continue;
+    }
+
+    /* We check in our local table (our offer) and in the old negotiated
+     * table (the result of previous negotiations). And kill all of the
+     * PTs used in there
+     */
+    if (g_hash_table_lookup_extended (local_codec_associations,
+                GINT_TO_POINTER (i), NULL, NULL)
+        || (negotiated_codec_associations &&
+            g_hash_table_lookup_extended (negotiated_codec_associations,
+                GINT_TO_POINTER (i), NULL, NULL))) {
+      g_hash_table_insert (new_codec_associations,
+          GINT_TO_POINTER (i), NULL);
+    }
+
+  }
+
+#if 0
+  /*
+   * BIG hack, we have to manually add CN
+   * because we can send it, but not receive it yet
+   * Do the same for DTMF for the same reason
+   * This is because there is no blueprint for them
+   */
+
+  if (new_negotiated_codecs) {
+    new_negotiated_codecs = add_cn_type (new_negotiated_codecs,
+        new_codec_associations);
+    new_negotiated_codecs = add_dtmf_type (new_negotiated_codecs,
+        local_codec_associations, negotiated_codec_associations, remote_codecs);
+  }
+#endif
+
+  *negotiated_codecs_out = new_negotiated_codecs;
+  return new_codec_associations;
+}
+
+
+CodecAssociation *
+lookup_codec_association_by_pt (GHashTable *codec_associations, gint pt)
+{
+  if (!codec_associations)
+    return NULL;
+
+  return g_hash_table_lookup (codec_associations, GINT_TO_POINTER (pt));
+}
