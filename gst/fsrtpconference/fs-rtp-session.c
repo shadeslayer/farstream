@@ -99,11 +99,16 @@ struct _FsRtpSessionPrivate
 
   GError *construction_error;
 
+  GMutex *mutex;
+
   gboolean disposed;
 };
 
 #define FS_RTP_SESSION_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsRtpSessionPrivate))
+
+#define FS_SESSION_LOCK(session)   g_mutex_lock ((session)->priv->mutex)
+#define FS_SESSION_UNLOCK(session) g_mutex_unlock ((session)->priv->mutex)
 
 static void fs_rtp_session_class_init (FsRtpSessionClass *klass);
 static void fs_rtp_session_init (FsRtpSession *self);
@@ -230,6 +235,8 @@ fs_rtp_session_init (FsRtpSession *self)
 
   self->priv->transmitters = g_hash_table_new_full (g_str_hash, g_str_equal,
     g_free, g_object_unref);
+
+  self->priv->mutex = g_mutex_new ();
 }
 
 static gboolean
@@ -342,6 +349,10 @@ fs_rtp_session_dispose (GObject *object)
 static void
 fs_rtp_session_finalize (GObject *object)
 {
+  FsRtpSession *self = FS_RTP_SESSION (object);
+
+  g_mutex_free (self->priv->mutex);
+
   parent_class->finalize (object);
 }
 
