@@ -76,8 +76,6 @@ FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
                                 FsStreamTransmitter *stream_transmitter,
                                 GError **error);
 
-void fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt);
-
 G_END_DECLS
 
 #endif /* __FS_RTP_STREAM_H__ */

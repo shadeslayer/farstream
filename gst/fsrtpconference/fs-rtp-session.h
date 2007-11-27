@@ -83,8 +83,10 @@ GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
 
 void fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *pad);
 
-FsStream *fs_rtp_session_get_stream_by_id (FsRtpSession *session,
-                                           guint stream_id);
+
+void fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
+  guint ssrc, guint pt);
+
 
 G_END_DECLS
 

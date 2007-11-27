@@ -246,19 +246,15 @@ fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
   name = gst_pad_get_name (new_pad);
 
   if (g_str_has_prefix (name, "recv_rtp_src_")) {
-    guint session_id, stream_id, pt;
+    guint session_id, ssrc, pt;
 
     if (sscanf (name, "recv_rtp_src_%u_%u_%u",
-        &session_id, &stream_id, &pt) == 3) {
+        &session_id, &ssrc, &pt) == 3) {
       FsRtpSession *session =
         fs_rtp_conference_get_session_by_id (self, session_id);
 
       if (session) {
-        FsRtpStream *stream =FS_RTP_STREAM_CAST (
-            fs_rtp_session_get_stream_by_id (session, stream_id));
-
-        if (stream)
-          fs_rtp_stream_new_recv_pad (stream, new_pad, pt);
+        fs_rtp_session_new_recv_pad (session, new_pad, ssrc, pt);
       }
     }
   } else if (g_str_has_prefix (name, "send_rtp_src_")) {

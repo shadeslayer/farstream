@@ -494,11 +494,6 @@ fs_rtp_stream_new (FsRtpSession *session,
 }
 
 
-void
-fs_rtp_stream_new_recv_pad (FsRtpStream *stream, GstPad *pad, guint pt)
-{
-}
-
 static void
 fs_rtp_stream_local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter, gpointer user_data)
