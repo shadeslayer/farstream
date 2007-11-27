@@ -249,7 +249,7 @@ fs_rtp_conference_rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
     guint session_id, ssrc, pt;
 
     if (sscanf (name, "recv_rtp_src_%u_%u_%u",
-        &session_id, &ssrc, &pt) == 3) {
+        &session_id, &ssrc, &pt) == 3 && ssrc <= G_MAXUINT32) {
       FsRtpSession *session =
         fs_rtp_conference_get_session_by_id (self, session_id);
 

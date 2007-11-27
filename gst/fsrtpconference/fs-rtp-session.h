@@ -84,7 +84,7 @@ void fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *pad);
 
 
 void fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
-  guint ssrc, guint pt);
+  guint32 ssrc, guint pt);
 
 
 G_END_DECLS
