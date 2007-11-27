@@ -29,7 +29,6 @@
 
 #include <gst/farsight/fs-session.h>
 
-#include "fs-rtp-session.h"
 #include "fs-rtp-conference.h"
 
 G_BEGIN_DECLS
