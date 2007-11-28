@@ -96,11 +96,19 @@ struct _FsRtpSessionPrivate
   GstPad *rtpbin_recv_rtp_sink;
   GstPad *rtpbin_recv_rtcp_sink;
 
-  GError *construction_error;
-
   /* These lists are protected by the session mutex */
   GList *streams;
   GList *free_substreams;
+
+  GList *local_codecs_configuration;
+
+  GList *local_codecs;
+  GHashTable *local_codec_associations;
+
+  GList *negotiated_codecs;
+  GHashTable *negotiated_codec_associations;
+
+  GError *construction_error;
 
   GMutex *mutex;
 
@@ -372,6 +380,21 @@ fs_rtp_session_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
+  if (self->priv->local_codecs_configuration)
+    fs_codec_list_destroy (self->priv->local_codecs_configuration);
+
+  if (self->priv->local_codecs)
+    fs_codec_list_destroy (self->priv->local_codecs);
+
+  if (self->priv->local_codec_associations)
+    g_hash_table_destroy (self->priv->local_codec_associations);
+
+  if (self->priv->negotiated_codecs)
+    fs_codec_list_destroy (self->priv->negotiated_codecs);
+
+  if (self->priv->negotiated_codec_associations)
+    g_hash_table_destroy (self->priv->negotiated_codec_associations);
+
   parent_class->finalize (object);
 }
 
@@ -392,6 +415,15 @@ fs_rtp_session_get_property (GObject *object,
       break;
     case PROP_SINK_PAD:
       g_value_set_object (value, self->priv->media_sink_pad);
+      break;
+    case PROP_LOCAL_CODECS:
+      g_value_set_boxed (value, self->priv->local_codecs);
+      break;
+    case PROP_LOCAL_CODECS_CONFIG:
+      g_value_set_boxed (value, self->priv->local_codecs_configuration);
+      break;
+    case PROP_NEGOTIATED_CODECS:
+      g_value_set_boxed (value, self->priv->negotiated_codecs);
       break;
     case PROP_CONFERENCE:
       g_value_take_object (value, self->priv->conference);
@@ -416,6 +448,9 @@ fs_rtp_session_set_property (GObject *object,
       break;
     case PROP_ID:
       self->id = g_value_get_uint (value);
+      break;
+    case PROP_LOCAL_CODECS_CONFIG:
+      self->priv->local_codecs_configuration = g_value_get_boxed (value);
       break;
     case PROP_CONFERENCE:
       self->priv->conference = g_value_get_object (value);
@@ -1215,3 +1250,6 @@ fs_rtp_session_destroy_substream (FsRtpSession *session,
     substream->codecbin = NULL;
   }
 }
+
+
+
