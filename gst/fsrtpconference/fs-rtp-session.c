@@ -40,6 +40,7 @@
 #include "fs-rtp-session.h"
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
+#include "fs-rtp-discover-codecs.h"
 
 
 /* Signals */
@@ -99,6 +100,8 @@ struct _FsRtpSessionPrivate
   /* These lists are protected by the session mutex */
   GList *streams;
   GList *free_substreams;
+
+  GList *blueprints;
 
   GList *local_codecs_configuration;
 
@@ -286,6 +289,11 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
     return;
+  }
+
+  if (self->priv->blueprints) {
+    fs_rtp_blueprints_unref (self->priv->media_type);
+    self->priv->blueprints = NULL;
   }
 
   if (self->priv->media_sink_valve) {
@@ -485,6 +493,18 @@ fs_rtp_session_constructed (GObject *object)
       " call fs_rtp_session_new()");
     return;
   }
+
+  self->priv->blueprints = fs_rtp_blueprints_get (self->priv->media_type,
+    &self->priv->construction_error);
+
+  if (!self->priv->blueprints) {
+    if (!self->priv->construction_error)
+      self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_INTERNAL,
+        "Unknown error while trying to discover codecs");
+    return;
+  }
+
 
   tmp = g_strdup_printf ("valve_send_%d", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
