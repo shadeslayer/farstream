@@ -3,7 +3,11 @@
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *   @author Rob Taylor <rob.taylor@collabora.co.uk>
+ *   @author Philippe Kalaf <philippe.kalaf@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
+ * Copyright 2005 INdT
+ *   @author Andre Moreira Magalhaes <andre.magalhaes@indt.org.br>
  *
  * fs-discover-codecs.c - A Farsight RTP Codec Discovery
  *
