@@ -41,6 +41,7 @@
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
 #include "fs-rtp-discover-codecs.h"
+#include "fs-rtp-codec-negotiation.h"
 
 
 /* Signals */
@@ -897,7 +898,22 @@ fs_rtp_session_new (FsMediaType media_type, FsRtpConference *conference,
 GstCaps *
 fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
 {
-  return NULL;
+  GstCaps *caps = NULL;
+  CodecAssociation *ca = NULL;
+
+  FS_SESSION_LOCK (session);
+
+  if (session->priv->negotiated_codec_associations) {
+    ca = g_hash_table_lookup (session->priv->negotiated_codec_associations,
+      GINT_TO_POINTER (pt));
+
+    if (ca)
+      caps = fs_codec_to_gst_caps (ca->codec);
+  }
+
+  FS_SESSION_UNLOCK (session);
+
+  return caps;
 }
 
 
