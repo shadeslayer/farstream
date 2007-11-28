@@ -1432,8 +1432,8 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
   return ret;
 }
 
-GstElement *
-_create_codec_bin (CodecAssociation *codec_association, gchar *name,
+static GstElement *
+_create_codec_bin (CodecBlueprint *blueprint, FsCodec *codec, const gchar *name,
   gboolean is_send, GError **error)
 {
   GList *pipeline_factory = NULL;
@@ -1444,12 +1444,12 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
   gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
 
   if (is_send)
-    pipeline_factory = codec_association->blueprint->send_pipeline_factory;
+    pipeline_factory = blueprint->send_pipeline_factory;
   else
-    pipeline_factory = codec_association->blueprint->receive_pipeline_factory;
+    pipeline_factory = blueprint->receive_pipeline_factory;
 
   g_debug ("creating %s codec bin for id %d, pipeline_factory %p",
-    direction_str, codec_association->codec->id, pipeline_factory);
+    direction_str, codec->id, pipeline_factory);
   codec_bin = gst_bin_new (name);
 
   for (walk = g_list_first (pipeline_factory); walk; walk = g_list_next (walk))
@@ -1472,7 +1472,7 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
             GST_ELEMENT_FACTORY (g_list_first (walk->data)->data), NULL);
       if (!current_element) {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not create element for pt %d", codec_association->codec->id);
+          "Could not create element for pt %d", codec->id);
         goto error;
       }
     }
@@ -1480,7 +1480,7 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
     if (!gst_bin_add (GST_BIN (codec_bin), current_element)) {
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add new element to %s codec_bin for pt %d",
-        direction_str, codec_association->codec->id);
+        direction_str, codec->id);
       goto error;
     }
 
@@ -1495,7 +1495,7 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
       g_object_set (G_OBJECT (current_element), "queue-delay", 0, NULL);
 
     if (_g_object_has_property (G_OBJECT (current_element), "pt"))
-      g_object_set (current_element, "pt", codec_association->codec->id,
+      g_object_set (current_element, "pt", codec->id,
         NULL);
 
     /* Lets create the ghost pads on the codec bin */
@@ -1528,8 +1528,7 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
       if (!sinkpad) {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not get the sink pad one of the elements in the %s codec bin"
-          " for pt %d", direction_str,
-          codec_association->codec->id);
+          " for pt %d", direction_str, codec->id);
         goto error;
       }
 
@@ -1542,8 +1541,7 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
       if (!srcpad) {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not get the src pad one of the elements in the %s codec bin"
-          " for pt %d", direction_str,
-          codec_association->codec->id);
+          " for pt %d", direction_str, codec->id);
         gst_object_unref (sinkpad);
         goto error;
       }
@@ -1556,7 +1554,7 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
       if (GST_PAD_LINK_FAILED (ret)) {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not link element inside the %s codec bin for pt %d",
-          direction_str, codec_association->codec->id);
+          direction_str, codec->id);
         goto error;
       }
     }
@@ -1569,4 +1567,47 @@ _create_codec_bin (CodecAssociation *codec_association, gchar *name,
  error:
   gst_object_unref (codec_bin);
   return NULL;
+}
+
+static GstElement *
+fs_rtp_session_new_codec_bin (FsRtpSession *session, const gchar *name,
+  guint pt, gboolean is_send, GError **error)
+{
+  GstElement *codec_bin = NULL;
+  CodecAssociation *ca = NULL;
+  CodecBlueprint *blueprint = NULL;
+  FsCodec *codec = NULL;
+
+  FS_SESSION_LOCK (session);
+
+  if (!session->priv->negotiated_codec_associations) {
+    FS_SESSION_UNLOCK (session);
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+      "No negotiated codecs yet");
+      return NULL;
+  }
+
+  ca = g_hash_table_lookup (session->priv->negotiated_codec_associations,
+    GINT_TO_POINTER (pt));
+
+  if (ca) {
+    /* We don't need to copy the blueprint because its static
+     * as long as the session object exists */
+    blueprint = ca->blueprint;
+    codec = fs_codec_copy (ca->codec);
+  }
+
+  FS_SESSION_UNLOCK (session);
+
+  if (!ca) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "There is no negotiated codec with pt %d", pt);
+    return NULL;
+  }
+
+  codec_bin = _create_codec_bin (blueprint, codec, name, is_send, error);
+
+  fs_codec_destroy (codec);
+
+  return codec_bin;
 }
