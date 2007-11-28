@@ -340,7 +340,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
       }
     }
 
-    local_codecs = g_list_append (local_codecs, lca->codec);
+    local_codecs = g_list_append (local_codecs, fs_codec_copy (lca->codec));
     g_hash_table_insert (codec_associations, GINT_TO_POINTER (lca->codec->id),
         lca);
 
@@ -386,7 +386,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
 
     g_hash_table_insert (codec_associations, GINT_TO_POINTER (ca->codec->id),
         ca);
-    local_codecs = g_list_append (local_codecs, ca->codec);
+    local_codecs = g_list_append (local_codecs, fs_codec_copy (ca->codec));
   }
 
  out:
