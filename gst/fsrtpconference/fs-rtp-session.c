@@ -5,7 +5,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-session.c - A Farsight RTP Session gobject
+ * fs-rtp-session.c - A Farsight RTP Session gobject
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -121,7 +121,7 @@ struct _FsRtpSessionPrivate
 };
 
 #define FS_RTP_SESSION_GET_PRIVATE(o)  \
-   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsRtpSessionPrivate))
+   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SESSION, FsRtpSessionPrivate))
 
 #define FS_SESSION_LOCK(session)   g_mutex_lock ((session)->priv->mutex)
 #define FS_SESSION_UNLOCK(session) g_mutex_unlock ((session)->priv->mutex)
