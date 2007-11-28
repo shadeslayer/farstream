@@ -105,6 +105,7 @@ struct _FsRtpSessionPrivate
   GList *local_codecs;
   GHashTable *local_codec_associations;
 
+  /* These are protected by the session mutex */
   GList *negotiated_codecs;
   GHashTable *negotiated_codec_associations;
 
@@ -423,7 +424,9 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_boxed (value, self->priv->local_codecs_configuration);
       break;
     case PROP_NEGOTIATED_CODECS:
+      FS_SESSION_LOCK (self);
       g_value_set_boxed (value, self->priv->negotiated_codecs);
+      FS_SESSION_UNLOCK (self);
       break;
     case PROP_CONFERENCE:
       g_value_take_object (value, self->priv->conference);
