@@ -164,6 +164,9 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     FsRtpSession *self, gchar *transmitter_name, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
 
+static GstElement *fs_rtp_session_new_codec_bin (FsRtpSession *session,
+  const gchar *name, guint pt, gboolean is_send, GError **error);
+
 
 static GObjectClass *parent_class = NULL;
 
@@ -1345,6 +1348,8 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 {
   FsRtpSubStream *substream = NULL;
   FsRtpStream *stream = NULL;
+  GstElement *codecbin = NULL;
+  gchar *codec_bin_name = NULL;
   GError *error = NULL;
 
   substream = fs_rtp_substream_new (session->priv->conference, new_pad,
@@ -1363,6 +1368,38 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
+  codec_bin_name = g_strdup_printf ("recv%d_%d", ssrc, pt);
+  codecbin = fs_rtp_session_new_codec_bin (session, codec_bin_name, pt, FALSE,
+    &error);
+  g_free (codec_bin_name);
+
+  if (codecbin) {
+    if (!fs_rtp_sub_stream_add_codecbin (substream, codecbin, &error)) {
+      if (error)
+        fs_session_emit_error (FS_SESSION (session), error->code,
+          "Could not add the codec bin to the new substream", error->message);
+      else
+        fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
+          "Could not add the codec bin to the new substream",
+          "No error details returned");
+
+      fs_rtp_sub_stream_block (substream, NULL, NULL);
+    }
+  } else {
+    if (error) {
+      if (error->code != FS_ERROR_INTERNAL)
+        fs_session_emit_error (FS_SESSION (session), error->code,
+          "Could not create a codec bin for the new pad", error->message);
+    } else {
+      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
+        "Could not create a codec bin for the new pad",
+        "No error details returned");
+    }
+
+    fs_rtp_sub_stream_block (substream, NULL, NULL);
+  }
+
+  g_clear_error (&error);
 
   /* Lets find the FsRtpStream for this substream, if no Stream claims it
    * then we just store it
@@ -1600,7 +1637,7 @@ fs_rtp_session_new_codec_bin (FsRtpSession *session, const gchar *name,
   FS_SESSION_UNLOCK (session);
 
   if (!ca) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
       "There is no negotiated codec with pt %d", pt);
     return NULL;
   }
