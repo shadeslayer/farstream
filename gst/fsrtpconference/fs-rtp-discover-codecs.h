@@ -43,8 +43,8 @@ typedef struct _CodecBlueprint
   GList *receive_pipeline_factory;
 } CodecBlueprint;
 
-GList *load_codecs (FsMediaType media_type, GError **error);
-void unload_codecs (FsMediaType media_type);
+GList *fs_rtp_blueprints_get (FsMediaType media_type, GError **error);
+void fs_rtp_blueprints_unref (FsMediaType media_type);
 
 
 /*

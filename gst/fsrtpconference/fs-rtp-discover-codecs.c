@@ -197,7 +197,7 @@ codec_cap_list_free (GList *list)
 }
 
 /**
- * load_codecs:
+ * fs_rtp_blueprints_get
  * @media_type: a #FsMediaType
  *
  * find all plugins that follow the pattern:
@@ -208,7 +208,7 @@ codec_cap_list_free (GList *list)
  * Returns : a #GList of #CodecBlueprint or NULL on error
  */
 GList *
-load_codecs (FsMediaType media_type, GError **error)
+fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
 {
   GstCaps *caps;
   GList *recv_list = NULL;
@@ -892,7 +892,7 @@ codec_blueprint_destroy (CodecBlueprint *codec_blueprint)
 }
 
 void
-unload_codecs (FsMediaType media_type)
+fs_rtp_blueprints_unref (FsMediaType media_type)
 {
   codecs_lists_ref[media_type]--;
   if (!codecs_lists_ref[media_type])
