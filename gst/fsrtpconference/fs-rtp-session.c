@@ -1387,6 +1387,8 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     }
   } else {
     if (error) {
+      /* Ignore errors the case where we receive buffers before the negotiatoon
+         happens */
       if (error->code != FS_ERROR_INTERNAL)
         fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not create a codec bin for the new pad", error->message);
@@ -1637,7 +1639,7 @@ fs_rtp_session_new_codec_bin (FsRtpSession *session, const gchar *name,
   FS_RTP_SESSION_UNLOCK (session);
 
   if (!ca) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
       "There is no negotiated codec with pt %d", pt);
     return NULL;
   }
