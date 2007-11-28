@@ -198,6 +198,7 @@ fs_rtp_sub_stream_dispose (GObject *object)
 
   if (self->priv->valve) {
     gst_object_ref (self->priv->valve);
+    gst_element_set_state (self->priv->valve, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->valve);
     gst_element_set_state (self->priv->valve, GST_STATE_NULL);
     gst_object_unref (self->priv->valve);
@@ -207,6 +208,7 @@ fs_rtp_sub_stream_dispose (GObject *object)
 
   if (self->priv->codecbin) {
     gst_object_ref (self->priv->codecbin);
+    gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->codecbin);
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_object_unref (self->priv->codecbin);
@@ -311,4 +313,18 @@ fs_rtp_sub_stream_new (FsRtpConference *conference, GstPad *rtpbin_pad,
   }
 
   return substream;
+}
+
+
+void
+fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
+{
+  if (substream->priv->output_pad)
+    gst_pad_set_active (substream->priv->output_pad, FALSE);
+
+  if (substream->priv->valve)
+    gst_element_set_state (substream->priv->valve, GST_STATE_NULL);
+
+  if (substream->priv->codecbin)
+    gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL);
 }

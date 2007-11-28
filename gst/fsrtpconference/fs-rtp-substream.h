@@ -76,6 +76,8 @@ FsRtpSubStream *fs_rtp_substream_new ( FsRtpConference *conference, GstPad *pad,
 
 gboolean fs_rtp_sub_stream_try_add_codecbin (FsRtpSubStream *substream);
 
+void
+fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
 
 G_END_DECLS
 

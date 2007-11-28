@@ -267,9 +267,11 @@ _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
 
   g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
 
+  gst_element_set_state (src, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (self->priv->conference), src);
   gst_element_set_state (src, GST_STATE_NULL);
 
+  gst_element_set_state (sink, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (self->priv->conference), sink);
   gst_element_set_state (sink, GST_STATE_NULL);
 
@@ -277,6 +279,17 @@ _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
   gst_object_unref (sink);
 
   return TRUE;
+}
+
+static void
+_stop_transmitter_elem (gpointer key, gpointer value, gpointer elem_name)
+{
+  FsTransmitter *transmitter = FS_TRANSMITTER (value);
+  GstElement *elem = NULL;
+
+  g_object_get (transmitter, elem_name, &elem, NULL);
+
+  gst_element_set_state (elem, GST_STATE_NULL);
 }
 
 static void
@@ -293,6 +306,42 @@ fs_rtp_session_dispose (GObject *object)
     fs_rtp_blueprints_unref (self->priv->media_type);
     self->priv->blueprints = NULL;
   }
+
+  /* Lets stop all of the elements sink to source */
+
+  /* First the send pipeline */
+  if (self->priv->transmitters)
+    g_hash_table_foreach (self->priv->transmitters, _stop_transmitter_elem,
+      "gst-sink");
+  if (self->priv->rtpbin_send_rtcp_src)
+    gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
+  if (self->priv->transmitter_rtcp_tee)
+    gst_element_set_state (self->priv->transmitter_rtcp_tee, GST_STATE_NULL);
+  if (self->priv->transmitter_rtp_tee)
+    gst_element_set_state (self->priv->transmitter_rtp_tee, GST_STATE_NULL);
+
+  if (self->priv->rtpmuxer)
+    gst_element_set_state (self->priv->rtpmuxer, GST_STATE_NULL);
+  /* TODO: Stop the codec bin */
+  if (self->priv->media_sink_valve)
+    gst_element_set_state (self->priv->media_sink_valve, GST_STATE_NULL);
+  if (self->priv->media_sink_pad)
+    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
+
+
+  /* Now the recv pipeline */
+  if (self->priv->free_substreams)
+    g_list_foreach (self->priv->free_substreams, (GFunc) fs_rtp_sub_stream_stop,
+      NULL);
+  if (self->priv->transmitter_rtp_funnel)
+    gst_element_set_state (self->priv->transmitter_rtp_funnel, GST_STATE_NULL);
+  if (self->priv->transmitter_rtcp_funnel)
+    gst_element_set_state (self->priv->transmitter_rtcp_funnel, GST_STATE_NULL);
+  if (self->priv->transmitters)
+    g_hash_table_foreach (self->priv->transmitters, _stop_transmitter_elem,
+      "gst-src");
+
+  /* Now they should all be stopped, we can remove them in peace */
 
   if (self->priv->media_sink_valve) {
     gst_bin_remove (GST_BIN (self->priv->conference),
