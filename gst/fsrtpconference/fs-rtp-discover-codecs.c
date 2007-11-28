@@ -215,6 +215,12 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
   GList *send_list = NULL;
   gboolean ret;
 
+  if (media_type > FS_MEDIA_TYPE_LAST)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "Invalid media type given");
+    return NULL;
+  }
 
   codecs_lists_ref[media_type]++;
 
