@@ -5,6 +5,7 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
 	fs-rtp-participant.c \
 	fs-rtp-session.c \
 	fs-rtp-stream.c \
+	fs-rtp-substream.c \
 	fs-rtp-discover-codecs.c \
 	fs-rtp-codec-cache.c \
 	fs-rtp-codec-negotiation.c \
@@ -21,6 +22,7 @@ noinst_HEADERS = \
 	fs-rtp-participant.h \
 	fs-rtp-session.h \
 	fs-rtp-stream.h \
+	fs-rtp-substream.h \
 	fs-rtp-discover-codecs.h \
 	fs-rtp-codec-cache.h \
 	fs-rtp-codec-negotiation.h \

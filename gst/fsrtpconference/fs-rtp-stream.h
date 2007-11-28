@@ -30,6 +30,7 @@
 
 #include "fs-rtp-participant.h"
 #include "fs-rtp-session.h"
+#include "fs-rtp-substream.h"
 
 G_BEGIN_DECLS
 

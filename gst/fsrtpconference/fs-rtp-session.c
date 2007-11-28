@@ -42,7 +42,7 @@
 #include "fs-rtp-participant.h"
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-codec-negotiation.h"
-
+#include "fs-rtp-substream.h"
 
 /* Signals */
 enum
@@ -163,11 +163,6 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     FsRtpSession *self, gchar *transmitter_name, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
-
-static FsRtpSubStream *fs_rtp_session_new_substream (FsRtpSession *self,
-  GstPad *pad, guint32 ssrc, guint pt);
-static void fs_rtp_session_destroy_substream (FsRtpSession *session,
-  FsRtpSubStream *substream);
 
 
 static GObjectClass *parent_class = NULL;
@@ -370,11 +365,7 @@ fs_rtp_session_dispose (GObject *object)
   }
 
   if (self->priv->free_substreams) {
-    GList *walk;
-    for (walk = g_list_first (self->priv->free_substreams);
-         walk;
-         walk = g_list_next (walk))
-      fs_rtp_session_destroy_substream (self, (FsRtpSubStream *)walk->data);
+    g_list_foreach (self->priv->free_substreams, (GFunc) g_object_unref, NULL);
     g_list_free (self->priv->free_substreams);
     self->priv->free_substreams = NULL;
   }
@@ -1305,12 +1296,23 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 {
   FsRtpSubStream *substream = NULL;
   FsRtpStream *stream = NULL;
+  GError *error = NULL;
 
-  substream = fs_rtp_session_new_substream (session, new_pad,
-    ssrc, pt);
+  substream = fs_rtp_substream_new (session->priv->conference, new_pad,
+    ssrc, pt, &error);
 
-  if (substream == NULL)
+  if (substream == NULL) {
+    if (error && error->domain == FS_ERROR)
+      fs_session_emit_error (FS_SESSION (session), error->code,
+        "Could not create a substream for the new pad", error->message);
+    else
+      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
+        "Could not create a substream for the new pad",
+        "No error details returned");
+
+    g_clear_error (&error);
     return;
+  }
 
 
   /* Lets find the FsRtpStream for this substream, if no Stream claims it
@@ -1329,117 +1331,4 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     g_object_unref (stream);
   }
 }
-
-
-struct _FsRtpSubStream {
-  guint32 ssrc;
-  guint pt;
-
-  GstPad *rtpbin_pad;
-
-  GstElement *valve;
-
-  /* This only exists if the codec is valid,
-   * otherwise the rtpbin_pad is blocked */
-  GstElement *codecbin;
-
-  /* This is only created when the substream is associated with a FsRtpStream */
-  GstPad *output_pad;
-};
-
-
-/**
- * fs_rtp_session_add_codecbin:
- *
- * Creates, add, links the rtpbin for a given substream.
- * It will block the substream if there is no known info on the PT.
- */
-
-static void
-fs_rtp_session_add_codecbin (FsRtpSession *self, FsRtpSubStream *substream)
-{
-}
-
-static FsRtpSubStream *
-fs_rtp_session_new_substream (FsRtpSession *self, GstPad *pad,
-  guint32 ssrc, guint pt)
-{
-  FsRtpSubStream *substream = g_new0 (FsRtpSubStream, 1);
-
-  substream->ssrc = ssrc;
-  substream->pt = pt;
-  substream->rtpbin_pad = pad;
-
-  substream->valve = gst_element_factory_make ("fsvalve", NULL);
-
-  if (!substream->valve) {
-    gchar *str = g_strdup_printf ("Could not create a fsvalve element for"
-      " session substream with ssrc: %x and pt:%d", ssrc, pt);
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
-      "Could not create required fsvalve element for reception", str);
-    g_free (str);
-    goto error;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), substream->valve)) {
-    gchar *str = g_strdup_printf ("Could not add the fsvalve element for"
-      " session substream with ssrc: %x and pt:%d to the conference bin",
-      ssrc, pt);
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
-      "Could not add the required fsvalve element for reception", str);
-    g_free (str);
-    goto error;
-  }
-
-  /* We set the valve to dropping, the stream will unblock it when its linked */
-  g_object_set (substream->valve, "drop", TRUE, NULL);
-
-  if (gst_element_set_state (substream->valve, GST_STATE_PLAYING) ==
-    GST_STATE_CHANGE_FAILURE) {
-    gchar *str = g_strdup_printf ("Could not set the fsvalve element for"
-      " session substream with ssrc: %x and pt:%d to the playing state",
-      ssrc, pt);
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
-      "Could not set the required fsvalve element to playing", str);
-    g_free (str);
-    goto error;
-  }
-
-  fs_rtp_session_add_codecbin (self, substream);
-
-  return substream;
- error:
-  g_free (substream);
-  return NULL;
-}
-
-
-static void
-fs_rtp_session_destroy_substream (FsRtpSession *session,
-  FsRtpSubStream *substream)
-{
-  if (substream->output_pad) {
-    gst_element_remove_pad (GST_ELEMENT (session->priv->conference),
-      substream->output_pad);
-  }
-
-  if (substream->valve) {
-    gst_object_ref (substream->valve);
-    gst_bin_remove (GST_BIN (session->priv->conference), substream->valve);
-    gst_element_set_state (substream->valve, GST_STATE_NULL);
-    gst_object_unref (substream->valve);
-    substream->valve = NULL;
-  }
-
-
-  if (substream->codecbin) {
-    gst_object_ref (substream->codecbin);
-    gst_bin_remove (GST_BIN (session->priv->conference), substream->codecbin);
-    gst_element_set_state (substream->codecbin, GST_STATE_NULL);
-    gst_object_unref (substream->codecbin);
-    substream->codecbin = NULL;
-  }
-}
-
-
 

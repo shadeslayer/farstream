@@ -72,9 +72,6 @@ struct _FsRtpSession
   FsRtpSessionPrivate *priv;
 };
 
-/* All members are private */
-typedef struct _FsRtpSubStream FsRtpSubStream;
-
 
 GType fs_rtp_session_get_type (void);
 
