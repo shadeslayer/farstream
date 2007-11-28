@@ -1188,6 +1188,105 @@ fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
     return NULL;
 }
 
+static void
+fs_rtp_session_invalidate_pt (FsRtpSession *session, guint pt)
+{
+}
+
+static gboolean
+_compare_codec_lists (GList *list1, GList *list2)
+{
+  for (; list1 && list2;
+       list1 = g_list_next (list1),
+       list2 = g_list_next (list2)) {
+    if (!fs_codec_are_equal (list1->data, list2->data))
+      return FALSE;
+  }
+
+  if (list1 == NULL && list2 == NULL)
+    return TRUE;
+  else
+    return FALSE;
+}
+
+gboolean
+fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
+  GError **error)
+{
+  gboolean has_many_streams;
+  GHashTable *new_negotiated_codec_associations = NULL;;
+  GList *new_negotiated_codecs = NULL;
+
+  FS_SESSION_LOCK (session);
+
+  has_many_streams =
+    (g_list_next (g_list_first (session->priv->streams)) != NULL);
+
+  new_negotiated_codec_associations = negotiate_codecs (remote_codecs,
+    session->priv->negotiated_codec_associations,
+    session->priv->local_codec_associations,
+    session->priv->local_codecs,
+    has_many_streams,
+    &new_negotiated_codecs);
+
+  if (new_negotiated_codec_associations) {
+    gboolean is_new = FALSE;
+    gboolean clear_pts = FALSE;
+    int pt;
+
+    is_new = _compare_codec_lists (session->priv->negotiated_codecs,
+      new_negotiated_codecs);
+
+    /* Lets remove the codec bin for any PT that has changed type */
+    for (pt = 0; pt < 128; pt++) {
+      FsCodec *old_codec = g_hash_table_lookup (
+          session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
+      FsCodec *new_codec = g_hash_table_lookup (
+          new_negotiated_codec_associations, GINT_TO_POINTER (pt));
+
+      if (old_codec == NULL && new_codec == NULL)
+        continue;
+
+      if (old_codec == NULL || new_codec == NULL) {
+        fs_rtp_session_invalidate_pt (session, pt);
+        clear_pts = TRUE;
+        continue;
+      }
+
+      if (!fs_codec_are_equal (old_codec, new_codec)) {
+        fs_rtp_session_invalidate_pt (session, pt);
+        clear_pts = TRUE;
+        continue;
+      }
+    }
+
+    if (clear_pts)
+      g_signal_emit_by_name (session->priv->conference->gstrtpbin,
+        "clear-pt-map");
+
+    if (session->priv->negotiated_codec_associations)
+      g_hash_table_destroy (session->priv->negotiated_codec_associations);
+    if (session->priv->negotiated_codecs)
+      fs_codec_list_destroy (session->priv->negotiated_codecs);
+
+    session->priv->negotiated_codec_associations =
+      new_negotiated_codec_associations;
+    session->priv->negotiated_codecs = new_negotiated_codecs;
+    FS_SESSION_UNLOCK (session);
+
+    if (is_new)
+      g_signal_emit_by_name (session, "new-negotiated-codec");
+
+    return TRUE;
+  } else {
+    FS_SESSION_UNLOCK (session);
+
+    g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
+      "There was no intersection between the remote codecs and the local ones");
+    return FALSE;
+  }
+}
+
 
 /**
  * fs_rtp_session_new_recv_pad:
