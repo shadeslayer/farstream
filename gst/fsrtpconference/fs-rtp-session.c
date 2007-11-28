@@ -153,6 +153,8 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
 
 static FsRtpSubStream *fs_rtp_session_new_substream (FsRtpSession *self,
   GstPad *pad, guint32 ssrc, guint pt);
+static void fs_rtp_session_destroy_substream (FsRtpSession *session,
+  FsRtpSubStream *substream);
 
 
 static GObjectClass *parent_class = NULL;
@@ -345,6 +347,16 @@ fs_rtp_session_dispose (GObject *object)
 
     g_hash_table_destroy (self->priv->transmitters);
     self->priv->transmitters = NULL;
+  }
+
+  if (self->priv->free_substreams) {
+    GList *walk;
+    for (walk = g_list_first (self->priv->free_substreams);
+         walk;
+         walk = g_list_next (walk))
+      fs_rtp_session_destroy_substream (self, (FsRtpSubStream *)walk->data);
+    g_list_free (self->priv->free_substreams);
+    self->priv->free_substreams = NULL;
   }
 
   /* MAKE sure dispose does not run twice. */
@@ -1174,4 +1186,32 @@ fs_rtp_session_new_substream (FsRtpSession *self, GstPad *pad,
  error:
   g_free (substream);
   return NULL;
+}
+
+
+static void
+fs_rtp_session_destroy_substream (FsRtpSession *session,
+  FsRtpSubStream *substream)
+{
+  if (substream->output_pad) {
+    gst_element_remove_pad (GST_ELEMENT (session->priv->conference),
+      substream->output_pad);
+  }
+
+  if (substream->valve) {
+    gst_object_ref (substream->valve);
+    gst_bin_remove (GST_BIN (session->priv->conference), substream->valve);
+    gst_element_set_state (substream->valve, GST_STATE_NULL);
+    gst_object_unref (substream->valve);
+    substream->valve = NULL;
+  }
+
+
+  if (substream->codecbin) {
+    gst_object_ref (substream->codecbin);
+    gst_bin_remove (GST_BIN (session->priv->conference), substream->codecbin);
+    gst_element_set_state (substream->codecbin, GST_STATE_NULL);
+    gst_object_unref (substream->codecbin);
+    substream->codecbin = NULL;
+  }
 }
