@@ -259,6 +259,8 @@ fs_rtp_session_init (FsRtpSession *self)
     g_free, g_object_unref);
 
   self->priv->mutex = g_mutex_new ();
+
+  self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
 }
 
 static gboolean
@@ -463,6 +465,12 @@ fs_rtp_session_set_property (GObject *object,
       break;
     case PROP_LOCAL_CODECS_CONFIG:
       self->priv->local_codecs_configuration = g_value_get_boxed (value);
+      if (self->priv->media_type <=  FS_MEDIA_TYPE_LAST &&
+        self->priv->blueprints)
+        self->priv->local_codecs_configuration =
+          validate_codecs_configuration (
+              self->priv->media_type, self->priv->blueprints,
+              self->priv->local_codecs_configuration);
       break;
     case PROP_CONFERENCE:
       self->priv->conference = g_value_get_object (value);
@@ -506,6 +514,9 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
+  self->priv->local_codecs_configuration = validate_codecs_configuration (
+      self->priv->media_type, self->priv->blueprints,
+      self->priv->local_codecs_configuration);
 
   tmp = g_strdup_printf ("valve_send_%d", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
