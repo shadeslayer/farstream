@@ -464,13 +464,41 @@ fs_rtp_session_set_property (GObject *object,
       self->id = g_value_get_uint (value);
       break;
     case PROP_LOCAL_CODECS_CONFIG:
-      self->priv->local_codecs_configuration = g_value_get_boxed (value);
-      if (self->priv->media_type <=  FS_MEDIA_TYPE_LAST &&
-        self->priv->blueprints)
-        self->priv->local_codecs_configuration =
+      if (self->priv->local_codecs) {
+        GList *new_local_codecs_configuration = g_value_get_boxed (value);
+        GList *new_local_codecs = NULL;
+        GHashTable  *new_local_codec_associations = NULL;
+
+        new_local_codecs_configuration =
           validate_codecs_configuration (
               self->priv->media_type, self->priv->blueprints,
-              self->priv->local_codecs_configuration);
+              new_local_codecs_configuration);
+
+        new_local_codec_associations = create_local_codec_associations (
+            self->priv->media_type, self->priv->blueprints,
+            self->priv->local_codecs_configuration,
+            self->priv->local_codec_associations,
+            &new_local_codecs);
+
+        if (new_local_codecs && new_local_codec_associations) {
+          fs_codec_list_destroy (self->priv->local_codecs);
+          g_hash_table_destroy (self->priv->local_codec_associations);
+          self->priv->local_codec_associations = new_local_codec_associations;
+          self->priv->local_codecs = new_local_codecs;
+
+          if (self->priv->local_codecs_configuration)
+            fs_codec_list_destroy (self->priv->local_codecs_configuration);
+          self->priv->local_codecs_configuration =
+            new_local_codecs_configuration;
+
+        } else {
+          g_warning ("Invalid new codec configurations");
+        }
+      } else {
+        if (self->priv->local_codecs_configuration)
+          fs_codec_list_destroy (self->priv->local_codecs_configuration);
+        self->priv->local_codecs_configuration = g_value_get_boxed (value);
+      }
       break;
     case PROP_CONFERENCE:
       self->priv->conference = g_value_get_object (value);
@@ -517,6 +545,19 @@ fs_rtp_session_constructed (GObject *object)
   self->priv->local_codecs_configuration = validate_codecs_configuration (
       self->priv->media_type, self->priv->blueprints,
       self->priv->local_codecs_configuration);
+
+  self->priv->local_codec_associations = create_local_codec_associations (
+      self->priv->media_type, self->priv->blueprints,
+      self->priv->local_codecs_configuration,
+      NULL,
+      &self->priv->local_codecs);
+
+  if (!self->priv->local_codec_associations) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_INVALID_ARGUMENTS,
+      "The passed codec preferences invalidate all blueprints");
+    return;
+  }
 
   tmp = g_strdup_printf ("valve_send_%d", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
