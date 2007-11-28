@@ -15,27 +15,27 @@ int main (int argc, char **argv)
 
   g_debug ("AUDIO STARTING!!");
 
-  elements = load_codecs (FS_MEDIA_TYPE_AUDIO, &error);
+  elements = fs_rtp_blueprints_get (FS_MEDIA_TYPE_AUDIO, &error);
 
   if (error)
     g_debug ("Error: %s", error->message);
 
   g_clear_error (&error);
-  unload_codecs (FS_MEDIA_TYPE_AUDIO);
+  fs_rtp_blueprints_unref (FS_MEDIA_TYPE_AUDIO);
 
   g_debug ("AUDIO FINISHED!!");
 
 
   g_debug ("VIDEO STARTING!!");
 
-  elements = load_codecs (FS_MEDIA_TYPE_VIDEO, &error);
+  elements = fs_rtp_blueprints_get (FS_MEDIA_TYPE_VIDEO, &error);
 
   if (error)
     g_debug ("Error: %s", error->message);
 
   g_clear_error (&error);
 
-  unload_codecs (FS_MEDIA_TYPE_VIDEO);
+  fs_rtp_blueprints_unref (FS_MEDIA_TYPE_VIDEO);
 
   g_debug ("VIDEO FINISHED!!");
 
