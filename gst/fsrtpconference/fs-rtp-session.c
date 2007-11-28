@@ -98,8 +98,9 @@ struct _FsRtpSessionPrivate
 
   GError *construction_error;
 
-  /* This list is protected by the session mutex */
+  /* These lists are protected by the session mutex */
   GList *streams;
+  GList *free_substreams;
 
   GMutex *mutex;
 
@@ -149,6 +150,10 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     FsRtpSession *self, gchar *transmitter_name, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
+
+static FsRtpSubStream *fs_rtp_session_new_substream (FsRtpSession *self,
+  GstPad *pad, guint32 ssrc, guint pt);
+
 
 static GObjectClass *parent_class = NULL;
 
@@ -1005,5 +1010,168 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   if (transmitter)
     g_object_unref (transmitter);
 
+  return NULL;
+}
+
+
+/**
+ * fs_rtp_session_get_stream_by_ssrc_locked
+ * @self: The #FsRtpSession
+ * @stream_ssrc: The stream ssrc
+ *
+ * Gets the #FsRtpStream from a list of streams or NULL if it doesnt exist
+ * You have to hold the GST_OBJECT_LOCK to call this function.
+ *
+ * Return value: A #FsRtpStream (unref after use) or NULL if it doesn't exist
+ */
+static FsRtpStream *
+fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
+                                            guint stream_ssrc)
+{
+  GList *item = NULL;
+
+  for (item = g_list_first (self->priv->streams);
+       item;
+       item = g_list_next (item)) {
+    FsRtpStream *stream = item->data;
+    guint ssrc = 0;
+
+    g_object_get (stream, "id", &ssrc, NULL);
+
+    if (ssrc == stream_ssrc) {
+      g_object_ref(stream);
+      break;
+    }
+  }
+
+  if (item)
+    return FS_RTP_STREAM (item->data);
+  else
+    return NULL;
+}
+
+
+/**
+ * fs_rtp_session_new_recv_pad:
+ * @session: a #FsSession
+ * @new_pad: the newly created pad
+ * @ssrc: the ssrc for this new pad
+ * @pt: the pt for this new pad
+ *
+ * This function is called by the #FsRtpConference when a new src pad appears.
+ * It can will be called on the streaming thread.
+ */
+
+void
+fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
+  guint32 ssrc, guint pt)
+{
+  FsRtpSubStream *substream = NULL;
+  FsRtpStream *stream = NULL;
+
+  substream = fs_rtp_session_new_substream (session, new_pad,
+    ssrc, pt);
+
+  if (substream == NULL)
+    return;
+
+
+  /* Lets find the FsRtpStream for this substream, if no Stream claims it
+   * then we just store it
+   */
+
+  FS_SESSION_LOCK (session);
+  stream = fs_rtp_session_get_stream_by_ssrc_locked (session, ssrc);
+
+  if (!stream)
+    session->priv->free_substreams =
+      g_list_prepend (session->priv->free_substreams, substream);
+  FS_SESSION_UNLOCK (session);
+  if (stream) {
+    fs_rtp_stream_add_substream (stream, substream);
+    g_object_unref (stream);
+  }
+}
+
+
+struct _FsRtpSubStream {
+  guint32 ssrc;
+  guint pt;
+
+  GstPad *rtpbin_pad;
+
+  GstElement *valve;
+
+  /* This only exists if the codec is valid,
+   * otherwise the rtpbin_pad is blocked */
+  GstElement *codecbin;
+
+  /* This is only created when the substream is associated with a FsRtpStream */
+  GstPad *output_pad;
+};
+
+
+/**
+ * fs_rtp_session_add_codecbin:
+ *
+ * Creates, add, links the rtpbin for a given substream.
+ * It will block the substream if there is no known info on the PT.
+ */
+
+static void
+fs_rtp_session_add_codecbin (FsRtpSession *self, FsRtpSubStream *substream)
+{
+}
+
+static FsRtpSubStream *
+fs_rtp_session_new_substream (FsRtpSession *self, GstPad *pad,
+  guint32 ssrc, guint pt)
+{
+  FsRtpSubStream *substream = g_new0 (FsRtpSubStream, 1);
+
+  substream->ssrc = ssrc;
+  substream->pt = pt;
+  substream->rtpbin_pad = pad;
+
+  substream->valve = gst_element_factory_make ("fsvalve", NULL);
+
+  if (!substream->valve) {
+    gchar *str = g_strdup_printf ("Could not create a fsvalve element for"
+      " session substream with ssrc: %x and pt:%d", ssrc, pt);
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
+      "Could not create required fsvalve element for reception", str);
+    g_free (str);
+    goto error;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), substream->valve)) {
+    gchar *str = g_strdup_printf ("Could not add the fsvalve element for"
+      " session substream with ssrc: %x and pt:%d to the conference bin",
+      ssrc, pt);
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
+      "Could not add the required fsvalve element for reception", str);
+    g_free (str);
+    goto error;
+  }
+
+  /* We set the valve to dropping, the stream will unblock it when its linked */
+  g_object_set (substream->valve, "drop", TRUE, NULL);
+
+  if (gst_element_set_state (substream->valve, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE) {
+    gchar *str = g_strdup_printf ("Could not set the fsvalve element for"
+      " session substream with ssrc: %x and pt:%d to the playing state",
+      ssrc, pt);
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
+      "Could not set the required fsvalve element to playing", str);
+    g_free (str);
+    goto error;
+  }
+
+  fs_rtp_session_add_codecbin (self, substream);
+
+  return substream;
+ error:
+  g_free (substream);
   return NULL;
 }
