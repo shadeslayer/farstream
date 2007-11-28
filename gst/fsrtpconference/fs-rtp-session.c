@@ -1381,3 +1381,192 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   }
 }
 
+
+
+static gboolean
+_g_object_has_property (GObject *object, const gchar *property)
+{
+ GObjectClass *klass;
+
+  klass = G_OBJECT_GET_CLASS (object);
+  return NULL != g_object_class_find_property (klass, property);
+}
+
+
+static gboolean
+_create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
+  *codec_bin, GError **error)
+{
+  GstPad *ghostpad;
+  GstPad *pad = gst_element_get_static_pad (current_element, padname);
+  gboolean ret = FALSE;
+
+  if (!pad) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not find the %s on the element", padname);
+      return FALSE;
+  }
+
+  ghostpad = gst_ghost_pad_new (padname, pad);
+  if (!ghostpad) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not create a ghost pad for pad %s", padname);
+    goto done;
+  }
+
+  if (!gst_pad_set_active (ghostpad, TRUE)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not active ghostpad %s", padname);
+    gst_object_unref (ghostpad);
+    goto done;
+  }
+
+  if (!gst_element_add_pad (codec_bin, ghostpad))
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not add ghostpad %s to the codec bin", padname);
+
+  ret = TRUE;
+ done:
+  gst_object_unref (pad);
+
+  return ret;
+}
+
+GstElement *
+_create_codec_bin (CodecAssociation *codec_association, gchar *name,
+  gboolean is_send, GError **error)
+{
+  GList *pipeline_factory = NULL;
+  GList *walk = NULL;
+  GstElement *codec_bin = NULL;
+  GstElement *current_element = NULL;
+  GstElement *previous_element = NULL;
+  gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
+
+  if (is_send)
+    pipeline_factory = codec_association->blueprint->send_pipeline_factory;
+  else
+    pipeline_factory = codec_association->blueprint->receive_pipeline_factory;
+
+  g_debug ("creating %s codec bin for id %d, pipeline_factory %p",
+    direction_str, codec_association->codec->id, pipeline_factory);
+  codec_bin = gst_bin_new (name);
+
+  for (walk = g_list_first (pipeline_factory); walk; walk = g_list_next (walk))
+  {
+    if (g_list_next (g_list_first (walk->data))) {
+      /* We have to check some kind of configuration to see if we have a
+         favorite */
+      current_element = gst_element_factory_make ("fsselector", NULL);
+
+      if (!current_element) {
+        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not create fsselector element");
+        goto error;
+      }
+
+      g_object_set (current_element, "factories", walk->data, NULL);
+    } else {
+      current_element =
+        gst_element_factory_create (
+            GST_ELEMENT_FACTORY (g_list_first (walk->data)->data), NULL);
+      if (!current_element) {
+        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not create element for pt %d", codec_association->codec->id);
+        goto error;
+      }
+    }
+
+    if (!gst_bin_add (GST_BIN (codec_bin), current_element)) {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add new element to %s codec_bin for pt %d",
+        direction_str, codec_association->codec->id);
+      goto error;
+    }
+
+    /* TODO: Element options
+     *  set_options_on_element (walk->data, current_element);
+     */
+
+    /* queue delay to 0 on all depayloaders until I remove that property
+     * all-together */
+
+    if (_g_object_has_property (G_OBJECT (current_element), "queue-delay"))
+      g_object_set (G_OBJECT (current_element), "queue-delay", 0, NULL);
+
+    if (_g_object_has_property (G_OBJECT (current_element), "pt"))
+      g_object_set (current_element, "pt", codec_association->codec->id,
+        NULL);
+
+    /* Lets create the ghost pads on the codec bin */
+
+    if (g_list_first (pipeline_factory) == walk)
+      /* if its the first element of the codec bin */
+      if (!_create_ghost_pad (current_element, direction_str,
+          codec_bin, error))
+        goto error;
+
+    if (g_list_next (g_list_first (pipeline_factory)) == NULL)
+      /* if its the last element of the codec bin */
+      if (!_create_ghost_pad (current_element, direction_str, codec_bin, error))
+        goto error;
+
+
+    /* let's link them together using the specified media_caps if any
+     * this will ensure that multi-codec encoders/decoders will select the
+     * appropriate codec based on caps negotiation */
+    if (previous_element) {
+      GstPad *sinkpad;
+      GstPad *srcpad;
+      GstPadLinkReturn ret;
+
+      if (is_send)
+        sinkpad = gst_element_get_static_pad (current_element, "sink");
+      else
+        sinkpad = gst_element_get_static_pad (previous_element, "sink");
+
+      if (!sinkpad) {
+        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not get the sink pad one of the elements in the %s codec bin"
+          " for pt %d", direction_str,
+          codec_association->codec->id);
+        goto error;
+      }
+
+
+      if (is_send)
+        srcpad = gst_element_get_static_pad (previous_element, "src");
+      else
+        srcpad = gst_element_get_static_pad (current_element, "src");
+
+      if (!srcpad) {
+        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not get the src pad one of the elements in the %s codec bin"
+          " for pt %d", direction_str,
+          codec_association->codec->id);
+        gst_object_unref (sinkpad);
+        goto error;
+      }
+
+      ret = gst_pad_link (srcpad, sinkpad);
+
+      gst_object_unref (srcpad);
+      gst_object_unref (sinkpad);
+
+      if (GST_PAD_LINK_FAILED (ret)) {
+        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not link element inside the %s codec bin for pt %d",
+          direction_str, codec_association->codec->id);
+        goto error;
+      }
+    }
+
+    previous_element = current_element;
+  }
+
+  return codec_bin;
+
+ error:
+  gst_object_unref (codec_bin);
+  return NULL;
+}
