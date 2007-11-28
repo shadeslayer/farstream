@@ -70,6 +70,8 @@ struct _FsRtpStreamPrivate
 
   guint ssrc;
 
+  GList *remote_codecs;
+
   GError *construction_error;
 
   gboolean disposed;
@@ -252,6 +254,11 @@ fs_rtp_stream_dispose (GObject *object)
 static void
 fs_rtp_stream_finalize (GObject *object)
 {
+  FsRtpStream *self = FS_RTP_STREAM (object);
+
+  if (self->priv->remote_codecs)
+    fs_codec_list_destroy (self->priv->remote_codecs);
+
   parent_class->finalize (object);
 }
 
@@ -266,6 +273,9 @@ fs_rtp_stream_get_property (GObject *object,
   switch (prop_id) {
     case PROP_ID:
       g_value_set_uint (value, self->priv->ssrc);
+      break;
+    case PROP_REMOTE_CODECS:
+      g_value_set_boxed (value, self->priv->remote_codecs);
       break;
     case PROP_SESSION:
       g_value_set_object (value, self->priv->session);
@@ -439,7 +449,21 @@ static gboolean
 fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                  GList *remote_codecs, GError **error)
 {
-  return FALSE;
+  FsRtpStream *self = FS_RTP_STREAM (stream);
+
+  if (remote_codecs == NULL) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "You can not set NULL remote codecs");
+    return FALSE;
+  }
+
+  if (fs_rtp_session_negotiate_codecs (self->priv->session, remote_codecs,
+      error)) {
+    self->priv->remote_codecs = fs_codec_list_copy (remote_codecs);
+    return TRUE;
+  } else {
+    return FALSE;
+  }
 }
 
 

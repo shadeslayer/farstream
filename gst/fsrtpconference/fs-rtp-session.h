@@ -90,6 +90,10 @@ void fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *pad);
 void fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   guint32 ssrc, guint pt);
 
+gboolean fs_rtp_session_negotiate_codecs (FsRtpSession *session,
+  GList *remote_codecs, GError **error);
+
+
 
 G_END_DECLS
 
