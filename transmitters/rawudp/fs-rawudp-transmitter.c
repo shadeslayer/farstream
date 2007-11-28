@@ -563,6 +563,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
  error:
 
   gst_object_ref (elem);
+  gst_element_set_state (elem, GST_STATE_NULL);
   gst_bin_remove (bin, elem);
   state_ret = gst_element_set_state (elem, GST_STATE_NULL);
   if (state_ret != GST_STATE_CHANGE_SUCCESS) {
@@ -665,6 +666,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   if (udpport->udpsrc) {
     GstStateChangeReturn ret;
     gst_object_ref (udpport->udpsrc);
+    gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc);
     ret = gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
@@ -682,6 +684,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   if (udpport->udpsink) {
     GstStateChangeReturn ret;
     gst_object_ref (udpport->udpsink);
+    gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->udpsink);
     ret = gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
