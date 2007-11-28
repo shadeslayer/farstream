@@ -281,18 +281,101 @@ fs_rtp_sub_stream_get_property (GObject *object,
   }
 }
 
+static void
+_blocked_cb (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+}
+
+/**
+ * fs_rtp_sub_stream_block:
+ *
+ * Blocks the src pad of this new substream until
+ */
+
+void
+fs_rtp_sub_stream_block (FsRtpSubStream *substream,
+  GstPadBlockCallback callback, gpointer user_data)
+{
+  if (!callback)
+    callback = _blocked_cb;
+
+  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, TRUE, callback,
+    user_data);
+}
 
 /**
  * fs_rtp_session_add_codecbin:
+ * @codecbin: The codec bin
  *
- * Creates, add, links the rtpbin for a given substream.
- * It will block the substream if there is no known info on the PT.
+ * Add and links the rtpbin for a given substream.
+ * Eats a reference to the codec bin on success
+ *
+ * Returns: TRUE on success
  */
 
 gboolean
-fs_rtp_sub_stream_try_add_codecbin (FsRtpSubStream *substream)
+fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
+  GstElement *codecbin, GError **error)
 {
-  return FALSE;
+  GstPad *codec_bin_sink_pad;
+  GstPadLinkReturn linkret;
+
+  if (substream->priv->codecbin) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "There already is a codec bin for this substream");
+    return FALSE;
+  }
+
+
+  if (!gst_bin_add (GST_BIN (substream->priv->conference), codecbin)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not add the codec bin to the conference");
+    return FALSE;
+  }
+
+  if (gst_element_set_state (codecbin, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not set the codec bin to the playing state");
+    goto error;
+  }
+
+  if (!gst_element_link_pads (codecbin, "src",
+      substream->priv->valve, "sink")) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not link the codec bin to the valve");
+    goto error;
+  }
+
+  codec_bin_sink_pad = gst_element_get_static_pad (codecbin, "sink");
+  if (!codec_bin_sink_pad) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not get the codecbin's sink pad");
+    goto error;
+  }
+
+  linkret = gst_pad_link (substream->priv->rtpbin_pad, codec_bin_sink_pad);
+
+  gst_object_unref (codec_bin_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (linkret)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not link the rtpbin to the codec bin (%d)", linkret);
+    goto error;
+  }
+
+  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE, _blocked_cb,
+    NULL);
+
+  substream->priv->codecbin = codecbin;
+
+  return TRUE;
+
+ error:
+    gst_element_set_state (codecbin, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
+    return FALSE;
+
 }
 
 FsRtpSubStream *

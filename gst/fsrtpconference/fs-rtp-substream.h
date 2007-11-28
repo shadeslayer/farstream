@@ -74,10 +74,13 @@ FsRtpSubStream *fs_rtp_substream_new ( FsRtpConference *conference, GstPad *pad,
   guint32 ssrc, guint pt, GError **error);
 
 
-gboolean fs_rtp_sub_stream_try_add_codecbin (FsRtpSubStream *substream);
+gboolean fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
+  GstElement *codecbin, GError **error);
 
-void
-fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
+void fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
+
+void fs_rtp_sub_stream_block (FsRtpSubStream *substream,
+  GstPadBlockCallback callback, gpointer user_data);
 
 G_END_DECLS
 
