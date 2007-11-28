@@ -54,10 +54,13 @@ struct _FsRtpSubStreamPrivate {
 
   /* This only exists if the codec is valid,
    * otherwise the rtpbin_pad is blocked */
+  /* Protected by the mutex */
   GstElement *codecbin;
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_pad;
+
+  GMutex *mutex;
 
   GError *construction_error;
 };
@@ -69,6 +72,9 @@ G_DEFINE_TYPE(FsRtpSubStream, fs_rtp_sub_stream, G_TYPE_OBJECT);
 #define FS_RTP_SUB_STREAM_GET_PRIVATE(o)                                 \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SUB_STREAM,             \
    FsRtpSubStreamPrivate))
+
+#define FS_RTP_SUB_STREAM_LOCK(self)    g_mutex_lock ((self)->priv->mutex)
+#define FS_RTP_SUB_STREAM_UNLOCK(self)  g_mutex_unlock ((self)->priv->mutex)
 
 static void fs_rtp_sub_stream_dispose (GObject *object);
 static void fs_rtp_sub_stream_finalize (GObject *object);
@@ -135,6 +141,8 @@ fs_rtp_sub_stream_init (FsRtpSubStream *self)
 {
   self->priv = FS_RTP_SUB_STREAM_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  self->priv->mutex = g_mutex_new ();
 }
 
 
@@ -227,6 +235,10 @@ fs_rtp_sub_stream_dispose (GObject *object)
 static void
 fs_rtp_sub_stream_finalize (GObject *object)
 {
+  FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
+
+  g_mutex_free (self->priv->mutex);
+
   G_OBJECT_CLASS (fs_rtp_sub_stream_parent_class)->finalize (object);
 }
 
@@ -319,8 +331,16 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
 {
   GstPad *codec_bin_sink_pad;
   GstPadLinkReturn linkret;
+  gboolean has_codecbin = FALSE;
 
-  if (substream->priv->codecbin) {
+  FS_RTP_SUB_STREAM_LOCK (substream);
+  if (substream->priv->codecbin == NULL) {
+    substream->priv->codecbin = codecbin;
+    has_codecbin = TRUE;
+  }
+  FS_RTP_SUB_STREAM_UNLOCK (substream);
+
+  if (has_codecbin) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "There already is a codec bin for this substream");
     return FALSE;
@@ -330,7 +350,7 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
   if (!gst_bin_add (GST_BIN (substream->priv->conference), codecbin)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the codec bin to the conference");
-    return FALSE;
+    goto error_no_remove;
   }
 
   if (gst_element_set_state (codecbin, GST_STATE_PLAYING) ==
@@ -367,13 +387,17 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
   gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE, _blocked_cb,
     NULL);
 
-  substream->priv->codecbin = codecbin;
-
   return TRUE;
 
  error:
     gst_element_set_state (codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
+
+ error_no_remove:
+    FS_RTP_SUB_STREAM_LOCK (substream);
+    substream->priv->codecbin = NULL;
+    FS_RTP_SUB_STREAM_UNLOCK (substream);
+
     return FALSE;
 
 }
