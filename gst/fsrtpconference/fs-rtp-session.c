@@ -113,6 +113,9 @@ struct _FsRtpSessionPrivate
   GList *negotiated_codecs;
   GHashTable *negotiated_codec_associations;
 
+  /* Protected by the session mutex */
+  FsCodec *requested_send_codec;
+
   GError *construction_error;
 
   GMutex *mutex;
@@ -968,7 +971,34 @@ static gboolean
 fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                GError **error)
 {
-  return FALSE;
+  GList *elem;
+  FsRtpSession *self = FS_RTP_SESSION (session);
+
+  FS_RTP_SESSION_LOCK (self);
+  for (elem = g_list_first (self->priv->negotiated_codecs);
+       elem;
+       elem = g_list_next (elem))
+    if (fs_codec_are_equal (elem->data, send_codec))
+      break;
+
+  if (elem)
+  {
+    if (self->priv->requested_send_codec)
+      fs_codec_destroy (self->priv->requested_send_codec);
+
+    self->priv->requested_send_codec = fs_codec_copy (send_codec);
+  }
+  FS_RTP_SESSION_UNLOCK (self);
+
+  if (!elem) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "The passed codec is not part of the list of negotiated codecs");
+    return FALSE;
+  }
+
+  /* TODO: We must block to change to change the codecs */
+
+  return TRUE;
 }
 
 FsRtpSession *
@@ -1236,6 +1266,15 @@ static void
 fs_rtp_session_invalidate_pt (FsRtpSession *session, guint pt)
 {
 }
+
+/**
+ * fs_rtp_session_add_send_codec_bin:
+ *
+ * This function creates, adds and links a codec bin for the current send remote
+ * codec
+ *
+ * Returns: TRUE on success, FALSE on error
+ */
 
 static gboolean
 fs_rtp_session_add_send_codec_bin (FsRtpSession *session, GError **error)
