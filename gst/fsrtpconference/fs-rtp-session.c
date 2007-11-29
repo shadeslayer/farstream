@@ -305,11 +305,6 @@ fs_rtp_session_dispose (GObject *object)
     return;
   }
 
-  if (self->priv->blueprints) {
-    fs_rtp_blueprints_unref (self->priv->media_type);
-    self->priv->blueprints = NULL;
-  }
-
   /* Lets stop all of the elements sink to source */
 
   /* First the send pipeline */
@@ -420,6 +415,12 @@ fs_rtp_session_dispose (GObject *object)
     g_list_foreach (self->priv->free_substreams, (GFunc) g_object_unref, NULL);
     g_list_free (self->priv->free_substreams);
     self->priv->free_substreams = NULL;
+  }
+
+
+  if (self->priv->blueprints) {
+    fs_rtp_blueprints_unref (self->priv->media_type);
+    self->priv->blueprints = NULL;
   }
 
   /* MAKE sure dispose does not run twice. */
