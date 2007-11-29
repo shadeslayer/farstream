@@ -1238,6 +1238,75 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, guint pt)
 }
 
 static gboolean
+fs_rtp_session_add_send_codec_bin (FsRtpSession *session, GError **error)
+{
+  GstElement *codecbin = NULL;
+  gchar *name;
+  FsCodec *codec = NULL;
+  guint pt;
+
+  FS_RTP_SESSION_LOCK (session);
+  if (!session->priv->negotiated_codecs)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Tried to call fs_rtp_session_build_send_codec_bin before the codec"
+        " negotiation has taken place");
+    return FALSE;
+  }
+
+  codec = g_list_first (session->priv->negotiated_codecs)->data;
+  pt = codec->id;
+  FS_RTP_SESSION_UNLOCK (session);
+
+  name = g_strdup_printf ("send%d", pt);
+  codecbin = fs_rtp_session_new_codec_bin (session, name, pt, TRUE, error);
+  g_free (name);
+
+  if (!codecbin)
+    return FALSE;
+
+  if (!gst_bin_add (GST_BIN (session->priv->conference), codecbin))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the send codec bin for pt %d to the pipeline", pt);
+    gst_object_unref (codecbin);
+    return FALSE;
+  }
+
+  if (!gst_element_link_pads (session->priv->media_sink_valve, "src",
+          codecbin, "sink"))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the send valve to the codec bin for pt %d", pt);
+    goto error;
+  }
+
+  if (!gst_element_link_pads (codecbin, "src", session->priv->rtpmuxer, NULL))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the send codec bin for pt %d to the rtp muxer", pt);
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (codecbin)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the codec bin for pt %d with the state"
+        " of the conference", pt);
+    goto error;
+  }
+
+  g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
+
+  return TRUE;
+
+ error:
+  gst_element_set_state (codecbin, GST_STATE_NULL);
+  gst_bin_remove (GST_BIN (session->priv->conference), codecbin);
+  return FALSE;
+}
+
+
+static gboolean
 _compare_codec_lists (GList *list1, GList *list2)
 {
   for (; list1 && list2;
@@ -1317,6 +1386,9 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
       new_negotiated_codec_associations;
     session->priv->negotiated_codecs = new_negotiated_codecs;
     FS_RTP_SESSION_UNLOCK (session);
+
+    if (!fs_rtp_session_add_send_codec_bin (session, error))
+      return FALSE;
 
     if (is_new)
       g_signal_emit_by_name (session, "new-negotiated-codec");
