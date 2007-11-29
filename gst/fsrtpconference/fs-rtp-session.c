@@ -1281,8 +1281,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session, GError **error)
 {
   GstElement *codecbin = NULL;
   gchar *name;
-  FsCodec *codec = NULL;
-  guint pt;
+  gint pt = -1;
 
   FS_RTP_SESSION_LOCK (session);
   if (!session->priv->negotiated_codecs)
@@ -1293,8 +1292,33 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session, GError **error)
     return FALSE;
   }
 
-  codec = g_list_first (session->priv->negotiated_codecs)->data;
-  pt = codec->id;
+  if (session->priv->requested_send_codec) {
+    GList *elem = NULL;
+
+    for (elem = g_list_first (session->priv->negotiated_codecs);
+         elem;
+         elem = g_list_next (elem))
+      if (fs_codec_are_equal (elem->data, session->priv->requested_send_codec))
+        break;
+
+    if (elem)
+    {
+      FsCodec *codec = elem->data;
+      pt = codec->id;
+    }
+    else
+    {
+      /* The requested send codec no longer exists */
+      fs_codec_destroy (session->priv->requested_send_codec);
+      session->priv->requested_send_codec = NULL;
+    }
+  }
+
+  if (pt < 0)
+  {
+    FsCodec *codec = g_list_first (session->priv->negotiated_codecs)->data;
+    pt = codec->id;
+  }
   FS_RTP_SESSION_UNLOCK (session);
 
   name = g_strdup_printf ("send%d", pt);
