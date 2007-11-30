@@ -29,6 +29,7 @@
 #include <gst/gst.h>
 
 #include "fs-rtp-conference.h"
+#include "fs-rtp-session.h"
 
 G_BEGIN_DECLS
 
@@ -70,8 +71,12 @@ struct _FsRtpSubStream
 
 GType fs_rtp_sub_stream_get_type (void);
 
-FsRtpSubStream *fs_rtp_substream_new ( FsRtpConference *conference, GstPad *pad,
-  guint32 ssrc, guint pt, GError **error);
+FsRtpSubStream *fs_rtp_substream_new (FsRtpConference *conference,
+    FsRtpSession *session,
+    GstPad *pad,
+    guint32 ssrc,
+    guint pt,
+    GError **error);
 
 
 gboolean fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,

@@ -1392,7 +1392,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   gchar *codec_bin_name = NULL;
   GError *error = NULL;
 
-  substream = fs_rtp_substream_new (session->priv->conference, new_pad,
+  substream = fs_rtp_substream_new (session->priv->conference, session, new_pad,
     ssrc, pt, &error);
 
   if (substream == NULL) {

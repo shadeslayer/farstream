@@ -35,6 +35,7 @@ enum
 {
   PROP_0,
   PROP_CONFERENCE,
+  PROP_SESSION,
   PROP_RTPBIN_PAD,
   PROP_SSRC,
   PROP_PT,
@@ -43,7 +44,9 @@ enum
 struct _FsRtpSubStreamPrivate {
   gboolean disposed;
 
+  /* These are only pointers, we don't own references */
   FsRtpConference *conference;
+  FsRtpSession *session;
 
   guint32 ssrc;
   guint pt;
@@ -101,9 +104,17 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
   g_object_class_install_property (gobject_class,
     PROP_CONFERENCE,
     g_param_spec_object ("conference",
-      "The Conference this substream stream refers to",
+      "The FsRtpConference this substream stream refers to",
       "This is a convience pointer for the Conference",
       FS_TYPE_RTP_CONFERENCE,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+    PROP_SESSION,
+    g_param_spec_object ("session",
+      "The FsRtpSession this substream stream refers to",
+      "This is a convience pointer for the parent FsRtpSession",
+      FS_TYPE_RTP_SESSION,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
 
@@ -256,6 +267,9 @@ fs_rtp_sub_stream_set_property (GObject *object,
     case PROP_CONFERENCE:
       self->priv->conference = g_value_get_object (value);
       break;
+    case PROP_SESSION:
+      self->priv->session = g_value_get_object (value);
+      break;
     case PROP_RTPBIN_PAD:
       self->priv->rtpbin_pad = g_value_dup_object (value);
       break;
@@ -280,6 +294,9 @@ fs_rtp_sub_stream_get_property (GObject *object,
   switch (prop_id) {
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
+      break;
+    case PROP_SESSION:
+      g_value_set_object (value, self->priv->session);
       break;
     case PROP_RTPBIN_PAD:
       g_value_set_object (value, self->priv->rtpbin_pad);
@@ -403,11 +420,16 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
 }
 
 FsRtpSubStream *
-fs_rtp_sub_stream_new (FsRtpConference *conference, GstPad *rtpbin_pad,
-  guint32 ssrc, guint pt, GError **error)
+fs_rtp_sub_stream_new (FsRtpConference *conference,
+    FsRtpSession *session,
+    GstPad *rtpbin_pad,
+    guint32 ssrc,
+    guint pt,
+    GError **error)
 {
   FsRtpSubStream *substream = g_object_new (FS_TYPE_RTP_SUB_STREAM,
     "conference", conference,
+    "session", session,
     "rtpbin-pad", rtpbin_pad,
     "ssrc", ssrc,
     "pt", pt,
