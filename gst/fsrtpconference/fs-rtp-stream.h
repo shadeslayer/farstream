@@ -81,6 +81,10 @@ gboolean fs_rtp_stream_add_substream (FsRtpStream *stream,
     FsRtpSubStream *substream,
     GError **error);
 
+gboolean fs_rtp_stream_knows_ssrc (FsRtpStream *stream,
+    guint32 ssrc);
+
+
 G_END_DECLS
 
 #endif /* __FS_RTP_STREAM_H__ */

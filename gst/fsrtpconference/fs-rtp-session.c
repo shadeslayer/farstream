@@ -1250,26 +1250,19 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
  */
 static FsRtpStream *
 fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
-                                            guint stream_ssrc)
+    guint32 ssrc)
 {
   GList *item = NULL;
 
   for (item = g_list_first (self->priv->streams);
        item;
-       item = g_list_next (item)) {
-    FsRtpStream *stream = item->data;
-    guint ssrc = 0;
-
-    g_object_get (stream, "id", &ssrc, NULL);
-
-    if (ssrc == stream_ssrc) {
-      g_object_ref(stream);
+       item = g_list_next (item))
+    if (fs_rtp_stream_knows_ssrc (item->data, ssrc))
       break;
-    }
-  }
+
 
   if (item)
-    return FS_RTP_STREAM (item->data);
+    return FS_RTP_STREAM (gst_object_ref (item->data));
   else
     return NULL;
 }

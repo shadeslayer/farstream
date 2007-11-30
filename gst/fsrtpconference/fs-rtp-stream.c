@@ -570,3 +570,22 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
 
   return TRUE;
 }
+
+gboolean
+fs_rtp_stream_knows_ssrc (FsRtpStream *stream, guint32 ssrc)
+{
+  GList *elem;
+
+  for (elem = g_list_first (stream->priv->substreams);
+       elem;
+       elem = g_list_next (elem))
+  {
+    guint32 substream_ssrc;
+
+    g_object_get (elem->data, "ssrc", &substream_ssrc, NULL);
+    if (substream_ssrc == ssrc)
+      return TRUE;
+  }
+
+  return FALSE;
+}
