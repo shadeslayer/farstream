@@ -296,8 +296,11 @@ fs_stream_class_init (FsStreamClass *klass)
    * This signal is emitted when a new gst source pad has been created for a
    * specific codec being received. There will be a different source pad for
    * each codec that is received. The user must ref the #GstPad if he wants to
-   * use it. The user should not modify the #FsCodec and must copy it if he
+   * keep it. The user should not modify the #FsCodec and must copy it if he
    * wants to use it outside the callback scope.
+   *
+   * This signal is not emitted on the main thread, but on GStreamer's streaming
+   * thread!
    *
    */
   signals[SRC_PAD_ADDED] = g_signal_new ("src-pad-added",

@@ -344,6 +344,8 @@ _blocked_cb (GstPad *pad, gboolean blocked, gpointer user_data)
  * fs_rtp_sub_stream_block:
  *
  * Blocks the src pad of this new substream until
+ *
+ * MT safe.
  */
 
 void
@@ -478,6 +480,11 @@ fs_rtp_sub_stream_new (FsRtpConference *conference,
   return substream;
 }
 
+/**
+ * fs_rtp_sub_stream_stop:
+ *
+ * Stops all of the elements on a #FsRtpSubstream
+ */
 
 void
 fs_rtp_sub_stream_stop (FsRtpSubStream *substream)

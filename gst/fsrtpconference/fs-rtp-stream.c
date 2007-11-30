@@ -544,6 +544,8 @@ fs_rtp_stream_transmitter_error (
  * @substream: the #FsRtpSubStream to associate with this stream
  *
  * This functions associates a substream with this stream
+ *
+ * Returns: TRUE on success, FALSE on failure
  */
 gboolean
 fs_rtp_stream_add_substream (FsRtpStream *stream,
