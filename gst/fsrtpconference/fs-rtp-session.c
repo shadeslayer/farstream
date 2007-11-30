@@ -1415,21 +1415,22 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
 
     /* Lets remove the codec bin for any PT that has changed type */
     for (pt = 0; pt < 128; pt++) {
-      FsCodec *old_codec = g_hash_table_lookup (
+      CodecAssociation *old_codec_association = g_hash_table_lookup (
           session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
-      FsCodec *new_codec = g_hash_table_lookup (
+      CodecAssociation *new_codec_association = g_hash_table_lookup (
           new_negotiated_codec_associations, GINT_TO_POINTER (pt));
 
-      if (old_codec == NULL && new_codec == NULL)
+      if (old_codec_association == NULL && new_codec_association == NULL)
         continue;
 
-      if (old_codec == NULL || new_codec == NULL) {
+      if (old_codec_association == NULL || new_codec_association == NULL) {
         fs_rtp_session_invalidate_pt (session, pt);
         clear_pts = TRUE;
         continue;
       }
 
-      if (!fs_codec_are_equal (old_codec, new_codec)) {
+      if (!fs_codec_are_equal (old_codec_association->codec,
+              new_codec_association->codec)) {
         fs_rtp_session_invalidate_pt (session, pt);
         clear_pts = TRUE;
         continue;
