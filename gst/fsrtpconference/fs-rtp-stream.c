@@ -71,6 +71,8 @@ struct _FsRtpStreamPrivate
 
   GList *remote_codecs;
 
+  GList *substreams;
+
   GError *construction_error;
 
   gboolean disposed;
@@ -229,6 +231,12 @@ fs_rtp_stream_dispose (GObject *object)
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
     return;
+  }
+
+  if (self->priv->substreams) {
+    g_list_foreach (self->priv->substreams, (GFunc) gst_object_unref, NULL);
+    g_list_free (self->priv->substreams);
+    self->priv->substreams = NULL;
   }
 
   if (self->priv->participant) {
@@ -527,4 +535,38 @@ fs_rtp_stream_transmitter_error (
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
   g_signal_emit_by_name (self, "error", 0, errorno, error_msg, debug_msg);
+}
+
+
+/**
+ * fs_rtp_stream_add_substream:
+ * @stream: a #FsRtpStream
+ * @substream: the #FsRtpSubStream to associate with this stream
+ *
+ * This functions associates a substream with this stream
+ */
+gboolean
+fs_rtp_stream_add_substream (FsRtpStream *stream,
+    FsRtpSubStream *substream,
+    GError **error)
+{
+  GstPad *ghostpad;
+  FsCodec *codec;
+
+  ghostpad = fs_rtp_sub_stream_get_output_ghostpad (substream, error);
+
+  if (!ghostpad)
+    return FALSE;
+
+  g_object_get (substream, "codec", &codec, NULL);
+
+  stream->priv->substreams = g_list_prepend (stream->priv->substreams,
+      substream);
+
+  g_signal_emit_by_name (stream, "src-pad-added", ghostpad, codec);
+
+  fs_codec_destroy (codec);
+  gst_object_unref (ghostpad);
+
+  return TRUE;
 }

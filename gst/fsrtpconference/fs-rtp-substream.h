@@ -80,12 +80,20 @@ FsRtpSubStream *fs_rtp_substream_new (FsRtpConference *conference,
 
 
 gboolean fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
-  GstElement *codecbin, GError **error);
+    GstElement *codecbin,
+    FsCodec *codec,
+    GError **error);
 
 void fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
 
 void fs_rtp_sub_stream_block (FsRtpSubStream *substream,
-  GstPadBlockCallback callback, gpointer user_data);
+    GstPadBlockCallback callback,
+    gpointer user_data);
+
+
+GstPad *fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
+    GError **error);
+
 
 G_END_DECLS
 

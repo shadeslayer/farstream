@@ -77,8 +77,9 @@ FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
                                 FsStreamTransmitter *stream_transmitter,
                                 GError **error);
 
-void fs_rtp_stream_add_substream (FsRtpStream *stream,
-  FsRtpSubStream *substream);
+gboolean fs_rtp_stream_add_substream (FsRtpStream *stream,
+    FsRtpSubStream *substream,
+    GError **error);
 
 G_END_DECLS
 

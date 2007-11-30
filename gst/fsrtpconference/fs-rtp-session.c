@@ -164,13 +164,20 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
 
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
-    FsRtpSession *self, gchar *transmitter_name, FsParticipant *participant,
-    guint n_parameters, GParameter *parameters, GError **error);
+  FsRtpSession *self,
+  gchar *transmitter_name,
+  FsParticipant *participant,
+  guint n_parameters,
+  GParameter *parameters,
+  GError **error);
 
-static GstElement *fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
-    const gchar *name,
-    guint pt,
-    GError **error);
+static GstElement *
+fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
+  const gchar *name,
+  guint pt,
+  FsCodec **out_codec,
+  GError **error);
+
 
 static gboolean fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
     GError **error);
@@ -1391,6 +1398,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   GstElement *codecbin = NULL;
   gchar *codec_bin_name = NULL;
   GError *error = NULL;
+  FsCodec *codec = NULL;
 
   substream = fs_rtp_substream_new (session->priv->conference, session, new_pad,
     ssrc, pt, &error);
@@ -1410,11 +1418,11 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   codec_bin_name = g_strdup_printf ("recv%d_%d", ssrc, pt);
   codecbin = fs_rtp_session_new_recv_codec_bin (session, codec_bin_name, pt,
-    &error);
+    &codec, &error);
   g_free (codec_bin_name);
 
   if (codecbin) {
-    if (!fs_rtp_sub_stream_add_codecbin (substream, codecbin, &error)) {
+    if (!fs_rtp_sub_stream_add_codecbin (substream, codecbin, codec, &error)) {
       if (error)
         fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the codec bin to the new substream", error->message);
@@ -1443,6 +1451,10 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   g_clear_error (&error);
 
+  fs_codec_destroy (codec);
+  codec = NULL;
+
+
   /* Lets find the FsRtpStream for this substream, if no Stream claims it
    * then we just store it
    */
@@ -1455,7 +1467,12 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
       g_list_prepend (session->priv->free_substreams, substream);
   FS_RTP_SESSION_UNLOCK (session);
   if (stream) {
-    fs_rtp_stream_add_substream (stream, substream);
+    if (!fs_rtp_stream_add_substream (stream, substream, &error)) {
+      fs_session_emit_error (FS_SESSION (session), error->code,
+          "Could not add the output ghostpad to the new substream",
+          error->message);
+    }
+    g_clear_error (&error);
     g_object_unref (stream);
   }
 }
@@ -1648,9 +1665,26 @@ _create_codec_bin (CodecBlueprint *blueprint, FsCodec *codec, const gchar *name,
   return NULL;
 }
 
+/**
+ * fs_rtp_session_new_recv_codec_bin:
+ * @session: a #FsRtpSession
+ * @name: The name of the codec bin to create
+ * @pt: The payload type to create a codec bin for
+ * @out_codec: The address where a newly-allocated copy of the #FsCodec
+ *   this codec bin is for
+ * @error: the location where a #GError can be stored (or NULL)
+ *
+ * This function will create a new reception codec bin for the specified codec
+ *
+ * Returns: a newly-allocated codec bin
+ */
+
 static GstElement *
-fs_rtp_session_new_recv_codec_bin (FsRtpSession *session, const gchar *name,
-  guint pt, GError **error)
+fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
+  const gchar *name,
+  guint pt,
+  FsCodec **out_codec,
+  GError **error)
 {
   GstElement *codec_bin = NULL;
   CodecAssociation *ca = NULL;
@@ -1686,7 +1720,8 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session, const gchar *name,
 
   codec_bin = _create_codec_bin (blueprint, codec, name, FALSE, error);
 
-  fs_codec_destroy (codec);
+  if (out_codec)
+    *out_codec = codec;
 
   return codec_bin;
 }
