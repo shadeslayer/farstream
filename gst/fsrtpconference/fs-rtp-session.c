@@ -1773,23 +1773,23 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
 
 
 /**
- * fs_rtp_session_select_send_codec:
+ * fs_rtp_session_select_send_codec_locked:
  *
  * This function selects the codec to send using either the user preference
  * or the remote preference (from the negotiation).
  *
- * MT safe.
+ * YOU must own the FsRtpSession mutex to call this function
  *
  * Returns: a newly-allocated #FsCodec
  */
 
 static FsCodec *
-fs_rtp_session_select_send_codec (FsRtpSession *session,
-    CodecBlueprint **blueprint, GError **error)
+fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
+    CodecBlueprint **blueprint,
+    GError **error)
 {
   FsCodec *codec = NULL;
 
-  FS_RTP_SESSION_LOCK (session);
   if (!session->priv->negotiated_codecs)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
@@ -1832,6 +1832,32 @@ fs_rtp_session_select_send_codec (FsRtpSession *session,
     *blueprint = codec_association->blueprint;
   }
 
+  FS_RTP_SESSION_UNLOCK (session);
+
+  return codec;
+}
+
+/**
+ * fs_rtp_session_select_send_codec:
+ *
+ * This function selects the codec to send using either the user preference
+ * or the remote preference (from the negotiation). It is the same as
+ * fs_rtp_session_select_send_codec_locked but MT safe.
+ *
+ * MT safe.
+ *
+ * Returns: a newly-allocated #FsCodec
+ */
+
+static FsCodec *
+fs_rtp_session_select_send_codec (FsRtpSession *session,
+    CodecBlueprint **blueprint,
+    GError **error)
+{
+  FsCodec *codec = NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+  codec = fs_rtp_session_select_send_codec_locked (session, blueprint, error);
   FS_RTP_SESSION_UNLOCK (session);
 
   return codec;
