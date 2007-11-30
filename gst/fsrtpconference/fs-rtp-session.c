@@ -1054,6 +1054,13 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
   return caps;
 }
 
+/**
+ * fs_rtp_session_link_network_sink:
+ * @session: a #FsRtpSession
+ * @src_pad: the new source pad from the #GstRtpBin
+ *
+ * Links a new source pad from the GstRtpBin to the transmitter tee
+ */
 
 void
 fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
@@ -1162,6 +1169,20 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
   return FALSE;
 }
 
+/**
+ * fs_rtp_session_get_new_stream_transmitter:
+ * @self: a #FsRtpSession
+ * @transmitter_name: The name of the transmitter to create a stream for
+ * @participant: The #FsRtpParticipant for this stream
+ * @n_parameters: the number of parameters
+ * @parameters: a table of n_parameters #GParameter structs
+ *
+ * This function will create a new #FsStreamTransmitter, possibly creating
+ * and inserting into the pipeline its parent #FsTransmitter
+ *
+ * Returns: a newly allocated #FsStreamTransmitter
+ */
+
 static FsStreamTransmitter *
 fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
@@ -1267,6 +1288,15 @@ fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
     return NULL;
 }
 
+/**
+ * fs_rtp_session_invalidate_pt:
+ * @session: A #FsRtpSession
+ * @pt: the payload type number
+ *
+ * Invalidates all codec bins for the selected payload type, because its
+ * definition has changed
+ */
+
 static void
 fs_rtp_session_invalidate_pt (FsRtpSession *session, guint pt)
 {
@@ -1287,6 +1317,19 @@ _compare_codec_lists (GList *list1, GList *list2)
   else
     return FALSE;
 }
+
+/**
+ * fs_rtp_session_negotiate_codecs:
+ * @session: a #FsRtpSession
+ * @remote_codecs: a #GList of #FsCodec
+ *
+ * Negotiates the codecs using the current (stored) codecs
+ * and the new remote codecs.
+ *
+ * MT safe
+ *
+ * Returns: TRUE if the negotiation succeeds, FALSE otherwise
+ */
 
 gboolean
 fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
@@ -1380,6 +1423,8 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
  *
  * This function is called by the #FsRtpConference when a new src pad appears.
  * It can will be called on the streaming thread.
+ *
+ * MT safe.
  */
 
 void
@@ -1520,6 +1565,11 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
 
   return ret;
 }
+
+/*
+ * Builds a codec bin in the specified direction for the specified codec
+ * using the specified blueprint
+ */
 
 static GstElement *
 _create_codec_bin (CodecBlueprint *blueprint, FsCodec *codec, const gchar *name,
@@ -1669,6 +1719,8 @@ _create_codec_bin (CodecBlueprint *blueprint, FsCodec *codec, const gchar *name,
  *
  * This function will create a new reception codec bin for the specified codec
  *
+ * MT safe.
+ *
  * Returns: a newly-allocated codec bin
  */
 
@@ -1725,6 +1777,8 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
  *
  * This function selects the codec to send using either the user preference
  * or the remote preference (from the negotiation).
+ *
+ * MT safe.
  *
  * Returns: a newly-allocated #FsCodec
  */
@@ -1789,6 +1843,8 @@ fs_rtp_session_select_send_codec (FsRtpSession *session,
  *
  * This function creates, adds and links a codec bin for the current send remote
  * codec
+ *
+ * MT safe.
  *
  * Returns: TRUE on success, FALSE on error
  */
