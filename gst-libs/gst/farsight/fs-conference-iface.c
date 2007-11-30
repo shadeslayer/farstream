@@ -122,7 +122,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * Create a new Farsight Participant for the type of the given conference.
  *
  * Returns: the new #FsParticipant that has been created. The #FsParticipant
- * is owned by the user and he must unref it when he is dont with it.
+ * is owned by the user and he must unref it when he is done with it.
  */
 FsParticipant *
 fs_conference_new_participant (FsConference *conference, gchar *cname)
