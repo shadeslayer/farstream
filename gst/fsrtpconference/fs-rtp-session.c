@@ -98,10 +98,20 @@ struct _FsRtpSessionPrivate
   GstPad *rtpbin_recv_rtp_sink;
   GstPad *rtpbin_recv_rtcp_sink;
 
+  /* Protected by the session mutex */
+  /* The codec bin is owned implicitely by the Conference bin for us */
+  GstElement *send_codecbin;
+  FsCodec *current_send_codec;
+  FsCodec *requested_send_codec;
+
+  /* Protected by the session mutex */
+  gulong send_blocking_id;
+
   /* These lists are protected by the session mutex */
   GList *streams;
   GList *free_substreams;
 
+  /* The static list of all the blueprints */
   GList *blueprints;
 
   GList *local_codecs_configuration;
@@ -112,9 +122,6 @@ struct _FsRtpSessionPrivate
   /* These are protected by the session mutex */
   GList *negotiated_codecs;
   GHashTable *negotiated_codec_associations;
-
-  /* Protected by the session mutex */
-  FsCodec *requested_send_codec;
 
   GError *construction_error;
 
@@ -162,6 +169,10 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
                                                FsCodec *send_codec,
                                                GError **error);
 
+static gboolean fs_rtp_session_verify_send_codec_bin_locked (
+    FsRtpSession *self,
+    GError **error);
+
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   FsRtpSession *self,
@@ -178,9 +189,6 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
   FsCodec **out_codec,
   GError **error);
 
-
-static gboolean fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
-    GError **error);
 
 
 static GObjectClass *parent_class = NULL;
@@ -985,6 +993,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 {
   GList *elem;
   FsRtpSession *self = FS_RTP_SESSION (session);
+  gboolean ret = FALSE;
 
   FS_RTP_SESSION_LOCK (self);
   for (elem = g_list_first (self->priv->negotiated_codecs);
@@ -1000,17 +1009,16 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 
     self->priv->requested_send_codec = fs_codec_copy (send_codec);
   }
-  FS_RTP_SESSION_UNLOCK (self);
 
-  if (!elem) {
+  if (elem)
+    ret = fs_rtp_session_verify_send_codec_bin_locked (self, error);
+  else
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "The passed codec is not part of the list of negotiated codecs");
-    return FALSE;
-  }
 
-  /* TODO: We must block to change to change the codecs */
+  FS_RTP_SESSION_UNLOCK (self);
 
-  return TRUE;
+  return ret;
 }
 
 FsRtpSession *
@@ -1395,10 +1403,14 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
     session->priv->negotiated_codec_associations =
       new_negotiated_codec_associations;
     session->priv->negotiated_codecs = new_negotiated_codecs;
-    FS_RTP_SESSION_UNLOCK (session);
 
-    if (!fs_rtp_session_add_send_codec_bin (session, error))
+    if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
+    {
+      FS_RTP_SESSION_UNLOCK (session);
       return FALSE;
+    }
+
+    FS_RTP_SESSION_UNLOCK (session);
 
     if (is_new)
       g_signal_emit_by_name (session, "new-negotiated-codec");
@@ -1572,8 +1584,8 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
  */
 
 static GstElement *
-_create_codec_bin (CodecBlueprint *blueprint, FsCodec *codec, const gchar *name,
-  gboolean is_send, GError **error)
+_create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
+    const gchar *name, gboolean is_send, GError **error)
 {
   GList *pipeline_factory = NULL;
   GList *walk = NULL;
@@ -1793,7 +1805,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
   if (!session->priv->negotiated_codecs)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Tried to call fs_rtp_session_build_send_codec_bin before the codec"
+        "Tried to call fs_rtp_session_select_send_codec_bin before the codec"
         " negotiation has taken place");
     return NULL;
   }
@@ -1837,100 +1849,229 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
   return codec;
 }
 
-/**
- * fs_rtp_session_select_send_codec:
- *
- * This function selects the codec to send using either the user preference
- * or the remote preference (from the negotiation). It is the same as
- * fs_rtp_session_select_send_codec_locked but MT safe.
- *
- * MT safe.
- *
- * Returns: a newly-allocated #FsCodec
- */
-
-static FsCodec *
-fs_rtp_session_select_send_codec (FsRtpSession *session,
-    CodecBlueprint **blueprint,
-    GError **error)
-{
-  FsCodec *codec = NULL;
-
-  FS_RTP_SESSION_LOCK (session);
-  codec = fs_rtp_session_select_send_codec_locked (session, blueprint, error);
-  FS_RTP_SESSION_UNLOCK (session);
-
-  return codec;
-}
-
 
 /**
  * fs_rtp_session_add_send_codec_bin:
+ * @session: a #FsRtpSession
+ * @codec: a #FsCodec
+ * @blueprint: the #CodecBlueprint to use
  *
  * This function creates, adds and links a codec bin for the current send remote
  * codec
  *
  * MT safe.
  *
- * Returns: TRUE on success, FALSE on error
+ * Returns: The new codec bin (or NULL if there is an error)
  */
 
-static gboolean
-fs_rtp_session_add_send_codec_bin (FsRtpSession *session, GError **error)
+static GstElement *
+fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
+    const FsCodec *codec,
+    CodecBlueprint *blueprint,
+    GError **error)
 {
   GstElement *codecbin = NULL;
   gchar *name;
-  gint pt = -1;
-  FsCodec *codec = NULL;
-  CodecBlueprint *blueprint = NULL;
 
-  codec = fs_rtp_session_select_send_codec (session, &blueprint, error);
-  if (!codec)
-    return FALSE;
-
-  name = g_strdup_printf ("send%d", pt);
+  name = g_strdup_printf ("send%d", codec->id);
   codecbin = _create_codec_bin (blueprint, codec, name, TRUE, error);
   g_free (name);
 
   if (!codecbin)
-    return FALSE;
+  {
+    return NULL;
+  }
 
   if (!gst_bin_add (GST_BIN (session->priv->conference), codecbin))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add the send codec bin for pt %d to the pipeline", pt);
+        "Could not add the send codec bin for pt %d to the pipeline",
+        codec->id);
     gst_object_unref (codecbin);
-    return FALSE;
+    return NULL;
   }
 
   if (!gst_element_link_pads (session->priv->media_sink_valve, "src",
           codecbin, "sink"))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the send valve to the codec bin for pt %d", pt);
+        "Could not link the send valve to the codec bin for pt %d", codec->id);
     goto error;
   }
 
   if (!gst_element_link_pads (codecbin, "src", session->priv->rtpmuxer, NULL))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the send codec bin for pt %d to the rtp muxer", pt);
+        "Could not link the send codec bin for pt %d to the rtp muxer",
+        codec->id);
     goto error;
   }
 
   if (!gst_element_sync_state_with_parent (codecbin)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not sync the state of the codec bin for pt %d with the state"
-        " of the conference", pt);
+        " of the conference", codec->id);
     goto error;
   }
 
   g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
 
-  return TRUE;
+  return codecbin;
 
  error:
   gst_element_set_state (codecbin, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (session->priv->conference), codecbin);
-  return FALSE;
+  return NULL;
+}
+
+/**
+ * _send_src_pad_have_data_callback:
+ *
+ * This is the pad probe callback on the sink pad of the valve.
+ * It is used to replace the codec bin when the send codec has been changed.
+ *
+ * Its a callback, it returns TRUE to let the data through and FALSE to drop it
+ * (See the "have-data" signal documentation of #GstPad).
+ */
+
+static gboolean
+_send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
+    gpointer user_data)
+{
+  FsRtpSession *self = FS_RTP_SESSION (user_data);
+  FsCodec *codec = NULL;
+  CodecBlueprint *blueprint = NULL;
+  GError *error = NULL;
+  GstElement *codecbin = NULL;
+
+  FS_RTP_SESSION_LOCK (self);
+  codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, &error);
+
+  if (!codec)
+  {
+    fs_session_emit_error (FS_SESSION (self), error->code,
+        "Could not select a new send codec", error->message);
+    goto done;
+  }
+
+  g_clear_error (&error);
+
+  if (fs_codec_are_equal (codec, self->priv->current_send_codec))
+    goto done;
+
+
+  if (gst_element_set_state (self->priv->send_codecbin, GST_STATE_NULL) !=
+      GST_STATE_CHANGE_SUCCESS)
+  {
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
+        "Could not stop the codec bin",
+        "Setting the codec bin to NULL did not succeed" );
+    goto done;
+  }
+
+  gst_bin_remove (GST_BIN (self->priv->conference), self->priv->send_codecbin);
+  self->priv->send_codecbin = NULL;
+
+  fs_codec_destroy (self->priv->current_send_codec);
+  self->priv->send_codecbin = NULL;
+
+
+  codecbin = fs_rtp_session_add_send_codec_bin (self, codec, blueprint,
+      &error);
+
+  if (!codecbin)
+  {
+    fs_session_emit_error (FS_SESSION (self), error->code,
+        "Could not build a new send codec bin", error->message);
+    goto done;
+  }
+
+  self->priv->send_codecbin = codecbin;
+  self->priv->current_send_codec = fs_codec_copy (codec);
+
+ done:
+  if (self->priv->send_blocking_id)
+  {
+    gst_pad_remove_data_probe (pad, self->priv->send_blocking_id);
+    self->priv->send_blocking_id = 0;
+  }
+
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return TRUE;
+
+}
+
+/**
+ * fs_rtp_session_verify_send_codec_bin_locked:
+ *
+ * Verify that the current send codec is still valid and if it is not
+ * do whats required to have the right one be used.
+ *
+ * Must be called with the FsRtpSession lock taken
+ *
+ * Returns: TRUE if it succeeds, FALSE on an error
+ */
+
+static gboolean
+fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
+{
+  FsCodec *codec = NULL;
+  CodecBlueprint *blueprint = NULL;
+  GstElement *codecbin = NULL;
+  gboolean ret = FALSE;
+
+  FS_RTP_SESSION_LOCK (self);
+  codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, error);
+
+  if (!codec)
+    goto done;
+
+  if (self->priv->current_send_codec) {
+    if (fs_codec_are_equal (codec, self->priv->current_send_codec))
+    {
+      ret = TRUE;
+      goto done;
+    }
+
+    /* If we have to change an already made pipeline,
+     * we have to make sure that is it blocked
+     */
+
+    if (!self->priv->send_blocking_id)
+    {
+      GstPad *pad;
+
+      pad = gst_element_get_static_pad (self->priv->media_sink_valve, "src");
+
+      self->priv->send_blocking_id = gst_pad_add_data_probe (pad,
+          G_CALLBACK (_send_src_pad_have_data_callback), self);
+
+      gst_object_unref (pad);
+    }
+  }
+  else
+  {
+    /* The codec does exist yet, lets just create it */
+
+    codecbin = fs_rtp_session_add_send_codec_bin (self, codec, blueprint,
+        error);
+
+    if (codecbin) {
+      self->priv->send_codecbin = codecbin;
+      self->priv->current_send_codec = codec;
+    }
+    else
+    {
+      /* We have an error !! */
+      goto done;
+    }
+  }
+
+  ret = TRUE;
+ done:
+
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return ret;
 }
