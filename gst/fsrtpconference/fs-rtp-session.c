@@ -1943,6 +1943,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   CodecBlueprint *blueprint = NULL;
   GError *error = NULL;
   GstElement *codecbin = NULL;
+  gboolean ret = TRUE;
 
   FS_RTP_SESSION_LOCK (self);
   codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, &error);
@@ -1979,18 +1980,34 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   codecbin = fs_rtp_session_add_send_codec_bin (self, codec, blueprint,
       &error);
 
-  if (!codecbin)
+  if (codecbin)
+  {
+    self->priv->send_codecbin = codecbin;
+    self->priv->current_send_codec = fs_codec_copy (codec);
+  }
+  else
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not build a new send codec bin", error->message);
-    goto done;
   }
 
-  self->priv->send_codecbin = codecbin;
-  self->priv->current_send_codec = fs_codec_copy (codec);
-
  done:
-  if (self->priv->send_blocking_id)
+  if (codec)
+  {
+    if (GST_IS_BUFFER (miniobj)) {
+      GstCaps *caps = fs_codec_to_gst_caps (codec);
+      GstCaps *intersection = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
+          caps);
+
+      if (gst_caps_is_empty (intersection))
+          ret = FALSE;
+      gst_caps_unref (intersection);
+      gst_caps_unref (caps);
+    }
+    fs_codec_destroy (codec);
+  }
+
+  if (ret && self->priv->send_blocking_id)
   {
     gst_pad_remove_data_probe (pad, self->priv->send_blocking_id);
     self->priv->send_blocking_id = 0;
@@ -1998,7 +2015,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   FS_RTP_SESSION_UNLOCK (self);
 
-  return TRUE;
+  return ret;
 
 }
 
