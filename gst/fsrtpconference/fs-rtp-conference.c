@@ -99,7 +99,8 @@ static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
                                                  FsMediaType media_type,
                                                  GError **error);
 static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
-                                                         gchar *cname);
+    gchar *cname,
+    GError **error);
 
 static FsRtpSession *fs_rtp_conference_get_session_by_id_locked (
     FsRtpConference *self, guint session_id);
@@ -376,7 +377,8 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
 
 static FsParticipant *
 fs_rtp_conference_new_participant (FsBaseConference *conf,
-                                   gchar *cname)
+    gchar *cname,
+    GError **error)
 {
   FsParticipant *new_participant = NULL;
 

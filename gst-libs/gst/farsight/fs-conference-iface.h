@@ -68,7 +68,8 @@ struct _FsConferenceInterface {
                               GError **error);
 
   FsParticipant *(* new_participant) (FsConference *conference,
-                                      gchar *cname);
+      gchar *cname,
+      GError **error);
 
   /*< private > */
   gpointer _gst_reserved[GST_PADDING];
@@ -120,7 +121,8 @@ FsSession *fs_conference_new_session (FsConference *conference,
                                       GError **error);
 
 FsParticipant *fs_conference_new_participant (FsConference *conference,
-                                              gchar *cname);
+    gchar *cname,
+    GError **error);
 
 
 G_END_DECLS

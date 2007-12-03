@@ -129,7 +129,8 @@ static FsSession *fs_base_conference_new_session (FsConference *conf,
                                                   FsMediaType media_type,
                                                   GError **error);
 static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
-                                                          gchar *cname);
+    gchar *cname,
+    GError **error);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
                                gint error_no, gchar *error_msg,
@@ -304,13 +305,14 @@ fs_base_conference_get_property (GObject *object, guint prop_id,
 
 static FsParticipant *
 fs_base_conference_new_participant (FsConference *conf,
-                                    gchar *cname)
+    gchar *cname,
+    GError **error)
 {
   FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);
   FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
 
   if (klass->new_participant) {
-    return klass->new_participant (baseconf, cname);
+    return klass->new_participant (baseconf, cname, error);
   } else {
     GST_WARNING_OBJECT (conf, "new_session not defined in element");
   }

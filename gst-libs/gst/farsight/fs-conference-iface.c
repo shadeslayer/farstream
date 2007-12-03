@@ -118,6 +118,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * fs_conference_new_participant
  * @conference: #FsConference interface of a #GstElement
  * @cname: The cname of the participant
+ * @error: location of a #GError, or NULL if no error occured
  *
  * Create a new Farsight Participant for the type of the given conference.
  *
@@ -125,13 +126,14 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * is owned by the user and he must unref it when he is done with it.
  */
 FsParticipant *
-fs_conference_new_participant (FsConference *conference, gchar *cname)
+fs_conference_new_participant (FsConference *conference, gchar *cname,
+    GError **error)
 {
   FsConferenceInterface *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
   if (iface->new_session) {
-    return iface->new_participant (conference, cname);
+    return iface->new_participant (conference, cname, error);
   } else {
     GST_WARNING_OBJECT (conference, "new_participant not defined in element");
   }
