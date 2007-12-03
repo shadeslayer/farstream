@@ -79,6 +79,7 @@ struct _FsRtpSessionPrivate
    */
 
   GstElement *media_sink_valve;
+  GstElement *send_capsfilter;
   GstElement *transmitter_rtp_tee;
   GstElement *transmitter_rtcp_tee;
   GstElement *transmitter_rtp_funnel;
@@ -343,6 +344,8 @@ fs_rtp_session_dispose (GObject *object)
 
   if (self->priv->rtpmuxer)
     gst_element_set_state (self->priv->rtpmuxer, GST_STATE_NULL);
+  if (self->priv->send_capsfilter)
+    gst_element_set_state (self->priv->send_capsfilter, GST_STATE_NULL);
   /* TODO: Stop the codec bin */
   if (self->priv->media_sink_valve)
     gst_element_set_state (self->priv->media_sink_valve, GST_STATE_NULL);
@@ -378,7 +381,15 @@ fs_rtp_session_dispose (GObject *object)
     gst_element_set_state (self->priv->rtpmuxer, GST_STATE_NULL);
     gst_object_unref (self->priv->rtpmuxer);
     self->priv->rtpmuxer = NULL;
- }
+  }
+
+  if (self->priv->send_capsfilter) {
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->send_capsfilter);
+    gst_element_set_state (self->priv->send_capsfilter, GST_STATE_NULL);
+    gst_object_unref (self->priv->send_capsfilter);
+    self->priv->send_capsfilter = NULL;
+  }
 
   if (self->priv->media_sink_pad) {
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
@@ -581,6 +592,7 @@ fs_rtp_session_constructed (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION_CAST (object);
   GstElement *valve = NULL;
+  GstElement *capsfilter = NULL;
   GstElement *tee = NULL;
   GstElement *funnel = NULL;
   GstElement *muxer = NULL;
@@ -862,6 +874,40 @@ fs_rtp_session_constructed (GObject *object)
   gst_object_unref (muxer_src_pad);
 
   gst_element_set_state (muxer, GST_STATE_PLAYING);
+
+
+  /* Lets now do the send_capsfilter */
+
+  tmp = g_strdup_printf ("send_rtp_capsfilter_%d", self->id);
+  capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  g_free (tmp);
+
+  if (!capsfilter) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not create the rtp capsfilter element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), capsfilter)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not add the rtp capsfilter element to the FsRtpConference");
+    gst_object_unref (capsfilter);
+    return;
+  }
+
+  self->priv->send_capsfilter = gst_object_ref (capsfilter);
+
+  if (!gst_element_link_pads (capsfilter, "src", muxer, NULL))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link pad capsfilter src pad to the rtpmuxer");
+    return;
+  }
+
+  gst_element_set_state (capsfilter, GST_STATE_PLAYING);
 }
 
 
@@ -1872,6 +1918,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
 {
   GstElement *codecbin = NULL;
   gchar *name;
+  GstCaps *sendcaps;
 
   name = g_strdup_printf ("send%d", codec->id);
   codecbin = _create_codec_bin (blueprint, codec, name, TRUE, error);
@@ -1899,10 +1946,18 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
     goto error;
   }
 
-  if (!gst_element_link_pads (codecbin, "src", session->priv->rtpmuxer, NULL))
+  sendcaps = fs_codec_to_gst_caps (codec);
+
+  g_object_set (G_OBJECT (session->priv->send_capsfilter),
+      "caps", sendcaps, NULL);
+
+  gst_caps_unref (sendcaps);
+
+  if (!gst_element_link_pads (codecbin, "src",
+          session->priv->send_capsfilter, "sink"))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the send codec bin for pt %d to the rtp muxer",
+        "Could not link the send codec bin for pt %d to the send capsfilter",
         codec->id);
     goto error;
   }
