@@ -60,11 +60,10 @@ struct _FsRtpSubStreamPrivate {
    * otherwise the rtpbin_pad is blocked */
   /* Protected by the mutex */
   GstElement *codecbin;
+  FsCodec *codec;
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
-
-  FsCodec *codec;
 
   GMutex *mutex;
 
