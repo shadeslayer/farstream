@@ -1353,15 +1353,32 @@ fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
 /**
  * fs_rtp_session_invalidate_pt:
  * @session: A #FsRtpSession
- * @pt: the payload type number
+ * @pt: the PT to invalidate
+ * @codec: the new codec
  *
  * Invalidates all codec bins for the selected payload type, because its
  * definition has changed
  */
 
 static void
-fs_rtp_session_invalidate_pt (FsRtpSession *session, guint pt)
+fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
+    const FsCodec *codec)
 {
+  GList *item;
+  FS_RTP_SESSION_LOCK (session);
+
+  for (item = g_list_first (session->priv->free_substreams);
+       item;
+       item = g_list_next (item))
+    fs_rtp_sub_stream_invalidate_codec_locked (item->data, pt, codec);
+
+
+  for (item = g_list_first (session->priv->streams);
+       item;
+       item = g_list_next (item))
+    fs_rtp_stream_invalidate_codec_locked (item->data, pt, codec);
+
+  FS_RTP_SESSION_UNLOCK (session);
 }
 
 static gboolean
@@ -1432,14 +1449,15 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
         continue;
 
       if (old_codec_association == NULL || new_codec_association == NULL) {
-        fs_rtp_session_invalidate_pt (session, pt);
+        fs_rtp_session_invalidate_pt (session, pt, NULL);
         clear_pts = TRUE;
         continue;
       }
 
       if (!fs_codec_are_equal (old_codec_association->codec,
               new_codec_association->codec)) {
-        fs_rtp_session_invalidate_pt (session, pt);
+        fs_rtp_session_invalidate_pt (session, pt,
+            new_codec_association->codec);
         clear_pts = TRUE;
         continue;
       }

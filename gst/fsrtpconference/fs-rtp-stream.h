@@ -84,6 +84,12 @@ gboolean fs_rtp_stream_add_substream (FsRtpStream *stream,
 gboolean fs_rtp_stream_knows_ssrc_locked (FsRtpStream *stream,
     guint32 ssrc);
 
+void fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
+    gint pt,
+    const FsCodec *codec);
+
+
+
 
 G_END_DECLS
 
