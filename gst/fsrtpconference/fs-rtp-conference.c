@@ -38,6 +38,8 @@
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
 
+#include <string.h>
+
 GST_DEBUG_CATEGORY_STATIC (fs_rtp_conference_debug);
 #define GST_CAT_DEFAULT fs_rtp_conference_debug
 
@@ -86,6 +88,8 @@ struct _FsRtpConferencePrivate
   /* Protected by GST_OBJECT_LOCK */
   GList *sessions;
   guint max_session_id;
+
+  GList *participants;
 };
 
 static void fs_rtp_conference_do_init (GType type);
@@ -343,6 +347,19 @@ _remove_session (gpointer user_data,
   GST_OBJECT_UNLOCK (self);
 }
 
+static void
+_remove_participant (gpointer user_data,
+                 GObject *where_the_object_was)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+
+  GST_OBJECT_LOCK (self);
+  self->priv->participants =
+    g_list_remove_all (self->priv->participants, where_the_object_was);
+  GST_OBJECT_UNLOCK (self);
+}
+
+
 static FsSession *
 fs_rtp_conference_new_session (FsBaseConference *conf,
                                FsMediaType media_type,
@@ -380,9 +397,40 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
     gchar *cname,
     GError **error)
 {
+  FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsParticipant *new_participant = NULL;
+  GList *item = NULL;
+
+  GST_OBJECT_LOCK (self);
+  for (item = g_list_first (self->priv->participants);
+       item;
+       item = g_list_next (item))
+  {
+    gchar *lcname;
+
+    g_object_get (item->data, "cname", &lcname, NULL);
+    if (!strcmp (lcname, cname))
+        break;
+  }
+  GST_OBJECT_UNLOCK (self);
+
+  if (item)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "There is already a participant with this cname");
+    return NULL;
+  }
+
 
   new_participant = FS_PARTICIPANT_CAST (fs_rtp_participant_new (cname));
+
+
+  GST_OBJECT_LOCK (self);
+  self->priv->participants = g_list_append (self->priv->sessions,
+      new_participant);
+  GST_OBJECT_UNLOCK (self);
+
+  g_object_weak_ref (G_OBJECT (new_participant), _remove_participant, self);
 
   return new_participant;
 }
