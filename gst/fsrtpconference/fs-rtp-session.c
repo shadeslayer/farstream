@@ -105,7 +105,10 @@ struct _FsRtpSessionPrivate
   FsCodec *current_send_codec;
   FsCodec *requested_send_codec;
 
-  /* Protected by the session mutex */
+  /* This is the id of the pad probe used to blocked the stream
+   * while the codec is changed
+   * Protected by the session mutex
+   */
   gulong send_blocking_id;
 
   /* These lists are protected by the session mutex */
