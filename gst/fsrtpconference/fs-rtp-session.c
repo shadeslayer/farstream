@@ -2055,7 +2055,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   self->priv->send_codecbin = NULL;
 
   fs_codec_destroy (self->priv->current_send_codec);
-  self->priv->send_codecbin = NULL;
+  self->priv->current_send_codec = NULL;
 
 
   codecbin = fs_rtp_session_add_send_codec_bin (self, codec, blueprint,
@@ -2071,6 +2071,8 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not build a new send codec bin", error->message);
   }
+
+  g_clear_error (&error);
 
  done:
   if (codec)
