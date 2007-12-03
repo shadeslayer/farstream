@@ -58,14 +58,12 @@ struct _FsRtpSubStreamPrivate {
 
   /* This only exists if the codec is valid,
    * otherwise the rtpbin_pad is blocked */
-  /* Protected by the mutex */
+  /* Protected by the session mutex */
   GstElement *codecbin;
   FsCodec *codec;
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
-
-  GMutex *mutex;
 
   GError *construction_error;
 };
@@ -77,9 +75,6 @@ G_DEFINE_TYPE(FsRtpSubStream, fs_rtp_sub_stream, G_TYPE_OBJECT);
 #define FS_RTP_SUB_STREAM_GET_PRIVATE(o)                                 \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SUB_STREAM,             \
    FsRtpSubStreamPrivate))
-
-#define FS_RTP_SUB_STREAM_LOCK(self)    g_mutex_lock ((self)->priv->mutex)
-#define FS_RTP_SUB_STREAM_UNLOCK(self)  g_mutex_unlock ((self)->priv->mutex)
 
 static void fs_rtp_sub_stream_dispose (GObject *object);
 static void fs_rtp_sub_stream_finalize (GObject *object);
@@ -162,8 +157,6 @@ fs_rtp_sub_stream_init (FsRtpSubStream *self)
 {
   self->priv = FS_RTP_SUB_STREAM_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
-
-  self->priv->mutex = g_mutex_new ();
 }
 
 
@@ -261,8 +254,6 @@ fs_rtp_sub_stream_finalize (GObject *object)
   if (self->priv->codec)
     fs_codec_destroy (self->priv->codec);
 
-  g_mutex_free (self->priv->mutex);
-
   G_OBJECT_CLASS (fs_rtp_sub_stream_parent_class)->finalize (object);
 }
 
@@ -324,9 +315,9 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_uint (value, self->priv->pt);
       break;
     case PROP_CODEC:
-      FS_RTP_SUB_STREAM_LOCK (self);
+      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_boxed (value, self->priv->codec);
-      FS_RTP_SUB_STREAM_UNLOCK (self);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -382,13 +373,13 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
   GstPadLinkReturn linkret;
   gboolean has_codecbin = FALSE;
 
-  FS_RTP_SUB_STREAM_LOCK (substream);
+  FS_RTP_SESSION_LOCK (substream->priv->session);
   if (substream->priv->codecbin == NULL) {
     substream->priv->codecbin = codecbin;
     substream->priv->codec = fs_codec_copy (codec);
     has_codecbin = TRUE;
   }
-  FS_RTP_SUB_STREAM_UNLOCK (substream);
+  FS_RTP_SESSION_LOCK (substream->priv->session);
 
   if (has_codecbin) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -444,11 +435,11 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
     gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
 
  error_no_remove:
-    FS_RTP_SUB_STREAM_LOCK (substream);
+    FS_RTP_SESSION_LOCK (substream->priv->session);
     substream->priv->codecbin = NULL;
     fs_codec_destroy (substream->priv->codec);
     substream->priv->codec = NULL;
-    FS_RTP_SUB_STREAM_UNLOCK (substream);
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
     return FALSE;
 
@@ -494,10 +485,10 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
   if (substream->priv->valve)
     gst_element_set_state (substream->priv->valve, GST_STATE_NULL);
 
-  FS_RTP_SUB_STREAM_LOCK (substream);
+  FS_RTP_SESSION_LOCK (substream->priv->session);
   if (substream->priv->codecbin)
     gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL);
-  FS_RTP_SUB_STREAM_UNLOCK (substream);
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 }
 
 
@@ -526,10 +517,10 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
   padname = g_strdup_printf ("src_%d_%d_%d", session_id, substream->priv->ssrc,
       substream->priv->pt);
 
-  FS_RTP_SUB_STREAM_LOCK (substream);
+  FS_RTP_SESSION_LOCK (substream->priv->session);
   codecbin_srcpad = gst_element_get_static_pad (substream->priv->codecbin,
       "src");
-  FS_RTP_SUB_STREAM_UNLOCK (substream);
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
   g_assert (codecbin_srcpad);
 
   ghostpad = gst_ghost_pad_new_from_template (padname, codecbin_srcpad,
