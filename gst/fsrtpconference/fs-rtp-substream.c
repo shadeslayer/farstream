@@ -29,6 +29,15 @@
 
 #include "fs-rtp-substream.h"
 
+/**
+ * SECTION:fs-rtp-sub-stream
+ * @short_description: The receive codec bin for a ssrc and a pt
+ *
+ * This object controls a part of the receive pipeline, with the following shape
+ *
+ * rtpbin_pad -> codecbin -> valve  -> output_ghostad
+ *
+ */
 
 /* props */
 enum
@@ -64,6 +73,12 @@ struct _FsRtpSubStreamPrivate {
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
+
+  /* The id of the pad probe used to block the stream while the recv codec
+   * is changed
+   * Protected by the session mutex
+   */
+  gulong blocking_id;
 
   GError *construction_error;
 };
@@ -228,6 +243,15 @@ fs_rtp_sub_stream_dispose (GObject *object)
   }
 
 
+  FS_RTP_SESSION_LOCK (self->priv->session);
+
+  if (self->priv->blocking_id)
+  {
+    gst_pad_remove_data_probe (self->priv->rtpbin_pad,
+        self->priv->blocking_id);
+    self->priv->blocking_id = 0;
+  }
+
   if (self->priv->codecbin) {
     gst_object_ref (self->priv->codecbin);
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
@@ -236,6 +260,9 @@ fs_rtp_sub_stream_dispose (GObject *object)
     gst_object_unref (self->priv->codecbin);
     self->priv->codecbin = NULL;
   }
+
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+
 
   if (self->priv->rtpbin_pad) {
     gst_object_unref (self->priv->rtpbin_pad);
@@ -552,4 +579,38 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
   substream->priv->output_ghostpad = ghostpad;
 
   return gst_object_ref (ghostpad);
+}
+
+
+static gboolean
+_rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
+    gpointer user_data)
+{
+  return TRUE;
+}
+
+/**
+ * fs_rtp_sub_stream_invalidate_codec_locked:
+ * @substream: A #FsRtpSubStream
+ * @pt: The payload type to invalidate (does nothing if it does not match)
+ * @codec: The new fscodec (the substream is invalidated if it not using this
+ *  codec). You can pass NULL to match any codec.
+ *
+ * This function will start the process that invalidates the codec
+ * for this rtpbin, if it doesnt match the passed codec
+ *
+ * You must hold the session lock to call it.
+ */
+
+void
+fs_rtp_sub_stream_invalidate_codec_locked (FsRtpSubStream *substream, gint pt,
+    const FsCodec *codec)
+{
+  if (substream->priv->pt == pt &&
+      substream->priv->codec &&
+      !substream->priv->blocking_id &&
+      (!codec || !fs_codec_are_equal (substream->priv->codec, codec)))
+    substream->priv->blocking_id = gst_pad_add_data_probe (
+        substream->priv->rtpbin_pad,
+        G_CALLBACK (_rtpbin_pad_have_data_callback), substream);
 }

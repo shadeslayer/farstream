@@ -95,6 +95,11 @@ GstPad *fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
     GError **error);
 
 
+void fs_rtp_sub_stream_invalidate_codec_locked (FsRtpSubStream *substream,
+    gint pt,
+    const FsCodec *codec);
+
+
 G_END_DECLS
 
 #endif /* __FS_RTP_SUBSTREAM_H__ */
