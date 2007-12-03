@@ -181,14 +181,6 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   GParameter *parameters,
   GError **error);
 
-static GstElement *
-fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
-  const gchar *name,
-  guint pt,
-  FsCodec **out_codec,
-  GError **error);
-
-
 
 static GObjectClass *parent_class = NULL;
 
@@ -1517,10 +1509,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 {
   FsRtpSubStream *substream = NULL;
   FsRtpStream *stream = NULL;
-  GstElement *codecbin = NULL;
-  gchar *codec_bin_name = NULL;
   GError *error = NULL;
-  FsCodec *codec = NULL;
 
   substream = fs_rtp_substream_new (session->priv->conference, session, new_pad,
     ssrc, pt, &error);
@@ -1538,44 +1527,19 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
-  codec_bin_name = g_strdup_printf ("recv%d_%d", ssrc, pt);
-  codecbin = fs_rtp_session_new_recv_codec_bin (session, codec_bin_name, pt,
-    &codec, &error);
-  g_free (codec_bin_name);
-
-  if (codecbin) {
-    if (!fs_rtp_sub_stream_add_codecbin (substream, codecbin, codec, &error)) {
-      if (error)
-        fs_session_emit_error (FS_SESSION (session), error->code,
+  if (!fs_rtp_sub_stream_add_codecbin (substream, &error)) {
+    if (error)
+      fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the codec bin to the new substream", error->message);
-      else
-        fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
+    else
+      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
           "Could not add the codec bin to the new substream",
           "No error details returned");
-
-      fs_rtp_sub_stream_block (substream, NULL, NULL);
-    }
-  } else {
-    if (error) {
-      /* Ignore errors the case where we receive buffers before the negotiatoon
-         happens */
-      if (error->code != FS_ERROR_INTERNAL)
-        fs_session_emit_error (FS_SESSION (session), error->code,
-          "Could not create a codec bin for the new pad", error->message);
-    } else {
-      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
-        "Could not create a codec bin for the new pad",
-        "No error details returned");
-    }
 
     fs_rtp_sub_stream_block (substream, NULL, NULL);
   }
 
   g_clear_error (&error);
-
-  fs_codec_destroy (codec);
-  codec = NULL;
-
 
   /* Lets find the FsRtpStream for this substream, if no Stream claims it
    * then we just store it
@@ -1795,7 +1759,7 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 /**
  * fs_rtp_session_new_recv_codec_bin:
  * @session: a #FsRtpSession
- * @name: The name of the codec bin to create
+ * @ssrc: The SSRC that this codec bin will receive from
  * @pt: The payload type to create a codec bin for
  * @out_codec: The address where a newly-allocated copy of the #FsCodec
  *   this codec bin is for
@@ -1808,17 +1772,18 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
  * Returns: a newly-allocated codec bin
  */
 
-static GstElement *
+GstElement *
 fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
-  const gchar *name,
-  guint pt,
-  FsCodec **out_codec,
-  GError **error)
+    guint32 ssrc,
+    guint pt,
+    FsCodec **out_codec,
+    GError **error)
 {
   GstElement *codec_bin = NULL;
   CodecAssociation *ca = NULL;
   CodecBlueprint *blueprint = NULL;
   FsCodec *codec = NULL;
+  gchar *name;
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -1847,7 +1812,9 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
     return NULL;
   }
 
+  name = g_strdup_printf ("recv%d_%d", ssrc, pt);
   codec_bin = _create_codec_bin (blueprint, codec, name, FALSE, error);
+  g_free (name);
 
   if (out_codec)
     *out_codec = codec;
@@ -2174,4 +2141,18 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   FS_RTP_SESSION_UNLOCK (self);
 
   return ret;
+}
+
+
+
+FsCodec *
+fs_rtp_session_get_recv_codec_for_pt_locked (FsRtpSession *session,
+    gint pt,
+    GError **error)
+{
+  CodecAssociation *codec_association = g_hash_table_lookup (
+      session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
+  g_assert (codec_association);
+
+  return fs_codec_copy (codec_association->codec);
 }

@@ -80,8 +80,6 @@ FsRtpSubStream *fs_rtp_substream_new (FsRtpConference *conference,
 
 
 gboolean fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
-    GstElement *codecbin,
-    FsCodec *codec,
     GError **error);
 
 void fs_rtp_sub_stream_stop (FsRtpSubStream *substream);

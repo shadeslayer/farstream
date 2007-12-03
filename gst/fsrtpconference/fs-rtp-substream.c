@@ -377,66 +377,66 @@ fs_rtp_sub_stream_block (FsRtpSubStream *substream,
 }
 
 /**
- * fs_rtp_session_add_codecbin:
+ * fs_rtp_session_add_codecbin_locked:
  * @substream: a #FsRtpSubStream
- * @codecbin: The codec bin
- * @codec: The #FsCodec currently received by this substream
  *
  * Add and links the rtpbin for a given substream.
- * Eats a reference to the codec bin on success.
  *
- * MT safe.
+ * The caller MUST hold the session lock
  *
  * Returns: TRUE on success
  */
 
-gboolean
-fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
-    GstElement *codecbin,
-    FsCodec *codec,
+static gboolean
+fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
     GError **error)
 {
   GstPad *codec_bin_sink_pad;
   GstPadLinkReturn linkret;
-  gboolean has_codecbin = FALSE;
+  FsCodec *codec = NULL;
+  GstElement *codecbin;
 
-  FS_RTP_SESSION_LOCK (substream->priv->session);
-  if (substream->priv->codecbin == NULL) {
-    substream->priv->codecbin = codecbin;
-    substream->priv->codec = fs_codec_copy (codec);
-    has_codecbin = TRUE;
-  }
-  FS_RTP_SESSION_LOCK (substream->priv->session);
 
-  if (has_codecbin) {
+  if (substream->priv->codecbin)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "There already is a codec bin for this substream");
     return FALSE;
   }
 
+  codecbin = fs_rtp_session_new_recv_codec_bin (substream->priv->session,
+      substream->priv->ssrc, substream->priv->pt, &codec, error);
 
-  if (!gst_bin_add (GST_BIN (substream->priv->conference), codecbin)) {
+  if (!codecbin)
+    return FALSE;
+
+
+  if (!gst_bin_add (GST_BIN (substream->priv->conference), codecbin))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the codec bin to the conference");
     goto error_no_remove;
   }
 
   if (gst_element_set_state (codecbin, GST_STATE_PLAYING) ==
-      GST_STATE_CHANGE_FAILURE) {
+      GST_STATE_CHANGE_FAILURE)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not set the codec bin to the playing state");
     goto error;
   }
 
   if (!gst_element_link_pads (codecbin, "src",
-      substream->priv->valve, "sink")) {
+      substream->priv->valve, "sink"))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not link the codec bin to the valve");
     goto error;
   }
 
   codec_bin_sink_pad = gst_element_get_static_pad (codecbin, "sink");
-  if (!codec_bin_sink_pad) {
+  if (!codec_bin_sink_pad)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not get the codecbin's sink pad");
     goto error;
@@ -446,7 +446,8 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
 
   gst_object_unref (codec_bin_sink_pad);
 
-  if (GST_PAD_LINK_FAILED (linkret)) {
+  if (GST_PAD_LINK_FAILED (linkret))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not link the rtpbin to the codec bin (%d)", linkret);
     goto error;
@@ -459,17 +460,40 @@ fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
 
  error:
     gst_element_set_state (codecbin, GST_STATE_NULL);
+    gst_object_ref (codecbin);
     gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
 
  error_no_remove:
-    FS_RTP_SESSION_LOCK (substream->priv->session);
     substream->priv->codecbin = NULL;
     fs_codec_destroy (substream->priv->codec);
     substream->priv->codec = NULL;
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
     return FALSE;
 
+}
+
+/**
+ * fs_rtp_session_add_codecbin:
+ * @substream: a #FsRtpSubStream
+ *
+ * Add and links the rtpbin for a given substream.
+ *
+ * MT safe.
+ *
+ * Returns: TRUE on success
+ */
+
+gboolean
+fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
+    GError **error)
+{
+  gboolean ret;
+
+  FS_RTP_SESSION_LOCK (substream->priv->session);
+  ret = fs_rtp_sub_stream_add_codecbin_locked (substream, error);
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
+
+  return ret;
 }
 
 FsRtpSubStream *
@@ -581,12 +605,94 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
   return gst_object_ref (ghostpad);
 }
 
+/**
+ *_rtpbin_pad_have_data_callback:
+ *
+ * This is the pad probe callback on the sink pad of the rtpbin.
+ * It is used to replace the codec bin when the recv codec has been changed.
+ *
+ * Its a callback, it returns TRUE to let the data through and FALSE to drop it
+ * (See the "have-data" signal documentation of #GstPad).
+ */
 
 static gboolean
 _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     gpointer user_data)
 {
-  return TRUE;
+  FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
+  FsCodec *codec = NULL;
+  gboolean ret = TRUE;
+  GError *error = NULL;
+  gboolean success = FALSE;
+
+  FS_RTP_SESSION_LOCK (self->priv->session);
+
+  codec = fs_rtp_session_get_recv_codec_for_pt_locked (self->priv->session,
+      self->priv->pt, &error);
+
+  if (!codec)
+  {
+    fs_session_emit_error (FS_SESSION (self), error->code,
+        "Could not get the new recv codec for pt %d", error->message);
+    goto done;
+  }
+
+  g_clear_error (&error);
+
+  if (fs_codec_are_equal (codec, self->priv->codec))
+  {
+    success = TRUE;
+    goto done;
+  }
+
+
+  if (gst_element_set_state (self->priv->codecbin, GST_STATE_NULL) !=
+      GST_STATE_CHANGE_SUCCESS)
+  {
+    /* TODO: WE NEED AN ERROR SIGNAL OF SOME KIND HERE */
+    g_error ("could not set the codecbin to NULL");
+    goto done;
+  }
+
+  gst_bin_remove (GST_BIN (self->priv->conference), self->priv->codecbin);
+  self->priv->codecbin = NULL;
+
+  fs_codec_destroy (self->priv->codec);
+  self->priv->codec = NULL;
+
+
+  if (!fs_rtp_sub_stream_add_codecbin_locked (self, &error))
+  {
+    g_error ("Could not add the new recv codec bin");
+    goto done;
+  }
+
+  g_clear_error (&error);
+
+  success = TRUE;
+
+ done:
+  if (success && GST_IS_BUFFER (miniobj))
+  {
+    GstCaps *caps = fs_codec_to_gst_caps (codec);
+    GstCaps *intersection = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
+        caps);
+
+    if (gst_caps_is_empty (intersection))
+      ret = FALSE;
+    gst_caps_unref (intersection);
+    gst_caps_unref (caps);
+  }
+
+  if (ret && self->priv->blocking_id)
+  {
+    gst_pad_remove_data_probe (pad, self->priv->blocking_id);
+    self->priv->blocking_id = 0;
+  }
+
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+
+  return ret;
 }
 
 /**
