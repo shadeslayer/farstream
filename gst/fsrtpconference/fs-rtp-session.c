@@ -1337,7 +1337,7 @@ fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
   for (item = g_list_first (self->priv->streams);
        item;
        item = g_list_next (item))
-    if (fs_rtp_stream_knows_ssrc (item->data, ssrc))
+    if (fs_rtp_stream_knows_ssrc_locked (item->data, ssrc))
       break;
 
 

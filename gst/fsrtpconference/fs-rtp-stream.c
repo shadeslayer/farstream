@@ -71,6 +71,7 @@ struct _FsRtpStreamPrivate
 
   GList *remote_codecs;
 
+  /* Protected by the session mutex */
   GList *substreams;
 
   GError *construction_error;
@@ -233,11 +234,13 @@ fs_rtp_stream_dispose (GObject *object)
     return;
   }
 
+  FS_RTP_SESSION_LOCK (self->priv->session);
   if (self->priv->substreams) {
     g_list_foreach (self->priv->substreams, (GFunc) gst_object_unref, NULL);
     g_list_free (self->priv->substreams);
     self->priv->substreams = NULL;
   }
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
 
   if (self->priv->participant) {
     g_object_unref (self->priv->participant);
@@ -562,8 +565,10 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
 
   g_object_get (substream, "codec", &codec, NULL);
 
+  FS_RTP_SESSION_LOCK (stream->priv->session);
   stream->priv->substreams = g_list_prepend (stream->priv->substreams,
       substream);
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
   g_signal_emit_by_name (stream, "src-pad-added", ghostpad, codec);
 
@@ -574,7 +579,7 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
 }
 
 gboolean
-fs_rtp_stream_knows_ssrc (FsRtpStream *stream, guint32 ssrc)
+fs_rtp_stream_knows_ssrc_locked (FsRtpStream *stream, guint32 ssrc)
 {
   GList *elem;
 
