@@ -1063,13 +1063,14 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
       fs_codec_destroy (self->priv->requested_send_codec);
 
     self->priv->requested_send_codec = fs_codec_copy (send_codec);
-  }
 
-  if (elem)
     ret = fs_rtp_session_verify_send_codec_bin_locked (self, error);
+  }
   else
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "The passed codec is not part of the list of negotiated codecs");
+  }
 
   FS_RTP_SESSION_UNLOCK (self);
 
