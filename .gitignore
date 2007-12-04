@@ -31,11 +31,11 @@ docs/libs/tmpl
 docs/libs/xml
 
 tests/check/test-registry.xml
-tests/check/base/.dirstamp
+tests/check/*/.dirstamp
 tests/check/base/fscodec
 tests/check/base/fstransmitter
-tests/check/transmitter/.dirstamp
 tests/check/transmitter/rawudp
+tests/check/main/rtpconference
 tests/rtp/codec-discovery
 
 aclocal.m4
