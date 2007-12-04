@@ -79,7 +79,7 @@ rawudptransmitter_suite (void)
 
 
   tc_chain = tcase_create ("fsrtpconfence_base");
-  tcase_set_timeout (tc_chain, 5);
+  tcase_set_timeout (tc_chain, 1);
   tcase_add_test (tc_chain, test_rtpconference_new);
   suite_add_tcase (s, tc_chain);
 
