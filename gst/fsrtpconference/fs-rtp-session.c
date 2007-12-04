@@ -33,6 +33,8 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include <gst/gst.h>
 
 #include <gst/farsight/fs-transmitter.h>
@@ -2163,5 +2165,63 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     guint32 ssrc,
     gchar *cname)
 {
-  
+  FsRtpStream *stream = NULL;
+  FsRtpSubStream *substream = NULL;
+  GList *item;
+  GError *error = NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+  for (item = g_list_first (session->priv->streams);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpStream *localstream = item->data;
+    FsRtpParticipant *participant = NULL;
+    gchar *localcname = NULL;
+
+    g_object_get (localstream, "participant", &participant, NULL);
+    g_object_get (participant, "cname", &localcname, NULL);
+    g_object_unref (participant);
+
+    if (!strcmp (localcname, cname))
+    {
+      stream = localstream;
+      break;
+    }
+  }
+
+  if (!stream) {
+    gchar *str = g_strdup_printf ("There is no particpant with cname %s for"
+        " ssrc %u", cname, ssrc);
+    fs_session_emit_error (FS_SESSION (session),FS_ERROR_UNKNOWN_CNAME,
+        str, str);
+    g_free (str);
+    goto done;
+  }
+
+  for (item = g_list_first (session->priv->free_substreams);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpSubStream *localsubstream = item->data;
+    guint32 localssrc;
+
+    g_object_get (localsubstream, "ssrc", &localssrc, NULL);
+    if (ssrc == localssrc) {
+      substream = localsubstream;
+      break;
+    }
+  }
+
+  if (!substream)
+    goto done;
+
+  if (!fs_rtp_stream_add_substream (stream, substream, &error))
+    fs_session_emit_error (FS_SESSION (session), error->code,
+        "Could not associate a substream with its stream",
+        error->message);
+  g_clear_error (&error);
+
+ done:
+  FS_RTP_SESSION_UNLOCK (session);
 }
