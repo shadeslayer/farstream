@@ -31,14 +31,40 @@ GST_START_TEST (test_rtpconference_new)
 {
   GstElement *pipeline = gst_pipeline_new ("pipeline");
   GstElement *conference = NULL;
+  FsSession *session;
+  FsParticipant *participant;
+  FsStream *stream;
+  GError *error = NULL;
 
   conference = gst_element_factory_make ("fsrtpconference", NULL);
-
   fail_if (conference == NULL, "Could not buld fsrtpconference");
-
   fail_unless (gst_bin_add (GST_BIN (pipeline), conference),
       "Could not add conference to the pipeline");
 
+  session = fs_conference_new_session (FS_CONFERENCE (conference),
+      FS_MEDIA_TYPE_AUDIO, &error);
+  if (error)
+    fail ("Error while creating new session (%d): %s",
+        error->code, error->message);
+  fail_if (session == NULL, "Could not make session, but no GError!");
+
+  participant = fs_conference_new_participant (FS_CONFERENCE (conference),
+      "bob@127.0.0.1", &error);
+  if (error)
+    fail ("Error while creating new participant (%d): %s",
+        error->code, error->message);
+  fail_if (session == NULL, "Could not make participant, but no GError!");
+
+  stream = fs_session_new_stream (session, participant, FS_DIRECTION_NONE,
+      "rawudp", 0, NULL, &error);
+  if (error)
+    fail ("Error while creating new stream (%d): %s",
+        error->code, error->message);
+  fail_if (session == NULL, "Could not make stream, but no GError!");
+
+  g_object_unref (stream);
+  g_object_unref (session);
+  g_object_unref (participant);
   gst_object_unref (pipeline);
 }
 GST_END_TEST;
