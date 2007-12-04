@@ -28,6 +28,10 @@
 #endif
 
 #include "fs-rtp-substream.h"
+#include "fs-rtp-stream.h"
+
+#include <gst/farsight/fs-stream.h>
+#include <gst/farsight/fs-session.h>
 
 /**
  * SECTION:fs-rtp-sub-stream
@@ -101,6 +105,12 @@ static void fs_rtp_sub_stream_get_property (GObject *object, guint prop_id,
   GValue *value, GParamSpec *pspec);
 static void fs_rtp_sub_stream_set_property (GObject *object, guint prop_id,
   const GValue *value, GParamSpec *pspec);
+
+static void
+fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
+    gint error_no,
+    gchar *error_msg,
+    gchar *debug_msg);
 
 static void
 fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
@@ -669,8 +679,13 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   if (gst_element_set_state (self->priv->codecbin, GST_STATE_NULL) !=
       GST_STATE_CHANGE_SUCCESS)
   {
-    /* TODO: WE NEED AN ERROR SIGNAL OF SOME KIND HERE */
-    g_error ("could not set the codecbin to NULL");
+    gchar *str = g_strdup_printf ("Could not set the codec bin for ssrc %u"
+        " and payload type %d to the state NULL", self->priv->ssrc,
+        self->priv->pt);
+
+    fs_rtp_sub_stream_emit_error (self, FS_ERROR_INTERNAL,
+        "Could not set the codec bin to NULL", str);
+    g_free (str);
     goto done;
   }
 
@@ -683,7 +698,13 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   if (!fs_rtp_sub_stream_add_codecbin_locked (self, &error))
   {
-    g_error ("Could not add the new recv codec bin");
+    gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
+        " ssrc %u and payload type %d to the state NULL", self->priv->ssrc,
+        self->priv->pt);
+
+    fs_rtp_sub_stream_emit_error (self, FS_ERROR_CONSTRUCTION,
+        "Could not add the new recv codec bin", str);
+    g_free (str);
     goto done;
   }
 
@@ -739,4 +760,19 @@ fs_rtp_sub_stream_invalidate_codec_locked (FsRtpSubStream *substream, gint pt,
     substream->priv->blocking_id = gst_pad_add_data_probe (
         substream->priv->rtpbin_pad,
         G_CALLBACK (_rtpbin_pad_have_data_callback), substream);
+}
+
+
+static void
+fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
+    gint error_no,
+    gchar *error_msg,
+    gchar *debug_msg)
+{
+  if (substream->priv->stream)
+    fs_stream_emit_error (FS_STREAM (substream->priv->stream), error_no,
+        error_msg, debug_msg);
+  else
+    fs_session_emit_error (FS_SESSION (substream->priv->session), error_no,
+        error_msg, debug_msg);
 }
