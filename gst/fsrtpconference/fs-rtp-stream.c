@@ -297,7 +297,6 @@ fs_rtp_stream_get_property (GObject *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
-
 }
 
 static void
@@ -323,13 +322,12 @@ fs_rtp_stream_set_property (GObject *object,
       self->priv->direction = g_value_get_enum (value);
       if (self->priv->stream_transmitter)
         g_object_set (self->priv->stream_transmitter, "sending",
-          self->priv->direction & FS_DIRECTION_SEND, NULL);
+            self->priv->direction & FS_DIRECTION_SEND, NULL);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
-
 }
 
 static void
@@ -363,7 +361,6 @@ fs_rtp_stream_constructed (GObject *object)
     "error",
     G_CALLBACK (fs_rtp_stream_transmitter_error),
     self);
-
 }
 
 
