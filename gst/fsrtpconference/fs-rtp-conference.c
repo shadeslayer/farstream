@@ -117,6 +117,11 @@ static GstCaps *_rtpbin_request_pt_map (GstElement *element,
 static void _rtpbin_pad_added (GstElement *rtpbin,
     GstPad *new_pad,
     gpointer user_data);
+static void _rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
+    guint session_id,
+    guint ssrc,
+    gchar *cname,
+    gpointer user_data);
 
 
 static void
@@ -214,6 +219,8 @@ fs_rtp_conference_init (FsRtpConference *conf,
                     G_CALLBACK (_rtpbin_request_pt_map), conf);
   g_signal_connect (conf->gstrtpbin, "pad-added",
                     G_CALLBACK (_rtpbin_pad_added), conf);
+  g_signal_connect (conf->gstrtpbin, "on-new-ssrc-cname-association",
+                    G_CALLBACK (_rtpbin_on_new_ssrc_cname_association), conf);
 }
 
 static GstCaps *
@@ -277,6 +284,19 @@ _rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
   }
 
   g_free (name);
+}
+
+static void
+_rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
+    guint session_id,
+    guint ssrc,
+    gchar *cname,
+    gpointer user_data)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+  FsRtpSession *session =
+    fs_rtp_conference_get_session_by_id (self, session_id);
+  fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
 }
 
 

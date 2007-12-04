@@ -107,6 +107,11 @@ FsCodec *fs_rtp_session_get_recv_codec_for_pt_locked (FsRtpSession *session,
     gint pt,
     GError **error);
 
+void fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
+    guint32 ssrc,
+    gchar *cname);
+
+
 G_END_DECLS
 
 #endif /* __FS_RTP_SESSION_H__ */
