@@ -348,9 +348,9 @@ fs_rtp_conference_get_session_by_id (FsRtpConference *self, guint session_id)
 {
   FsRtpSession *session = NULL;
 
-  GST_OBJECT_LOCK (self->priv->sessions);
+  GST_OBJECT_LOCK (self);
   session = fs_rtp_conference_get_session_by_id_locked (self, session_id);
-  GST_OBJECT_UNLOCK (self->priv->sessions);
+  GST_OBJECT_UNLOCK (self);
 
   return session;
 }
