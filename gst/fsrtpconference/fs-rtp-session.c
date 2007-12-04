@@ -828,7 +828,7 @@ fs_rtp_session_constructed (GObject *object)
   /* Lets now create the RTP muxer */
 
   tmp = g_strdup_printf ("send_rtp_muxer_%d", self->id);
-  muxer = gst_element_factory_make ("rtpmuxer", tmp);
+  muxer = gst_element_factory_make ("rtpmux", tmp);
   g_free (tmp);
 
   if (!muxer) {
@@ -902,7 +902,7 @@ fs_rtp_session_constructed (GObject *object)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
-        "Could not link pad capsfilter src pad to the rtpmuxer");
+        "Could not link pad capsfilter src pad to the rtpmux");
     return;
   }
 
