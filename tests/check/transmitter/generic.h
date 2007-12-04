@@ -23,7 +23,7 @@
 #include <gst/farsight/fs-transmitter.h>
 
 #ifndef __GENERIC_H__
-#define  __GENERIC_H__
+#define __GENERIC_H__
 
 GstElement *setup_pipeline (FsTransmitter *trans, GCallback cb);
 
