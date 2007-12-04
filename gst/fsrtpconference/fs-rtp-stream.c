@@ -337,8 +337,6 @@ fs_rtp_stream_constructed (GObject *object)
 {
   FsRtpStream *self = FS_RTP_STREAM_CAST (object);
 
-  G_OBJECT_CLASS (parent_class)->constructed (object);
-
   if (!self->priv->stream_transmitter) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "The Stream Transmitter has not been set");

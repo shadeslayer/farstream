@@ -603,8 +603,6 @@ fs_rtp_session_constructed (GObject *object)
   GstPadLinkReturn ret;
   gchar *tmp;
 
-  G_OBJECT_CLASS (parent_class)->constructed (object);
-
   if (self->id == 0) {
     g_error ("You can no instantiate this element directly, you MUST"
       " call fs_rtp_session_new()");
