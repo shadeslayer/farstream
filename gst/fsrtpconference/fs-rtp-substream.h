@@ -71,7 +71,7 @@ struct _FsRtpSubStream
 
 GType fs_rtp_sub_stream_get_type (void);
 
-FsRtpSubStream *fs_rtp_substream_new (FsRtpConference *conference,
+FsRtpSubStream *fs_rtp_sub_stream_new (FsRtpConference *conference,
     FsRtpSession *session,
     GstPad *pad,
     guint32 ssrc,

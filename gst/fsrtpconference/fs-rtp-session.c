@@ -1513,8 +1513,8 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   FsRtpStream *stream = NULL;
   GError *error = NULL;
 
-  substream = fs_rtp_substream_new (session->priv->conference, session, new_pad,
-    ssrc, pt, &error);
+  substream = fs_rtp_sub_stream_new (session->priv->conference, session,
+      new_pad, ssrc, pt, &error);
 
   if (substream == NULL) {
     if (error && error->domain == FS_ERROR)
