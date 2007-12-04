@@ -206,8 +206,8 @@ fs_rtp_session_get_type (void)
       (GInstanceInitFunc) fs_rtp_session_init
     };
 
-    type = g_type_register_static (G_TYPE_OBJECT,
-        "FsRtpSession", &info, G_TYPE_FLAG_ABSTRACT);
+    type = g_type_register_static (FS_TYPE_SESSION,
+        "FsRtpSession", &info, 0);
   }
 
   return type;

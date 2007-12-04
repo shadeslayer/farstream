@@ -54,11 +54,11 @@ typedef struct _FsRtpSessionPrivate FsRtpSessionPrivate;
 
 struct _FsRtpSessionClass
 {
-  FsSession parent_class;
+  FsSessionClass parent_class;
 };
 
 /**
- * FsSession:
+ * FsRtpSession:
  *
  */
 struct _FsRtpSession
