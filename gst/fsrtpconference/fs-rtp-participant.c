@@ -52,12 +52,13 @@ struct _FsRtpParticipantPrivate
   gboolean disposed;
 };
 
+
+G_DEFINE_TYPE(FsRtpParticipant, fs_rtp_participant, FS_TYPE_PARTICIPANT);
+
 #define FS_RTP_PARTICIPANT_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
    FsRtpParticipantPrivate))
 
-static void fs_rtp_participant_class_init (FsRtpParticipantClass *klass);
-static void fs_rtp_participant_init (FsRtpParticipant *self);
 static void fs_rtp_participant_dispose (GObject *object);
 static void fs_rtp_participant_finalize (GObject *object);
 
@@ -72,31 +73,6 @@ static void fs_rtp_participant_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_rtp_participant_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsRtpParticipantClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_rtp_participant_class_init,
-      NULL,
-      NULL,
-      sizeof (FsRtpParticipant),
-      0,
-      (GInstanceInitFunc) fs_rtp_participant_init
-    };
-
-    type = g_type_register_static (FS_TYPE_PARTICIPANT,
-        "FsRtpParticipant", &info, 0);
-  }
-
-  return type;
-}
 
 static void
 fs_rtp_participant_class_init (FsRtpParticipantClass *klass)

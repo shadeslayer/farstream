@@ -79,11 +79,12 @@ struct _FsRtpStreamPrivate
   gboolean disposed;
 };
 
+
+G_DEFINE_TYPE(FsRtpStream, fs_rtp_stream, FS_TYPE_STREAM);
+
 #define FS_RTP_STREAM_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_STREAM, FsRtpStreamPrivate))
 
-static void fs_rtp_stream_class_init (FsRtpStreamClass *klass);
-static void fs_rtp_stream_init (FsRtpStream *self);
 static void fs_rtp_stream_dispose (GObject *object);
 static void fs_rtp_stream_finalize (GObject *object);
 
@@ -134,31 +135,6 @@ static void fs_rtp_stream_transmitter_error (
 
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_rtp_stream_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsRtpStreamClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_rtp_stream_class_init,
-      NULL,
-      NULL,
-      sizeof (FsRtpStream),
-      0,
-      (GInstanceInitFunc) fs_rtp_stream_init
-    };
-
-    type = g_type_register_static (FS_TYPE_STREAM, "FsRtpStream", &info, 0);
-  }
-
-  return type;
-}
-
 
 static void
 fs_rtp_stream_class_init (FsRtpStreamClass *klass)

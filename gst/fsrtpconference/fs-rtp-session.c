@@ -134,11 +134,11 @@ struct _FsRtpSessionPrivate
   gboolean disposed;
 };
 
+G_DEFINE_TYPE(FsRtpSession, fs_rtp_session, FS_TYPE_SESSION);
+
 #define FS_RTP_SESSION_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SESSION, FsRtpSessionPrivate))
 
-static void fs_rtp_session_class_init (FsRtpSessionClass *klass);
-static void fs_rtp_session_init (FsRtpSession *self);
 static void fs_rtp_session_dispose (GObject *object);
 static void fs_rtp_session_finalize (GObject *object);
 
@@ -187,31 +187,6 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
 static GObjectClass *parent_class = NULL;
 
 //static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_rtp_session_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsRtpSessionClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_rtp_session_class_init,
-      NULL,
-      NULL,
-      sizeof (FsRtpSession),
-      0,
-      (GInstanceInitFunc) fs_rtp_session_init
-    };
-
-    type = g_type_register_static (FS_TYPE_SESSION,
-        "FsRtpSession", &info, 0);
-  }
-
-  return type;
-}
 
 static void
 fs_rtp_session_class_init (FsRtpSessionClass *klass)
