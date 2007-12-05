@@ -110,6 +110,8 @@ fs_media_type_to_string
 FsCodec
 FsCodecParameter
 FsCodecPreference
+FS_CODEC_ID_ANY
+FS_CODEC_ID_DISABLE
 fs_codec_new
 fs_codec_destroy
 fs_codec_copy

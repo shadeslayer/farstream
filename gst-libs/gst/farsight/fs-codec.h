@@ -62,6 +62,19 @@ typedef enum
   FS_MEDIA_TYPE_LAST = FS_MEDIA_TYPE_APPLICATION
 } FsMediaType;
 
+/**
+ * FS_CODEC_ID_ANY:
+ *
+ * If the id of a #FsCodec is #FS_CODEC_ID_ANY, then it will be replaced
+ * with a dynamic payload type at runtime
+ */
+
+/**
+ * FS_CODEC_ID_DISABLE:
+ *
+ * If the id of a #FsCodec is #FS_CODEC_ID_DISABLE, then this codec will
+ * not be used
+ */ 
 
 #define FS_CODEC_ID_ANY            (-1)
 #define FS_CODEC_ID_DISABLE        (-2)
