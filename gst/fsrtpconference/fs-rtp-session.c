@@ -1688,9 +1688,9 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
       GstPadLinkReturn ret;
 
       if (is_send)
-        sinkpad = gst_element_get_static_pad (current_element, "sink");
-      else
         sinkpad = gst_element_get_static_pad (previous_element, "sink");
+      else
+        sinkpad = gst_element_get_static_pad (current_element, "sink");
 
       if (!sinkpad) {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -1701,9 +1701,9 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 
 
       if (is_send)
-        srcpad = gst_element_get_static_pad (previous_element, "src");
-      else
         srcpad = gst_element_get_static_pad (current_element, "src");
+      else
+        srcpad = gst_element_get_static_pad (previous_element, "src");
 
       if (!srcpad) {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
