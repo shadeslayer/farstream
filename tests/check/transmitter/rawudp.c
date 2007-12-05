@@ -385,7 +385,11 @@ rawudptransmitter_suite (void)
 {
   Suite *s = suite_create ("rawudptransmitter");
   TCase *tc_chain;
+  GLogLevelFlags fatal_mask;
 
+  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
+  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
+  g_log_set_always_fatal (fatal_mask);
 
   tc_chain = tcase_create ("rawudptransmitter");
   tcase_set_timeout (tc_chain, 5);
