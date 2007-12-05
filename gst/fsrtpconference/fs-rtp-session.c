@@ -1398,41 +1398,45 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
     &new_negotiated_codecs);
 
   if (new_negotiated_codec_associations) {
-    gboolean is_new = FALSE;
-    gboolean clear_pts = FALSE;
-    int pt;
+    gboolean is_new = TRUE;
 
-    is_new = _compare_codec_lists (session->priv->negotiated_codecs,
-      new_negotiated_codecs);
+    if (session->priv->negotiated_codecs)
+    {
+      gboolean clear_pts = FALSE;
+      int pt;
 
-    /* Lets remove the codec bin for any PT that has changed type */
-    for (pt = 0; pt < 128; pt++) {
-      CodecAssociation *old_codec_association = g_hash_table_lookup (
-          session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
-      CodecAssociation *new_codec_association = g_hash_table_lookup (
-          new_negotiated_codec_associations, GINT_TO_POINTER (pt));
+      is_new = _compare_codec_lists (session->priv->negotiated_codecs,
+          new_negotiated_codecs);
 
-      if (old_codec_association == NULL && new_codec_association == NULL)
-        continue;
+      /* Lets remove the codec bin for any PT that has changed type */
+      for (pt = 0; pt < 128; pt++) {
+        CodecAssociation *old_codec_association = g_hash_table_lookup (
+            session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
+        CodecAssociation *new_codec_association = g_hash_table_lookup (
+            new_negotiated_codec_associations, GINT_TO_POINTER (pt));
 
-      if (old_codec_association == NULL || new_codec_association == NULL) {
-        fs_rtp_session_invalidate_pt (session, pt, NULL);
-        clear_pts = TRUE;
-        continue;
+        if (old_codec_association == NULL && new_codec_association == NULL)
+          continue;
+
+        if (old_codec_association == NULL || new_codec_association == NULL) {
+          fs_rtp_session_invalidate_pt (session, pt, NULL);
+          clear_pts = TRUE;
+          continue;
+        }
+
+        if (!fs_codec_are_equal (old_codec_association->codec,
+                new_codec_association->codec)) {
+          fs_rtp_session_invalidate_pt (session, pt,
+              new_codec_association->codec);
+          clear_pts = TRUE;
+          continue;
+        }
       }
 
-      if (!fs_codec_are_equal (old_codec_association->codec,
-              new_codec_association->codec)) {
-        fs_rtp_session_invalidate_pt (session, pt,
-            new_codec_association->codec);
-        clear_pts = TRUE;
-        continue;
-      }
+      if (clear_pts)
+        g_signal_emit_by_name (session->priv->conference->gstrtpbin,
+            "clear-pt-map");
     }
-
-    if (clear_pts)
-      g_signal_emit_by_name (session->priv->conference->gstrtpbin,
-        "clear-pt-map");
 
     if (session->priv->negotiated_codec_associations)
       g_hash_table_destroy (session->priv->negotiated_codec_associations);
