@@ -1726,13 +1726,13 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
  *
  * This function will create a new reception codec bin for the specified codec
  *
- * MT safe.
+ * Must be called with the FsRtpSession lock taken
  *
  * Returns: a newly-allocated codec bin
  */
 
 GstElement *
-fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
+fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
     guint32 ssrc,
     guint pt,
     FsCodec **out_codec,
@@ -1744,10 +1744,7 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
   FsCodec *codec = NULL;
   gchar *name;
 
-  FS_RTP_SESSION_LOCK (session);
-
   if (!session->priv->negotiated_codec_associations) {
-    FS_RTP_SESSION_UNLOCK (session);
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
       "No negotiated codecs yet");
       return NULL;
@@ -1762,8 +1759,6 @@ fs_rtp_session_new_recv_codec_bin (FsRtpSession *session,
     blueprint = ca->blueprint;
     codec = fs_codec_copy (ca->codec);
   }
-
-  FS_RTP_SESSION_UNLOCK (session);
 
   if (!ca) {
     g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,

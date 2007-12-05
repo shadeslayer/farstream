@@ -426,7 +426,6 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
   FsCodec *codec = NULL;
   GstElement *codecbin;
 
-
   if (substream->priv->codecbin)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -434,12 +433,11 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
     return FALSE;
   }
 
-  codecbin = fs_rtp_session_new_recv_codec_bin (substream->priv->session,
+  codecbin = fs_rtp_session_new_recv_codec_bin_locked (substream->priv->session,
       substream->priv->ssrc, substream->priv->pt, &codec, error);
 
   if (!codecbin)
     return FALSE;
-
 
   if (!gst_bin_add (GST_BIN (substream->priv->conference), codecbin))
   {
@@ -485,6 +483,7 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
 
   gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE, _blocked_cb,
     NULL);
+
 
   return TRUE;
 
