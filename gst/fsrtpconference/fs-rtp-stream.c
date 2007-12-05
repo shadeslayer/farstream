@@ -210,6 +210,11 @@ fs_rtp_stream_dispose (GObject *object)
     return;
   }
 
+  if (self->priv->stream_transmitter) {
+    g_object_unref (self->priv->stream_transmitter);
+    self->priv->stream_transmitter = NULL;
+  }
+
   FS_RTP_SESSION_LOCK (self->priv->session);
   if (self->priv->substreams) {
     g_list_foreach (self->priv->substreams, (GFunc) gst_object_unref, NULL);
@@ -221,11 +226,6 @@ fs_rtp_stream_dispose (GObject *object)
   if (self->priv->participant) {
     g_object_unref (self->priv->participant);
     self->priv->participant = NULL;
-  }
-
-  if (self->priv->stream_transmitter) {
-    g_object_unref (self->priv->stream_transmitter);
-    self->priv->stream_transmitter = NULL;
   }
 
   /* Make sure dispose does not run twice. */
