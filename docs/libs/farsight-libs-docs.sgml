@@ -9,8 +9,8 @@
   <chapter>
     <title>Farsight Core Library</title>
     <xi:include href="xml/fs-participant.xml"/>
-    <xi:include href="xml/fs-stream.xml"/>
     <xi:include href="xml/fs-session.xml"/>
+    <xi:include href="xml/fs-stream.xml"/>
     <xi:include href="xml/fs-candidate.xml"/>
     <xi:include href="xml/fs-codec.xml"/>
     <!-- <xi:include href="xml/fs-marshal.xml"/> -->
