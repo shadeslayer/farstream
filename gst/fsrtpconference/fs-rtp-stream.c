@@ -292,7 +292,7 @@ fs_rtp_stream_set_property (GObject *object,
       break;
     case PROP_STREAM_TRANSMITTER:
       self->priv->stream_transmitter =
-        FS_STREAM_TRANSMITTER (g_value_dup_object (value));
+        FS_STREAM_TRANSMITTER (g_value_get_object (value));
       break;
     case PROP_DIRECTION:
       self->priv->direction = g_value_get_enum (value);
@@ -438,6 +438,18 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
   }
 }
 
+/**
+ * fs_rtp_stream_new:
+ * @session: The #FsRtpSession this stream is a child of
+ * @participant: The #FsRtpParticipant this stream is for
+ * @direction: the initial #FsDirection for this stream
+ * @stream_transmitter: the #FsStreamTransmitter for this stream, one
+ *   reference to it will be eaten
+ *
+ * This function create a new stream
+ *
+ * Returns: the newly created string or NULL on error
+ */
 
 FsRtpStream *
 fs_rtp_stream_new (FsRtpSession *session,
