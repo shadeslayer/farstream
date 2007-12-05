@@ -1668,13 +1668,14 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 
     if (g_list_first (pipeline_factory) == walk)
       /* if its the first element of the codec bin */
-      if (!_create_ghost_pad (current_element, direction_str,
-          codec_bin, error))
+      if (!_create_ghost_pad (current_element,
+              is_send ? "src" : "sink", codec_bin, error))
         goto error;
 
     if (g_list_next (g_list_first (pipeline_factory)) == NULL)
       /* if its the last element of the codec bin */
-      if (!_create_ghost_pad (current_element, direction_str, codec_bin, error))
+      if (!_create_ghost_pad (current_element,
+              is_send ? "sink" : "src" , codec_bin, error))
         goto error;
 
 
@@ -2067,7 +2068,6 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   GstElement *codecbin = NULL;
   gboolean ret = FALSE;
 
-  FS_RTP_SESSION_LOCK (self);
   codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, error);
 
   if (!codec)
@@ -2115,9 +2115,8 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   }
 
   ret = TRUE;
- done:
 
-  FS_RTP_SESSION_UNLOCK (self);
+ done:
 
   return ret;
 }
