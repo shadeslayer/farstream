@@ -481,7 +481,7 @@ _local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "local-candidates-prepared", 0);
+  g_signal_emit_by_name (self, "local-candidates-prepared");
 }
 
 
@@ -494,7 +494,7 @@ _new_active_candidate_pair (
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "new-active-candidate-pair", 0,
+  g_signal_emit_by_name (self, "new-active-candidate-pair",
     candidate1, candidate2);
 }
 
@@ -507,7 +507,7 @@ _new_local_candidate (
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "new-local-candidate", 0, candidate);
+  g_signal_emit_by_name (self, "new-local-candidate", candidate);
 }
 
 static void
@@ -520,7 +520,7 @@ _transmitter_error (
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "error", 0, errorno, error_msg, debug_msg);
+  g_signal_emit_by_name (self, "error", errorno, error_msg, debug_msg);
 }
 
 
