@@ -650,103 +650,6 @@ fs_rtp_session_constructed (GObject *object)
   gst_object_unref (valve_sink_pad);
 
 
-  /* Now create the transmitter RTP tee */
-
-  tmp = g_strdup_printf ("send_rtp_tee_%d", self->id);
-  tee = gst_element_factory_make ("tee", tmp);
-  g_free (tmp);
-
-  if (!tee) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the rtp tee element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the rtp tee element to the FsRtpConference");
-    gst_object_unref (tee);
-    return;
-  }
-
-  gst_element_set_state (tee, GST_STATE_PLAYING);
-
-  self->priv->transmitter_rtp_tee = gst_object_ref (tee);
-
-  tmp = g_strdup_printf ("send_rtp_src_%u", self->id);
-  if (!gst_element_link_pads (
-          self->priv->conference->gstrtpbin, tmp,
-          self->priv->transmitter_rtp_tee, "sink")) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not link rtpbin %s pad to tee sink", tmp);
-    g_free (tmp);
-    return;
-  }
-  g_free (tmp);
-
-  /* Now create the transmitter RTCP tee */
-
-  tmp = g_strdup_printf ("send_rtcp_tee_%d", self->id);
-  tee = gst_element_factory_make ("tee", tmp);
-  g_free (tmp);
-
-  if (!tee) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the rtcp tee element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the rtcp tee element to the FsRtpConference");
-    gst_object_unref (tee);
-    return;
-  }
-
-  gst_element_set_state (tee, GST_STATE_PLAYING);
-
-  self->priv->transmitter_rtcp_tee = gst_object_ref (tee);
-
-  tmp = g_strdup_printf ("send_rtcp_src_%u", self->id);
-  self->priv->rtpbin_send_rtcp_src =
-    gst_element_get_request_pad (self->priv->conference->gstrtpbin, tmp);
-
-  if (!self->priv->rtpbin_send_rtcp_src)
-  {
-     self->priv->construction_error = g_error_new (FS_ERROR,
-         FS_ERROR_CONSTRUCTION,
-         "Could not get %s request pad from the gstrtpbin", tmp);
-    g_free (tmp);
-    return;
-  }
-  g_free (tmp);
-
-
-  transmitter_rtcp_tee_sink_pad =
-    gst_element_get_static_pad (self->priv->transmitter_rtcp_tee, "sink");
-  g_assert (transmitter_rtcp_tee_sink_pad);
-
-  ret = gst_pad_link (self->priv->rtpbin_send_rtcp_src,
-    transmitter_rtcp_tee_sink_pad);
-
-  if (GST_PAD_LINK_FAILED (ret))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not link rtpbin network rtcp src to tee");
-
-    gst_object_unref (transmitter_rtcp_tee_sink_pad);
-    return;
-  }
-
-  gst_object_unref (transmitter_rtcp_tee_sink_pad);
-
-
   /* Now create the transmitter RTP funnel */
 
   tmp = g_strdup_printf ("recv_rtp_funnel_%d", self->id);
@@ -894,6 +797,103 @@ fs_rtp_session_constructed (GObject *object)
   gst_object_unref (muxer_src_pad);
 
   gst_element_set_state (muxer, GST_STATE_PLAYING);
+
+
+  /* Now create the transmitter RTP tee */
+
+  tmp = g_strdup_printf ("send_rtp_tee_%d", self->id);
+  tee = gst_element_factory_make ("tee", tmp);
+  g_free (tmp);
+
+  if (!tee) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not create the rtp tee element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not add the rtp tee element to the FsRtpConference");
+    gst_object_unref (tee);
+    return;
+  }
+
+  gst_element_set_state (tee, GST_STATE_PLAYING);
+
+  self->priv->transmitter_rtp_tee = gst_object_ref (tee);
+
+  tmp = g_strdup_printf ("send_rtp_src_%u", self->id);
+  if (!gst_element_link_pads (
+          self->priv->conference->gstrtpbin, tmp,
+          self->priv->transmitter_rtp_tee, "sink")) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link rtpbin %s pad to tee sink", tmp);
+    g_free (tmp);
+    return;
+  }
+  g_free (tmp);
+
+  /* Now create the transmitter RTCP tee */
+
+  tmp = g_strdup_printf ("send_rtcp_tee_%d", self->id);
+  tee = gst_element_factory_make ("tee", tmp);
+  g_free (tmp);
+
+  if (!tee) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not create the rtcp tee element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), tee)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not add the rtcp tee element to the FsRtpConference");
+    gst_object_unref (tee);
+    return;
+  }
+
+  gst_element_set_state (tee, GST_STATE_PLAYING);
+
+  self->priv->transmitter_rtcp_tee = gst_object_ref (tee);
+
+  tmp = g_strdup_printf ("send_rtcp_src_%u", self->id);
+  self->priv->rtpbin_send_rtcp_src =
+    gst_element_get_request_pad (self->priv->conference->gstrtpbin, tmp);
+
+  if (!self->priv->rtpbin_send_rtcp_src)
+  {
+     self->priv->construction_error = g_error_new (FS_ERROR,
+         FS_ERROR_CONSTRUCTION,
+         "Could not get %s request pad from the gstrtpbin", tmp);
+    g_free (tmp);
+    return;
+  }
+  g_free (tmp);
+
+
+  transmitter_rtcp_tee_sink_pad =
+    gst_element_get_static_pad (self->priv->transmitter_rtcp_tee, "sink");
+  g_assert (transmitter_rtcp_tee_sink_pad);
+
+  ret = gst_pad_link (self->priv->rtpbin_send_rtcp_src,
+    transmitter_rtcp_tee_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (ret))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link rtpbin network rtcp src to tee");
+
+    gst_object_unref (transmitter_rtcp_tee_sink_pad);
+    return;
+  }
+
+  gst_object_unref (transmitter_rtcp_tee_sink_pad);
 
 
   /* Lets now do the send_capsfilter */
