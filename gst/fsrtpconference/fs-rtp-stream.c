@@ -112,19 +112,19 @@ static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
 
-static void fs_rtp_stream_local_candidates_prepared (
+static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
     gpointer user_data);
-static void fs_rtp_stream_new_active_candidate_pair (
+static void _new_active_candidate_pair (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate1,
     FsCandidate *candidate2,
     gpointer user_data);
-static void fs_rtp_stream_new_local_candidate (
+static void _new_local_candidate (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate,
     gpointer user_data);
-static void fs_rtp_stream_transmitter_error (
+static void _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
@@ -322,21 +322,21 @@ fs_rtp_stream_constructed (GObject *object)
     self->priv->direction & FS_DIRECTION_SEND, NULL);
 
   g_signal_connect (self->priv->stream_transmitter,
-    "local-candidates-prepared",
-    G_CALLBACK (fs_rtp_stream_local_candidates_prepared),
-    self);
+      "local-candidates-prepared",
+      G_CALLBACK (_local_candidates_prepared),
+      self);
   g_signal_connect (self->priv->stream_transmitter,
-    "new-active-candidate-pair",
-    G_CALLBACK (fs_rtp_stream_new_active_candidate_pair),
-    self);
+      "new-active-candidate-pair",
+      G_CALLBACK (_new_active_candidate_pair),
+      self);
   g_signal_connect (self->priv->stream_transmitter,
-    "new-local-candidate",
-    G_CALLBACK (fs_rtp_stream_new_local_candidate),
-    self);
+      "new-local-candidate",
+      G_CALLBACK (_new_local_candidate),
+      self);
   g_signal_connect (self->priv->stream_transmitter,
-    "error",
-    G_CALLBACK (fs_rtp_stream_transmitter_error),
-    self);
+      "error",
+      G_CALLBACK (_transmitter_error),
+      self);
 }
 
 
@@ -464,8 +464,8 @@ fs_rtp_stream_new (FsRtpSession *session,
 
 
 static void
-fs_rtp_stream_local_candidates_prepared (
-    FsStreamTransmitter *stream_transmitter, gpointer user_data)
+_local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
+    gpointer user_data)
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
 
@@ -474,7 +474,7 @@ fs_rtp_stream_local_candidates_prepared (
 
 
 static void
-fs_rtp_stream_new_active_candidate_pair (
+_new_active_candidate_pair (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate1,
     FsCandidate *candidate2,
@@ -488,7 +488,7 @@ fs_rtp_stream_new_active_candidate_pair (
 
 
 static void
-fs_rtp_stream_new_local_candidate (
+_new_local_candidate (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate,
     gpointer user_data)
@@ -499,7 +499,7 @@ fs_rtp_stream_new_local_candidate (
 }
 
 static void
-fs_rtp_stream_transmitter_error (
+_transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
