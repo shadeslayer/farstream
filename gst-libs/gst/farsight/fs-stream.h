@@ -38,19 +38,19 @@ G_BEGIN_DECLS
 /**
  * FsStreamDirection:
  * @FS_DIRECTION_NONE: No direction specified
- * @FS_DIRECTION_BOTH: Send and receive
  * @FS_DIRECTION_SEND: Send only
  * @FS_DIRECTION_RECV: Receive only
+ * @FS_DIRECTION_BOTH: Send and receive
  *
  * An enum for specifying the direction of a stream
  *
  */
 typedef enum
 {
-  FS_DIRECTION_NONE,
-  FS_DIRECTION_BOTH,
-  FS_DIRECTION_SEND,
-  FS_DIRECTION_RECV,
+  FS_DIRECTION_NONE = 0,
+  FS_DIRECTION_SEND = 1,
+  FS_DIRECTION_RECV = 1>>1,
+  FS_DIRECTION_BOTH = FS_DIRECTION_SEND | FS_DIRECTION_RECV
 } FsStreamDirection;
 
 /* TYPE MACROS */
