@@ -1564,7 +1564,7 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
 
   if (!pad) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not find the %s on the element", padname);
+      "Could not find the %s pad on the element", padname);
       return FALSE;
   }
 
