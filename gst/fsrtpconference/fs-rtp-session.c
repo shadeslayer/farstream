@@ -1666,13 +1666,13 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 
     /* Lets create the ghost pads on the codec bin */
 
-    if (g_list_first (pipeline_factory) == walk)
+    if (g_list_previous (walk) == NULL)
       /* if its the first element of the codec bin */
       if (!_create_ghost_pad (current_element,
               is_send ? "src" : "sink", codec_bin, error))
         goto error;
 
-    if (g_list_next (g_list_first (pipeline_factory)) == NULL)
+    if (g_list_next (walk) == NULL)
       /* if its the last element of the codec bin */
       if (!_create_ghost_pad (current_element,
               is_send ? "sink" : "src" , codec_bin, error))
