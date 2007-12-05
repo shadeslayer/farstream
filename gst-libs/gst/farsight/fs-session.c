@@ -78,11 +78,11 @@ struct _FsSessionPrivate
   gboolean disposed;
 };
 
+G_DEFINE_ABSTRACT_TYPE(FsSession, fs_session, G_TYPE_OBJECT);
+
 #define FS_SESSION_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsSessionPrivate))
 
-static void fs_session_class_init (FsSessionClass *klass);
-static void fs_session_init (FsSession *self);
 static void fs_session_dispose (GObject *object);
 static void fs_session_finalize (GObject *object);
 
@@ -97,31 +97,6 @@ static void fs_session_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_session_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsSessionClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_session_class_init,
-      NULL,
-      NULL,
-      sizeof (FsSession),
-      0,
-      (GInstanceInitFunc) fs_session_init
-    };
-
-    type = g_type_register_static (G_TYPE_OBJECT,
-        "FsSession", &info, G_TYPE_FLAG_ABSTRACT);
-  }
-
-  return type;
-}
 
 static void
 fs_session_class_init (FsSessionClass *klass)

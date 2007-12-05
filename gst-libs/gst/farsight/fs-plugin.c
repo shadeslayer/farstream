@@ -62,37 +62,10 @@ struct _FsPluginPrivate
   gboolean disposed;
 };
 
+G_DEFINE_TYPE(FsPlugin, fs_plugin, G_TYPE_TYPE_MODULE);
 
-static void fs_plugin_class_init (FsPluginClass * klass);
-static void fs_plugin_init (FsPlugin * plugin);
 static void fs_plugin_dispose (GObject * object);
 static void fs_plugin_finalize (GObject * object);
-
-
-GType
-fs_plugin_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsPluginClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_plugin_class_init,
-      NULL,
-      NULL,
-      sizeof (FsPlugin),
-      0,
-      (GInstanceInitFunc) fs_plugin_init
-    };
-
-    type = g_type_register_static (G_TYPE_TYPE_MODULE,
-        "FsPlugin", &info, 0);
-  }
-
-  return type;
-}
 
 static void
 fs_plugin_search_path_init ()

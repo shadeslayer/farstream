@@ -68,12 +68,14 @@ struct _FsStreamTransmitterPrivate
   gboolean disposed;
 };
 
+G_DEFINE_ABSTRACT_TYPE(FsStreamTransmitter, fs_stream_transmitter,
+    G_TYPE_OBJECT);
+
+
 #define FS_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_STREAM_TRANSMITTER, \
                                 FsStreamTransmitterPrivate))
 
-static void fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass);
-static void fs_stream_transmitter_init (FsStreamTransmitter *self);
 static void fs_stream_transmitter_dispose (GObject *object);
 static void fs_stream_transmitter_finalize (GObject *object);
 
@@ -88,31 +90,6 @@ static void fs_stream_transmitter_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_stream_transmitter_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsStreamTransmitterClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_stream_transmitter_class_init,
-      NULL,
-      NULL,
-      sizeof (FsStreamTransmitter),
-      0,
-      (GInstanceInitFunc) fs_stream_transmitter_init
-    };
-
-    type = g_type_register_static (G_TYPE_OBJECT,
-        "FsStreamTransmitter", &info, G_TYPE_FLAG_ABSTRACT);
-  }
-
-  return type;
-}
 
 static void
 fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)

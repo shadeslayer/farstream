@@ -68,11 +68,11 @@ struct _FsTransmitterPrivate
   gboolean disposed;
 };
 
+G_DEFINE_ABSTRACT_TYPE(FsTransmitter, fs_transmitter, G_TYPE_OBJECT);
+
 #define FS_TRANSMITTER_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_TRANSMITTER, FsTransmitterPrivate))
 
-static void fs_transmitter_class_init (FsTransmitterClass *klass);
-static void fs_transmitter_init (FsTransmitter *self);
 static void fs_transmitter_dispose (GObject *object);
 static void fs_transmitter_finalize (GObject *object);
 
@@ -88,30 +88,6 @@ static void fs_transmitter_set_property (GObject *object,
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
-GType
-fs_transmitter_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsTransmitterClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_transmitter_class_init,
-      NULL,
-      NULL,
-      sizeof (FsTransmitter),
-      0,
-      (GInstanceInitFunc) fs_transmitter_init
-    };
-
-    type = g_type_register_static (G_TYPE_OBJECT,
-        "FsTransmitter", &info, G_TYPE_FLAG_ABSTRACT);
-  }
-
-  return type;
-}
 
 static void
 fs_transmitter_class_init (FsTransmitterClass *klass)

@@ -82,11 +82,11 @@ struct _FsStreamPrivate
   gboolean disposed;
 };
 
+G_DEFINE_ABSTRACT_TYPE(FsStream, fs_stream, G_TYPE_OBJECT);
+
 #define FS_STREAM_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_STREAM, FsStreamPrivate))
 
-static void fs_stream_class_init (FsStreamClass *klass);
-static void fs_stream_init (FsStream *self);
 static void fs_stream_dispose (GObject *object);
 static void fs_stream_finalize (GObject *object);
 
@@ -101,31 +101,6 @@ static void fs_stream_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_stream_get_type (void)
-{
-  static GType type = 0;
-
-  if (type == 0) {
-    static const GTypeInfo info = {
-      sizeof (FsStreamClass),
-      NULL,
-      NULL,
-      (GClassInitFunc) fs_stream_class_init,
-      NULL,
-      NULL,
-      sizeof (FsStream),
-      0,
-      (GInstanceInitFunc) fs_stream_init
-    };
-
-    type = g_type_register_static (G_TYPE_OBJECT,
-        "FsStream", &info, G_TYPE_FLAG_ABSTRACT);
-  }
-
-  return type;
-}
 
 static GType
 fs_stream_direction_get_type (void)
