@@ -88,8 +88,6 @@ FsRtpSession *fs_rtp_session_new (FsMediaType media_type,
 
 GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
 
-void fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *pad);
-
 
 void fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   guint32 ssrc, guint pt);

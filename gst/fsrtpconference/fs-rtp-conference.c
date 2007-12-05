@@ -270,17 +270,6 @@ _rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
         g_object_unref (session);
       }
     }
-  } else if (g_str_has_prefix (name, "send_rtp_src_")) {
-     guint session_id;
-
-     if (sscanf (name, "send_rtp_src_%u", &session_id)) {
-       FsRtpSession *session =
-         fs_rtp_conference_get_session_by_id (self, session_id);
-
-       if (session) {
-         fs_rtp_session_link_network_sink (session, new_pad);
-       }
-     }
   }
 
   g_free (name);

@@ -575,6 +575,7 @@ fs_rtp_session_constructed (GObject *object)
   GstPad *valve_sink_pad = NULL;
   GstPad *funnel_src_pad = NULL;
   GstPad *muxer_src_pad = NULL;
+  GstPad *transmitter_rtcp_tee_sink_pad;
   GstPadLinkReturn ret;
   gchar *tmp;
 
@@ -674,6 +675,17 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->transmitter_rtp_tee = gst_object_ref (tee);
 
+  tmp = g_strdup_printf ("send_rtp_src_%u", self->id);
+  if (!gst_element_link_pads (
+          self->priv->conference->gstrtpbin, tmp,
+          self->priv->transmitter_rtp_tee, "sink")) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link rtpbin %s pad to tee sink", tmp);
+    g_free (tmp);
+    return;
+  }
+  g_free (tmp);
 
   /* Now create the transmitter RTCP tee */
 
@@ -699,6 +711,40 @@ fs_rtp_session_constructed (GObject *object)
   gst_element_set_state (tee, GST_STATE_PLAYING);
 
   self->priv->transmitter_rtcp_tee = gst_object_ref (tee);
+
+  tmp = g_strdup_printf ("send_rtcp_src_%u", self->id);
+  self->priv->rtpbin_send_rtcp_src =
+    gst_element_get_request_pad (self->priv->conference->gstrtpbin, tmp);
+
+  if (!self->priv->rtpbin_send_rtcp_src)
+  {
+     self->priv->construction_error = g_error_new (FS_ERROR,
+         FS_ERROR_CONSTRUCTION,
+         "Could not get %s request pad from the gstrtpbin", tmp);
+    g_free (tmp);
+    return;
+  }
+  g_free (tmp);
+
+
+  transmitter_rtcp_tee_sink_pad =
+    gst_element_get_static_pad (self->priv->transmitter_rtcp_tee, "sink");
+  g_assert (transmitter_rtcp_tee_sink_pad);
+
+  ret = gst_pad_link (self->priv->rtpbin_send_rtcp_src,
+    transmitter_rtcp_tee_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (ret))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link rtpbin network rtcp src to tee");
+
+    gst_object_unref (transmitter_rtcp_tee_sink_pad);
+    return;
+  }
+
+  gst_object_unref (transmitter_rtcp_tee_sink_pad);
 
 
   /* Now create the transmitter RTP funnel */
@@ -1081,73 +1127,6 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
   FS_RTP_SESSION_UNLOCK (session);
 
   return caps;
-}
-
-/**
- * fs_rtp_session_link_network_sink:
- * @session: a #FsRtpSession
- * @src_pad: the new source pad from the #GstRtpBin
- *
- * Links a new source pad from the GstRtpBin to the transmitter tee
- */
-
-void
-fs_rtp_session_link_network_sink (FsRtpSession *session, GstPad *src_pad)
-{
-  GstPad *transmitter_rtp_tee_sink_pad;
-  GstPad *transmitter_rtcp_tee_sink_pad;
-  GstPadLinkReturn ret;
-  gchar *tmp;
-
-  transmitter_rtp_tee_sink_pad =
-    gst_element_get_static_pad (session->priv->transmitter_rtp_tee, "sink");
-  g_assert (transmitter_rtp_tee_sink_pad);
-
-  ret = gst_pad_link (src_pad, transmitter_rtp_tee_sink_pad);
-
-  if (GST_PAD_LINK_FAILED (ret)) {
-    tmp = g_strdup_printf ("Could not link pad %s (%p) with pad %s (%p)",
-      GST_PAD_NAME (src_pad), GST_PAD_CAPS (src_pad),
-      GST_PAD_NAME (transmitter_rtp_tee_sink_pad),
-      GST_PAD_CAPS (transmitter_rtp_tee_sink_pad));
-    fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
-      "Could not link rtpbin network src to tee", tmp);
-    g_free (tmp);
-
-    gst_object_unref (transmitter_rtp_tee_sink_pad);
-    return;
-  }
-
-  gst_object_unref (transmitter_rtp_tee_sink_pad);
-
-
-  transmitter_rtcp_tee_sink_pad =
-    gst_element_get_static_pad (session->priv->transmitter_rtcp_tee, "sink");
-  g_assert (transmitter_rtcp_tee_sink_pad);
-
-  tmp = g_strdup_printf ("send_rtcp_src_%u", session->id);
-  session->priv->rtpbin_send_rtcp_src =
-    gst_element_get_request_pad (session->priv->conference->gstrtpbin, tmp);
-
-  ret = gst_pad_link (session->priv->rtpbin_send_rtcp_src,
-    transmitter_rtcp_tee_sink_pad);
-
-  if (GST_PAD_LINK_FAILED (ret)) {
-    tmp = g_strdup_printf ("Could not link pad %s (%p) with pad %s (%p)",
-      GST_PAD_NAME (session->priv->rtpbin_send_rtcp_src),
-      GST_PAD_CAPS (session->priv->rtpbin_send_rtcp_src),
-      GST_PAD_NAME (transmitter_rtcp_tee_sink_pad),
-      GST_PAD_CAPS (transmitter_rtcp_tee_sink_pad));
-    fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
-      "Could not link rtpbin network rtcp src to tee", tmp);
-    g_free (tmp);
-
-    gst_object_unref (transmitter_rtcp_tee_sink_pad);
-    return;
-  }
-
-  gst_object_unref (transmitter_rtcp_tee_sink_pad);
-
 }
 
 static gboolean
