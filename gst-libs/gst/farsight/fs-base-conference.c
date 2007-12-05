@@ -280,8 +280,7 @@ fs_base_conference_error (GObject *signal_src, GObject *error_src,
       "debug-msg", G_TYPE_STRING, debug_msg,
       NULL);
 
-  gst_msg = gst_message_new_custom (GST_MESSAGE_ERROR, GST_OBJECT (conf),
-      error_struct);
+  gst_msg = gst_message_new_element (GST_OBJECT (conf), error_struct);
 
   if (!gst_element_post_message (GST_ELEMENT (conf), gst_msg))
   {
