@@ -1291,7 +1291,8 @@ fs_rtp_session_get_stream_by_ssrc (FsRtpSession *self,
     if (fs_rtp_stream_knows_ssrc_locked (item->data, ssrc))
       break;
 
-  stream = FS_RTP_STREAM (gst_object_ref (item->data));
+  if (item)
+    stream = FS_RTP_STREAM (gst_object_ref (item->data));
 
   FS_RTP_SESSION_UNLOCK (self);
 
