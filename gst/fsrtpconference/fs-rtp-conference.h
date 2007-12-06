@@ -67,6 +67,7 @@ struct _FsRtpConferenceClass
 GType fs_rtp_conference_get_type(void);
 
 
+GST_DEBUG_CATEGORY_EXTERN (fsrtpconference_debug);
 GST_DEBUG_CATEGORY_EXTERN (fsrtpconference_disco);
 GST_DEBUG_CATEGORY_EXTERN (fsrtpconference_nego);
 

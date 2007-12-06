@@ -46,6 +46,8 @@
 #include "fs-rtp-codec-negotiation.h"
 #include "fs-rtp-substream.h"
 
+#define GST_CAT_DEFAULT fsrtpconference_debug
+
 /* Signals */
 enum
 {
@@ -544,7 +546,7 @@ fs_rtp_session_set_property (GObject *object,
             new_local_codecs_configuration;
 
         } else {
-          g_warning ("Invalid new codec configurations");
+          GST_WARNING ("Invalid new codec configurations");
         }
       } else {
         if (self->priv->local_codecs_configuration)
@@ -1592,7 +1594,7 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
   else
     pipeline_factory = blueprint->receive_pipeline_factory;
 
-  g_debug ("creating %s codec bin for id %d, pipeline_factory %p",
+  GST_DEBUG ("creating %s codec bin for id %d, pipeline_factory %p",
     direction_str, codec->id, pipeline_factory);
   codec_bin = gst_bin_new (name);
 

@@ -38,8 +38,8 @@
 #ifdef STANDALONE
 # undef GST_WARNING
 # undef GST_DEBUG
-# undef GST_LOG
 # define GST_DEBUG(...) g_debug (__VA_ARGS__)
+# define GST_WARNING(...) g_warning (__VA_ARGS__)
 #else
 # include "fs-rtp-conference.h"
 # define GST_CAT_DEFAULT fsrtpconference_disco
@@ -522,7 +522,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
        item = g_list_next (item)) {
     CodecBlueprint *codec_blueprint = item->data;
     if (!save_codec_blueprint (fd, codec_blueprint)) {
-      g_warning ("Unable to save codec cache");
+      GST_WARNING ("Unable to save codec cache");
       close (fd);
       g_free (tmp_path);
       g_free (cache_path);

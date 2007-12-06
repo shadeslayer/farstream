@@ -33,6 +33,8 @@
 #include <gst/farsight/fs-stream.h>
 #include <gst/farsight/fs-session.h>
 
+#define GST_CAT_DEFAULT fsrtpconference_debug
+
 /**
  * SECTION:fs-rtp-sub-stream
  * @short_description: The receive codec bin for a ssrc and a pt
@@ -325,7 +327,7 @@ fs_rtp_sub_stream_set_property (GObject *object,
     case PROP_STREAM:
       FS_RTP_SESSION_LOCK (self->priv->session);
       if (self->priv->stream)
-        g_warning ("Stream already set, not re-setting");
+        GST_WARNING ("Stream already set, not re-setting");
       else
         self->priv->stream = g_value_get_object (value);
       FS_RTP_SESSION_UNLOCK (self->priv->session);

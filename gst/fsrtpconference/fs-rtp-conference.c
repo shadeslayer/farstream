@@ -40,7 +40,7 @@
 
 #include <string.h>
 
-GST_DEBUG_CATEGORY_STATIC (fsrtpconference_debug);
+GST_DEBUG_CATEGORY (fsrtpconference_debug);
 GST_DEBUG_CATEGORY (fsrtpconference_disco);
 GST_DEBUG_CATEGORY (fsrtpconference_nego);
 #define GST_CAT_DEFAULT fsrtpconference_debug
