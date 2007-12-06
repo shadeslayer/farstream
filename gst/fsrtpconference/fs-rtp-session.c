@@ -2146,7 +2146,8 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     fs_session_emit_error (FS_SESSION (session),FS_ERROR_UNKNOWN_CNAME,
         str, str);
     g_free (str);
-    goto done;
+    FS_RTP_SESSION_UNLOCK (session);
+    return;
   }
 
   for (item = g_list_first (session->priv->free_substreams);
@@ -2159,19 +2160,20 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     g_object_get (localsubstream, "ssrc", &localssrc, NULL);
     if (ssrc == localssrc) {
       substream = localsubstream;
+      session->priv->free_substreams = g_list_delete_link (
+          session->priv->free_substreams, item);
       break;
     }
   }
+  FS_RTP_SESSION_UNLOCK (session);
 
   if (!substream)
-    goto done;
+    return;
+
 
   if (!fs_rtp_stream_add_substream (stream, substream, &error))
     fs_session_emit_error (FS_SESSION (session), error->code,
         "Could not associate a substream with its stream",
         error->message);
   g_clear_error (&error);
-
- done:
-  FS_RTP_SESSION_UNLOCK (session);
 }
