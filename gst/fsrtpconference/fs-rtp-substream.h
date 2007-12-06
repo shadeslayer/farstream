@@ -84,7 +84,8 @@ gboolean fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
 
 void fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
 
-GstPad *fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
+gboolean fs_rtp_sub_stream_add_output_ghostpad_locked (
+    FsRtpSubStream *substream,
     GError **error);
 
 void fs_rtp_sub_stream_invalidate_codec_locked (FsRtpSubStream *substream,

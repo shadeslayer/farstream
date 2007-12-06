@@ -523,27 +523,12 @@ _transmitter_error (
   g_signal_emit_by_name (self, "error", errorno, error_msg, debug_msg);
 }
 
-gboolean
-fs_rtp_stream_announce (FsRtpStream *stream,
-    FsRtpSubStream *substream,
-    FsCodec *codec,
-    GError **error)
+void
+fs_rtp_stream_src_pad_added (FsRtpStream *stream,
+    GstPad *ghostpad,
+    FsCodec *codec)
 {
-  GstPad *ghostpad;
-
-  ghostpad = fs_rtp_sub_stream_get_output_ghostpad (substream, error);
-
-  if (!ghostpad)
-  {
-    fs_codec_destroy (codec);
-    return FALSE;
-  }
-
   g_signal_emit_by_name (stream, "src-pad-added", ghostpad, codec);
-
-  gst_object_unref (ghostpad);
-
-  return TRUE;
 }
 
 
@@ -567,15 +552,17 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
   FS_RTP_SESSION_LOCK (stream->priv->session);
   stream->priv->substreams = g_list_prepend (stream->priv->substreams,
       substream);
-  FS_RTP_SESSION_UNLOCK (stream->priv->session);
+  g_object_set (substream, "stream", stream, NULL);
 
   g_object_get (substream, "codec", &codec, NULL);
 
   /* Only announce a pad if it has a codec attached to it */
   if (codec) {
-    ret = fs_rtp_stream_announce (stream, substream, codec, error);
+    ret = fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
     fs_codec_destroy (codec);
   }
+
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
   return ret;
 }
