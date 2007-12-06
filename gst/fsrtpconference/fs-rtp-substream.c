@@ -465,8 +465,17 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
   gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE, _blocked_cb,
     NULL);
 
-
-  return TRUE;
+  /* Announce the pad if it wasnt there already and this substream
+   * has a stream
+   */
+  if (!substream->priv->output_ghostpad &&
+      substream->priv->stream)
+    return fs_rtp_stream_announce (substream->priv->stream,
+        substream,
+        codec,
+        error);
+  else
+    return TRUE;
 
  error:
     gst_element_set_state (codecbin, GST_STATE_NULL);
