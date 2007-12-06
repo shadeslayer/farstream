@@ -584,7 +584,7 @@ GstPad *
 fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
     GError **error)
 {
-  GstPad *codecbin_srcpad;
+  GstPad *valve_srcpad;
   gchar *padname = NULL;
   guint session_id;
   GstPad *ghostpad = NULL;
@@ -598,18 +598,16 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
       substream->priv->ssrc,
       substream->priv->pt);
 
-  FS_RTP_SESSION_LOCK (substream->priv->session);
-  codecbin_srcpad = gst_element_get_static_pad (substream->priv->codecbin,
+  valve_srcpad = gst_element_get_static_pad (substream->priv->valve,
       "src");
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
-  g_assert (codecbin_srcpad);
+  g_assert (valve_srcpad);
 
-  ghostpad = gst_ghost_pad_new_from_template (padname, codecbin_srcpad,
+  ghostpad = gst_ghost_pad_new_from_template (padname, valve_srcpad,
       gst_element_class_get_pad_template (
-          GST_ELEMENT_GET_CLASS (substream->priv->conference), "src_%d_%d_%d"));
+          GST_ELEMENT_GET_CLASS (substream->priv->conference),
+          "src_%d_%d_%d"));
 
-
-  gst_object_unref (codecbin_srcpad);
+  gst_object_unref (valve_srcpad);
   g_free (padname);
 
   if (!ghostpad)
@@ -617,6 +615,15 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not build ghostpad src_%u_%u_%d", session_id,
         substream->priv->ssrc, substream->priv->pt);
+    return NULL;
+  }
+
+  if (!gst_pad_set_active (ghostpad, TRUE))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not activate the src_%u_%u_%d", session_id,
+        substream->priv->ssrc, substream->priv->pt);
+    gst_object_unref (ghostpad);
     return NULL;
   }
 
