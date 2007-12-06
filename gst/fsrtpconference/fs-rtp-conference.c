@@ -42,6 +42,7 @@
 
 GST_DEBUG_CATEGORY_STATIC (fsrtpconference_debug);
 GST_DEBUG_CATEGORY (fsrtpconference_disco);
+GST_DEBUG_CATEGORY (fsrtpconference_nego);
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
 /* Signals */
@@ -132,6 +133,8 @@ fs_rtp_conference_do_init (GType type)
       "Farsight RTP Conference Element");
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_disco, "fsrtpconference_disco",
       0, "Farsight RTP Codec Discovery");
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_nego, "fsrtpconference_nego",
+      0, "Farsight RTP Codec Negotiation");
 }
 
 static void

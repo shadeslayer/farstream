@@ -26,6 +26,10 @@
 
 #include "fs-rtp-specific-nego.h"
 
+#include "fs-rtp-conference.h"
+
+#define GST_CAT_DEFAULT fsrtpconference_nego
+
 /**
  * validate_codecs_configuration:
  * @media_type: The #FsMediaType these codecs should be for
@@ -113,7 +117,8 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
     {
       GList *nextcodec_e = g_list_next (codec_e);
       gchar *tmp = fs_codec_to_string (codec);
-      g_debug ("Prefered codec %s could not be matched with a blueprint", tmp);
+      GST_DEBUG ("Prefered codec %s could not be matched with a blueprint",
+          tmp);
       g_free (tmp);
       fs_codec_destroy (codec);
       codecs = g_list_delete_link (codecs, codec_e);
@@ -335,7 +340,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
       lca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
       if (lca->codec->id < 0) {
-        g_warning ("We've run out of dynamic payload types");
+        GST_WARNING ("We've run out of dynamic payload types");
         goto out;
       }
     }
@@ -366,7 +371,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
     /* Check if it is disabled in the list of prefered codecs */
     if (_is_disabled (codec_prefs, bp)) {
       gchar *tmp = fs_codec_to_string (bp->codec);
-      g_debug ("Codec %s disabled by config", tmp);
+      GST_DEBUG ("Codec %s disabled by config", tmp);
       g_free (tmp);
       continue;
     }
@@ -379,7 +384,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
       ca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
       if (ca->codec->id < 0) {
-        g_warning ("We've run out of dynamic payload types");
+        GST_WARNING ("We've run out of dynamic payload types");
         goto out;
       }
     }
@@ -416,7 +421,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
   if (!local_codecs) {
     g_hash_table_destroy (codec_associations);
     codec_associations = NULL;
-    g_debug ("There are no local codecs for this stream of media type %s",
+    GST_DEBUG ("There are no local codecs for this stream of media type %s",
         fs_media_type_to_string (media_type));
   }
 
@@ -485,7 +490,7 @@ negotiate_codecs (const GList *remote_codecs,
     CodecAssociation *local_ca = NULL;
 
     gchar *tmp = fs_codec_to_string (remote_codec);
-    g_debug ("Remote codec %s", tmp);
+    GST_DEBUG ("Remote codec %s", tmp);
     g_free (tmp);
 
     /* First lets try the codec that is in the same PT */
@@ -494,7 +499,7 @@ negotiate_codecs (const GList *remote_codecs,
       remote_codec->id);
 
     if (local_ca) {
-      g_debug ("Have local codec in the same PT, lets try it first");
+      GST_DEBUG ("Have local codec in the same PT, lets try it first");
       nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
           local_ca->codec, remote_codec);
     }
@@ -523,7 +528,7 @@ negotiate_codecs (const GList *remote_codecs,
       new_ca->codec = fs_codec_copy (nego_codec);
       new_ca->blueprint = local_ca->blueprint;
       tmp = fs_codec_to_string (nego_codec);
-      g_debug ("Negotiated codec %s", tmp);
+      GST_DEBUG ("Negotiated codec %s", tmp);
       g_free (tmp);
 
       g_hash_table_insert (new_codec_associations,
@@ -532,7 +537,7 @@ negotiate_codecs (const GList *remote_codecs,
           fs_codec_copy (new_ca->codec));
     } else {
       gchar *tmp = fs_codec_to_string (remote_codec);
-      g_debug ("Could not find a valid intersection... for codec %s",
+      GST_DEBUG ("Could not find a valid intersection... for codec %s",
                  tmp);
       g_free (tmp);
       g_hash_table_insert (new_codec_associations,
