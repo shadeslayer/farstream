@@ -239,7 +239,7 @@ _start_pipeline (gpointer user_data)
   fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
 
-    dat->started = TRUE;
+  dat->started = TRUE;
 
   return FALSE;
 }

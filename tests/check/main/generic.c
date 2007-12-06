@@ -131,9 +131,5 @@ setup_fakesrc (struct SimpleTestConference *dat)
       "Could not link capsfilter to sink");
 
   if (dat->started)
-  {
     gst_element_set_state (dat->pipeline, GST_STATE_PLAYING);
-    dat->started = TRUE;
-  }
-
 }
