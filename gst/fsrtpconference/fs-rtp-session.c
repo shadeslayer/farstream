@@ -354,8 +354,6 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->send_codecbin) {
     gst_bin_remove (GST_BIN (self->priv->conference),
       self->priv->send_codecbin);
-    gst_element_set_state (self->priv->send_codecbin, GST_STATE_NULL);
-    gst_object_unref (self->priv->send_codecbin);
     self->priv->send_codecbin = NULL;
   }
 
