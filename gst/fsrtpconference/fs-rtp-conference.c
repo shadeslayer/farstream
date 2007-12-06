@@ -210,6 +210,7 @@ fs_rtp_conference_init (FsRtpConference *conf,
   if (!gst_bin_add (GST_BIN (conf), conf->gstrtpbin)) {
     GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
     gst_object_unref (conf->gstrtpbin);
+    conf->gstrtpbin = NULL;
     return;
   }
 
