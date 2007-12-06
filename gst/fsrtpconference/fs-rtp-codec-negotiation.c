@@ -528,7 +528,8 @@ negotiate_codecs (const GList *remote_codecs,
 
       g_hash_table_insert (new_codec_associations,
           GINT_TO_POINTER (remote_codec->id), new_ca);
-      new_negotiated_codecs = g_list_append (new_negotiated_codecs, new_ca->codec);
+      new_negotiated_codecs = g_list_append (new_negotiated_codecs,
+          fs_codec_copy (new_ca->codec));
     } else {
       gchar *tmp = fs_codec_to_string (remote_codec);
       g_debug ("Could not find a valid intersection... for codec %s",
