@@ -2096,17 +2096,31 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 }
 
 
-
+/**
+ * fs_rtp_session_get_recv_codec_for_pt
+ *
+ * Gets the Codec from its PT from the codecs associations table
+ *
+ * Return: a copy of the #FsCodec or NULL
+ */
 FsCodec *
-fs_rtp_session_get_recv_codec_for_pt_locked (FsRtpSession *session,
-    gint pt,
-    GError **error)
+fs_rtp_session_get_recv_codec_for_pt (FsRtpSession *session,
+    gint pt)
 {
-  CodecAssociation *codec_association = g_hash_table_lookup (
-      session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
-  g_assert (codec_association);
+  CodecAssociation *codec_association = NULL;
+  FsCodec *codec = NULL;
 
-  return fs_codec_copy (codec_association->codec);
+  FS_RTP_SESSION_LOCK (session);
+
+  codec_association = g_hash_table_lookup (
+      session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
+
+  if (codec_association)
+    codec = fs_codec_copy (codec_association->codec);
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  return codec;
 }
 
 

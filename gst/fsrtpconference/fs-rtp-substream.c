@@ -658,15 +658,15 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   GError *error = NULL;
   gboolean success = FALSE;
 
-  FS_RTP_SESSION_LOCK (self->priv->session);
-
-  codec = fs_rtp_session_get_recv_codec_for_pt_locked (self->priv->session,
-      self->priv->pt, &error);
+  codec = fs_rtp_session_get_recv_codec_for_pt (self->priv->session,
+      self->priv->pt);
 
   if (!codec)
   {
-    fs_session_emit_error (FS_SESSION (self), error->code,
-        "Could not get the new recv codec for pt %d", error->message);
+    gchar *str = g_strdup_printf ("Could not get the new recv codec for"
+        " pt %d", self->priv->pt);
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_UNKNOWN_CODEC, str,
+        str);
     goto done;
   }
 
