@@ -286,8 +286,15 @@ _rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
   FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
   FsRtpSession *session =
     fs_rtp_conference_get_session_by_id (self, session_id);
-  fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
-  g_object_unref (session);
+
+  if (session) {
+    fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
+    g_object_unref (session);
+  } else {
+    GST_WARNING_OBJECT(self,"GstRtpBin %p announced a new association"
+        "for non-existent session %u",
+        rtpbin, session_id);
+  }
 }
 
 
