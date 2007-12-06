@@ -613,7 +613,7 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
-  tmp = g_strdup_printf ("valve_send_%d", self->id);
+  tmp = g_strdup_printf ("valve_send_%u", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
   g_free (tmp);
 
@@ -652,7 +652,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTP funnel */
 
-  tmp = g_strdup_printf ("recv_rtp_funnel_%d", self->id);
+  tmp = g_strdup_printf ("recv_rtp_funnel_%u", self->id);
   funnel = gst_element_factory_make ("fsfunnel", tmp);
   g_free (tmp);
 
@@ -702,7 +702,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTCP funnel */
 
-  tmp = g_strdup_printf ("recv_rtcp_funnel_%d", self->id);
+  tmp = g_strdup_printf ("recv_rtcp_funnel_%u", self->id);
   funnel = gst_element_factory_make ("fsfunnel", tmp);
   g_free (tmp);
 
@@ -751,7 +751,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Lets now create the RTP muxer */
 
-  tmp = g_strdup_printf ("send_rtp_muxer_%d", self->id);
+  tmp = g_strdup_printf ("send_rtp_muxer_%u", self->id);
   muxer = gst_element_factory_make ("rtpmux", tmp);
   g_free (tmp);
 
@@ -801,7 +801,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTP tee */
 
-  tmp = g_strdup_printf ("send_rtp_tee_%d", self->id);
+  tmp = g_strdup_printf ("send_rtp_tee_%u", self->id);
   tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
 
@@ -838,7 +838,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Now create the transmitter RTCP tee */
 
-  tmp = g_strdup_printf ("send_rtcp_tee_%d", self->id);
+  tmp = g_strdup_printf ("send_rtcp_tee_%u", self->id);
   tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
 
@@ -898,7 +898,7 @@ fs_rtp_session_constructed (GObject *object)
 
   /* Lets now do the send_capsfilter */
 
-  tmp = g_strdup_printf ("send_rtp_capsfilter_%d", self->id);
+  tmp = g_strdup_printf ("send_rtp_capsfilter_%u", self->id);
   capsfilter = gst_element_factory_make ("capsfilter", tmp);
   g_free (tmp);
 
@@ -1766,7 +1766,7 @@ fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
     return NULL;
   }
 
-  name = g_strdup_printf ("recv%d_%d", ssrc, pt);
+  name = g_strdup_printf ("recv%u_%d", ssrc, pt);
   codec_bin = _create_codec_bin (blueprint, codec, name, FALSE, error);
   g_free (name);
 

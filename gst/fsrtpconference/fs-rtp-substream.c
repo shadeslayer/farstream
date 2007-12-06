@@ -212,7 +212,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
   if (!self->priv->valve) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not create a fsvalve element for"
-      " session substream with ssrc: %x and pt:%d", self->priv->ssrc,
+      " session substream with ssrc: %u and pt:%d", self->priv->ssrc,
       self->priv->pt);
     return;
   }
@@ -221,7 +221,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve)) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the fsvalve element for session"
-      " substream with ssrc: %x and pt:%d to the conference bin",
+      " substream with ssrc: %u and pt:%d to the conference bin",
       self->priv->ssrc, self->priv->pt);
     return;
   }
@@ -233,7 +233,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
     GST_STATE_CHANGE_FAILURE) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not set the fsvalve element for session"
-      " substream with ssrc: %x and pt:%d to the playing state",
+      " substream with ssrc: %u and pt:%d to the playing state",
       self->priv->ssrc, self->priv->pt);
     return;
   }
@@ -594,7 +594,8 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
 
   g_object_get (substream->priv->session, "id", &session_id, NULL);
 
-  padname = g_strdup_printf ("src_%d_%d_%d", session_id, substream->priv->ssrc,
+  padname = g_strdup_printf ("src_%u_%u_%d", session_id,
+      substream->priv->ssrc,
       substream->priv->pt);
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
@@ -614,7 +615,7 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
   if (!ghostpad)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not build ghostpad src_%d_%d_%d", session_id,
+        "Could not build ghostpad src_%u_%u_%d", session_id,
         substream->priv->ssrc, substream->priv->pt);
     return NULL;
   }
@@ -623,7 +624,7 @@ fs_rtp_sub_stream_get_output_ghostpad (FsRtpSubStream *substream,
           ghostpad))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could add build ghostpad src_%d_%d_%d to the conference",
+        "Could add build ghostpad src_%u_%u_%d to the conference",
         session_id, substream->priv->ssrc, substream->priv->pt);
     gst_object_unref (ghostpad);
     return NULL;
