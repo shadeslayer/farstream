@@ -1126,6 +1126,10 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
 
   FS_RTP_SESSION_UNLOCK (session);
 
+  if (!caps)
+    GST_WARNING ("Could not get caps for payload type %u in session %d",
+        pt, session->id);
+
   return caps;
 }
 
