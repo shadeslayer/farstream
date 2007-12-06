@@ -143,15 +143,16 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 {
   struct SimpleTestConference *dat = user_data;
 
-  g_debug ("%d: Buffer %d", dat->id, dat->buffer_count);
-
   dat->buffer_count++;
+
+  if (dat->buffer_count % 10 == 0)
+    g_debug ("%d: Buffer %d", dat->id, dat->buffer_count);
 
   /*
   fail_if (dat->buffer_count > 20,
     "Too many buffers %d > 20", dat->buffer_count);
   */
-  
+
   if (dat1->buffer_count >= 20 && dat2->buffer_count >= 20) {
     /* TEST OVER */
     g_main_loop_quit (loop);
