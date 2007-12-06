@@ -29,7 +29,7 @@
 
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+# include "config.h"
 #endif
 
 #include "fs-rtp-discover-codecs.h"
@@ -40,8 +40,17 @@
 
 #include <string.h>
 
-#undef ENABLE_DEBUG_CAPS
-
+#ifdef STANDALONE
+# undef GST_WARNING
+# undef GST_DEBUG
+# undef GST_LOG
+# define GST_WARNING(...) g_warning (__VA_ARGS__)
+# define GST_DEBUG(...) g_debug (__VA_ARGS__)
+# define GST_LOG(...) g_debug (__VA_ARGS__)
+#else
+# include "fs-rtp-conference.h"
+# define GST_CAT_DEFAULT fsrtpconference_disco
+#endif
 
 /*
  * Local TYPES
@@ -87,20 +96,18 @@ debug_pipeline (GList *pipeline)
 {
   GList *walk;
 
-  g_debug ("pipeline: ");
+  GST_DEBUG ("pipeline: ");
   for (walk = pipeline; walk; walk = g_list_next (walk))
   {
     GList *walk2;
     for (walk2 = g_list_first (walk->data); walk2; walk2 = g_list_next (walk2))
-      g_debug ("%p:%d:%s ", walk2->data,
+      GST_DEBUG ("%p:%d:%s ", walk2->data,
         GST_OBJECT_REFCOUNT_VALUE(GST_OBJECT (walk2->data)),
         gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (walk2->data)));
-    g_debug ("--");
+    GST_DEBUG ("--");
   }
-  g_debug ("\n");
+  GST_DEBUG ("\n");
 }
-
-#ifdef ENABLE_DEBUG_CAPS
 
 static void
 debug_codec_cap (CodecCap *codec_cap)
@@ -108,9 +115,8 @@ debug_codec_cap (CodecCap *codec_cap)
   gchar *caps;
   if (codec_cap->caps)
   {
-    g_assert (gst_caps_get_size (codec_cap->caps) == 1);
     caps = gst_caps_to_string (codec_cap->caps);
-    g_debug ("%p:%d:media_caps %s\n", codec_cap->caps,
+    GST_LOG ("%p:%d:media_caps %s\n", codec_cap->caps,
         GST_CAPS_REFCOUNT_VALUE(codec_cap->caps),
         caps);
     g_free (caps);
@@ -118,16 +124,16 @@ debug_codec_cap (CodecCap *codec_cap)
 
   if (codec_cap->rtp_caps)
   {
-    g_assert (gst_caps_get_size (codec_cap->rtp_caps) == 1);
     caps = gst_caps_to_string (codec_cap->rtp_caps);
-    g_debug ("%p:%d:rtp_caps %s\n", codec_cap->rtp_caps,
+    GST_LOG ("%p:%d:rtp_caps %s\n", codec_cap->rtp_caps,
         GST_CAPS_REFCOUNT_VALUE(codec_cap->rtp_caps), caps);
     g_free (caps);
+    g_assert (gst_caps_get_size (codec_cap->rtp_caps) == 1);
   }
 
-  g_debug ("element_list1 -> ");
+  GST_LOG ("element_list1 -> ");
   debug_pipeline (codec_cap->element_list1);
-  g_debug ("element_list2 -> ");
+  GST_LOG ("element_list2 -> ");
   debug_pipeline (codec_cap->element_list2);
 }
 
@@ -135,15 +141,12 @@ static void
 debug_codec_cap_list (GList *codec_cap_list)
 {
   GList *walk;
-  g_debug ("size of codec_cap list is %d", g_list_length (codec_cap_list));
+  GST_LOG ("size of codec_cap list is %d", g_list_length (codec_cap_list));
   for (walk = codec_cap_list; walk; walk = g_list_next (walk))
   {
     debug_codec_cap ((CodecCap *)walk->data);
   }
 }
-
-
-#endif
 
 static void
 codec_cap_free (CodecCap *codec_cap)
@@ -234,7 +237,7 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
 
   list_codec_blueprints[media_type] = load_codecs_cache(media_type, NULL);
   if (list_codec_blueprints[media_type]) {
-    g_debug("Loaded codec blueprints from cache file");
+    GST_DEBUG("Loaded codec blueprints from cache file");
     return list_codec_blueprints[media_type];
   }
 
@@ -299,19 +302,17 @@ create_codec_lists (FsMediaType media_type,
   duplex_list = codec_cap_list_intersect (recv_list, send_list);
 
   if(!duplex_list) {
-    g_warning ("There are no send/recv codecs");
+    GST_WARNING ("There are no send/recv codecs");
     return FALSE;
   }
 
-#ifdef ENABLE_DEBUG_CAPS
-  g_debug ("*******Intersection of send_list and recv_list");
+  GST_LOG ("*******Intersection of send_list and recv_list");
   debug_codec_cap_list(duplex_list);
-#endif
 
   duplex_list = remove_dynamic_duplicates (duplex_list);
 
   if (!duplex_list) {
-    g_warning ("Dynamic duplicate removal left us with nothing");
+    GST_WARNING ("Dynamic duplicate removal left us with nothing");
     return FALSE;
   }
 
@@ -517,7 +518,7 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
       const gchar *encoding_name = codec->encoding_name ? codec->encoding_name
         : gst_structure_get_string (caps, "encoding-name");
 
-      g_debug ("skipping codec %s/%s, no encoding name specified"
+      GST_DEBUG ("skipping codec %s/%s, no encoding name specified"
           " (pt: %d clock_rate:%u",
           media_type == FS_MEDIA_TYPE_AUDIO ? "audio" : "video",
           encoding_name ? encoding_name : "unknown", codec->id,
@@ -560,15 +561,15 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
     /* insert new information into tables */
     list_codec_blueprints[media_type] = g_list_append (
         list_codec_blueprints[media_type], codec_blueprint);
-    g_debug ("adding codec %s with pt %d, send_pipeline %p, receive_pipeline %p",
+    GST_DEBUG ("adding codec %s with pt %d, send_pipeline %p, receive_pipeline %p",
         codec->encoding_name, codec->id,
         codec_blueprint->send_pipeline_factory,
         codec_blueprint->receive_pipeline_factory);
     tmp = gst_caps_to_string (codec_blueprint->media_caps);
-    g_debug ("media_caps: %s", tmp);
+    GST_DEBUG ("media_caps: %s", tmp);
     g_free (tmp);
     tmp = gst_caps_to_string (codec_blueprint->rtp_caps);
-    g_debug ("rtp_caps: %s", tmp);
+    GST_DEBUG ("rtp_caps: %s", tmp);
     g_free (tmp);
     debug_pipeline (codec_blueprint->send_pipeline_factory);
     debug_pipeline (codec_blueprint->receive_pipeline_factory);
@@ -647,30 +648,26 @@ detect_send_codecs (GstCaps *caps)
   /* no payloader found. giving up */
   if (!payloaders)
   {
-    g_warning ("No RTP Payloaders found");
+    GST_WARNING ("No RTP Payloaders found");
     return NULL;
   }
-#ifdef ENABLE_DEBUG_CAPS
   else {
-    g_debug ("**Payloaders");
+    GST_LOG ("**Payloaders");
     debug_codec_cap_list(payloaders);
   }
-#endif
 
   /* find all encoders based on is_encoder filter */
   encoders = get_plugins_filtered_from_caps (is_encoder, NULL, GST_PAD_SRC);
   if (!encoders)
   {
     codec_cap_list_free (payloaders);
-    g_warning ("No encoders found");
+    GST_WARNING ("No encoders found");
     return NULL;
   }
-#ifdef ENABLE_DEBUG_CAPS
   else {
-    g_debug ("**Encoders");
+    GST_LOG ("**Encoders");
     debug_codec_cap_list(encoders);
   }
-#endif
 
   /* create intersection list of codecs common
    * to encoders and payloaders lists */
@@ -678,15 +675,12 @@ detect_send_codecs (GstCaps *caps)
 
   if (!send_list)
   {
-    g_warning ("No compatible encoder/payloader pairs found");
+    GST_WARNING ("No compatible encoder/payloader pairs found");
   }
-#ifdef ENABLE_DEBUG_CAPS
   else {
-    g_debug ("**intersection of payloaders and encoders");
+    GST_LOG ("**intersection of payloaders and encoders");
     debug_codec_cap_list(send_list);
   }
-#endif
-
 
   codec_cap_list_free (payloaders);
   codec_cap_list_free (encoders);
@@ -710,15 +704,13 @@ detect_recv_codecs (GstCaps *caps)
   /* no depayloader found. giving up */
   if (!depayloaders)
   {
-    g_warning ("No RTP Depayloaders found");
+    GST_WARNING ("No RTP Depayloaders found");
     return NULL;
   }
-#ifdef ENABLE_DEBUG_CAPS
   else {
-    g_debug ("**Depayloaders");
+    GST_LOG ("**Depayloaders");
     debug_codec_cap_list(depayloaders);
   }
-#endif
 
   /* find all decoders based on is_decoder filter */
   decoders = get_plugins_filtered_from_caps (is_decoder, NULL, GST_PAD_SINK);
@@ -726,15 +718,13 @@ detect_recv_codecs (GstCaps *caps)
   if (!decoders)
   {
     codec_cap_list_free (depayloaders);
-    g_warning ("No decoders found");
+    GST_WARNING ("No decoders found");
     return NULL;
   }
-#ifdef ENABLE_DEBUG_CAPS
   else {
-    g_debug ("**Decoders");
+    GST_LOG ("**Decoders");
     debug_codec_cap_list(decoders);
   }
-#endif
 
   /* create intersection list of codecs common
    * to decoders and depayloaders lists */
@@ -742,14 +732,12 @@ detect_recv_codecs (GstCaps *caps)
 
   if (!recv_list)
   {
-    g_warning ("No compatible decoder/depayloader pairs found");
+    GST_WARNING ("No compatible decoder/depayloader pairs found");
   }
-#ifdef ENABLE_DEBUG_CAPS
   else {
-    g_debug ("**intersection of depayloaders and decoders");
+    GST_LOG ("**intersection of depayloaders and decoders");
     debug_codec_cap_list(recv_list);
   }
-#endif
 
   codec_cap_list_free (depayloaders);
   codec_cap_list_free (decoders);
@@ -1078,7 +1066,8 @@ create_codec_cap_list (GstElementFactory *factory,
       const gchar *name = gst_structure_get_name (structure);
       if (g_ascii_strcasecmp (name, "application/x-rtp") == 0)
       {
-        g_debug ("skipping %s", gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)));
+        GST_DEBUG ("skipping %s",
+            gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)));
         continue;
       }
 
@@ -1115,9 +1104,6 @@ create_codec_cap_list (GstElementFactory *factory,
       else
       {
         GstCaps *newcaps;
-
-        g_debug ("EXTRA: %s to %s", gst_plugin_feature_get_name (
-              GST_PLUGIN_FEATURE (factory)), gst_caps_to_string (cur_caps));
 
         entry->element_list1->data =
           g_list_append (entry->element_list1->data, factory);

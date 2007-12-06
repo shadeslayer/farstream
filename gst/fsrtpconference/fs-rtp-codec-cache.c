@@ -35,6 +35,15 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef STANDALONE
+# undef GST_WARNING
+# undef GST_DEBUG
+# undef GST_LOG
+# define GST_DEBUG(...) g_debug (__VA_ARGS__)
+#else
+# include "fs-rtp-conference.h"
+# define GST_CAT_DEFAULT fsrtpconference_disco
+#endif
 
 static gboolean codecs_cache_valid(gchar *cache_path) {
   time_t cache_ts = 0;
@@ -214,7 +223,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
       g_list_append (codec_blueprint->receive_pipeline_factory, tmplist);
   }
 
-  g_debug ("adding codec %s with pt %d, send_pipeline %p, receive_pipeline %p",
+  GST_DEBUG ("adding codec %s with pt %d, send_pipeline %p, receive_pipeline %p",
       codec_blueprint->codec->encoding_name, codec_blueprint->codec->id,
       codec_blueprint->send_pipeline_factory,
       codec_blueprint->receive_pipeline_factory);
@@ -270,16 +279,16 @@ load_codecs_cache (FsMediaType media_type, GError **error)
     return FALSE;
 
   if (!codecs_cache_valid(cache_path)) {
-    g_debug ("Codecs cache %s is outdated or does not exist", cache_path);
+    GST_DEBUG ("Codecs cache %s is outdated or does not exist", cache_path);
     g_free(cache_path);
     return FALSE;
   }
 
-  g_debug ("Loading codecs cache %s", cache_path);
+  GST_DEBUG ("Loading codecs cache %s", cache_path);
 
   mapped = g_mapped_file_new (cache_path, FALSE, &err);
   if (mapped == NULL) {
-    g_debug ("Unable to mmap file %s : %s", cache_path,
+    GST_DEBUG ("Unable to mmap file %s : %s", cache_path,
       err ? err->message: "unknown error");
     g_clear_error (&err);
 
@@ -458,7 +467,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
     return FALSE;
 
 
-  g_debug ("Saving codecs cache to %s", cache_path);
+  GST_DEBUG ("Saving codecs cache to %s", cache_path);
 
   tmp_path = g_strconcat (cache_path, ".tmpXXXXXX", NULL);
   fd = g_mkstemp (tmp_path);
@@ -476,7 +485,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
     fd = g_mkstemp (tmp_path);
 
     if (fd == -1) {
-      g_debug ("Unable to save codecs cache. g_mkstemp() failed: %s",
+      GST_DEBUG ("Unable to save codecs cache. g_mkstemp() failed: %s",
           g_strerror (errno));
       g_free (tmp_path);
       g_free (cache_path);
@@ -523,7 +532,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
 
 
   if (close (fd) < 0) {
-    g_debug ("Can't close codecs cache file : %s", g_strerror (errno));
+    GST_DEBUG ("Can't close codecs cache file : %s", g_strerror (errno));
       g_free (tmp_path);
       g_free (cache_path);
       return FALSE;
@@ -537,6 +546,6 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
   }
 
   g_free (tmp_path);
-  g_debug ("Wrote binary codecs cache");
+  GST_DEBUG ("Wrote binary codecs cache");
   return TRUE;
 }

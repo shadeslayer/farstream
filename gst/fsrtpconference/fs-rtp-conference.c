@@ -40,8 +40,9 @@
 
 #include <string.h>
 
-GST_DEBUG_CATEGORY_STATIC (fs_rtp_conference_debug);
-#define GST_CAT_DEFAULT fs_rtp_conference_debug
+GST_DEBUG_CATEGORY_STATIC (fsrtpconference_debug);
+GST_DEBUG_CATEGORY (fsrtpconference_disco);
+#define GST_CAT_DEFAULT fsrtpconference_debug
 
 /* Signals */
 enum
@@ -127,8 +128,10 @@ static void _rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
 static void
 fs_rtp_conference_do_init (GType type)
 {
-  GST_DEBUG_CATEGORY_INIT (fs_rtp_conference_debug, "fsrtpconference", 0,
-      "farsight rtp conference element");
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_debug, "fsrtpconference", 0,
+      "Farsight RTP Conference Element");
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_disco, "fsrtpconference_disco",
+      0, "Farsight RTP Codec Discovery");
 }
 
 static void
