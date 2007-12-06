@@ -29,12 +29,14 @@
 #include <gst/farsight/fs-conference-iface.h>
 
 struct SimpleTestConference *
-setup_simple_conference (
+setup_simple_conference (gint id,
     gchar *conference_elem,
     gchar *cname)
 {
   struct SimpleTestConference *dat = g_new0 (struct SimpleTestConference, 1);
   GError *error = NULL;
+
+  dat->id = id;
 
   dat->pipeline = gst_pipeline_new ("pipeline");
   fail_if (dat->pipeline == NULL);

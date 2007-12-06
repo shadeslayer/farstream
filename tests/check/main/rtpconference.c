@@ -41,7 +41,7 @@ GST_START_TEST (test_rtpconference_new)
   GstPad *sinkpad = NULL;
   gchar *str;
 
-  dat = setup_simple_conference ("fsrtpconference", "bob@127.0.0.1");
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
   g_object_get (dat->session,
       "id", &id,
@@ -67,6 +67,7 @@ GST_END_TEST;
 static gboolean
 _simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 {
+  struct SimpleTestConference *dat = user_data;
 
   switch (GST_MESSAGE_TYPE (message))
   {
@@ -105,7 +106,8 @@ _simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         gchar *debug = NULL;
         gst_message_parse_warning (message, &error, &debug);
 
-        g_debug ("Got a warning on the BUS (%d): %s (%s)", error->code,
+        g_debug ("%d: Got a warning on the BUS (%d): %s (%s)", dat->id,
+            error->code,
             error->message, debug);
         g_error_free (error);
         g_free (debug);
@@ -121,6 +123,7 @@ _simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 static void
 _simple_send_codec_changed (FsSession *session, gpointer user_data)
 {
+  struct SimpleTestConference *dat = user_data;
   FsCodec *codec = NULL;
   gchar *str = NULL;
 
@@ -128,7 +131,7 @@ _simple_send_codec_changed (FsSession *session, gpointer user_data)
   fail_if (codec == NULL, "Could not get new send codec");
 
   str = fs_codec_to_string (codec);
-  g_debug ("New send codec: %s", str);
+  g_debug ("%d: New send codec: %s", dat->id, str);
   g_free (str);
 
   fs_codec_destroy (codec);
@@ -140,7 +143,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 {
   struct SimpleTestConference *dat = user_data;
 
-  g_debug ("Buffer");
+  g_debug ("%d: Buffer %d", dat->id, dat->buffer_count);
 
   dat->buffer_count++;
 
@@ -148,8 +151,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   fail_if (dat->buffer_count > 20,
     "Too many buffers %d > 20", dat->buffer_count);
   */
-
-  if (dat->buffer_count >= 20) {
+  
+  if (dat1->buffer_count >= 20 && dat2->buffer_count >= 20) {
     /* TEST OVER */
     g_main_loop_quit (loop);
   }
@@ -184,7 +187,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   fail_if (gst_element_set_state (fakesink, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the fakesink to playing");
 
-  g_debug ("Added Fakesink");
+  g_debug ("%d: Added Fakesink", dat->id);
 }
 
 
@@ -230,7 +233,7 @@ _start_pipeline (gpointer user_data)
 {
   struct SimpleTestConference *dat = user_data;
 
-  g_debug ("Starting pipeline");
+  g_debug ("%d: Starting pipeline", dat->id);
 
   fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
@@ -245,8 +248,9 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
 {
   GList *codecs = NULL;
   GError *error = NULL;
+  struct SimpleTestConference *dat = user_data;
 
-  g_debug ("New negotiated codecs");
+  g_debug ("%d: New negotiated codecs", dat->id);
 
   fail_if (session != dat2->session, "Got signal from the wrong object");
 
@@ -276,7 +280,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate,
   gboolean ret;
   GError *error = NULL;
 
-  g_debug ("New local candidate");
+  g_debug ("%d: Setting remove candidate", other_dat->id);
 
   ret = fs_stream_add_remote_candidate (other_dat->stream, candidate, &error);
 
@@ -331,8 +335,8 @@ GST_START_TEST (test_rtpconference_simple)
 
   loop = g_main_loop_new (NULL, FALSE);
 
-  dat1 = setup_simple_conference ("fsrtpconference", "tester@TesterTop3");
-  dat2 = setup_simple_conference ("fsrtpconference", "tester@TesterTop3");
+  dat1 = setup_simple_conference (1, "fsrtpconference", "tester@TesterTop3");
+  dat2 = setup_simple_conference (2, "fsrtpconference", "tester@TesterTop3");
 
   rtpconference_simple_connect_signals (dat1);
   rtpconference_simple_connect_signals (dat2);
@@ -341,7 +345,7 @@ GST_START_TEST (test_rtpconference_simple)
   g_idle_add (_start_pipeline, dat2);
 
   g_signal_connect (dat2->session, "new-negotiated-codecs",
-      G_CALLBACK (_new_negotiated_codecs), NULL);
+      G_CALLBACK (_new_negotiated_codecs), dat2);
 
   set_local_codecs ();
 

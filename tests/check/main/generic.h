@@ -26,6 +26,8 @@
 #include <gst/farsight/fs-conference-iface.h>
 
 struct SimpleTestConference {
+  gint id;
+
   GstElement *pipeline;
   GstElement *conference;
   FsSession *session;
@@ -38,7 +40,7 @@ struct SimpleTestConference {
   gboolean started;
 };
 
-struct SimpleTestConference *setup_simple_conference (
+struct SimpleTestConference *setup_simple_conference (gint id,
     gchar *conference_elem,
     gchar *cname);
 
