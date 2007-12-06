@@ -1628,10 +1628,6 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
       goto error;
     }
 
-    /* TODO: Element options
-     *  set_options_on_element (walk->data, current_element);
-     */
-
     /* queue delay to 0 on all depayloaders until I remove that property
      * all-together */
 
