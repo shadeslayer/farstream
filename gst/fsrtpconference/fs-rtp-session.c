@@ -1273,15 +1273,17 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
  * @stream_ssrc: The stream ssrc
  *
  * Gets the #FsRtpStream from a list of streams or NULL if it doesnt exist
- * You have to hold the GST_OBJECT_LOCK to call this function.
  *
  * Return value: A #FsRtpStream (unref after use) or NULL if it doesn't exist
  */
 static FsRtpStream *
-fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
+fs_rtp_session_get_stream_by_ssrc (FsRtpSession *self,
     guint32 ssrc)
 {
   GList *item = NULL;
+  FsRtpStream *stream = NULL;
+
+  FS_RTP_SESSION_LOCK (self);
 
   for (item = g_list_first (self->priv->streams);
        item;
@@ -1289,11 +1291,11 @@ fs_rtp_session_get_stream_by_ssrc_locked (FsRtpSession *self,
     if (fs_rtp_stream_knows_ssrc_locked (item->data, ssrc))
       break;
 
+  stream = FS_RTP_STREAM (gst_object_ref (item->data));
 
-  if (item)
-    return FS_RTP_STREAM (gst_object_ref (item->data));
-  else
-    return NULL;
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return stream;
 }
 
 /**
@@ -1502,7 +1504,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
    */
 
   FS_RTP_SESSION_LOCK (session);
-  stream = fs_rtp_session_get_stream_by_ssrc_locked (session, ssrc);
+  stream = fs_rtp_session_get_stream_by_ssrc (session, ssrc);
 
   if (!stream)
     session->priv->free_substreams =
