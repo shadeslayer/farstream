@@ -287,6 +287,7 @@ _rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
   FsRtpSession *session =
     fs_rtp_conference_get_session_by_id (self, session_id);
   fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
+  g_object_unref (session);
 }
 
 
