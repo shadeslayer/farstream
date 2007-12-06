@@ -19,12 +19,32 @@
  */
 
 
-#include <gst/gst.h>
-
 #ifndef __GENERIC_H__
 #define __GENERIC_H__
 
-GstElement *setup_pipeline (gchar *conference_elem);
+#include <gst/gst.h>
+#include <gst/farsight/fs-conference-iface.h>
+
+struct SimpleTestConference {
+  GstElement *pipeline;
+  GstElement *conference;
+  FsSession *session;
+  FsParticipant *participant;
+  FsStream *stream;
+  GstElement *fakesrc;
+
+  gint buffer_count;
+
+  gboolean started;
+};
+
+struct SimpleTestConference *setup_simple_conference (
+    gchar *conference_elem,
+    gchar *cname);
+
+void setup_fakesrc (struct SimpleTestConference *dat);
+
+void cleanup_simple_conference (struct SimpleTestConference *dat);
 
 
 #endif /* __GENERIC_H__ */
