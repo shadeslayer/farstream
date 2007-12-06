@@ -1493,8 +1493,6 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
       fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
           "Could not add the codec bin to the new substream",
           "No error details returned");
-
-    fs_rtp_sub_stream_block (substream, NULL, NULL);
   }
 
   g_clear_error (&error);
