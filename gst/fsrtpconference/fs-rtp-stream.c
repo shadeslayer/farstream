@@ -217,7 +217,7 @@ fs_rtp_stream_dispose (GObject *object)
 
   FS_RTP_SESSION_LOCK (self->priv->session);
   if (self->priv->substreams) {
-    g_list_foreach (self->priv->substreams, (GFunc) gst_object_unref, NULL);
+    g_list_foreach (self->priv->substreams, (GFunc) g_object_unref, NULL);
     g_list_free (self->priv->substreams);
     self->priv->substreams = NULL;
   }
