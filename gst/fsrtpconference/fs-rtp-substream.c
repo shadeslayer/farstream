@@ -462,6 +462,9 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
     goto error;
   }
 
+  substream->priv->codecbin = codecbin;
+  substream->priv->codec = codec;
+
   gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE, _blocked_cb,
     NULL);
 
