@@ -2148,6 +2148,8 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     g_object_get (participant, "cname", &localcname, NULL);
     g_object_unref (participant);
 
+    g_assert (localcname);
+
     if (!strcmp (localcname, cname))
     {
       stream = localstream;
