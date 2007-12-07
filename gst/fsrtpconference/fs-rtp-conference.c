@@ -54,7 +54,8 @@ enum
 /* Properties */
 enum
 {
-  PROP_0
+  PROP_0,
+  PROP_CNAME
 };
 
 
@@ -99,6 +100,15 @@ static void fs_rtp_conference_do_init (GType type);
 
 GST_BOILERPLATE_FULL (FsRtpConference, fs_rtp_conference, FsBaseConference,
                       FS_TYPE_BASE_CONFERENCE, fs_rtp_conference_do_init);
+
+static void fs_rtp_conference_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
+static void fs_rtp_conference_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
 
 static void fs_rtp_conference_finalize (GObject *object);
 static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
@@ -179,6 +189,10 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
   gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_rtp_conference_dispose);
+  gobject_class->set_property =
+    GST_DEBUG_FUNCPTR (fs_rtp_conference_set_property);
+  gobject_class->get_property =
+    GST_DEBUG_FUNCPTR (fs_rtp_conference_get_property);
 
   gst_element_class_set_details (gstelement_class, &fs_rtp_conference_details);
 
@@ -187,7 +201,10 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
   gst_element_class_add_pad_template (gstelement_class,
             gst_static_pad_template_get (&fs_rtp_conference_src_template));
 
-
+  g_object_class_install_property (gobject_class, PROP_CNAME,
+      g_param_spec_string ("cname", "Canonical name",
+          "The CNAME for the RTP sessions", NULL,
+          G_PARAM_READWRITE));
 }
 
 static void
@@ -228,6 +245,43 @@ fs_rtp_conference_init (FsRtpConference *conf,
                     G_CALLBACK (_rtpbin_pad_added), conf);
   g_signal_connect (conf->gstrtpbin, "on-new-ssrc-cname-association",
                     G_CALLBACK (_rtpbin_on_new_ssrc_cname_association), conf);
+}
+
+static void
+fs_rtp_conference_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (object);
+  gchar *cname = NULL;
+
+  switch (prop_id) {
+    case PROP_CNAME:
+      g_object_get (self->gstrtpbin, "cname", &cname, NULL);
+      g_value_take_string (value, cname);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+static void
+fs_rtp_conference_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (object);
+
+  switch (prop_id) {
+   case PROP_CNAME:
+      g_object_set (self->gstrtpbin, "cname", g_value_get_string (value), NULL);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static GstCaps *

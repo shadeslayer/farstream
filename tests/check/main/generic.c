@@ -48,6 +48,8 @@ setup_simple_conference (
   fail_unless (gst_bin_add (GST_BIN (dat->pipeline), dat->conference),
       "Could not add conference to the pipeline");
 
+  g_object_set (dat->conference, "cname", cname, NULL);
+
   dat->session = fs_conference_new_session (FS_CONFERENCE (dat->conference),
       FS_MEDIA_TYPE_AUDIO, &error);
   if (error)
