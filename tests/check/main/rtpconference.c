@@ -402,11 +402,12 @@ set_initial_codecs (
 }
 
 
-GST_START_TEST (test_rtpconference_simple)
+static void
+simple_test (int in_count)
 {
   int i, j;
 
-  count = 2;
+  count = in_count;
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -414,8 +415,10 @@ GST_START_TEST (test_rtpconference_simple)
 
   for (i = 0; i < count; i++)
   {
-    dats[i] = setup_simple_conference (i, "fsrtpconference",
-        "tester@TesterTop3");
+    gchar *tmp = g_strdup_printf ("tester%d@TesterTop3", i);
+    dats[i] = setup_simple_conference (i, "fsrtpconference", tmp);
+    g_free (tmp);
+
     rtpconference_simple_connect_signals (dats[i]);
     g_idle_add (_start_pipeline, dats[i]);
 
@@ -455,6 +458,21 @@ GST_START_TEST (test_rtpconference_simple)
 
   g_main_loop_unref (loop);
 }
+
+
+
+GST_START_TEST (test_rtpconference_two_way)
+{
+  simple_test (2);
+}
+GST_END_TEST;
+
+
+
+GST_START_TEST (test_rtpconference_three_way)
+{
+  simple_test (3);
+}
 GST_END_TEST;
 
 
@@ -477,9 +495,15 @@ fsrtpconference_suite (void)
   suite_add_tcase (s, tc_chain);
 
 
-  tc_chain = tcase_create ("fsrtpconfence_simple");
+  tc_chain = tcase_create ("fsrtpconfence_two_way");
   tcase_set_timeout (tc_chain, 10);
-  tcase_add_test (tc_chain, test_rtpconference_simple);
+  tcase_add_test (tc_chain, test_rtpconference_two_way);
+  suite_add_tcase (s, tc_chain);
+
+
+  tc_chain = tcase_create ("fsrtpconfence_three_way");
+  tcase_set_timeout (tc_chain, 10);
+  tcase_add_test (tc_chain, test_rtpconference_three_way);
   suite_add_tcase (s, tc_chain);
 
 

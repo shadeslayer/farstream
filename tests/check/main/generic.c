@@ -38,7 +38,7 @@ setup_simple_conference (
   GError *error = NULL;
 
   dat->id = id;
-  dat->cname = cname;
+  dat->cname = g_strdup (cname);
 
   dat->pipeline = gst_pipeline_new ("pipeline");
   fail_if (dat->pipeline == NULL);
@@ -106,6 +106,7 @@ cleanup_simple_conference (struct SimpleTestConference *dat)
 
   g_object_unref (dat->session);
   gst_object_unref (dat->pipeline);
+  g_free (dat->cname);
   g_free (dat);
 }
 
