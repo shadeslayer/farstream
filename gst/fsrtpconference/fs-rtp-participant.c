@@ -49,7 +49,6 @@ enum
 
 struct _FsRtpParticipantPrivate
 {
-  gboolean disposed;
 };
 
 
@@ -58,18 +57,6 @@ G_DEFINE_TYPE(FsRtpParticipant, fs_rtp_participant, FS_TYPE_PARTICIPANT);
 #define FS_RTP_PARTICIPANT_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
    FsRtpParticipantPrivate))
-
-static void fs_rtp_participant_dispose (GObject *object);
-static void fs_rtp_participant_finalize (GObject *object);
-
-static void fs_rtp_participant_get_property (GObject *object,
-                                         guint prop_id,
-                                         GValue *value,
-                                         GParamSpec *pspec);
-static void fs_rtp_participant_set_property (GObject *object,
-                                         guint prop_id,
-                                         const GValue *value,
-                                         GParamSpec *pspec);
 
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
@@ -82,60 +69,14 @@ fs_rtp_participant_class_init (FsRtpParticipantClass *klass)
   gobject_class = (GObjectClass *) klass;
   parent_class = g_type_class_peek_parent (klass);
 
-  gobject_class->set_property = fs_rtp_participant_set_property;
-  gobject_class->get_property = fs_rtp_participant_get_property;
-
-
-  gobject_class->dispose = fs_rtp_participant_dispose;
-  gobject_class->finalize = fs_rtp_participant_finalize;
-
-  g_type_class_add_private (klass, sizeof (FsRtpParticipantPrivate));
+  // g_type_class_add_private (klass, sizeof (FsRtpParticipantPrivate));
 }
 
 static void
 fs_rtp_participant_init (FsRtpParticipant *self)
 {
   /* member init */
-  self->priv = FS_RTP_PARTICIPANT_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
-}
-
-static void
-fs_rtp_participant_dispose (GObject *object)
-{
-  FsRtpParticipant *self = FS_RTP_PARTICIPANT (object);
-
-  if (self->priv->disposed) {
-    /* If dispose did already run, return. */
-    return;
-  }
-
-  /* Make sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
-
-  parent_class->dispose (object);
-}
-
-static void
-fs_rtp_participant_finalize (GObject *object)
-{
-  parent_class->finalize (object);
-}
-
-static void
-fs_rtp_participant_get_property (GObject *object,
-                             guint prop_id,
-                             GValue *value,
-                             GParamSpec *pspec)
-{
-}
-
-static void
-fs_rtp_participant_set_property (GObject *object,
-                             guint prop_id,
-                             const GValue *value,
-                             GParamSpec *pspec)
-{
+  // self->priv = FS_RTP_PARTICIPANT_GET_PRIVATE (self);
 }
 
 FsRtpParticipant *fs_rtp_participant_new (gchar *cname)
