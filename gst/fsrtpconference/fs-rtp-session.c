@@ -495,7 +495,7 @@ fs_rtp_session_get_property (GObject *object,
       FS_RTP_SESSION_UNLOCK (self);
       break;
     case PROP_CONFERENCE:
-      g_value_take_object (value, self->priv->conference);
+      g_value_set_object (value, self->priv->conference);
       break;
     case PROP_CURRENT_SEND_CODEC:
       FS_RTP_SESSION_LOCK (self);
