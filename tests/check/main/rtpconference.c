@@ -24,6 +24,7 @@
 
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-stream-transmitter.h>
 
 #include "generic.h"
 
@@ -39,16 +40,30 @@ GST_START_TEST (test_rtpconference_new)
   GList *local_codecs = NULL;
   FsMediaType *media_type;
   GstPad *sinkpad = NULL;
-  gchar *str;
+  gchar *str = NULL;
+  GstElement *conf = NULL;
+  FsSession *sess = NULL;
+  FsParticipant *part = NULL;
+  FsStreamTransmitter *stt = NULL;
+  FsStreamDirection dir;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
   st = simple_conference_add_stream (dat, dat);
+
+  g_object_get (dat->conference, "cname", &str, NULL);
+  fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
+  g_free (str);
+
+  g_object_get (st->participant, "cname", &str, NULL);
+  fail_unless (!strcmp (str, "bob@127.0.0.1"), "Participant CNAME is wrong");
+  g_free (str);
 
   g_object_get (dat->session,
       "id", &id,
       "local-codecs", &local_codecs,
       "media-type", &media_type,
       "sink-pad", &sinkpad,
+      "conference", &conf,
       NULL);
 
   fail_unless (id == 1, "The id of the first session should be 1 not %d", id);
@@ -60,6 +75,28 @@ GST_START_TEST (test_rtpconference_new)
   fail_unless (!strcmp (str, GST_OBJECT_NAME (sinkpad)), "Sink pad is %s"
       " instead of being %d", GST_OBJECT_NAME (sinkpad), str);
   g_free (str);
+  fail_unless (conf == dat->conference, "Conference pointer from the session"
+      " is wrong");
+  gst_object_unref (conf);
+
+
+  g_object_get (st->stream,
+      "participant", &part,
+      "session", &sess,
+      "stream-transmitter", &stt,
+      "direction", &dir,
+      NULL);
+
+  fail_unless (part == st->participant, "The stream does not have the right"
+      " participant");
+  g_object_unref (part);
+  fail_unless (sess == dat->session, "The stream does not have the right"
+      " session");
+  g_object_unref (sess);
+  fail_unless (FS_IS_STREAM_TRANSMITTER (stt), "The stream transmitter is not"
+      " a stream transmitter");
+  g_object_unref (stt);
+  fail_unless (dir == FS_DIRECTION_BOTH, "The direction is not both");
 
   cleanup_simple_conference (dat);
 }
