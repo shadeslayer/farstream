@@ -41,7 +41,7 @@ G_BEGIN_DECLS
 #define FS_IS_CONFERENCE(obj) \
   (GST_IMPLEMENTS_INTERFACE_CHECK_INSTANCE_TYPE ((obj), FS_TYPE_CONFERENCE))
 #define FS_CONFERENCE_GET_IFACE(inst) \
-  (G_TYPE_INSTANCE_GET_INTERFACE ((inst), FS_TYPE_CONFERENCE, FsConferenceInterface))
+  (G_TYPE_INSTANCE_GET_INTERFACE ((inst), FS_TYPE_CONFERENCE, FsConferenceClass))
 
 /**
  * FsConference:
@@ -50,17 +50,17 @@ G_BEGIN_DECLS
  */
 typedef struct _FsConference FsConference;
 
-typedef struct _FsConferenceInterface FsConferenceInterface;
+typedef struct _FsConferenceClass FsConferenceClass;
 
 /**
- * FsConferenceInterface:
+ * FsConferenceClass:
  * @parent: parent interface type.
  * @new_session: virtual method to create a new conference session
  * @new_participant: virtual method to create a new participant
  *
- * #FsConferenceInterface interface.
+ * #FsConferenceClass interface.
  */
-struct _FsConferenceInterface {
+struct _FsConferenceClass {
   GTypeInterface parent;
 
   /* virtual functions */

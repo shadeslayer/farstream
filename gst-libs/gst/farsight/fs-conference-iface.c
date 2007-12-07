@@ -42,7 +42,7 @@
  *
  */
 
-static void fs_conference_iface_init (FsConferenceInterface *iface);
+static void fs_conference_iface_init (FsConferenceClass *iface);
 
 GType
 fs_conference_get_type (void)
@@ -51,7 +51,7 @@ fs_conference_get_type (void)
 
   if (!fs_conference_type) {
     static const GTypeInfo fs_conference_info = {
-      sizeof (FsConferenceInterface),
+      sizeof (FsConferenceClass),
       (GBaseInitFunc) fs_conference_iface_init,
       NULL,
       NULL,
@@ -80,7 +80,7 @@ fs_error_quark (void)
 
 
 static void
-fs_conference_iface_init (FsConferenceInterface * iface)
+fs_conference_iface_init (FsConferenceClass * iface)
 {
   /* default virtual functions */
   iface->new_session = NULL;
@@ -102,7 +102,7 @@ FsSession *
 fs_conference_new_session (FsConference *conference, FsMediaType media_type,
                            GError **error)
 {
-  FsConferenceInterface *iface =
+  FsConferenceClass *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
   if (iface->new_session) {
@@ -129,7 +129,7 @@ FsParticipant *
 fs_conference_new_participant (FsConference *conference, gchar *cname,
     GError **error)
 {
-  FsConferenceInterface *iface =
+  FsConferenceClass *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
   if (iface->new_session) {
