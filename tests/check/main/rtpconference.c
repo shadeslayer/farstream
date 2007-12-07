@@ -326,6 +326,23 @@ find_pointback_stream (
   return NULL;
 }
 
+
+static gboolean
+_compare_codec_lists (GList *list1, GList *list2)
+{
+  for (; list1 && list2;
+       list1 = g_list_next (list1),
+       list2 = g_list_next (list2)) {
+    if (!fs_codec_are_equal (list1->data, list2->data))
+      return FALSE;
+  }
+
+  if (list1 == NULL && list2 == NULL)
+    return TRUE;
+  else
+    return FALSE;
+}
+
 static void
 _new_negotiated_codecs (FsSession *session, gpointer user_data)
 {
@@ -347,6 +364,7 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
   {
     struct SimpleTestStream *st = item->data;
     struct SimpleTestStream *st2 = find_pointback_stream (st->target, dat);
+    GList *rcodecs2;
 
     g_debug ("Setting negotiated remote codecs on %d:%d from %d",st2->dat->id,
         st2->target->id, dat->id);
@@ -362,6 +380,10 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
             " and we DID not get a GError!!",
             st2->dat->id, st2->target->id);
     }
+    g_object_get (st2->stream, "remote-codecs", &rcodecs2, NULL);
+    fail_unless (_compare_codec_lists (rcodecs2, codecs),
+        "Can not get remote codecs correctly");
+    fs_codec_list_destroy (rcodecs2);
     break;
   }
   fs_codec_list_destroy (codecs);
@@ -401,6 +423,7 @@ set_initial_codecs (
   GList *local_codecs = NULL;
   GList *filtered_codecs = NULL;
   GList *item = NULL;
+  GList *rcodecs2 = NULL;
   GError *error = NULL;
 
   g_object_get (from->session, "local-codecs", &local_codecs, NULL);
@@ -433,6 +456,11 @@ set_initial_codecs (
       fail ("Could not set the remote codecs on stream %d"
           " and we DID not get a GError!!", to->target->id);
   }
+  g_object_get (to->stream, "remote-codecs", &rcodecs2, NULL);
+  fail_unless (_compare_codec_lists (rcodecs2, filtered_codecs),
+      "Can not get remote codecs correctly");
+  fs_codec_list_destroy (rcodecs2);
+
 
   g_list_free (filtered_codecs);
   fs_codec_list_destroy (local_codecs);
