@@ -425,6 +425,13 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
   FsParticipant *new_participant = NULL;
   GList *item = NULL;
 
+  if (!cname)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid NULL cname");
+    return NULL;
+  }
+
   GST_OBJECT_LOCK (self);
   for (item = g_list_first (self->priv->participants);
        item;
