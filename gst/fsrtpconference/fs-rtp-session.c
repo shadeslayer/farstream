@@ -108,6 +108,7 @@ struct _FsRtpSessionPrivate
   GstElement *send_codecbin;
   FsCodec *current_send_codec;
   FsCodec *requested_send_codec;
+  guint send_codec_idle_id;
 
   /* This is the id of the pad probe used to blocked the stream
    * while the codec is changed
@@ -1933,6 +1934,28 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
 }
 
 /**
+ * _idle_emit_send_codec_changed
+ *
+ * This idle function is called to emit the "send-codec-changed" signal
+ * on the main thread
+ *
+ * Returns: FALSE, because the event should be removed
+ */
+
+static gboolean
+_idle_emit_send_codec_changed (gpointer data)
+{
+  FsRtpSession *self = FS_RTP_SESSION (data);
+
+  g_signal_emit_by_name (self, "send-codec-changed");
+
+  FS_RTP_SESSION_LOCK (self);
+  self->priv->send_codec_idle_id = 0;
+  FS_RTP_SESSION_UNLOCK (self);
+  return FALSE;
+}
+
+/**
  * _send_src_pad_have_data_callback:
  *
  * This is the pad probe callback on the sink pad of the valve.
@@ -1992,6 +2015,10 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   {
     self->priv->send_codecbin = codecbin;
     self->priv->current_send_codec = fs_codec_copy (codec);
+
+    if (!self->priv->send_codec_idle_id)
+      self->priv->send_codec_idle_id =
+        g_idle_add (_idle_emit_send_codec_changed, self);
   }
   else
   {
@@ -2086,6 +2113,8 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
     if (codecbin) {
       self->priv->send_codecbin = codecbin;
       self->priv->current_send_codec = codec;
+
+      g_signal_emit_by_name (self, "send-codec-changed");
     }
     else
     {
