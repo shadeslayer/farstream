@@ -86,7 +86,6 @@ GST_START_TEST (test_rtpconference_new)
       "stream-transmitter", &stt,
       "direction", &dir,
       NULL);
-
   fail_unless (part == st->participant, "The stream does not have the right"
       " participant");
   g_object_unref (part);
@@ -97,6 +96,10 @@ GST_START_TEST (test_rtpconference_new)
       " a stream transmitter");
   g_object_unref (stt);
   fail_unless (dir == FS_DIRECTION_BOTH, "The direction is not both");
+
+  g_object_set (st->stream, "direction", FS_DIRECTION_NONE, NULL);
+  g_object_get (st->stream, "direction", &dir, NULL);
+  fail_unless (dir == FS_DIRECTION_NONE, "The direction is not both");
 
   cleanup_simple_conference (dat);
 }
