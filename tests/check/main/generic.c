@@ -29,7 +29,8 @@
 #include <gst/farsight/fs-conference-iface.h>
 
 struct SimpleTestConference *
-setup_simple_conference (gint id,
+setup_simple_conference (
+    gint id,
     gchar *conference_elem,
     gchar *cname)
 {
@@ -37,6 +38,7 @@ setup_simple_conference (gint id,
   GError *error = NULL;
 
   dat->id = id;
+  dat->cname = cname;
 
   dat->pipeline = gst_pipeline_new ("pipeline");
   fail_if (dat->pipeline == NULL);
@@ -53,31 +55,56 @@ setup_simple_conference (gint id,
         error->code, error->message);
   fail_if (dat->session == NULL, "Could not make session, but no GError!");
 
-  dat->participant = fs_conference_new_participant (
-      FS_CONFERENCE (dat->conference), cname, &error);
+  return dat;
+}
+
+
+struct SimpleTestStream *
+simple_conference_add_stream (
+    struct SimpleTestConference *dat,
+    struct SimpleTestConference *target)
+{
+  struct SimpleTestStream *st = g_new0 (struct SimpleTestStream, 1);
+  GError *error = NULL;
+
+  st->dat = dat;
+  st->target = target;
+
+  st->participant = fs_conference_new_participant (
+      FS_CONFERENCE (dat->conference), target->cname, &error);
   if (error)
     fail ("Error while creating new participant (%d): %s",
         error->code, error->message);
   fail_if (dat->session == NULL, "Could not make participant, but no GError!");
 
-  dat->stream = fs_session_new_stream (dat->session, dat->participant,
+  st->stream = fs_session_new_stream (dat->session, st->participant,
       FS_DIRECTION_BOTH, "rawudp", 0, NULL, &error);
   if (error)
     fail ("Error while creating new stream (%d): %s",
         error->code, error->message);
-  fail_if (dat->stream == NULL, "Could not make stream, but no GError!");
+  fail_if (st->stream == NULL, "Could not make stream, but no GError!");
 
-  return dat;
+  dat->streams = g_list_append (dat->streams, st);
+
+  return st;
 }
 
+
+void
+cleanup_simple_stream (struct SimpleTestStream *st)
+{
+  g_object_unref (st->stream);
+  g_object_unref (st->participant);
+}
 
 void
 cleanup_simple_conference (struct SimpleTestConference *dat)
 {
 
-  g_object_unref (dat->stream);
+  g_list_foreach (dat->streams, (GFunc) cleanup_simple_stream, NULL);
+  g_list_free (dat->streams);
+
   g_object_unref (dat->session);
-  g_object_unref (dat->participant);
   gst_object_unref (dat->pipeline);
   g_free (dat);
 }

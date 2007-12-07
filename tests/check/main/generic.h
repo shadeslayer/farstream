@@ -27,22 +27,37 @@
 
 struct SimpleTestConference {
   gint id;
+  gchar *cname;
 
   GstElement *pipeline;
   GstElement *conference;
   FsSession *session;
-  FsParticipant *participant;
-  FsStream *stream;
   GstElement *fakesrc;
 
-  gint buffer_count;
-
   gboolean started;
+
+  GList *streams;
 };
 
-struct SimpleTestConference *setup_simple_conference (gint id,
+
+struct SimpleTestStream {
+  struct SimpleTestConference *dat;
+  struct SimpleTestConference *target;
+
+  FsParticipant *participant;
+  FsStream *stream;
+
+  gint buffer_count;
+};
+
+struct SimpleTestConference *setup_simple_conference (
+    gint id,
     gchar *conference_elem,
     gchar *cname);
+
+struct SimpleTestStream *simple_conference_add_stream (
+    struct SimpleTestConference *dat,
+    struct SimpleTestConference *target);
 
 void setup_fakesrc (struct SimpleTestConference *dat);
 

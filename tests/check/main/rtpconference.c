@@ -27,14 +27,14 @@
 
 #include "generic.h"
 
-struct SimpleTestConference *dat1 = NULL;
-struct SimpleTestConference *dat2 = NULL;
+struct SimpleTestConference **dats;
 GMainLoop *loop;
-
+int count = 0;
 
 GST_START_TEST (test_rtpconference_new)
 {
   struct SimpleTestConference *dat = NULL;
+  struct SimpleTestStream *st = NULL;
   guint id = 999;
   GList *local_codecs = NULL;
   FsMediaType *media_type;
@@ -42,6 +42,7 @@ GST_START_TEST (test_rtpconference_new)
   gchar *str;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+  st = simple_conference_add_stream (dat, dat);
 
   g_object_get (dat->session,
       "id", &id,
@@ -141,28 +142,47 @@ static void
 _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gpointer user_data)
 {
-  struct SimpleTestConference *dat = user_data;
+  struct SimpleTestStream *st = user_data;
+  int i;
+  gboolean stop = TRUE;
 
-  dat->buffer_count++;
+  st->buffer_count++;
 
-  if (dat->buffer_count % 10 == 0)
-    g_debug ("%d: Buffer %d", dat->id, dat->buffer_count);
+  if (st->buffer_count % 10 == 0)
+    g_debug ("%d:%d: Buffer %d", st->dat->id, st->target->id, st->buffer_count);
 
   /*
   fail_if (dat->buffer_count > 20,
     "Too many buffers %d > 20", dat->buffer_count);
   */
 
-  if (dat1->buffer_count >= 20 && dat2->buffer_count >= 20) {
-    /* TEST OVER */
-    g_main_loop_quit (loop);
+  for (i = 0; i < count ; i++)
+  {
+    GList *item;
+
+
+    for (item = g_list_first (dats[i]->streams);
+         item && ! stop;
+         item = g_list_next (item))
+    {
+      struct SimpleTestStream *st2 = item->data;
+
+      if (st2->buffer_count < 20)
+      {
+        stop = FALSE;
+        break;
+      }
+    }
   }
+
+  if (stop)
+    g_main_loop_quit (loop);
 }
 
 static void
 _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
 {
-  struct SimpleTestConference *dat = user_data;
+  struct SimpleTestStream *st = user_data;
   GstElement *fakesink = gst_element_factory_make ("fakesink", NULL);
   GstPad *fakesink_pad = NULL;
   GstPadLinkReturn ret;
@@ -175,9 +195,9 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
       "async", TRUE,
       NULL);
 
-  g_signal_connect (fakesink, "handoff", G_CALLBACK (_handoff_handler), dat);
+  g_signal_connect (fakesink, "handoff", G_CALLBACK (_handoff_handler), st);
 
-  gst_bin_add (GST_BIN (dat->pipeline), fakesink);
+  gst_bin_add (GST_BIN (st->dat->pipeline), fakesink);
 
   fakesink_pad = gst_element_get_static_pad (fakesink, "sink");
   ret = gst_pad_link (pad, fakesink_pad);
@@ -188,7 +208,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   fail_if (gst_element_set_state (fakesink, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the fakesink to playing");
 
-  g_debug ("%d: Added Fakesink", dat->id);
+  g_debug ("%d:%d: Added Fakesink", st->dat->id, st->target->id);
 }
 
 
@@ -196,7 +216,7 @@ static void
 _new_active_candidate_pair (FsStream *stream, FsCandidate *local,
     FsCandidate *remote, gpointer user_data)
 {
-  struct SimpleTestConference *dat = user_data;
+  struct SimpleTestStream *st = user_data;
 
   fail_if (local == NULL, "Local candidate NULL");
   fail_if (remote == NULL, "Remote candidate NULL");
@@ -204,12 +224,12 @@ _new_active_candidate_pair (FsStream *stream, FsCandidate *local,
   if (local->component_id != 1)
     return;
 
-  if (!dat->fakesrc)
-    setup_fakesrc (dat);
+  if (!st->dat->fakesrc)
+    setup_fakesrc (st->dat);
 }
 
 
-void
+static void
 rtpconference_simple_connect_signals (struct SimpleTestConference *dat)
 {
   GstBus *bus = NULL;
@@ -220,12 +240,16 @@ rtpconference_simple_connect_signals (struct SimpleTestConference *dat)
 
   g_signal_connect (dat->session, "send-codec-changed",
       G_CALLBACK (_simple_send_codec_changed), dat);
+}
 
-  g_signal_connect (dat->stream, "src-pad-added", G_CALLBACK (_src_pad_added),
-      dat);
+static void
+rtpconference_simple_connect_streams_signals (struct SimpleTestStream *st)
+{
+ g_signal_connect (st->stream, "src-pad-added", G_CALLBACK (_src_pad_added),
+      st);
 
-  g_signal_connect (dat->stream, "new-active-candidate-pair",
-      G_CALLBACK (_new_active_candidate_pair), dat);
+  g_signal_connect (st->stream, "new-active-candidate-pair",
+      G_CALLBACK (_new_active_candidate_pair), st);
 }
 
 
@@ -244,31 +268,65 @@ _start_pipeline (gpointer user_data)
   return FALSE;
 }
 
+static struct SimpleTestStream *
+find_pointback_stream (
+    struct SimpleTestConference *dat,
+    struct SimpleTestConference *target)
+{
+  GList *item = NULL;
+
+  for (item = g_list_first (dat->streams);
+       item;
+       item = g_list_next (item))
+  {
+    struct SimpleTestStream *st = item->data;
+
+    if (st->target == target)
+      return st;
+  }
+
+  fail ("We did not find a return stream for %d in %d", target->id, dat->id);
+  return NULL;
+}
+
 static void
 _new_negotiated_codecs (FsSession *session, gpointer user_data)
 {
+  struct SimpleTestConference *dat = user_data;
   GList *codecs = NULL;
   GError *error = NULL;
-  struct SimpleTestConference *dat = user_data;
+  GList *item = NULL;
 
   g_debug ("%d: New negotiated codecs", dat->id);
 
-  fail_if (session != dat2->session, "Got signal from the wrong object");
+  fail_if (session != dat->session, "Got signal from the wrong object");
 
-  g_object_get (dat2->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
   fail_if (codecs == NULL, "Could not get the negotiated codecs");
 
 
-  if (!fs_stream_set_remote_codecs (dat1->stream, codecs, &error))
+  /* We have to find the stream from the target that points back to us */
+  for (item = g_list_first (dat->streams); item; item = g_list_next (item))
   {
-    if (error)
-      fail ("Could not set the remote codecs on dat1 (%d): %s", error->code,
-          error->message);
-    else
-      fail ("Could not set the remote codecs on dat1"
-          " and we DID not get a GError!!");
-  }
+    struct SimpleTestStream *st = item->data;
+    struct SimpleTestStream *st2 = find_pointback_stream (st->target, dat);
 
+    g_debug ("Setting negotiated remote codecs on %d:%d from %d",st2->dat->id,
+        st2->target->id, dat->id);
+    if (!fs_stream_set_remote_codecs (st2->stream, codecs, &error))
+    {
+      if (error)
+        fail ("Could not set the remote codecs on stream %d:%d (%d): %s",
+            st2->dat->id, st2->target->id,
+            error->code,
+            error->message);
+      else
+        fail ("Could not set the remote codecs on stream %d:%d"
+            " and we DID not get a GError!!",
+            st2->dat->id, st2->target->id);
+    }
+    break;
+  }
   fs_codec_list_destroy (codecs);
 }
 
@@ -277,13 +335,18 @@ static void
 _new_local_candidate (FsStream *stream, FsCandidate *candidate,
     gpointer user_data)
 {
-  struct SimpleTestConference *other_dat = user_data;
+  struct SimpleTestStream *st = user_data;
   gboolean ret;
   GError *error = NULL;
+  struct SimpleTestStream *other_st = find_pointback_stream (st->target,
+      st->dat);
 
-  g_debug ("%d: Setting remove candidate", other_dat->id);
+  g_debug ("%d:%d: Setting remote candidate for component %d",
+      other_st->dat->id,
+      other_st->target->id,
+      candidate->component_id);
 
-  ret = fs_stream_add_remote_candidate (other_dat->stream, candidate, &error);
+  ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
 
   if (error)
     fail ("Error while adding candidate: (%s:%d) %s",
@@ -293,15 +356,17 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate,
 
 }
 
-void
-set_local_codecs (void)
+static void
+set_initial_codecs (
+    struct SimpleTestConference *from,
+    struct SimpleTestStream *to)
 {
   GList *local_codecs = NULL;
   GList *filtered_codecs = NULL;
   GList *item = NULL;
   GError *error = NULL;
 
-  g_object_get (dat1->session, "local-codecs", &local_codecs, NULL);
+  g_object_get (from->session, "local-codecs", &local_codecs, NULL);
 
   fail_if (local_codecs == NULL, "Could not get the local codecs");
 
@@ -316,14 +381,20 @@ set_local_codecs (void)
       " you must install gst-plugins-good");
 
 
-  if (!fs_stream_set_remote_codecs (dat2->stream, filtered_codecs, &error))
+  g_debug ("Setting initial remote codecs on %d:%d from %d",
+      to->dat->id, to->target->id,
+      from->id);
+
+  if (!fs_stream_set_remote_codecs (to->stream, filtered_codecs, &error))
   {
     if (error)
-      fail ("Could not set the remote codecs on dat2 (%d): %s", error->code,
+      fail ("Could not set the remote codecs on stream %d:%d (%d): %s",
+          to->dat->id, to->target->id,
+          error->code,
           error->message);
     else
-      fail ("Could not set the remote codecs on dat2"
-          " and we DID not get a GError!!");
+      fail ("Could not set the remote codecs on stream %d"
+          " and we DID not get a GError!!", to->target->id);
   }
 
   g_list_free (filtered_codecs);
@@ -333,35 +404,54 @@ set_local_codecs (void)
 
 GST_START_TEST (test_rtpconference_simple)
 {
+  int i, j;
+
+  count = 2;
 
   loop = g_main_loop_new (NULL, FALSE);
 
-  dat1 = setup_simple_conference (1, "fsrtpconference", "tester@TesterTop3");
-  dat2 = setup_simple_conference (2, "fsrtpconference", "tester@TesterTop3");
+  dats = g_new0 (struct SimpleTestConference *, count);
 
-  rtpconference_simple_connect_signals (dat1);
-  rtpconference_simple_connect_signals (dat2);
+  for (i = 0; i < count; i++)
+  {
+    dats[i] = setup_simple_conference (i, "fsrtpconference",
+        "tester@TesterTop3");
+    rtpconference_simple_connect_signals (dats[i]);
+    g_idle_add (_start_pipeline, dats[i]);
 
-  g_idle_add (_start_pipeline, dat1);
-  g_idle_add (_start_pipeline, dat2);
+    if (i != 0)
+      g_signal_connect (dats[i]->session, "new-negotiated-codecs",
+          G_CALLBACK (_new_negotiated_codecs), dats[i]);
+  }
 
-  g_signal_connect (dat2->session, "new-negotiated-codecs",
-      G_CALLBACK (_new_negotiated_codecs), dat2);
+  for (i = 0; i < count; i++)
+    for (j = 0; j < count; j++)
+      if (i != j)
+      {
+        struct SimpleTestStream *st = NULL;
 
-  set_local_codecs ();
+        st = simple_conference_add_stream (dats[i], dats[j]);
+        rtpconference_simple_connect_streams_signals (st);
 
-  g_signal_connect (dat1->stream, "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), dat2);
-  g_signal_connect (dat2->stream, "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), dat1);
+        g_signal_connect (st->stream, "new-local-candidate",
+            G_CALLBACK (_new_local_candidate), st);
+      }
+
+  for (i = 1; i < count; i++)
+  {
+    struct SimpleTestStream *st = find_pointback_stream (dats[i], dats[0]);
+    set_initial_codecs (dats[0], st);
+  }
 
   g_main_loop_run (loop);
 
-  gst_element_set_state (dat1->pipeline, GST_STATE_NULL);
-  gst_element_set_state (dat2->pipeline, GST_STATE_NULL);
+  for (i = 0; i < count; i++)
+    gst_element_set_state (dats[i]->pipeline, GST_STATE_NULL);
 
-  cleanup_simple_conference (dat1);
-  cleanup_simple_conference (dat2);
+  for (i = 0; i < count; i++)
+    cleanup_simple_conference (dats[i]);
+
+  g_free (dats);
 
   g_main_loop_unref (loop);
 }
