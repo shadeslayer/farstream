@@ -496,6 +496,11 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_CONFERENCE:
       g_value_take_object (value, self->priv->conference);
       break;
+    case PROP_CURRENT_SEND_CODEC:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_boxed (value, self->priv->current_send_codec);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
