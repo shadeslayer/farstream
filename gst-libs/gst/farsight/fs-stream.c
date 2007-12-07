@@ -102,7 +102,7 @@ static void fs_stream_set_property (GObject *object,
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
-static GType
+GType
 fs_stream_direction_get_type (void)
 {
   static GType gtype = 0;

@@ -53,6 +53,8 @@ typedef enum
   FS_DIRECTION_BOTH = FS_DIRECTION_SEND | FS_DIRECTION_RECV
 } FsStreamDirection;
 
+GType fs_stream_direction_get_type (void);
+
 /* TYPE MACROS */
 #define FS_TYPE_STREAM \
   (fs_stream_get_type())
