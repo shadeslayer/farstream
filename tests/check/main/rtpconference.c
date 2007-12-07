@@ -196,13 +196,13 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     "Too many buffers %d > 20", dat->buffer_count);
   */
 
-  for (i = 0; i < count ; i++)
+  for (i = 0; i < count && !stop ; i++)
   {
     GList *item;
 
 
     for (item = g_list_first (dats[i]->streams);
-         item && ! stop;
+         item;
          item = g_list_next (item))
     {
       struct SimpleTestStream *st2 = item->data;
@@ -545,6 +545,14 @@ GST_END_TEST;
 
 
 
+GST_START_TEST (test_rtpconference_ten_way)
+{
+  simple_test (10);
+}
+GST_END_TEST;
+
+
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -572,6 +580,11 @@ fsrtpconference_suite (void)
   tc_chain = tcase_create ("fsrtpconfence_three_way");
   tcase_set_timeout (tc_chain, 10);
   tcase_add_test (tc_chain, test_rtpconference_three_way);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_ten_way");
+  tcase_set_timeout (tc_chain, 20);
+  tcase_add_test (tc_chain, test_rtpconference_ten_way);
   suite_add_tcase (s, tc_chain);
 
 
