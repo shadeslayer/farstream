@@ -457,7 +457,7 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
 
 
   GST_OBJECT_LOCK (self);
-  self->priv->participants = g_list_append (self->priv->sessions,
+  self->priv->participants = g_list_append (self->priv->participants,
       new_participant);
   GST_OBJECT_UNLOCK (self);
 
