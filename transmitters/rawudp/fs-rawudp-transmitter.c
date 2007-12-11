@@ -103,6 +103,9 @@ static void fs_rawudp_transmitter_set_property (GObject *object,
 static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
     FsTransmitter *transmitter, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
+static GType fs_rawudp_transmitter_get_stream_transmitter_type (
+    FsTransmitter *transmitter,
+    GError **error);
 
 
 static GObjectClass *parent_class = NULL;
@@ -168,6 +171,8 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
 
   transmitter_class->new_stream_transmitter =
     fs_rawudp_transmitter_new_stream_transmitter;
+  transmitter_class->get_stream_transmitter_type =
+    fs_rawudp_transmitter_get_stream_transmitter_type;
 
   gobject_class->dispose = fs_rawudp_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_transmitter_finalize;
@@ -786,3 +791,10 @@ fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport)
   return udpport->port;
 }
 
+
+static GType
+fs_rawudp_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
+    GError **error)
+{
+  return FS_TYPE_RAWUDP_STREAM_TRANSMITTER;
+}

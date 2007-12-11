@@ -398,7 +398,7 @@ _remove_stream_ptr (FsSession *session, FsStream *stream)
  */
 FsStream *
 fs_session_new_stream (FsSession *session, FsParticipant *participant,
-                       FsStreamDirection direction, gchar *transmitter,
+                       FsStreamDirection direction, const gchar *transmitter,
                        guint stream_transmitter_n_parameters,
                        GParameter *stream_transmitter_parameters,
                        GError **error)

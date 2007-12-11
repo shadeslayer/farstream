@@ -119,7 +119,7 @@ struct _FsSessionClass
   FsStream *(* new_stream) (FsSession *session,
                             FsParticipant *participant,
                             FsStreamDirection direction,
-                            gchar *transmitter,
+                            const gchar *transmitter,
                             guint stream_transmitter_n_parameters,
                             GParameter *stream_transmitter_parameters,
                             GError **error);
@@ -156,7 +156,7 @@ GType fs_session_get_type (void);
 FsStream *fs_session_new_stream (FsSession *session,
                                  FsParticipant *participant,
                                  FsStreamDirection direction,
-                                 gchar *transmitter,
+                                 const gchar *transmitter,
                                  guint stream_transmitter_n_parameters,
                                  GParameter *stream_transmitter_parameters,
                                  GError **error);

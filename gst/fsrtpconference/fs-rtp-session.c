@@ -159,7 +159,7 @@ static void fs_rtp_session_constructed (GObject *object);
 static FsStream *fs_rtp_session_new_stream (FsSession *session,
                                             FsParticipant *participant,
                                             FsStreamDirection direction,
-                                            gchar *transmitter,
+                                            const gchar *transmitter,
                                             guint n_parameters,
                                             GParameter *parameters,
                                             GError **error);
@@ -180,7 +180,7 @@ static gboolean fs_rtp_session_verify_send_codec_bin_locked (
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   FsRtpSession *self,
-  gchar *transmitter_name,
+  const gchar *transmitter_name,
   FsParticipant *participant,
   guint n_parameters,
   GParameter *parameters,
@@ -965,10 +965,13 @@ _remove_stream (gpointer user_data,
  * #FsStream when the stream is ended. If an error occured, returns NULL.
  */
 static FsStream *
-fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
-                           FsStreamDirection direction, gchar *transmitter,
-                           guint n_parameters, GParameter *parameters,
-                           GError **error)
+fs_rtp_session_new_stream (FsSession *session,
+    FsParticipant *participant,
+    FsStreamDirection direction,
+    const gchar *transmitter,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
   FsRtpParticipant *rtpparticipant = NULL;
@@ -983,7 +986,7 @@ fs_rtp_session_new_stream (FsSession *session, FsParticipant *participant,
   rtpparticipant = FS_RTP_PARTICIPANT (participant);
 
   st = fs_rtp_session_get_new_stream_transmitter (self, transmitter,
-    participant, n_parameters, parameters, error);
+      participant, n_parameters, parameters, error);
 
   if (!st)
     return NULL;
@@ -1203,7 +1206,7 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
 
 static FsStreamTransmitter *
 fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
-  gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
+  const gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
   GParameter *parameters, GError **error)
 {
   FsTransmitter *transmitter;
