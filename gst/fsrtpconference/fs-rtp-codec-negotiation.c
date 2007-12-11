@@ -148,13 +148,15 @@ _find_matching_blueprint (FsCodec *codec, GList *blueprints)
   GList *item = NULL;
   GstCaps *caps = NULL;
 
-  if (item == NULL)
-    return NULL;
-
   caps = fs_codec_to_gst_caps (codec);
 
   if (!caps)
+  {
+    gchar *tmp = fs_codec_to_string (codec);
+    GST_WARNING ("Could not transform codec into caps: %s", tmp);
+    g_free (tmp);
     return NULL;
+  }
 
   for (item = g_list_first (blueprints); item; item = g_list_next (item)) {
     CodecBlueprint *bp = item->data;
@@ -275,13 +277,18 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
     CodecAssociation *ca = NULL;
     GList *bp_param_e = NULL;
 
-    /* No matching blueprint, can't use this codec */
-    if (!bp)
-      continue;
-
     /* If its a negative pref, ignore it in this stage */
     if (codec_pref->id == FS_CODEC_ID_DISABLE)
       continue;
+
+    /* No matching blueprint, can't use this codec */
+    if (!bp)
+    {
+      GST_LOG ("Could not find matching blueprint for prefered codec %s/%s",
+          fs_media_type_to_string (codec_pref->media_type),
+          codec_pref->encoding_name);
+      continue;
+    }
 
     ca = g_new0 (CodecAssociation, 1);
     ca->blueprint = bp;
@@ -294,7 +301,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
         ca->codec->id = bp->codec->id;
     }
 
-    if (ca->codec->clock_rate <= 0) {
+    if (ca->codec->clock_rate == 0) {
       ca->codec->clock_rate = bp->codec->clock_rate;
     }
 
@@ -321,6 +328,12 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
         ca->codec->optional_params = g_list_append (ca->codec->optional_params,
             newparam);
       }
+    }
+
+    {
+      gchar *tmp = fs_codec_to_string (ca->codec);
+      GST_LOG ("Added prefered codec %s", tmp);
+      g_free (tmp);
     }
 
     local_codec_association_list = g_list_append (local_codec_association_list,
@@ -361,7 +374,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
     CodecAssociation *ca = NULL;
 
     /* Lets skip codecs that dont have all of the required informations */
-    if (bp->codec->clock_rate <= 0) {
+    if (bp->codec->clock_rate == 0) {
       continue;
     }
 
