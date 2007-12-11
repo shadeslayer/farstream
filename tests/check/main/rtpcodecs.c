@@ -59,15 +59,30 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
           FS_MEDIA_TYPE_AUDIO,
           8000));
 
+  {
+    FsCodec *codec = fs_codec_new (
+        FS_CODEC_ID_ANY,
+        "PCMA",
+        FS_MEDIA_TYPE_AUDIO,
+        8000);
+    FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
+    param->name = g_strdup ("p1");
+    param->value = g_strdup ("v1");
+    codec->optional_params = g_list_append (NULL, param);
+    codecs = g_list_append (codecs, codec);
+  }
+
   g_object_set (dat->session, "local-codecs-config", codecs, NULL);
 
   g_object_get (dat->session, "local-codecs-config", &codecs2, NULL);
 
-  fail_unless (g_list_length (codecs2) == 1,
-      "Returned list from local-codecs-config is wrong");
+  fail_unless (g_list_length (codecs2) == 2,
+      "Returned list from local-codecs-config is wrong length");
 
   fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
-      "Codecs");
+      "local-codecs-config first element wrong");
+  fail_unless (fs_codec_are_equal (codecs->next->data, codecs2->next->data),
+      "local-codecs-config second element wrong");
 
   fs_codec_list_destroy (codecs);
   fs_codec_list_destroy (codecs2);
@@ -79,6 +94,19 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
     FsCodec *codec = item->data;
     fail_if (!strcmp (codec->encoding_name, "PCMU"),
         "PCMU codec was not removed as requested");
+
+    if (!strcmp (codec->encoding_name, "PCMA"))
+    {
+      fail_if (codec->optional_params == NULL, "No optional params for PCMA");
+      fail_unless (g_list_length (codec->optional_params) == 1,
+          "Too many optional params for PCMA");
+      fail_unless (
+          !strcmp (((FsCodecParameter*)codec->optional_params->data)->name,
+              "p1") &&
+          !strcmp (((FsCodecParameter*)codec->optional_params->data)->value,
+              "v1"),
+          "Not the right data in optional params for PCMA");
+    }
   }
 
   fs_codec_list_destroy (codecs);
