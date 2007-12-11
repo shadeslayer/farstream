@@ -50,11 +50,11 @@ GST_START_TEST (test_rtpconference_new)
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
   st = simple_conference_add_stream (dat, dat);
 
-  g_object_get (dat->conference, "cname", &str, NULL);
+  g_object_get (dat->conference, "sdes-cname", &str, NULL);
   fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
   g_free (str);
 
-  g_object_get (st->participant, "cname", &str, NULL);
+  g_object_get (st->participant, "sdes-cname", &str, NULL);
   fail_unless (!strcmp (str, "bob@127.0.0.1"), "Participant CNAME is wrong");
   g_free (str);
 
