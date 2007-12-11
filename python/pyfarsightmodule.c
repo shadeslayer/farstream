@@ -1,4 +1,5 @@
 #include <pygobject.h>
+#include <gst-libs/gst/farsight/fs-codec.h>
 
 void fs_register_classes (PyObject *d);
 void fs_add_constants(PyObject *module, const gchar *strip_prefix);
@@ -15,6 +16,9 @@ initfarsight(void)
 
   m = Py_InitModule ("farsight", fs_functions);
   d = PyModule_GetDict (m);
+
+  PyModule_AddIntConstant (m, "CODEC_ID_ANY", FS_CODEC_ID_ANY);
+  PyModule_AddIntConstant (m, "CODEC_ID_DISABLE", FS_CODEC_ID_DISABLE);
 
   fs_register_classes (d);
   fs_add_constants(m, "FS_");
