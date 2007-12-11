@@ -2171,7 +2171,7 @@ fs_rtp_session_get_recv_codec_for_pt (FsRtpSession *session,
 void
 fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     guint32 ssrc,
-    gchar *cname)
+    const gchar *cname)
 {
   FsRtpStream *stream = NULL;
   FsRtpSubStream *substream = NULL;

@@ -136,11 +136,9 @@ static GstCaps *_rtpbin_request_pt_map (GstElement *element,
 static void _rtpbin_pad_added (GstElement *rtpbin,
     GstPad *new_pad,
     gpointer user_data);
-static void _rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
-    guint session_id,
-    guint ssrc,
-    gchar *cname,
-    gpointer user_data);
+static void fs_rtp_conference_handle_message (
+    GstBin * bin,
+    GstMessage * message);
 
 
 static void
@@ -185,6 +183,8 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
   FsBaseConferenceClass *baseconf_class = FS_BASE_CONFERENCE_CLASS (klass);
+  GstBinClass *gstbin_class = GST_BIN_CLASS (klass);
+
   g_type_class_add_private (klass, sizeof (FsRtpConferencePrivate));
 
   parent_class = g_type_class_peek_parent (klass);
@@ -193,6 +193,9 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
     GST_DEBUG_FUNCPTR (fs_rtp_conference_new_session);
   baseconf_class->new_participant =
     GST_DEBUG_FUNCPTR (fs_rtp_conference_new_participant);
+
+  gstbin_class->handle_message =
+    GST_DEBUG_FUNCPTR (fs_rtp_conference_handle_message);
 
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
   gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_rtp_conference_dispose);
@@ -281,8 +284,6 @@ fs_rtp_conference_init (FsRtpConference *conf,
                     G_CALLBACK (_rtpbin_request_pt_map), conf);
   g_signal_connect (conf->gstrtpbin, "pad-added",
                     G_CALLBACK (_rtpbin_pad_added), conf);
-  g_signal_connect (conf->gstrtpbin, "on-new-ssrc-cname-association",
-                    G_CALLBACK (_rtpbin_on_new_ssrc_cname_association), conf);
 }
 
 static void
@@ -411,28 +412,6 @@ _rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
 
   g_free (name);
 }
-
-static void
-_rtpbin_on_new_ssrc_cname_association (GstElement *rtpbin,
-    guint session_id,
-    guint ssrc,
-    gchar *cname,
-    gpointer user_data)
-{
-  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
-  FsRtpSession *session =
-    fs_rtp_conference_get_session_by_id (self, session_id);
-
-  if (session) {
-    fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
-    g_object_unref (session);
-  } else {
-    GST_WARNING_OBJECT(self,"GstRtpBin %p announced a new association"
-        "for non-existent session %u",
-        rtpbin, session_id);
-  }
-}
-
 
 /**
  * fs_rtp_conference_get_session_by_id_locked
@@ -594,4 +573,57 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
   g_object_weak_ref (G_OBJECT (new_participant), _remove_participant, self);
 
   return new_participant;
+}
+
+static void
+fs_rtp_conference_handle_message (
+    GstBin * bin,
+    GstMessage * message)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (bin);
+
+  switch (GST_MESSAGE_TYPE (message)) {
+    case GST_MESSAGE_ELEMENT:
+    {
+      const GstStructure *s = gst_message_get_structure (message);
+
+      /* we change the structure name and add the session ID to it */
+      if (gst_structure_has_name (s, "GstRTPBinSDES") &&
+          gst_structure_has_field_typed (s, "session", G_TYPE_UINT) &&
+          gst_structure_has_field_typed (s, "ssrc", G_TYPE_UINT) &&
+          gst_structure_has_field_typed (s, "cname", G_TYPE_STRING))
+      {
+        guint session_id;
+        guint ssrc;
+        const GValue *val;
+        FsRtpSession *session;
+        const gchar *cname;
+
+        val = gst_structure_get_value (s, "session");
+        session_id = g_value_get_uint (val);
+
+        val = gst_structure_get_value (s, "ssrc");
+        ssrc = g_value_get_uint (val);
+
+        cname = gst_structure_get_string (s, "cname");
+
+        session = fs_rtp_conference_get_session_by_id (self, session_id);
+
+        if (session) {
+          fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
+          g_object_unref (session);
+        } else {
+          GST_WARNING_OBJECT(self,"Our GstRtpBin announced a new association"
+              "for non-existent session %u for ssrc: %u and cname %s",
+              session_id, ssrc, cname);
+        }
+      }
+      /* fallthrough to forward the modified message to the parent */
+    }
+    default:
+    {
+      GST_BIN_CLASS (parent_class)->handle_message (bin, message);
+      break;
+    }
+  }
 }

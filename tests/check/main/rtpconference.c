@@ -54,7 +54,7 @@ GST_START_TEST (test_rtpconference_new)
   fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
   g_free (str);
 
-  g_object_get (st->participant, "sdes-cname", &str, NULL);
+  g_object_get (st->participant, "cname", &str, NULL);
   fail_unless (!strcmp (str, "bob@127.0.0.1"), "Participant CNAME is wrong");
   g_free (str);
 
