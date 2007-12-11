@@ -110,35 +110,12 @@ fs_candidate_copy (const FsCandidate * cand)
   copy->priority = cand->priority;
   copy->type = cand->type;
 
-  if (cand->foundation)
-    copy->foundation = g_strdup (cand->foundation);
-  else
-    copy->candidate_id = NULL;
-
-  if (cand->candidate_id)
-    copy->candidate_id = g_strdup (cand->candidate_id);
-  else
-    copy->candidate_id = NULL;
-
-  if (cand->ip)
-    copy->ip = g_strdup (cand->ip);
-  else
-    copy->ip = NULL;
-
-  if (cand->base_ip)
-    copy->base_ip = g_strdup (cand->base_ip);
-  else
-    copy->base_ip = NULL;
-
-  if (cand->username)
-    copy->username = g_strdup (cand->username);
-  else
-    copy->username = NULL;
-
-  if (cand->password)
-    copy->password = g_strdup (cand->password);
-  else
-    copy->password = NULL;
+  copy->foundation = g_strdup (cand->foundation);
+  copy->candidate_id = g_strdup (cand->candidate_id);
+  copy->ip = g_strdup (cand->ip);
+  copy->base_ip = g_strdup (cand->base_ip);
+  copy->username = g_strdup (cand->username);
+  copy->password = g_strdup (cand->password);
 
   return copy;
 }

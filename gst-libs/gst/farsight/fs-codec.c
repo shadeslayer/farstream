@@ -89,10 +89,7 @@ fs_codec_new (int id, const char *encoding_name,
   FsCodec *codec = g_new0 (FsCodec, 1);
 
   codec->id = id;
-  if (encoding_name)
-    codec->encoding_name = g_strdup (encoding_name);
-  else
-    codec->encoding_name = NULL;
+  codec->encoding_name = g_strdup (encoding_name);
   codec->media_type = media_type;
   codec->clock_rate = clock_rate;
 
@@ -144,10 +141,7 @@ fs_codec_copy (const FsCodec * codec)
   copy->clock_rate = codec->clock_rate;
   copy->channels = codec->channels;
 
-  if (codec->encoding_name)
-    copy->encoding_name = g_strdup (codec->encoding_name);
-  else
-    copy->encoding_name = NULL;
+  copy->encoding_name = g_strdup (codec->encoding_name);
 
   copy->optional_params = NULL;
 
