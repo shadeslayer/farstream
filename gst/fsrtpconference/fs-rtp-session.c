@@ -530,8 +530,8 @@ fs_rtp_session_set_property (GObject *object,
       self->id = g_value_get_uint (value);
       break;
     case PROP_LOCAL_CODECS_CONFIG:
-      if (self->priv->local_codecs) {
-        GList *new_local_codecs_configuration = g_value_get_boxed (value);
+      {
+        GList *new_local_codecs_configuration = g_value_dup_boxed (value);
         GList *new_local_codecs = NULL;
         GHashTable  *new_local_codec_associations = NULL;
 
@@ -559,11 +559,8 @@ fs_rtp_session_set_property (GObject *object,
 
         } else {
           GST_WARNING ("Invalid new codec configurations");
+          fs_codec_list_destroy(new_local_codecs_configuration);
         }
-      } else {
-        if (self->priv->local_codecs_configuration)
-          fs_codec_list_destroy (self->priv->local_codecs_configuration);
-        self->priv->local_codecs_configuration = g_value_get_boxed (value);
       }
       break;
     case PROP_CONFERENCE:

@@ -38,9 +38,10 @@
  *
  * This function validates a GList of passed FarsightCodec structures
  * against the valid discovered payloaders
- * It removes all "invalid" codecs from the list
+ * It removes all "invalid" codecs from the list, it modifies the list
+ * passed in as an argument.
  *
- * Returns: a #GList of #FsCodec minus the invalid ones
+ * Returns: the #GList of #FsCodec minus the invalid ones
  */
 GList *
 validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
