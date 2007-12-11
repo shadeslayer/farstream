@@ -75,6 +75,8 @@ GST_START_TEST (test_fscodec_are_equal)
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Different clock rates not recognized");
   fs_codec_destroy (codec2);
+
+  fs_codec_destroy (codec1);
 }
 GST_END_TEST;
 
@@ -102,6 +104,15 @@ init_codec_with_three_params (void)
   return codec;
 }
 
+static void
+_free_codec_param (gpointer param)
+{
+  FsCodecParameter *p = param;
+  g_free (p->name);
+  g_free (p->value);
+  g_free (p);
+}
+
 GST_START_TEST (test_fscodec_are_equal_opt_params)
 {
   FsCodec *codec1;
@@ -114,6 +125,7 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params) not recognized");
 
+  _free_codec_param (g_list_first (codec1->optional_params)->data);
   codec1->optional_params = g_list_remove (codec1->optional_params,
       g_list_first (codec1->optional_params)->data);
 
@@ -125,7 +137,8 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 1) not recognized");
 
- codec1->optional_params = g_list_remove (codec1->optional_params,
+  _free_codec_param (g_list_first (codec1->optional_params)->data);
+  codec1->optional_params = g_list_remove (codec1->optional_params,
       g_list_first (codec1->optional_params)->data);
 
   p1 = g_new0 (FsCodecParameter, 1);
@@ -140,27 +153,29 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
 
   codec1 = init_codec_with_three_params ();
 
+  _free_codec_param (g_list_first (codec1->optional_params)->data);
   codec1->optional_params = g_list_remove (codec1->optional_params,
       g_list_first (codec1->optional_params)->data);
 
- fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
-     "Did not detect removal of first parameter of first codec");
- fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
-     "Did not detect removal of first parameter of second codec");
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
+      "Did not detect removal of first parameter of first codec");
+  fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
+      "Did not detect removal of first parameter of second codec");
 
- fs_codec_destroy (codec1);
+  fs_codec_destroy (codec1);
 
- codec1 = init_codec_with_three_params ();
- codec1->optional_params = g_list_remove (codec1->optional_params,
-     g_list_last (codec1->optional_params)->data);
+  codec1 = init_codec_with_three_params ();
+  _free_codec_param (g_list_last (codec1->optional_params)->data);
+  codec1->optional_params = g_list_remove (codec1->optional_params,
+      g_list_last (codec1->optional_params)->data);
 
- fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
-     "Did not detect removal of last parameter of first codec");
- fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
-     "Did not detect removal of last parameter of second codec");
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
+      "Did not detect removal of last parameter of first codec");
+  fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
+      "Did not detect removal of last parameter of second codec");
 
- fs_codec_destroy (codec1);
-
+  fs_codec_destroy (codec1);
+  fs_codec_destroy (codec2);
 }
 GST_END_TEST;
 
