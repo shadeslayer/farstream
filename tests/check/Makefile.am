@@ -35,7 +35,8 @@ check_PROGRAMS = \
 	base/fscodec \
 	base/fstransmitter \
 	transmitter/rawudp \
-	main/rtpconference
+	main/rtpconference \
+	main/rtpcodecs
 
 
 AM_CFLAGS =  $(FS2_CFLAGS) $(GST_CFLAGS) $(GST_CHECK_CFLAGS)
@@ -66,4 +67,13 @@ main_rtpconference_SOURCES = \
 	main/generic.c \
 	main/generic.h \
 	main/rtpconference.c
+
+
+main_rtpcodecs_LDADD = $(LDADD) \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
+main_rtpcodecs_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+main_rtpcodecs_SOURCES = \
+	main/generic.c \
+	main/generic.h \
+	main/rtpcodecs.c
 

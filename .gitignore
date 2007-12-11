@@ -38,6 +38,7 @@ tests/check/base/fscodec
 tests/check/base/fstransmitter
 tests/check/transmitter/rawudp
 tests/check/main/rtpconference
+tests/check/main/rtpcodecs
 tests/rtp/codec-discovery
 
 aclocal.m4
