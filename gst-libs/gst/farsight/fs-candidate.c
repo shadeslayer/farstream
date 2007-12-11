@@ -82,10 +82,6 @@ fs_candidate_destroy (FsCandidate * cand)
     g_free ((gchar *)cand->ip);
   if (cand->base_ip)
     g_free ((gchar *)cand->base_ip);
-  if (cand->proto_subtype)
-    g_free ((gchar *)cand->proto_subtype);
-  if (cand->proto_profile)
-    g_free ((gchar *)cand->proto_profile);
   if (cand->username)
     g_free ((gchar *)cand->username);
   if (cand->password)
@@ -133,16 +129,6 @@ fs_candidate_copy (const FsCandidate * cand)
     copy->base_ip = g_strdup (cand->base_ip);
   else
     copy->base_ip = NULL;
-
-  if (cand->proto_subtype)
-    copy->proto_subtype = g_strdup (cand->proto_subtype);
-  else
-    copy->proto_subtype = NULL;
-
-  if (cand->proto_profile)
-    copy->proto_profile = g_strdup (cand->proto_profile);
-  else
-    copy->proto_profile = NULL;
 
   if (cand->username)
     copy->username = g_strdup (cand->username);

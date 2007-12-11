@@ -87,17 +87,6 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   fail_unless (candidate->proto == FS_NETWORK_PROTOCOL_UDP,
     "Protocol is not UDP");
 
-  if (candidate->component_id == FS_COMPONENT_RTP)
-    fail_unless (strcmp (candidate->proto_subtype, "RTP") == 0,
-      "Proto subtype %s does not match component %d", candidate->proto_subtype,
-      candidate->component_id);
-  else if (candidate->component_id == FS_COMPONENT_RTCP)
-    fail_unless (strcmp (candidate->proto_subtype, "RTCP") == 0,
-      "Proto subtype %s does not match component %d", candidate->proto_subtype,
-      candidate->component_id);
-  else
-    fail ("Invalid component %d", candidate->component_id);
-
   if (has_stun)
     fail_unless (candidate->type == FS_CANDIDATE_TYPE_SRFLX,
       "Has stun, but candidate is not server reflexive,"

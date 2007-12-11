@@ -846,11 +846,6 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
           ((*attr)->address.ip & 0x000000ff));
       candidate->port = (*attr)->address.port;
       candidate->proto = FS_NETWORK_PROTOCOL_UDP;
-      if (component_id == FS_COMPONENT_RTP)
-        candidate->proto_subtype = g_strdup ("RTP");
-      else if (component_id == FS_COMPONENT_RTCP)
-        candidate->proto_subtype = g_strdup ("RTCP");
-      candidate->proto_profile = g_strdup ("AVP");
       candidate->type = FS_CANDIDATE_TYPE_SRFLX;
 
       g_debug ("Stun server says we are %u.%u.%u.%u %u\n",
@@ -1024,11 +1019,6 @@ fs_rawudp_stream_transmitter_build_forced_candidate (
   candidate->ip = g_strdup (ip);
   candidate->port = port;
   candidate->proto = FS_NETWORK_PROTOCOL_UDP;
-  if (component_id == FS_COMPONENT_RTP)
-    candidate->proto_subtype = g_strdup ("RTP");
-  else if (component_id == FS_COMPONENT_RTCP)
-    candidate->proto_subtype = g_strdup ("RTCP");
-  candidate->proto_profile = g_strdup ("AVP");
   candidate->type = FS_CANDIDATE_TYPE_HOST;
 
   return candidate;
@@ -1077,11 +1067,6 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
     candidate->ip = g_strdup (current->data);
     candidate->port = port;
     candidate->proto = FS_NETWORK_PROTOCOL_UDP;
-    if (component_id == FS_COMPONENT_RTP)
-      candidate->proto_subtype = g_strdup ("RTP");
-    else if (component_id == FS_COMPONENT_RTCP)
-      candidate->proto_subtype = g_strdup ("RTCP");
-    candidate->proto_profile = g_strdup ("AVP");
     candidate->type = FS_CANDIDATE_TYPE_HOST;
 
     g_signal_emit_by_name (self, "new-local-candidate", candidate);

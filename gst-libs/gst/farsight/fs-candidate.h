@@ -94,8 +94,6 @@ typedef struct _FsCandidate FsCandidate;
  * @base_ip: IP of base in dotted format as defined in ICE-19.
  * @base_port: Port of base as defined in ICE-19.
  * @proto: #FsNetworkProtocol for ip protocol to use as candidate
- * @proto_subtype: a string specifying subtype of this protocol type if needed
- * @proto_profile: a string specifying a profile type for this protocol, if applicable
  * @priority: Value between 0 and (2^31 - 1) representing the priority
  * @type: The #FsCandidateType of the candidate
  * @username: Username to use to connect to client if necessary,
@@ -107,10 +105,6 @@ typedef struct _FsCandidate FsCandidate;
  */
 struct _FsCandidate
 {
-  /* TODO We need some sort of way for the transmitter to know just from this
-   * structure what kind of element to create (RAW udp, STUN udp, ICE, etc).
-   * Maybe use FsNetworkProtocol if it is not required by ICE */
-  /* TODO Should this be made into a GstStructure? */
   const gchar *candidate_id;
   gchar *foundation;
   guint component_id;
@@ -119,8 +113,6 @@ struct _FsCandidate
   const gchar *base_ip;
   guint16 base_port;
   FsNetworkProtocol proto;
-  const gchar *proto_subtype;
-  const gchar *proto_profile;
   gint priority;
   FsCandidateType type;
   const gchar *username;
