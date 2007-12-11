@@ -542,7 +542,7 @@ fs_rtp_session_set_property (GObject *object,
 
         new_local_codec_associations = create_local_codec_associations (
             self->priv->media_type, self->priv->blueprints,
-            self->priv->local_codecs_configuration,
+            new_local_codecs_configuration,
             self->priv->local_codec_associations,
             &new_local_codecs);
 
