@@ -33,8 +33,6 @@
 
 G_BEGIN_DECLS
 
-#define FS_TYPE_STREAM_DIRECTION (fs_stream_direction_get_type ())
-
 /**
  * FsStreamDirection:
  * @FS_DIRECTION_NONE: No direction specified
@@ -52,8 +50,6 @@ typedef enum
   FS_DIRECTION_RECV = 1>>1,
   FS_DIRECTION_BOTH = FS_DIRECTION_SEND | FS_DIRECTION_RECV
 } FsStreamDirection;
-
-GType fs_stream_direction_get_type (void);
 
 /* TYPE MACROS */
 #define FS_TYPE_STREAM \

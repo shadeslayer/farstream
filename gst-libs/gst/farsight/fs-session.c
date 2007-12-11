@@ -46,6 +46,7 @@
 #include "fs-session.h"
 #include "fs-codec.h"
 #include "fs-marshal.h"
+#include "fs-enum-types.h"
 #include <gst/gst.h>
 
 /* Signals */

@@ -42,9 +42,6 @@ typedef struct _FsCodecPreference FsCodecPreference;
 #define FS_TYPE_CODEC_LIST \
   (fs_codec_list_get_type())
 
-#define FS_TYPE_MEDIA_TYPE \
-  (fs_media_type_get_type())
-
 /**
  * FsMediaType:
  * @FS_MEDIA_TYPE_AUDIO: A media type that encodes audio.
@@ -130,7 +127,6 @@ struct _FsCodecPreference {
 
 GType fs_codec_get_type (void);
 GType fs_codec_list_get_type (void);
-GType fs_media_type_get_type (void);
 
 
 FsCodec *fs_codec_new (int id, const char *encoding_name,

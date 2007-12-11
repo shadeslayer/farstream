@@ -11,8 +11,8 @@ Makefile.in
 .#*
 *.stamp
 
-gst-libs/gst/farsight/fs-marshal.c
-gst-libs/gst/farsight/fs-marshal.h
+gst-libs/gst/farsight/fs-marshal.[ch]
+gst-libs/gst/farsight/fs-enum-types.[ch]
 
 docs/libs/farsight-libs-decl-list.txt
 docs/libs/farsight-libs-decl-list.txt.bak

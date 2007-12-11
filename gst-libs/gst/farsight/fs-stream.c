@@ -46,6 +46,7 @@
 #include "fs-candidate.h"
 #include "fs-stream-transmitter.h"
 #include "fs-conference-iface.h"
+#include "fs-enum-types.h"
 
 #include <gst/gst.h>
 
@@ -101,25 +102,6 @@ static void fs_stream_set_property (GObject *object,
 
 static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
-
-GType
-fs_stream_direction_get_type (void)
-{
-  static GType gtype = 0;
-
-  if (gtype == 0) {
-    static const GEnumValue values[] = {
-      { FS_DIRECTION_NONE, "No data transfer (default)", "none"},
-      { FS_DIRECTION_BOTH, "Both (send and receive)", "both"},
-      { FS_DIRECTION_SEND, "Send only", "send" },
-      { FS_DIRECTION_RECV, "Receive only", "recv" },
-      {0, NULL, NULL}
-    };
-
-    gtype = g_enum_register_static ("FsStreamDirection", values);
-  }
-  return gtype;
-}
 
 static void
 fs_stream_class_init (FsStreamClass *klass)

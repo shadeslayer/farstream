@@ -71,24 +71,6 @@ fs_codec_list_get_type (void)
   return codec_list_type;
 }
 
-GType
-fs_media_type_get_type (void)
-{
-  static GType gtype = 0;
-
-  if (gtype == 0) {
-    static const GEnumValue values[] = {
-      { FS_MEDIA_TYPE_AUDIO, "Audio (default)", "audio"},
-      { FS_MEDIA_TYPE_VIDEO, "Video", "video"},
-      { FS_MEDIA_TYPE_APPLICATION, "Applicaton", "application" },
-      {0, NULL, NULL}
-    };
-
-    gtype = g_enum_register_static ("FsMediaType", values);
-  }
-  return gtype;
-}
-
 /**
  * fs_codec_new:
  * @id: codec identifier, if RTP this should be based on IETF RTP payload types
