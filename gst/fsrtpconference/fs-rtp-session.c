@@ -434,6 +434,12 @@ fs_rtp_session_dispose (GObject *object)
     self->priv->blueprints = NULL;
   }
 
+  if (self->priv->conference)
+  {
+    g_object_unref (self->priv->conference);
+    self->priv->conference = NULL;
+  }
+
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
@@ -561,7 +567,7 @@ fs_rtp_session_set_property (GObject *object,
       }
       break;
     case PROP_CONFERENCE:
-      self->priv->conference = g_value_get_object (value);
+      self->priv->conference = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

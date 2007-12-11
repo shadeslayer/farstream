@@ -231,6 +231,12 @@ fs_rtp_stream_dispose (GObject *object)
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
+  if (self->priv->session)
+  {
+    g_object_unref (self->priv->session);
+    self->priv->session = NULL;
+  }
+
   parent_class->dispose (object);
 }
 
@@ -285,7 +291,7 @@ fs_rtp_stream_set_property (GObject *object,
 
   switch (prop_id) {
     case PROP_SESSION:
-      self->priv->session = FS_RTP_SESSION (g_value_get_object (value));
+      self->priv->session = FS_RTP_SESSION (g_value_dup_object (value));
       break;
     case PROP_PARTICIPANT:
       self->priv->participant = FS_RTP_PARTICIPANT (g_value_dup_object (value));
