@@ -1,0 +1,599 @@
+%%
+headers
+#include <Python.h>
+#include <pygobject.h>
+
+#include <gst/gst.h>
+
+#include "fs-conference-iface.h"
+#include "fs-enum-types.h"
+
+#include "fs-transmitter.h"
+
+
+static PyObject *
+_fs_boxed_list_from_value (const GValue *value, GType type)
+{
+  PyObject *list = PyList_New (0);
+  GList *item;
+
+  if (G_VALUE_TYPE(value) != type)
+  {
+    PyErr_Format(PyExc_TypeError, "Must be a List of %s", g_type_name (type));
+    return NULL;
+  }
+
+  for (item = g_list_first (g_value_get_boxed (value));
+       item;
+       item = g_list_next (item))
+    PyList_Append (list, pyg_boxed_new (type, item->data, TRUE, TRUE));
+
+  return list;
+}
+
+typedef void* (*StructCopyFunc) (void*);
+
+static int
+_fs_boxed_list_to_value (GValue *value, PyObject *obj, GType type,
+    StructCopyFunc copy_func)
+{
+  int i;
+  GList *boxed = NULL;
+
+  if (!PyList_Check (obj)) {
+    PyErr_Format(PyExc_TypeError, "Must be a List of %s", g_type_name (type));
+    return -1;
+  }
+
+  for (i = 0; i < PyList_Size (obj); i++)
+  {
+    PyObject *item = PyList_GetItem (obj, i);
+
+    if (!pyg_boxed_check (item, type))
+    {
+      PyErr_Format(PyExc_TypeError,
+          "The parameter must be a List of %s", g_type_name (type));
+      return -1;
+    }
+  }
+
+  for (i = 0; i < PyList_Size (obj); i++)
+  {
+    PyObject *item = PyList_GetItem (obj, i);
+
+    boxed = g_list_append (boxed,
+        copy_func (
+            pyg_boxed_get (item, void*)));
+  }
+
+  g_value_take_boxed (value, boxed);
+
+  return 0;
+}
+
+static PyObject *
+_fs_codec_list_from_value (const GValue *value)
+{
+  return _fs_boxed_list_from_value (value, FS_TYPE_CODEC_LIST);
+}
+
+static int
+_fs_codec_list_to_value (GValue *value, PyObject *obj)
+{
+  return _fs_boxed_list_to_value (value, obj, FS_TYPE_CODEC_LIST,
+      (StructCopyFunc) fs_codec_copy);
+}
+
+static PyObject *
+_fs_candidate_list_from_value (const GValue *value)
+{
+  return _fs_boxed_list_from_value (value, FS_TYPE_CANDIDATE_LIST);
+}
+
+static int
+_fs_candidate_list_to_value (GValue *value, PyObject *obj)
+{
+  return _fs_boxed_list_to_value (value, obj, FS_TYPE_CANDIDATE_LIST,
+      (StructCopyFunc) fs_candidate_copy);
+}
+
+%%
+modulename farsight
+%%
+ignore-glob
+        *_get_type
+        fs_*_list_copy
+        fs_*_list_destroy
+%%
+ignore
+        fs_error_quark
+        fs_candidate_get_by_id
+%%
+import gobject.GObject as PyGObject_Type
+%%
+init
+pyg_register_gtype_custom (FS_TYPE_CODEC_LIST,
+    _fs_codec_list_from_value,
+    _fs_codec_list_to_value);
+pyg_register_gtype_custom (FS_TYPE_CANDIDATE_LIST,
+    _fs_candidate_list_from_value,
+    _fs_candidate_list_to_value);
+%%
+override fs_session_new_stream kwargs
+static PyObject *
+_wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+  static char *kwlist[] = {"participant", "direction", "transmitter",
+                           "transmitter_parameters", NULL};
+
+  PyObject *participant = NULL;
+  gint direction;
+  const gchar *transmitter_name = NULL;
+  PyObject *st_params = NULL;
+  int pos = 0, i = 0;
+  PyObject *key, *value;
+  FsTransmitter *transmitter = NULL;
+  GObjectClass *st_class  = NULL;
+  GError *error = NULL;
+  FsStream *stream = NULL;
+  guint n_parameters = 0;
+  GParameter *parameters = NULL;
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!is|O!:FsSession.new_stream",
+          kwlist,
+          &PyFsParticipant_Type, &participant,
+          &direction,
+          &transmitter_name,
+          &PyDict_Type, &st_params))
+    return NULL;
+
+  if (st_params)
+  {
+    n_parameters = PyDict_Size (st_params);
+
+    parameters = g_new0 (GParameter, n_parameters);
+
+    transmitter = fs_transmitter_new (transmitter_name, 2, &error);
+    if (!transmitter)
+      goto error;
+
+    st_class = g_type_class_ref (
+        fs_transmitter_get_stream_transmitter_type (
+            transmitter, &error));
+    if (!st_class)
+      goto error;
+
+    if (!FS_IS_STREAM_TRANSMITTER_CLASS (st_class))
+    {
+      PyErr_SetString (PyExc_TypeError, "Invalid transmitter name passed");
+      goto error;
+    }
+
+    while (PyDict_Next(st_params, &pos, &key, &value))
+    {
+      GParamSpec *spec;
+
+      if (!PyString_Check (key))
+      {
+        PyErr_SetString (PyExc_TypeError,
+            "Expected Stream Parameter key to be a string");
+        goto error;
+      }
+
+      spec = g_object_class_find_property (st_class, PyString_AsString (key));
+
+      if (!spec)
+      {
+        PyErr_Format (PyExc_TypeError, "Received unknown key %s",
+            PyString_AsString (key));
+        goto error;
+      }
+
+      g_value_init (&parameters[i].value, G_PARAM_SPEC_VALUE_TYPE(spec));
+
+      parameters[i].name = PyString_AsString (key);
+
+      if (pyg_value_from_pyobject (&parameters[i].value , value) < 0)
+      {
+        PyErr_Format (PyExc_TypeError, "Expected parameter %s to be a %s",
+            PyString_AsString (key),
+            g_type_name (G_PARAM_SPEC_VALUE_TYPE(spec)));
+        goto error;
+      }
+
+      i++;
+    }
+  }
+
+  stream = fs_session_new_stream (FS_SESSION (pygobject_get (self)),
+      FS_PARTICIPANT (pygobject_get (participant)),
+      direction,
+      transmitter_name, n_parameters, parameters,
+      &error);
+
+  if (!stream)
+    goto error;
+
+  if (parameters)
+  {
+    g_type_class_unref (st_class);
+    g_free (parameters);
+    g_object_unref (transmitter);
+  }
+
+  return pygobject_new (G_OBJECT (stream));
+
+ error:
+  if (error)
+    pyg_error_check (&error);
+
+  if (st_class)
+    g_type_class_unref (st_class);
+  if (parameters)
+    g_free (parameters);
+  if (transmitter)
+    g_object_unref (transmitter);
+
+  return NULL;
+}
+%%
+override-slot FsCodec.tp_setattr
+static int
+_wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
+{
+  FsCodec *codec;
+
+  codec = pyg_boxed_get(self, FsCodec);
+
+  if (!strcmp (attr, "id"))
+  {
+    if (!PyInt_Check(value))
+    {
+      PyErr_Format(PyExc_TypeError, "%s must be an int", attr);
+      return -1;
+    }
+    codec->id = (gint)PyInt_AsLong(value);
+  }
+  else if (!strcmp (attr, "encoding_name"))
+  {
+    if (value == NULL || PyString_Check(value))
+    {
+      g_free (codec->encoding_name);
+      codec->encoding_name = g_strdup (PyString_AsString (value));
+    }
+    else
+    {
+      PyErr_Format(PyExc_TypeError, "%s must be a string", attr);
+      return -1;
+    }
+  }
+  else if (!strcmp (attr, "media_type"))
+  {
+    gint media_type;
+    if (pyg_enum_get_value(FS_TYPE_MEDIA_TYPE, value, &media_type))
+      return -1;
+    codec->media_type = media_type;
+  }
+  else if (!strcmp (attr, "clock_rate"))
+  {
+    if (!PyInt_Check(value) || PyInt_AsLong(value) < 0)
+    {
+      PyErr_Format(PyExc_TypeError, "%s must be an non-negative int", attr);
+      return -1;
+    }
+    codec->clock_rate = (guint)PyInt_AsLong(value);
+  }
+  else if (!strcmp (attr, "channels"))
+  {
+    if (!PyInt_Check(value) || PyInt_AsLong(value) < 0)
+    {
+      PyErr_Format(PyExc_TypeError, "%s must be an non-negative int", attr);
+      return -1;
+    }
+    codec->channels = (guint)PyInt_AsLong(value);
+  }
+  else if (!strcmp (attr, "optional_params"))
+  {
+    GList *p;
+    GList *newlist = NULL;
+    int i = 0;
+
+    if (value == NULL)
+      goto none;
+
+    if (!PyList_Check (value))
+    {
+      PyErr_Format(PyExc_TypeError, "%s must be a list of (name, value)", attr);
+      return -1;
+    }
+
+    for (i = 0; i < PyList_Size (value); i++)
+    {
+      PyObject *item = PyList_GetItem (value, i);
+
+      if (!PyTuple_Check (item) ||
+          !PyTuple_Size (item) != 2 ||
+          !PyString_Check (PyTuple_GetItem (item, 0)) ||
+          !PyString_Check (PyTuple_GetItem (item, 1)))
+      {
+        PyErr_Format(PyExc_TypeError, "%s must be a list of (name, value)",
+            attr);
+        return -1;
+      }
+    }
+
+    for (i = 0; i < PyList_Size (value); i++)
+    {
+      PyObject *item = PyList_GetItem (value, i);
+      FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
+
+      param->name = g_strdup (PyString_AsString (PyTuple_GetItem (item, 0)));
+      param->value = g_strdup (PyString_AsString (PyTuple_GetItem (item, 1)));
+      newlist = g_list_append (newlist, param);
+    }
+
+  none:
+
+    for (p = g_list_first (codec->optional_params); p; p = g_list_next (p))
+    {
+      FsCodecParameter *param = p->data;
+      g_free (param->name);
+      g_free (param->value);
+      g_free (p->data);
+    }
+    g_list_free (codec->optional_params);
+    codec->optional_params = newlist;
+  }
+  else
+  {
+    PyErr_Format(PyExc_AttributeError,
+        "Attribute %s does not exist for FsCodec", attr);
+    return -1;
+  }
+
+  return 0;
+}
+%%
+override-slot FsCodec.tp_getattr
+static PyObject *
+_wrap_fs_codec_tp_getattr(PyObject *self, char *attr)
+{
+  FsCodec *codec;
+
+  codec = pyg_boxed_get(self, FsCodec);
+
+  if (!strcmp (attr, "id"))
+  {
+    return PyInt_FromLong(codec->id);
+  }
+  else if (!strcmp (attr, "encoding_name"))
+  {
+    return PyString_FromString (codec->encoding_name);
+  }
+  else if (!strcmp (attr, "media_type"))
+  {
+    return pyg_enum_from_gtype(FS_TYPE_MEDIA_TYPE, codec->media_type);
+  }
+  else if (!strcmp (attr, "clock_rate"))
+  {
+    return PyInt_FromLong(codec->clock_rate);
+  }
+  else if (!strcmp (attr, "channels"))
+  {
+    return PyInt_FromLong(codec->channels);
+  }
+  else if (!strcmp (attr, "optional_params"))
+  {
+    PyObject *list = PyList_New (0);
+    GList *p;
+
+    for (p = g_list_first (codec->optional_params); p; p = g_list_next (p))
+    {
+      PyObject *tuple = PyTuple_New (2);
+      FsCodecParameter *param = p->data;
+
+      if (PyTuple_SetItem (tuple, 0, PyString_FromString (param->name)) < 0 ||
+          PyTuple_SetItem (tuple, 1, PyString_FromString (param->value)) < 0 ||
+          PyList_Append (list, tuple) < 0)
+      {
+        Py_DECREF (list);
+        Py_DECREF (tuple);
+        Py_INCREF(Py_None);
+        return Py_None;
+      }
+    }
+
+    return list;
+  }
+  else
+  {
+    return Py_FindMethod((PyMethodDef*)_PyFsCodec_methods, self, attr);
+  }
+}
+%%
+override fs_candidate_new noargs
+static int
+_wrap_fs_candidate_new(PyGBoxed *self)
+{
+  self->gtype = FS_TYPE_CANDIDATE;
+  self->free_on_dealloc = FALSE;
+  self->boxed = g_new0 (FsCandidate, 1);
+
+  if (!self->boxed) {
+    PyErr_SetString(PyExc_RuntimeError, "could not create FsCodec object");
+    return -1;
+  }
+  self->free_on_dealloc = TRUE;
+
+  return 0;
+}
+%%
+new-constructor FS_TYPE_CANDIDATE
+%%
+override-slot FsCandidate.tp_setattr
+static int
+_wrap_fs_candidate_tp_setattr(PyObject *self, char *attr, PyObject *value)
+{
+  FsCandidate *candidate;
+
+  candidate = pyg_boxed_get(self, FsCandidate);
+
+#define CHECK_SET_INT(var, min, max)                                    \
+  do {                                                                  \
+    if (!PyInt_Check(value) ||                                          \
+        PyInt_AsLong(value) < (min) ||                                  \
+        PyInt_AsLong(value) > (max))                                    \
+    {                                                                   \
+      PyErr_Format(PyExc_TypeError, "%s must be an int between %d and %d", \
+          attr, min, max);                                              \
+      return -1;                                                        \
+    }                                                                   \
+    candidate->var = PyInt_AsLong(value);                               \
+  } while (0)
+#define CHECK_SET_STR(var)                                              \
+  do {                                                                  \
+    if (value && !PyString_Check (value))                               \
+    {                                                                   \
+      PyErr_Format(PyExc_TypeError, "%s must be a string", attr);       \
+      return -1;                                                        \
+    }                                                                   \
+    g_free ((gpointer*)candidate->var);                                 \
+    candidate->var = g_strdup (PyString_AsString (value));              \
+  } while(0)
+
+
+
+  if (!strcmp (attr, "candidate_id"))
+    CHECK_SET_STR (candidate_id);
+  else if (!strcmp (attr, "foundation"))
+    CHECK_SET_STR (foundation);
+  else if (!strcmp (attr, "component_id"))
+    CHECK_SET_INT (component_id, 1, 256);
+  else if (!strcmp (attr, "ip"))
+    CHECK_SET_STR (ip);
+  else if (!strcmp (attr, "port"))
+    CHECK_SET_INT (port, 0, G_MAXUINT16);
+  else if (!strcmp (attr, "base_ip"))
+    CHECK_SET_STR (base_ip);
+  else if (!strcmp (attr, "base_port"))
+    CHECK_SET_INT (base_port, 0, G_MAXUINT16);
+  else if (!strcmp (attr, "priority"))
+    CHECK_SET_INT (priority, G_MININT, G_MAXINT);
+  else if (!strcmp (attr, "username"))
+    CHECK_SET_STR (username);
+  else if (!strcmp (attr, "password"))
+    CHECK_SET_STR (password);
+  else if (!strcmp (attr, "proto"))
+  {
+   gint proto;
+    if (pyg_enum_get_value(FS_TYPE_NETWORK_PROTOCOL, value, &proto))
+      return -1;
+    candidate->proto = proto;
+  }
+  else if (!strcmp (attr, "type"))
+  {
+    gint type;
+    if (pyg_enum_get_value(FS_TYPE_CANDIDATE_TYPE, value, &type))
+      return -1;
+    candidate->type = type;
+  }
+  else
+  {
+    PyErr_Format(PyExc_AttributeError,
+        "Attribute %s does not exist for FsCandidate", attr);
+    return -1;
+  }
+
+  return 0;
+#undef CHECK_SET_INT
+#undef CHECK_SET_STR
+}
+%%
+override-slot FsCandidate.tp_getattr
+static PyObject *
+_wrap_fs_candidate_tp_getattr(PyObject *self, char *attr)
+{
+  FsCandidate *candidate;
+
+  candidate = pyg_boxed_get(self, FsCandidate);
+
+  if (!strcmp (attr, "candidate_id"))
+    return PyString_FromString (candidate->candidate_id);
+  else if (!strcmp (attr, "foundation"))
+    return PyString_FromString (candidate->foundation);
+  else if (!strcmp (attr, "component_id"))
+    return PyInt_FromLong(candidate->component_id);
+  else if (!strcmp (attr, "ip"))
+    return PyString_FromString (candidate->ip);
+  else if (!strcmp (attr, "port"))
+    return PyInt_FromLong(candidate->port);
+  else if (!strcmp (attr, "base_ip"))
+    return PyString_FromString (candidate->base_ip);
+  else if (!strcmp (attr, "base_port"))
+    return PyInt_FromLong(candidate->base_port);
+  else if (!strcmp (attr, "priority"))
+    return PyInt_FromLong(candidate->priority);
+  else if (!strcmp (attr, "username"))
+    return PyString_FromString (candidate->username);
+  else if (!strcmp (attr, "password"))
+    return PyString_FromString (candidate->password);
+  else if (!strcmp (attr, "proto"))
+    return pyg_enum_from_gtype(FS_TYPE_NETWORK_PROTOCOL, candidate->proto);
+  else if (!strcmp (attr, "type"))
+    return pyg_enum_from_gtype(FS_TYPE_CANDIDATE_TYPE, candidate->type);
+  else
+    return Py_FindMethod((PyMethodDef*)_PyFsCodec_methods, self, attr);
+}
+%%
+override fs_stream_set_remote_codecs onearg
+static PyObject *
+_wrap_fs_stream_set_remote_codecs (PyGObject *self, PyObject *arg)
+{
+  gboolean ret = FALSE;
+  GError *error = NULL;
+  GList *codecs = NULL;
+  int i;
+
+  if (!PyList_Check (arg))
+  {
+    PyErr_SetString (PyExc_TypeError,
+        "The parameter must be a List of FsCodec");
+    return NULL;
+  }
+
+  if (PyList_Size (arg) == 0)
+  {
+    PyErr_SetString (PyExc_TypeError,
+        "Empty list invalid");
+    return NULL;
+  }
+
+  for (i = 0; i < PyList_Size (arg); i++)
+  {
+    PyObject *item = PyList_GetItem (arg, i);
+
+    if (!pyg_boxed_check (item, FS_TYPE_CODEC))
+    {
+      PyErr_SetString(PyExc_TypeError,
+          "The parameter must be a List of FsCodec");
+      return NULL;
+    }
+  }
+
+  for (i = 0; i < PyList_Size (arg); i++)
+  {
+    PyObject *item = PyList_GetItem (arg, i);
+
+    codecs = g_list_append (codecs, pyg_boxed_get (item, FsCodec));
+  }
+
+  ret = fs_stream_set_remote_codecs (FS_STREAM(self->obj), codecs, &error);
+
+  g_list_free (codecs);
+
+  if (pyg_error_check(&error))
+    return NULL;
+
+  return PyBool_FromLong (ret);
+}
+%%

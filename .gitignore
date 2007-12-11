@@ -30,6 +30,8 @@ docs/libs/html
 docs/libs/tmpl
 docs/libs/xml
 
+python/pyfarsight.c
+
 tests/check/test-registry.xml
 tests/check/*/.dirstamp
 tests/check/base/fscodec

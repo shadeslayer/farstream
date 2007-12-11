@@ -1,0 +1,552 @@
+(define-interface Conference
+  (in-module "Fs")
+  (c-name "FsConference")
+  (gtype-id "FS_TYPE_CONFERENCE")
+)
+
+(define-boxed Codec
+  (in-module "Fs")
+  (c-name "FsCodec")
+  (gtype-id "FS_TYPE_CODEC")
+  (copy-func fs_codec_copy)
+  (release-func fs_codec_destroy)
+)
+
+
+(define-boxed Candidate
+  (in-module "Fs")
+  (c-name "FsCandidate")
+  (gtype-id "FS_TYPE_CANDIDATE")
+  (copy-func fs_candidate_copy)
+  (release-func fs_candidate_destroy)
+)
+
+
+(define-function fs_candidate_new
+  (c-name "fs_candidate_new")
+  (is-constructor-of "FsCandidate")
+  (return-type "FsCandidate*")
+)
+;; -*- scheme -*-
+; object definitions ...
+;; Enumerations and flags ...
+
+(define-enum MediaType
+  (in-module "Fs")
+  (c-name "FsMediaType")
+  (gtype-id "FS_TYPE_MEDIA_TYPE")
+  (values
+    '("audio" "FS_MEDIA_TYPE_AUDIO")
+    '("video" "FS_MEDIA_TYPE_VIDEO")
+    '("application" "FS_MEDIA_TYPE_APPLICATION")
+    '("last" "FS_MEDIA_TYPE_LAST")
+  )
+)
+
+
+;; From fs-codec.h
+
+(define-function fs_codec_get_type
+  (c-name "fs_codec_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_codec_list_get_type
+  (c-name "fs_codec_list_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_codec_new
+  (c-name "fs_codec_new")
+  (is-constructor-of "FsCodec")
+  (return-type "FsCodec*")
+  (parameters
+    '("int" "id")
+    '("const-char*" "encoding_name")
+    '("FsMediaType" "media_type")
+    '("guint" "clock_rate")
+  )
+)
+
+(define-method destroy
+  (of-object "FsCodec")
+  (c-name "fs_codec_destroy")
+  (return-type "none")
+)
+
+(define-method copy
+  (of-object "FsCodec")
+  (c-name "fs_codec_copy")
+  (return-type "FsCodec*")
+)
+
+(define-function fs_codec_list_destroy
+  (c-name "fs_codec_list_destroy")
+  (return-type "none")
+  (parameters
+    '("GList*" "codec_list")
+  )
+)
+
+(define-function fs_codec_list_copy
+  (c-name "fs_codec_list_copy")
+  (return-type "GList*")
+  (parameters
+    '("const-GList*" "codec_list")
+  )
+)
+
+(define-function fs_codec_list_from_keyfile
+  (c-name "fs_codec_list_from_keyfile")
+  (return-type "GList*")
+  (parameters
+    '("const-gchar*" "filename")
+  )
+)
+
+(define-method to_string
+  (of-object "FsCodec")
+  (c-name "fs_codec_to_string")
+  (return-type "gchar*")
+)
+
+(define-method are_equal
+  (of-object "FsCodec")
+  (c-name "fs_codec_are_equal")
+  (return-type "gboolean")
+  (parameters
+    '("const-FsCodec*" "codec2")
+  )
+)
+
+(define-method to_gst_caps
+  (of-object "FsCodec")
+  (c-name "fs_codec_to_gst_caps")
+  (return-type "GstCaps*")
+)
+
+(define-method to_string
+  (of-object "FsMediaType")
+  (c-name "fs_media_type_to_string")
+  (return-type "const-gchar*")
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+;; Enumerations and flags ...
+
+(define-enum CandidateType
+  (in-module "Fs")
+  (c-name "FsCandidateType")
+  (gtype-id "FS_TYPE_CANDIDATE_TYPE")
+  (values
+    '("host" "FS_CANDIDATE_TYPE_HOST")
+    '("srflx" "FS_CANDIDATE_TYPE_SRFLX")
+    '("prflx" "FS_CANDIDATE_TYPE_PRFLX")
+    '("relay" "FS_CANDIDATE_TYPE_RELAY")
+  )
+)
+
+(define-enum NetworkProtocol
+  (in-module "Fs")
+  (c-name "FsNetworkProtocol")
+  (gtype-id "FS_TYPE_NETWORK_PROTOCOL")
+  (values
+    '("udp" "FS_NETWORK_PROTOCOL_UDP")
+    '("tcp" "FS_NETWORK_PROTOCOL_TCP")
+  )
+)
+
+(define-enum ComponentType
+  (in-module "Fs")
+  (c-name "FsComponentType")
+  (gtype-id "FS_TYPE_COMPONENT_TYPE")
+  (values
+    '("p" "FS_COMPONENT_RTP")
+    '("cp" "FS_COMPONENT_RTCP")
+  )
+)
+
+
+;; From fs-candidate.h
+
+(define-function fs_candidate_get_type
+  (c-name "fs_candidate_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_candidate_list_get_type
+  (c-name "fs_candidate_list_get_type")
+  (return-type "GType")
+)
+
+(define-method destroy
+  (of-object "FsCandidate")
+  (c-name "fs_candidate_destroy")
+  (return-type "none")
+)
+
+(define-method copy
+  (of-object "FsCandidate")
+  (c-name "fs_candidate_copy")
+  (return-type "FsCandidate*")
+)
+
+(define-function fs_candidate_list_destroy
+  (c-name "fs_candidate_list_destroy")
+  (return-type "none")
+  (parameters
+    '("GList*" "candidate_list")
+  )
+)
+
+(define-function fs_candidate_list_copy
+  (c-name "fs_candidate_list_copy")
+  (return-type "GList*")
+  (parameters
+    '("const-GList*" "candidate_list")
+  )
+)
+
+(define-function fs_candidate_get_by_id
+  (c-name "fs_candidate_get_by_id")
+  (return-type "FsCandidate*")
+  (parameters
+    '("const-GList*" "candidate_list")
+    '("const-gchar*" "candidate_id")
+  )
+)
+
+(define-method are_equal
+  (of-object "FsCandidate")
+  (c-name "fs_candidate_are_equal")
+  (return-type "gboolean")
+  (parameters
+    '("const-FsCandidate*" "cand2")
+  )
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+;; Enumerations and flags ...
+
+(define-enum Error
+  (in-module "Fs")
+  (c-name "FsError")
+  (gtype-id "FS_TYPE_ERROR")
+  (values
+    '("construction" "FS_ERROR_CONSTRUCTION")
+    '("invalid-arguments" "FS_ERROR_INVALID_ARGUMENTS")
+    '("internal" "FS_ERROR_INTERNAL")
+    '("network" "FS_ERROR_NETWORK")
+    '("not-implemented" "FS_ERROR_NOT_IMPLEMENTED")
+    '("negotiation-failed" "FS_ERROR_NEGOTIATION_FAILED")
+    '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
+    '("unknown-cname" "FS_ERROR_UNKNOWN_CNAME")
+  )
+)
+
+
+;; From fs-conference-iface.h
+
+(define-function fs_conference_get_type
+  (c-name "fs_conference_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_error_quark
+  (c-name "fs_error_quark")
+  (return-type "GQuark")
+)
+
+(define-method new_session
+  (of-object "FsConference")
+  (c-name "fs_conference_new_session")
+  (return-type "FsSession*")
+  (parameters
+    '("FsMediaType" "media_type")
+    '("GError**" "error")
+  )
+)
+
+(define-method new_participant
+  (of-object "FsConference")
+  (c-name "fs_conference_new_participant")
+  (return-type "FsParticipant*")
+  (parameters
+    '("gchar*" "cname")
+    '("GError**" "error")
+  )
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+(define-object Session
+  (in-module "Fs")
+  (parent "GObject")
+  (c-name "FsSession")
+  (gtype-id "FS_TYPE_SESSION")
+)
+
+;; Enumerations and flags ...
+
+(define-enum DTMFEvent
+  (in-module "Fs")
+  (c-name "FsDTMFEvent")
+  (gtype-id "FS_TYPE_DTMF_EVENT")
+  (values
+    '("0" "FS_DTMF_EVENT_0")
+    '("1" "FS_DTMF_EVENT_1")
+    '("2" "FS_DTMF_EVENT_2")
+    '("3" "FS_DTMF_EVENT_3")
+    '("4" "FS_DTMF_EVENT_4")
+    '("5" "FS_DTMF_EVENT_5")
+    '("6" "FS_DTMF_EVENT_6")
+    '("7" "FS_DTMF_EVENT_7")
+    '("8" "FS_DTMF_EVENT_8")
+    '("9" "FS_DTMF_EVENT_9")
+    '("star" "FS_DTMF_EVENT_STAR")
+    '("pound" "FS_DTMF_EVENT_POUND")
+    '("a" "FS_DTMF_EVENT_A")
+    '("b" "FS_DTMF_EVENT_B")
+    '("c" "FS_DTMF_EVENT_C")
+    '("d" "FS_DTMF_EVENT_D")
+  )
+)
+
+(define-enum DTMFMethod
+  (in-module "Fs")
+  (c-name "FsDTMFMethod")
+  (gtype-id "FS_TYPE_DTMF_METHOD")
+  (values
+    '("auto" "FS_DTMF_METHOD_AUTO")
+    '("rtp-rfc4733" "FS_DTMF_METHOD_RTP_RFC4733")
+    '("in-band" "FS_DTMF_METHOD_IN_BAND")
+  )
+)
+
+
+;; From fs-session.h
+
+(define-function fs_session_get_type
+  (c-name "fs_session_get_type")
+  (return-type "GType")
+)
+
+(define-method new_stream
+  (of-object "FsSession")
+  (c-name "fs_session_new_stream")
+  (return-type "FsStream*")
+  (parameters
+    '("FsParticipant*" "participant")
+    '("FsStreamDirection" "direction")
+    '("const-gchar*" "transmitter")
+    '("guint" "stream_transmitter_n_parameters")
+    '("GParameter*" "stream_transmitter_parameters")
+    '("GError**" "error")
+  )
+)
+
+(define-method start_telephony_event
+  (of-object "FsSession")
+  (c-name "fs_session_start_telephony_event")
+  (return-type "gboolean")
+  (parameters
+    '("guint8" "event")
+    '("guint8" "volume")
+    '("FsDTMFMethod" "method")
+  )
+)
+
+(define-method stop_telephony_event
+  (of-object "FsSession")
+  (c-name "fs_session_stop_telephony_event")
+  (return-type "gboolean")
+  (parameters
+    '("FsDTMFMethod" "method")
+  )
+)
+
+(define-method set_send_codec
+  (of-object "FsSession")
+  (c-name "fs_session_set_send_codec")
+  (return-type "gboolean")
+  (parameters
+    '("FsCodec*" "send_codec")
+    '("GError**" "error")
+  )
+)
+
+(define-method emit_error
+  (of-object "FsSession")
+  (c-name "fs_session_emit_error")
+  (return-type "none")
+  (parameters
+    '("gint" "error_no")
+    '("gchar*" "error_msg")
+    '("gchar*" "debug_msg")
+  )
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+(define-object Participant
+  (in-module "Fs")
+  (parent "GObject")
+  (c-name "FsParticipant")
+  (gtype-id "FS_TYPE_PARTICIPANT")
+)
+
+;; Enumerations and flags ...
+
+
+;; From fs-participant.h
+
+(define-function fs_participant_get_type
+  (c-name "fs_participant_get_type")
+  (return-type "GType")
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+(define-object Stream
+  (in-module "Fs")
+  (parent "GObject")
+  (c-name "FsStream")
+  (gtype-id "FS_TYPE_STREAM")
+)
+
+;; Enumerations and flags ...
+
+(define-enum StreamDirection
+  (in-module "Fs")
+  (c-name "FsStreamDirection")
+  (gtype-id "FS_TYPE_STREAM_DIRECTION")
+  (values
+    '("none" "FS_DIRECTION_NONE")
+    '("send" "FS_DIRECTION_SEND")
+    '("recv" "FS_DIRECTION_RECV")
+    '("both" "FS_DIRECTION_BOTH")
+  )
+)
+
+
+;; From fs-stream.h
+
+(define-function fs_stream_get_type
+  (c-name "fs_stream_get_type")
+  (return-type "GType")
+)
+
+(define-method add_remote_candidate
+  (of-object "FsStream")
+  (c-name "fs_stream_add_remote_candidate")
+  (return-type "gboolean")
+  (parameters
+    '("FsCandidate*" "candidate")
+    '("GError**" "error")
+  )
+)
+
+(define-method remote_candidates_added
+  (of-object "FsStream")
+  (c-name "fs_stream_remote_candidates_added")
+  (return-type "none")
+)
+
+(define-method select_candidate_pair
+  (of-object "FsStream")
+  (c-name "fs_stream_select_candidate_pair")
+  (return-type "gboolean")
+  (parameters
+    '("gchar*" "lfoundation")
+    '("gchar*" "rfoundation")
+    '("GError**" "error")
+  )
+)
+
+(define-method preload_recv_codec
+  (of-object "FsStream")
+  (c-name "fs_stream_preload_recv_codec")
+  (return-type "gboolean")
+  (parameters
+    '("FsCodec*" "codec")
+    '("GError**" "error")
+  )
+)
+
+(define-method set_remote_codecs
+  (of-object "FsStream")
+  (c-name "fs_stream_set_remote_codecs")
+  (return-type "gboolean")
+  (parameters
+    '("GList*" "remote_codecs")
+    '("GError**" "error")
+  )
+)
+
+(define-method emit_error
+  (of-object "FsStream")
+  (c-name "fs_stream_emit_error")
+  (return-type "none")
+  (parameters
+    '("gint" "error_no")
+    '("gchar*" "error_msg")
+    '("gchar*" "debug_msg")
+  )
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+;; Enumerations and flags ...
+
+
+;; From fs-enum-types.h
+
+(define-function fs_candidate_type_get_type
+  (c-name "fs_candidate_type_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_network_protocol_get_type
+  (c-name "fs_network_protocol_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_component_type_get_type
+  (c-name "fs_component_type_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_media_type_get_type
+  (c-name "fs_media_type_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_dtmf_event_get_type
+  (c-name "fs_dtmf_event_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_dtmf_method_get_type
+  (c-name "fs_dtmf_method_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_stream_direction_get_type
+  (c-name "fs_stream_direction_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_error_get_type
+  (c-name "fs_error_get_type")
+  (return-type "GType")
+)
+
+

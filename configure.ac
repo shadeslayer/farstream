@@ -329,6 +329,22 @@ dnl whatevertarget_LIBS and -L flags here affect the rest of the linking
 FS2_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*gst_plugin_desc\$\$' $GST_ALL_LDFLAGS"
 AC_SUBST(FS2_PLUGIN_LDFLAGS)
 
+
+AC_ARG_ENABLE([python],
+	AC_HELP_STRING([--disable-python], [Disable Python bindings]),
+	[case "${enableval}" in
+	    yes) WANT_PYTHON=yes ;;
+	    no)  WANT_PYTHON=no ;;
+	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+        esac],
+	WANT_PYTHON=yes)
+if test "x$WANT_PYTHON" = "xyes"; then
+   AM_PATH_PYTHON
+   PKG_CHECK_MODULES(PYFARSIGHT, [ pygobject-2.0 gst-python-0.10 ] )
+fi
+AM_CONDITIONAL(WANT_PYTHON, test "x$WANT_PYTHON" = "xyes")
+
+
 dnl *** output files ***
 
 AC_CONFIG_FILES(
@@ -350,6 +366,7 @@ tests/rtp/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/version.entities
+python/Makefile
 dnl docs/plugins/Makefile
 )
 AC_OUTPUT

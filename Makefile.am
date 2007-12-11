@@ -2,26 +2,26 @@ DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc
 
 SUBDIRS_EXT =
 
+if WANT_PYTHON
+PYTHON_SUBDIR = python
+endif
+
 SUBDIRS = 			\
 	gst-libs 		\
 	gst $(SUBDIRS_EXT)	\
 	transmitters		\
+	$(PYTHON_SUBDIR)	\
 	tests 			\
 	docs
-#
-
-#	docs			\
 #	pkgconfig
 
 DIST_SUBDIRS = 			\
 	gst-libs		\
 	gst $(SUBDIRS_EXT)	\
 	transmitters		\
+	python			\
 	tests 			\
 	docs
-#
-
-#	docs			\
 #	pkgconfig
 
 EXTRA_DIST = \

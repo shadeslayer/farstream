@@ -1,0 +1,29 @@
+(define-interface Conference
+  (in-module "Fs")
+  (c-name "FsConference")
+  (gtype-id "FS_TYPE_CONFERENCE")
+)
+
+(define-boxed Codec
+  (in-module "Fs")
+  (c-name "FsCodec")
+  (gtype-id "FS_TYPE_CODEC")
+  (copy-func fs_codec_copy)
+  (release-func fs_codec_destroy)
+)
+
+
+(define-boxed Candidate
+  (in-module "Fs")
+  (c-name "FsCandidate")
+  (gtype-id "FS_TYPE_CANDIDATE")
+  (copy-func fs_candidate_copy)
+  (release-func fs_candidate_destroy)
+)
+
+
+(define-function fs_candidate_new
+  (c-name "fs_candidate_new")
+  (is-constructor-of "FsCandidate")
+  (return-type "FsCandidate*")
+)
