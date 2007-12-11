@@ -155,6 +155,8 @@ setup_fakesrc (struct SimpleTestConference *dat)
       "sizetype", 2,
       "sizemax", 10,
       "is-live", TRUE,
+      "sync", TRUE,
+      "datarate", 2000,
       NULL);
 
   fail_unless (gst_element_link_pads (dat->fakesrc, "src", capsfilter, "sink"),

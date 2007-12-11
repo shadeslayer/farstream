@@ -528,13 +528,11 @@ simple_test (int in_count)
 }
 
 
-
 GST_START_TEST (test_rtpconference_two_way)
 {
   simple_test (2);
 }
 GST_END_TEST;
-
 
 
 GST_START_TEST (test_rtpconference_three_way)
@@ -544,13 +542,11 @@ GST_START_TEST (test_rtpconference_three_way)
 GST_END_TEST;
 
 
-
 GST_START_TEST (test_rtpconference_ten_way)
 {
   simple_test (10);
 }
 GST_END_TEST;
-
 
 
 static Suite *
@@ -586,7 +582,6 @@ fsrtpconference_suite (void)
   tcase_set_timeout (tc_chain, 20);
   tcase_add_test (tc_chain, test_rtpconference_ten_way);
   suite_add_tcase (s, tc_chain);
-
 
   return s;
 }
