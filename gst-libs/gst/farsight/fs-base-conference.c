@@ -59,8 +59,6 @@ enum
 
 struct _FsBaseConferencePrivate
 {
-  /* List of Sessions */
-  GPtrArray *session_list;
 };
 
 GST_BOILERPLATE_WITH_INTERFACE (
@@ -68,7 +66,6 @@ GST_BOILERPLATE_WITH_INTERFACE (
     GstBin, GST_TYPE_BIN,
     FsConference, FS_TYPE_CONFERENCE, fs_conference);
 
-static void fs_base_conference_finalize (GObject *object);
 static void fs_base_conference_set_property (GObject *object, guint prop_id,
                                              const GValue *value,
                                              GParamSpec *pspec);
@@ -94,35 +91,13 @@ fs_base_conference_base_init (gpointer g_class)
 }
 
 static void
-fs_base_conference_finalize (GObject * object)
-{
-  FsBaseConference *conf;
-
-  conf = FS_BASE_CONFERENCE (object);
-
-  /* Let's check if we have any remaining sessions in this
-   * conference, if we do we need to exit since this is a fatal error by the
-   * user because it results in unusable children objects */
-  if (conf->priv->session_list->len)
-  {
-    g_error ("You may not unref your Farsight Conference Gstreamer "
-             "element without first unrefing all underlying sessions, "
-             "and streams! Exiting");
-  }
-
-  g_ptr_array_free (conf->priv->session_list, TRUE);
-
-  G_OBJECT_CLASS (parent_class)->finalize (object);
-}
-
-static void
 fs_base_conference_class_init (FsBaseConferenceClass * klass)
 {
   GObjectClass *gobject_class;
 
   gobject_class = G_OBJECT_CLASS (klass);
 
-  g_type_class_add_private (klass, sizeof (FsBaseConferencePrivate));
+  // g_type_class_add_private (klass, sizeof (FsBaseConferencePrivate));
 
   parent_class = g_type_class_peek_parent (klass);
 
@@ -130,8 +105,6 @@ fs_base_conference_class_init (FsBaseConferenceClass * klass)
       GST_DEBUG_FUNCPTR (fs_base_conference_set_property);
   gobject_class->get_property =
       GST_DEBUG_FUNCPTR (fs_base_conference_get_property);
-
-  gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_base_conference_finalize);
 }
 
 static void
@@ -140,9 +113,7 @@ fs_base_conference_init (FsBaseConference *conf,
 {
   GST_DEBUG ("fs_base_conference_init");
 
-  conf->priv = FS_BASE_CONFERENCE_GET_PRIVATE (conf);
-
-  conf->priv->session_list = g_ptr_array_new();
+  // conf->priv = FS_BASE_CONFERENCE_GET_PRIVATE (conf);
 }
 
 static void
@@ -159,14 +130,6 @@ fs_conference_supported (
 {
   g_assert (type == FS_TYPE_CONFERENCE);
   return TRUE;
-}
-
-void _remove_session_ptr (FsBaseConference *conf, FsSession *session)
-{
-  if (!g_ptr_array_remove (conf->priv->session_list, session))
-  {
-    GST_WARNING_OBJECT (conf, "FsSession not found in session ptr array");
-  }
 }
 
 static FsSession *
@@ -188,14 +151,6 @@ fs_base_conference_new_session (FsConference *conf,
     /* Let's catch all session errors and send them over the GstBus */
     g_signal_connect (new_session, "error",
         G_CALLBACK (fs_base_conference_error), base_conf);
-
-    /* Let's add a ptr to the new session into our ptr array */
-    g_ptr_array_add (base_conf->priv->session_list, new_session);
-
-    /* Let's add a weak reference to our new session, this way if it gets
-     * unrefed we can remove it from our ptr list */
-    g_object_weak_ref (G_OBJECT (new_session), (GWeakNotify)_remove_session_ptr,
-        base_conf);
   } else {
     GST_WARNING_OBJECT (conf, "new_session not defined in element");
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,

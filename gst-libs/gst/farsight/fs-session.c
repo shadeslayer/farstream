@@ -73,19 +73,12 @@ enum
 
 struct _FsSessionPrivate
 {
-  /* List of Streams */
-  GPtrArray *stream_list;
-
-  gboolean disposed;
 };
 
 G_DEFINE_ABSTRACT_TYPE(FsSession, fs_session, G_TYPE_OBJECT);
 
 #define FS_SESSION_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsSessionPrivate))
-
-static void fs_session_dispose (GObject *object);
-static void fs_session_finalize (GObject *object);
 
 static void fs_session_get_property (GObject *object,
                                      guint prop_id,
@@ -291,55 +284,14 @@ fs_session_class_init (FsSessionClass *klass)
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
-  gobject_class->dispose = fs_session_dispose;
-  gobject_class->finalize = fs_session_finalize;
-
-  g_type_class_add_private (klass, sizeof (FsSessionPrivate));
+  // g_type_class_add_private (klass, sizeof (FsSessionPrivate));
 }
 
 static void
 fs_session_init (FsSession *self)
 {
   /* member init */
-  self->priv = FS_SESSION_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
-
-  self->priv->stream_list = g_ptr_array_new();
-}
-
-static void
-fs_session_dispose (GObject *object)
-{
-  FsSession *self = FS_SESSION (object);
-
-  if (self->priv->disposed) {
-    /* If dispose did already run, return. */
-    return;
-  }
-
-  /* Make sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
-
-  parent_class->dispose (object);
-}
-
-static void
-fs_session_finalize (GObject *object)
-{
-  FsSession *self = FS_SESSION (object);
-
-  /* Let's check if we have any remaining streams in this
-   * session, if we do we need to exit since this is a fatal error by the
-   * user because it results in unusable children objects */
-  if (self->priv->stream_list->len)
-  {
-    g_error ("You may not unref your Farsight Session object"
-             " without first unrefing all underlying streams! Exiting");
-  }
-
-  g_ptr_array_free (self->priv->stream_list, TRUE);
-
-  parent_class->finalize (object);
+  // self->priv = FS_SESSION_GET_PRIVATE (self);
 }
 
 static void
@@ -367,15 +319,6 @@ fs_session_error_forward (GObject *signal_src,
    * object (signal_src) */
   g_signal_emit (session, signals[ERROR], 0, signal_src, error_no, error_msg,
       debug_msg);
-}
-
-void
-_remove_stream_ptr (FsSession *session, FsStream *stream)
-{
-  if (!g_ptr_array_remove (session->priv->stream_list, stream))
-  {
-    g_warning ("FsStream not found in stream ptr array");
-  }
 }
 
 /**
@@ -421,13 +364,6 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
     g_signal_connect (new_stream, "error",
         G_CALLBACK (fs_session_error_forward), session);
 
-    /* Let's add a ptr to the new stream into our ptr array */
-    g_ptr_array_add (session->priv->stream_list, new_stream);
-
-    /* Let's add a weak reference to our new stream, this way if it gets
-     * unrefed we can remove it from our ptr list */
-    g_object_weak_ref (G_OBJECT (new_stream), (GWeakNotify)_remove_stream_ptr,
-        session);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "new_stream not defined for %s", G_OBJECT_TYPE_NAME (session));

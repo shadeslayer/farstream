@@ -80,16 +80,12 @@ enum
 
 struct _FsStreamPrivate
 {
-  gboolean disposed;
 };
 
 G_DEFINE_ABSTRACT_TYPE(FsStream, fs_stream, G_TYPE_OBJECT);
 
 #define FS_STREAM_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_STREAM, FsStreamPrivate))
-
-static void fs_stream_dispose (GObject *object);
-static void fs_stream_finalize (GObject *object);
 
 static void fs_stream_get_property (GObject *object,
                                     guint prop_id,
@@ -350,40 +346,14 @@ fs_stream_class_init (FsStreamClass *klass)
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
-  gobject_class->dispose = fs_stream_dispose;
-  gobject_class->finalize = fs_stream_finalize;
-
-  g_type_class_add_private (klass, sizeof (FsStreamPrivate));
+  // g_type_class_add_private (klass, sizeof (FsStreamPrivate));
 }
 
 static void
 fs_stream_init (FsStream *self)
 {
   /* member init */
-  self->priv = FS_STREAM_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
-}
-
-static void
-fs_stream_dispose (GObject *object)
-{
-  FsStream *self = FS_STREAM (object);
-
-  if (self->priv->disposed) {
-    /* If dispose did already run, return. */
-    return;
-  }
-
-  /* Make sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
-
-  parent_class->dispose (object);
-}
-
-static void
-fs_stream_finalize (GObject *object)
-{
-  parent_class->finalize (object);
+  // self->priv = FS_STREAM_GET_PRIVATE (self);
 }
 
 static void
