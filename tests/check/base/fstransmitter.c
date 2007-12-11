@@ -38,6 +38,8 @@ GST_START_TEST (test_fstransmitter_new_fail)
 
   fail_unless (error != NULL, "Error is NULL");
   fail_unless (error->domain == FS_ERROR, "Error domain is wrong");
+
+  g_clear_error (&error);
 }
 GST_END_TEST;
 
