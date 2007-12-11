@@ -53,8 +53,13 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
   gchar *padname;
 
   src = gst_element_factory_make ("fakesrc", NULL);
-  g_object_set (src, "num-buffers", 20, "sizetype", 2, "sizemax",
-    component_id * 10, "is-live", TRUE, NULL);
+  g_object_set (src,
+      "num-buffers", 20,
+      "sizetype", 2,
+      "sizemax", component_id * 10,
+      "is-live", TRUE,
+      "filltype", 2,
+      NULL);
 
   fail_unless (gst_bin_add (GST_BIN (pipeline), src),
     "Could not add the fakesrc");
