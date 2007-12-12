@@ -551,6 +551,38 @@ GST_START_TEST (test_rtpconference_ten_way)
 GST_END_TEST;
 
 
+GST_START_TEST (test_rtpconference_errors)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsParticipant *participant = NULL;
+  FsStream *stream = NULL;
+  GError *error = NULL;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  participant = fs_conference_new_participant (FS_CONFERENCE (dat->conference),
+      "bob2@127.0.0.1",
+      NULL);
+  fail_if (participant == NULL, "Could not create participant");
+
+  stream = fs_session_new_stream (dat->session, participant, FS_DIRECTION_NONE,
+      "invalid-transmitter-name", 0, NULL, &error);
+
+  fail_unless (stream == NULL, "A stream was created with an invalid"
+      " transmitter name");
+  fail_if (error == NULL, "Error was not set");
+  fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_CONSTRUCTION,
+      "The wrong domain or code (%d) was returned", error->code);
+
+  g_object_unref (participant);
+
+  cleanup_simple_conference (dat);
+
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -567,7 +599,6 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_new);
   suite_add_tcase (s, tc_chain);
 
-
   tc_chain = tcase_create ("fsrtpconfence_two_way");
   tcase_add_test (tc_chain, test_rtpconference_two_way);
   suite_add_tcase (s, tc_chain);
@@ -579,6 +610,10 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconfence_ten_way");
   tcase_add_test (tc_chain, test_rtpconference_ten_way);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_errors");
+  tcase_add_test (tc_chain, test_rtpconference_errors);
   suite_add_tcase (s, tc_chain);
 
   return s;
