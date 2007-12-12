@@ -183,12 +183,8 @@ farsight_get_local_ips (gboolean include_loopback)
   struct ifaddrs *ifa, *results;
 
 
-  if (getifaddrs (&results) < 0) {
-    if (errno == ENOMEM)
+  if (getifaddrs (&results) < 0)
       return NULL;
-    else
-      return NULL;
-  }
 
   /* Loop through the interface list and get the IP address of each IF */
   for (ifa = results; ifa; ifa = ifa->ifa_next) {
@@ -214,6 +210,8 @@ farsight_get_local_ips (gboolean include_loopback)
       }
     }
   }
+
+  freeifaddrs (results);
 
   return ips;
 }

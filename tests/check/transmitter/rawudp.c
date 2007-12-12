@@ -326,7 +326,6 @@ GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
   g_value_set_uint (&params[2].value, 5);
 
   run_rawudp_transmitter_test (3, params, FLAG_HAS_STUN);
-
 }
 GST_END_TEST;
 
@@ -363,6 +362,8 @@ GST_START_TEST (test_rawudptransmitter_run_local_candidates)
 
   run_rawudp_transmitter_test (1, params, FLAG_IS_LOCAL);
 
+  g_value_reset (&params[0].value);
+
   fs_candidate_list_destroy (list);
 }
 GST_END_TEST;
@@ -392,7 +393,7 @@ rawudptransmitter_suite (void)
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("rawudptransmitter-stunserver-org");
-  tcase_set_timeout (tc_chain, 10);
+  tcase_set_timeout (tc_chain, 15);
   tcase_add_test (tc_chain, test_rawudptransmitter_run_stunserver_dot_org);
   suite_add_tcase (s, tc_chain);
 

@@ -605,6 +605,9 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     g_mutex_unlock (self->priv->sources_mutex);
   }
 
+  g_free (ips);
+  g_free (ports);
+
   return TRUE;
 
  error:
