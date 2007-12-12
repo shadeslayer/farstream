@@ -174,6 +174,9 @@ fs_rtp_conference_dispose (GObject * object)
 static void
 fs_rtp_conference_finalize (GObject * object)
 {
+  /* Peek will always succeed here because we 'refed the class in the _init */
+  g_type_class_unref (g_type_class_peek (FS_TYPE_RTP_SUB_STREAM));
+
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
 
@@ -245,7 +248,6 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
       g_param_spec_string ("sdes-note", "SDES NOTE",
           "The NOTE to put in SDES messages of this session",
           NULL, G_PARAM_READWRITE));
-
 }
 
 static void
@@ -284,6 +286,13 @@ fs_rtp_conference_init (FsRtpConference *conf,
                     G_CALLBACK (_rtpbin_request_pt_map), conf);
   g_signal_connect (conf->gstrtpbin, "pad-added",
                     G_CALLBACK (_rtpbin_pad_added), conf);
+
+  /* We have to ref the class here because the class initialization
+   * in GLib is not thread safe
+   * http://bugzilla.gnome.org/show_bug.cgi?id=349410
+   * http://bugzilla.gnome.org/show_bug.cgi?id=64764
+   */
+  g_type_class_ref (FS_TYPE_RTP_SUB_STREAM);
 }
 
 static void
