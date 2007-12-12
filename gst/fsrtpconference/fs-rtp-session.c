@@ -311,7 +311,8 @@ fs_rtp_session_dispose (GObject *object)
     gst_element_set_state (self->priv->transmitter_rtcp_tee, GST_STATE_NULL);
   if (self->priv->transmitter_rtp_tee)
     gst_element_set_state (self->priv->transmitter_rtp_tee, GST_STATE_NULL);
-
+  if (self->priv->rtpbin_send_rtp_sink)
+    gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
   if (self->priv->rtpmuxer)
     gst_element_set_state (self->priv->rtpmuxer, GST_STATE_NULL);
   if (self->priv->send_capsfilter)
@@ -328,6 +329,10 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->free_substreams)
     g_list_foreach (self->priv->free_substreams, (GFunc) fs_rtp_sub_stream_stop,
       NULL);
+  if (self->priv->rtpbin_recv_rtp_sink)
+    gst_pad_set_active (self->priv->rtpbin_recv_rtp_sink, FALSE);
+  if (self->priv->rtpbin_recv_rtcp_sink)
+    gst_pad_set_active (self->priv->rtpbin_recv_rtcp_sink, FALSE);
   if (self->priv->transmitter_rtp_funnel)
     gst_element_set_state (self->priv->transmitter_rtp_funnel, GST_STATE_NULL);
   if (self->priv->transmitter_rtcp_funnel)
@@ -399,6 +404,14 @@ fs_rtp_session_dispose (GObject *object)
     self->priv->rtpbin_send_rtcp_src = NULL;
   }
 
+  if (self->priv->rtpbin_send_rtp_sink) {
+    gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
+    gst_element_release_request_pad (self->priv->conference->gstrtpbin,
+      self->priv->rtpbin_send_rtp_sink);
+    gst_object_unref (self->priv->rtpbin_send_rtp_sink);
+    self->priv->rtpbin_send_rtp_sink = NULL;
+  }
+
   if (self->priv->transmitter_rtp_funnel) {
     gst_bin_remove (GST_BIN (self->priv->conference),
       self->priv->transmitter_rtp_funnel);
@@ -414,6 +427,24 @@ fs_rtp_session_dispose (GObject *object)
     gst_object_unref (self->priv->transmitter_rtcp_funnel);
     self->priv->transmitter_rtcp_funnel = NULL;
   }
+
+  if (self->priv->rtpbin_recv_rtp_sink) {
+    gst_pad_set_active (self->priv->rtpbin_recv_rtp_sink, FALSE);
+    gst_element_release_request_pad (self->priv->conference->gstrtpbin,
+      self->priv->rtpbin_recv_rtp_sink);
+    gst_object_unref (self->priv->rtpbin_recv_rtp_sink);
+    self->priv->rtpbin_recv_rtp_sink = NULL;
+  }
+
+  if (self->priv->rtpbin_recv_rtcp_sink) {
+    gst_pad_set_active (self->priv->rtpbin_recv_rtcp_sink, FALSE);
+    gst_element_release_request_pad (self->priv->conference->gstrtpbin,
+      self->priv->rtpbin_recv_rtcp_sink);
+    gst_object_unref (self->priv->rtpbin_recv_rtcp_sink);
+    self->priv->rtpbin_recv_rtcp_sink = NULL;
+  }
+
+
 
   if (self->priv->transmitters) {
     g_hash_table_foreach_remove (self->priv->transmitters, _remove_transmitter,

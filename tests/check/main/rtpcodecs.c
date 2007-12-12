@@ -130,7 +130,6 @@ fsrtpcodecs_suite (void)
 
 
   tc_chain = tcase_create ("fsrtpcodecs_local_codecs_config");
-  tcase_set_timeout (tc_chain, 1);
   tcase_add_test (tc_chain, test_rtpcodecs_local_codecs_config);
   suite_add_tcase (s, tc_chain);
 
