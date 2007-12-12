@@ -115,6 +115,79 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
 }
 GST_END_TEST;
 
+static gboolean has_negotiated = FALSE;
+
+static void
+_new_negotiated_codecs (FsSession *session, gpointer user_data)
+{
+  has_negotiated = TRUE;
+}
+
+GST_START_TEST (test_rtpcodecs_two_way_negotiation)
+{
+  struct SimpleTestConference *dat = NULL;
+  struct SimpleTestStream *st = NULL;
+  GList *codecs = NULL, *codecs2 = NULL;
+  GError *error = NULL;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+  st = simple_conference_add_stream (dat, dat);
+
+  g_signal_connect (dat->session, "new-negotiated-codecs",
+      G_CALLBACK (_new_negotiated_codecs), dat);
+
+  codecs = g_list_append (codecs,
+      fs_codec_new (
+          FS_CODEC_ID_ANY,
+          "PCMU",
+          FS_MEDIA_TYPE_AUDIO,
+          8000));
+
+  fail_if (fs_stream_set_remote_codecs (st->stream, codecs, &error),
+      "set_remote_codecs did not reject invalid PT");
+
+  fail_unless (error && error->code == FS_ERROR_INVALID_ARGUMENTS,
+      "Did not get the right error codec");
+
+  g_clear_error (&error);
+
+  fs_codec_list_destroy (codecs);
+  codecs = NULL;
+
+  codecs = g_list_append (codecs,
+      fs_codec_new (
+          0,
+          "PCMU",
+          FS_MEDIA_TYPE_AUDIO,
+          8000));
+
+
+  fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
+      "Could not set remote PCMU codec");
+
+  fail_unless (has_negotiated == TRUE,
+      "Did not receive the new_negotiated_codecs signal");
+
+  g_object_get (dat->session, "negotiated-codecs", &codecs2, NULL);
+  fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
+  fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
+      "Negotiated codec does not match remote codec");
+  fs_codec_list_destroy (codecs2);
+
+  has_negotiated = FALSE;
+
+  fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
+      "Could not re-set remote PCMU codec");
+
+  fail_if (has_negotiated == TRUE,
+      "We received the new_negotiated_codecs signal even though codecs haven't"
+      " changed");
+
+  fs_codec_list_destroy (codecs);
+
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
 
 static Suite *
 fsrtpcodecs_suite (void)
@@ -131,6 +204,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_local_codecs_config");
   tcase_add_test (tc_chain, test_rtpcodecs_local_codecs_config);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_two_way_negotiation");
+  tcase_add_test (tc_chain, test_rtpcodecs_two_way_negotiation);
   suite_add_tcase (s, tc_chain);
 
   return s;
