@@ -684,6 +684,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   if (udpport->udpsrc_requested_pad) {
     gst_element_release_request_pad (udpport->funnel,
       udpport->udpsrc_requested_pad);
+    gst_object_unref (udpport->udpsrc_requested_pad);
   }
 
   if (udpport->udpsink) {
@@ -702,6 +703,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   if (udpport->udpsink_requested_pad) {
     gst_element_release_request_pad (udpport->tee,
       udpport->udpsink_requested_pad);
+    gst_object_unref (udpport->udpsink_requested_pad);
   }
 
   if (udpport->fd >= 0)

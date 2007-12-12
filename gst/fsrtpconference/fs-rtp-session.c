@@ -395,6 +395,7 @@ fs_rtp_session_dispose (GObject *object)
     gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
     gst_element_release_request_pad (self->priv->conference->gstrtpbin,
       self->priv->rtpbin_send_rtcp_src);
+    gst_object_unref (self->priv->rtpbin_send_rtcp_src);
     self->priv->rtpbin_send_rtcp_src = NULL;
   }
 
@@ -1188,7 +1189,10 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
 
  error:
   if (requestpad)
+  {
     gst_element_release_request_pad (tee_funnel, requestpad);
+    gst_object_unref (requestpad);
+  }
 
   return FALSE;
 }
