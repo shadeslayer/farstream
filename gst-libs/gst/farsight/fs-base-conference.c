@@ -39,7 +39,7 @@
 #include "fs-base-conference.h"
 #include "fs-session.h"
 
-GST_DEBUG_CATEGORY_STATIC (fs_base_conference_debug);
+GST_DEBUG_CATEGORY (fs_base_conference_debug);
 #define GST_CAT_DEFAULT fs_base_conference_debug
 
 /* Signals */
@@ -87,7 +87,7 @@ static void
 fs_base_conference_base_init (gpointer g_class)
 {
   GST_DEBUG_CATEGORY_INIT (fs_base_conference_debug, "fsbaseconference", 0,
-      "farsight base conference element");
+      "farsight base conference library");
 }
 
 static void

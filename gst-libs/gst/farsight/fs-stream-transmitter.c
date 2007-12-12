@@ -45,6 +45,8 @@
 
 #include <gst/gst.h>
 
+#define GST_CAT_DEFAULT fs_base_conference_debug
+
 /* Signals */
 enum
 {
@@ -316,7 +318,7 @@ fs_stream_transmitter_remote_candidates_added (
   if (klass->remote_candidates_added) {
     klass->remote_candidates_added (streamtransmitter);
   } else {
-    g_warning ("remote_candidates_added not defined in transmitter class");
+    GST_WARNING ("remote_candidates_added not defined in transmitter class");
   }
 }
 

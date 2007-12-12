@@ -116,6 +116,7 @@ typedef enum {
 
 GQuark fs_error_quark (void);
 
+GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
 
 /* virtual class function wrappers */
 FsSession *fs_conference_new_session (FsConference *conference,

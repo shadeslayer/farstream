@@ -49,6 +49,8 @@
 #include "fs-enum-types.h"
 #include <gst/gst.h>
 
+#define GST_CAT_DEFAULT fs_base_conference_debug
+
 /* Signals */
 enum
 {
@@ -398,7 +400,7 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
   if (klass->start_telephony_event) {
     return klass->start_telephony_event (session, event, volume, method);
   } else {
-    g_warning ("start_telephony_event not defined in class");
+    GST_WARNING ("start_telephony_event not defined in class");
   }
   return FALSE;
 }
@@ -425,7 +427,7 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
   if (klass->stop_telephony_event) {
     return klass->stop_telephony_event (session, method);
   } else {
-    g_warning ("stop_telephony_event not defined in class");
+    GST_WARNING ("stop_telephony_event not defined in class");
   }
   return FALSE;
 }

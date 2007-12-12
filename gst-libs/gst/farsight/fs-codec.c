@@ -27,7 +27,11 @@
 
 #include "fs-codec.h"
 
+#include "fs-conference-iface.h"
+
 #include <string.h>
+
+#define GST_CAT_DEFAULT fs_base_conference_debug
 
 /**
  * SECTION:fs-codec
@@ -271,21 +275,21 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
 
     if (!keys || gerror) {
       if (gerror) {
-        g_warning ("Unable to read parameters for %s: %s\n",
+        GST_WARNING ("Unable to read parameters for %s: %s\n",
             groups[i], gerror->message);
 
-        g_clear_error (&gerror);
       } else {
-        g_warning ("Unknown errors while reading parameters for %s",
+        GST_WARNING ("Unknown errors while reading parameters for %s",
             groups[i]);
       }
+      g_clear_error (&gerror);
 
       goto next_codec;
     }
 
     next_tok = strchr (groups[i], '/');
     if (!next_tok) {
-      g_warning ("Invalid codec name: %s", groups[i]);
+      GST_WARNING ("Invalid codec name: %s", groups[i]);
       goto next_codec;
     }
 
@@ -296,7 +300,7 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
         !g_ascii_strncasecmp ("video", groups[i], 5))
       codec->media_type = FS_MEDIA_TYPE_VIDEO;
     else {
-      g_warning ("Invalid media type in codec name name %s", groups[i]);
+      GST_WARNING ("Invalid media type in codec name name %s", groups[i]);
       goto next_codec;
     }
 
@@ -367,7 +371,7 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
       }
       continue;
     keyerror:
-      g_warning ("Error reading key %s codec %s: %s", keys[j], groups[i],
+      GST_WARNING ("Error reading key %s codec %s: %s", keys[j], groups[i],
           gerror->message);
       g_clear_error (&gerror);
 

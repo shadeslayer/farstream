@@ -35,6 +35,8 @@
 
 #include <string.h>
 
+#define GST_CAT_DEFAULT fs_base_conference_debug
+
 /**
  * SECTION:fs-plugin
  * @short_description: A class for defining Farsight plugins
@@ -160,12 +162,12 @@ static gboolean fs_plugin_load (GTypeModule *module)
   g_return_val_if_fail (plugin->name != NULL && plugin->name[0] != '\0', FALSE);
 
   for (search_path = search_paths; *search_path; search_path++) {
-    g_debug("looking for plugins in %s", *search_path);
+    GST_DEBUG("looking for plugins in %s", *search_path);
 
     path = g_module_build_path(*search_path, plugin->name);
 
     plugin->priv->handle = g_module_open (path, G_MODULE_BIND_LOCAL);
-    g_debug ("opening module %s: %s\n", path,
+    GST_INFO ("opening module %s: %s\n", path,
       (plugin->priv->handle != NULL) ? "succeeded" : g_module_error ());
     g_free (path);
 
@@ -178,7 +180,7 @@ static gboolean fs_plugin_load (GTypeModule *module)
                           (gpointer) & fs_init_plugin)) {
       g_module_close (plugin->priv->handle);
       plugin->priv->handle = NULL;
-      g_warning ("could not find init function in plugin\n");
+      GST_WARNING ("could not find init function in plugin\n");
       continue;
     }
 
@@ -193,7 +195,7 @@ static gboolean fs_plugin_load (GTypeModule *module)
   fs_init_plugin (plugin);
   if (!plugin->type) {
     /* TODO error handling (init error or no info defined) */
-    g_warning ("init error or no info defined");
+    GST_WARNING ("init error or no info defined");
     goto err_close_module;
   }
 
@@ -214,7 +216,7 @@ fs_plugin_unload (GTypeModule *module)
 
   plugin = FS_PLUGIN (module);
 
-  g_debug("Unloading plugin %s", plugin->name);
+  GST_INFO("Unloading plugin %s", plugin->name);
 
   if (plugin->unload != NULL)
     plugin->unload (plugin);

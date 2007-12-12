@@ -417,7 +417,7 @@ fs_stream_remote_candidates_added (FsStream *stream)
   if (klass->remote_candidates_added) {
     klass->remote_candidates_added (stream);
   } else {
-    g_warning ("remote_candidates_added not defined in class");
+    GST_WARNING ("remote_candidates_added not defined in class");
   }
 }
 
