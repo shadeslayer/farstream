@@ -539,7 +539,7 @@ negotiate_codecs (const GList *remote_codecs,
       CodecAssociation *new_ca = g_new0 (CodecAssociation, 1);
       gchar *tmp;
 
-      new_ca->codec = fs_codec_copy (nego_codec);
+      new_ca->codec = nego_codec;
       new_ca->blueprint = local_ca->blueprint;
       tmp = fs_codec_to_string (nego_codec);
       GST_DEBUG ("Negotiated codec %s", tmp);

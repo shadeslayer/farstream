@@ -68,12 +68,14 @@ GST_START_TEST (test_rtpconference_new)
 
   fail_unless (id == 1, "The id of the first session should be 1 not %d", id);
   fail_if (local_codecs == NULL, "Local codecs should not be NULL");
+  fs_codec_list_destroy (local_codecs);
   fail_unless (media_type == FS_MEDIA_TYPE_AUDIO, "Media type isnt audio,"
       " its %d", media_type);
   fail_if (sinkpad == NULL, "Sink pad should not be null");
   str = g_strdup_printf ("sink_%d", id);
   fail_unless (!strcmp (str, GST_OBJECT_NAME (sinkpad)), "Sink pad is %s"
       " instead of being %d", GST_OBJECT_NAME (sinkpad), str);
+  gst_object_unref (sinkpad);
   g_free (str);
   fail_unless (conf == dat->conference, "Conference pointer from the session"
       " is wrong");

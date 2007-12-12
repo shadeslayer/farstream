@@ -97,6 +97,7 @@ cleanup_simple_stream (struct SimpleTestStream *st)
 {
   g_object_unref (st->stream);
   g_object_unref (st->participant);
+  g_free (st);
 }
 
 void

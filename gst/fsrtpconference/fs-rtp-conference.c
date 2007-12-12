@@ -550,7 +550,11 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
 
     g_object_get (item->data, "cname", &lcname, NULL);
     if (!strcmp (lcname, cname))
+    {
+      g_free (lcname);
         break;
+    }
+    g_free (lcname);
   }
   GST_OBJECT_UNLOCK (self);
 

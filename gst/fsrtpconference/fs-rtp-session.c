@@ -500,6 +500,9 @@ fs_rtp_session_finalize (GObject *object)
   if (self->priv->negotiated_codec_associations)
     g_hash_table_destroy (self->priv->negotiated_codec_associations);
 
+  if (self->priv->current_send_codec)
+    fs_codec_destroy (self->priv->current_send_codec);
+
   parent_class->finalize (object);
 }
 
@@ -1197,7 +1200,7 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Can not get the %s pad from the transmitter %s element",
       requestpad_name, tee_funnel_name);
-    goto error;
+    return FALSE;
   }
 
   transpad = gst_element_get_static_pad (sinksrc, sinksrc_padname);
@@ -1207,25 +1210,17 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
   else
     ret = gst_pad_link (transpad, requestpad);
 
+  gst_object_unref (requestpad);
   gst_object_unref (transpad);
 
   if (GST_PAD_LINK_FAILED(ret)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Can not link the %s to the transmitter %s", tee_funnel_name,
       (direction == GST_PAD_SINK) ? "sink" : "src");
-    goto error;
+    return FALSE;
   }
 
   return TRUE;
-
- error:
-  if (requestpad)
-  {
-    gst_element_release_request_pad (tee_funnel, requestpad);
-    gst_object_unref (requestpad);
-  }
-
-  return FALSE;
 }
 
 /**
@@ -2125,6 +2120,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
     if (fs_codec_are_equal (codec, self->priv->current_send_codec))
     {
       ret = TRUE;
+      fs_codec_destroy (codec);
       goto done;
     }
 
@@ -2228,8 +2224,10 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     if (!strcmp (localcname, cname))
     {
       stream = localstream;
+      g_free (localcname);
       break;
     }
+    g_free (localcname);
   }
 
   if (!stream) {
