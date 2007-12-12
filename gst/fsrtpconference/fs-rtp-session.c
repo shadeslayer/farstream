@@ -1376,6 +1376,16 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
   FS_RTP_SESSION_UNLOCK (session);
 }
 
+/**
+ * _compare_codec_lists:
+ * @list1: a #GList of #FsCodec
+ * @list2: a #GList of #FsCodec
+ *
+ * Compares two lists of #FsCodec
+ *
+ * Returns: TRUE if they are identical, FALSE otherwise
+ */
+
 static gboolean
 _compare_codec_lists (GList *list1, GList *list2)
 {
@@ -1433,7 +1443,8 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
       gboolean clear_pts = FALSE;
       int pt;
 
-      is_new = _compare_codec_lists (session->priv->negotiated_codecs,
+      is_new = !_compare_codec_lists (
+          session->priv->negotiated_codecs,
           new_negotiated_codecs);
 
       /* Lets remove the codec bin for any PT that has changed type */
