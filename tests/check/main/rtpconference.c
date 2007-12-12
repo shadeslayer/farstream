@@ -562,24 +562,20 @@ fsrtpconference_suite (void)
 
 
   tc_chain = tcase_create ("fsrtpconfence_base");
-  tcase_set_timeout (tc_chain, 1);
   tcase_add_test (tc_chain, test_rtpconference_new);
   suite_add_tcase (s, tc_chain);
 
 
   tc_chain = tcase_create ("fsrtpconfence_two_way");
-  tcase_set_timeout (tc_chain, 10);
   tcase_add_test (tc_chain, test_rtpconference_two_way);
   suite_add_tcase (s, tc_chain);
 
 
   tc_chain = tcase_create ("fsrtpconfence_three_way");
-  tcase_set_timeout (tc_chain, 10);
   tcase_add_test (tc_chain, test_rtpconference_three_way);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrtpconfence_ten_way");
-  tcase_set_timeout (tc_chain, 20);
   tcase_add_test (tc_chain, test_rtpconference_ten_way);
   suite_add_tcase (s, tc_chain);
 
