@@ -211,6 +211,7 @@ fs_codec_list_copy (const GList *codec_list)
 /**
  * fs_codec_list_from_keyfile
  * @filename: Name of the #GKeyFile to read the codecs parameters from
+ * @error: location of a #GError, or NULL if no error occured
  *
  * Reads the content of a #GKeyFile of the following format into
  * a #GList of #FsCodec structures.
@@ -229,10 +230,11 @@ fs_codec_list_copy (const GList *codec_list)
  * another_param=WOW
  * ]|
  *
- * Return value: The read #GList of #FsCodec or %NULL if an error appended
+ * Return value: The #GList of #FsCodec or %NULL if the keyfile was empty
+ *  or an error occured.
  */
 GList *
-fs_codec_list_from_keyfile (const gchar *filename)
+fs_codec_list_from_keyfile (const gchar *filename, GError **error)
 {
   GKeyFile *keyfile = NULL;
   GList *codecs = NULL;
@@ -246,13 +248,7 @@ fs_codec_list_from_keyfile (const gchar *filename)
   keyfile = g_key_file_new ();
 
   if (!g_key_file_load_from_file (keyfile, filename,
-          G_KEY_FILE_NONE, &gerror)) {
-    if (gerror) {
-      g_debug ("Unable to read file %s: %s", filename, gerror->message);
-      g_error_free (gerror);
-    } else {
-      g_warning ("Unknown error reading file %s", filename);
-    }
+          G_KEY_FILE_NONE, error)) {
     goto out;
   }
 

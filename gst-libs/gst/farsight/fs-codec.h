@@ -137,7 +137,7 @@ FsCodec *fs_codec_copy (const FsCodec * codec);
 void fs_codec_list_destroy (GList *codec_list);
 GList *fs_codec_list_copy (const GList *codec_list);
 
-GList *fs_codec_list_from_keyfile (const gchar *filename);
+GList *fs_codec_list_from_keyfile (const gchar *filename, GError **error);
 gchar *fs_codec_to_string (const FsCodec *codec);
 
 gboolean fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2);
