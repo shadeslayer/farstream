@@ -368,7 +368,7 @@ _wrap_fs_codec_tp_getattr(PyObject *self, char *attr)
   }
   else if (!strcmp (attr, "encoding_name"))
   {
-    return PyString_FromString (codec->encoding_name);
+    return PyString_FromString (codec->encoding_name ? codec->encoding_name : "");
   }
   else if (!strcmp (attr, "media_type"))
   {
@@ -392,8 +392,10 @@ _wrap_fs_codec_tp_getattr(PyObject *self, char *attr)
       PyObject *tuple = PyTuple_New (2);
       FsCodecParameter *param = p->data;
 
-      if (PyTuple_SetItem (tuple, 0, PyString_FromString (param->name)) < 0 ||
-          PyTuple_SetItem (tuple, 1, PyString_FromString (param->value)) < 0 ||
+      if (PyTuple_SetItem (tuple, 0,
+              PyString_FromString (param->name ? param->name : "")) < 0 ||
+          PyTuple_SetItem (tuple, 1,
+              PyString_FromString (param->value ? param->value : "")) < 0 ||
           PyList_Append (list, tuple) < 0)
       {
         Py_DECREF (list);
@@ -458,7 +460,10 @@ _wrap_fs_candidate_tp_setattr(PyObject *self, char *attr, PyObject *value)
       return -1;                                                        \
     }                                                                   \
     g_free ((gpointer*)candidate->var);                                 \
-    candidate->var = g_strdup (PyString_AsString (value));              \
+    if (value)                                                          \
+      candidate->var = g_strdup (PyString_AsString (value));            \
+    else                                                                \
+      candidate->var = NULL;                                            \
   } while(0)
 
 
@@ -517,32 +522,36 @@ _wrap_fs_candidate_tp_getattr(PyObject *self, char *attr)
 
   candidate = pyg_boxed_get(self, FsCandidate);
 
+#define CHECK_NULL(x) ((x) == NULL ? "" : (x))
+
   if (!strcmp (attr, "candidate_id"))
-    return PyString_FromString (candidate->candidate_id);
+    return PyString_FromString (CHECK_NULL(candidate->candidate_id));
   else if (!strcmp (attr, "foundation"))
-    return PyString_FromString (candidate->foundation);
+    return PyString_FromString (CHECK_NULL(candidate->foundation));
   else if (!strcmp (attr, "component_id"))
     return PyInt_FromLong(candidate->component_id);
   else if (!strcmp (attr, "ip"))
-    return PyString_FromString (candidate->ip);
+    return PyString_FromString (CHECK_NULL(candidate->ip));
   else if (!strcmp (attr, "port"))
     return PyInt_FromLong(candidate->port);
   else if (!strcmp (attr, "base_ip"))
-    return PyString_FromString (candidate->base_ip);
+    return PyString_FromString (CHECK_NULL(candidate->base_ip));
   else if (!strcmp (attr, "base_port"))
     return PyInt_FromLong(candidate->base_port);
   else if (!strcmp (attr, "priority"))
     return PyInt_FromLong(candidate->priority);
   else if (!strcmp (attr, "username"))
-    return PyString_FromString (candidate->username);
+    return PyString_FromString (CHECK_NULL(candidate->username));
   else if (!strcmp (attr, "password"))
-    return PyString_FromString (candidate->password);
+    return PyString_FromString (CHECK_NULL(candidate->password));
   else if (!strcmp (attr, "proto"))
     return pyg_enum_from_gtype(FS_TYPE_NETWORK_PROTOCOL, candidate->proto);
   else if (!strcmp (attr, "type"))
     return pyg_enum_from_gtype(FS_TYPE_CANDIDATE_TYPE, candidate->type);
   else
     return Py_FindMethod((PyMethodDef*)_PyFsCodec_methods, self, attr);
+
+#undef CHECK_NULL
 }
 %%
 override fs_stream_set_remote_codecs onearg
