@@ -12,12 +12,12 @@ headers
 
 
 static PyObject *
-_fs_boxed_list_from_value (const GValue *value, GType type)
+_fs_boxed_list_from_value (const GValue *value, GType listtype, GType type)
 {
   PyObject *list = PyList_New (0);
   GList *item;
 
-  if (G_VALUE_TYPE(value) != type)
+  if (G_VALUE_TYPE(value) != listtype)
   {
     PyErr_Format(PyExc_TypeError, "Must be a List of %s", g_type_name (type));
     return NULL;
@@ -74,26 +74,32 @@ _fs_boxed_list_to_value (GValue *value, PyObject *obj, GType type,
 static PyObject *
 _fs_codec_list_from_value (const GValue *value)
 {
-  return _fs_boxed_list_from_value (value, FS_TYPE_CODEC_LIST);
+  return _fs_boxed_list_from_value (value,
+      FS_TYPE_CODEC_LIST,
+      FS_TYPE_CODEC);
 }
 
 static int
 _fs_codec_list_to_value (GValue *value, PyObject *obj)
 {
-  return _fs_boxed_list_to_value (value, obj, FS_TYPE_CODEC_LIST,
+  return _fs_boxed_list_to_value (value, obj,
+      FS_TYPE_CODEC,
       (StructCopyFunc) fs_codec_copy);
 }
 
 static PyObject *
 _fs_candidate_list_from_value (const GValue *value)
 {
-  return _fs_boxed_list_from_value (value, FS_TYPE_CANDIDATE_LIST);
+  return _fs_boxed_list_from_value (value,
+      FS_TYPE_CANDIDATE_LIST,
+      FS_TYPE_CANDIDATE);
 }
 
 static int
 _fs_candidate_list_to_value (GValue *value, PyObject *obj)
 {
-  return _fs_boxed_list_to_value (value, obj, FS_TYPE_CANDIDATE_LIST,
+  return _fs_boxed_list_to_value (value, obj,
+      FS_TYPE_CANDIDATE,
       (StructCopyFunc) fs_candidate_copy);
 }
 
@@ -312,11 +318,12 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
       PyObject *item = PyList_GetItem (value, i);
 
       if (!PyTuple_Check (item) ||
-          !PyTuple_Size (item) != 2 ||
+          PyTuple_Size (item) != 2 ||
           !PyString_Check (PyTuple_GetItem (item, 0)) ||
           !PyString_Check (PyTuple_GetItem (item, 1)))
       {
-        PyErr_Format(PyExc_TypeError, "%s must be a list of (name, value)",
+        PyErr_Format(PyExc_TypeError,
+            "%s must be a list of (string name, string value)",
             attr);
         return -1;
       }
