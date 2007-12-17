@@ -196,9 +196,10 @@ fs_rawudp_transmitter_constructed (GObject *object)
 {
   FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER_CAST (object);
   FsTransmitter *trans = FS_TRANSMITTER_CAST (self);
-  GstPad *pad = NULL;
+  GstPad *pad = NULL, *pad2 = NULL;
   GstPad *ghostpad = NULL;
   gchar *padname;
+  GstPadLinkReturn ret;
   int c; /* component_id */
 
 
@@ -235,6 +236,7 @@ fs_rawudp_transmitter_constructed (GObject *object)
   gst_object_ref (self->priv->gst_sink);
 
   for (c = 1; c <= self->components; c++) {
+    GstElement *fakesink = NULL;
 
     /* Lets create the RTP source funnel */
 
@@ -291,6 +293,43 @@ fs_rawudp_transmitter_constructed (GObject *object)
     gst_pad_set_active (ghostpad, TRUE);
     gst_element_add_pad (self->priv->gst_sink, ghostpad);
 
+    fakesink = gst_element_factory_make ("fakesink", NULL);
+
+    if (!fakesink) {
+      trans->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not make the fakesink element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->gst_sink), fakesink))
+    {
+      gst_object_unref (fakesink);
+      trans->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the fakesink element to the transmitter sink bin");
+      return;
+    }
+
+    g_object_set (fakesink,
+        "async", FALSE,
+        "sync" , FALSE,
+        NULL);
+
+    pad = gst_element_get_request_pad (self->priv->udpsink_tees[c], "src%d");
+    pad2 = gst_element_get_static_pad (fakesink, "sink");
+
+    ret = gst_pad_link (pad, pad2);
+
+    gst_object_unref (pad2);
+    gst_object_unref (pad);
+
+    if (GST_PAD_LINK_FAILED(ret)) {
+      trans->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not link the tee to the fakesink");
+      return;
+    }
   }
 }
 
