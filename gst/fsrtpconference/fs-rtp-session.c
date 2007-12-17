@@ -995,18 +995,15 @@ fs_rtp_session_constructed (GObject *object)
   ret = gst_pad_link (self->priv->rtpbin_send_rtcp_src,
     transmitter_rtcp_tee_sink_pad);
 
+  gst_object_unref (transmitter_rtcp_tee_sink_pad);
+
   if (GST_PAD_LINK_FAILED (ret))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not link rtpbin network rtcp src to tee");
-
-    gst_object_unref (transmitter_rtcp_tee_sink_pad);
     return;
   }
-
-  gst_object_unref (transmitter_rtcp_tee_sink_pad);
-
 
   /* Now add a fakesink to the RTCP tee */
 
