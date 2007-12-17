@@ -264,7 +264,7 @@ fs_rawudp_transmitter_constructed (GObject *object)
     gst_element_add_pad (self->priv->gst_src, ghostpad);
 
 
-    /* Lets create the RTP source tee */
+    /* Lets create the RTP sink tee */
 
     self->priv->udpsink_tees[c] = gst_element_factory_make ("tee", NULL);
 
@@ -780,8 +780,7 @@ fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
 
   res = (mypad == pad);
 
-  if (mypad)
-    gst_object_unref (mypad);
+  gst_object_unref (mypad);
 
   return res;
 }
