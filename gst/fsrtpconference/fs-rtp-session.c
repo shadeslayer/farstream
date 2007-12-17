@@ -931,7 +931,7 @@ fs_rtp_session_constructed (GObject *object)
 
   gst_element_set_state (fakesink, GST_STATE_PLAYING);
 
-  self->priv->transmitter_rtp_fakesink = fakesink;
+  self->priv->transmitter_rtp_fakesink = gst_object_ref (fakesink);
 
   pad1 = gst_element_get_request_pad (tee, "src%d");
   pad2 = gst_element_get_static_pad (fakesink, "sink");
@@ -1030,7 +1030,7 @@ fs_rtp_session_constructed (GObject *object)
 
   gst_element_set_state (fakesink, GST_STATE_PLAYING);
 
-  self->priv->transmitter_rtcp_fakesink = fakesink;
+  self->priv->transmitter_rtcp_fakesink = gst_object_ref (fakesink);
 
   pad1 = gst_element_get_request_pad (tee, "src%d");
   pad2 = gst_element_get_static_pad (fakesink, "sink");
