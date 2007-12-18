@@ -81,7 +81,7 @@ class FsUIPipeline:
         self.videosource = FsUIVideoSource(self.pipeline)
 #        self.audiosession = FsUISession(self.conf, self.audiosource)
         self.videosession = FsUISession(self.conf, self.videosource)
-        self.adder = gst.element_factory_make("adder")
+#        self.adder = gst.element_factory_make("adder")
 #        self.audiosink = gst.element_factory_make("alsasink")
 #        self.pipeline.add(self.audiosink)
 #        self.pipeline.add(self.adder)
@@ -495,6 +495,6 @@ if __name__ == "__main__":
         CAMERA = None
     
     gobject.threads_init()
-    gtk.threads_init()
+    gtk.gdk.threads_init()
     startup = FsUIStartup()
     gtk.main()
