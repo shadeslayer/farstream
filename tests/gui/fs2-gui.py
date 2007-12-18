@@ -53,7 +53,7 @@ def make_video_sink(pipeline, xid):
 #    sink.connect("element-added",
 #                 lambda bin, element: element.set_property("async", False))
     sink = gst.element_factory_make("ximagesink", "realsink")
-#    sink.set_property("async", False)
+    sink.set_property("async", False)
     bin.add(sink)
     colorspace = gst.element_factory_make("ffmpegcolorspace")
     bin.add(colorspace)
@@ -118,13 +118,24 @@ class FsUIPipeline:
         
         return True
 
-    def make_video_preview(self, xid):
+    def make_video_preview(self, xid, newsize_callback):
         self.previewsink = make_video_sink(self.pipeline, xid)
         self.pipeline.add(self.previewsink)
+        self.havesize = self.previewsink.get_pad("sink").add_buffer_probe(self.have_size,
+                                                          newsize_callback)
+                                                          
         self.previewsink.set_state(gst.STATE_PLAYING)
         self.videosource.tee.link(self.previewsink)
         self.pipeline.set_state(gst.STATE_PLAYING)
         return self.previewsink
+
+    def have_size(self, pad, buffer, callback):
+        x = buffer.caps[0]["width"]
+        y = buffer.caps[0]["height"]
+        callback(x,y)
+        self.previewsink.get_pad("sink").remove_buffer_probe(self.havesize)
+        return True
+                 
 
     def add_user(self, ip, port):
         self.intro(FsUIConnectClient (ip, port))
@@ -164,10 +175,18 @@ class FsUISource:
         raise NotImplementedError()
 
     def get_src_pad(self, name="src%d"):
-        return self.tee.get_request_pad(name)
+        queue = gst.element_factory_make("queue")
+        requestpad = self.tee.get_request_pad(name)
+        self.pipeline.add(queue)
+        requestpad.link(queue.get_static_pad("sink"))
+        pad = queue.get_static_pad("src")
+        pad.set_data("requestpad", requestpad)
+        pad.set_data("queue", queue)
+        return pad
 
     def put_src_pad(self, pad):
-        self.tee.release_request_pad(pad)
+        self.pipeline.remove(pad.get_data("queue"))
+        self.tee.release_request_pad(pad.get_data("requestpad"))
     
 
 class FsUIVideoSource(FsUISource):
@@ -223,7 +242,7 @@ class FsUISession:
         if source.get_type() == farsight.MEDIA_TYPE_VIDEO:
             self.session.set_property("local-codecs-config",
                                       [farsight.Codec(farsight.CODEC_ID_ANY,
-                                                      "H263",
+                                                      "H263-1998",
                                                       farsight.MEDIA_TYPE_VIDEO,
                                                       0),
                                        farsight.Codec(farsight.CODEC_ID_DISABLE,
@@ -333,12 +352,14 @@ class FsUIParticipant:
         for id in self.streams:
             self.streams[id].send_local_codecs()
     def make_widget(self):
+        gtk.gdk.threads_enter()
         self.glade = gtk.glade.XML("fs2-gui.glade", "user_frame")
         self.userframe = self.glade.get_widget("user_frame")
         self.glade.get_widget("frame_label").set_text(self.cname)
         self.glade.signal_autoconnect(self)
         self.mainui.hbox_add(self.userframe)
-        
+        gtk.gdk.threads_leave()
+
     def exposed(self, widget, *args):
         try:
             self.videosink.get_by_name("realsink").expose()
@@ -351,6 +372,8 @@ class FsUIParticipant:
                 self.funnel = gst.element_factory_make("fsfunnel")
                 self.pipeline.pipeline.add(self.funnel)
                 self.funnel.link(self.videosink)
+                self.havesize = self.videosink.get_pad("sink").add_buffer_probe(self.have_size)
+
                 self.videosink.set_state(gst.STATE_PLAYING)
                 self.funnel.set_state(gst.STATE_PLAYING)
                 self.outcv.notifyAll()
@@ -358,13 +381,24 @@ class FsUIParticipant:
                 self.outcv.release()
             
 
+    def have_size(self, pad, buffer):
+        x = buffer.caps[0]["width"]
+        y = buffer.caps[0]["height"]
+        gtk.gdk.threads_enter()
+        self.glade.get_widget("user_drawingarea").set_size_request(x,y)
+        gtk.gdk.threads_leave()
+        self.videosink.get_pad("sink").remove_buffer_probe(self.havesize)
+        print "HAVE Size ",x,"x",y
+        return True
+                 
+
 
     def link_sink(self, pad):
         try:
             self.outcv.acquire()
             while self.funnel is None:
                 self.outcv.wait()
-            topad.link(self.funnel.get_pad("sink%d"))
+            pad.link(self.funnel.get_pad("sink%d"))
         finally:
             self.outcv.release()
 
@@ -397,11 +431,14 @@ class FsMainUI:
         try:
             self.preview.get_by_name("realsink").expose()
         except AttributeError:
-            print "errored"
-            self.preview = self.pipeline.make_video_preview(widget.window.xid)
+            self.preview = self.pipeline.make_video_preview(widget.window.xid,
+                                                            self.newsize)
 
+    def newsize (self, x, y):
+        self.glade.get_widget("preview_drawingarea").set_size_request(x,y)
+        
     def shutdown(self, widget=None):
-        mainloop.quit()
+        gtk.main_quit()
         
     def hbox_add(self, widget):
         self.glade.get_widget("user_hbox").pack_start(widget, True, True, 0)
@@ -446,7 +483,7 @@ class FsUIStartup:
 
     def quit(self, widget):
         if not self.acted:
-            mainloop.quit()
+            gtk.main_quit()
 
 
 
@@ -457,7 +494,7 @@ if __name__ == "__main__":
     else:
         CAMERA = None
     
-    mainloop = gobject.MainLoop()
     gobject.threads_init()
+    gtk.threads_init()
     startup = FsUIStartup()
-    mainloop.run()
+    gtk.main()
