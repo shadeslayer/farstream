@@ -45,14 +45,9 @@ mycname = "".join((pwd.getpwuid(os.getuid())[0],
                    socket.gethostname()))
 
 
-def make_video_sink(pipeline, xid):
+def make_video_sink(pipeline, xid, name):
     bin = gst.Bin("videosink_%d" % xid)
-#    sink = gst.element_factory_make("autovideosink", "realsink")
-#    sink.connect("element-added",
-#                 lambda bin, element: element.set_property("sync", False))
-#    sink.connect("element-added",
-#                 lambda bin, element: element.set_property("async", False))
-    sink = gst.element_factory_make("ximagesink", "realsink")
+    sink = gst.element_factory_make("ximagesink", name)
     sink.set_property("async", False)
     bin.add(sink)
     colorspace = gst.element_factory_make("ffmpegcolorspace")
@@ -119,7 +114,8 @@ class FsUIPipeline:
         return True
 
     def make_video_preview(self, xid, newsize_callback):
-        self.previewsink = make_video_sink(self.pipeline, xid)
+        self.previewsink = make_video_sink(self.pipeline, xid,
+                                           "previewvideosink")
         self.pipeline.add(self.previewsink)
         self.havesize = self.previewsink.get_pad("sink").add_buffer_probe(self.have_size,
                                                           newsize_callback)
@@ -362,12 +358,13 @@ class FsUIParticipant:
 
     def exposed(self, widget, *args):
         try:
-            self.videosink.get_by_name("realsink").expose()
+            self.videosink.get_by_name("uservideosink").expose()
         except AttributeError:
             try:
                 self.outcv.acquire()
                 self.videosink = make_video_sink(self.pipeline.pipeline,
-                                                 widget.window.xid)
+                                                 widget.window.xid,
+                                                 "uservideosink")
                 self.pipeline.pipeline.add(self.videosink)
                 self.funnel = gst.element_factory_make("fsfunnel")
                 self.pipeline.pipeline.add(self.funnel)
@@ -429,7 +426,7 @@ class FsMainUI:
 
     def exposed(self, widget, *args):
         try:
-            self.preview.get_by_name("realsink").expose()
+            self.preview.get_by_name("previewvideosink").expose()
         except AttributeError:
             self.preview = self.pipeline.make_video_preview(widget.window.xid,
                                                             self.newsize)
