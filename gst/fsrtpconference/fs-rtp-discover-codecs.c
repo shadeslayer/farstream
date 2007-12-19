@@ -494,6 +494,7 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
   CodecBlueprint *codec_blueprint;
   gint i;
   gchar *tmp;
+  GstElementFactory *tmpfact;
 
   /* go thru all common caps */
   for (walk = list; walk; walk = g_list_next (walk))
@@ -557,6 +558,35 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
       copy_element_list (codec_cap->element_list2);
     codec_blueprint->receive_pipeline_factory =
       copy_element_list (codec_cap->element_list1);
+
+    /* Lets add the converters at the beginning of the encoding pipelines */
+    if (media_type == FS_MEDIA_TYPE_VIDEO)
+    {
+      tmpfact = gst_element_factory_find ("ffmpegcolorspace");
+      if (tmpfact)
+      {
+        codec_blueprint->send_pipeline_factory = g_list_append (
+            codec_blueprint->send_pipeline_factory,
+            g_list_append (NULL, tmpfact));
+      }
+    }
+    else if (media_type == FS_MEDIA_TYPE_AUDIO)
+    {
+      tmpfact = gst_element_factory_find ("audioresample");
+      if (tmpfact)
+      {
+        codec_blueprint->send_pipeline_factory = g_list_append (
+            codec_blueprint->send_pipeline_factory,
+            g_list_append (NULL, tmpfact));
+      }
+      tmpfact = gst_element_factory_find ("audioconvert");
+      if (tmpfact)
+      {
+        codec_blueprint->send_pipeline_factory = g_list_append (
+            codec_blueprint->send_pipeline_factory,
+            g_list_append (NULL, tmpfact));
+      }
+    }
 
     /* insert new information into tables */
     list_codec_blueprints[media_type] = g_list_append (
