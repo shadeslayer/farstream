@@ -60,8 +60,6 @@ def make_video_sink(pipeline, xid, name):
     sink.set_data("xid", xid)
     return bin
 
-    
-
 
 class FsUIPipeline:
     
@@ -194,28 +192,15 @@ class FsUIVideoSource(FsUISource):
         if CAMERA:
             source = gst.element_factory_make("v4l2src")
             source.set_property("device", CAMERA)
-            bin.add(source)
         else:
             source = gst.element_factory_make("videotestsrc")
             source.set_property("is-live", 1)
-            bin.add(source)
-            identity = gst.element_factory_make("identity")
-            identity.set_property("sync", True)
-            bin.add(identity)
-            source.link(identity)
-            source = identity
             
-        colorspace = gst.element_factory_make("ffmpegcolorspace")
-        bin.add(colorspace)
+        bin.add(source)
         videoscale = gst.element_factory_make("videoscale")
         bin.add(videoscale)
-        source.link(colorspace)
-        colorspace.link(videoscale)
-        capsfilter = gst.element_factory_make("capsfilter")
-        bin.add(capsfilter)
-        capsfilter.set_property("caps",gst.caps_from_string("video/x-raw-yuv, format=(fourcc)I420, width=352, height=288, framerate=15/1"))
-        videoscale.link(capsfilter)
-        bin.add_pad(gst.GhostPad("src", capsfilter.get_pad("src")))
+        source.link(videoscale)
+        bin.add_pad(gst.GhostPad("src", videoscale.get_pad("src")))
         return bin
             
       
