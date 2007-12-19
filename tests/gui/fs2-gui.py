@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import sys, os, pwd, os.path
-import socket, struct
+import socket
 import threading
 
 try:
@@ -9,9 +9,7 @@ try:
     pygtk.require("2.0")
 
     import gtk, gtk.glade, gobject, gtk.gdk
-
     import gobject
-    gobject.threads_init()
 except ImportError:
     raise SystemExit("PyGTK couldn't be found !")
 
@@ -25,8 +23,12 @@ except ImportError:
 try:
     import farsight
 except:
-    sys.path.append("../../python/.libs")
-    import farsight
+    try:
+        sys.path.append("../../python/.libs")
+        import farsight
+    except ImportError:
+        raise SystemExit("Farsight couldn't be found!")
+
 
 
 from fs2_gui_net import  FsUIClient, FsUIListener, FsUIServer
@@ -80,8 +82,6 @@ class FsUIPipeline:
 #        self.pipeline.add(self.adder)
 #        self.adder.link(self.audiosink)
         self.pipeline.set_state(gst.STATE_PLAYING)
-        self.participants = []
-
 
     def __del__(self):
         self.pipeline.set_state(gst.STATE_NULL)
@@ -130,16 +130,6 @@ class FsUIPipeline:
         self.previewsink.get_pad("sink").remove_buffer_probe(self.havesize)
         return True
                  
-
-    def add_user(self, ip, port):
-        self.intro(FsUIConnectClient (ip, port))
-
-    def intro(conn):
-        self.participants.append(FsUIParticipant(conn),
-                                 None,
-#                                 self.audiosession,
-                                 self.videosession)
-
 
 class FsUISource:
     def __init__(self, pipeline):
@@ -285,7 +275,7 @@ class FsUIStream:
         try:
             self.stream.set_remote_codecs(self.codecs)
         except AttributeError:
-            print "tried to set codecs with 0 codec"
+            print "Tried to set codecs with 0 codec"
     def send_local_codecs(self):
         codecs = self.session.session.get_property("negotiated-codecs")
         if codecs is None or len(codecs) == 0:
