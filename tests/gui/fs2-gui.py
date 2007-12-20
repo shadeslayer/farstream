@@ -121,6 +121,7 @@ class FsUIPipeline:
         self.previewsink.set_state(gst.STATE_PLAYING)
         self.videosource.tee.link(self.previewsink)
         self.pipeline.set_state(gst.STATE_PLAYING)
+        self.pipeline.send_event(gst.event_new_latency(100*gst.MSECOND))
         return self.previewsink
 
     def have_size(self, pad, buffer, callback):
@@ -348,6 +349,7 @@ class FsUIParticipant:
 
                 self.videosink.set_state(gst.STATE_PLAYING)
                 self.funnel.set_state(gst.STATE_PLAYING)
+                self.pipeline.pipeline.send_event(gst.event_new_latency(100*gst.MSECOND))
                 self.outcv.notifyAll()
             finally:
                 self.outcv.release()
