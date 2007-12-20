@@ -181,13 +181,15 @@ farsight_get_local_ips (gboolean include_loopback)
   GList *ips = NULL;
   struct sockaddr_in *sa;
   struct ifaddrs *ifa, *results;
+  gchar *loopback = NULL;
 
 
   if (getifaddrs (&results) < 0)
       return NULL;
 
   /* Loop through the interface list and get the IP address of each IF */
-  for (ifa = results; ifa; ifa = ifa->ifa_next) {
+  for (ifa = results; ifa; ifa = ifa->ifa_next)
+  {
     /* no ip address from interface that is down */
     if ((ifa->ifa_flags & IFF_UP) == 0)
       continue;
@@ -199,19 +201,26 @@ farsight_get_local_ips (gboolean include_loopback)
 
     DEBUG("Interface:  %s", ifa->ifa_name);
     DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
-    if ( !include_loopback &&
-      (ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK) {
-      DEBUG("Ignoring loopback interface");
-    } else {
-      if (farsight_is_private_ip (sa->sin_addr)) {
+    if ((ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK)
+    {
+      if (include_loopback)
+        loopback = g_strdup (inet_ntoa (sa->sin_addr));
+      else
+        DEBUG("Ignoring loopback interface");
+    }
+    else
+    {
+      if (farsight_is_private_ip (sa->sin_addr))
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
-      } else {
+      else
         ips = g_list_prepend (ips, g_strdup (inet_ntoa (sa->sin_addr)));
-      }
     }
   }
 
   freeifaddrs (results);
+
+  if (loopback)
+    ips = g_list_append (ips, loopback);
 
   return ips;
 }
