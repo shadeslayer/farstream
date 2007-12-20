@@ -560,9 +560,9 @@ _transmitter_error (
     gchar *debug_msg,
     gpointer user_data)
 {
-  FsRtpStream *self = FS_RTP_STREAM (user_data);
+  FsStream *stream = FS_STREAM (user_data);
 
-  g_signal_emit_by_name (self, "error", errorno, error_msg, debug_msg);
+  fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
 }
 
 void
