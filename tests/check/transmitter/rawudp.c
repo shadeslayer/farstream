@@ -24,6 +24,7 @@
 
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-transmitter.h>
+#include <gst/farsight/fs-conference-iface.h>
 
 #include "generic.h"
 
@@ -234,8 +235,17 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
     &error);
 
   if (error) {
-    fail("Error creating stream transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
+    if (flags & FLAG_HAS_STUN &&
+        error->domain == FS_ERROR &&
+        error->code == FS_ERROR_NETWORK &&
+        error->message && strstr (error->message, "unreachable"))
+    {
+      g_debug ("Skipping stunserver test, we have no network");
+      goto skip;
+    }
+    else
+      fail("Error creating stream transmitter: (%s:%d) %s",
+          g_quark_to_string (error->domain), error->code, error->message);
   }
 
   fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
@@ -257,8 +267,9 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   g_main_run (loop);
 
-
   g_object_unref (st);
+
+ skip:
 
   g_object_unref (trans);
 
@@ -306,10 +317,6 @@ GST_END_TEST;
 GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
 {
   GParameter params[3];
-
-  /*
-   * Hopefully not one is runing a stun server on local port 7777
-   */
 
   memset (params, 0, sizeof(GParameter) * 3);
 
