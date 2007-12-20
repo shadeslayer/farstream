@@ -1058,7 +1058,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
   port = fs_rawudp_transmitter_udpport_get_port (
       self->priv->udpports[component_id]);
 
-  ips = farsight_get_local_ips(FALSE);
+  ips = farsight_get_local_ips (TRUE);
 
   for (current = g_list_first (ips);
        current;
