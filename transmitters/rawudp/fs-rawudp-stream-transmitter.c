@@ -146,7 +146,7 @@ static gboolean fs_rawudp_stream_transmitter_no_stun (
     gpointer user_data);
 static void fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
     FsRawUdpStreamTransmitter *self, guint component_id);
-static void
+static gboolean
 fs_rawudp_stream_transmitter_emit_local_candidates (
     FsRawUdpStreamTransmitter *self, guint component_id);
 
@@ -894,8 +894,9 @@ fs_rawudp_stream_transmitter_stun_timeout_cb (gpointer user_data)
   fs_rawudp_stream_transmitter_stop_stun (data->self, data->component_id);
   g_mutex_unlock (data->self->priv->sources_mutex);
 
-  fs_rawudp_stream_transmitter_emit_local_candidates (data->self,
-    data->component_id);
+  if (!fs_rawudp_stream_transmitter_emit_local_candidates (data->self,
+          data->component_id))
+    return FALSE;
 
   for (c = 1; c <= data->self->priv->transmitter->components; c++) {
     if (!data->self->priv->local_active_candidate[c]) {
@@ -1027,7 +1028,7 @@ fs_rawudp_stream_transmitter_build_forced_candidate (
   return candidate;
 }
 
-static void
+static gboolean
 fs_rawudp_stream_transmitter_emit_local_candidates (
     FsRawUdpStreamTransmitter *self, guint component_id)
 {
@@ -1041,7 +1042,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
     fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
       FS_ERROR_INVALID_ARGUMENTS, text, text);
     g_free (text);
-    return;
+    return FALSE;
   }
 
   if (self->priv->local_forced_candidate[component_id]) {
@@ -1051,7 +1052,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
       self->priv->local_forced_candidate[component_id]);
     fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
       component_id);
-    return;
+    return TRUE;
   }
 
   port = fs_rawudp_transmitter_udpport_get_port (
@@ -1074,18 +1075,30 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
 
     g_signal_emit_by_name (self, "new-local-candidate", candidate);
 
-    self->priv->local_active_candidate[component_id] =
-      fs_candidate_copy (candidate);
+    self->priv->local_active_candidate[component_id] = candidate;
 
-    fs_candidate_destroy (candidate);
+    /* FIXME: Emit only the first candidate ?? */
+    break;
   }
 
   /* free list of ips */
   g_list_foreach (ips, (GFunc) g_free, NULL);
   g_list_free (ips);
 
+  if (!self->priv->local_active_candidate[component_id])
+  {
+    gchar *text = g_strdup_printf (
+        "We have no local candidate for component %d", component_id);
+    fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+        FS_ERROR_NETWORK, "Could not generate local candidate", text);
+    g_free (text);
+    return FALSE;
+  }
+
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
     component_id);
+
+  return TRUE;
 }
 
 /*
@@ -1104,7 +1117,8 @@ fs_rawudp_stream_transmitter_no_stun (gpointer user_data)
 
   for (c = 1; c <= self->priv->transmitter->components; c++) {
     if (!self->priv->local_active_candidate[c]) {
-      fs_rawudp_stream_transmitter_emit_local_candidates (self, c);
+      if (!fs_rawudp_stream_transmitter_emit_local_candidates (self, c))
+        return FALSE;
     }
     g_assert (self->priv->local_active_candidate[c]);
   }
