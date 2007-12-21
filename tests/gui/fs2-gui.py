@@ -3,6 +3,7 @@
 import sys, os, pwd, os.path
 import socket
 import threading
+import weakref
 
 try:
     import pygtk
@@ -209,7 +210,7 @@ class FsUISession:
     def __init__(self, conference, source):
         self.conference = conference
         self.source = source
-        self.streams = []
+        self.streams = weakref.WeakValueDictionary()
         self.session = conference.new_session(source.get_type())
         if source.get_type() == farsight.MEDIA_TYPE_VIDEO:
             self.session.set_property("local-codecs-config",
@@ -231,15 +232,19 @@ class FsUISession:
         self.source.put_src_pad(self.sourcepad)
         
     def __new_negotiated_codecs(self, session):
-        for s in self.streams:
-            s.new_negotiated_codecs()
+        for s in self.streams.valuerefs():
+            try:
+                s().new_negotiated_codecs()
+            except AttributeError:
+                pass
+            
             
     def new_stream(self, id, connect, participant):
         realstream = self.session.new_stream(participant.participant,
                                              farsight.DIRECTION_BOTH,
                                              TRANSMITTER)
         stream = FsUIStream(id, connect, self, participant, realstream)
-        self.streams.append(stream)
+        self.streams[id] = stream
         return stream
     
 
