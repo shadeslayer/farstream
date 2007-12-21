@@ -2,6 +2,7 @@
 
 import sys, os, pwd, os.path
 import socket, struct
+import gc
 
 try:
     import farsight
@@ -33,6 +34,7 @@ class FsUIConnect:
         self.__reset()
         self.callbacks = callbacks
         self.myid = myid
+        self.partid = 1
         sock.setblocking(0)
         gobject.io_add_watch(self.sock.fileno(), gobject.IO_IN,
                              self.__data_in)
@@ -41,11 +43,17 @@ class FsUIConnect:
                              self.__error)
 
     def __error(self, source, condition):
-        self.callbacks[self.ERROR]()
+        print "have error"
+        self.callbacks[self.ERROR](self.partid)
         return False
 
     def __data_in(self, source, condition):
         data = self.sock.recv(self.size-len(self.data))
+
+        if len(data) == 0:
+            print "received nothing"
+            self.callbacks[self.ERROR](self.partid)
+            return False
         
         self.data += data
         if len(self.data) == self.size:
@@ -68,7 +76,7 @@ class FsUIConnect:
                  self.size) = struct.unpack("!IIIIII", self.data)
                 if check != 0xDEADBEEF:
                     print "CORRUPTION"
-                    mainloop.quit()
+                    sys.exit(1)
                 self.data=""
                 if self.size == 0:
                     self.callbacks[self.type](self.src, self.dest,
@@ -79,14 +87,18 @@ class FsUIConnect:
     def __send_data(self, dest, type, media=0, data="", src=None):
         if src is None: src = self.myid
         if src == 0 and type != self.INTRO: raise Exception
-        self.sock.sendall(struct.pack("!IIIIII",
-                                      0xDEADBEEF,
-                                      int(src),
-                                      int(dest),
-                                      int(type),
-                                      int(media),
-                                      len(data)))
-        self.sock.sendall(data)
+        try:
+            self.sock.sendall(struct.pack("!IIIIII",
+                                          0xDEADBEEF,
+                                          int(src),
+                                          int(dest),
+                                          int(type),
+                                          int(media),
+                                          len(data)))
+            self.sock.sendall(data)
+        except socket.error:
+            print "have error"
+            self.callbacks[self.ERROR](self.partid)
 
 
     def send_intro(self, dest, cname, src=None):
@@ -198,7 +210,7 @@ class FsUIListener:
 
     def error(self, source, condition):
         print "Error on listen"
-        mainloop.quit()
+        sys.exit(1)
         return False
 
     def data_in(self, source, condition):
@@ -229,7 +241,7 @@ class FsUIClient:
     def __candidate_done(self, src, dest, media, data):
         self.participants[src].candidates_done(media)
     def __intro(self, src, dest, media, cname):
-        print "Got Intro"
+        print "Got Intro from %s" % src
         if src == 1:
             self.connect.myid = dest
         if not self.participants.has_key(src):
@@ -238,8 +250,10 @@ class FsUIClient:
             self.participants[src] = self.get_participant(self.connect, src,
                                                           cname,
                                                           *self.args)
-    def __error(self, *arg):
-        print "ERROR"
+    def __error(self, participantid, *arg):
+        print "Client Error", participantid
+        self.participants[participantid].error()
+
 
 class FsUIServer:
     nextid = 2
@@ -276,7 +290,7 @@ class FsUIServer:
                                                                        media,
                                                                        src)
     def __intro(self, src, dest, media, cname):
-        print "Got Intro"
+        print "Got Intro from %s to %s" % (src, dest)
         if src == 0 and dest == 1:
             newid = FsUIServer.nextid
             # Forward the introduction to all other participants
@@ -285,6 +299,7 @@ class FsUIServer:
                 FsUIServer.participants[pid].connect.send_intro(pid, cname,
                                                                 newid)
             self.connect.send_intro(newid, self.cname)
+            self.connect.partid = newid
             FsUIServer.participants[newid] = self.get_participant(self.connect,
                                                                   newid,
                                                                   cname,
@@ -297,8 +312,12 @@ class FsUIServer:
                                                              src)
         else:
             print "ERROR SRC != 0"
-    def __error(self, *args):
-        print "ERROR"
+            
+    def __error(self, participantid, *args):
+        print "Server Error", participantid
+        FsUIServer.participants[participantid].destroy()
+        del FsUIServer.participants[participantid]
+        gc.collect()
 
 if __name__ == "__main__":
     class TestMedia:

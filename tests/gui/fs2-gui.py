@@ -367,7 +367,7 @@ class FsUIParticipant:
         self.glade.get_widget("user_drawingarea").set_size_request(x,y)
         gtk.gdk.threads_leave()
         self.videosink.get_pad("sink").remove_buffer_probe(self.havesize)
-        print "HAVE Size ",x,"x",y
+        del self.havesize
         return True
                  
 
@@ -377,9 +377,36 @@ class FsUIParticipant:
             self.outcv.acquire()
             while self.funnel is None:
                 self.outcv.wait()
+            print >>sys.stderr, "LINKING SINK"
             pad.link(self.funnel.get_pad("sink%d"))
         finally:
             self.outcv.release()
+
+    def destroy(self):
+        try:
+            self.videosink.get_pad("sink").disconnect_handler(self.havesize)
+            pass
+        except AttributeError:
+            pass
+        self.glade.get_widget("user_drawingarea").disconnect_by_func(self.exposed)
+        del self.streams
+        self.outcv.acquire()
+        self.videosink.set_state(gst.STATE_NULL)
+        self.funnel.set_state(gst.STATE_NULL)
+        self.pipeline.pipeline.remove(self.videosink)
+        self.pipeline.pipeline.remove(self.funnel)
+        del self.videosink
+        del self.funnel
+        self.outcv.release()
+        gtk.gdk.threads_enter()
+        self.userframe.destroy()
+        gtk.gdk.threads_leave()
+
+    def error(self):
+        if self.id == 1:
+            self.mainui.fatal_error("<b>Disconnected from server</b>")
+        else:
+            print "ERROR ON %d" % (self.id)
 
     
 
@@ -424,6 +451,18 @@ class FsMainUI:
 
     def __del__(self):
         self.mainwindow.destroy()
+
+    def fatal_error(self, errormsg):
+        gtk.gdk.threads_enter()
+        dialog = gtk.MessageDialog(self.mainwindow,
+                                   gtk.DIALOG_MODAL,
+                                   gtk.MESSAGE_ERROR,
+                                   gtk.BUTTONS_OK)
+        dialog.set_markup(errormsg);
+        dialog.run()
+        dialog.destroy()
+        gtk.main_quit()
+        gtk.gdk.threads_leave()
 
 class FsUIStartup:
     def __init__(self):
