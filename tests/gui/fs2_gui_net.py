@@ -44,7 +44,10 @@ class FsUIConnect:
 
     def __error(self, source, condition):
         print "have error"
-        self.callbacks[self.ERROR](self.partid)
+        if (self.src >= 0):
+            self.callbacks[self.ERROR](self.src)
+        else:
+            self.callbacks[self.ERROR](self.partid)
         return False
 
     def __data_in(self, source, condition):
@@ -52,7 +55,10 @@ class FsUIConnect:
 
         if len(data) == 0:
             print "received nothing"
-            self.callbacks[self.ERROR](self.partid)
+            if (self.src >= 0):
+                self.callbacks[self.ERROR](self.src)
+            else:
+                self.callbacks[self.ERROR](self.partid)
             return False
         
         self.data += data
@@ -101,6 +107,8 @@ class FsUIConnect:
             self.callbacks[self.ERROR](self.partid)
 
 
+    def send_error(self, dest, src):
+        self.__send_data(dest, self.ERROR, src=src)
     def send_intro(self, dest, cname, src=None):
         self.__send_data(dest, self.INTRO, data=cname, src=src)
     def send_codec(self, dest, media, codec, src=None):
@@ -252,7 +260,13 @@ class FsUIClient:
                                                           *self.args)
     def __error(self, participantid, *arg):
         print "Client Error", participantid
-        self.participants[participantid].error()
+        if participantid == 1:
+            # Communication error with server, its over
+            self.participants[participantid].error()
+        else:
+            self.participants[participantid].destroy()
+            del self.participants[participantid]
+            gc.collect()
 
 
 class FsUIServer:
@@ -318,6 +332,8 @@ class FsUIServer:
         FsUIServer.participants[participantid].destroy()
         del FsUIServer.participants[participantid]
         gc.collect()
+        for pid in FsUIServer.participants:
+            FsUIServer.participants[pid].connect.send_error(pid, participantid)
 
 if __name__ == "__main__":
     class TestMedia:
