@@ -105,8 +105,8 @@ class FsUIPipeline:
             print message.type
         if message.type == gst.MESSAGE_ERROR:
             print message.parse_error()
-            message.src.set_state(gst.STATE_NULL)
-            message.src.set_state(gst.STATE_PLAYING)
+            #message.src.set_state(gst.STATE_NULL)
+            #message.src.set_state(gst.STATE_PLAYING)
         elif message.type == gst.MESSAGE_WARNING:
             print message.parse_warning()
         
