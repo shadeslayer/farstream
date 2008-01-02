@@ -211,3 +211,13 @@ fs_plugin_get_type
 fs_marshal_VOID__BOXED_BOXED
 fs_marshal_VOID__OBJECT_INT_STRING_STRING
 </SECTION>
+
+<SECTION>
+<FILE>fs-utils</FILE>
+<TITLE>Utils</TITLE>
+FsElementAddedCallback
+fs_utils_add_recursive_element_added_notification
+fs_utils_remove_recursive_element_added_notification
+<SUBSECTION Private>
+fs_utils_recursive_element_added
+</SECTION>

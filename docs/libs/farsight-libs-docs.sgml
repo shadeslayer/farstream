@@ -24,6 +24,10 @@
     <xi:include href="xml/fs-base-conference.xml"/>
   </chapter>
   <chapter>
+    <title>Farsight Utility Functions</title>
+    <xi:include href="xml/fs-utils.xml"/>
+  </chapter>
+  <chapter>
     <title>Farsight Transmitter objects</title>
     <xi:include href="xml/fs-transmitter.xml"/>
     <xi:include href="xml/fs-stream-transmitter.xml"/>

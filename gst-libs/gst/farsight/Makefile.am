@@ -12,7 +12,8 @@ libgstfarsightinclude_HEADERS = \
 		fs-stream-transmitter.h \
 		fs-plugin.h \
 		fs-marshal.h \
-		fs-enum-types.h
+		fs-enum-types.h \
+		fs-utils.h
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
 
@@ -34,7 +35,8 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-stream-transmitter.c \
 		fs-plugin.c \
 		fs-marshal.c \
-		fs-enum-types.c
+		fs-enum-types.c \
+		fs-utils.c
 
 EXTRA_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = fs-marshal.list
 
