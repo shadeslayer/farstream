@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 # FIXME: fix the docs then remove this variable
-DOCS_ARE_INCOMPLETE_PLEASE_FIXME=yespleasedo
+# DOCS_ARE_INCOMPLETE_PLEASE_FIXME=yespleasedo
 
 # The name of the module, e.g. 'glib'.
 #DOC_MODULE=gst-plugins-libs-@GST_MAJORMINOR@
@@ -49,7 +49,7 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-@GST_MAJORMINOR@.la
 
 # Header files to ignore when scanning.
-IGNORE_HFILES =
+IGNORE_HFILES = fs-marshal.h fs-enum-types.h 
 
 # Images to copy into HTML directory.
 HTML_IMAGES =

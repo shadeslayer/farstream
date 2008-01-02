@@ -56,6 +56,8 @@ typedef struct _FsTransmitterPrivate FsTransmitterPrivate;
  * FsTransmitterClass:
  * @parent_class: Our parent
  * @new_stream_transmitter: Creates a new #FsStreamTransmitter
+ * @get_stream_transmitter_type: Returns the #GType of the stream transmitter
+ *  created by this class (useful for bindings)
  *
  * You must override the new_stream_transmitter method in a subclass
  */
