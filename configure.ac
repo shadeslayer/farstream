@@ -370,5 +370,3 @@ python/Makefile
 dnl docs/plugins/Makefile
 )
 AC_OUTPUT
-
-AG_GST_OUTPUT_PLUGINS
