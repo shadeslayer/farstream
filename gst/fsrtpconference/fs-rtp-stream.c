@@ -288,6 +288,7 @@ fs_rtp_stream_set_property (GObject *object,
                             GParamSpec *pspec)
 {
   FsRtpStream *self = FS_RTP_STREAM (object);
+  GList *item;
 
   switch (prop_id) {
     case PROP_SESSION:
@@ -305,6 +306,14 @@ fs_rtp_stream_set_property (GObject *object,
       if (self->priv->stream_transmitter)
         g_object_set (self->priv->stream_transmitter, "sending",
             self->priv->direction & FS_DIRECTION_SEND, NULL);
+      FS_RTP_SESSION_LOCK (self->priv->session);
+      for (item = g_list_first (self->priv->substreams);
+           item;
+           item = g_list_next (item))
+        g_object_set (G_OBJECT (item->data),
+            "receiving", ((self->priv->direction & FS_DIRECTION_RECV) != 0),
+            NULL);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -594,7 +603,10 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
   FS_RTP_SESSION_LOCK (stream->priv->session);
   stream->priv->substreams = g_list_prepend (stream->priv->substreams,
       substream);
-  g_object_set (substream, "stream", stream, NULL);
+  g_object_set (substream,
+      "stream", stream,
+      "receiving", ((stream->priv->direction & FS_DIRECTION_RECV) != 0),
+      NULL);
 
   g_object_get (substream, "codec", &codec, NULL);
 
