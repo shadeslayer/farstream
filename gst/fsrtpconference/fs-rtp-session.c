@@ -856,7 +856,7 @@ fs_rtp_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION,
       "Could not link pad %s (%p) with pad %s (%p)",
-      GST_PAD_NAME (funnel_src_pad), GST_PAD_CAPS (muxer_src_pad),
+      GST_PAD_NAME (muxer_src_pad), GST_PAD_CAPS (muxer_src_pad),
       GST_PAD_NAME (self->priv->rtpbin_send_rtp_sink),
       GST_PAD_CAPS (self->priv->rtpbin_send_rtp_sink));
 
