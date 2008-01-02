@@ -55,7 +55,8 @@ enum
   PROP_RTPBIN_PAD,
   PROP_SSRC,
   PROP_PT,
-  PROP_CODEC
+  PROP_CODEC,
+  PROP_RECEIVING
 };
 
 struct _FsRtpSubStreamPrivate {
@@ -87,6 +88,8 @@ struct _FsRtpSubStreamPrivate {
    * Protected by the session mutex
    */
   gulong blocking_id;
+
+  gboolean receiving;
 
   GError *construction_error;
 };
@@ -186,6 +189,14 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       FS_TYPE_CODEC,
       G_PARAM_READABLE));
 
+  g_object_class_install_property (gobject_class,
+      PROP_RECEIVING,
+      g_param_spec_boolean ("receiving",
+          "Whether this substream will receive any data",
+          "A toggle that prevents the substream from outputting any data",
+          TRUE,
+          G_PARAM_READWRITE));
+
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
 
@@ -195,6 +206,7 @@ fs_rtp_sub_stream_init (FsRtpSubStream *self)
 {
   self->priv = FS_RTP_SUB_STREAM_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+  self->priv->receiving = TRUE;
 }
 
 
@@ -341,6 +353,15 @@ fs_rtp_sub_stream_set_property (GObject *object,
     case PROP_PT:
       self->priv->pt = g_value_get_uint (value);
       break;
+    case PROP_RECEIVING:
+      FS_RTP_SESSION_LOCK (self->priv->session);
+      self->priv->receiving = g_value_get_boolean (value);
+      if (self->priv->output_ghostpad && self->priv->valve)
+        g_object_set (G_OBJECT (self->priv->valve),
+            "drop", !self->priv->receiving,
+            NULL);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -382,6 +403,10 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_boxed (value, self->priv->codec);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
+    case PROP_RECEIVING:
+      FS_RTP_SESSION_LOCK (self->priv->session);
+      g_value_set_boolean (value, self->priv->receiving);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -642,7 +667,8 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
       ghostpad,
       substream->priv->codec);
 
-  g_object_set (substream->priv->valve, "drop", FALSE, NULL);
+  if (substream->priv->receiving)
+    g_object_set (substream->priv->valve, "drop", FALSE, NULL);
 
   return TRUE;
 }
