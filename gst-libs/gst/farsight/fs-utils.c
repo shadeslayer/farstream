@@ -389,7 +389,7 @@ _bin_added_from_keyfile (GstBin *bin, GstElement *element, gpointer user_data)
 }
 
 /**
- * fs_utils_set_options_from_keyfile_on_bin:
+ * fs_utils_add_recursive_element_setter_from_keyfile:
  * @element: a #GstElement
  * @keyfile: a #GKeyFile
  *
@@ -398,11 +398,11 @@ _bin_added_from_keyfile (GstBin *bin, GstElement *element, gpointer user_data)
  * element passed and its subelements.
  *
  * Returns: a handle that can be used for
- *  #fs_utils_remove_recursive_element_added_notification, or NULL if there is
+ *  fs_utils_remove_recursive_element_added_notification(), or NULL if there is
  *  an error
  */
 gpointer
-fs_utils_set_options_from_keyfile_on_bin (GstElement *element,
+fs_utils_add_recursive_element_setter_from_keyfile (GstElement *element,
     GKeyFile *keyfile)
 {
   return fs_utils_add_recursive_element_added_notification (element,

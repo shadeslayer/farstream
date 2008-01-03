@@ -214,6 +214,7 @@ fs_plugin_get_type
 FsElementAddedCallback
 fs_utils_add_recursive_element_added_notification
 fs_utils_remove_recursive_element_added_notification
+fs_utils_add_recursive_element_setter_from_keyfile
 <SUBSECTION Private>
 fs_utils_recursive_element_added
 </SECTION>

@@ -52,7 +52,8 @@ gboolean fs_utils_remove_recursive_element_added_notification (
     gpointer handle);
 
 
-gpointer fs_utils_set_options_from_keyfile_on_bin (GstElement *element,
+gpointer fs_utils_add_recursive_element_setter_from_keyfile (
+    GstElement *element,
     GKeyFile *keyfile);
 
 G_END_DECLS
