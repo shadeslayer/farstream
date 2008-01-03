@@ -182,6 +182,66 @@ GST_START_TEST (test_bin_added_recursive)
 GST_END_TEST;
 
 
+GST_START_TEST (test_bin_keyfile)
+{
+  GKeyFile *keyfile = g_key_file_new ();
+  GstElement *pipeline = NULL;
+  GstElement *identity = NULL;
+  gpointer handle = NULL;
+  gboolean sync;
+
+  g_key_file_set_boolean (keyfile, "identity", "sync", TRUE);
+
+  pipeline = gst_pipeline_new (NULL);
+
+  identity = gst_element_factory_make ("identity", NULL);
+  gst_object_ref (identity);
+
+  g_object_get (identity, "sync", &sync, NULL);
+  fail_unless (sync == FALSE, "sync prop on identity does not start at FALSE");
+
+  handle = fs_utils_add_recursive_element_setter_from_keyfile (pipeline,
+      keyfile);
+  fail_if (handle == NULL, "Could not add notification to pipeline");
+
+  fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
+      "Could not add identity to pipeline");
+
+  g_object_get (identity, "sync", &sync, NULL);
+  fail_unless (sync == TRUE, "sync prop on identity is not changed to TRUE");
+
+
+  fail_unless (gst_bin_remove (GST_BIN (pipeline), identity),
+      "Could not remove identity from pipeline");
+
+  g_object_set (identity, "sync", FALSE, NULL);
+
+  g_object_get (identity, "sync", &sync, NULL);
+  fail_unless (sync == FALSE, "sync prop on identity not reset to FALSE");
+
+  fail_unless (
+      fs_utils_remove_recursive_element_added_notification (pipeline, handle),
+      "Could not remove notification handle %p", handle);
+
+  fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
+      "Could not add identity to bin");
+
+  g_object_get (identity, "sync", &sync, NULL);
+  fail_if (sync == TRUE, "sync prop on identity changed to TRUE");
+
+  handle = fs_utils_add_recursive_element_setter_from_keyfile (pipeline,
+      keyfile);
+  fail_if (handle == NULL, "Could not add notification to pipeline");
+
+  g_object_get (identity, "sync", &sync, NULL);
+  fail_unless (sync == TRUE, "sync prop on identity is not changed to TRUE");
+
+  gst_object_unref (identity);
+  gst_object_unref (pipeline);
+  g_key_file_free (keyfile);
+}
+GST_END_TEST;
+
 static Suite *
 binadded_suite (void)
 {
@@ -191,6 +251,7 @@ binadded_suite (void)
   suite_add_tcase (s, tc_chain);
   tcase_add_test (tc_chain, test_bin_added_simple);
   tcase_add_test (tc_chain, test_bin_added_recursive);
+  tcase_add_test (tc_chain, test_bin_keyfile);
 
   return s;
 }
