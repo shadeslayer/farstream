@@ -218,8 +218,10 @@ fs_utils_add_recursive_element_added_notification (GstBin *bin,
  *
  * This function will remove the callback added by
  * #fs_utils_add_recursive_element_added_notification
+ *
+ * Returns: TRUE if the notification could be removed, FALSE otherwise
  */
-void
+gboolean
 fs_utils_remove_recursive_element_added_notification (GstBin *bin,
     gpointer handle)
 {
@@ -232,5 +234,10 @@ fs_utils_remove_recursive_element_added_notification (GstBin *bin,
  {
    g_assert (data->head == bin);
    _bin_unparented_cb (GST_OBJECT (data->head), NULL, data);
+   return TRUE;
+ }
+ else
+ {
+   return FALSE;
  }
 }

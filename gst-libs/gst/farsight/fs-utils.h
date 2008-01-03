@@ -50,7 +50,7 @@ gpointer fs_utils_add_recursive_element_added_notification (GstBin *bin,
     FsElementAddedCallback callback,
     gpointer user_data);
 
-void fs_utils_remove_recursive_element_added_notification (GstBin *bin,
+gboolean fs_utils_remove_recursive_element_added_notification (GstBin *bin,
     gpointer handle);
 
 
