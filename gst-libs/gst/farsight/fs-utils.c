@@ -241,3 +241,171 @@ fs_utils_remove_recursive_element_added_notification (GstElement *element,
     return FALSE;
   }
 }
+
+#if 1
+# define DEBUG(...) do {} while (0)
+#else
+# define DEBUG g_debug
+#endif
+
+static void
+_bin_added_from_keyfile (GstBin *bin, GstElement *element, gpointer user_data)
+{
+  GKeyFile *keyfile = user_data;
+  GstElementFactory *factory = NULL;
+  const gchar *name;
+  gchar **keys;
+  gint i;
+
+  factory = gst_element_get_factory (element);
+
+  g_assert (factory);
+
+  name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
+
+  if (!name)
+    return;
+
+
+  if (!g_key_file_has_group (keyfile, name))
+    return;
+
+
+  DEBUG ("Found config for %s", name);
+  keys = g_key_file_get_keys (keyfile, name, NULL, NULL);
+
+  for (i = 0; keys[i]; i++)
+  {
+    GParamSpec *param_spec;
+    GValue key_value = { 0 };
+    GValue prop_value = { 0 };
+
+    gchar *str_key_value;
+    gboolean bool_key_value;
+    gint int_key_value;
+    gdouble double_key_value;
+    glong long_key_value;
+    gulong ulong_key_value;
+
+    DEBUG ("getting %s", keys[i]);
+    param_spec = g_object_class_find_property
+      (G_OBJECT_GET_CLASS(element), keys[i]);
+
+    /* If the paremeter does not exist, or is one of those,
+     * then lets skip it
+     * TODO: What if we want to pass GstCaps as strings?
+     */
+    if (!param_spec ||
+        g_type_is_a (param_spec->value_type, G_TYPE_OBJECT) ||
+        g_type_is_a (param_spec->value_type, GST_TYPE_MINI_OBJECT) ||
+        g_type_is_a (param_spec->value_type, G_TYPE_INTERFACE) ||
+        g_type_is_a (param_spec->value_type, G_TYPE_BOXED) ||
+        g_type_is_a (param_spec->value_type, G_TYPE_GTYPE) ||
+        g_type_is_a (param_spec->value_type, G_TYPE_POINTER))
+    {
+      continue;
+    }
+
+    g_value_init (&prop_value, param_spec->value_type);
+
+    switch (param_spec->value_type)
+    {
+      case G_TYPE_STRING:
+        str_key_value = g_key_file_get_value (keyfile, name,
+            keys[i], NULL);
+        g_value_init (&key_value, G_TYPE_STRING);
+        g_value_set_string (&key_value, str_key_value);
+        DEBUG ("%s is a string: %s", keys[i], str_key_value);
+        g_free (str_key_value);
+        break;
+      case G_TYPE_BOOLEAN:
+        bool_key_value = g_key_file_get_boolean (keyfile, name,
+            keys[i], NULL);
+        g_value_init (&key_value, G_TYPE_BOOLEAN);
+        g_value_set_boolean (&key_value, bool_key_value);
+        DEBUG ("%s is a boolean: %d", keys[i], bool_key_value);
+        break;
+      case G_TYPE_UINT64:
+      case G_TYPE_INT64:
+      case G_TYPE_DOUBLE:
+        /* FIXME it seems get_double is only in 2.12, so for now get a
+         * string and convert it to double */
+#if GLIB_CHECK_VERSION(2,12,0)
+        double_key_value = g_key_file_get_double (keyfile, name,
+            keys[i], NULL);
+#else
+        str_key_value = g_key_file_get_value (keyfile, name, keys[i],
+            NULL);
+        double_key_value = g_strtod(str_key_value, NULL);
+#endif
+        g_value_init (&key_value, G_TYPE_DOUBLE);
+        g_value_set_double (&key_value, double_key_value);
+        DEBUG ("%s is a uint64", keys[i]);
+        DEBUG ("%s is a int64", keys[i]);
+        DEBUG ("%s is a double: %f", keys[i], double_key_value);
+        break;
+      case G_TYPE_ULONG:
+        str_key_value = g_key_file_get_value (keyfile, name, keys[i],
+            NULL);
+        ulong_key_value = strtoul(str_key_value, NULL, 10);
+        g_value_init (&key_value, G_TYPE_ULONG);
+        g_value_set_ulong (&key_value, ulong_key_value);
+        DEBUG ("%s is a ulong: %lu", keys[i], ulong_key_value);
+        break;
+      case G_TYPE_LONG:
+        str_key_value = g_key_file_get_value (keyfile, name, keys[i],
+            NULL);
+        long_key_value = strtol(str_key_value, NULL, 10);
+        g_value_init (&key_value, G_TYPE_LONG);
+        g_value_set_long (&key_value, long_key_value);
+        DEBUG ("%s is a long: %ld", keys[i], long_key_value);
+        break;
+      case G_TYPE_INT:
+      case G_TYPE_UINT:
+      case G_TYPE_ENUM:
+      default:
+        int_key_value = g_key_file_get_integer (keyfile, name,
+            keys[i], NULL);
+        g_value_init (&key_value, G_TYPE_INT);
+        g_value_set_int (&key_value, int_key_value);
+        DEBUG ("%s is a int: %d", keys[i], int_key_value);
+        DEBUG ("%s is a uint", keys[i]);
+        DEBUG ("%s is an enum", keys[i]);
+        DEBUG ("%s is something else, attempting to int conv", keys[i]);
+        break;
+    }
+
+    if (!g_value_transform (&key_value, &prop_value))
+    {
+      DEBUG ("Could not transform gvalue pair");
+      continue;
+    }
+
+    DEBUG ("Setting %s to on %s", keys[i], name);
+    g_object_set_property (G_OBJECT(element), keys[i], &prop_value);
+  }
+
+  g_strfreev(keys);
+}
+
+/**
+ * fs_utils_set_options_from_keyfile_on_bin:
+ * @element: a #GstElement
+ * @keyfile: a #GKeyFile
+ *
+ * Using a keyfile where the groups are the element's type and the key=value
+ * are the property and its value, this function will set the properties on the
+ * element passed and its subelements.
+ *
+ * Returns: a handle that can be used for
+ *  #fs_utils_remove_recursive_element_added_notification, or NULL if there is
+ *  an error
+ */
+gpointer
+fs_utils_set_options_from_keyfile_on_bin (GstElement *element,
+    GKeyFile *keyfile)
+{
+  return fs_utils_add_recursive_element_added_notification (element,
+      _bin_added_from_keyfile,
+      keyfile);
+}
