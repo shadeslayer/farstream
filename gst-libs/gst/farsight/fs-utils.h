@@ -31,7 +31,8 @@ G_BEGIN_DECLS
 
 /**
  * FsElementAddedCallback:
- * @bin: The #GstBin to which the element was added
+ * @bin: The #GstBin to which the element was added, will be NULL if the element
+ *   is the top-level bin
  * @element: The just-added #GstElement
  * @user_data: The user data passed by the user
  *
@@ -42,15 +43,16 @@ typedef void (*FsElementAddedCallback) (GstBin *bin,
     GstElement *element,
     gpointer user_data);
 
-void fs_utils_recursive_element_added (GstBin *bin,
+void fs_utils_recursive_element_added (GstElement *element,
     FsElementAddedCallback callback,
     gpointer user_data);
 
-gpointer fs_utils_add_recursive_element_added_notification (GstBin *bin,
+gpointer fs_utils_add_recursive_element_added_notification (GstElement *element,
     FsElementAddedCallback callback,
     gpointer user_data);
 
-gboolean fs_utils_remove_recursive_element_added_notification (GstBin *bin,
+gboolean fs_utils_remove_recursive_element_added_notification (
+    GstElement *element,
     gpointer handle);
 
 

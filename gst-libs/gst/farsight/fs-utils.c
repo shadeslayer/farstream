@@ -40,7 +40,7 @@ struct FsElementAddedData {
   gint refcount;
   FsElementAddedCallback callback;
   gpointer user_data;
-  GstBin *head;
+  GstElement *head;
 };
 
 
@@ -50,7 +50,7 @@ static gpointer _element_added_callback (GstBin *parent, GstElement *element,
 
 static struct FsElementAddedData *
 element_added_data_new (FsElementAddedCallback callback, gpointer user_data,
-                        GstBin *head)
+                        GstElement *head)
 {
   struct FsElementAddedData *data =
     g_new (struct FsElementAddedData, 1);
@@ -138,7 +138,7 @@ _element_added_callback (GstBin *parent, GstElement *element,
     g_signal_connect (element, "element-added",
         G_CALLBACK (_element_added_callback), user_data);
 
-    if (data->head != GST_BIN_CAST (element))
+    if (data->head != element)
       g_signal_connect (element, "parent-unset",
           G_CALLBACK (_bin_unparented_cb), user_data);
 
@@ -183,30 +183,30 @@ _element_added_callback (GstBin *parent, GstElement *element,
 
 /**
  * fs_utils_add_recursive_element_added_notification:
- * @bin: A #GstBin
+ * @element: A #GstElement
  * @callback: the function to be called when a new element is added
  * @user_data: data that will be passed to the callback
  *
- * The callback will be called on every element currently inside the bin,
- * and this will be done recursively. The function will also be called on any
- * element added in the future to the bin. The callback may be called more than
- * once and should be thread safe (elements may be added from the streaming
+ * The callback will be called on the element and every sub-element if its a
+ * bin and this will be done recursively. The function will also be called on
+ * any element added in the future to the bin. The callback may be called more
+ * than once and should be thread safe (elements may be added from the streaming
  * threads).
  *
  * Returns: a handle that can be used when calling
- *  #fs_utils_remove_recursive_element_added_notification
+ *  #fs_utils_remove_recursive_element_added_notification, or NULL if there was
+ *  an error
  */
 
 gpointer
-fs_utils_add_recursive_element_added_notification (GstBin *bin,
+fs_utils_add_recursive_element_added_notification (GstElement *element,
     FsElementAddedCallback callback,
     gpointer user_data)
 {
   g_assert (callback);
-  g_assert (GST_IS_BIN (bin));
 
-  return _element_added_callback (NULL, GST_ELEMENT_CAST (bin),
-      element_added_data_new (callback, user_data, bin));
+  return _element_added_callback (NULL, element,
+      element_added_data_new (callback, user_data, element));
 }
 
 /**
@@ -222,22 +222,22 @@ fs_utils_add_recursive_element_added_notification (GstBin *bin,
  * Returns: TRUE if the notification could be removed, FALSE otherwise
  */
 gboolean
-fs_utils_remove_recursive_element_added_notification (GstBin *bin,
+fs_utils_remove_recursive_element_added_notification (GstElement *element,
     gpointer handle)
 {
   struct FsElementAddedData *data = handle;
 
- if (g_signal_handler_find (bin,
-                 G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-                 0, 0, NULL, /* id, detail, closure */
-                 _element_added_callback, data) != 0)
- {
-   g_assert (data->head == bin);
-   _bin_unparented_cb (GST_OBJECT (data->head), NULL, data);
-   return TRUE;
- }
- else
- {
-   return FALSE;
- }
+  if (g_signal_handler_find (element,
+          G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+          0, 0, NULL, /* id, detail, closure */
+          _element_added_callback, data) != 0)
+  {
+    g_assert (data->head == element);
+    _bin_unparented_cb (GST_OBJECT (data->head), NULL, data);
+    return TRUE;
+  }
+  else
+  {
+    return FALSE;
+  }
 }

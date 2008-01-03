@@ -61,8 +61,7 @@ GST_START_TEST (test_bin_added_simple)
   identity = gst_element_factory_make ("identity", NULL);
   gst_object_ref (identity);
 
-  handle = fs_utils_add_recursive_element_added_notification (
-      GST_BIN (pipeline),
+  handle = fs_utils_add_recursive_element_added_notification (pipeline,
       _added_cb, &last_added);
 
   fail_if (handle == NULL, "Could not add notification to pipeline");
@@ -88,8 +87,7 @@ GST_START_TEST (test_bin_added_simple)
 
 
   fail_unless (
-      fs_utils_remove_recursive_element_added_notification (GST_BIN (pipeline),
-          handle),
+      fs_utils_remove_recursive_element_added_notification (pipeline, handle),
       "Could not remove notification handle %p", handle);
 
   fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
@@ -123,8 +121,7 @@ GST_START_TEST (test_bin_added_recursive)
   identity = gst_element_factory_make ("identity", NULL);
   gst_object_ref (identity);
 
-  handle = fs_utils_add_recursive_element_added_notification (
-      GST_BIN (pipeline),
+  handle = fs_utils_add_recursive_element_added_notification (pipeline,
       _added_cb, &last_added);
 
   fail_if (handle == NULL, "Could not add notification to bin");
@@ -150,8 +147,7 @@ GST_START_TEST (test_bin_added_recursive)
 
 
   fail_unless (
-      fs_utils_remove_recursive_element_added_notification (GST_BIN (pipeline),
-          handle),
+      fs_utils_remove_recursive_element_added_notification (pipeline, handle),
       "Could not remove notification handle %p", handle);
 
   fail_unless (gst_bin_add (GST_BIN (bin), identity),
@@ -162,8 +158,7 @@ GST_START_TEST (test_bin_added_recursive)
   fail_unless (gst_bin_remove (GST_BIN (bin), identity),
       "Could not remove identity from bin");
 
-  handle = fs_utils_add_recursive_element_added_notification (
-      GST_BIN (pipeline),
+  handle = fs_utils_add_recursive_element_added_notification (pipeline,
       _added_cb, &last_added);
 
   fail_if (handle == NULL, "Could not re-add notification to bin");
