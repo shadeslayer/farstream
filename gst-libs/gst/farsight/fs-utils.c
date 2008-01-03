@@ -194,7 +194,7 @@ _element_added_callback (GstBin *parent, GstElement *element,
  * threads).
  *
  * Returns: a handle that can be used when calling
- *  #fs_utils_remove_recursive_element_added_notification, or NULL if there was
+ *  fs_utils_remove_recursive_element_added_notification(), or NULL if there was
  *  an error
  */
 
@@ -214,10 +214,10 @@ fs_utils_add_recursive_element_added_notification (GstElement *element,
  * @bin: a #GstBin on which fs_utils_add_recursive_element_added_notification
  *   has been called
  * @handle: the handle returned by
- *     #fs_utils_add_recursive_element_added_notification
+ *     fs_utils_add_recursive_element_added_notification()
  *
  * This function will remove the callback added by
- * #fs_utils_add_recursive_element_added_notification
+ * fs_utils_add_recursive_element_added_notification()
  *
  * Returns: TRUE if the notification could be removed, FALSE otherwise
  */
