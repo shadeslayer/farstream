@@ -43,10 +43,6 @@ typedef void (*FsElementAddedCallback) (GstBin *bin,
     GstElement *element,
     gpointer user_data);
 
-void fs_utils_recursive_element_added (GstElement *element,
-    FsElementAddedCallback callback,
-    gpointer user_data);
-
 gpointer fs_utils_add_recursive_element_added_notification (GstElement *element,
     FsElementAddedCallback callback,
     gpointer user_data);
