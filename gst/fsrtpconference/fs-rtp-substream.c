@@ -56,7 +56,8 @@ enum
   PROP_SSRC,
   PROP_PT,
   PROP_CODEC,
-  PROP_RECEIVING
+  PROP_RECEIVING,
+  PROP_OUTPUT_GHOSTPAD
 };
 
 struct _FsRtpSubStreamPrivate {
@@ -196,6 +197,15 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
           "A toggle that prevents the substream from outputting any data",
           TRUE,
           G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_OUTPUT_GHOSTPAD,
+      g_param_spec_object ("output-ghostpad",
+          "The output ghostpad for this substream",
+          "The GstPad which is on the outside of the fsrtpconference element"
+          " for this substream",
+          GST_TYPE_PAD,
+          G_PARAM_READABLE));
 
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
@@ -407,7 +417,12 @@ fs_rtp_sub_stream_get_property (GObject *object,
       FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_boolean (value, self->priv->receiving);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
-    default:
+     case PROP_OUTPUT_GHOSTPAD:
+      FS_RTP_SESSION_LOCK (self->priv->session);
+      g_value_set_object (value, self->priv->output_ghostpad);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
+      break;
+   default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
