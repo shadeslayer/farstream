@@ -376,7 +376,7 @@ fs_stream_set_property (GObject *object,
  * fs_stream_add_remote_candidate:
  * @stream: an #FsStream
  * @candidate: an #FsCandidate struct representing a remote candidate
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * This function adds the given candidate into the remote candiate list of the
  * stream. It will be used for establishing a connection with the peer. A copy
@@ -426,7 +426,7 @@ fs_stream_remote_candidates_added (FsStream *stream)
  * @stream: a #FsStream
  * @lfoundation: The foundation of the local candidate to be selected
  * @rfoundation: The foundation of the remote candidate to be selected
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * This function selects one pair of candidates to be selected to start
  * sending media on.
@@ -455,7 +455,7 @@ fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
  * fs_stream_preload_recv_codec:
  * @stream: an #FsStream
  * @codec: The #FsCodec to be preloaded
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * This function will preload the codec corresponding to the given codec.
  * This codec must correspond exactly to one of the local-codecs returned by
@@ -484,7 +484,7 @@ fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
  * fs_stream_set_remote_codecs:
  * @stream: an #FsStream
  * @remote_codecs: a #GList of #FsCodec representing the remote codecs
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * This function will set the list of remote codecs for this stream. If
  * the given remote codecs couldn't be negotiated with the list of local

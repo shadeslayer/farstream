@@ -158,7 +158,7 @@ fs_session_class_init (FsSessionClass *klass)
    * installed GStreamer plugins. This list is unchanged during the lifecycle of
    * the session unless local-codecs-config is changed by the user. It is a
    * #GList of #FsCodec. User must free this codec list using
-   * #fs_codec_list_destroy() when done.
+   * fs_codec_list_destroy() when done.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -177,7 +177,7 @@ fs_session_class_init (FsSessionClass *klass)
    * change this value during an ongoing session. Note that doing this can cause
    * the local-codecs to be changed. Therefore this requires the user to fetch
    * the new local-codecs and renegotiate them with the peers. It is a #GList
-   * of #FsCodec. User must free this codec list using #fs_codec_list_destroy()
+   * of #FsCodec. User must free this codec list using fs_codec_list_destroy()
    * when done.
    *
    */
@@ -196,7 +196,7 @@ fs_session_class_init (FsSessionClass *klass)
    * This list indicated what codecs have been successfully negotiated with the
    * session participants. This list can change based on participants
    * joining/leaving the session. It is a #GList of #FsCodec. User must free
-   * this codec list using #fs_codec_list_destroy() when done.
+   * this codec list using fs_codec_list_destroy() when done.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -335,7 +335,7 @@ fs_session_error_forward (GObject *signal_src,
  * @stream_transmitter_parameters: an array of n_parameters #GParameter struct
  *  that will be passed
  *   to the newly-create #FsStreamTransmitter
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * This function creates a stream for the given participant into the active session.
  *
@@ -384,9 +384,9 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsSession. You have to call the function
- * #fs_session_stop_telephony_event() to stop it. 
+ * fs_session_stop_telephony_event() to stop it. 
  * This function will use any available method, if you want to use a specific
- * method only, use #fs_session_start_telephony_event_full()
+ * method only, use fs_session_start_telephony_event_full()
  *
  * Returns: %TRUE if sucessful, it can return %FALSE if the #FsStream
  * does not support this telephony event.
@@ -411,7 +411,7 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
  * @method: The method used to send the event
  *
  * This function will stop sending a telephony event started by
- * #fs_session_start_telephony_event(). If the event was being sent
+ * fs_session_start_telephony_event(). If the event was being sent
  * for less than 50ms, it will be sent for 50ms minimum. If the
  * duration was a positive and the event is not over, it will cut it
  * short.
@@ -436,7 +436,7 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
  * fs_session_set_send_codec:
  * @session: an #FsSession
  * @send_codec: an #FsCodec representing the codec to send
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * This function will set the currently being sent codec for all streams in this
  * session. The given #FsCodec must be taken directly from the #negotiated-codecs

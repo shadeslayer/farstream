@@ -91,7 +91,7 @@ fs_conference_iface_init (FsConferenceClass * iface)
  * fs_conference_new_session
  * @conference: #FsConference interface of a #GstElement
  * @media_type: #FsMediaType of the new session
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * Create a new Farsight session for the given conference.
  *
@@ -118,7 +118,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * fs_conference_new_participant
  * @conference: #FsConference interface of a #GstElement
  * @cname: The cname of the participant
- * @error: location of a #GError, or NULL if no error occured
+ * @error: location of a #GError, or %NULL if no error occured
  *
  * Create a new Farsight Participant for the type of the given conference.
  *
