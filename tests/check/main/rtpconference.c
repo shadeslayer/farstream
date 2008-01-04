@@ -32,6 +32,12 @@ struct SimpleTestConference **dats;
 GMainLoop *loop;
 int count = 0;
 
+// Options
+gboolean select_last_codec = FALSE;
+gboolean reset_to_last_codec = FALSE;
+
+gint max_buffer_count = 20;
+
 GST_START_TEST (test_rtpconference_new)
 {
   struct SimpleTestConference *dat = NULL;
@@ -187,6 +193,29 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   struct SimpleTestStream *st = user_data;
   int i;
   gboolean stop = TRUE;
+  GList *negotiated_codecs = NULL;
+
+  g_object_get (st->dat->session,
+      "negotiated-codecs", &negotiated_codecs,
+      NULL);
+
+  fail_if (negotiated_codecs == NULL, "Could not get negotiated codecs");
+
+  if (select_last_codec)
+    fail_unless (
+        fs_codec_are_equal (
+            g_list_last (negotiated_codecs)->data,
+            g_object_get_data (G_OBJECT (element), "codec")),
+        "The handoff handler got a buffer from the wrong codec");
+  else
+    fail_unless (
+        fs_codec_are_equal (
+            g_list_first (negotiated_codecs)->data,
+            g_object_get_data (G_OBJECT (element), "codec")),
+        "The handoff handler got a buffer from the wrong codec");
+
+  fs_codec_list_destroy (negotiated_codecs);
+
 
   st->buffer_count++;
 
@@ -194,8 +223,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     g_debug ("%d:%d: Buffer %d", st->dat->id, st->target->id, st->buffer_count);
 
   /*
-  fail_if (dat->buffer_count > 20,
-    "Too many buffers %d > 20", dat->buffer_count);
+  fail_if (dat->buffer_count > max_buffer_count,
+    "Too many buffers %d > max_buffer_count", dat->buffer_count);
   */
 
   for (i = 0; i < count && !stop ; i++)
@@ -209,7 +238,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     {
       struct SimpleTestStream *st2 = item->data;
 
-      if (st2->buffer_count < 20)
+      if (st2->buffer_count < max_buffer_count)
       {
         stop = FALSE;
         break;
@@ -228,6 +257,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   GstElement *fakesink = gst_element_factory_make ("fakesink", NULL);
   GstPad *fakesink_pad = NULL;
   GstPadLinkReturn ret;
+  FsCodec *codeccopy = fs_codec_copy (codec);
 
   g_assert (fakesink);
 
@@ -236,6 +266,10 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
       "sync", TRUE,
       "async", TRUE,
       NULL);
+
+  g_object_set_data (G_OBJECT (fakesink), "codec", codeccopy);
+  g_object_weak_ref (G_OBJECT (fakesink),
+      (GWeakNotify) fs_codec_destroy, codeccopy);
 
   g_signal_connect (fakesink, "handoff", G_CALLBACK (_handoff_handler), st);
 
@@ -388,7 +422,18 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
     g_object_get (st2->stream, "remote-codecs", &rcodecs2, NULL);
     fail_unless (_compare_codec_lists (rcodecs2, codecs),
         "Can not get remote codecs correctly");
+
     fs_codec_list_destroy (rcodecs2);
+
+    if (select_last_codec)
+      fail_unless (
+          fs_session_set_send_codec (st2->dat->session,
+              g_list_last (codecs)->data,
+              &error),
+          "Error setting the send codec to the last codec: %s",
+          error ? error->message : "No GError");
+
+    g_clear_error (&error);
     break;
   }
   fs_codec_list_destroy (codecs);
@@ -466,6 +511,15 @@ set_initial_codecs (
       "Can not get remote codecs correctly");
   fs_codec_list_destroy (rcodecs2);
 
+
+  if (select_last_codec)
+    fail_unless (
+        fs_session_set_send_codec (to->dat->session,
+            g_list_last (filtered_codecs)->data,
+            &error),
+        "Error setting the send codec to the last codec: %s",
+        error ? error->message : "No GError");
+  g_clear_error (&error);
 
   g_list_free (filtered_codecs);
   fs_codec_list_destroy (local_codecs);
@@ -583,6 +637,13 @@ GST_START_TEST (test_rtpconference_errors)
 GST_END_TEST;
 
 
+GST_START_TEST (test_rtpconference_select_send_codec)
+{
+  select_last_codec = TRUE;
+  simple_test (2);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -614,6 +675,10 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconfence_errors");
   tcase_add_test (tc_chain, test_rtpconference_errors);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_select_send_codec");
+  tcase_add_test (tc_chain, test_rtpconference_select_send_codec);
   suite_add_tcase (s, tc_chain);
 
   return s;
