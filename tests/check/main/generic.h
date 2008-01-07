@@ -48,6 +48,8 @@ struct SimpleTestStream {
   FsStream *stream;
 
   gint buffer_count;
+
+  gint flags;
 };
 
 struct SimpleTestConference *setup_simple_conference (

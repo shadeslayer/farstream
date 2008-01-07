@@ -36,6 +36,10 @@ int count = 0;
 gboolean select_last_codec = FALSE;
 gboolean reset_to_last_codec = FALSE;
 
+#define WAITING_ON_LAST_CODEC   (1<<0)
+#define SHOULD_BE_LAST_CODEC    (1<<1)
+#define HAS_BEEN_RESET          (1<<2)
+
 gint max_buffer_count = 20;
 
 GST_START_TEST (test_rtpconference_new)
@@ -201,7 +205,33 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   fail_if (negotiated_codecs == NULL, "Could not get negotiated codecs");
 
-  if (select_last_codec)
+  if (st->flags & WAITING_ON_LAST_CODEC)
+  {
+    if (fs_codec_are_equal (
+        g_list_last (negotiated_codecs)->data,
+        g_object_get_data (G_OBJECT (element), "codec")))
+    {
+      st->flags &= ~WAITING_ON_LAST_CODEC;
+      st->flags |= SHOULD_BE_LAST_CODEC;
+      max_buffer_count += st->buffer_count;
+      g_debug ("We HAVE last codec");
+    }
+    else
+    {
+      gchar *str = fs_codec_to_string (
+          g_object_get_data (G_OBJECT (element), "codec"));
+      gchar *str2 = fs_codec_to_string (g_list_last (negotiated_codecs)->data);
+      g_debug ("not yet the last codec, skipping (we have %s, we want %s)",
+          str, str2);
+      g_free (str);
+      g_free (str2);
+      fs_codec_list_destroy (negotiated_codecs);
+      return;
+    }
+  }
+
+
+  if (select_last_codec || st->flags & SHOULD_BE_LAST_CODEC)
     fail_unless (
         fs_codec_are_equal (
             g_list_last (negotiated_codecs)->data,
@@ -247,7 +277,40 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   }
 
   if (stop)
-    g_main_loop_quit (loop);
+  {
+    if (reset_to_last_codec && !(st->flags & HAS_BEEN_RESET)) {
+      GError *error = NULL;
+      GList *nego_codecs = NULL;
+      gchar *str = NULL;
+
+      g_object_get (st->target->session,
+          "negotiated-codecs", &nego_codecs,
+          NULL);
+
+      fail_if (nego_codecs == NULL, "No negotiated codecs ??");
+      fail_if (g_list_length (nego_codecs) < 2, "Only one negotiated codec");
+
+      str = fs_codec_to_string (g_list_last (nego_codecs)->data);
+      g_debug ("Setting codec to: %s", str);
+      g_free (str);
+
+      fail_unless (fs_session_set_send_codec (st->target->session,
+              g_list_last (nego_codecs)->data, &error),
+          "Could not set the send codec: %s",
+          error ? error->message : "NO GError!!!");
+      g_clear_error (&error);
+
+      fs_codec_list_destroy (nego_codecs);
+
+      st->flags |= HAS_BEEN_RESET | WAITING_ON_LAST_CODEC;
+
+      g_debug ("RESET TO LAST CODEC");
+
+    } else {
+      g_debug ("QUITTING");
+      g_main_loop_quit (loop);
+    }
+  }
 }
 
 static void
@@ -258,6 +321,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   GstPad *fakesink_pad = NULL;
   GstPadLinkReturn ret;
   FsCodec *codeccopy = fs_codec_copy (codec);
+  gchar *str = NULL;
 
   g_assert (fakesink);
 
@@ -284,7 +348,10 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   fail_if (gst_element_set_state (fakesink, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the fakesink to playing");
 
-  g_debug ("%d:%d: Added Fakesink", st->dat->id, st->target->id);
+  str = fs_codec_to_string (codec);
+  g_debug ("%d:%d: Added Fakesink for codec %s", st->dat->id, st->target->id,
+           str);
+  g_free (str);
 }
 
 
@@ -644,6 +711,14 @@ GST_START_TEST (test_rtpconference_select_send_codec)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpconference_select_send_codec_while_running)
+{
+  reset_to_last_codec = TRUE;
+  simple_test (2);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -664,7 +739,6 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_two_way);
   suite_add_tcase (s, tc_chain);
 
-
   tc_chain = tcase_create ("fsrtpconfence_three_way");
   tcase_add_test (tc_chain, test_rtpconference_three_way);
   suite_add_tcase (s, tc_chain);
@@ -681,6 +755,9 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_select_send_codec);
   suite_add_tcase (s, tc_chain);
 
+  tc_chain = tcase_create ("fsrtpconfence_select_send_codec_while_running");
+  tcase_add_test (tc_chain, test_rtpconference_select_send_codec_while_running);
+  suite_add_tcase (s, tc_chain);
   return s;
 }
 
