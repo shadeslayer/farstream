@@ -2172,7 +2172,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   if (codecbin)
   {
     self->priv->send_codecbin = codecbin;
-    self->priv->current_send_codec = fs_codec_copy (codec);
+    self->priv->current_send_codec = codec;
 
     if (!self->priv->send_codec_idle_id)
       self->priv->send_codec_idle_id =
@@ -2187,19 +2187,23 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   g_clear_error (&error);
 
  done:
-  if (codec)
+  /* If we have a codec bin, the required/prefered caps may have changed,
+   * in this case, we need to drop the current buffer and wait for a buffer
+   * with the right caps to come in. Only then can we drop the pad probe
+   */
+
+  if (codecbin)
   {
     if (GST_IS_BUFFER (miniobj)) {
-      GstCaps *caps = fs_codec_to_gst_caps (codec);
-      GstCaps *intersection = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
-          caps);
+      GstPad *codecbin_sink_pad = gst_pad_get_peer (pad);
 
-      if (gst_caps_is_empty (intersection))
-          ret = FALSE;
-      gst_caps_unref (intersection);
-      gst_caps_unref (caps);
+      if (!gst_pad_accept_caps (codecbin_sink_pad, GST_BUFFER_CAPS (miniobj))) {
+        ret = FALSE;
+        GST_WARNING ("Dropping buffer because its caps do not match the"
+            " requirements of the new send codec bin");
+      }
+      gst_object_unref (codecbin_sink_pad);
     }
-    fs_codec_destroy (codec);
   }
 
   if (ret && self->priv->send_blocking_id)
