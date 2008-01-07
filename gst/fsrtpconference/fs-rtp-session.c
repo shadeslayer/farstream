@@ -1940,6 +1940,8 @@ fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
 
 /**
  * fs_rtp_session_select_send_codec_locked:
+ * @session: the #FsRtpSession
+ * @blueprint: a pointer where the current #CodecBlueprint can be stored
  *
  * This function selects the codec to send using either the user preference
  * or the remote preference (from the negotiation).
@@ -1982,6 +1984,8 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
       /* The requested send codec no longer exists */
       fs_codec_destroy (session->priv->requested_send_codec);
       session->priv->requested_send_codec = NULL;
+
+      GST_DEBUG ("The current requested codec no longer exists, resetting");
     }
   }
 
