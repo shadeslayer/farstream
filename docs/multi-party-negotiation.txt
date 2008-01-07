@@ -1,0 +1,36 @@
+Codec negotiation for multi-party conferencing
+----------------------------------------------
+
+
+RTP multi-party conferencing requires that all parties use the same list of codecs. There are three ways to ensure that.
+
+- Have a static pre-determined list of codecs and use it on all
+  clients
+
+- Negotiate a common list in a centralised manner
+
+- Negotiated the common list in a decentralized manner
+
+Farsight 2 supports the first two techniques, but not the third (which
+is a lot more complicated and error-prone).
+
+To use technique one, one just needs to call
+fs_stream_set_remote_codecs() with the same list of codecs on all
+streams (actually, on at least one stream per session).
+
+To use the second technique, one must designate a Focus, which will
+generate the list that every one node will use.
+
+The non-focus nodes will send their list of codecs to the Focus and
+accept whatever the focus sends them as a reply (and use that).
+
+The focus node will first receive a list of codecs from a node, and it
+will perform the normal negotiation (prefering the remote payload
+type), but when a second FsStream is added to the FsSession, the
+behavior of the codec negotiation changes and the only effect of
+setting remote codecs from other nodes will be to reduce the possible
+codecs to the common set (ie the intersection). If there is no
+intersection between the current pool of codecs (from the negotiation
+with the previous nodes) and the codecs added by a new participant in
+the session, this participant will be rejected and
+_set_remote_codecs() will fail.
