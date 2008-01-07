@@ -211,8 +211,8 @@ fs_utils_add_recursive_element_added_notification (GstElement *element,
 
 /**
  * fs_utils_remove_recursive_element_added_notification:
- * @bin: a #GstBin on which fs_utils_add_recursive_element_added_notification
- *   has been called
+ * @element: a #GstElement on which
+ *  fs_utils_add_recursive_element_added_notification() has been called
  * @handle: the handle returned by
  *     fs_utils_add_recursive_element_added_notification()
  *
