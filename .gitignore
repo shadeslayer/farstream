@@ -31,6 +31,8 @@ docs/libs/tmpl
 docs/libs/xml
 
 python/pyfarsight.c
+python/*.pyo
+python/*.pyc
 
 tests/check/test-registry.xml
 tests/check/*/.dirstamp
@@ -41,6 +43,8 @@ tests/check/main/rtpconference
 tests/check/main/rtpcodecs
 tests/check/utils/binadded
 tests/rtp/codec-discovery
+tests/gui/*.pyo
+tests/gui/*.pyc
 
 aclocal.m4
 autom4te.cache
