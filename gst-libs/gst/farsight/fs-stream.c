@@ -171,7 +171,7 @@ fs_stream_class_init (FsStreamClass *klass)
    */
   g_object_class_install_property (gobject_class,
       PROP_DIRECTION,
-      g_param_spec_enum ("direction",
+      g_param_spec_flags ("direction",
         "The direction of the stream",
         "An enum to set and get the direction of the stream",
         FS_TYPE_STREAM_DIRECTION,

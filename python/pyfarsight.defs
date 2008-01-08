@@ -101,6 +101,7 @@
   (return-type "GList*")
   (parameters
     '("const-gchar*" "filename")
+    '("GError**" "error")
   )
 )
 
@@ -423,7 +424,7 @@
 
 ;; Enumerations and flags ...
 
-(define-enum StreamDirection
+(define-flags StreamDirection
   (in-module "Fs")
   (c-name "FsStreamDirection")
   (gtype-id "FS_TYPE_STREAM_DIRECTION")

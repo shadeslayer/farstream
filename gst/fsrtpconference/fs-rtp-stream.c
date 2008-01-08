@@ -273,7 +273,7 @@ fs_rtp_stream_get_property (GObject *object,
       g_value_set_object (value, self->priv->stream_transmitter);
       break;
     case PROP_DIRECTION:
-      g_value_set_enum (value, self->priv->direction);
+      g_value_set_flags (value, self->priv->direction);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -302,7 +302,7 @@ fs_rtp_stream_set_property (GObject *object,
         FS_STREAM_TRANSMITTER (g_value_get_object (value));
       break;
     case PROP_DIRECTION:
-      self->priv->direction = g_value_get_enum (value);
+      self->priv->direction = g_value_get_flags (value);
       if (self->priv->stream_transmitter)
         g_object_set (self->priv->stream_transmitter, "sending",
             self->priv->direction & FS_DIRECTION_SEND, NULL);
