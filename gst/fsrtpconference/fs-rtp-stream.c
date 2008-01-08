@@ -251,6 +251,19 @@ fs_rtp_stream_finalize (GObject *object)
   parent_class->finalize (object);
 }
 
+static gboolean
+_codec_list_has_codec (GList *list, FsCodec *codec)
+{
+  for (; list; list = g_list_next (list))
+  {
+    FsCodec *listcodec = list->data;
+    if (fs_codec_are_equal (codec, listcodec))
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
 static void
 fs_rtp_stream_get_property (GObject *object,
                             guint prop_id,
@@ -274,6 +287,26 @@ fs_rtp_stream_get_property (GObject *object,
       break;
     case PROP_DIRECTION:
       g_value_set_flags (value, self->priv->direction);
+      break;
+    case PROP_CURRENT_RECV_CODECS:
+      {
+        GList *codeclist = NULL;
+        GList *substream_item;
+
+        FS_RTP_SESSION_LOCK (self->priv->session);
+        for (substream_item = g_list_first (self->priv->substreams);
+             substream_item;
+             substream_item = g_list_next (substream_item))
+        {
+          FsCodec *codec = NULL;
+          g_object_get (substream_item->data, "codec", &codec, NULL);
+          if (!_codec_list_has_codec (codeclist, codec))
+            codeclist = g_list_append (codeclist, codec);
+        }
+
+        g_value_take_boxed (value, codeclist);
+        FS_RTP_SESSION_UNLOCK (self->priv->session);
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
