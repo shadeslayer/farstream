@@ -307,7 +307,6 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       g_debug ("RESET TO LAST CODEC");
 
     } else {
-      g_debug ("QUITTING");
       g_main_loop_quit (loop);
     }
   }
