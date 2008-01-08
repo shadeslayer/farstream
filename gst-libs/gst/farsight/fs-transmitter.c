@@ -44,6 +44,7 @@
 #include "fs-plugin.h"
 
 #include "fs-conference-iface.h"
+#include "fs-private.h"
 
 #include <gst/gst.h>
 
