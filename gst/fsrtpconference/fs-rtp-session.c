@@ -1544,20 +1544,27 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
 
   if (new_negotiated_codec_associations) {
     gboolean is_new = TRUE;
+    GHashTable *old_negotiated_codec_associations =
+      session->priv->negotiated_codec_associations;
+    GList *old_negotiated_codecs = session->priv->negotiated_codecs;
 
-    if (session->priv->negotiated_codecs)
+    session->priv->negotiated_codec_associations =
+      new_negotiated_codec_associations;
+    session->priv->negotiated_codecs = new_negotiated_codecs;
+
+    if (old_negotiated_codecs)
     {
       gboolean clear_pts = FALSE;
       int pt;
 
       is_new = !_compare_codec_lists (
-          session->priv->negotiated_codecs,
+          old_negotiated_codecs,
           new_negotiated_codecs);
 
       /* Lets remove the codec bin for any PT that has changed type */
       for (pt = 0; pt < 128; pt++) {
         CodecAssociation *old_codec_association = g_hash_table_lookup (
-            session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
+            old_negotiated_codec_associations, GINT_TO_POINTER (pt));
         CodecAssociation *new_codec_association = g_hash_table_lookup (
             new_negotiated_codec_associations, GINT_TO_POINTER (pt));
 
@@ -1584,14 +1591,10 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
             "clear-pt-map");
     }
 
-    if (session->priv->negotiated_codec_associations)
-      g_hash_table_destroy (session->priv->negotiated_codec_associations);
-    if (session->priv->negotiated_codecs)
-      fs_codec_list_destroy (session->priv->negotiated_codecs);
-
-    session->priv->negotiated_codec_associations =
-      new_negotiated_codec_associations;
-    session->priv->negotiated_codecs = new_negotiated_codecs;
+    if (old_negotiated_codec_associations)
+      g_hash_table_destroy (old_negotiated_codec_associations);
+    if (old_negotiated_codecs)
+      fs_codec_list_destroy (old_negotiated_codecs);
 
     if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
     {
