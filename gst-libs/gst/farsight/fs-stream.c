@@ -47,6 +47,7 @@
 #include "fs-stream-transmitter.h"
 #include "fs-conference-iface.h"
 #include "fs-enum-types.h"
+#include "fs-private.h"
 
 #include <gst/gst.h>
 

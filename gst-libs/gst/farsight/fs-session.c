@@ -47,6 +47,8 @@
 #include "fs-codec.h"
 #include "fs-marshal.h"
 #include "fs-enum-types.h"
+#include "fs-private.h"
+
 #include <gst/gst.h>
 
 #define GST_CAT_DEFAULT fs_base_conference_debug

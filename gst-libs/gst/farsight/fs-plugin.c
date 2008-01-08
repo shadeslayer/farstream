@@ -32,6 +32,7 @@
 #include "fs-plugin.h"
 
 #include "fs-conference-iface.h"
+#include "fs-private.h"
 
 #include <string.h>
 
@@ -278,6 +279,8 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
 {
   GObject *object;
   FsPlugin *plugin;
+
+  fs_base_conference_init_debug ();
 
   if (name == NULL) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,

@@ -27,7 +27,7 @@
 
 #include "fs-codec.h"
 
-#include "fs-conference-iface.h"
+#include "fs-private.h"
 
 #include <string.h>
 
