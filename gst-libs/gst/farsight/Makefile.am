@@ -23,6 +23,8 @@ BUILT_SOURCES = \
 		fs-enum-types.c \
 		fs-enum-types.h
 
+CLEANFILES = $(BUILT_SOURCES)
+
 libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-base-conference.c \
 		fs-candidate.c \
