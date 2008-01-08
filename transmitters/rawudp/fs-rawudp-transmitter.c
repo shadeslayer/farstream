@@ -48,6 +48,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
+GST_DEBUG_CATEGORY (fs_rawudp_transmitter_debug);
+#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 
 /* Signals */
 enum
@@ -140,6 +142,11 @@ fs_rawudp_transmitter_register_type (FsPlugin *module)
     (GInstanceInitFunc) fs_rawudp_transmitter_init
   };
 
+  if (fs_rawudp_transmitter_debug == NULL)
+    GST_DEBUG_CATEGORY_INIT (fs_rawudp_transmitter_debug,
+        "fsrawudptransmitter", 0,
+        "Farsight raw UDP transmitter");
+
   fs_rawudp_stream_transmitter_register_type (module);
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
@@ -148,8 +155,18 @@ fs_rawudp_transmitter_register_type (FsPlugin *module)
   return type;
 }
 
-FS_INIT_PLUGIN (fs_rawudp_transmitter_register_type, NULL)
+static void
+fs_rawudp_transmitter_unload (FsPlugin *plugin)
+{
+  if (fs_rawudp_transmitter_debug)
+  {
+    gst_debug_category_free (fs_rawudp_transmitter_debug);
+    fs_rawudp_transmitter_debug = NULL;
+  }
+}
 
+FS_INIT_PLUGIN (fs_rawudp_transmitter_register_type,
+    fs_rawudp_transmitter_unload)
 
 static void
 fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
