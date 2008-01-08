@@ -38,6 +38,10 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-enum-types.c \
 		fs-utils.c
 
+noinst_HEADERS = \
+	fs-marshal.h \
+	fs-private.h
+
 EXTRA_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = fs-marshal.list
 
 fs-marshal.h: Makefile fs-marshal.list
@@ -54,7 +58,6 @@ libgstfarsight_@GST_MAJORMINOR@_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS)
 libgstfarsight_@GST_MAJORMINOR@_la_LIBADD = $(GST_BASE_LIBS) $(GST_LIBS)
 libgstfarsight_@GST_MAJORMINOR@_la_LDFLAGS = $(GST_LIB_LDFLAGS) $(GST_ALL_LDFLAGS) $(GST_LT_LDFLAGS)
 
-noinst_HEADERS = fs-marshal.h
 
 public_headers = fs-candidate.h \
 		fs-codec.h \
