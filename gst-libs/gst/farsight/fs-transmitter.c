@@ -94,6 +94,8 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
 {
   GObjectClass *gobject_class;
 
+  fs_base_conference_init_debug ();
+
   gobject_class = (GObjectClass *) klass;
   parent_class = g_type_class_peek_parent (klass);
 
