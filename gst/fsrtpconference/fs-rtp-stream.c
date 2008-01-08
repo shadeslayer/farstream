@@ -52,7 +52,7 @@ enum
   PROP_SOURCE_PADS,
 #endif
   PROP_REMOTE_CODECS,
-  PROP_CURRENT_RECV_CODEC,
+  PROP_CURRENT_RECV_CODECS,
   PROP_DIRECTION,
   PROP_PARTICIPANT,
   PROP_SESSION,
@@ -164,8 +164,8 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
                                     PROP_REMOTE_CODECS,
                                     "remote-codecs");
   g_object_class_override_property (gobject_class,
-                                    PROP_CURRENT_RECV_CODEC,
-                                    "current-recv-codec");
+                                    PROP_CURRENT_RECV_CODECS,
+                                    "current-recv-codecs");
   g_object_class_override_property (gobject_class,
                                     PROP_DIRECTION,
                                     "direction");

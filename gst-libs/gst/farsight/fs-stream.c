@@ -56,7 +56,7 @@ enum
 {
   ERROR,
   SRC_PAD_ADDED,
-  RECV_CODEC_CHANGED,
+  RECV_CODECS_CHANGED,
   NEW_ACTIVE_CANDIDATE_PAIR,
   NEW_LOCAL_CANDIDATE,
   LOCAL_CANDIDATES_PREPARED,
@@ -72,7 +72,7 @@ enum
   PROP_SOURCE_PADS,
 #endif
   PROP_REMOTE_CODECS,
-  PROP_CURRENT_RECV_CODEC,
+  PROP_CURRENT_RECV_CODECS,
   PROP_DIRECTION,
   PROP_PARTICIPANT,
   PROP_SESSION,
@@ -148,18 +148,17 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream:current-recv-codec:
    *
-   * This is the codec that is currently being received. It is the same as the
-   * one emitted in the ::recv-codec-changed signal. User must free the codec
-   * using fs_codec_destroy() when done.
+   * This is the list of codecs that have been received by this stream.
+   * The user must free the list if fs_codec_list_destroy()
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_CURRENT_RECV_CODEC,
-      g_param_spec_boxed ("current-recv-codec",
-        "The codec currently being received",
-        "A FsCodec of the codec currently being received",
-        FS_TYPE_CODEC,
-        G_PARAM_READABLE));
+      PROP_CURRENT_RECV_CODECS,
+      g_param_spec_boxed ("current-recv-codecs",
+          "The codecs currently being received",
+          "A GList of FsCodec representing the codecs that have been received",
+          FS_TYPE_CODEC_LIST,
+          G_PARAM_READABLE));
 
   /**
    * FsStream:direction:
@@ -269,24 +268,25 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream::recv-codec-changed:
    * @self: #FsStream that emitted the signal
-   * @pad: #GstPad of the current source pad
    * @codec: #FsCodec of the new codec being received
    *
    * This signal is emitted when the currently received codec has changed. This
    * is useful for displaying the current active reception codec or for making
    * changes to the pipeline. The user must ref the #GstPad if he wants to
    * use it. The user should not modify the #FsCodec and must copy it if he
-   * wants to use it outside the callback scope.
+   * wants to use it outside the callback scope. This signal is normally
+   * emitted right after src-pad-added only if that codec was not previously
+   * received in this stream.
    *
    */
-  signals[RECV_CODEC_CHANGED] = g_signal_new ("recv-codec-changed",
+  signals[RECV_CODECS_CHANGED] = g_signal_new ("recv-codecs-changed",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__BOXED_BOXED,
-      G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
+      g_cclosure_marshal_VOID__BOXED,
+      G_TYPE_NONE, 1, FS_TYPE_CODEC);
 
   /**
    * FsStream::new-active-candidate-pair:
