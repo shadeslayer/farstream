@@ -28,7 +28,6 @@ fs_stream_preload_recv_codec
 fs_stream_set_remote_codecs
 fs_stream_emit_error
 <SUBSECTION Standard>
-FS_TYPE_STREAM_DIRECTION
 FS_STREAM
 FS_IS_STREAM
 FS_TYPE_STREAM
@@ -66,8 +65,8 @@ FsSessionPrivate
 
 <SECTION>
 <FILE>fs-conference-iface</FILE>
-<TITLE>FsConferenceInterface</TITLE>
-FsConferenceInterface
+<TITLE>FsConference</TITLE>
+FsConference
 fs_conference_new_session
 fs_conference_new_participant
 FS_ERROR
@@ -125,10 +124,8 @@ fs_codec_to_gst_caps
 <SUBSECTION Standard>
 FS_TYPE_CODEC
 FS_TYPE_CODEC_LIST
-FS_TYPE_MEDIA_TYPE
 fs_codec_get_type
 fs_codec_list_get_type
-fs_media_type_get_type
 </SECTION>
 
 <SECTION>
@@ -215,6 +212,4 @@ FsElementAddedCallback
 fs_utils_add_recursive_element_added_notification
 fs_utils_remove_recursive_element_added_notification
 fs_utils_add_recursive_element_setter_from_keyfile
-<SUBSECTION Private>
-fs_utils_recursive_element_added
 </SECTION>
