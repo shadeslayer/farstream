@@ -28,13 +28,6 @@
  #include "config.h"
 #endif
 
-#if 0
-#define DEBUG(args...) g_debug (args)
-#else
-#define DEBUG(args...) while(0) {}
-#endif
-
-
 #ifdef G_OS_UNIX
 
 #include <stdio.h>
@@ -51,6 +44,10 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <arpa/inet.h>
+#include <gst/gst.h>
+
+GST_DEBUG_CATEGORY_EXTERN (fs_rawudp_transmitter_debug);
+#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 
 /**
  * farsight_get_local_interfaces:
@@ -82,7 +79,7 @@ farsight_get_local_interfaces(void)
     if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
       continue;
 
-    DEBUG("Found interface : %s", ifa->ifa_name);
+    GST_DEBUG("Found interface : %s", ifa->ifa_name);
     interfaces = g_list_prepend (interfaces, g_strdup(ifa->ifa_name));
   }
 
@@ -101,7 +98,7 @@ farsight_get_local_interfaces (void)
   struct ifconf ifc;
 
   if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
-    g_warning ("Cannot open socket to retreive interface list");
+    GST_ERROR ("Cannot open socket to retreive interface list");
     return NULL;
   }
 
@@ -113,7 +110,7 @@ farsight_get_local_interfaces (void)
     size += sizeof(struct ifreq);
     /* realloc buffer size until no overflow occurs  */
     if (NULL == (ifc.ifc_req = realloc (ifc.ifc_req, size))) {
-      g_warning ("Out of memory while allocation interface configuration structure");
+      GST_ERROR ("Out of memory while allocation interface configuration structure");
       close (sockfd);
       return NULL;
     }
@@ -131,7 +128,7 @@ farsight_get_local_interfaces (void)
   for (ifr = ifc.ifc_req;
        (gchar *) ifr < (gchar *) ifc.ifc_req + ifc.ifc_len;
        ++ifr) {
-    DEBUG ("Found interface : %s", ifr->ifr_name);
+    GST_DEBUG ("Found interface : %s", ifr->ifr_name);
     interfaces = g_list_prepend (interfaces, g_strdup(ifr->ifr_name));
   }
 
@@ -199,14 +196,14 @@ farsight_get_local_ips (gboolean include_loopback)
 
     sa = (struct sockaddr_in *) ifa->ifa_addr;
 
-    DEBUG("Interface:  %s", ifa->ifa_name);
-    DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
+    GST_DEBUG("Interface:  %s", ifa->ifa_name);
+    GST_DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
     if ((ifa->ifa_flags & IFF_LOOPBACK) == IFF_LOOPBACK)
     {
       if (include_loopback)
         loopback = g_strdup (inet_ntoa (sa->sin_addr));
       else
-        DEBUG("Ignoring loopback interface");
+        GST_DEBUG("Ignoring loopback interface");
     }
     else
     {
@@ -238,7 +235,7 @@ farsight_get_local_ips (gboolean include_loopback)
   struct sockaddr_in *sa;
 
   if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
-    g_warning("Cannot open socket to retreive interface list");
+    GST_ERROR("Cannot open socket to retreive interface list");
     return NULL;
   }
 
@@ -250,7 +247,7 @@ farsight_get_local_ips (gboolean include_loopback)
     size += sizeof(struct ifreq);
     /* realloc buffer size until no overflow occurs  */
     if (NULL == (ifc.ifc_req = realloc (ifc.ifc_req, size))) {
-      g_warning ("Out of memory while allocation interface configuration"
+      GST_ERROR ("Out of memory while allocation interface configuration"
         " structure");
       close (sockfd);
       return NULL;
@@ -271,15 +268,15 @@ farsight_get_local_ips (gboolean include_loopback)
        ++ifr) {
 
     if (ioctl (sockfd, SIOCGIFFLAGS, ifr)) {
-      g_warning ("Unable to get IP information for interface %s. Skipping...",
+      GST_ERROR ("Unable to get IP information for interface %s. Skipping...",
         ifr->ifr_name);
       continue;  /* failed to get flags, skip it */
     }
     sa = (struct sockaddr_in *) &ifr->ifr_addr;
-    DEBUG("Interface:  %s", ifr->ifr_name);
-    DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
+    GST_DEBUG("Interface:  %s", ifr->ifr_name);
+    GST_DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
     if (!include_loopback && (ifr->ifr_flags & IFF_LOOPBACK) == IFF_LOOPBACK){
-      DEBUG("Ignoring loopback interface");
+      GST_DEBUG("Ignoring loopback interface");
     } else {
       if (farsight_is_private_ip (sa->sin_addr)) {
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
@@ -318,12 +315,12 @@ farsight_get_ip_for_interface (gchar *interface_name)
   strcpy (ifr.ifr_name, interface_name);
 
   if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
-    g_warning("Cannot open socket to retreive interface list");
+    GST_ERROR("Cannot open socket to retreive interface list");
     return NULL;
   }
 
   if (ioctl (sockfd, SIOCGIFADDR, &ifr) < 0) {
-    g_warning ("Unable to get IP information for interface %s",
+    GST_ERROR ("Unable to get IP information for interface %s",
       interface_name);
     close (sockfd);
     return NULL;
@@ -331,7 +328,7 @@ farsight_get_ip_for_interface (gchar *interface_name)
 
   close (sockfd);
   sa = (struct sockaddr_in *) &ifr.ifr_addr;
-  DEBUG ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
+  GST_DEBUG ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
   return inet_ntoa(sa->sin_addr);
 }
 
@@ -361,7 +358,7 @@ SOCKET farsight_get_WSA_socket() {
 
     err = WSAStartup( wVersionRequested, &wsaData );
     if ( err != 0 ) {
-      g_warning("Could not start the winsocket engine");
+      GST_ERROR("Could not start the winsocket engine");
       return INVALID_SOCKET;
     }
     started_wsa_engine = TRUE;
@@ -369,7 +366,7 @@ SOCKET farsight_get_WSA_socket() {
 
 
   if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) == INVALID_SOCKET) {
-    g_warning("Could not open socket to retreive interface list, error no : %d", WSAGetLastError());
+    GST_ERROR("Could not open socket to retreive interface list, error no : %d", WSAGetLastError());
     return INVALID_SOCKET;
   }
 

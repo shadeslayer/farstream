@@ -52,6 +52,9 @@
 #include <netdb.h>
 #include <unistd.h>
 
+GST_DEBUG_CATEGORY_EXTERN (fs_rawudp_transmitter_debug);
+#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
+
 /* Signals */
 enum
 {
@@ -851,7 +854,7 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
       candidate->proto = FS_NETWORK_PROTOCOL_UDP;
       candidate->type = FS_CANDIDATE_TYPE_SRFLX;
 
-      g_debug ("Stun server says we are %u.%u.%u.%u %u\n",
+      GST_DEBUG ("Stun server says we are %u.%u.%u.%u %u\n",
           ((*attr)->address.ip & 0xff000000) >> 24,
           ((*attr)->address.ip & 0x00ff0000) >> 16,
           ((*attr)->address.ip & 0x0000ff00) >>  8,
@@ -972,16 +975,19 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   data->component_id = component_id;
 
   g_mutex_lock (data->self->priv->sources_mutex);
-  /*
-   * This is broken in GLib 2.14
+#if 1
+  /* This is MAY broken in GLib 2.14 (gnome bug #448943) */
+  /* If the test does not stop (and times out), this may be the cause
+   * and in this case should be investigated further
+   */
   self->priv->stun_timeout_id[component_id] = g_timeout_add_seconds_full (
       G_PRIORITY_DEFAULT, self->priv->stun_timeout,
       fs_rawudp_stream_transmitter_stun_timeout_cb, data, g_free);
-  */
+#else
   self->priv->stun_timeout_id[component_id] = g_timeout_add_full (
       G_PRIORITY_DEFAULT, self->priv->stun_timeout * 1000,
       fs_rawudp_stream_transmitter_stun_timeout_cb, data, g_free);
-
+#endif
   g_assert (self->priv->stun_timeout_id[component_id]);
   g_mutex_unlock (data->self->priv->sources_mutex);
 

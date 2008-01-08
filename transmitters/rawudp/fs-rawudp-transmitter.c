@@ -533,7 +533,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
     retval = bind (sock, (struct sockaddr *) &address, sizeof (address));
     if (retval != 0)
     {
-      g_debug ("could not bind port %d", port);
+      GST_INFO ("could not bind port %d", port);
       port += 2;
       if (port > 65535) {
         g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
@@ -628,7 +628,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   gst_bin_remove (bin, elem);
   state_ret = gst_element_set_state (elem, GST_STATE_NULL);
   if (state_ret != GST_STATE_CHANGE_SUCCESS) {
-    g_warning ("On error, could not reset %s to state NULL (%s)", elementname,
+    GST_ERROR ("On error, could not reset %s to state NULL (%s)", elementname,
       gst_element_state_change_return_get_name (state_ret));
   }
   gst_object_unref (elem);
@@ -731,7 +731,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
     gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc);
     ret = gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
-      g_warning ("Error changing state of udpsrc: %s",
+      GST_ERROR ("Error changing state of udpsrc: %s",
         gst_element_state_change_return_get_name (ret));
     }
     gst_object_unref (udpport->udpsrc);
@@ -750,7 +750,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
     gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->udpsink);
     ret = gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS) {
-      g_warning ("Error changing state of udpsink: %s",
+      GST_ERROR ("Error changing state of udpsink: %s",
         gst_element_state_change_return_get_name (ret));
     }
     gst_object_unref (udpport->udpsink);
@@ -773,7 +773,7 @@ void
 fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
-  g_debug ("Adding dest %s:%d", ip, port);
+  GST_DEBUG ("Adding dest %s:%d", ip, port);
   g_signal_emit_by_name (udpport->udpsink, "add", ip, port);
 }
 
