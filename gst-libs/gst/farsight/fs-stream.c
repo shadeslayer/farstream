@@ -266,7 +266,7 @@ fs_stream_class_init (FsStreamClass *klass)
       G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
 
   /**
-   * FsStream::recv-codec-changed:
+   * FsStream::recv-codecs-changed:
    * @self: #FsStream that emitted the signal
    * @codec: #FsCodec of the new codec being received
    *
@@ -276,7 +276,8 @@ fs_stream_class_init (FsStreamClass *klass)
    * use it. The user should not modify the #FsCodec and must copy it if he
    * wants to use it outside the callback scope. This signal is normally
    * emitted right after src-pad-added only if that codec was not previously
-   * received in this stream.
+   * received in this stream, but it can also be emitted if the pad already
+   * exists, but the source material that will come to it is different.
    *
    */
   signals[RECV_CODECS_CHANGED] = g_signal_new ("recv-codecs-changed",
