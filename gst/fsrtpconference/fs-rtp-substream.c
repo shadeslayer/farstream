@@ -428,10 +428,6 @@ fs_rtp_sub_stream_get_property (GObject *object,
   }
 }
 
-static void
-_blocked_cb (GstPad *pad, gboolean blocked, gpointer user_data)
-{
-}
 
 /**
  * fs_rtp_session_add_codecbin_locked:
@@ -513,9 +509,6 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
   substream->priv->codecbin = codecbin;
   substream->priv->codec = codec;
 
-  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE, _blocked_cb,
-    NULL);
-
   /* Announce the pad if it wasnt there already and this substream
    * has a stream
    */
@@ -532,11 +525,10 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
 
  error_no_remove:
 
-    gst_pad_set_blocked_async (substream->priv->rtpbin_pad, TRUE, _blocked_cb,
+    fs_rtp_sub_stream_invalidate_codec_locked (substream, substream->priv->pt,
         NULL);
 
     return FALSE;
-
 }
 
 /**
