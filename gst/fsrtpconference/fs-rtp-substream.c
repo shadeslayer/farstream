@@ -509,6 +509,23 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
   substream->priv->codecbin = codecbin;
   substream->priv->codec = codec;
 
+  if (substream->priv->stream)
+  {
+    gboolean ret = TRUE;
+
+    if (!substream->priv->output_ghostpad)
+      ret =  fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
+
+    fs_rtp_stream_maybe_emit_codecs_changed (substream->priv->stream,
+        substream);
+
+    return ret;
+  }
+  else
+  {
+    return TRUE;
+  }
+
   /* Announce the pad if it wasnt there already and this substream
    * has a stream
    */

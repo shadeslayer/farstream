@@ -73,6 +73,7 @@ struct _FsRtpStreamPrivate
 
   /* Protected by the session mutex */
   GList *substreams;
+  guint recv_codecs_changed_idle_id;
 
   GError *construction_error;
 
@@ -216,6 +217,12 @@ fs_rtp_stream_dispose (GObject *object)
   }
 
   FS_RTP_SESSION_LOCK (self->priv->session);
+  if (self->priv->recv_codecs_changed_idle_id)
+  {
+    g_source_remove (self->priv->recv_codecs_changed_idle_id);
+    self->priv->recv_codecs_changed_idle_id = 0;
+  }
+
   if (self->priv->substreams) {
     g_list_foreach (self->priv->substreams, (GFunc) g_object_unref, NULL);
     g_list_free (self->priv->substreams);
@@ -647,6 +654,8 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
   if (codec) {
     ret = fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
     fs_codec_destroy (codec);
+
+    fs_rtp_stream_maybe_emit_codecs_changed (stream, substream);
   }
 
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
@@ -697,4 +706,68 @@ fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
        item;
        item = g_list_next (item))
     fs_rtp_sub_stream_invalidate_codec_locked (item->data, pt, codec);
+}
+
+
+
+static gboolean
+_idle_emit_recv_codecs_changed (gpointer data)
+{
+  FsRtpStream *stream = FS_RTP_STREAM (data);
+
+  g_signal_emit_by_name (stream, "recv-codecs-changed");
+
+  FS_RTP_SESSION_LOCK (stream->priv->session);
+  stream->priv->recv_codecs_changed_idle_id = 0;
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
+  return FALSE;
+}
+
+/**
+ * fs_stream_maybe_emit_codecs_changed:
+ * @stream: a #FsRtpStream
+ * @substream: The #FsRtpSubStream that may have a new receive codec
+ *
+ * This function checks if the specified substream introduces not a new codec
+ * not present in another substream and if it does, it schedules an idle task
+ * to emit the signal on the main thread.
+ */
+
+void
+fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
+    FsRtpSubStream *substream)
+{
+  GList *substream_item = NULL;
+  FsCodec *codec = NULL;
+
+  g_object_get (substream, "codec", &codec, NULL);
+
+  if (!codec)
+    return;
+
+  FS_RTP_SESSION_LOCK (stream->priv->session);
+
+  for (substream_item = stream->priv->substreams;
+       substream_item;
+       substream_item = g_list_next (substream_item))
+  {
+    FsRtpSubStream *othersubstream = substream_item->data;
+
+    if (othersubstream != substream)
+    {
+      FsCodec *othercodec = NULL;
+
+      g_object_get (othersubstream, "codec", &othercodec, NULL);
+
+      if (othercodec && ! fs_codec_are_equal (codec, othercodec))
+        break;
+    }
+  }
+
+  if (substream_item == NULL)
+    if (!stream->priv->recv_codecs_changed_idle_id)
+      stream->priv->recv_codecs_changed_idle_id =
+        g_idle_add (_idle_emit_recv_codecs_changed, stream);
+
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 }
