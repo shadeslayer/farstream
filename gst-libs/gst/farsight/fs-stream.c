@@ -150,6 +150,8 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    * This is the list of codecs that have been received by this stream.
    * The user must free the list if fs_codec_list_destroy()
+   * The #FsStream::recv-codecs-changed signal is emitted when the value of
+   * this property changes.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -164,7 +166,7 @@ fs_stream_class_init (FsStreamClass *klass)
    * FsStream:direction:
    *
    * The direction of the stream. This property is set initially as a parameter
-   * to the fs_session_add_participant() function. It can be changed later if
+   * to the fs_session_new_stream() function. It can be changed later if
    * required by setting this property.
    *
    */
@@ -268,16 +270,15 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream::recv-codecs-changed:
    * @self: #FsStream that emitted the signal
-   * @codec: #FsCodec of the new codec being received
    *
-   * This signal is emitted when the currently received codec has changed. This
-   * is useful for displaying the current active reception codec or for making
-   * changes to the pipeline. The user must ref the #GstPad if he wants to
-   * use it. The user should not modify the #FsCodec and must copy it if he
-   * wants to use it outside the callback scope. This signal is normally
-   * emitted right after src-pad-added only if that codec was not previously
-   * received in this stream, but it can also be emitted if the pad already
-   * exists, but the source material that will come to it is different.
+   * This signal is emitted when the list of currently received codecs has
+   * changed. They can be fetched from the #FsStream:current-recv-codecs
+   * property.
+   * This is useful for displaying the current active reception codecs.
+   * This signal is normally emitted right after src-pad-added only if that
+   * codec was not previously received in this stream, but it can also be
+   * emitted if the pad already exists, but the source material that will
+   * come to it is different.
    *
    */
   signals[RECV_CODECS_CHANGED] = g_signal_new ("recv-codecs-changed",
@@ -286,8 +287,8 @@ fs_stream_class_init (FsStreamClass *klass)
       0,
       NULL,
       NULL,
-      g_cclosure_marshal_VOID__BOXED,
-      G_TYPE_NONE, 1, FS_TYPE_CODEC);
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 
   /**
    * FsStream::new-active-candidate-pair:
