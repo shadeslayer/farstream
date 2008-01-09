@@ -31,16 +31,16 @@ try:
 
     import gtk, gtk.glade, gobject, gtk.gdk
     import gobject
-except ImportError:
-    raise SystemExit("PyGTK couldn't be found !")
+except ImportError, e:
+    raise SystemExit("PyGTK couldn't be found ! (%s)" % (e[0]))
 
 try:
     import pygst
     pygst.require('0.10')
         
     import gst
-except ImportError:
-    raise SystemExit("Gst-Python couldn't be found!")
+except ImportError, e:
+    raise SystemExit("Gst-Python couldn't be found! (%s)" % (e[0]))
 try:
     import farsight
 except:
@@ -48,8 +48,8 @@ except:
         sys.path.append(os.path.join(os.path.dirname(__file__),
                                      '..', '..', 'python', '.libs'))
         import farsight
-    except ImportError:
-        raise SystemExit("Farsight couldn't be found!")
+    except ImportError, e:
+        raise SystemExit("Farsight couldn't be found! (%s)" % (e[0]))
 
 
 
