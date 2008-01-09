@@ -199,6 +199,8 @@ fs_session_class_init (FsSessionClass *klass)
    * session participants. This list can change based on participants
    * joining/leaving the session. It is a #GList of #FsCodec. User must free
    * this codec list using fs_codec_list_destroy() when done.
+   * The #FsSession::new-negotiated-codecs signal is emited when the content
+   * of this property changes.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -218,6 +220,8 @@ fs_session_class_init (FsSessionClass *klass)
    * also be automatically changed by Farsight. In both cases the
    * ::send-codec-changed signal will be emited. This property is an
    * #FsCodec. User must free the codec using fs_codec_destroy() when done.
+   * The #FsSession::send-codec-changed signal is emitted when the content
+   * of this property changes.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -255,8 +259,8 @@ fs_session_class_init (FsSessionClass *klass)
    *
    * This signal is emitted when the active send codec has been changed
    * manually by the user or automatically for QoS purposes. The user should
-   * look at the #current-send-codec property in the session to determine what
-   * the new active codec is
+   * look at the #FsSession:current-send-codec property in the session to
+   * determine what the new active codec is
    *
    */
   signals[SEND_CODEC_CHANGED] = g_signal_new ("send-codec-changed",
@@ -275,8 +279,9 @@ fs_session_class_init (FsSessionClass *klass)
    * This signal is emitted when the negotiated codecs list has changed for this
    * session. This can happen when new remote codecs are added to the session
    * (i.e. When a session is being initialized or a new participant joins an
-   * existing session). The user should look at the #negotiated-codecs property
-   * to determine what the new negotiated codec list is.
+   * existing session). The user should look at the
+   * #FsSession:negotiated-codecs property to determine what the new
+   * negotiated codec list is.
    *
    */
   signals[NEW_NEGOTIATED_CODECS] = g_signal_new ("new-negotiated-codecs",
