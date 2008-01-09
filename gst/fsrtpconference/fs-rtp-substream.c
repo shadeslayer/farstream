@@ -540,7 +540,7 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
 }
 
 /**
- * fs_rtp_session_add_codecbin:
+ * fs_rtp_sub_stream_add_codecbin:
  * @substream: a #FsRtpSubStream
  *
  * Add and links the rtpbin for a given substream.
