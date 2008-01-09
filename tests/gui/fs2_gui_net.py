@@ -31,7 +31,8 @@ import gc
 try:
     import farsight
 except:
-    sys.path.append("../../python/.libs")
+    sys.path.append(os.path.join(os.path.dirname(__file__),
+                                 '..', '..', 'python', '.libs'))
     import farsight
 
 import gobject

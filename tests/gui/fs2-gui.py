@@ -45,7 +45,8 @@ try:
     import farsight
 except:
     try:
-        sys.path.append("../../python/.libs")
+        sys.path.append(os.path.join(os.path.dirname(__file__),
+                                     '..', '..', 'python', '.libs'))
         import farsight
     except ImportError:
         raise SystemExit("Farsight couldn't be found!")
@@ -66,6 +67,8 @@ mycname = "".join((pwd.getpwuid(os.getuid())[0],
                    str(os.getpid()),
                    "@",
                    socket.gethostname()))
+
+gladefile = os.path.join(os.path.dirname(__file__),"fs2-gui.glade")
 
 
 def make_video_sink(pipeline, xid, name):
@@ -350,7 +353,7 @@ class FsUIParticipant:
             self.streams[id].send_local_codecs()
     def make_widget(self):
         gtk.gdk.threads_enter()
-        self.glade = gtk.glade.XML("fs2-gui.glade", "user_frame")
+        self.glade = gtk.glade.XML(gladefile, "user_frame")
         self.userframe = self.glade.get_widget("user_frame")
         self.glade.get_widget("frame_label").set_text(self.cname)
         self.glade.signal_autoconnect(self)
@@ -435,7 +438,7 @@ class FsMainUI:
     def __init__(self, mode, ip, port):
         self.mode = mode
         self.pipeline = FsUIPipeline()
-        self.glade = gtk.glade.XML("fs2-gui.glade", "main_window")
+        self.glade = gtk.glade.XML(gladefile, "main_window")
         self.glade.signal_autoconnect(self)
         self.mainwindow = self.glade.get_widget("main_window")
         if mode == CLIENT:
@@ -486,7 +489,7 @@ class FsMainUI:
 
 class FsUIStartup:
     def __init__(self):
-        self.glade = gtk.glade.XML("fs2-gui.glade", "neworconnect_dialog")
+        self.glade = gtk.glade.XML(gladefile, "neworconnect_dialog")
         self.dialog = self.glade.get_widget("neworconnect_dialog")
         self.glade.get_widget("newport_spinbutton").set_value(9893)
         self.glade.signal_autoconnect(self)
