@@ -65,8 +65,11 @@ enum
   PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_SEND_CODEC,
-  PROP_CONFERENCE
+  PROP_CONFERENCE,
+  PROP_NO_RTCP_TIMEOUT
 };
+
+#define DEFAULT_NO_RTCP_TIMEOUT (7000)
 
 struct _FsRtpSessionPrivate
 {
@@ -133,6 +136,9 @@ struct _FsRtpSessionPrivate
   /* These are protected by the session mutex */
   GList *negotiated_codecs;
   GHashTable *negotiated_codec_associations;
+
+  /* Protected by the session mutex */
+  gint no_rtcp_timeout;
 
   GError *construction_error;
 
@@ -235,6 +241,18 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
       FS_TYPE_RTP_CONFERENCE,
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
+  g_object_class_install_property (gobject_class,
+      PROP_NO_RTCP_TIMEOUT,
+      g_param_spec_int ("no-rtcp-timeout",
+          "The timeout (in ms) before no RTCP is assumed",
+          "This is the time (in ms) after which data received without RTCP"
+          " is attached the FsStream, this only works if there is only one"
+          " FsStream. -1 will wait forever. 0 will not wait for RTCP and"
+          " attach it immediataly to the FsStream and prohibit the creation"
+          " of a second FsStream",
+          -1, G_MAXINT, DEFAULT_NO_RTCP_TIMEOUT,
+          G_PARAM_READWRITE));
+
   gobject_class->dispose = fs_rtp_session_dispose;
   gobject_class->finalize = fs_rtp_session_finalize;
 
@@ -255,6 +273,8 @@ fs_rtp_session_init (FsRtpSession *self)
   g_static_rec_mutex_init (&self->mutex);
 
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
+
+  self->priv->no_rtcp_timeout = DEFAULT_NO_RTCP_TIMEOUT;
 }
 
 static gboolean
@@ -570,6 +590,11 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_boxed (value, self->priv->current_send_codec);
       FS_RTP_SESSION_UNLOCK (self);
       break;
+    case PROP_NO_RTCP_TIMEOUT:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_int (value, self->priv->no_rtcp_timeout);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -627,6 +652,11 @@ fs_rtp_session_set_property (GObject *object,
       break;
     case PROP_CONFERENCE:
       self->priv->conference = g_value_dup_object (value);
+      break;
+    case PROP_NO_RTCP_TIMEOUT:
+      FS_RTP_SESSION_LOCK (self);
+      self->priv->no_rtcp_timeout = g_value_get_int (value);
+      FS_RTP_SESSION_UNLOCK (self);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
