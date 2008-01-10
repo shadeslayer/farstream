@@ -712,7 +712,8 @@ fs_rtp_session_constructed (GObject *object)
   if (!self->priv->local_codec_associations) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_INVALID_ARGUMENTS,
-      "The passed codec preferences invalidate all blueprints");
+      "The passed codec preferences invalidate all blueprints or not enough"
+        " parameters are specified to validate at least one");
     return;
   }
 
