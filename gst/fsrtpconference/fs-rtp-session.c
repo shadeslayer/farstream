@@ -527,6 +527,9 @@ fs_rtp_session_finalize (GObject *object)
   if (self->priv->current_send_codec)
     fs_codec_destroy (self->priv->current_send_codec);
 
+  if (self->priv->requested_send_codec)
+    fs_codec_destroy (self->priv->requested_send_codec);
+
   parent_class->finalize (object);
 }
 

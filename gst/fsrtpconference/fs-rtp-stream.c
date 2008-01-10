@@ -760,7 +760,12 @@ fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
       g_object_get (othersubstream, "codec", &othercodec, NULL);
 
       if (othercodec && ! fs_codec_are_equal (codec, othercodec))
+      {
+        fs_codec_destroy (othercodec);
         break;
+      }
+
+      fs_codec_destroy (othercodec);
     }
   }
 
@@ -770,4 +775,6 @@ fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
         g_idle_add (_idle_emit_recv_codecs_changed, stream);
 
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
+
+  fs_codec_destroy (codec);
 }
