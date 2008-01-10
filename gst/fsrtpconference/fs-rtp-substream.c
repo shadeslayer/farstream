@@ -408,7 +408,7 @@ fs_rtp_sub_stream_set_property (GObject *object,
       break;
     case PROP_SSRC:
       self->priv->ssrc = g_value_get_uint (value);
-     break;
+      break;
     case PROP_PT:
       self->priv->pt = g_value_get_uint (value);
       break;
@@ -458,7 +458,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
       break;
     case PROP_SSRC:
       g_value_set_uint (value, self->priv->ssrc);
-     break;
+      break;
     case PROP_PT:
       g_value_set_uint (value, self->priv->pt);
       break;
@@ -471,7 +471,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
       FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_boolean (value, self->priv->receiving);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
-     case PROP_OUTPUT_GHOSTPAD:
+    case PROP_OUTPUT_GHOSTPAD:
       FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_object (value, self->priv->output_ghostpad);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
