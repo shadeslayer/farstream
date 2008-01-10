@@ -1671,9 +1671,14 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   FsRtpSubStream *substream = NULL;
   FsRtpStream *stream = NULL;
   GError *error = NULL;
+  gint no_rtcp_timeout;
+
+  FS_RTP_SESSION_LOCK (session);
+  no_rtcp_timeout = session->priv->no_rtcp_timeout;
+  FS_RTP_SESSION_UNLOCK (session);
 
   substream = fs_rtp_sub_stream_new (session->priv->conference, session,
-      new_pad, ssrc, pt, &error);
+      new_pad, ssrc, pt, no_rtcp_timeout, &error);
 
   if (substream == NULL) {
     if (error && error->domain == FS_ERROR)

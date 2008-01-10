@@ -57,8 +57,11 @@ enum
   PROP_PT,
   PROP_CODEC,
   PROP_RECEIVING,
-  PROP_OUTPUT_GHOSTPAD
+  PROP_OUTPUT_GHOSTPAD,
+  PROP_NO_RTCP_TIMEOUT
 };
+
+#define DEFAULT_NO_RTCP_TIMEOUT (7000)
 
 struct _FsRtpSubStreamPrivate {
   gboolean disposed;
@@ -91,6 +94,11 @@ struct _FsRtpSubStreamPrivate {
   gulong blocking_id;
 
   gboolean receiving;
+
+  gint no_rtcp_timeout;
+
+  /* Protected by the session mutex */
+  gint no_rtcp_timeout_id;
 
   GError *construction_error;
 };
@@ -206,6 +214,16 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
           " for this substream",
           GST_TYPE_PAD,
           G_PARAM_READABLE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_NO_RTCP_TIMEOUT,
+      g_param_spec_int ("no-rtcp-timeout",
+          "The timeout (in ms) before no RTCP is assumed",
+          "This is the time (in ms) after which data received without RTCP"
+          " is attached the FsStream, this only works if there is only one"
+          " FsStream. <=0 will do nothing",
+          -1, G_MAXINT, DEFAULT_NO_RTCP_TIMEOUT,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
@@ -372,6 +390,11 @@ fs_rtp_sub_stream_set_property (GObject *object,
             NULL);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
+    case PROP_NO_RTCP_TIMEOUT:
+      FS_RTP_SESSION_LOCK (self->priv->session);
+      self->priv->no_rtcp_timeout = g_value_get_int (value);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -422,7 +445,12 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_object (value, self->priv->output_ghostpad);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
-   default:
+    case PROP_NO_RTCP_TIMEOUT:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_int (value, self->priv->no_rtcp_timeout);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
+    default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
@@ -578,6 +606,7 @@ fs_rtp_sub_stream_new (FsRtpConference *conference,
     GstPad *rtpbin_pad,
     guint32 ssrc,
     guint pt,
+    gint no_rtcp_timeout,
     GError **error)
 {
   FsRtpSubStream *substream = g_object_new (FS_TYPE_RTP_SUB_STREAM,
@@ -586,6 +615,7 @@ fs_rtp_sub_stream_new (FsRtpConference *conference,
     "rtpbin-pad", rtpbin_pad,
     "ssrc", ssrc,
     "pt", pt,
+    "no-rtcp-timeout", no_rtcp_timeout,
     NULL);
 
   if (substream->priv->construction_error) {

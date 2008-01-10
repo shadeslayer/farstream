@@ -76,6 +76,7 @@ FsRtpSubStream *fs_rtp_sub_stream_new (FsRtpConference *conference,
     GstPad *pad,
     guint32 ssrc,
     guint pt,
+    gint no_rtcp_timeout,
     GError **error);
 
 
