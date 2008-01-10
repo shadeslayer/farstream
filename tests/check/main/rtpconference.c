@@ -26,6 +26,8 @@
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-stream-transmitter.h>
 
+#include "check-threadsafe.h"
+
 #include "generic.h"
 
 struct SimpleTestConference **dats;
@@ -61,11 +63,11 @@ GST_START_TEST (test_rtpconference_new)
   st = simple_conference_add_stream (dat, dat);
 
   g_object_get (dat->conference, "sdes-cname", &str, NULL);
-  fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
+  ts_fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
   g_free (str);
 
   g_object_get (st->participant, "cname", &str, NULL);
-  fail_unless (!strcmp (str, "bob@127.0.0.1"), "Participant CNAME is wrong");
+  ts_fail_unless (!strcmp (str, "bob@127.0.0.1"), "Participant CNAME is wrong");
   g_free (str);
 
   g_object_get (dat->session,
@@ -76,18 +78,19 @@ GST_START_TEST (test_rtpconference_new)
       "conference", &conf,
       NULL);
 
-  fail_unless (id == 1, "The id of the first session should be 1 not %d", id);
-  fail_if (local_codecs == NULL, "Local codecs should not be NULL");
+  ts_fail_unless (id == 1, "The id of the first session should be 1 not %d",
+      id);
+  ts_fail_if (local_codecs == NULL, "Local codecs should not be NULL");
   fs_codec_list_destroy (local_codecs);
-  fail_unless (media_type == FS_MEDIA_TYPE_AUDIO, "Media type isnt audio,"
+  ts_fail_unless (media_type == FS_MEDIA_TYPE_AUDIO, "Media type isnt audio,"
       " its %d", media_type);
-  fail_if (sinkpad == NULL, "Sink pad should not be null");
+  ts_fail_if (sinkpad == NULL, "Sink pad should not be null");
   str = g_strdup_printf ("sink_%d", id);
-  fail_unless (!strcmp (str, GST_OBJECT_NAME (sinkpad)), "Sink pad is %s"
+  ts_fail_unless (!strcmp (str, GST_OBJECT_NAME (sinkpad)), "Sink pad is %s"
       " instead of being %d", GST_OBJECT_NAME (sinkpad), str);
   gst_object_unref (sinkpad);
   g_free (str);
-  fail_unless (conf == dat->conference, "Conference pointer from the session"
+  ts_fail_unless (conf == dat->conference, "Conference pointer from the session"
       " is wrong");
   gst_object_unref (conf);
 
@@ -98,20 +101,20 @@ GST_START_TEST (test_rtpconference_new)
       "stream-transmitter", &stt,
       "direction", &dir,
       NULL);
-  fail_unless (part == st->participant, "The stream does not have the right"
+  ts_fail_unless (part == st->participant, "The stream does not have the right"
       " participant");
   g_object_unref (part);
-  fail_unless (sess == dat->session, "The stream does not have the right"
+  ts_fail_unless (sess == dat->session, "The stream does not have the right"
       " session");
   g_object_unref (sess);
-  fail_unless (FS_IS_STREAM_TRANSMITTER (stt), "The stream transmitter is not"
+  ts_fail_unless (FS_IS_STREAM_TRANSMITTER (stt), "The stream transmitter is not"
       " a stream transmitter");
   g_object_unref (stt);
-  fail_unless (dir == FS_DIRECTION_BOTH, "The direction is not both");
+  ts_fail_unless (dir == FS_DIRECTION_BOTH, "The direction is not both");
 
   g_object_set (st->stream, "direction", FS_DIRECTION_NONE, NULL);
   g_object_get (st->stream, "direction", &dir, NULL);
-  fail_unless (dir == FS_DIRECTION_NONE, "The direction is not both");
+  ts_fail_unless (dir == FS_DIRECTION_NONE, "The direction is not both");
 
   cleanup_simple_conference (dat);
 }
@@ -135,7 +138,7 @@ _simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         errorvalue = gst_structure_get_value (message->structure, "error-msg");
         debugvalue = gst_structure_get_value (message->structure, "debug-msg");
 
-        fail ("Error on BUS (%d) %s .. %s", errno,
+        ts_fail ("Error on BUS (%d) %s .. %s", errno,
             g_value_get_string (errorvalue),
             g_value_get_string (debugvalue));
       }
@@ -147,7 +150,7 @@ _simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         gchar *debug = NULL;
         gst_message_parse_error (message, &error, &debug);
 
-        fail ("Got an error on the BUS (%d): %s (%s)", error->code,
+        ts_fail ("Got an error on the BUS (%d): %s (%s)", error->code,
             error->message, debug);
         g_error_free (error);
         g_free (debug);
@@ -181,7 +184,7 @@ _simple_send_codec_changed (FsSession *session, gpointer user_data)
   gchar *str = NULL;
 
   g_object_get (session, "current-send-codec", &codec, NULL);
-  fail_if (codec == NULL, "Could not get new send codec");
+  ts_fail_if (codec == NULL, "Could not get new send codec");
 
   str = fs_codec_to_string (codec);
   g_debug ("%d: New send codec: %s", dat->id, str);
@@ -203,7 +206,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       "negotiated-codecs", &negotiated_codecs,
       NULL);
 
-  fail_if (negotiated_codecs == NULL, "Could not get negotiated codecs");
+  ts_fail_if (negotiated_codecs == NULL, "Could not get negotiated codecs");
 
   if (st->flags & WAITING_ON_LAST_CODEC)
   {
@@ -232,13 +235,13 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 
   if (select_last_codec || st->flags & SHOULD_BE_LAST_CODEC)
-    fail_unless (
+    ts_fail_unless (
         fs_codec_are_equal (
             g_list_last (negotiated_codecs)->data,
             g_object_get_data (G_OBJECT (element), "codec")),
         "The handoff handler got a buffer from the wrong codec");
   else
-    fail_unless (
+    ts_fail_unless (
         fs_codec_are_equal (
             g_list_first (negotiated_codecs)->data,
             g_object_get_data (G_OBJECT (element), "codec")),
@@ -253,7 +256,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     g_debug ("%d:%d: Buffer %d", st->dat->id, st->target->id, st->buffer_count);
 
   /*
-  fail_if (dat->buffer_count > max_buffer_count,
+  ts_fail_if (dat->buffer_count > max_buffer_count,
     "Too many buffers %d > max_buffer_count", dat->buffer_count);
   */
 
@@ -287,14 +290,14 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
           "negotiated-codecs", &nego_codecs,
           NULL);
 
-      fail_if (nego_codecs == NULL, "No negotiated codecs ??");
-      fail_if (g_list_length (nego_codecs) < 2, "Only one negotiated codec");
+      ts_fail_if (nego_codecs == NULL, "No negotiated codecs ??");
+      ts_fail_if (g_list_length (nego_codecs) < 2, "Only one negotiated codec");
 
       str = fs_codec_to_string (g_list_last (nego_codecs)->data);
       g_debug ("Setting codec to: %s", str);
       g_free (str);
 
-      fail_unless (fs_session_set_send_codec (st->target->session,
+      ts_fail_unless (fs_session_set_send_codec (st->target->session,
               g_list_last (nego_codecs)->data, &error),
           "Could not set the send codec: %s",
           error ? error->message : "NO GError!!!");
@@ -342,9 +345,9 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   ret = gst_pad_link (pad, fakesink_pad);
   gst_object_unref (fakesink_pad);
 
-  fail_if (GST_PAD_LINK_FAILED(ret), "Could not link fakesink");
+  ts_fail_if (GST_PAD_LINK_FAILED(ret), "Could not link fakesink");
 
-  fail_if (gst_element_set_state (fakesink, GST_STATE_PLAYING) ==
+  ts_fail_if (gst_element_set_state (fakesink, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the fakesink to playing");
 
   str = fs_codec_to_string (codec);
@@ -360,8 +363,8 @@ _new_active_candidate_pair (FsStream *stream, FsCandidate *local,
 {
   struct SimpleTestStream *st = user_data;
 
-  fail_if (local == NULL, "Local candidate NULL");
-  fail_if (remote == NULL, "Remote candidate NULL");
+  ts_fail_if (local == NULL, "Local candidate NULL");
+  ts_fail_if (remote == NULL, "Remote candidate NULL");
 
   if (local->component_id != 1)
     return;
@@ -402,7 +405,7 @@ _start_pipeline (gpointer user_data)
 
   g_debug ("%d: Starting pipeline", dat->id);
 
-  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
+  ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
 
   dat->started = TRUE;
@@ -427,7 +430,7 @@ find_pointback_stream (
       return st;
   }
 
-  fail ("We did not find a return stream for %d in %d", target->id, dat->id);
+  ts_fail ("We did not find a return stream for %d in %d", target->id, dat->id);
   return NULL;
 }
 
@@ -458,10 +461,10 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
 
   g_debug ("%d: New negotiated codecs", dat->id);
 
-  fail_if (session != dat->session, "Got signal from the wrong object");
+  ts_fail_if (session != dat->session, "Got signal from the wrong object");
 
   g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
-  fail_if (codecs == NULL, "Could not get the negotiated codecs");
+  ts_fail_if (codecs == NULL, "Could not get the negotiated codecs");
 
 
   /* We have to find the stream from the target that points back to us */
@@ -476,23 +479,23 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
     if (!fs_stream_set_remote_codecs (st2->stream, codecs, &error))
     {
       if (error)
-        fail ("Could not set the remote codecs on stream %d:%d (%d): %s",
+        ts_fail ("Could not set the remote codecs on stream %d:%d (%d): %s",
             st2->dat->id, st2->target->id,
             error->code,
             error->message);
       else
-        fail ("Could not set the remote codecs on stream %d:%d"
+        ts_fail ("Could not set the remote codecs on stream %d:%d"
             " and we DID not get a GError!!",
             st2->dat->id, st2->target->id);
     }
     g_object_get (st2->stream, "remote-codecs", &rcodecs2, NULL);
-    fail_unless (_compare_codec_lists (rcodecs2, codecs),
+    ts_fail_unless (_compare_codec_lists (rcodecs2, codecs),
         "Can not get remote codecs correctly");
 
     fs_codec_list_destroy (rcodecs2);
 
     if (select_last_codec)
-      fail_unless (
+      ts_fail_unless (
           fs_session_set_send_codec (st2->dat->session,
               g_list_last (codecs)->data,
               &error),
@@ -524,10 +527,10 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate,
   ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
 
   if (error)
-    fail ("Error while adding candidate: (%s:%d) %s",
+    ts_fail ("Error while adding candidate: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
 
-  fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
+  ts_fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
 
 }
 
@@ -544,7 +547,7 @@ set_initial_codecs (
 
   g_object_get (from->session, "local-codecs", &local_codecs, NULL);
 
-  fail_if (local_codecs == NULL, "Could not get the local codecs");
+  ts_fail_if (local_codecs == NULL, "Could not get the local codecs");
 
   for (item = g_list_first (local_codecs); item; item = g_list_next (item))
   {
@@ -553,7 +556,7 @@ set_initial_codecs (
       filtered_codecs = g_list_append (filtered_codecs, codec);
   }
 
-  fail_if (filtered_codecs == NULL, "PCMA and PCMU are not in the codecs"
+  ts_fail_if (filtered_codecs == NULL, "PCMA and PCMU are not in the codecs"
       " you must install gst-plugins-good");
 
 
@@ -564,22 +567,22 @@ set_initial_codecs (
   if (!fs_stream_set_remote_codecs (to->stream, filtered_codecs, &error))
   {
     if (error)
-      fail ("Could not set the remote codecs on stream %d:%d (%d): %s",
+      ts_fail ("Could not set the remote codecs on stream %d:%d (%d): %s",
           to->dat->id, to->target->id,
           error->code,
           error->message);
     else
-      fail ("Could not set the remote codecs on stream %d"
+      ts_fail ("Could not set the remote codecs on stream %d"
           " and we DID not get a GError!!", to->target->id);
   }
   g_object_get (to->stream, "remote-codecs", &rcodecs2, NULL);
-  fail_unless (_compare_codec_lists (rcodecs2, filtered_codecs),
+  ts_fail_unless (_compare_codec_lists (rcodecs2, filtered_codecs),
       "Can not get remote codecs correctly");
   fs_codec_list_destroy (rcodecs2);
 
 
   if (select_last_codec)
-    fail_unless (
+    ts_fail_unless (
         fs_session_set_send_codec (to->dat->session,
             g_list_last (filtered_codecs)->data,
             &error),
@@ -683,15 +686,15 @@ GST_START_TEST (test_rtpconference_errors)
   participant = fs_conference_new_participant (FS_CONFERENCE (dat->conference),
       "bob2@127.0.0.1",
       NULL);
-  fail_if (participant == NULL, "Could not create participant");
+  ts_fail_if (participant == NULL, "Could not create participant");
 
   stream = fs_session_new_stream (dat->session, participant, FS_DIRECTION_NONE,
       "invalid-transmitter-name", 0, NULL, &error);
 
-  fail_unless (stream == NULL, "A stream was created with an invalid"
+  ts_fail_unless (stream == NULL, "A stream was created with an invalid"
       " transmitter name");
-  fail_if (error == NULL, "Error was not set");
-  fail_unless (error->domain == FS_ERROR &&
+  ts_fail_if (error == NULL, "Error was not set");
+  ts_fail_unless (error->domain == FS_ERROR &&
       error->code == FS_ERROR_CONSTRUCTION,
       "The wrong domain or code (%d) was returned", error->code);
 

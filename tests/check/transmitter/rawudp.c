@@ -26,6 +26,7 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+#include "check-threadsafe.h"
 #include "generic.h"
 
 gint buffer_count[2] = {0, 0};
@@ -53,11 +54,11 @@ GST_START_TEST (test_rawudptransmitter_new)
   trans = fs_transmitter_new ("rawudp", 2, &error);
 
   if (error) {
-    fail("Error creating transmitter: (%s:%d) %s",
+    ts_fail ("Error creating transmitter: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
   }
 
-  fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
+  ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
   pipeline = setup_pipeline (trans, NULL);
 
@@ -82,36 +83,36 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   g_debug ("Has local candidate %s:%u of type %d",
     candidate->ip, candidate->port, candidate->type);
 
-  fail_if (candidate == NULL, "Passed NULL candidate");
-  fail_unless (candidate->ip != NULL, "Null IP in candidate");
-  fail_if (candidate->port == 0, "Candidate has port 0");
-  fail_unless (candidate->proto == FS_NETWORK_PROTOCOL_UDP,
+  ts_fail_if (candidate == NULL, "Passed NULL candidate");
+  ts_fail_unless (candidate->ip != NULL, "Null IP in candidate");
+  ts_fail_if (candidate->port == 0, "Candidate has port 0");
+  ts_fail_unless (candidate->proto == FS_NETWORK_PROTOCOL_UDP,
     "Protocol is not UDP");
 
   if (has_stun)
-    fail_unless (candidate->type == FS_CANDIDATE_TYPE_SRFLX,
+    ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_SRFLX,
       "Has stun, but candidate is not server reflexive,"
       " it is: %s:%u of type %d on component %u",
       candidate->ip, candidate->port, candidate->type, candidate->component_id);
   else {
-    fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
+    ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
       "Does not have stun, but candidate is not host");
     if (candidate->component_id == FS_COMPONENT_RTP) {
-      fail_unless (candidate->port % 2 == 0, "RTP port should be odd");
+      ts_fail_unless (candidate->port % 2 == 0, "RTP port should be odd");
     } else if (candidate->component_id == FS_COMPONENT_RTCP) {
-      fail_unless (candidate->port % 2 == 1, "RTCP port should be event");
+      ts_fail_unless (candidate->port % 2 == 1, "RTCP port should be event");
     }
   }
 
   if (is_local) {
-    fail_unless (!strcmp (candidate->ip, "127.0.0.1"),
+    ts_fail_unless (!strcmp (candidate->ip, "127.0.0.1"),
       "IP is wrong, it is %s but should be 127.0.0.1 when local candidate set",
       candidate->ip);
 
     if (candidate->component_id == FS_COMPONENT_RTP) {
-      fail_unless (candidate->port >= RTP_PORT  , "RTP port invalid");
+      ts_fail_unless (candidate->port >= RTP_PORT  , "RTP port invalid");
     } else if (candidate->component_id == FS_COMPONENT_RTCP) {
-      fail_unless (candidate->port >= RTCP_PORT, "RTCP port invalid");
+      ts_fail_unless (candidate->port >= RTCP_PORT, "RTCP port invalid");
     }
   }
 
@@ -124,10 +125,10 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   ret = fs_stream_transmitter_add_remote_candidate (st, candidate, &error);
 
   if (error)
-    fail ("Error while adding candidate: (%s:%d) %s",
+    ts_fail ("Error while adding candidate: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
 
-  fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
+  ts_fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
 
 }
 
@@ -136,8 +137,8 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
 {
   gboolean has_stun = GPOINTER_TO_INT (user_data) & FLAG_HAS_STUN;
 
-  fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
-  fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
+  ts_fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
+  ts_fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
 
   g_debug ("Local Candidates Prepared");
 
@@ -154,10 +155,10 @@ static void
 _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   FsCandidate *remote, gpointer user_data)
 {
-  fail_if (local == NULL, "Local candidate NULL");
-  fail_if (remote == NULL, "Remote candidate NULL");
+  ts_fail_if (local == NULL, "Local candidate NULL");
+  ts_fail_if (remote == NULL, "Remote candidate NULL");
 
-  fail_unless (local->component_id == remote->component_id,
+  ts_fail_unless (local->component_id == remote->component_id,
     "Local and remote candidates dont have the same component id");
 
   g_debug ("New active candidate pair for component %d", local->component_id);
@@ -174,7 +175,7 @@ _start_pipeline (gpointer user_data)
 
   g_debug ("Starting pipeline");
 
-  fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
+  ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
 
   return FALSE;
@@ -186,7 +187,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 {
   gint component_id = GPOINTER_TO_INT (user_data);
 
-  fail_unless (GST_BUFFER_SIZE (buffer) == component_id * 10,
+  ts_fail_unless (GST_BUFFER_SIZE (buffer) == component_id * 10,
     "Buffer is size %d but component_id is %d", GST_BUFFER_SIZE (buffer),
     component_id);
 
@@ -197,7 +198,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     component_id, GST_BUFFER_SIZE (buffer));
   */
 
-  fail_if (buffer_count[component_id-1] > 20,
+  ts_fail_if (buffer_count[component_id-1] > 20,
     "Too many buffers %d > 20 for component",
     buffer_count[component_id-1], component_id);
 
@@ -221,11 +222,11 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   trans = fs_transmitter_new ("rawudp", 2, &error);
 
   if (error) {
-    fail("Error creating transmitter: (%s:%d) %s",
+    ts_fail ("Error creating transmitter: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
   }
 
-  fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
+  ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
   pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler));
 
@@ -244,22 +245,22 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
       goto skip;
     }
     else
-      fail("Error creating stream transmitter: (%s:%d) %s",
+      ts_fail ("Error creating stream transmitter: (%s:%d) %s",
           g_quark_to_string (error->domain), error->code, error->message);
   }
 
-  fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
+  ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
-  fail_unless (g_signal_connect (st, "new-local-candidate",
+  ts_fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (flags)),
     "Coult not connect new-local-candidate signal");
-  fail_unless (g_signal_connect (st, "local-candidates-prepared",
+  ts_fail_unless (g_signal_connect (st, "local-candidates-prepared",
       G_CALLBACK (_local_candidates_prepared), GINT_TO_POINTER (flags)),
     "Coult not connect local-candidates-prepared signal");
-  fail_unless (g_signal_connect (st, "new-active-candidate-pair",
+  ts_fail_unless (g_signal_connect (st, "new-active-candidate-pair",
       G_CALLBACK (_new_active_candidate_pair), trans),
     "Coult not connect new-active-candidate-pair signal");
-  fail_unless (g_signal_connect (st, "error",
+  ts_fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (_stream_transmitter_error), NULL),
     "Could not connect error signal");
 
