@@ -109,6 +109,9 @@ void fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     const gchar *cname);
 
 
+void fs_rtp_session_substream_timedout (FsRtpSession *session,
+    gpointer substream);
+
 G_END_DECLS
 
 #endif /* __FS_RTP_SESSION_H__ */

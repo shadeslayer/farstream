@@ -1712,6 +1712,12 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   FS_RTP_SESSION_LOCK (session);
   stream = fs_rtp_session_get_stream_by_ssrc (session, ssrc);
 
+  /* Add the substream directly if the no_rtcp_timeout is 0 */
+  if (!stream &&
+      no_rtcp_timeout == 0 &&
+      g_list_length (session->priv->streams) == 1)
+    stream = g_object_ref (g_list_first (session->priv->streams)->data);
+
   if (!stream)
     session->priv->free_substreams =
       g_list_prepend (session->priv->free_substreams, substream);
@@ -2433,4 +2439,48 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
         "Could not associate a substream with its stream",
         error->message);
   g_clear_error (&error);
+}
+
+void
+fs_rtp_session_substream_timedout (FsRtpSession *session,
+    gpointer substream)
+{
+  GError *error = NULL;
+  FsRtpSubStream *realsubstream = substream;
+  FS_RTP_SESSION_LOCK (session);
+
+  if (g_list_length (session->priv->streams) != 1)
+  {
+    guint ssrc, pt;
+    gint timeout;
+    g_object_get (realsubstream,
+        "ssrc", &ssrc,
+        "pt", &pt,
+        "no-rtcp-timeout", &timeout,
+        NULL);
+    GST_WARNING ("The substream for SSRC %x and pt %u did not receive RTCP"
+        " for %d milliseconds, but we have more than one stream so we can"
+        " not associate it.", ssrc, pt, timeout);
+    goto done;
+  }
+
+  session->priv->free_substreams =
+    g_list_remove (session->priv->free_substreams,
+        realsubstream);
+
+  if (!fs_rtp_stream_add_substream (
+          g_list_first (session->priv->streams)->data,
+          realsubstream, &error))
+  {
+    fs_session_emit_error (FS_SESSION (session),
+        error ? error->code : FS_ERROR_INTERNAL,
+        "Could not link the substream to a stream",
+        error ? error->message : "No error message");
+  }
+  g_clear_error (&error);
+
+
+ done:
+
+  FS_RTP_SESSION_UNLOCK (session);
 }

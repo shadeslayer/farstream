@@ -237,6 +237,23 @@ fs_rtp_sub_stream_init (FsRtpSubStream *self)
   self->priv->receiving = TRUE;
 }
 
+static gboolean
+_no_rtcp_timeout (gpointer user_data)
+{
+  FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
+
+  FS_RTP_SESSION_LOCK (self->priv->session);
+
+  if (!self->priv->stream)
+    fs_rtp_session_substream_timedout (self->priv->session, self);
+
+  if (self->priv->no_rtcp_timeout_id)
+    self->priv->no_rtcp_timeout_id = 0;
+
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+
+  return FALSE;
+}
 
 static void
 fs_rtp_sub_stream_constructed (GObject *object)
@@ -279,6 +296,10 @@ fs_rtp_sub_stream_constructed (GObject *object)
       self->priv->ssrc, self->priv->pt);
     return;
   }
+
+  if (self->priv->no_rtcp_timeout > 0)
+    self->priv->no_rtcp_timeout_id = g_timeout_add (self->priv->no_rtcp_timeout,
+        _no_rtcp_timeout, self);
 }
 
 
@@ -289,6 +310,16 @@ fs_rtp_sub_stream_dispose (GObject *object)
 
   if (self->priv->disposed)
     return;
+
+
+  FS_RTP_SESSION_LOCK (self->priv->session);
+  if (self->priv->no_rtcp_timeout_id)
+  {
+    g_source_remove (self->priv->no_rtcp_timeout_id);
+    self->priv->no_rtcp_timeout_id = 0;
+  }
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+
 
   if (self->priv->output_ghostpad) {
     gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
