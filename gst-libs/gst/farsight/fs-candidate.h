@@ -43,6 +43,7 @@ G_BEGIN_DECLS
  * @FS_CANDIDATE_TYPE_SRFLX: A server reflexive candidate.
  * @FS_CANDIDATE_TYPE_PRFLX: A peer reflexive candidate
  * @FS_CANDIDATE_TYPE_RELAY: An relay candidate
+ * @FS_CANDIDATE_TYPE_MULTICAST: A multicast address
  *
  * An enum for the type of candidate used/reported
  */
@@ -51,7 +52,8 @@ typedef enum
   FS_CANDIDATE_TYPE_HOST,
   FS_CANDIDATE_TYPE_SRFLX,
   FS_CANDIDATE_TYPE_PRFLX,
-  FS_CANDIDATE_TYPE_RELAY    /* An external stream relay */
+  FS_CANDIDATE_TYPE_RELAY,    /* An external stream relay */
+  FS_CANDIDATE_TYPE_MULTICAST
 } FsCandidateType;
 
 /**
