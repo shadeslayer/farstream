@@ -499,6 +499,9 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
   struct sockaddr_in address;
   int retval;
 
+  address.sin_family = AF_INET;
+  address.sin_addr.s_addr = INADDR_ANY;
+
   if (ip) {
     struct addrinfo hints;
     struct addrinfo *result = NULL;
@@ -514,11 +517,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
     }
     memcpy (&address, result->ai_addr, sizeof(struct sockaddr_in));
     freeaddrinfo (result);
-  } else {
-    address.sin_addr.s_addr = INADDR_ANY;
   }
-  address.sin_family = AF_INET;
-  address.sin_port = htons (port);
 
   if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0) {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
@@ -527,8 +526,6 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
   }
 
   do {
-    address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons (port);
     retval = bind (sock, (struct sockaddr *) &address, sizeof (address));
     if (retval != 0)
