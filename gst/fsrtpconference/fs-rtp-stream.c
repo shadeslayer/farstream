@@ -614,14 +614,6 @@ _transmitter_error (
   fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
 }
 
-void
-fs_rtp_stream_src_pad_added (FsRtpStream *stream,
-    GstPad *ghostpad,
-    FsCodec *codec)
-{
-  g_signal_emit_by_name (stream, "src-pad-added", ghostpad, codec);
-}
-
 
 /**
  * fs_rtp_stream_add_substream:

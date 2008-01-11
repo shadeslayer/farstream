@@ -27,6 +27,7 @@ fs_stream_select_candidate_pair
 fs_stream_preload_recv_codec
 fs_stream_set_remote_codecs
 fs_stream_emit_error
+fs_stream_emit_src_pad_added
 <SUBSECTION Standard>
 FS_STREAM
 FS_IS_STREAM

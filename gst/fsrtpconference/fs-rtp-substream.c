@@ -748,7 +748,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
 
   substream->priv->output_ghostpad = ghostpad;
 
-  fs_rtp_stream_src_pad_added (substream->priv->stream,
+  fs_stream_emit_src_pad_added (FS_STREAM (substream->priv->stream),
       ghostpad,
       substream->priv->codec);
 

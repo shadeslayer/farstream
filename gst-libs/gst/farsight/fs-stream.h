@@ -144,6 +144,10 @@ gboolean fs_stream_set_remote_codecs (FsStream *stream,
 void fs_stream_emit_error (FsStream *stream, gint error_no,
                            gchar *error_msg, gchar *debug_msg);
 
+void fs_stream_emit_src_pad_added (FsStream *stream,
+    GstPad *ghostpad,
+    FsCodec *codec);
+
 G_END_DECLS
 
 #endif /* __FS_STREAM_H__ */

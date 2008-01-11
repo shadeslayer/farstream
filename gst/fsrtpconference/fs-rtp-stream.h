@@ -88,10 +88,6 @@ void fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
     gint pt,
     const FsCodec *codec);
 
-void fs_rtp_stream_src_pad_added (FsRtpStream *stream,
-    GstPad *ghostpad,
-    FsCodec *codec);
-
 void fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
     FsRtpSubStream *substream);
 

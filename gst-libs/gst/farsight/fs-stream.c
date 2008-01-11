@@ -521,7 +521,7 @@ fs_stream_set_remote_codecs (FsStream *stream,
  * @error_msg: Error message to be displayed to user
  * @debug_msg: Debugging error message
  *
- * This function emit the "error" signal on a #FsStream, it should only be
+ * This function emits the #FsStream::error" signal, it should only be
  * called by subclasses.
  */
 void
@@ -529,4 +529,23 @@ fs_stream_emit_error (FsStream *stream, gint error_no,
                       gchar *error_msg, gchar *debug_msg)
 {
   g_signal_emit (stream, signals[ERROR], 0, error_no, error_msg, debug_msg);
+}
+
+
+/**
+ * fs_stream_emit_src_pad_added:
+ * @stream: #FsStream on which to emit the src-pad-added signal
+ * @pad: the #GstPad that this #FsStream has created
+ * @codec: The #FsCodec for this pad
+ *
+ * This functin emits the #FsStream::src-pad-added" signal, it should only be
+ * called by subclasses.
+ */
+
+void
+fs_stream_emit_src_pad_added (FsStream *stream,
+    GstPad *pad,
+    FsCodec *codec)
+{
+  g_signal_emit (stream, signals[SRC_PAD_ADDED], 0, pad, codec);
 }
