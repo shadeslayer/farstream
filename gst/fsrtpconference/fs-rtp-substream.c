@@ -45,6 +45,13 @@
  *
  */
 
+/* signals */
+enum
+{
+  NO_RTCP_TIMEDOUT,
+  LAST_SIGNAL
+};
+
 /* props */
 enum
 {
@@ -104,6 +111,7 @@ struct _FsRtpSubStreamPrivate {
 };
 
 static GObjectClass *parent_class = NULL;
+static guint signals[LAST_SIGNAL] = { 0 };
 
 G_DEFINE_TYPE(FsRtpSubStream, fs_rtp_sub_stream, G_TYPE_OBJECT);
 
@@ -225,6 +233,25 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
           -1, G_MAXINT, DEFAULT_NO_RTCP_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
+
+  /**
+   * FsRtpSubStream::no-rtcp-timedout:
+   * @self: #FsSubStream that emitted the signal
+   *
+   * This signal is emitted after the timeout specified by
+   * #FsRtpSubStream:no-rtcp-timeout if this sub-stream has not been attached
+   * to a stream.
+   *
+   */
+  signals[NO_RTCP_TIMEDOUT] = g_signal_new ("no-rtcp-timedout",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
 
@@ -245,7 +272,7 @@ _no_rtcp_timeout (gpointer user_data)
   FS_RTP_SESSION_LOCK (self->priv->session);
 
   if (!self->priv->stream)
-    fs_rtp_session_substream_timedout (self->priv->session, self);
+    g_signal_emit (self, signals[NO_RTCP_TIMEDOUT], 0);
 
   if (self->priv->no_rtcp_timeout_id)
     self->priv->no_rtcp_timeout_id = 0;

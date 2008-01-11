@@ -185,6 +185,9 @@ static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     FsRtpSession *self,
     GError **error);
 
+static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
+    FsRtpSession *session);
+
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   FsRtpSession *self,
@@ -1720,8 +1723,12 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     stream = g_object_ref (g_list_first (session->priv->streams)->data);
 
   if (!stream)
+  {
     session->priv->free_substreams =
       g_list_prepend (session->priv->free_substreams, substream);
+    g_signal_connect (substream, "no-rtcp-timedout",
+        G_CALLBACK (_substream_no_rtcp_timedout_cb), session);
+  }
   FS_RTP_SESSION_UNLOCK (session);
   if (stream) {
     if (!fs_rtp_stream_add_substream (stream, substream, &error)) {
@@ -2442,19 +2449,19 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
   g_clear_error (&error);
 }
 
-void
-fs_rtp_session_substream_timedout (FsRtpSession *session,
-    gpointer substream)
+static void
+_substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
+    FsRtpSession *session)
 {
   GError *error = NULL;
-  FsRtpSubStream *realsubstream = substream;
+
   FS_RTP_SESSION_LOCK (session);
 
   if (g_list_length (session->priv->streams) != 1)
   {
     guint ssrc, pt;
     gint timeout;
-    g_object_get (realsubstream,
+    g_object_get (substream,
         "ssrc", &ssrc,
         "pt", &pt,
         "no-rtcp-timeout", &timeout,
@@ -2467,11 +2474,11 @@ fs_rtp_session_substream_timedout (FsRtpSession *session,
 
   session->priv->free_substreams =
     g_list_remove (session->priv->free_substreams,
-        realsubstream);
+        substream);
 
   if (!fs_rtp_stream_add_substream (
           g_list_first (session->priv->streams)->data,
-          realsubstream, &error))
+          substream, &error))
   {
     fs_session_emit_error (FS_SESSION (session),
         error ? error->code : FS_ERROR_INTERNAL,
