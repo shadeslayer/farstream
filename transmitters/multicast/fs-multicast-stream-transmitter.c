@@ -92,7 +92,6 @@ struct _FsMulticastStreamTransmitterPrivate
 
   guint next_candidate_id;
 
-  GMutex *sources_mutex;
   GList *sources;
 };
 
@@ -193,8 +192,6 @@ fs_multicast_stream_transmitter_init (FsMulticastStreamTransmitter *self)
   self->priv->disposed = FALSE;
 
   self->priv->sending = TRUE;
-
-  self->priv->sources_mutex = g_mutex_new ();
 }
 
 static void
@@ -208,14 +205,11 @@ fs_multicast_stream_transmitter_dispose (GObject *object)
     return;
   }
 
-  g_mutex_lock (self->priv->sources_mutex);
-
   if (self->priv->sources) {
     g_list_foreach (self->priv->sources, (GFunc) g_source_remove, NULL);
     g_list_free (self->priv->sources);
     self->priv->sources = NULL;
   }
-  g_mutex_unlock (self->priv->sources_mutex);
 
 
   /* Make sure dispose does not run twice. */
@@ -284,11 +278,6 @@ fs_multicast_stream_transmitter_finalize (GObject *object)
     }
     g_free (self->priv->local_active_candidate);
     self->priv->local_active_candidate = NULL;
-  }
-
-  if (self->priv->sources_mutex) {
-    g_mutex_free (self->priv->sources_mutex);
-    self->priv->sources_mutex = NULL;
   }
 
   parent_class->finalize (object);
@@ -709,10 +698,8 @@ fs_multicast_stream_transmitter_no_stun (gpointer user_data)
   if (source)  {
     guint id = g_source_get_id (source);
 
-    g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_remove (self->priv->sources,
       GUINT_TO_POINTER (id));
-    g_mutex_unlock (self->priv->sources_mutex);
   }
 
   return FALSE;
