@@ -139,7 +139,8 @@ dnl *** path for our local plugins ***
 
 dnl these are all the transmitter plug-ins
 FS2_TRANSMITTER_PLUGINS_ALL=" \
-	rawudp
+	rawudp \
+	multicast
 	"
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_ALL)
 
@@ -357,6 +358,7 @@ gst-libs/gst/Makefile
 gst-libs/gst/farsight/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
+transmitters/multicast/Makefile
 dnl pkgconfig/Makefile
 dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc
