@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RAW UDP with STUN Transmitter
+ * Farsight2 - Farsight Multicast UDP Stream Transmitter
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rawudp-transmitter.c - A Farsight UDP transmitter with STUN
+ * fs-rawudp-transmitter.c - A Farsight Multiast UDP stream transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,8 +24,8 @@
 
 
 /**
- * SECTION:fs-stream-transmitter
- * @short_description: A stream transmitter object for UDP with STUN
+ * SECTION:fs-multicast-stream-transmitter
+ * @short_description: A stream transmitter object for Multicast UDP
  *
  *
  */

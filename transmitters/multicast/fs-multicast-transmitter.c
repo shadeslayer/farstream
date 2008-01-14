@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RAW UDP with STUN Transmitter
+ * Farsight2 - Farsight Multicast UDP Transmitter
  *
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- * Copyright 2007 Nokia Corp.
+ * Copyright 2007-2008 Nokia Corp.
  *
- * fs-rawudp-transmitter.h - A Farsight UDP transmitter with STUN
+ * fs-multicast-transmitter.h - A Farsight multicast UDP transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,10 +23,10 @@
  */
 
 /**
- * SECTION:fs-rawudp-transmitter
- * @short_description: A transmitter for raw udp (with STUN)
+ * SECTION:fs-multicast-transmitter
+ * @short_description: A transmitter for multicast UDP
  *
- * This transmitter provides RAW udp (with stun)
+ * This transmitter provides multicast udp
  *
  */
 
@@ -34,8 +34,8 @@
 #include "config.h"
 #endif
 
-#include "fs-rawudp-transmitter.h"
-#include "fs-rawudp-stream-transmitter.h"
+#include "fs-multicast-transmitter.h"
+#include "fs-multicast-stream-transmitter.h"
 
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-plugin.h>
@@ -48,8 +48,8 @@
 #include <netdb.h>
 #include <unistd.h>
 
-GST_DEBUG_CATEGORY (fs_rawudp_transmitter_debug);
-#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
+GST_DEBUG_CATEGORY (fs_multicast_transmitter_debug);
+#define GST_CAT_DEFAULT fs_multicast_transmitter_debug
 
 /* Signals */
 enum
@@ -66,7 +66,7 @@ enum
   PROP_COMPONENTS
 };
 
-struct _FsRawUdpTransmitterPrivate
+struct _FsMulticastTransmitterPrivate
 {
   /* We hold references to this element */
   GstElement *gst_sink;
@@ -83,29 +83,30 @@ struct _FsRawUdpTransmitterPrivate
   gboolean disposed;
 };
 
-#define FS_RAWUDP_TRANSMITTER_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_TRANSMITTER, \
-    FsRawUdpTransmitterPrivate))
+#define FS_MULTICAST_TRANSMITTER_GET_PRIVATE(o)  \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_MULTICAST_TRANSMITTER, \
+    FsMulticastTransmitterPrivate))
 
-static void fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass);
-static void fs_rawudp_transmitter_init (FsRawUdpTransmitter *self);
-static void fs_rawudp_transmitter_constructed (GObject *object);
-static void fs_rawudp_transmitter_dispose (GObject *object);
-static void fs_rawudp_transmitter_finalize (GObject *object);
+static void fs_multicast_transmitter_class_init (
+    FsMulticastTransmitterClass *klass);
+static void fs_multicast_transmitter_init (FsMulticastTransmitter *self);
+static void fs_multicast_transmitter_constructed (GObject *object);
+static void fs_multicast_transmitter_dispose (GObject *object);
+static void fs_multicast_transmitter_finalize (GObject *object);
 
-static void fs_rawudp_transmitter_get_property (GObject *object,
+static void fs_multicast_transmitter_get_property (GObject *object,
                                                 guint prop_id,
                                                 GValue *value,
                                                 GParamSpec *pspec);
-static void fs_rawudp_transmitter_set_property (GObject *object,
+static void fs_multicast_transmitter_set_property (GObject *object,
                                                 guint prop_id,
                                                 const GValue *value,
                                                 GParamSpec *pspec);
 
-static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
+static FsStreamTransmitter *fs_multicast_transmitter_new_stream_transmitter (
     FsTransmitter *transmitter, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
-static GType fs_rawudp_transmitter_get_stream_transmitter_type (
+static GType fs_multicast_transmitter_get_stream_transmitter_type (
     FsTransmitter *transmitter,
     GError **error);
 
@@ -121,65 +122,65 @@ static GObjectClass *parent_class = NULL;
 static GType type = 0;
 
 GType
-fs_rawudp_transmitter_get_type (void)
+fs_multicast_transmitter_get_type (void)
 {
   g_assert (type);
   return type;
 }
 
 static GType
-fs_rawudp_transmitter_register_type (FsPlugin *module)
+fs_multicast_transmitter_register_type (FsPlugin *module)
 {
   static const GTypeInfo info = {
-    sizeof (FsRawUdpTransmitterClass),
+    sizeof (FsMulticastTransmitterClass),
     NULL,
     NULL,
-    (GClassInitFunc) fs_rawudp_transmitter_class_init,
+    (GClassInitFunc) fs_multicast_transmitter_class_init,
     NULL,
     NULL,
-    sizeof (FsRawUdpTransmitter),
+    sizeof (FsMulticastTransmitter),
     0,
-    (GInstanceInitFunc) fs_rawudp_transmitter_init
+    (GInstanceInitFunc) fs_multicast_transmitter_init
   };
 
-  if (fs_rawudp_transmitter_debug == NULL)
-    GST_DEBUG_CATEGORY_INIT (fs_rawudp_transmitter_debug,
-        "fsrawudptransmitter", 0,
-        "Farsight raw UDP transmitter");
+  if (fs_multicast_transmitter_debug == NULL)
+    GST_DEBUG_CATEGORY_INIT (fs_multicast_transmitter_debug,
+        "fsmulticasttransmitter", 0,
+        "Farsight multicast UDP transmitter");
 
-  fs_rawudp_stream_transmitter_register_type (module);
+  fs_multicast_stream_transmitter_register_type (module);
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
-    FS_TYPE_TRANSMITTER, "FsRawUdpTransmitter", &info, 0);
+    FS_TYPE_TRANSMITTER, "FsMulticastTransmitter", &info, 0);
 
   return type;
 }
 
 static void
-fs_rawudp_transmitter_unload (FsPlugin *plugin)
+fs_multicast_transmitter_unload (FsPlugin *plugin)
 {
-  if (fs_rawudp_transmitter_debug)
+  if (fs_multicast_transmitter_debug)
   {
-    gst_debug_category_free (fs_rawudp_transmitter_debug);
-    fs_rawudp_transmitter_debug = NULL;
+    gst_debug_category_free (fs_multicast_transmitter_debug);
+    fs_multicast_transmitter_debug = NULL;
   }
 }
 
-FS_INIT_PLUGIN (fs_rawudp_transmitter_register_type,
-    fs_rawudp_transmitter_unload)
+FS_INIT_PLUGIN (fs_multicast_transmitter_register_type,
+    fs_multicast_transmitter_unload)
 
 static void
-fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
+fs_multicast_transmitter_class_init (FsMulticastTransmitterClass *klass)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
   FsTransmitterClass *transmitter_class = FS_TRANSMITTER_CLASS (klass);
 
   parent_class = g_type_class_peek_parent (klass);
 
-  gobject_class->set_property = fs_rawudp_transmitter_set_property;
-  gobject_class->get_property = fs_rawudp_transmitter_get_property;
+  gobject_class->set_property = fs_multicast_transmitter_set_property;
+  gobject_class->get_property = fs_multicast_transmitter_get_property;
 
-  gobject_class->constructed = fs_rawudp_transmitter_constructed;
+  gobject_class->constructed = fs_multicast_transmitter_constructed;
 
   g_object_class_override_property (gobject_class, PROP_GST_SRC, "gst-src");
   g_object_class_override_property (gobject_class, PROP_GST_SINK, "gst-sink");
@@ -187,31 +188,31 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
     "components");
 
   transmitter_class->new_stream_transmitter =
-    fs_rawudp_transmitter_new_stream_transmitter;
+    fs_multicast_transmitter_new_stream_transmitter;
   transmitter_class->get_stream_transmitter_type =
-    fs_rawudp_transmitter_get_stream_transmitter_type;
+    fs_multicast_transmitter_get_stream_transmitter_type;
 
-  gobject_class->dispose = fs_rawudp_transmitter_dispose;
-  gobject_class->finalize = fs_rawudp_transmitter_finalize;
+  gobject_class->dispose = fs_multicast_transmitter_dispose;
+  gobject_class->finalize = fs_multicast_transmitter_finalize;
 
-  g_type_class_add_private (klass, sizeof (FsRawUdpTransmitterPrivate));
+  g_type_class_add_private (klass, sizeof (FsMulticastTransmitterPrivate));
 }
 
 static void
-fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
+fs_multicast_transmitter_init (FsMulticastTransmitter *self)
 {
 
   /* member init */
-  self->priv = FS_RAWUDP_TRANSMITTER_GET_PRIVATE (self);
+  self->priv = FS_MULTICAST_TRANSMITTER_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
 
   self->components = 2;
 }
 
 static void
-fs_rawudp_transmitter_constructed (GObject *object)
+fs_multicast_transmitter_constructed (GObject *object)
 {
-  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER_CAST (object);
+  FsMulticastTransmitter *self = FS_MULTICAST_TRANSMITTER_CAST (object);
   FsTransmitter *trans = FS_TRANSMITTER_CAST (self);
   GstPad *pad = NULL, *pad2 = NULL;
   GstPad *ghostpad = NULL;
@@ -351,9 +352,9 @@ fs_rawudp_transmitter_constructed (GObject *object)
 }
 
 static void
-fs_rawudp_transmitter_dispose (GObject *object)
+fs_multicast_transmitter_dispose (GObject *object)
 {
-  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+  FsMulticastTransmitter *self = FS_MULTICAST_TRANSMITTER (object);
 
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
@@ -377,9 +378,9 @@ fs_rawudp_transmitter_dispose (GObject *object)
 }
 
 static void
-fs_rawudp_transmitter_finalize (GObject *object)
+fs_multicast_transmitter_finalize (GObject *object)
 {
-  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+  FsMulticastTransmitter *self = FS_MULTICAST_TRANSMITTER (object);
 
   if (self->priv->udpsrc_funnels) {
     g_free (self->priv->udpsrc_funnels);
@@ -400,12 +401,12 @@ fs_rawudp_transmitter_finalize (GObject *object)
 }
 
 static void
-fs_rawudp_transmitter_get_property (GObject *object,
+fs_multicast_transmitter_get_property (GObject *object,
                              guint prop_id,
                              GValue *value,
                              GParamSpec *pspec)
 {
-  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+  FsMulticastTransmitter *self = FS_MULTICAST_TRANSMITTER (object);
 
   switch (prop_id) {
     case PROP_GST_SINK:
@@ -421,12 +422,12 @@ fs_rawudp_transmitter_get_property (GObject *object,
 }
 
 static void
-fs_rawudp_transmitter_set_property (GObject *object,
+fs_multicast_transmitter_set_property (GObject *object,
                                     guint prop_id,
                                     const GValue *value,
                                     GParamSpec *pspec)
 {
-  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
+  FsMulticastTransmitter *self = FS_MULTICAST_TRANSMITTER (object);
 
   switch (prop_id) {
     case PROP_COMPONENTS:
@@ -440,25 +441,25 @@ fs_rawudp_transmitter_set_property (GObject *object,
 
 
 /**
- * fs_rawudp_transmitter_new_stream_rawudp_transmitter:
+ * fs_multicast_transmitter_new_stream_multicast_transmitter:
  * @transmitter: a #FsTranmitter
  * @participant: the #FsParticipant for which the #FsStream using this
  * new #FsStreamTransmitter is created
  *
  * This function will create a new #FsStreamTransmitter element for a
- * specific participant for this #FsRawUdpTransmitter
+ * specific participant for this #FsMulticastTransmitter
  *
  * Returns: a new #FsStreamTransmitter
  */
 
 static FsStreamTransmitter *
-fs_rawudp_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
+fs_multicast_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   FsParticipant *participant, guint n_parameters, GParameter *parameters,
   GError **error)
 {
-  FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (transmitter);
+  FsMulticastTransmitter *self = FS_MULTICAST_TRANSMITTER (transmitter);
 
-  return FS_STREAM_TRANSMITTER (fs_rawudp_stream_transmitter_newv (
+  return FS_STREAM_TRANSMITTER (fs_multicast_stream_transmitter_newv (
         self, n_parameters, parameters, error));
 }
 
@@ -638,7 +639,7 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
 
 UdpPort *
-fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
+fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
   guint component_id, const gchar *requested_ip, guint requested_port,
   GError **error)
 {
@@ -705,12 +706,12 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
  error:
   if (udpport)
-    fs_rawudp_transmitter_put_udpport (trans, udpport);
+    fs_multicast_transmitter_put_udpport (trans, udpport);
   return NULL;
 }
 
 void
-fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
+fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
   UdpPort *udpport)
 {
   if (udpport->refcount > 1) {
@@ -767,7 +768,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 }
 
 void
-fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
+fs_multicast_transmitter_udpport_add_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
   GST_DEBUG ("Adding dest %s:%d", ip, port);
@@ -776,14 +777,14 @@ fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
 
 
 void
-fs_rawudp_transmitter_udpport_remove_dest (UdpPort *udpport,
+fs_multicast_transmitter_udpport_remove_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
   g_signal_emit_by_name (udpport->udpsink, "remove", ip, port);
 }
 
 gboolean
-fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
+fs_multicast_transmitter_udpport_sendto (UdpPort *udpport,
   gchar *msg, size_t len, const struct sockaddr *to, socklen_t tolen,
   GError **error)
 {
@@ -797,7 +798,7 @@ fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
 }
 
 gulong
-fs_rawudp_transmitter_udpport_connect_recv (UdpPort *udpport,
+fs_multicast_transmitter_udpport_connect_recv (UdpPort *udpport,
   GCallback callback, gpointer user_data)
 {
   GstPad *pad;
@@ -814,7 +815,7 @@ fs_rawudp_transmitter_udpport_connect_recv (UdpPort *udpport,
 
 
 void
-fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport, gulong id)
+fs_multicast_transmitter_udpport_disconnect_recv (UdpPort *udpport, gulong id)
 {
   GstPad *pad = gst_element_get_static_pad (udpport->udpsrc, "src");
 
@@ -824,7 +825,7 @@ fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport, gulong id)
 }
 
 gboolean
-fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
+fs_multicast_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
 {
   GstPad *mypad;
   gboolean res;
@@ -840,15 +841,16 @@ fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
 
 
 gboolean
-fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport)
+fs_multicast_transmitter_udpport_get_port (UdpPort *udpport)
 {
   return udpport->port;
 }
 
 
 static GType
-fs_rawudp_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
+fs_multicast_transmitter_get_stream_transmitter_type (
+    FsTransmitter *transmitter,
     GError **error)
 {
-  return FS_TYPE_RAWUDP_STREAM_TRANSMITTER;
+  return FS_TYPE_MULTICAST_STREAM_TRANSMITTER;
 }
