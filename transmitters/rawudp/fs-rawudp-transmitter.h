@@ -113,7 +113,7 @@ void fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport,
 
 gboolean fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad);
 
-gboolean fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport);
+gint fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport);
 
 
 

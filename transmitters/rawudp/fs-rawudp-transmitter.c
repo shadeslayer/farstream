@@ -839,7 +839,7 @@ fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
 }
 
 
-gboolean
+gint
 fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport)
 {
   return udpport->port;
