@@ -364,7 +364,7 @@ GST_START_TEST (test_rawudptransmitter_run_local_candidates)
   candidate->type = FS_CANDIDATE_TYPE_HOST;
   list = g_list_prepend (list, candidate);
 
-  params[0].name = "prefered-local-candidates";
+  params[0].name = "preferred-local-candidates";
   g_value_init (&params[0].value, FS_TYPE_CANDIDATE_LIST);
   g_value_set_boxed (&params[0].value, list);
 
