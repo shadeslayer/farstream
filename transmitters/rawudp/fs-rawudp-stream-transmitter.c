@@ -66,7 +66,7 @@ enum
 {
   PROP_0,
   PROP_SENDING,
-  PROP_PREFERED_LOCAL_CANDIDATES,
+  PROP_PREFERRED_LOCAL_CANDIDATES,
   PROP_STUN_IP,
   PROP_STUN_PORT,
   PROP_STUN_TIMEOUT
@@ -107,7 +107,7 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   gchar stun_cookie[16];
 
-  GList *prefered_local_candidates;
+  GList *preferred_local_candidates;
 
   guint next_candidate_id;
 
@@ -203,7 +203,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
-    PROP_PREFERED_LOCAL_CANDIDATES, "prefered-local-candidates");
+    PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
 
   g_object_class_install_property (gobject_class,
     PROP_STUN_IP,
@@ -299,9 +299,9 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->stun_ip = NULL;
   }
 
-  if (self->priv->prefered_local_candidates) {
-    fs_candidate_list_destroy (self->priv->prefered_local_candidates);
-    self->priv->prefered_local_candidates = NULL;
+  if (self->priv->preferred_local_candidates) {
+    fs_candidate_list_destroy (self->priv->preferred_local_candidates);
+    self->priv->preferred_local_candidates = NULL;
   }
 
   if (self->priv->remote_candidate) {
@@ -396,8 +396,8 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_SENDING:
       g_value_set_boolean (value, self->priv->sending);
       break;
-    case PROP_PREFERED_LOCAL_CANDIDATES:
-      g_value_set_boxed (value, self->priv->prefered_local_candidates);
+    case PROP_PREFERRED_LOCAL_CANDIDATES:
+      g_value_set_boxed (value, self->priv->preferred_local_candidates);
       break;
     case PROP_STUN_IP:
       g_value_set_string (value, self->priv->stun_ip);
@@ -451,8 +451,8 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
         }
       }
       break;
-    case PROP_PREFERED_LOCAL_CANDIDATES:
-      self->priv->prefered_local_candidates = g_value_dup_boxed (value);
+    case PROP_PREFERRED_LOCAL_CANDIDATES:
+      self->priv->preferred_local_candidates = g_value_dup_boxed (value);
       break;
     case PROP_STUN_IP:
       g_free (self->priv->stun_ip);
@@ -497,14 +497,14 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   self->priv->stun_timeout_id = g_new0 (guint,
     self->priv->transmitter->components + 1);
 
-  for (item = g_list_first (self->priv->prefered_local_candidates);
+  for (item = g_list_first (self->priv->preferred_local_candidates);
        item;
        item = g_list_next (item)) {
     FsCandidate *candidate = item->data;
 
     if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "You set prefered candidate of a type %d that is not"
+        "You set preferred candidate of a type %d that is not"
         " FS_NETWORK_PROTOCOL_UDP",
         candidate->proto);
       goto error;
@@ -527,7 +527,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     if (ips[candidate->component_id] || ports[candidate->component_id]) {
       g_set_error (error, FS_ERROR,
         FS_ERROR_INVALID_ARGUMENTS,
-        "You set more than one prefered local candidate for component %u",
+        "You set more than one preferred local candidate for component %u",
         candidate->component_id);
       goto error;
     }
