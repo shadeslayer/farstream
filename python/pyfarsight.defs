@@ -228,6 +228,7 @@
   (return-type "FsCandidate*")
   (parameters
     '("const-gchar*" "id")
+    '("guint" "component_id")
     '("FsCandidateType" "type")
     '("FsNetworkProtocol" "proto")
     '("const-gchar*" "ip")

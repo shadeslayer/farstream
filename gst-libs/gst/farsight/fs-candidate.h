@@ -142,6 +142,7 @@ gboolean fs_candidate_are_equal (const FsCandidate *cand1,
 
 FsCandidate * fs_candidate_new (
     const gchar *id,
+    guint component_id,
     FsCandidateType type,
     FsNetworkProtocol proto,
     const gchar *ip,
