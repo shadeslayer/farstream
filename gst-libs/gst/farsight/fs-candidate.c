@@ -214,3 +214,23 @@ fs_candidate_are_equal (const FsCandidate *cand1,
   else
     return FALSE;
 }
+
+
+FsCandidate *
+fs_candidate_new (
+    const gchar *id,
+    FsCandidateType type,
+    FsNetworkProtocol proto,
+    const gchar *ip,
+    guint port)
+{
+  FsCandidate *candidate = g_new0 (FsCandidate, 1);
+
+  candidate->candidate_id = g_strdup (id);
+  candidate->type = type;
+  candidate->proto = proto;
+  candidate->ip = g_strdup (ip);
+  candidate->port = port;
+
+  return candidate;
+}

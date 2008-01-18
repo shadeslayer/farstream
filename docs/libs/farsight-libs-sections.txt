@@ -90,6 +90,7 @@ FsCandidateType
 FsNetworkProtocol
 FsComponentType
 FsCandidate
+fs_candidate_new
 fs_candidate_destroy
 fs_candidate_copy
 fs_candidate_list_destroy
