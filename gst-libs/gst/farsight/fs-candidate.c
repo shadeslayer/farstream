@@ -215,10 +215,26 @@ fs_candidate_are_equal (const FsCandidate *cand1,
     return FALSE;
 }
 
+/**
+ * fs_candidate_new:
+ * @id: The id of the candidate (must be unique for ICE)
+ * @component_id: The component this candidate is for
+ * @type: The type of candidate
+ * @proto: The protocol this component is for
+ * @ip: The IP address of this component (can be NULL for local candidate to
+ *     mean any address)
+ * @port: the UDP/TCP port
+ *
+ * Allocates a new #FsCandidate, the rest of the fields can be optionally
+ * filled manually.
+ *
+ * Returns: a newly-allocated #FsCandidate
+ */
 
 FsCandidate *
 fs_candidate_new (
     const gchar *id,
+    guint component_id,
     FsCandidateType type,
     FsNetworkProtocol proto,
     const gchar *ip,
@@ -227,6 +243,7 @@ fs_candidate_new (
   FsCandidate *candidate = g_new0 (FsCandidate, 1);
 
   candidate->candidate_id = g_strdup (id);
+  candidate->component_id = component_id;
   candidate->type = type;
   candidate->proto = proto;
   candidate->ip = g_strdup (ip);
