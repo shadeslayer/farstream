@@ -367,7 +367,7 @@ fs_multicast_stream_transmitter_build (FsMulticastStreamTransmitter *self,
   {
     if (!self->priv->local_candidate[c])
     {
-      self->priv->local_candidate[c] = fs_candidate_new (NULL,
+      self->priv->local_candidate[c] = fs_candidate_new (NULL, c,
           FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP, NULL, 0);
     }
   }
