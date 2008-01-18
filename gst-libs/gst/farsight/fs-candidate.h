@@ -140,5 +140,12 @@ FsCandidate *fs_candidate_get_by_id (const GList *candidate_list,
 gboolean fs_candidate_are_equal (const FsCandidate *cand1,
                                  const FsCandidate *cand2);
 
+FsCandidate * fs_candidate_new (
+    const gchar *id,
+    FsCandidateType type,
+    FsNetworkProtocol proto,
+    const gchar *ip,
+    guint port);
+
 G_END_DECLS
 #endif /* __FS_CANDIDATE_H__ */

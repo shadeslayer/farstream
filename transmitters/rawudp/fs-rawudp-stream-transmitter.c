@@ -24,7 +24,7 @@
 
 
 /**
- * SECTION:fs-stream-transmitter
+ * SECTION:fs-rawudp-stream-transmitter
  * @short_description: A stream transmitter object for UDP with STUN
  *
  *

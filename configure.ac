@@ -186,6 +186,9 @@ GTK_DOC_CHECK([1.3])
 AS_PATH_PYTHON([2.1])
 dnl AG_GST_PLUGIN_DOCS([1.3],[2.1])
 
+dnl Make automake happy with per-target flags
+AM_PROG_CC_C_O
+
 dnl *** checks for libraries ***
 
 dnl For interactive UNIX (a Sun thing)

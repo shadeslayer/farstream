@@ -116,6 +116,7 @@ ignore
         fs_candidate_get_by_id
 %%
 import gobject.GObject as PyGObject_Type
+import gst.Pad as PyGstPad_Type
 %%
 init
 pyg_register_gtype_custom (FS_TYPE_CODEC_LIST,
