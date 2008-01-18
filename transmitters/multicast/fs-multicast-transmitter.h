@@ -83,8 +83,9 @@ struct _FsMulticastTransmitter
   FsMulticastTransmitterPrivate *priv;
 };
 
-/* Private declaration */
+/* Private declarations */
 typedef struct _UdpPort UdpPort;
+typedef struct _UdpMulticastGroup UdpMulticastGroup;
 
 GType fs_multicast_transmitter_get_type (void);
 
@@ -116,6 +117,18 @@ gboolean fs_multicast_transmitter_udpport_is_pad (UdpPort *udpport,
 
 gboolean fs_multicast_transmitter_udpport_get_port (UdpPort *udpport);
 
+
+UdpMulticastGroup *fs_multicast_transmitter_get_group (
+    FsMulticastTransmitter *trans,
+    guint component_id,
+    const gchar *multicast_ip,
+    guint port,
+    const gchar *local_ip,
+    GError **error);
+void fs_multicast_transmitter_put_group (FsMulticastTransmitter *trans,
+    UdpMulticastGroup *mcast);
+void fs_multicast_transmitter_set_group_sending (UdpMulticastGroup *mcast,
+    gboolean sending);
 
 
 G_END_DECLS

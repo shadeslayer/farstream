@@ -491,14 +491,17 @@ struct _UdpPort {
   GstElement *tee;
 
   guint component_id;
+
+  GList *multicast_groups;
 };
 
 static gint
 _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
 {
-  int sock;
+  int sock = -1;
   struct sockaddr_in address;
   int retval;
+  guchar ttl = 64, loop = 0;
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
@@ -523,7 +526,7 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
   if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0) {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
       "Error creating socket: %s", g_strerror (errno));
-    return -1;
+    goto error;
   }
 
   do {
@@ -536,15 +539,36 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
       if (port > 65535) {
         g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
           "Could not bind the socket to a port");
-        close (sock);
-        return -1;
+        goto error;
       }
     }
   } while (retval != 0);
 
   *used_port = port;
 
+  if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
+          sizeof (ttl)) < 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Error setting the multicast TTL: %s",
+        g_strerror (errno));
+    goto error;
+  }
+
+  if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
+          sizeof (loop)) < 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Error setting the multicast loop to FALSE: %s",
+        g_strerror (errno));
+    goto error;
+  }
   return sock;
+
+ error:
+  if (sock >= 0)
+    close (sock);
+  return -1;
 }
 
 static GstElement *
@@ -570,6 +594,9 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     "closefd", FALSE,
     "sockfd", fd,
     NULL);
+
+  if (direction == GST_PAD_SINK)
+    g_object_set (elem, "auto-multicast", FALSE, NULL);
 
   if (!gst_bin_add (bin, elem)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -705,8 +732,10 @@ fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
   return udpport;
 
  error:
+
   if (udpport)
     fs_multicast_transmitter_put_udpport (trans, udpport);
+
   return NULL;
 }
 
@@ -839,13 +868,11 @@ fs_multicast_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
   return res;
 }
 
-
-gboolean
+gint
 fs_multicast_transmitter_udpport_get_port (UdpPort *udpport)
 {
   return udpport->port;
 }
-
 
 static GType
 fs_multicast_transmitter_get_stream_transmitter_type (
@@ -853,4 +880,138 @@ fs_multicast_transmitter_get_stream_transmitter_type (
     GError **error)
 {
   return FS_TYPE_MULTICAST_STREAM_TRANSMITTER;
+}
+
+/*
+ * The following functions are for counting the use of Multicast
+ */
+
+struct _UdpMulticastGroup
+{
+  UdpPort *udpport;
+
+  gint refcount;
+
+  gint sendcount;
+
+  gchar *multicast_ip;
+
+  struct ip_mreqn mreqn;
+};
+
+UdpMulticastGroup *
+fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
+    guint component_id,
+    const gchar *multicast_ip,
+    guint port,
+    const gchar *local_ip,
+    GError **error)
+{
+  UdpPort *udpport;
+  UdpMulticastGroup *mcast = NULL;
+  GList *item = NULL;
+
+  udpport = fs_multicast_transmitter_get_udpport (trans, component_id,
+      local_ip, port, error);
+  if (!udpport)
+    return NULL;
+
+  for (item = g_list_first (udpport->multicast_groups);
+       item;
+       item = g_list_next (item))
+  {
+    mcast = item->data;
+
+    if (!strcmp (mcast->multicast_ip, multicast_ip))
+    {
+      mcast->refcount++;
+      return mcast;
+    }
+  }
+
+  mcast = g_new0 (UdpMulticastGroup, 1);
+
+  mcast->refcount = 1;
+  mcast->sendcount = 0;
+  mcast->udpport = udpport;
+  mcast->multicast_ip = g_strdup (multicast_ip);
+
+  if (!inet_aton (multicast_ip, &mcast->mreqn.imr_multiaddr))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid multicast IP");
+    goto error;
+  }
+
+  if (udpport->requested_ip &&
+      !inet_aton (udpport->requested_ip, &mcast->mreqn.imr_address)) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "UdpPort address invalid");
+    goto error;
+  }
+
+  if (setsockopt (udpport->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+          &(mcast->mreqn), sizeof (mcast->mreqn)) < 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Could not join the socket to the multicast group: %s",
+        g_strerror (errno));
+    goto error;
+  }
+
+  return mcast;
+
+ error:
+
+  if (mcast)
+  {
+    g_free (mcast->multicast_ip);
+    g_free (mcast);
+  }
+
+  return NULL;
+}
+
+void
+fs_multicast_transmitter_put_group (FsMulticastTransmitter *trans,
+    UdpMulticastGroup *mcast)
+{
+
+  mcast->refcount--;
+
+  if (mcast->refcount > 0)
+    return;
+
+  if (setsockopt (mcast->udpport->fd, IPPROTO_IP, IP_DROP_MEMBERSHIP,
+          &(mcast->mreqn), sizeof (mcast->mreqn)) < 0)
+    GST_ERROR ("Could not remove the socket from the multicast group: %s",
+        g_strerror (errno));
+
+  mcast->udpport->multicast_groups = g_list_remove (
+      mcast->udpport->multicast_groups,
+      mcast);
+
+  fs_multicast_transmitter_put_udpport (trans, mcast->udpport);
+
+  g_free (mcast->multicast_ip);
+  g_free (mcast);
+}
+
+void
+fs_multicast_transmitter_set_group_sending (UdpMulticastGroup *mcast,
+    gboolean sending)
+{
+  if (sending) {
+    if (mcast->sendcount == 0)
+      fs_multicast_transmitter_udpport_add_dest (mcast->udpport,
+          mcast->multicast_ip, mcast->udpport->port);
+
+    mcast->sendcount++;
+  } else {
+    mcast->sendcount--;
+
+    if (mcast->sendcount == 0)
+      fs_multicast_transmitter_udpport_remove_dest (mcast->udpport,
+          mcast->multicast_ip, mcast->udpport->port);
+  }
 }
