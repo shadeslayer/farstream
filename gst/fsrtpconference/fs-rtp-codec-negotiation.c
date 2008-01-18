@@ -118,7 +118,7 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
     {
       GList *nextcodec_e = g_list_next (codec_e);
       gchar *tmp = fs_codec_to_string (codec);
-      GST_DEBUG ("Prefered codec %s could not be matched with a blueprint",
+      GST_DEBUG ("Preferred codec %s could not be matched with a blueprint",
           tmp);
       g_free (tmp);
       fs_codec_destroy (codec);
@@ -268,7 +268,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
   codec_associations = g_hash_table_new_full (g_direct_hash, g_direct_equal,
     NULL, (GDestroyNotify) _codec_association_destroy);
 
-  /* First, lets create the original table by looking at our prefered codecs */
+  /* First, lets create the original table by looking at our preferred codecs */
   for (codec_pref_e = codec_prefs;
        codec_pref_e;
        codec_pref_e = g_list_next (codec_pref_e)) {
@@ -284,7 +284,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
     /* No matching blueprint, can't use this codec */
     if (!bp)
     {
-      GST_LOG ("Could not find matching blueprint for prefered codec %s/%s",
+      GST_LOG ("Could not find matching blueprint for preferred codec %s/%s",
           fs_media_type_to_string (codec_pref->media_type),
           codec_pref->encoding_name);
       continue;
@@ -332,7 +332,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
 
     {
       gchar *tmp = fs_codec_to_string (ca->codec);
-      GST_LOG ("Added prefered codec %s", tmp);
+      GST_LOG ("Added preferred codec %s", tmp);
       g_free (tmp);
     }
 
@@ -382,7 +382,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
     if (g_hash_table_find (codec_associations, _ht_has_codec_blueprint, bp))
       continue;
 
-    /* Check if it is disabled in the list of prefered codecs */
+    /* Check if it is disabled in the list of preferred codecs */
     if (_is_disabled (codec_prefs, bp)) {
       gchar *tmp = fs_codec_to_string (bp->codec);
       GST_DEBUG ("Codec %s disabled by config", tmp);
