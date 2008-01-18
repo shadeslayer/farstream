@@ -20,10 +20,3 @@
   (copy-func fs_candidate_copy)
   (release-func fs_candidate_destroy)
 )
-
-
-(define-function fs_candidate_new
-  (c-name "fs_candidate_new")
-  (is-constructor-of "FsCandidate")
-  (return-type "FsCandidate*")
-)

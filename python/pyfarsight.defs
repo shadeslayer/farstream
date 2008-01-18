@@ -20,13 +20,6 @@
   (copy-func fs_candidate_copy)
   (release-func fs_candidate_destroy)
 )
-
-
-(define-function fs_candidate_new
-  (c-name "fs_candidate_new")
-  (is-constructor-of "FsCandidate")
-  (return-type "FsCandidate*")
-)
 ;; -*- scheme -*-
 ; object definitions ...
 ;; Enumerations and flags ...
@@ -146,6 +139,7 @@
     '("srflx" "FS_CANDIDATE_TYPE_SRFLX")
     '("prflx" "FS_CANDIDATE_TYPE_PRFLX")
     '("relay" "FS_CANDIDATE_TYPE_RELAY")
+    '("multicast" "FS_CANDIDATE_TYPE_MULTICAST")
   )
 )
 
@@ -225,6 +219,19 @@
   (return-type "gboolean")
   (parameters
     '("const-FsCandidate*" "cand2")
+  )
+)
+
+(define-function fs_candidate_new
+  (c-name "fs_candidate_new")
+  (is-constructor-of "FsCandidate")
+  (return-type "FsCandidate*")
+  (parameters
+    '("const-gchar*" "id")
+    '("FsCandidateType" "type")
+    '("FsNetworkProtocol" "proto")
+    '("const-gchar*" "ip")
+    '("guint" "port")
   )
 )
 
@@ -499,6 +506,16 @@
     '("gint" "error_no")
     '("gchar*" "error_msg")
     '("gchar*" "debug_msg")
+  )
+)
+
+(define-method emit_src_pad_added
+  (of-object "FsStream")
+  (c-name "fs_stream_emit_src_pad_added")
+  (return-type "none")
+  (parameters
+    '("GstPad*" "ghostpad")
+    '("FsCodec*" "codec")
   )
 )
 
