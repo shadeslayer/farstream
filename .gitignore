@@ -39,6 +39,7 @@ tests/check/*/.dirstamp
 tests/check/base/fscodec
 tests/check/base/fstransmitter
 tests/check/transmitter/rawudp
+tests/check/transmitter/multicast
 tests/check/main/rtpconference
 tests/check/main/rtpcodecs
 tests/check/utils/binadded
@@ -56,6 +57,7 @@ config.log
 config.status
 config.sub
 configure
+compile
 depcomp
 diff
 install-sh

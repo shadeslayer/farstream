@@ -11,7 +11,7 @@ TESTS_ENVIRONMENT = \
 	$(REGISTRY_ENVIRONMENT)					\
 	GST_PLUGIN_SYSTEM_PATH=					\
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
-	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs
+	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs
 
 
 # ths core dumps of some machines have PIDs appended
@@ -35,6 +35,7 @@ check_PROGRAMS = \
 	base/fscodec \
 	base/fstransmitter \
 	transmitter/rawudp \
+	transmitter/multicast \
 	main/rtpconference \
 	main/rtpcodecs \
 	utils/binadded
@@ -59,6 +60,15 @@ transmitter_rawudp_SOURCES = \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/rawudp.c 
+
+transmitter_multicast_LDADD = $(LDADD) \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
+transmitter_multicast_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+transmitter_multicast_SOURCES = \
+	check_threadsafe.h  \
+	transmitter/generic.c \
+	transmitter/generic.h \
+	transmitter/multicast.c 
 
 
 
