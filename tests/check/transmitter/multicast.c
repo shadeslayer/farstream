@@ -184,8 +184,6 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
       " addition");
   fs_candidate_destroy (tmpcand);
 
-  g_debug ("STARTING");
-
   g_main_run (loop);
 
   g_object_unref (st);
@@ -197,7 +195,6 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
   gst_object_unref (pipeline);
 
   g_main_loop_unref (loop);
-
 }
 
 GST_START_TEST (test_multicasttransmitter_run)
