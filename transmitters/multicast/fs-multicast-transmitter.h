@@ -95,7 +95,6 @@ UdpPort *fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
     guint component_id,
     const gchar *requested_ip,
     guint requested_port,
-    gboolean exact_port,
     GError **error);
 
 void fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,

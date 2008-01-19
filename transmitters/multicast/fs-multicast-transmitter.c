@@ -479,9 +479,7 @@ struct _UdpPort {
   GstElement *udpsink;
   GstPad *udpsink_requested_pad;
 
-  gchar *requested_ip;
-  guint requested_port;
-
+  gchar *local_ip;
   guint port;
 
   gint fd;
@@ -499,8 +497,6 @@ static gint
 _bind_port (
     const gchar *ip,
     guint port,
-    guint *used_port,
-    gboolean exact_port,
     GError **error)
 {
   int sock = -1;
@@ -535,29 +531,14 @@ _bind_port (
     goto error;
   }
 
-  do {
-    address.sin_port = htons (port);
-    retval = bind (sock, (struct sockaddr *) &address, sizeof (address));
-    if (retval != 0)
-    {
-      if (exact_port)
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-            "Could not bind to port %d", port);
-        goto error;
-      }
-      GST_INFO ("could not bind port %d", port);
-
-      port += 2;
-      if (port > 65535) {
-        g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-          "Could not bind the socket to a port");
-        goto error;
-      }
-    }
-  } while (retval != 0);
-
-  *used_port = port;
+  address.sin_port = htons (port);
+  retval = bind (sock, (struct sockaddr *) &address, sizeof (address));
+  if (retval != 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+        "Could not bind to port %d", port);
+    goto error;
+  }
 
   if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
           sizeof (ttl)) < 0)
@@ -703,9 +684,8 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 UdpPort *
 fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
     guint component_id,
-    const gchar *requested_ip,
-    guint requested_port,
-    gboolean exact_port,
+    const gchar *local_ip,
+    guint port,
     GError **error)
 {
   UdpPort *udpport;
@@ -722,9 +702,9 @@ fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
        udpport_e;
        udpport_e = g_list_next (udpport_e)) {
     udpport = udpport_e->data;
-    if (requested_port == udpport->requested_port &&
-        ((requested_ip == NULL && udpport->requested_ip == NULL) ||
-          !strcmp (requested_ip, udpport->requested_ip))) {
+    if (port == udpport->port &&
+        ((local_ip == NULL && udpport->local_ip == NULL) ||
+          !strcmp (local_ip, udpport->local_ip))) {
       udpport->refcount++;
       return udpport;
     }
@@ -733,15 +713,14 @@ fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
   udpport = g_new0 (UdpPort, 1);
 
   udpport->refcount = 1;
-  udpport->requested_ip = g_strdup (requested_ip);
-  udpport->requested_port = requested_port;
+  udpport->local_ip = g_strdup (local_ip);
   udpport->fd = -1;
   udpport->component_id = component_id;
+  udpport->port = port;
 
   /* Now lets bind both ports */
 
-  udpport->fd = _bind_port (requested_ip, requested_port, &udpport->port,
-      exact_port, error);
+  udpport->fd = _bind_port (local_ip, port, error);
   if (udpport->fd < 0)
     goto error;
 
@@ -830,7 +809,7 @@ fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
   if (udpport->fd >= 0)
     close (udpport->fd);
 
-  g_free (udpport->requested_ip);
+  g_free (udpport->local_ip);
   g_free (udpport);
 }
 
@@ -950,7 +929,7 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
   GList *item = NULL;
 
   udpport = fs_multicast_transmitter_get_udpport (trans, component_id,
-      local_ip, port, TRUE, error);
+      local_ip, port, error);
   if (!udpport)
     return NULL;
 
@@ -981,8 +960,8 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
     goto error;
   }
 
-  if (udpport->requested_ip &&
-      !inet_aton (udpport->requested_ip, &mcast->mreqn.imr_address))
+  if (udpport->local_ip &&
+      !inet_aton (udpport->local_ip, &mcast->mreqn.imr_address))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "UdpPort address invalid");
