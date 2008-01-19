@@ -145,7 +145,7 @@ void fs_stream_emit_error (FsStream *stream, gint error_no,
                            gchar *error_msg, gchar *debug_msg);
 
 void fs_stream_emit_src_pad_added (FsStream *stream,
-    GstPad *ghostpad,
+    GstPad *pad,
     FsCodec *codec);
 
 G_END_DECLS
