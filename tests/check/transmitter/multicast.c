@@ -55,6 +55,12 @@ GST_START_TEST (test_multicasttransmitter_new)
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
 
+  fail_if (trans_sink == NULL, "Sink is NULL");
+  fail_if (trans_src == NULL, "Src is NULL");
+
+  gst_object_unref (trans_sink);
+  gst_object_unref (trans_src);
+
   g_object_unref (trans);
 
   gst_object_unref (pipeline);
@@ -128,7 +134,6 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
   GError *error = NULL;
   FsTransmitter *trans;
   FsStreamTransmitter *st;
-  GstElement *trans_sink, *trans_src;
   FsCandidate *tmpcand = NULL;
 
   loop = g_main_loop_new (NULL, FALSE);
@@ -142,8 +147,6 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
   pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler));
-
-  g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
 
   st = fs_transmitter_new_stream_transmitter (trans, NULL, n_parameters, params,
     &error);
