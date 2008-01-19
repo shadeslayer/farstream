@@ -982,11 +982,17 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
   }
 
   if (udpport->requested_ip &&
-      !inet_aton (udpport->requested_ip, &mcast->mreqn.imr_address)) {
+      !inet_aton (udpport->requested_ip, &mcast->mreqn.imr_address))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "UdpPort address invalid");
     goto error;
   }
+  else
+  {
+    mcast->mreqn.imr_address.s_addr = INADDR_ANY;
+  }
+  mcast->mreqn.imr_ifindex = 0;
 
   if (setsockopt (udpport->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
           &(mcast->mreqn), sizeof (mcast->mreqn)) < 0)
