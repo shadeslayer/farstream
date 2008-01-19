@@ -492,6 +492,8 @@ _wrap_fs_candidate_tp_setattr(PyObject *self, char *attr, PyObject *value)
     CHECK_SET_INT (base_port, 0, G_MAXUINT16);
   else if (!strcmp (attr, "priority"))
     CHECK_SET_INT (priority, G_MININT, G_MAXINT);
+  else if (!strcmp (attr, "ttl"))
+    CHECK_SET_INT (ttl, 0, 255);
   else if (!strcmp (attr, "username"))
     CHECK_SET_STR (username);
   else if (!strcmp (attr, "password"))
@@ -548,6 +550,8 @@ _wrap_fs_candidate_tp_getattr(PyObject *self, char *attr)
     return PyInt_FromLong(candidate->base_port);
   else if (!strcmp (attr, "priority"))
     return PyInt_FromLong(candidate->priority);
+  else if (!strcmp (attr, "ttl"))
+    return PyInt_FromLong(candidate->ttl);
   else if (!strcmp (attr, "username"))
     return PyString_FromString (CHECK_NULL(candidate->username));
   else if (!strcmp (attr, "password"))

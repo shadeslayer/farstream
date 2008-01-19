@@ -102,6 +102,7 @@ typedef struct _FsCandidate FsCandidate;
  *            NULL otherwise
  * @password: Username to use to connect to client if necessary,
  *            NULL otherwise
+ * @ttl: The TTL used when sending Multicast packet (0 = auto)
  *
  * Struct to hold information about ICE-19 compliant candidates
  */
@@ -119,6 +120,7 @@ struct _FsCandidate
   FsCandidateType type;
   const gchar *username;
   const gchar *password;
+  guint ttl;
   /*< private >*/
   gpointer _padding[4];
 };
