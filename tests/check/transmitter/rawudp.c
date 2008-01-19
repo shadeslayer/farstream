@@ -92,7 +92,8 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   if (has_stun)
     ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_SRFLX,
       "Has stun, but candidate is not server reflexive,"
-      " it is: %s:%u of type %d on component %u",
+      " it is: %s:%u of type %d on component %u (IGNORE if you are not"
+        " connected to the public internet",
       candidate->ip, candidate->port, candidate->type, candidate->component_id);
   else {
     ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
