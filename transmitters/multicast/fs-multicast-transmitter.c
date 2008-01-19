@@ -506,7 +506,8 @@ _bind_port (
   int sock = -1;
   struct sockaddr_in address;
   int retval;
-  guchar ttl = 64, loop = 0;
+  guchar ttl = 64, loop = 1;
+  int reuseaddr = 1;
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
@@ -575,6 +576,28 @@ _bind_port (
         g_strerror (errno));
     goto error;
   }
+
+
+  if (setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
+          sizeof (reuseaddr)) < 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Error setting reuseaddr to TRUE: %s",
+        g_strerror (errno));
+    goto error;
+  }
+
+#ifdef SO_REUSEPORT
+  if (setsockopt (sock, SOL_SOCKET, SO_REUSEPORT, &reuseaddr,
+          sizeof (reuseaddr)) < 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Error setting reuseaddr to TRUE: %s",
+        g_strerror (errno));
+    goto error;
+  }
+#endif
+
   return sock;
 
  error:
