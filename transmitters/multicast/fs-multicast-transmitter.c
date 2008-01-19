@@ -506,7 +506,7 @@ _bind_port (
   int sock = -1;
   struct sockaddr_in address;
   int retval;
-  guchar ttl = 64, loop = 1;
+  guchar ttl = 64, loop = 0;
   int reuseaddr = 1;
 
   address.sin_family = AF_INET;
