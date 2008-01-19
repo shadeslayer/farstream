@@ -37,8 +37,6 @@
 #include "fs-multicast-stream-transmitter.h"
 #include "fs-multicast-transmitter.h"
 
-#include "fs-interfaces.h"
-
 #include <gst/farsight/fs-candidate.h>
 #include <gst/farsight/fs-conference-iface.h>
 

@@ -6,8 +6,7 @@ plugin_LTLIBRARIES = libmulticast-transmitter.la
 # sources used to compile this lib
 libmulticast_transmitter_la_SOURCES = \
 	fs-multicast-transmitter.c \
-	fs-multicast-stream-transmitter.c \
-	fs-interfaces.c
+	fs-multicast-stream-transmitter.c
 
 # flags used to compile this plugin
 libmulticast_transmitter_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) \
@@ -19,5 +18,4 @@ libmulticast_transmitter_la_LIBADD = \
 
 noinst_HEADERS = \
 	fs-multicast-transmitter.h \
-	fs-multicast-stream-transmitter.h \
-	fs-interfaces.h
+	fs-multicast-stream-transmitter.h
