@@ -84,40 +84,9 @@ struct _FsMulticastTransmitter
 };
 
 /* Private declarations */
-typedef struct _UdpPort UdpPort;
 typedef struct _UdpMulticastGroup UdpMulticastGroup;
 
 GType fs_multicast_transmitter_get_type (void);
-
-
-
-UdpPort *fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
-    guint component_id,
-    const gchar *requested_ip,
-    guint requested_port,
-    GError **error);
-
-void fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
-  UdpPort *udpport);
-
-void fs_multicast_transmitter_udpport_add_dest (UdpPort *udpport,
-  const gchar *ip, gint port);
-void fs_multicast_transmitter_udpport_remove_dest (UdpPort *udpport,
-  const gchar *ip, gint port);
-
-gboolean fs_multicast_transmitter_udpport_sendto (UdpPort *udpport,
-  gchar *msg, size_t len, const struct sockaddr *to, socklen_t tolen,
-  GError **error);
-
-gulong fs_multicast_transmitter_udpport_connect_recv (UdpPort *udpport,
-  GCallback callback, gpointer user_data);
-void fs_multicast_transmitter_udpport_disconnect_recv (UdpPort *udpport,
-  gulong id);
-
-gboolean fs_multicast_transmitter_udpport_is_pad (UdpPort *udpport,
-    GstPad *pad);
-
-gboolean fs_multicast_transmitter_udpport_get_port (UdpPort *udpport);
 
 
 UdpMulticastGroup *fs_multicast_transmitter_get_group (
@@ -126,11 +95,15 @@ UdpMulticastGroup *fs_multicast_transmitter_get_group (
     const gchar *multicast_ip,
     guint port,
     const gchar *local_ip,
+    guint8 ttl,
+    gboolean recv,
     GError **error);
 void fs_multicast_transmitter_put_group (FsMulticastTransmitter *trans,
     UdpMulticastGroup *mcast);
-void fs_multicast_transmitter_set_group_sending (UdpMulticastGroup *mcast,
-    gboolean sending);
+
+void fs_multicast_transmitter_group_inc_sending (UdpMulticastGroup *mcast);
+void fs_multicast_transmitter_group_dec_sending (UdpMulticastGroup *mcast);
+
 
 
 G_END_DECLS

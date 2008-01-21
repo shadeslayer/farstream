@@ -170,6 +170,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
   tmpcand = fs_candidate_new ("L1", FS_COMPONENT_RTP,
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP,
       "224.0.0.33", 2322);
+  tmpcand->ttl = 1;
   if (!fs_stream_transmitter_add_remote_candidate (st, tmpcand, &error))
     ts_fail ("Error setting the remote candidate: %p %s", error,
         error ? error->message : "NO ERROR SET");
@@ -179,7 +180,8 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
   tmpcand = fs_candidate_new ("L2", FS_COMPONENT_RTCP,
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP,
-      "224.0.0.33", 2323);
+      "224.0.024", 2323);
+  tmpcand->ttl = 1;
   if (!fs_stream_transmitter_add_remote_candidate (st, tmpcand, &error))
     ts_fail ("Error setting the remote candidate: %p %s", error,
         error ? error->message : "NO ERROR SET");

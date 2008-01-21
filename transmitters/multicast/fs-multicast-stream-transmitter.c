@@ -85,7 +85,8 @@ struct _FsMulticastStreamTransmitterPrivate
   FsCandidate **remote_candidate;
   FsCandidate **local_candidate;
 
-  UdpMulticastGroup **mcasts;
+  UdpMulticastGroup **recvmcasts;
+  UdpMulticastGroup **sendmcasts;
 
   GList *preferred_local_candidates;
 
@@ -188,20 +189,35 @@ fs_multicast_stream_transmitter_dispose (GObject *object)
   FsMulticastStreamTransmitter *self = FS_MULTICAST_STREAM_TRANSMITTER (object);
   gint c;
 
-  if (self->priv->disposed) {
+  if (self->priv->disposed)
     /* If dispose did already run, return. */
     return;
+
+  if (self->priv->sendmcasts)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->sendmcasts[c])
+      {
+        if (self->priv->sending)
+          fs_multicast_transmitter_group_dec_sending (
+              self->priv->sendmcasts[c]);
+        fs_multicast_transmitter_put_group (self->priv->transmitter,
+            self->priv->sendmcasts[c]);
+        self->priv->sendmcasts[c] = NULL;
+      }
+    }
   }
 
-  if (self->priv->mcasts) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->mcasts[c]) {
-        if (self->priv->sending)
-          fs_multicast_transmitter_set_group_sending (self->priv->mcasts[c],
-              FALSE);
+  if (self->priv->recvmcasts)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->recvmcasts[c])
+      {
         fs_multicast_transmitter_put_group (self->priv->transmitter,
-            self->priv->mcasts[c]);
-        self->priv->mcasts[c] = NULL;
+            self->priv->recvmcasts[c]);
+        self->priv->recvmcasts[c] = NULL;
       }
     }
   }
@@ -236,8 +252,11 @@ fs_multicast_stream_transmitter_finalize (GObject *object)
     self->priv->remote_candidate = NULL;
   }
 
-  g_free (self->priv->mcasts);
-  self->priv->mcasts = NULL;
+  g_free (self->priv->sendmcasts);
+  self->priv->sendmcasts = NULL;
+
+  g_free (self->priv->recvmcasts);
+  self->priv->recvmcasts = NULL;
 
   parent_class->finalize (object);
 }
@@ -250,7 +269,8 @@ fs_multicast_stream_transmitter_get_property (GObject *object,
 {
   FsMulticastStreamTransmitter *self = FS_MULTICAST_STREAM_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_SENDING:
       g_value_set_boolean (value, self->priv->sending);
       break;
@@ -281,9 +301,15 @@ fs_multicast_stream_transmitter_set_property (GObject *object,
 
         if (self->priv->sending != old_sending)
           for (c = 1; c <= self->priv->transmitter->components; c++)
-            if (self->priv->mcasts[c])
-              fs_multicast_transmitter_set_group_sending (self->priv->mcasts[c],
-                  self->priv->sending);
+            if (self->priv->sendmcasts[c])
+            {
+              if (self->priv->sending)
+                fs_multicast_transmitter_group_inc_sending (
+                    self->priv->sendmcasts[c]);
+              else
+                fs_multicast_transmitter_group_dec_sending (
+                    self->priv->sendmcasts[c]);
+            }
       }
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
@@ -302,12 +328,14 @@ fs_multicast_stream_transmitter_build (FsMulticastStreamTransmitter *self,
   GList *item;
   gint c;
 
-  self->priv->mcasts = g_new0 (UdpMulticastGroup *,
-    self->priv->transmitter->components + 1);
+  self->priv->sendmcasts = g_new0 (UdpMulticastGroup *,
+      self->priv->transmitter->components + 1);
+  self->priv->recvmcasts = g_new0 (UdpMulticastGroup *,
+      self->priv->transmitter->components + 1);
   self->priv->local_candidate = g_new0 (FsCandidate *,
-    self->priv->transmitter->components + 1)
-;  self->priv->remote_candidate = g_new0 (FsCandidate *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
+  self->priv->remote_candidate = g_new0 (FsCandidate *,
+      self->priv->transmitter->components + 1);
 
   for (item = g_list_first (self->priv->preferred_local_candidates);
        item;
@@ -392,7 +420,8 @@ fs_multicast_stream_transmitter_add_remote_candidate (
 {
   FsMulticastStreamTransmitter *self =
     FS_MULTICAST_STREAM_TRANSMITTER (streamtransmitter);
-  UdpMulticastGroup *newmcast = NULL;
+  UdpMulticastGroup *newrecvmcast = NULL;
+  UdpMulticastGroup *newsendmcast = NULL;
 
   if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -423,6 +452,13 @@ fs_multicast_stream_transmitter_add_remote_candidate (
     return FALSE;
   }
 
+  if (candidate->ttl == 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "The TTL for IPv4 multicast candidates must not be 0");
+    return FALSE;
+  }
+
   if (self->priv->remote_candidate[candidate->component_id])
   {
     FsCandidate *old_candidate =
@@ -443,29 +479,44 @@ fs_multicast_stream_transmitter_add_remote_candidate (
    * We should also check if the address is in the multicast range
    */
 
-  newmcast = fs_multicast_transmitter_get_group (self->priv->transmitter,
+  newrecvmcast = fs_multicast_transmitter_get_group (self->priv->transmitter,
       candidate->component_id, candidate->ip, candidate->port,
-      self->priv->local_candidate[candidate->component_id]->ip, error);
+      self->priv->local_candidate[candidate->component_id]->ip,
+      candidate->ttl, TRUE, error);
 
-  if (!newmcast)
+  if (!newrecvmcast)
     return FALSE;
 
-  if (self->priv->mcasts[candidate->component_id])
+  newsendmcast = fs_multicast_transmitter_get_group (self->priv->transmitter,
+      candidate->component_id, candidate->ip, candidate->port,
+      self->priv->local_candidate[candidate->component_id]->ip,
+      candidate->ttl, FALSE, error);
+
+  if (!newsendmcast)
   {
-    if (self->priv->sending)
-      fs_multicast_transmitter_set_group_sending (
-          self->priv->mcasts[candidate->component_id],
-          FALSE);
-    fs_multicast_transmitter_put_group (self->priv->transmitter,
-        self->priv->mcasts[candidate->component_id]);
+    fs_multicast_transmitter_put_group (self->priv->transmitter, newrecvmcast);
+    return FALSE;
   }
 
-  self->priv->mcasts[candidate->component_id] = newmcast;
+  if (self->priv->sendmcasts[candidate->component_id])
+  {
+    if (self->priv->sending)
+      fs_multicast_transmitter_group_dec_sending (
+          self->priv->sendmcasts[candidate->component_id]);
+    fs_multicast_transmitter_put_group (self->priv->transmitter,
+        self->priv->sendmcasts[candidate->component_id]);
+  }
+
+  if (self->priv->recvmcasts[candidate->component_id])
+    fs_multicast_transmitter_put_group (self->priv->transmitter,
+        self->priv->recvmcasts[candidate->component_id]);
+
+  self->priv->sendmcasts[candidate->component_id] = newsendmcast;
+  self->priv->recvmcasts[candidate->component_id] = newrecvmcast;
 
   if (self->priv->sending)
-    fs_multicast_transmitter_set_group_sending (
-        self->priv->mcasts[candidate->component_id],
-        TRUE);
+    fs_multicast_transmitter_group_inc_sending (
+        self->priv->sendmcasts[candidate->component_id]);
 
   self->priv->remote_candidate[candidate->component_id] =
     fs_candidate_copy (candidate);

@@ -111,6 +111,20 @@ static GType fs_multicast_transmitter_get_stream_transmitter_type (
     GError **error);
 
 
+typedef struct _UdpPort UdpPort;
+
+static UdpPort *fs_multicast_transmitter_get_udpport (
+    FsMulticastTransmitter *trans,
+    guint component_id,
+    const gchar *local_ip,
+    guint16 port,
+    guint8 ttl,
+    gboolean recv,
+    GError **error);
+static void fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
+    UdpPort *udpport);
+
+
 static GObjectClass *parent_class = NULL;
 //static guint signals[LAST_SIGNAL] = { 0 };
 
@@ -466,8 +480,8 @@ fs_multicast_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 
 /*
  * The UdpPort structure is a ref-counted pseudo-object use to represent
- * one ip:port combo on which we listen and send, so it includes  a udpsrc
- * and a multiudpsink
+ * one ip:port:ttl trio on which we listen and send, so it includes a udpsrc
+ * and a multiudpsink. It represents one BSD socket.
  */
 
 struct _UdpPort {
@@ -480,7 +494,8 @@ struct _UdpPort {
   GstPad *udpsink_requested_pad;
 
   gchar *local_ip;
-  guint port;
+  guint16 port;
+  guint8 ttl;
 
   gint fd;
 
@@ -490,19 +505,22 @@ struct _UdpPort {
 
   guint component_id;
 
+  gboolean sendonly;
+
   GList *multicast_groups;
 };
 
 static gint
 _bind_port (
     const gchar *ip,
-    guint port,
+    guint16 port,
+    guchar ttl,
     GError **error)
 {
   int sock = -1;
   struct sockaddr_in address;
   int retval;
-  guchar ttl = 64, loop = 0;
+  guchar loop = 1;
   int reuseaddr = 1;
 
   address.sin_family = AF_INET;
@@ -525,18 +543,9 @@ _bind_port (
     freeaddrinfo (result);
   }
 
-  if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0) {
+  if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) <= 0) {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
       "Error creating socket: %s", g_strerror (errno));
-    goto error;
-  }
-
-  address.sin_port = htons (port);
-  retval = bind (sock, (struct sockaddr *) &address, sizeof (address));
-  if (retval != 0)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-        "Could not bind to port %d", port);
     goto error;
   }
 
@@ -558,7 +567,6 @@ _bind_port (
     goto error;
   }
 
-
   if (setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
           sizeof (reuseaddr)) < 0)
   {
@@ -578,6 +586,15 @@ _bind_port (
     goto error;
   }
 #endif
+
+  address.sin_port = htons (port);
+  retval = bind (sock, (struct sockaddr *) &address, sizeof (address));
+  if (retval != 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+        "Could not bind to port %d", port);
+    goto error;
+  }
 
   return sock;
 
@@ -681,18 +698,22 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 }
 
 
-UdpPort *
+static UdpPort *
 fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
     guint component_id,
     const gchar *local_ip,
-    guint port,
+    guint16 port,
+    guint8 ttl,
+    gboolean recv,
     GError **error)
 {
   UdpPort *udpport;
   GList *udpport_e;
+  gboolean sendonly = FALSE;
 
   /* First lets check if we already have one */
-  if (component_id > trans->components) {
+  if (component_id > trans->components)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "Invalid component %d > %d", component_id, trans->components);
     return NULL;
@@ -700,13 +721,31 @@ fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
 
   for (udpport_e = g_list_first (trans->priv->udpports[component_id]);
        udpport_e;
-       udpport_e = g_list_next (udpport_e)) {
+       udpport_e = g_list_next (udpport_e))
+  {
     udpport = udpport_e->data;
+
     if (port == udpport->port &&
         ((local_ip == NULL && udpport->local_ip == NULL) ||
-          !strcmp (local_ip, udpport->local_ip))) {
-      udpport->refcount++;
-      return udpport;
+          !strcmp (local_ip, udpport->local_ip)))
+    {
+      if (recv)
+      {
+        if (!udpport->sendonly)
+        {
+          udpport->refcount++;
+          return udpport;
+        }
+      }
+      else /* recv */
+      {
+        if (ttl == udpport->ttl)
+        {
+          udpport->refcount++;
+          return udpport;
+        }
+        sendonly = TRUE;
+      }
     }
   }
 
@@ -717,23 +756,29 @@ fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
   udpport->fd = -1;
   udpport->component_id = component_id;
   udpport->port = port;
+  udpport->ttl = ttl;
+  udpport->sendonly = sendonly;
 
   /* Now lets bind both ports */
 
-  udpport->fd = _bind_port (local_ip, port, error);
+  udpport->fd = _bind_port (local_ip, port, ttl, error);
   if (udpport->fd < 0)
     goto error;
 
   /* Now lets create the elements */
 
   udpport->tee = trans->priv->udpsink_tees[component_id];
-  udpport->funnel = trans->priv->udpsrc_funnels[component_id];
+  if (!udpport->sendonly)
+    udpport->funnel = trans->priv->udpsrc_funnels[component_id];
 
-  udpport->udpsrc = _create_sinksource ("udpsrc",
-    GST_BIN (trans->priv->gst_src), udpport->funnel, udpport->fd, GST_PAD_SRC,
-    &udpport->udpsrc_requested_pad, error);
-  if (!udpport->udpsrc)
-    goto error;
+  if (!udpport->sendonly)
+  {
+    udpport->udpsrc = _create_sinksource ("udpsrc",
+        GST_BIN (trans->priv->gst_src), udpport->funnel, udpport->fd, GST_PAD_SRC,
+        &udpport->udpsrc_requested_pad, error);
+    if (!udpport->udpsrc)
+      goto error;
+  }
 
   udpport->udpsink = _create_sinksource ("multiudpsink",
     GST_BIN (trans->priv->gst_sink), udpport->tee, udpport->fd, GST_PAD_SINK,
@@ -756,7 +801,7 @@ fs_multicast_transmitter_get_udpport (FsMulticastTransmitter *trans,
   return NULL;
 }
 
-void
+static void
 fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
   UdpPort *udpport)
 {
@@ -764,6 +809,8 @@ fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
     udpport->refcount--;
     return;
   }
+
+  g_assert (udpport->multicast_groups == NULL);
 
   trans->priv->udpports[udpport->component_id] =
     g_list_remove (trans->priv->udpports[udpport->component_id], udpport);
@@ -813,7 +860,7 @@ fs_multicast_transmitter_put_udpport (FsMulticastTransmitter *trans,
   g_free (udpport);
 }
 
-void
+static void
 fs_multicast_transmitter_udpport_add_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
@@ -822,74 +869,13 @@ fs_multicast_transmitter_udpport_add_dest (UdpPort *udpport,
 }
 
 
-void
+static void
 fs_multicast_transmitter_udpport_remove_dest (UdpPort *udpport,
   const gchar *ip, gint port)
 {
   g_signal_emit_by_name (udpport->udpsink, "remove", ip, port);
 }
 
-gboolean
-fs_multicast_transmitter_udpport_sendto (UdpPort *udpport,
-  gchar *msg, size_t len, const struct sockaddr *to, socklen_t tolen,
-  GError **error)
-{
-  if (sendto (udpport->fd, msg, len, 0, to, tolen) != len) {
-    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-      "Could not send STUN request: %s", g_strerror (errno));
-    return FALSE;
-  }
-
-  return TRUE;
-}
-
-gulong
-fs_multicast_transmitter_udpport_connect_recv (UdpPort *udpport,
-  GCallback callback, gpointer user_data)
-{
-  GstPad *pad;
-  gulong id;
-
-  pad = gst_element_get_static_pad (udpport->udpsrc, "src");
-
-  id = gst_pad_add_buffer_probe (pad, callback, user_data);
-
-  gst_object_unref (pad);
-
-  return id;
-}
-
-
-void
-fs_multicast_transmitter_udpport_disconnect_recv (UdpPort *udpport, gulong id)
-{
-  GstPad *pad = gst_element_get_static_pad (udpport->udpsrc, "src");
-
-  gst_pad_remove_buffer_probe (pad, id);
-
-  gst_object_unref (pad);
-}
-
-gboolean
-fs_multicast_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
-{
-  GstPad *mypad;
-  gboolean res;
-
-  mypad =  gst_element_get_static_pad (udpport->udpsrc, "src");
-
-  res = (mypad == pad);
-
-  gst_object_unref (mypad);
-
-  return res;
-}
-
-gint
-fs_multicast_transmitter_udpport_get_port (UdpPort *udpport)
-{
-  return udpport->port;
-}
 
 static GType
 fs_multicast_transmitter_get_stream_transmitter_type (
@@ -901,6 +887,7 @@ fs_multicast_transmitter_get_stream_transmitter_type (
 
 /*
  * The following functions are for counting the use of Multicast
+ * Each struct represents a quatuor of local_ip:port:ttl:multicast_ip
  */
 
 struct _UdpMulticastGroup
@@ -908,7 +895,6 @@ struct _UdpMulticastGroup
   UdpPort *udpport;
 
   gint refcount;
-
   gint sendcount;
 
   gchar *multicast_ip;
@@ -922,6 +908,8 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
     const gchar *multicast_ip,
     guint port,
     const gchar *local_ip,
+    guint8 ttl,
+    gboolean recv,
     GError **error)
 {
   UdpPort *udpport;
@@ -929,7 +917,7 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
   GList *item = NULL;
 
   udpport = fs_multicast_transmitter_get_udpport (trans, component_id,
-      local_ip, port, error);
+      local_ip, port, ttl, recv, error);
   if (!udpport)
     return NULL;
 
@@ -977,10 +965,13 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
           &(mcast->mreqn), sizeof (mcast->mreqn)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Could not join the socket to the multicast group: %s",
+        "Could not join the socket to the multicast group2: %s",
         g_strerror (errno));
     goto error;
   }
+
+  udpport->multicast_groups = g_list_prepend (udpport->multicast_groups,
+      mcast);
 
   return mcast;
 
@@ -1021,20 +1012,22 @@ fs_multicast_transmitter_put_group (FsMulticastTransmitter *trans,
 }
 
 void
-fs_multicast_transmitter_set_group_sending (UdpMulticastGroup *mcast,
-    gboolean sending)
+fs_multicast_transmitter_group_inc_sending (UdpMulticastGroup *mcast)
 {
-  if (sending) {
-    if (mcast->sendcount == 0)
-      fs_multicast_transmitter_udpport_add_dest (mcast->udpport,
-          mcast->multicast_ip, mcast->udpport->port);
+  if (mcast->sendcount == 0)
+    fs_multicast_transmitter_udpport_add_dest (mcast->udpport,
+        mcast->multicast_ip, mcast->udpport->port);
 
-    mcast->sendcount++;
-  } else {
-    mcast->sendcount--;
+  mcast->sendcount++;
+}
 
-    if (mcast->sendcount == 0)
-      fs_multicast_transmitter_udpport_remove_dest (mcast->udpport,
-          mcast->multicast_ip, mcast->udpport->port);
-  }
+
+void
+fs_multicast_transmitter_group_dec_sending (UdpMulticastGroup *mcast)
+{
+  mcast->sendcount--;
+
+  if (mcast->sendcount == 0)
+    fs_multicast_transmitter_udpport_remove_dest (mcast->udpport,
+        mcast->multicast_ip, mcast->udpport->port);
 }
