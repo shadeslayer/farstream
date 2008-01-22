@@ -284,6 +284,18 @@ fs_multicast_stream_transmitter_finalize (GObject *object)
     self->priv->remote_candidate = NULL;
   }
 
+  if (self->priv->local_candidate)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->local_candidate[c])
+        fs_candidate_destroy (self->priv->local_candidate[c]);
+      self->priv->local_candidate[c] = NULL;
+    }
+    g_free (self->priv->local_candidate);
+    self->priv->local_candidate = NULL;
+  }
+
   g_free (self->priv->sendmcasts);
   self->priv->sendmcasts = NULL;
 
@@ -418,7 +430,8 @@ fs_multicast_stream_transmitter_build (FsMulticastStreamTransmitter *self,
       return FALSE;
     }
 
-    self->priv->local_candidate[candidate->component_id] = candidate;
+    self->priv->local_candidate[candidate->component_id] =
+      fs_candidate_copy (candidate);
   }
 
   for (c = 1; c <= self->priv->transmitter->components; c++)

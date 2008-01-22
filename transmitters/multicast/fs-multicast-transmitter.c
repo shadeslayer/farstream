@@ -929,6 +929,7 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
 
     if (!strcmp (mcast->multicast_ip, multicast_ip))
     {
+      fs_multicast_transmitter_put_udpport (trans, mcast->udpport);
       mcast->refcount++;
       return mcast;
     }
@@ -979,6 +980,7 @@ fs_multicast_transmitter_get_group (FsMulticastTransmitter *trans,
 
   if (mcast)
   {
+    fs_multicast_transmitter_put_udpport (trans, mcast->udpport);
     g_free (mcast->multicast_ip);
     g_free (mcast);
   }
