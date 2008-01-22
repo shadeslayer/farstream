@@ -26,8 +26,40 @@
 /**
  * SECTION:fs-multicast-stream-transmitter
  * @short_description: A stream transmitter object for Multicast UDP
+ * @see_also: fs-rawudp-stream-transmitter
  *
+ * <refsect2>
+ * <para>
+ * The multicast transmitter allows data to be sent over and received from
+ * multicasted UDP on IPv4.
+ * </para>
  *
+ * <para>
+ * This stream transmitter never emits local candidates. It will listen
+ * to the port specified in the remote candidate. And will also send to that
+ * port. It accepts only a single remote candidate per component, if a new one
+ * is given, it will replace the previous one for that component.
+ * </para>
+ *
+ * <para>
+ * The transmitter will only stop sending to a multicast group when all of its
+ * StreamTransmitters that have this multicast group as destination have their
+ * "sending" property set to false. Multiple stream transmitters can point to
+ * the same multicast groups from the same Transmitter (session), and only one
+ * copy of each packet will be received.
+ * </para>
+ *
+ * <para>
+ * It will only listen to and send from the IP specified in the
+ * prefered-local-candidates. There can be only one prefered candidate per
+ * component.
+ * </para>
+ *
+ * <para>
+ * Packets sent will be looped back (so that other clients on the same session
+ * can be on the same machine.
+ * </para>
+ * </refsect2>
  */
 
 #ifdef HAVE_CONFIG_H
