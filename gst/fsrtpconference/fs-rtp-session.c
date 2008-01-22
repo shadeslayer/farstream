@@ -2087,7 +2087,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   gchar *name;
   GstCaps *sendcaps;
 
-  name = g_strdup_printf ("send%d", codec->id);
+  name = g_strdup_printf ("send_%d_%d", session->id, codec->id);
   codecbin = _create_codec_bin (blueprint, codec, name, TRUE, error);
   g_free (name);
 
