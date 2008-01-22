@@ -84,26 +84,24 @@ struct _FsMulticastTransmitter
 };
 
 /* Private declarations */
-typedef struct _UdpMulticastGroup UdpMulticastGroup;
+typedef struct _UdpSock UdpSock;
 
 GType fs_multicast_transmitter_get_type (void);
 
-
-UdpMulticastGroup *fs_multicast_transmitter_get_group (
-    FsMulticastTransmitter *trans,
+UdpSock *fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
     guint component_id,
-    const gchar *multicast_ip,
-    guint port,
     const gchar *local_ip,
+    const gchar *multicast_ip,
+    guint16 port,
     guint8 ttl,
     gboolean recv,
     GError **error);
-void fs_multicast_transmitter_put_group (FsMulticastTransmitter *trans,
-    UdpMulticastGroup *mcast);
 
-void fs_multicast_transmitter_group_inc_sending (UdpMulticastGroup *mcast);
-void fs_multicast_transmitter_group_dec_sending (UdpMulticastGroup *mcast);
+void fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
+    UdpSock *udpsock);
 
+void fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock);
+void fs_multicast_transmitter_udpsock_dec_sending (UdpSock *udpsock);
 
 
 G_END_DECLS
