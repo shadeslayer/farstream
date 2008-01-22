@@ -464,6 +464,7 @@ fs_multicast_stream_transmitter_add_remote_candidate (
     FsCandidate *old_candidate =
       self->priv->remote_candidate[candidate->component_id];
     if (old_candidate->port == candidate->port &&
+        old_candidate->ttl == candidate->ttl &&
         !strcmp (old_candidate->ip, candidate->ip))
     {
       GST_DEBUG ("Re-set the same candidate, ignoring");
