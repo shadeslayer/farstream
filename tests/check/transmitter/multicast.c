@@ -26,6 +26,13 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+#ifdef HAVE_GETIFADDRS
+ #include <sys/socket.h>
+ #include <ifaddrs.h>
+ #include <net/if.h>
+ #include <arpa/inet.h>
+#endif
+
 #include "check-threadsafe.h"
 #include "generic.h"
 
@@ -128,8 +135,7 @@ _start_pipeline (gpointer user_data)
 }
 
 static void
-run_multicast_transmitter_test (gint n_parameters, GParameter *params,
-  gint flags)
+run_multicast_transmitter_test (gint n_parameters, GParameter *params)
 {
   GError *error = NULL;
   FsTransmitter *trans;
@@ -169,7 +175,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
   tmpcand = fs_candidate_new ("L1", FS_COMPONENT_RTP,
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP,
-      "224.0.0.33", 2322);
+      "224.0.0.110", 2322);
   tmpcand->ttl = 1;
   if (!fs_stream_transmitter_add_remote_candidate (st, tmpcand, &error))
     ts_fail ("Error setting the remote candidate: %p %s", error,
@@ -180,7 +186,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
   tmpcand = fs_candidate_new ("L2", FS_COMPONENT_RTCP,
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP,
-      "224.0.024", 2323);
+      "224.0.0.110", 2323);
   tmpcand->ttl = 1;
   if (!fs_stream_transmitter_add_remote_candidate (st, tmpcand, &error))
     ts_fail ("Error setting the remote candidate: %p %s", error,
@@ -204,7 +210,84 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
 GST_START_TEST (test_multicasttransmitter_run)
 {
-  run_multicast_transmitter_test (0, NULL, 0);
+  run_multicast_transmitter_test (0, NULL);
+}
+GST_END_TEST;
+
+static gchar *
+_find_multicast_capable_address (void)
+{
+#ifdef HAVE_GETIFADDRS
+  gchar *retval = NULL;
+  struct ifaddrs *ifa, *results;
+
+  if (getifaddrs (&results) < 0)
+    return NULL;
+
+  for (ifa = results; ifa; ifa = ifa->ifa_next) {
+    /* no ip address from interface that is down */
+    if ((ifa->ifa_flags & IFF_UP) == 0)
+      continue;
+
+    if ((ifa->ifa_flags & IFF_MULTICAST) == 0)
+      continue;
+
+    if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
+      continue;
+
+    retval = g_strdup (
+        inet_ntoa (((struct sockaddr_in *) ifa->ifa_addr)->sin_addr));
+    g_debug ("Sending from %s on interface %s", retval, ifa->ifa_name);
+    break;
+  }
+
+  freeifaddrs (results);
+
+  return retval;
+
+#else
+  g_warning ("This system does not have getifaddrs,"
+      " this test will be disabled");
+  return NULL;
+#endif
+}
+
+GST_START_TEST (test_multicasttransmitter_run_local_candidates)
+{
+  GParameter params[1];
+  GList *list = NULL;
+  FsCandidate *candidate;
+  gchar *address = _find_multicast_capable_address ();
+
+  if (address == NULL)
+  {
+    g_warning ("Skipping test of prefered-local-candidates, no multicast"
+        " capable interface found");
+    return;
+  }
+
+  memset (params, 0, sizeof(GParameter) * 1);
+
+  candidate = fs_candidate_new ("L1", FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, address, 0);
+  candidate->ttl = 2;
+  list = g_list_prepend (list, candidate);
+
+  candidate = fs_candidate_new ("L2", FS_COMPONENT_RTCP, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, address, 0);
+  candidate->ttl = 2;
+  list = g_list_prepend (list, candidate);
+
+  params[0].name = "preferred-local-candidates";
+  g_value_init (&params[0].value, FS_TYPE_CANDIDATE_LIST);
+  g_value_set_boxed (&params[0].value, list);
+
+  run_multicast_transmitter_test (1, params);
+
+  g_value_reset (&params[0].value);
+
+  g_free (address);
+  fs_candidate_list_destroy (list);
 }
 GST_END_TEST;
 
@@ -219,10 +302,13 @@ multicasttransmitter_suite (void)
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
-  tc_chain = tcase_create ("multicasttransmitter");
-  tcase_set_timeout (tc_chain, 5);
+  tc_chain = tcase_create ("multicast_transmitter");
   tcase_add_test (tc_chain, test_multicasttransmitter_new);
   tcase_add_test (tc_chain, test_multicasttransmitter_run);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("multicast_transmitter_local_candidates");
+  tcase_add_test (tc_chain, test_multicasttransmitter_run_local_candidates);
   suite_add_tcase (s, tc_chain);
 
   return s;
