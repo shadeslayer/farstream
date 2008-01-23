@@ -57,6 +57,9 @@ from fs2_gui_net import  FsUIClient, FsUIListener, FsUIServer
 
 CAMERA=False
 
+AUDIO=True
+VIDEO=True
+
 CLIENT=1
 SERVER=2
 
@@ -96,15 +99,20 @@ class FsUIPipeline:
         self.conf = gst.element_factory_make(elementname)
         self.conf.set_property("sdes-cname", mycname)
         self.pipeline.add(self.conf)
-#        self.audiosource = FsUIAudioSource(self.pipeline)
-        self.videosource = FsUIVideoSource(self.pipeline)
-#        self.audiosession = FsUISession(self.conf, self.audiosource)
-        self.videosession = FsUISession(self.conf, self.videosource)
-#        self.adder = gst.element_factory_make("adder")
-#        self.audiosink = gst.element_factory_make("alsasink")
-#        self.pipeline.add(self.audiosink)
-#        self.pipeline.add(self.adder)
-#        self.adder.link(self.audiosink)
+        if VIDEO:
+            self.videosource = FsUIVideoSource(self.pipeline)
+            self.videosession = FsUISession(self.conf, self.videosource)
+        if AUDIO:
+            self.audiosource = FsUIAudioSource(self.pipeline)
+            self.audiosession = FsUISession(self.conf, self.audiosource)
+            self.adder = gst.element_factory_make("adder")
+            self.audiosink = gst.element_factory_make("alsasink")
+            #self.audiosink = gst.element_factory_make("fakesink")
+            self.audiosink.set_property("async", False)
+            #self.audiosink.set_property("sync", False)
+            self.pipeline.add(self.audiosink)
+            self.pipeline.add(self.adder)
+            self.adder.link(self.audiosink)
         self.pipeline.set_state(gst.STATE_PLAYING)
 
     def __del__(self):
@@ -225,7 +233,10 @@ class FsUIAudioSource(FsUISource):
         return farsight.MEDIA_TYPE_AUDIO
 
     def make_source(self):
-        return gst.element_factory_make("alsasrc")
+        source = gst.element_factory_make("audiotestsrc")
+        source.set_property("is-live", True)
+        return source
+        #return gst.element_factory_make("alsasrc")
 
 
 
@@ -245,6 +256,16 @@ class FsUISession:
                                                       "H264",
                                                       farsight.MEDIA_TYPE_VIDEO,
                                                       0)])
+        elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
+            self.session.set_property("local-codecs-config",
+                                      [farsight.Codec(farsight.CODEC_ID_ANY,
+                                                      "PCMA",
+                                                      farsight.MEDIA_TYPE_AUDIO,
+                                                      0),
+                                       farsight.Codec(farsight.CODEC_ID_ANY,
+                                                      "PCMU",
+                                                      farsight.MEDIA_TYPE_AUDIO,
+                                                      0)])
         self.session.connect("new-negotiated-codecs",
                              self.__new_negotiated_codecs)
         self.sourcepad = self.source.get_src_pad()
@@ -263,9 +284,16 @@ class FsUISession:
             
             
     def new_stream(self, id, connect, participant):
+        transmitter_params = {}
+        if self.source.get_type() == farsight.MEDIA_TYPE_VIDEO and \
+               TRANSMITTER == "rawudp":
+            cand = farsight.Candidate()
+            cand.component_id = farsight.COMPONENT_RTP
+            cand.port = 9078
+            transmitter_params["preferred-local-candidates"] = [cand]
         realstream = self.session.new_stream(participant.participant,
                                              farsight.DIRECTION_BOTH,
-                                             TRANSMITTER)
+                                             TRANSMITTER, transmitter_params)
         stream = FsUIStream(id, connect, self, participant, realstream)
         self.streams[id] = stream
         return stream
@@ -290,7 +318,13 @@ class FsUIStream:
     def __new_local_candidate(self, stream, candidate):
         self.connect.send_candidate(self.participant.id, self.id, candidate)
     def __src_pad_added(self, stream, pad, codec):
-        self.participant.link_sink(pad)
+        if self.session.source.get_type() == farsight.MEDIA_TYPE_VIDEO:
+            self.participant.link_video_sink(pad)
+        else:
+            print >>sys.stderr, "LINKING AUDIO SINK"
+            pad.link(self.participant.pipeline.adder.get_request_pad("sink%d"))
+            self.participant.pipeline.pipeline.send_event(gst.event_new_latency(100*gst.MSECOND))
+
     def candidate(self, candidate):
         self.stream.add_remote_candidate(candidate)
     def candidates_done(self):
@@ -330,15 +364,17 @@ class FsUIParticipant:
         self.outcv = threading.Condition()
         self.funnel = None
         self.make_widget()
-        self.streams = {
-#            int(farsight.MEDIA_TYPE_AUDIO):
-#                             pipeline.audiosession.new_stream(
-#                                  int(farsight.MEDIA_TYPE_AUDIO),
-#                                  connect, self),
-                        int(farsight.MEDIA_TYPE_VIDEO):
-                             pipeline.videosession.new_stream(
-                                  int(farsight.MEDIA_TYPE_VIDEO),
-                                  connect, self)}
+        self.streams = {}
+        if VIDEO:
+            self.streams[int(farsight.MEDIA_TYPE_VIDEO)] = \
+              pipeline.videosession.new_stream(
+                int(farsight.MEDIA_TYPE_VIDEO),
+                connect, self)
+        if AUDIO:
+            self.streams[int(farsight.MEDIA_TYPE_AUDIO)] = \
+              pipeline.audiosession.new_stream(
+                int(farsight.MEDIA_TYPE_AUDIO),
+                connect, self)
         
     def candidate(self, media, candidate):
         self.streams[media].candidate(candidate)
@@ -361,6 +397,8 @@ class FsUIParticipant:
         gtk.gdk.threads_leave()
 
     def exposed(self, widget, *args):
+        if not VIDEO:
+            return
         try:
             self.videosink.get_by_name("uservideosink").expose()
         except AttributeError:
@@ -395,32 +433,33 @@ class FsUIParticipant:
                  
 
 
-    def link_sink(self, pad):
+    def link_video_sink(self, pad):
         try:
             self.outcv.acquire()
             while self.funnel is None:
                 self.outcv.wait()
-            print >>sys.stderr, "LINKING SINK"
+            print >>sys.stderr, "LINKING VIDEO SINK"
             pad.link(self.funnel.get_pad("sink%d"))
         finally:
             self.outcv.release()
 
     def destroy(self):
-        try:
-            self.videosink.get_pad("sink").disconnect_handler(self.havesize)
-            pass
-        except AttributeError:
-            pass
-        self.glade.get_widget("user_drawingarea").disconnect_by_func(self.exposed)
-        del self.streams
-        self.outcv.acquire()
-        self.videosink.set_state(gst.STATE_NULL)
-        self.funnel.set_state(gst.STATE_NULL)
-        self.pipeline.pipeline.remove(self.videosink)
-        self.pipeline.pipeline.remove(self.funnel)
-        del self.videosink
-        del self.funnel
-        self.outcv.release()
+        if VIDEO:
+            try:
+                self.videosink.get_pad("sink").disconnect_handler(self.havesize)
+                pass
+            except AttributeError:
+                pass
+            self.glade.get_widget("user_drawingarea").disconnect_by_func(self.exposed)
+            del self.streams
+            self.outcv.acquire()
+            self.videosink.set_state(gst.STATE_NULL)
+            self.funnel.set_state(gst.STATE_NULL)
+            self.pipeline.pipeline.remove(self.videosink)
+            self.pipeline.pipeline.remove(self.funnel)
+            del self.videosink
+            del self.funnel
+            self.outcv.release()
         gtk.gdk.threads_enter()
         self.userframe.destroy()
         gtk.gdk.threads_leave()
@@ -457,6 +496,8 @@ class FsMainUI:
         self.mainwindow.show()
 
     def exposed(self, widget, *args):
+        if not VIDEO:
+            return
         try:
             self.preview.get_by_name("previewvideosink").expose()
         except AttributeError:
