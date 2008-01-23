@@ -26,8 +26,43 @@
 /**
  * SECTION:fs-rawudp-stream-transmitter
  * @short_description: A stream transmitter object for UDP with STUN
+ * @see_also: fs-multicast-stream-transmitter
  *
+ * <refsect2>
+ * <para>
+ * This transmitter sends and receives unicast UDP packets.
+ * </para>
  *
+ * <para>
+ * It will detect its own address using a STUN request if the
+ * #FsRawUdpStreamTransmitter:stun-ip and #FsRawUdpStreamTransmitter:stun-port
+ * properties are set. If the STUN request does not get a reply
+ * or no STUN is requested. It will return the IP address of all the local
+ * network interfaces, listing link-local addresses after other addresses
+ * and the loopback interface last.
+ * </para>
+ *
+ * <para>
+ * You can configure the address and port it will listen on by setting the
+ * "preferred-local-candidates" property. This property will contain a #GList
+ * of #FsCandidate. These #FsCandidate must be for #FS_NETWORK_PROTOCOL_UDP.
+ * These port and/or the ip can be set on these candidates to force them,
+ * and this is per-component. If not all components have a port set, the
+ * following components will be on the following ports. There is no guarantee
+ * that the requested port will be available so a different port may the
+ * native candidate. But it is guaranteed that components that do not have
+ * specified ports will be sequential.
+ * </para>
+ *
+ * <para>
+ * Example: Candidate {proto=UDP, component=RTP, ip=NULL, port=9098} will
+ *  produce native candidates
+ * ({component=RTP, ip=IP, port=9078}, {component=RTCP, ip=IP, port=9079}) or
+ * if this one is not available
+ * ({component=RTP, ip=IP, port=9080}, {component=RTCP, ip=IP, port=9081}).
+ * The default port starts at 7078 for the first component.
+ * </para>
+ * </refsect2>
  */
 
 #ifdef HAVE_CONFIG_H
