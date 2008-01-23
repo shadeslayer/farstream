@@ -6,34 +6,39 @@
     <title>Farsight 0.3 Reference Manual</title>
   </bookinfo>
 
-  <chapter>
-    <title>Farsight Core Library</title>
-    <xi:include href="xml/fs-participant.xml"/>
-    <xi:include href="xml/fs-session.xml"/>
-    <xi:include href="xml/fs-stream.xml"/>
-    <xi:include href="xml/fs-candidate.xml"/>
-    <xi:include href="xml/fs-codec.xml"/>
-    <!-- <xi:include href="xml/fs-marshal.xml"/> -->
-  </chapter>
-  <chapter>
-    <title>Farsight GStreamer Interfaces</title>
-    <xi:include href="xml/fs-conference-iface.xml"/>
-  </chapter>
-  <chapter>
-    <title>Farsight GStreamer Base Implementations</title>
-    <xi:include href="xml/fs-base-conference.xml"/>
-  </chapter>
-  <chapter>
-    <title>Farsight Utility Functions</title>
-    <xi:include href="xml/fs-utils.xml"/>
-  </chapter>
-  <chapter>
-    <title>Farsight Transmitter objects</title>
-    <xi:include href="xml/fs-transmitter.xml"/>
-    <xi:include href="xml/fs-stream-transmitter.xml"/>
-  </chapter>
-  <chapter>
-    <title>Farsight Plugins infrastructure</title>
-    <xi:include href="xml/fs-plugin.xml"/>
-  </chapter>
+  <part>
+    <title>User-oriented classes, interfaces and functions</title>
+    <chapter>
+      <title>Farsight GStreamer Interfaces</title>
+      <xi:include href="xml/fs-conference-iface.xml"/>
+    </chapter>
+    <chapter>
+      <title>Farsight Core Library</title>
+      <xi:include href="xml/fs-participant.xml"/>
+      <xi:include href="xml/fs-session.xml"/>
+      <xi:include href="xml/fs-stream.xml"/>
+      <xi:include href="xml/fs-candidate.xml"/>
+      <xi:include href="xml/fs-codec.xml"/>
+    </chapter>
+    <chapter>
+      <title>Farsight Utility Functions</title>
+      <xi:include href="xml/fs-utils.xml"/>
+    </chapter>
+  </part>
+  <part>
+    <title>Classes used implements Farsight plugins</title>
+    <chapter>
+      <title>Farsight GStreamer Base Implementations</title>
+      <xi:include href="xml/fs-base-conference.xml"/>
+    </chapter>
+    <chapter>
+      <title>Farsight Transmitter objects</title> 
+      <xi:include href="xml/fs-transmitter.xml"/>
+      <xi:include href="xml/fs-stream-transmitter.xml"/>
+    </chapter>
+    <chapter>
+      <title>Farsight Plugins infrastructure</title>
+      <xi:include href="xml/fs-plugin.xml"/>
+    </chapter>
+  </part>
 </book>
