@@ -400,19 +400,22 @@ _rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
   gchar *name;
 
   GST_DEBUG_OBJECT (self, "pad %s added %" GST_PTR_FORMAT,
-    GST_PAD_NAME (new_pad), GST_PAD_CAPS (new_pad));
+      GST_PAD_NAME (new_pad), GST_PAD_CAPS (new_pad));
 
   name = gst_pad_get_name (new_pad);
 
-  if (g_str_has_prefix (name, "recv_rtp_src_")) {
+  if (g_str_has_prefix (name, "recv_rtp_src_"))
+  {
     guint session_id, ssrc, pt;
 
     if (sscanf (name, "recv_rtp_src_%u_%u_%u",
-        &session_id, &ssrc, &pt) == 3 && ssrc <= G_MAXUINT32) {
+            &session_id, &ssrc, &pt) == 3 && ssrc <= G_MAXUINT32)
+    {
       FsRtpSession *session =
         fs_rtp_conference_get_session_by_id (self, session_id);
 
-      if (session) {
+      if (session)
+      {
         fs_rtp_session_new_recv_pad (session, new_pad, ssrc, pt);
         g_object_unref (session);
       }
