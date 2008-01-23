@@ -51,8 +51,9 @@
  *
  * <para>
  * It will only listen to and send from the IP specified in the
- * prefered-local-candidates. There can be only one prefered candidate per
- * component.
+ * prefered-local-candidates. There can be only one preferred candidate per
+ * component. Only the component_id and the ip will be used from the preferred
+ * local candidates, everything else is ignored.
  * </para>
  *
  * <para>

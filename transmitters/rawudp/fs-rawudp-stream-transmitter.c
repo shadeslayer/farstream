@@ -55,11 +55,12 @@
  * </para>
  *
  * <para>
- * Example: Candidate {proto=UDP, component=RTP, ip=NULL, port=9098} will
+ * Example: Candidate {proto=UDP, component_id=RTP, ip=NULL, port=9098} will
  *  produce native candidates
- * ({component=RTP, ip=IP, port=9078}, {component=RTCP, ip=IP, port=9079}) or
+ * ({component_id=RTP, ip=IP, port=9078}, {component_id=RTCP, ip=IP, port=9079})
+ *  or
  * if this one is not available
- * ({component=RTP, ip=IP, port=9080}, {component=RTCP, ip=IP, port=9081}).
+ * ({component_id=RTP, ip=IP, port=9080},{component_id=RTCP, ip=IP, port=9081}).
  * The default port starts at 7078 for the first component.
  * </para>
  * </refsect2>
