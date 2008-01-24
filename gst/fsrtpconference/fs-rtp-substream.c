@@ -504,9 +504,9 @@ fs_rtp_sub_stream_get_property (GObject *object,
       FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_NO_RTCP_TIMEOUT:
-      FS_RTP_SESSION_LOCK (self);
+      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_int (value, self->priv->no_rtcp_timeout);
-      FS_RTP_SESSION_UNLOCK (self);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -804,6 +804,8 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   gboolean ret = TRUE;
   GError *error = NULL;
   gboolean success = FALSE;
+
+  FS_RTP_SESSION_LOCK (self->priv->session);
 
   codec = fs_rtp_session_get_recv_codec_for_pt (self->priv->session,
       self->priv->pt);
