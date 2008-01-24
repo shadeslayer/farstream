@@ -620,15 +620,13 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
  error:
 
-  gst_object_ref (elem);
-  gst_element_set_state (elem, GST_STATE_NULL);
-  gst_bin_remove (bin, elem);
+  gst_element_set_locked_state (elem, TRUE);
   state_ret = gst_element_set_state (elem, GST_STATE_NULL);
-  if (state_ret != GST_STATE_CHANGE_SUCCESS) {
+  if (state_ret != GST_STATE_CHANGE_SUCCESS)
     GST_ERROR ("On error, could not reset %s to state NULL (%s)", elementname,
-      gst_element_state_change_return_get_name (state_ret));
-  }
-  gst_object_unref (elem);
+        gst_element_state_change_return_get_name (state_ret));
+  if (!gst_bin_remove (bin, elem))
+    GST_ERROR ("Could not remove element %s from bin on error", elementname);
 
   if (elempad)
     gst_object_unref (elempad);
@@ -659,10 +657,15 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
     if (requested_port == udpport->requested_port &&
         ((requested_ip == NULL && udpport->requested_ip == NULL) ||
           !strcmp (requested_ip, udpport->requested_ip))) {
+      GST_LOG ("Got port refcount %d->%d", udpport->refcount,
+          udpport->refcount+1);
       udpport->refcount++;
       return udpport;
     }
   }
+
+  GST_DEBUG ("Make new UdpPort for component %u requesting %s:%u", component_id,
+      requested_ip ? requested_ip : "ANY", requested_port);
 
   udpport = g_new0 (UdpPort, 1);
 
@@ -713,6 +716,8 @@ void
 fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   UdpPort *udpport)
 {
+  GST_LOG ("Put port refcount %d->%d", udpport->refcount, udpport->refcount-1);
+
   if (udpport->refcount > 1) {
     udpport->refcount--;
     return;
@@ -723,15 +728,13 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 
   if (udpport->udpsrc) {
     GstStateChangeReturn ret;
-    gst_object_ref (udpport->udpsrc);
-    gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc);
+    gst_element_set_locked_state (udpport->udpsrc, TRUE);
     ret = gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
-    if (ret != GST_STATE_CHANGE_SUCCESS) {
+    if (ret != GST_STATE_CHANGE_SUCCESS)
       GST_ERROR ("Error changing state of udpsrc: %s",
         gst_element_state_change_return_get_name (ret));
-    }
-    gst_object_unref (udpport->udpsrc);
+    if (!gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc))
+      GST_ERROR ("Could not remove udpsrc element from transmitter source");
   }
 
   if (udpport->udpsrc_requested_pad) {
@@ -742,15 +745,13 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 
   if (udpport->udpsink) {
     GstStateChangeReturn ret;
-    gst_object_ref (udpport->udpsink);
-    gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->udpsink);
+    gst_element_set_locked_state (udpport->udpsink, TRUE);
     ret = gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
-    if (ret != GST_STATE_CHANGE_SUCCESS) {
+    if (ret != GST_STATE_CHANGE_SUCCESS)
       GST_ERROR ("Error changing state of udpsink: %s",
         gst_element_state_change_return_get_name (ret));
-    }
-    gst_object_unref (udpport->udpsink);
+    if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->udpsink))
+      GST_ERROR ("Could not remove udpsink element from transmitter source");
   }
 
   if (udpport->udpsink_requested_pad) {
