@@ -83,9 +83,9 @@ struct _FsRawUdpTransmitterPrivate
   gboolean disposed;
 };
 
-#define FS_RAWUDP_TRANSMITTER_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_TRANSMITTER, \
-    FsRawUdpTransmitterPrivate))
+#define FS_RAWUDP_TRANSMITTER_GET_PRIVATE(o)                            \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_TRANSMITTER,        \
+      FsRawUdpTransmitterPrivate))
 
 static void fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass);
 static void fs_rawudp_transmitter_init (FsRawUdpTransmitter *self);
@@ -94,17 +94,20 @@ static void fs_rawudp_transmitter_dispose (GObject *object);
 static void fs_rawudp_transmitter_finalize (GObject *object);
 
 static void fs_rawudp_transmitter_get_property (GObject *object,
-                                                guint prop_id,
-                                                GValue *value,
-                                                GParamSpec *pspec);
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
 static void fs_rawudp_transmitter_set_property (GObject *object,
-                                                guint prop_id,
-                                                const GValue *value,
-                                                GParamSpec *pspec);
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
 
 static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
-    FsTransmitter *transmitter, FsParticipant *participant,
-    guint n_parameters, GParameter *parameters, GError **error);
+    FsTransmitter *transmitter,
+    FsParticipant *participant,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error);
 static GType fs_rawudp_transmitter_get_stream_transmitter_type (
     FsTransmitter *transmitter,
     GError **error);
@@ -150,7 +153,7 @@ fs_rawudp_transmitter_register_type (FsPlugin *module)
   fs_rawudp_stream_transmitter_register_type (module);
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
-    FS_TYPE_TRANSMITTER, "FsRawUdpTransmitter", &info, 0);
+      FS_TYPE_TRANSMITTER, "FsRawUdpTransmitter", &info, 0);
 
   return type;
 }
@@ -184,7 +187,7 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_GST_SRC, "gst-src");
   g_object_class_override_property (gobject_class, PROP_GST_SINK, "gst-sink");
   g_object_class_override_property (gobject_class, PROP_COMPONENTS,
-    "components");
+      "components");
 
   transmitter_class->new_stream_transmitter =
     fs_rawudp_transmitter_new_stream_transmitter;
@@ -229,10 +232,11 @@ fs_rawudp_transmitter_constructed (GObject *object)
 
   self->priv->gst_src = gst_bin_new (NULL);
 
-  if (!self->priv->gst_src) {
+  if (!self->priv->gst_src)
+  {
     trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not build the transmitter src bin");
+        FS_ERROR_CONSTRUCTION,
+        "Could not build the transmitter src bin");
     return;
   }
 
@@ -243,34 +247,38 @@ fs_rawudp_transmitter_constructed (GObject *object)
 
   self->priv->gst_sink = gst_bin_new (NULL);
 
-  if (!self->priv->gst_sink) {
+  if (!self->priv->gst_sink)
+  {
     trans->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not build the transmitter sink bin");
+        FS_ERROR_CONSTRUCTION,
+        "Could not build the transmitter sink bin");
     return;
   }
 
   gst_object_ref (self->priv->gst_sink);
 
-  for (c = 1; c <= self->components; c++) {
+  for (c = 1; c <= self->components; c++)
+  {
     GstElement *fakesink = NULL;
 
     /* Lets create the RTP source funnel */
 
     self->priv->udpsrc_funnels[c] = gst_element_factory_make ("fsfunnel", NULL);
 
-    if (!self->priv->udpsrc_funnels[c]) {
+    if (!self->priv->udpsrc_funnels[c])
+    {
       trans->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not make the fsfunnel element");
+          FS_ERROR_CONSTRUCTION,
+          "Could not make the fsfunnel element");
       return;
     }
 
     if (!gst_bin_add (GST_BIN (self->priv->gst_src),
-        self->priv->udpsrc_funnels[c])) {
+            self->priv->udpsrc_funnels[c]))
+    {
       trans->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not add the fsfunnel element to the transmitter src bin");
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the fsfunnel element to the transmitter src bin");
     }
 
     pad = gst_element_get_static_pad (self->priv->udpsrc_funnels[c], "src");
@@ -287,18 +295,20 @@ fs_rawudp_transmitter_constructed (GObject *object)
 
     self->priv->udpsink_tees[c] = gst_element_factory_make ("tee", NULL);
 
-    if (!self->priv->udpsink_tees[c]) {
+    if (!self->priv->udpsink_tees[c])
+    {
       trans->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not make the tee element");
+          FS_ERROR_CONSTRUCTION,
+          "Could not make the tee element");
       return;
     }
 
     if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
-        self->priv->udpsink_tees[c])) {
+            self->priv->udpsink_tees[c]))
+    {
       trans->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not add the tee element to the transmitter sink bin");
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the tee element to the transmitter sink bin");
     }
 
     pad = gst_element_get_static_pad (self->priv->udpsink_tees[c], "sink");
@@ -312,10 +322,11 @@ fs_rawudp_transmitter_constructed (GObject *object)
 
     fakesink = gst_element_factory_make ("fakesink", NULL);
 
-    if (!fakesink) {
+    if (!fakesink)
+    {
       trans->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not make the fakesink element");
+          FS_ERROR_CONSTRUCTION,
+          "Could not make the fakesink element");
       return;
     }
 
@@ -341,7 +352,8 @@ fs_rawudp_transmitter_constructed (GObject *object)
     gst_object_unref (pad2);
     gst_object_unref (pad);
 
-    if (GST_PAD_LINK_FAILED(ret)) {
+    if (GST_PAD_LINK_FAILED(ret))
+    {
       trans->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not link the tee to the fakesink");
@@ -355,17 +367,18 @@ fs_rawudp_transmitter_dispose (GObject *object)
 {
   FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
 
-  if (self->priv->disposed) {
+  if (self->priv->disposed)
     /* If dispose did already run, return. */
     return;
-  }
 
-  if (self->priv->gst_src) {
+  if (self->priv->gst_src)
+  {
     gst_object_unref (self->priv->gst_src);
     self->priv->gst_src = NULL;
   }
 
-  if (self->priv->gst_sink) {
+  if (self->priv->gst_sink)
+  {
     gst_object_unref (self->priv->gst_sink);
     self->priv->gst_sink = NULL;
   }
@@ -381,17 +394,20 @@ fs_rawudp_transmitter_finalize (GObject *object)
 {
   FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
 
-  if (self->priv->udpsrc_funnels) {
+  if (self->priv->udpsrc_funnels)
+  {
     g_free (self->priv->udpsrc_funnels);
     self->priv->udpsrc_funnels = NULL;
   }
 
-  if (self->priv->udpsink_tees) {
+  if (self->priv->udpsink_tees)
+  {
     g_free (self->priv->udpsink_tees);
     self->priv->udpsink_tees = NULL;
   }
 
-  if (self->priv->udpports) {
+  if (self->priv->udpports)
+  {
     g_free (self->priv->udpports);
     self->priv->udpports = NULL;
   }
@@ -401,13 +417,14 @@ fs_rawudp_transmitter_finalize (GObject *object)
 
 static void
 fs_rawudp_transmitter_get_property (GObject *object,
-                             guint prop_id,
-                             GValue *value,
-                             GParamSpec *pspec)
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
 {
   FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_GST_SINK:
       g_value_set_object (value, self->priv->gst_sink);
       break;
@@ -422,13 +439,14 @@ fs_rawudp_transmitter_get_property (GObject *object,
 
 static void
 fs_rawudp_transmitter_set_property (GObject *object,
-                                    guint prop_id,
-                                    const GValue *value,
-                                    GParamSpec *pspec)
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
 {
   FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_COMPONENTS:
       self->components = g_value_get_uint (value);
       break;
@@ -453,8 +471,10 @@ fs_rawudp_transmitter_set_property (GObject *object,
 
 static FsStreamTransmitter *
 fs_rawudp_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
-  FsParticipant *participant, guint n_parameters, GParameter *parameters,
-  GError **error)
+    FsParticipant *participant,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error)
 {
   FsRawUdpTransmitter *self = FS_RAWUDP_TRANSMITTER (transmitter);
 
@@ -493,7 +513,11 @@ struct _UdpPort {
 };
 
 static gint
-_bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
+_bind_port (
+    const gchar *ip,
+    guint port,
+    guint *used_port,
+    GError **error)
 {
   int sock;
   struct sockaddr_in address;
@@ -502,7 +526,8 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
 
-  if (ip) {
+  if (ip)
+  {
     struct addrinfo hints;
     struct addrinfo *result = NULL;
 
@@ -510,18 +535,20 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
     hints.ai_family = AF_INET;
     hints.ai_flags = AI_NUMERICHOST;
     retval = getaddrinfo (ip, NULL, &hints, &result);
-    if (retval != 0) {
+    if (retval != 0)
+    {
       g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-        "Invalid IP address %s passed: %s", ip, gai_strerror (retval));
+          "Invalid IP address %s passed: %s", ip, gai_strerror (retval));
       return -1;
     }
     memcpy (&address, result->ai_addr, sizeof(struct sockaddr_in));
     freeaddrinfo (result);
   }
 
-  if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0) {
+  if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) <= 0)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-      "Error creating socket: %s", g_strerror (errno));
+        "Error creating socket: %s", g_strerror (errno));
     return -1;
   }
 
@@ -532,9 +559,10 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
     {
       GST_INFO ("could not bind port %d", port);
       port += 2;
-      if (port > 65535) {
+      if (port > 65535)
+      {
         g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-          "Could not bind the socket to a port");
+            "Could not bind the socket to a port");
         close (sock);
         return -1;
       }
@@ -547,9 +575,14 @@ _bind_port (const gchar *ip, guint port, guint *used_port, GError **error)
 }
 
 static GstElement *
-_create_sinksource (gchar *elementname, GstBin *bin,
-  GstElement *teefunnel, gint fd, GstPadDirection direction,
-  GstPad **requested_pad, GError **error)
+_create_sinksource (
+    gchar *elementname,
+    GstBin *bin,
+    GstElement *teefunnel,
+    gint fd,
+    GstPadDirection direction,
+    GstPad **requested_pad,
+    GError **error)
 {
   GstElement *elem;
   GstPadLinkReturn ret;
@@ -559,21 +592,23 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   g_assert (direction == GST_PAD_SINK || direction == GST_PAD_SRC);
 
   elem = gst_element_factory_make (elementname, NULL);
-  if (!elem) {
+  if (!elem)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not create the %s element", elementname);
+        "Could not create the %s element", elementname);
     return NULL;
   }
 
   g_object_set (elem,
-    "closefd", FALSE,
-    "sockfd", fd,
-    NULL);
+      "closefd", FALSE,
+      "sockfd", fd,
+      NULL);
 
-  if (!gst_bin_add (bin, elem)) {
+  if (!gst_bin_add (bin, elem))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not add the %s element to the gst %s bin", elementname,
-      (direction == GST_PAD_SINK) ? "sink" : "src");
+        "Could not add the %s element to the gst %s bin", elementname,
+        (direction == GST_PAD_SINK) ? "sink" : "src");
     gst_object_unref (elem);
     return NULL;
   }
@@ -583,11 +618,12 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   else
     *requested_pad = gst_element_get_request_pad (teefunnel, "sink%d");
 
-  if (!*requested_pad) {
+  if (!*requested_pad)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not get the %s request pad from the %s",
-      (direction == GST_PAD_SINK) ? "src" : "sink",
-      (direction == GST_PAD_SINK) ? "tee" : "funnel");
+        "Could not get the %s request pad from the %s",
+        (direction == GST_PAD_SINK) ? "src" : "sink",
+        (direction == GST_PAD_SINK) ? "tee" : "funnel");
     goto error;
   }
 
@@ -603,16 +639,18 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
   gst_object_unref (elempad);
 
-  if (GST_PAD_LINK_FAILED(ret)) {
+  if (GST_PAD_LINK_FAILED(ret))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not link the new element %s (%d)", elementname, ret);
+        "Could not link the new element %s (%d)", elementname, ret);
     goto error;
   }
 
-  if (!gst_element_sync_state_with_parent (elem)) {
+  if (!gst_element_sync_state_with_parent (elem))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not sync the state of the new %s with its parent",
-      elementname);
+        "Could not sync the state of the new %s with its parent",
+        elementname);
     goto error;
   }
 
@@ -637,26 +675,31 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
 UdpPort *
 fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
-  guint component_id, const gchar *requested_ip, guint requested_port,
-  GError **error)
+    guint component_id,
+    const gchar *requested_ip,
+    guint requested_port,
+    GError **error)
 {
   UdpPort *udpport;
   GList *udpport_e;
 
   /* First lets check if we already have one */
-  if (component_id > trans->components) {
+  if (component_id > trans->components)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "Invalid component %d > %d", component_id, trans->components);
+        "Invalid component %d > %d", component_id, trans->components);
     return NULL;
   }
 
   for (udpport_e = g_list_first (trans->priv->udpports[component_id]);
        udpport_e;
-       udpport_e = g_list_next (udpport_e)) {
+       udpport_e = g_list_next (udpport_e))
+  {
     udpport = udpport_e->data;
     if (requested_port == udpport->requested_port &&
         ((requested_ip == NULL && udpport->requested_ip == NULL) ||
-          !strcmp (requested_ip, udpport->requested_ip))) {
+            !strcmp (requested_ip, udpport->requested_ip)))
+    {
       GST_LOG ("Got port refcount %d->%d", udpport->refcount,
           udpport->refcount+1);
       udpport->refcount++;
@@ -678,7 +721,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   /* Now lets bind both ports */
 
   udpport->fd = _bind_port (requested_ip, requested_port, &udpport->port,
-    error);
+      error);
   if (udpport->fd < 0)
     goto error;
 
@@ -688,14 +731,14 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   udpport->funnel = trans->priv->udpsrc_funnels[component_id];
 
   udpport->udpsrc = _create_sinksource ("udpsrc",
-    GST_BIN (trans->priv->gst_src), udpport->funnel, udpport->fd, GST_PAD_SRC,
-    &udpport->udpsrc_requested_pad, error);
+      GST_BIN (trans->priv->gst_src), udpport->funnel, udpport->fd, GST_PAD_SRC,
+      &udpport->udpsrc_requested_pad, error);
   if (!udpport->udpsrc)
     goto error;
 
   udpport->udpsink = _create_sinksource ("multiudpsink",
-    GST_BIN (trans->priv->gst_sink), udpport->tee, udpport->fd, GST_PAD_SINK,
-    &udpport->udpsink_requested_pad, error);
+      GST_BIN (trans->priv->gst_sink), udpport->tee, udpport->fd, GST_PAD_SINK,
+      &udpport->udpsink_requested_pad, error);
   if (!udpport->udpsink)
     goto error;
 
@@ -718,7 +761,8 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 {
   GST_LOG ("Put port refcount %d->%d", udpport->refcount, udpport->refcount-1);
 
-  if (udpport->refcount > 1) {
+  if (udpport->refcount > 1)
+  {
     udpport->refcount--;
     return;
   }
@@ -726,37 +770,41 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
   trans->priv->udpports[udpport->component_id] =
     g_list_remove (trans->priv->udpports[udpport->component_id], udpport);
 
-  if (udpport->udpsrc) {
+  if (udpport->udpsrc)
+  {
     GstStateChangeReturn ret;
     gst_element_set_locked_state (udpport->udpsrc, TRUE);
     ret = gst_element_set_state (udpport->udpsrc, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS)
       GST_ERROR ("Error changing state of udpsrc: %s",
-        gst_element_state_change_return_get_name (ret));
+          gst_element_state_change_return_get_name (ret));
     if (!gst_bin_remove (GST_BIN (trans->priv->gst_src), udpport->udpsrc))
       GST_ERROR ("Could not remove udpsrc element from transmitter source");
   }
 
-  if (udpport->udpsrc_requested_pad) {
+  if (udpport->udpsrc_requested_pad)
+  {
     gst_element_release_request_pad (udpport->funnel,
-      udpport->udpsrc_requested_pad);
+        udpport->udpsrc_requested_pad);
     gst_object_unref (udpport->udpsrc_requested_pad);
   }
 
-  if (udpport->udpsink) {
+  if (udpport->udpsink)
+  {
     GstStateChangeReturn ret;
     gst_element_set_locked_state (udpport->udpsink, TRUE);
     ret = gst_element_set_state (udpport->udpsink, GST_STATE_NULL);
     if (ret != GST_STATE_CHANGE_SUCCESS)
       GST_ERROR ("Error changing state of udpsink: %s",
-        gst_element_state_change_return_get_name (ret));
+          gst_element_state_change_return_get_name (ret));
     if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpport->udpsink))
       GST_ERROR ("Could not remove udpsink element from transmitter source");
   }
 
-  if (udpport->udpsink_requested_pad) {
+  if (udpport->udpsink_requested_pad)
+  {
     gst_element_release_request_pad (udpport->tee,
-      udpport->udpsink_requested_pad);
+        udpport->udpsink_requested_pad);
     gst_object_unref (udpport->udpsink_requested_pad);
   }
 
@@ -769,7 +817,8 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 
 void
 fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
-  const gchar *ip, gint port)
+  const gchar *ip,
+    gint port)
 {
   GST_DEBUG ("Adding dest %s:%d", ip, port);
   g_signal_emit_by_name (udpport->udpsink, "add", ip, port);
@@ -778,19 +827,24 @@ fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
 
 void
 fs_rawudp_transmitter_udpport_remove_dest (UdpPort *udpport,
-  const gchar *ip, gint port)
+  const gchar *ip,
+    gint port)
 {
   g_signal_emit_by_name (udpport->udpsink, "remove", ip, port);
 }
 
 gboolean
 fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
-  gchar *msg, size_t len, const struct sockaddr *to, socklen_t tolen,
-  GError **error)
+    gchar *msg,
+    size_t len,
+    const struct sockaddr *to,
+    socklen_t tolen,
+    GError **error)
 {
-  if (sendto (udpport->fd, msg, len, 0, to, tolen) != len) {
+  if (sendto (udpport->fd, msg, len, 0, to, tolen) != len)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-      "Could not send STUN request: %s", g_strerror (errno));
+        "Could not send STUN request: %s", g_strerror (errno));
     return FALSE;
   }
 
@@ -799,7 +853,8 @@ fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
 
 gulong
 fs_rawudp_transmitter_udpport_connect_recv (UdpPort *udpport,
-  GCallback callback, gpointer user_data)
+    GCallback callback,
+    gpointer user_data)
 {
   GstPad *pad;
   gulong id;
@@ -815,7 +870,8 @@ fs_rawudp_transmitter_udpport_connect_recv (UdpPort *udpport,
 
 
 void
-fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport, gulong id)
+fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport,
+    gulong id)
 {
   GstPad *pad = gst_element_get_static_pad (udpport->udpsrc, "src");
 
@@ -825,7 +881,8 @@ fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport, gulong id)
 }
 
 gboolean
-fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad)
+fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport,
+    GstPad *pad)
 {
   GstPad *mypad;
   gboolean res;

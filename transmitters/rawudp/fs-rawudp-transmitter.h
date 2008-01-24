@@ -91,27 +91,36 @@ GType fs_rawudp_transmitter_get_type (void);
 
 
 UdpPort *fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
-  guint component_id, const gchar *requested_ip, guint requested_port,
-  GError **error);
+    guint component_id,
+    const gchar *requested_ip,
+    guint requested_port,
+    GError **error);
 
 void fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
-  UdpPort *udpport);
+    UdpPort *udpport);
 
 void fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
-  const gchar *ip, gint port);
+    const gchar *ip,
+    gint port);
 void fs_rawudp_transmitter_udpport_remove_dest (UdpPort *udpport,
-  const gchar *ip, gint port);
+    const gchar *ip,
+    gint port);
 
 gboolean fs_rawudp_transmitter_udpport_sendto (UdpPort *udpport,
-  gchar *msg, size_t len, const struct sockaddr *to, socklen_t tolen,
-  GError **error);
+    gchar *msg,
+    size_t len,
+    const struct sockaddr *to,
+    socklen_t tolen,
+    GError **error);
 
 gulong fs_rawudp_transmitter_udpport_connect_recv (UdpPort *udpport,
-  GCallback callback, gpointer user_data);
+    GCallback callback,
+    gpointer user_data);
 void fs_rawudp_transmitter_udpport_disconnect_recv (UdpPort *udpport,
-  gulong id);
+    gulong id);
 
-gboolean fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport, GstPad *pad);
+gboolean fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport,
+    GstPad *pad);
 
 gint fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport);
 

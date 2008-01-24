@@ -151,43 +151,51 @@ struct _FsRawUdpStreamTransmitterPrivate
   GList *sources;
 };
 
-#define FS_RAWUDP_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
+#define FS_RAWUDP_STREAM_TRANSMITTER_GET_PRIVATE(o)                     \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_STREAM_TRANSMITTER, \
-                                FsRawUdpStreamTransmitterPrivate))
+      FsRawUdpStreamTransmitterPrivate))
 
-static void fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass);
+static void fs_rawudp_stream_transmitter_class_init (
+    FsRawUdpStreamTransmitterClass *klass);
 static void fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self);
 static void fs_rawudp_stream_transmitter_dispose (GObject *object);
 static void fs_rawudp_stream_transmitter_finalize (GObject *object);
 
 static void fs_rawudp_stream_transmitter_get_property (GObject *object,
-                                                guint prop_id,
-                                                GValue *value,
-                                                GParamSpec *pspec);
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
 static void fs_rawudp_stream_transmitter_set_property (GObject *object,
-                                                guint prop_id,
-                                                const GValue *value,
-                                                GParamSpec *pspec);
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
 
 static gboolean fs_rawudp_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+    FsStreamTransmitter *streamtransmitter,
+    FsCandidate *candidate,
     GError **error);
 
 static gboolean fs_rawudp_stream_transmitter_start_stun (
-    FsRawUdpStreamTransmitter *self, guint component_id, GError **error);
+    FsRawUdpStreamTransmitter *self,
+    guint component_id,
+    GError **error);
 static void fs_rawudp_stream_transmitter_stop_stun (
-    FsRawUdpStreamTransmitter *self, guint component_id);
+    FsRawUdpStreamTransmitter *self,
+    guint component_id);
 
-static FsCandidate * fs_rawudp_stream_transmitter_build_forced_candidate (
-    FsRawUdpStreamTransmitter *self, const char *ip, gint port,
+static FsCandidate* fs_rawudp_stream_transmitter_build_forced_candidate (
+    FsRawUdpStreamTransmitter *self,
+    const char *ip,
+    gint port,
     guint component_id);
 static gboolean fs_rawudp_stream_transmitter_no_stun (
     gpointer user_data);
 static void fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
-    FsRawUdpStreamTransmitter *self, guint component_id);
-static gboolean
-fs_rawudp_stream_transmitter_emit_local_candidates (
-    FsRawUdpStreamTransmitter *self, guint component_id);
+    FsRawUdpStreamTransmitter *self,
+    guint component_id);
+static gboolean fs_rawudp_stream_transmitter_emit_local_candidates (
+    FsRawUdpStreamTransmitter *self,
+    guint component_id);
 
 
 static GObjectClass *parent_class = NULL;
@@ -217,7 +225,7 @@ fs_rawudp_stream_transmitter_register_type (FsPlugin *module)
   };
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
-    FS_TYPE_STREAM_TRANSMITTER, "FsRawUdpStreamTransmitter", &info, 0);
+      FS_TYPE_STREAM_TRANSMITTER, "FsRawUdpStreamTransmitter", &info, 0);
 
   return type;
 }
@@ -239,31 +247,31 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
-    PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
+      PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
 
   g_object_class_install_property (gobject_class,
-    PROP_STUN_IP,
-    g_param_spec_string ("stun-ip",
-      "The IP address of the STUN server",
-      "The IPv4 address of the STUN server as a x.x.x.x string",
-      NULL,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      PROP_STUN_IP,
+      g_param_spec_string ("stun-ip",
+          "The IP address of the STUN server",
+          "The IPv4 address of the STUN server as a x.x.x.x string",
+          NULL,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
-    PROP_STUN_PORT,
-    g_param_spec_uint ("stun-port",
-      "The port of the STUN server",
-      "The IPv4 UDP port of the STUN server as a ",
-      1, 65535, 3478,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      PROP_STUN_PORT,
+      g_param_spec_uint ("stun-port",
+          "The port of the STUN server",
+          "The IPv4 UDP port of the STUN server as a ",
+          1, 65535, 3478,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
-    PROP_STUN_TIMEOUT,
-    g_param_spec_uint ("stun-timeout",
-      "The timeout for the STUN reply",
-      "How long to wait for for the STUN reply (in seconds) before giving up",
-      1, G_MAXUINT, 30,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      PROP_STUN_TIMEOUT,
+      g_param_spec_uint ("stun-timeout",
+          "The timeout for the STUN reply",
+          "How long to wait for for the STUN reply (in seconds) before giving up",
+          1, G_MAXUINT, 30,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_stream_transmitter_finalize;
@@ -295,22 +303,23 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
   gint c;
 
-  if (self->priv->disposed) {
+  if (self->priv->disposed)
     /* If dispose did already run, return. */
     return;
-  }
 
   g_mutex_lock (self->priv->sources_mutex);
 
-  if (self->priv->stun_recv_id) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->stun_recv_id[c]) {
+  if (self->priv->stun_recv_id)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->stun_recv_id[c])
         fs_rawudp_stream_transmitter_stop_stun (self, c);
-      }
     }
   }
 
-  if (self->priv->sources) {
+  if (self->priv->sources)
+  {
     g_list_foreach (self->priv->sources, (GFunc) g_source_remove, NULL);
     g_list_free (self->priv->sources);
     self->priv->sources = NULL;
@@ -330,24 +339,29 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
   gint c; /* component_id */
 
-  if (self->priv->stun_ip) {
+  if (self->priv->stun_ip)
+  {
     g_free (self->priv->stun_ip);
     self->priv->stun_ip = NULL;
   }
 
-  if (self->priv->preferred_local_candidates) {
+  if (self->priv->preferred_local_candidates)
+  {
     fs_candidate_list_destroy (self->priv->preferred_local_candidates);
     self->priv->preferred_local_candidates = NULL;
   }
 
-  if (self->priv->remote_candidate) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->remote_candidate[c]) {
+  if (self->priv->remote_candidate)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->remote_candidate[c])
+      {
         if (self->priv->udpports && self->priv->udpports[c] &&
-          self->priv->sending)
+            self->priv->sending)
           fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[c],
-            self->priv->remote_candidate[c]->ip,
-            self->priv->remote_candidate[c]->port);
+              self->priv->remote_candidate[c]->ip,
+              self->priv->remote_candidate[c]->port);
         fs_candidate_destroy (self->priv->remote_candidate[c]);
       }
     }
@@ -356,11 +370,14 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->remote_candidate = NULL;
   }
 
-  if (self->priv->udpports) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->udpports[c]) {
+  if (self->priv->udpports)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->udpports[c])
+      {
         fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
-          self->priv->udpports[c]);
+            self->priv->udpports[c]);
         self->priv->udpports[c] = NULL;
       }
     }
@@ -369,8 +386,10 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->udpports = NULL;
   }
 
-  if (self->priv->local_forced_candidate) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
+  if (self->priv->local_forced_candidate)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
       if (self->priv->local_forced_candidate[c]) {
         fs_candidate_destroy (self->priv->local_forced_candidate[c]);
         self->priv->local_forced_candidate[c] = NULL;
@@ -380,9 +399,12 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->local_forced_candidate = NULL;
   }
 
-  if (self->priv->local_stun_candidate) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->local_stun_candidate[c]) {
+  if (self->priv->local_stun_candidate)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->local_stun_candidate[c])
+      {
         fs_candidate_destroy (self->priv->local_stun_candidate[c]);
         self->priv->local_stun_candidate[c] = NULL;
       }
@@ -391,9 +413,12 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->local_stun_candidate = NULL;
   }
 
-  if (self->priv->local_active_candidate) {
-    for (c = 1; c <= self->priv->transmitter->components; c++) {
-      if (self->priv->local_active_candidate[c]) {
+  if (self->priv->local_active_candidate)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->local_active_candidate[c])
+      {
         fs_candidate_destroy (self->priv->local_active_candidate[c]);
         self->priv->local_active_candidate[c] = NULL;
       }
@@ -402,17 +427,20 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     self->priv->local_active_candidate = NULL;
   }
 
-  if (self->priv->sources_mutex) {
+  if (self->priv->sources_mutex)
+  {
     g_mutex_free (self->priv->sources_mutex);
     self->priv->sources_mutex = NULL;
   }
 
-  if (self->priv->stun_recv_id) {
+  if (self->priv->stun_recv_id)
+  {
     g_free (self->priv->stun_recv_id);
     self->priv->stun_recv_id = NULL;
   }
 
-  if (self->priv->stun_timeout_id) {
+  if (self->priv->stun_timeout_id)
+  {
     g_free (self->priv->stun_timeout_id);
     self->priv->stun_timeout_id = NULL;
   }
@@ -422,13 +450,14 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
 
 static void
 fs_rawudp_stream_transmitter_get_property (GObject *object,
-                                           guint prop_id,
-                                           GValue *value,
-                                           GParamSpec *pspec)
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_SENDING:
       g_value_set_boolean (value, self->priv->sending);
       break;
@@ -452,13 +481,14 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
 
 static void
 fs_rawudp_stream_transmitter_set_property (GObject *object,
-                                           guint prop_id,
-                                           const GValue *value,
-                                           GParamSpec *pspec)
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_SENDING:
       {
         gboolean old_sending = self->priv->sending;
@@ -466,8 +496,10 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
 
         self->priv->sending = g_value_get_boolean (value);
 
-        if (self->priv->sending != old_sending) {
-          if (self->priv->sending) {
+        if (self->priv->sending != old_sending)
+        {
+          if (self->priv->sending)
+          {
 
             for (c = 1; c <= self->priv->transmitter->components; c++)
               if (self->priv->remote_candidate[c])
@@ -508,10 +540,10 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
 
 static gboolean
 fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
-  GError **error)
+    GError **error)
 {
   const gchar **ips = g_new0 (const gchar *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   guint16 *ports = g_new0 (guint16, self->priv->transmitter->components + 1);
 
   GList *item;
@@ -519,19 +551,19 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   guint16 next_port;
 
   self->priv->udpports = g_new0 (UdpPort *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   self->priv->remote_candidate = g_new0 (FsCandidate *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   self->priv->local_forced_candidate = g_new0 (FsCandidate *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   self->priv->local_stun_candidate = g_new0 (FsCandidate *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   self->priv->local_active_candidate = g_new0 (FsCandidate *,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   self->priv->stun_recv_id = g_new0 (gulong,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
   self->priv->stun_timeout_id = g_new0 (guint,
-    self->priv->transmitter->components + 1);
+      self->priv->transmitter->components + 1);
 
   for (item = g_list_first (self->priv->preferred_local_candidates);
        item;
@@ -540,31 +572,33 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 
     if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "You set preferred candidate of a type %d that is not"
-        " FS_NETWORK_PROTOCOL_UDP",
-        candidate->proto);
+          "You set preferred candidate of a type %d that is not"
+          " FS_NETWORK_PROTOCOL_UDP",
+          candidate->proto);
       goto error;
     }
 
     if (candidate->component_id == 0) {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Component id 0 is invalid");
+          "Component id 0 is invalid");
       goto error;
     }
 
-    if (candidate->component_id > self->priv->transmitter->components) {
+    if (candidate->component_id > self->priv->transmitter->components)
+    {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "You specified an invalid component id %d with is higher"
-        " than the maximum %d", candidate->component_id,
-        self->priv->transmitter->components);
+          "You specified an invalid component id %d with is higher"
+          " than the maximum %d", candidate->component_id,
+          self->priv->transmitter->components);
       goto error;
     }
 
-    if (ips[candidate->component_id] || ports[candidate->component_id]) {
+    if (ips[candidate->component_id] || ports[candidate->component_id])
+    {
       g_set_error (error, FS_ERROR,
-        FS_ERROR_INVALID_ARGUMENTS,
-        "You set more than one preferred local candidate for component %u",
-        candidate->component_id);
+          FS_ERROR_INVALID_ARGUMENTS,
+          "You set more than one preferred local candidate for component %u",
+          candidate->component_id);
       goto error;
     }
 
@@ -584,7 +618,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 
   next_port = ports[1];
 
-  for (c = 1; c <= self->priv->transmitter->components; c++) {
+  for (c = 1; c <= self->priv->transmitter->components; c++)
+  {
     gint requested_port = ports[c];
     gint used_port;
 
@@ -593,7 +628,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 
     self->priv->udpports[c] =
       fs_rawudp_transmitter_get_udpport (self->priv->transmitter, c, ips[c],
-        requested_port, error);
+          requested_port, error);
     if (!self->priv->udpports[c])
       goto error;
 
@@ -604,13 +639,15 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
      * package of components, all non-forced ports must be consecutive!
      */
 
-    if (used_port != requested_port  &&  !ports[c]) {
+    if (used_port != requested_port  &&  !ports[c])
+    {
       do {
         fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
-          self->priv->udpports[c]);
+            self->priv->udpports[c]);
         self->priv->udpports[c] = NULL;
 
-        if (self->priv->local_forced_candidate[c]) {
+        if (self->priv->local_forced_candidate[c])
+        {
           fs_candidate_destroy (self->priv->local_forced_candidate[c]);
           self->priv->local_forced_candidate[c] = NULL;
         }
@@ -625,22 +662,25 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     if (ips[c])
       self->priv->local_forced_candidate[c] =
         fs_rawudp_stream_transmitter_build_forced_candidate (self, ips[c],
-          used_port, c);
+            used_port, c);
 
     next_port = used_port+1;
   }
 
-  if (self->priv->stun_ip && self->priv->stun_port) {
+  if (self->priv->stun_ip && self->priv->stun_port)
+  {
     for (c = 1; c <= self->priv->transmitter->components; c++)
       if (!fs_rawudp_stream_transmitter_start_stun (self, c, error))
         goto error;
-  } else {
+  }
+  else
+  {
     guint id;
     id = g_idle_add (fs_rawudp_stream_transmitter_no_stun, self);
     g_assert (id);
     g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_prepend (self->priv->sources,
-      GUINT_TO_POINTER(id));
+        GUINT_TO_POINTER(id));
     g_mutex_unlock (self->priv->sources_mutex);
   }
 
@@ -676,24 +716,27 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
   FsRawUdpStreamTransmitter *self =
     FS_RAWUDP_STREAM_TRANSMITTER (streamtransmitter);
 
-  if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
+  if (candidate->proto != FS_NETWORK_PROTOCOL_UDP)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
-      candidate->proto);
+        "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
+        candidate->proto);
     return FALSE;
   }
 
-  if (!candidate->ip || !candidate->port) {
+  if (!candidate->ip || !candidate->port)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "The candidate passed does not contain a valid ip or port");
+        "The candidate passed does not contain a valid ip or port");
     return FALSE;
   }
 
   if (candidate->component_id == 0 ||
-    candidate->component_id > self->priv->transmitter->components) {
+      candidate->component_id > self->priv->transmitter->components)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "The candidate passed has has an invalid component id %u (not in [0,%u])",
-      candidate->component_id, self->priv->transmitter->components);
+        "The candidate passed has has an invalid component id %u (not in [0,%u])",
+        candidate->component_id, self->priv->transmitter->components);
     return FALSE;
   }
 
@@ -701,12 +744,14 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
    * IMPROVE ME: We should probably check that the candidate's IP
    *  has the format x.x.x.x where x is [0,255] using GRegex, etc
    */
-  if (self->priv->sending) {
+  if (self->priv->sending)
+  {
     fs_rawudp_transmitter_udpport_add_dest (
         self->priv->udpports[candidate->component_id],
         candidate->ip, candidate->port);
   }
-  if (self->priv->remote_candidate[candidate->component_id]) {
+  if (self->priv->remote_candidate[candidate->component_id])
+  {
     fs_rawudp_transmitter_udpport_remove_dest (
         self->priv->udpports[candidate->component_id],
         self->priv->remote_candidate[candidate->component_id]->ip,
@@ -718,7 +763,7 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
     fs_candidate_copy (candidate);
 
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-    candidate->component_id);
+      candidate->component_id);
 
   return TRUE;
 }
@@ -726,22 +771,24 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
 
 FsRawUdpStreamTransmitter *
 fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
-  guint n_parameters, GParameter *parameters, GError **error)
+    guint n_parameters, GParameter *parameters, GError **error)
 {
   FsRawUdpStreamTransmitter *streamtransmitter = NULL;
 
   streamtransmitter = g_object_newv (FS_TYPE_RAWUDP_STREAM_TRANSMITTER,
-    n_parameters, parameters);
+      n_parameters, parameters);
 
-  if (!streamtransmitter) {
+  if (!streamtransmitter)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not build the stream transmitter");
+        "Could not build the stream transmitter");
     return NULL;
   }
 
   streamtransmitter->priv->transmitter = transmitter;
 
-  if (!fs_rawudp_stream_transmitter_build (streamtransmitter, error)) {
+  if (!fs_rawudp_stream_transmitter_build (streamtransmitter, error))
+  {
     g_object_unref (streamtransmitter);
     return NULL;
   }
@@ -770,8 +817,10 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
 
   g_signal_emit_by_name (data->self, "new-local-candidate", data->candidate);
 
-  for (c = 1; c <= data->self->priv->transmitter->components; c++) {
-    if (!data->self->priv->local_active_candidate[c]) {
+  for (c = 1; c <= data->self->priv->transmitter->components; c++)
+  {
+    if (!data->self->priv->local_active_candidate[c])
+    {
       all_active = FALSE;
       break;
     }
@@ -784,7 +833,8 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
   /* Lets remove this source from the list of sources to destroy */
   source = g_main_current_source ();
 
-  if (source)  {
+  if (source)
+  {
     guint id = g_source_get_id (source);
 
     g_mutex_lock (data->self->priv->sources_mutex);
@@ -794,7 +844,7 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
   }
 
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (data->self,
-    data->component_id);
+      data->component_id);
 
   g_free (data);
 
@@ -811,7 +861,7 @@ fs_rawudp_stream_transmitter_emit_stun_candidate (gpointer user_data)
 
 static gboolean
 fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
-  gpointer user_data)
+    gpointer user_data)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
   gint component_id = -1;
@@ -821,45 +871,47 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
   gint c;
 
 
-  if (GST_BUFFER_SIZE (buffer) < 4) {
+  if (GST_BUFFER_SIZE (buffer) < 4)
     /* Packet is too small to be STUN */
     return TRUE;
-  }
 
-  if (GST_BUFFER_DATA (buffer)[0] >> 6) {
+  if (GST_BUFFER_DATA (buffer)[0] >> 6)
     /* Non stun packet */
     return TRUE;
-  }
 
-  for (c = 1; c <= self->priv->transmitter->components; c++) {
-    if (fs_rawudp_transmitter_udpport_is_pad (self->priv->udpports[c], pad)) {
+  for (c = 1; c <= self->priv->transmitter->components; c++)
+  {
+    if (fs_rawudp_transmitter_udpport_is_pad (self->priv->udpports[c], pad))
+    {
       component_id = c;
       break;
     }
   }
 
-  if (component_id < 0) {
+  if (component_id < 0)
+  {
     g_error ("We've been called from a pad we shouldn't be listening to");
     return FALSE;
   }
 
   msg = stun_message_unpack (GST_BUFFER_SIZE (buffer),
-    (const gchar *) GST_BUFFER_DATA (buffer));
-  if (!msg) {
+      (const gchar *) GST_BUFFER_DATA (buffer));
+  if (!msg)
     /* invalid message */
     return TRUE;
-  }
 
-  if (memcmp (msg->transaction_id, self->priv->stun_cookie, 16) != 0) {
+  if (memcmp (msg->transaction_id, self->priv->stun_cookie, 16) != 0)
+  {
     /* not ours */
     stun_message_free (msg);
     return TRUE;
   }
 
-  if (msg->type == STUN_MESSAGE_BINDING_ERROR_RESPONSE) {
+  if (msg->type == STUN_MESSAGE_BINDING_ERROR_RESPONSE)
+  {
     fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-      FS_ERROR_NETWORK, "Got an error message from the STUN server",
-      "The STUN process produced an error");
+        FS_ERROR_NETWORK, "Got an error message from the STUN server",
+        "The STUN process produced an error");
     stun_message_free (msg);
     // fs_rawudp_stream_transmitter_stop_stun (self, component_id);
     /* Lets not stop the STUN now and wait for the timeout
@@ -868,18 +920,21 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     return FALSE;
   }
 
-  if (msg->type != STUN_MESSAGE_BINDING_RESPONSE) {
+  if (msg->type != STUN_MESSAGE_BINDING_RESPONSE)
+  {
     stun_message_free (msg);
     return TRUE;
   }
 
 
-  for (attr = msg->attributes; *attr; attr++) {
-    if ((*attr)->type == STUN_ATTRIBUTE_MAPPED_ADDRESS) {
+  for (attr = msg->attributes; *attr; attr++)
+  {
+    if ((*attr)->type == STUN_ATTRIBUTE_MAPPED_ADDRESS)
+    {
 
       candidate = g_new0 (FsCandidate,1);
       candidate->candidate_id = g_strdup_printf ("L%u",
-        self->priv->next_candidate_id);
+          self->priv->next_candidate_id);
       candidate->component_id = component_id;
       candidate->ip = g_strdup_printf ("%u.%u.%u.%u",
           ((*attr)->address.ip & 0xff000000) >> 24,
@@ -903,7 +958,8 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
   fs_rawudp_stream_transmitter_stop_stun (self, component_id);
   g_mutex_unlock (self->priv->sources_mutex);
 
-  if (candidate) {
+  if (candidate)
+  {
     guint id;
     struct CandidateTransit *data = g_new0 (struct CandidateTransit, 1);
     data->self = self;
@@ -913,12 +969,12 @@ fs_rawudp_stream_transmitter_stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     g_assert (id);
     g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_prepend (self->priv->sources,
-      GUINT_TO_POINTER(id));
+        GUINT_TO_POINTER(id));
     g_mutex_unlock (self->priv->sources_mutex);
   }
 
   /* It was a stun packet, lets drop it */
-    stun_message_free (msg);
+  stun_message_free (msg);
   return FALSE;
 }
 
@@ -937,8 +993,10 @@ fs_rawudp_stream_transmitter_stun_timeout_cb (gpointer user_data)
           data->component_id))
     return FALSE;
 
-  for (c = 1; c <= data->self->priv->transmitter->components; c++) {
-    if (!data->self->priv->local_active_candidate[c]) {
+  for (c = 1; c <= data->self->priv->transmitter->components; c++)
+  {
+    if (!data->self->priv->local_active_candidate[c])
+    {
       all_active = FALSE;
       break;
     }
@@ -952,7 +1010,7 @@ fs_rawudp_stream_transmitter_stun_timeout_cb (gpointer user_data)
 
 static gboolean
 fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
-  guint component_id, GError **error)
+    guint component_id, GError **error)
 {
   struct addrinfo hints;
   struct addrinfo *result = NULL;
@@ -968,10 +1026,11 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   hints.ai_family = AF_INET;
   hints.ai_flags = AI_NUMERICHOST;
   retval = getaddrinfo (self->priv->stun_ip, NULL, &hints, &result);
-  if (retval != 0) {
+  if (retval != 0)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-      "Invalid IP address %s passed for STUN: %s",
-      self->priv->stun_ip, gai_strerror (retval));
+        "Invalid IP address %s passed for STUN: %s",
+        self->priv->stun_ip, gai_strerror (retval));
     return FALSE;
   }
   memcpy (&address, result->ai_addr, sizeof(struct sockaddr_in));
@@ -988,20 +1047,20 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   g_mutex_unlock (self->priv->sources_mutex);
 
   msg = stun_message_new (STUN_MESSAGE_BINDING_REQUEST,
-    self->priv->stun_cookie, 0);
-  if (!msg) {
+      self->priv->stun_cookie, 0);
+  if (!msg)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-      "Could not create a new STUN binding request");
+        "Could not create a new STUN binding request");
     return FALSE;
   }
 
   length = stun_message_pack (msg, &packed);
 
   if (!fs_rawudp_transmitter_udpport_sendto (self->priv->udpports[component_id],
-      packed, length, (const struct sockaddr *)&address, sizeof(address),
-      error)) {
+          packed, length, (const struct sockaddr *)&address, sizeof(address),
+          error))
     ret = FALSE;
-  }
 
   g_free (packed);
   stun_message_free (msg);
@@ -1036,16 +1095,18 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
 
 static void
 fs_rawudp_stream_transmitter_stop_stun (FsRawUdpStreamTransmitter *self,
-  guint component_id)
+    guint component_id)
 {
-  if (self->priv->stun_recv_id[component_id]) {
+  if (self->priv->stun_recv_id[component_id])
+  {
     fs_rawudp_transmitter_udpport_disconnect_recv (
         self->priv->udpports[component_id],
         self->priv->stun_recv_id[component_id]);
     self->priv->stun_recv_id[component_id] = 0;
   }
 
-  if (self->priv->stun_timeout_id[component_id]) {
+  if (self->priv->stun_timeout_id[component_id])
+  {
     g_source_remove (self->priv->stun_timeout_id[component_id]);
     self->priv->stun_timeout_id[component_id] = 0;
   }
@@ -1060,7 +1121,7 @@ fs_rawudp_stream_transmitter_build_forced_candidate (
 
   candidate = g_new0 (FsCandidate,1);
   candidate->candidate_id = g_strdup_printf ("L%u",
-    self->priv->next_candidate_id++);
+      self->priv->next_candidate_id++);
   candidate->component_id = component_id;
   candidate->ip = g_strdup (ip);
   candidate->port = port;
@@ -1078,22 +1139,24 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
   GList *current;
   guint port;
 
-  if (component_id > self->priv->transmitter->components) {
+  if (component_id > self->priv->transmitter->components)
+  {
     gchar *text = g_strdup_printf ("Internal error: invalid component %d",
-      component_id);
+        component_id);
     fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-      FS_ERROR_INVALID_ARGUMENTS, text, text);
+        FS_ERROR_INVALID_ARGUMENTS, text, text);
     g_free (text);
     return FALSE;
   }
 
-  if (self->priv->local_forced_candidate[component_id]) {
+  if (self->priv->local_forced_candidate[component_id])
+  {
     self->priv->local_active_candidate[component_id] = fs_candidate_copy (
         self->priv->local_forced_candidate[component_id]);
     g_signal_emit_by_name (self, "new-local-candidate",
-      self->priv->local_forced_candidate[component_id]);
+        self->priv->local_forced_candidate[component_id]);
     fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-      component_id);
+        component_id);
     return TRUE;
   }
 
@@ -1104,11 +1167,12 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
 
   for (current = g_list_first (ips);
        current;
-       current = g_list_next(current)) {
+       current = g_list_next(current))
+  {
     FsCandidate *candidate = g_new0 (FsCandidate, 1);
 
     candidate->candidate_id = g_strdup_printf ("L%u",
-      self->priv->next_candidate_id++);
+        self->priv->next_candidate_id++);
     candidate->component_id = component_id;
     candidate->ip = g_strdup (current->data);
     candidate->port = port;
@@ -1138,7 +1202,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
   }
 
   fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (self,
-    component_id);
+      component_id);
 
   return TRUE;
 }
@@ -1157,8 +1221,10 @@ fs_rawudp_stream_transmitter_no_stun (gpointer user_data)
   /* If we have a STUN'd candidate, dont send the locally generated
    * ones */
 
-  for (c = 1; c <= self->priv->transmitter->components; c++) {
-    if (!self->priv->local_active_candidate[c]) {
+  for (c = 1; c <= self->priv->transmitter->components; c++)
+  {
+    if (!self->priv->local_active_candidate[c])
+    {
       if (!fs_rawudp_stream_transmitter_emit_local_candidates (self, c))
         return FALSE;
     }
@@ -1171,12 +1237,13 @@ fs_rawudp_stream_transmitter_no_stun (gpointer user_data)
    * For the case when its called from an idle source
    */
   source = g_main_current_source ();
-  if (source)  {
+  if (source)
+  {
     guint id = g_source_get_id (source);
 
     g_mutex_lock (self->priv->sources_mutex);
     self->priv->sources = g_list_remove (self->priv->sources,
-      GUINT_TO_POINTER (id));
+        GUINT_TO_POINTER (id));
     g_mutex_unlock (self->priv->sources_mutex);
   }
 
@@ -1188,10 +1255,11 @@ fs_rawudp_stream_transmitter_maybe_new_active_candidate_pair (
     FsRawUdpStreamTransmitter *self, guint component_id)
 {
   if (self->priv->local_active_candidate[component_id] &&
-    self->priv->remote_candidate[component_id]) {
+      self->priv->remote_candidate[component_id])
+  {
 
     g_signal_emit_by_name (self, "new-active-candidate-pair",
-      self->priv->local_active_candidate[component_id],
-      self->priv->remote_candidate[component_id]);
+        self->priv->local_active_candidate[component_id],
+        self->priv->remote_candidate[component_id]);
   }
 }

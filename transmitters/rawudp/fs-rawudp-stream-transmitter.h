@@ -35,22 +35,23 @@
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
-#define FS_TYPE_RAWUDP_STREAM_TRANSMITTER \
+#define FS_TYPE_RAWUDP_STREAM_TRANSMITTER       \
   (fs_rawudp_stream_transmitter_get_type())
-#define FS_RAWUDP_STREAM_TRANSMITTER(obj) \
+#define FS_RAWUDP_STREAM_TRANSMITTER(obj)                               \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_RAWUDP_STREAM_TRANSMITTER, \
-                              FsRawUdpStreamTransmitter))
-#define FS_RAWUDP_STREAM_TRANSMITTER_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_RAWUDP_STREAM_TRANSMITTER, \
-                           FsRawUdpStreamTransmitterClass))
-#define FS_IS_RAWUDP_STREAM_TRANSMITTER(obj) \
+      FsRawUdpStreamTransmitter))
+#define FS_RAWUDP_STREAM_TRANSMITTER_CLASS(klass)                       \
+  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_RAWUDP_STREAM_TRANSMITTER,  \
+      FsRawUdpStreamTransmitterClass))
+#define FS_IS_RAWUDP_STREAM_TRANSMITTER(obj)                            \
   (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_RAWUDP_STREAM_TRANSMITTER))
-#define FS_IS_RAWUDP_STREAM_TRANSMITTER_CLASS(klass) \
+#define FS_IS_RAWUDP_STREAM_TRANSMITTER_CLASS(klass)                    \
   (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_RAWUDP_STREAM_TRANSMITTER))
-#define FS_RAWUDP_STREAM_TRANSMITTER_GET_CLASS(obj) \
+#define FS_RAWUDP_STREAM_TRANSMITTER_GET_CLASS(obj)                     \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_RAWUDP_STREAM_TRANSMITTER, \
-                              FsRawUdpStreamTransmitterClass))
-#define FS_RAWUDP_STREAM_TRANSMITTER_CAST(obj) ((FsRawUdpStreamTransmitter *) (obj))
+      FsRawUdpStreamTransmitterClass))
+#define FS_RAWUDP_STREAM_TRANSMITTER_CAST(obj)                          \
+  ((FsRawUdpStreamTransmitter *) (obj))
 
 typedef struct _FsRawUdpStreamTransmitter FsRawUdpStreamTransmitter;
 typedef struct _FsRawUdpStreamTransmitterClass FsRawUdpStreamTransmitterClass;
@@ -90,7 +91,9 @@ GType fs_rawudp_stream_transmitter_get_type (void);
 
 FsRawUdpStreamTransmitter *
 fs_rawudp_stream_transmitter_newv (FsRawUdpTransmitter *transmitter,
-  guint n_parameters, GParameter *parameters, GError **error);
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error);
 
 G_END_DECLS
 
