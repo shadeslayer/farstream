@@ -704,15 +704,13 @@ _create_sinksource (gchar *elementname, GstBin *bin,
 
  error:
 
-  gst_object_ref (elem);
-  gst_element_set_state (elem, GST_STATE_NULL);
-  gst_bin_remove (bin, elem);
+  gst_element_set_locked_state (elem, TRUE);
   state_ret = gst_element_set_state (elem, GST_STATE_NULL);
-  if (state_ret != GST_STATE_CHANGE_SUCCESS) {
+  if (state_ret != GST_STATE_CHANGE_SUCCESS)
     GST_ERROR ("On error, could not reset %s to state NULL (%s)", elementname,
       gst_element_state_change_return_get_name (state_ret));
-  }
-  gst_object_unref (elem);
+  if (!gst_bin_remove (bin, elem))
+    GST_ERROR ("Could not remove element %s from bin on error", elementname);
 
   if (elempad)
     gst_object_unref (elempad);
@@ -838,39 +836,39 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
   trans->priv->udpsocks[udpsock->component_id] =
     g_list_remove (trans->priv->udpsocks[udpsock->component_id], udpsock);
 
-  if (udpsock->udpsrc) {
+  if (udpsock->udpsrc)
+  {
     GstStateChangeReturn ret;
-    gst_object_ref (udpsock->udpsrc);
-    gst_element_set_state (udpsock->udpsrc, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (trans->priv->gst_src), udpsock->udpsrc);
+    gst_element_set_locked_state (udpsock->udpsrc, TRUE);
     ret = gst_element_set_state (udpsock->udpsrc, GST_STATE_NULL);
-    if (ret != GST_STATE_CHANGE_SUCCESS) {
+    if (ret != GST_STATE_CHANGE_SUCCESS)
       GST_ERROR ("Error changing state of udpsrc: %s",
-        gst_element_state_change_return_get_name (ret));
-    }
-    gst_object_unref (udpsock->udpsrc);
+          gst_element_state_change_return_get_name (ret));
+    if (!gst_bin_remove (GST_BIN (trans->priv->gst_src), udpsock->udpsrc))
+      GST_ERROR ("Could not remove udpsrc element from transmitter source");
   }
 
-  if (udpsock->udpsrc_requested_pad) {
+  if (udpsock->udpsrc_requested_pad)
+  {
     gst_element_release_request_pad (udpsock->funnel,
       udpsock->udpsrc_requested_pad);
     gst_object_unref (udpsock->udpsrc_requested_pad);
   }
 
-  if (udpsock->udpsink) {
+  if (udpsock->udpsink)
+  {
     GstStateChangeReturn ret;
-    gst_object_ref (udpsock->udpsink);
-    gst_element_set_state (udpsock->udpsink, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpsock->udpsink);
+    gst_element_set_locked_state (udpsock->udpsink, TRUE);
     ret = gst_element_set_state (udpsock->udpsink, GST_STATE_NULL);
-    if (ret != GST_STATE_CHANGE_SUCCESS) {
+    if (ret != GST_STATE_CHANGE_SUCCESS)
       GST_ERROR ("Error changing state of udpsink: %s",
-        gst_element_state_change_return_get_name (ret));
-    }
-    gst_object_unref (udpsock->udpsink);
+          gst_element_state_change_return_get_name (ret));
+    if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpsock->udpsink))
+      GST_ERROR ("Could not remove udpsink element from transmitter source");
   }
 
-  if (udpsock->udpsink_requested_pad) {
+  if (udpsock->udpsink_requested_pad)
+  {
     gst_element_release_request_pad (udpsock->tee,
       udpsock->udpsink_requested_pad);
     gst_object_unref (udpsock->udpsink_requested_pad);
