@@ -22,18 +22,19 @@
 # include <config.h>
 #endif
 
-#include "generic.h"
-
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-stream-transmitter.h>
+
+#include "check-threadsafe.h"
+#include "generic.h"
 
 
 static void
 _transmitter_error (FsTransmitter *transmitter, gint errorno, gchar *error_msg,
   gchar *debug_msg, gpointer user_data)
 {
-  fail ("Transmitter(%x) error(%d) msg:%s debug:%s", transmitter, errorno,
+  ts_fail ("Transmitter(%x) error(%d) msg:%s debug:%s", transmitter, errorno,
     error_msg, debug_msg);
 }
 
@@ -41,7 +42,7 @@ void
 _stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
   gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data)
 {
-  fail ("StreamTransmitter(%x) error(%d) msg:%s debug:%s", streamtransmitter,
+  ts_fail ("StreamTransmitter(%x) error(%d) msg:%s debug:%s", streamtransmitter,
     errorno, error_msg, debug_msg);
 }
 
@@ -61,17 +62,17 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
       "filltype", 2,
       NULL);
 
-  fail_unless (gst_bin_add (GST_BIN (pipeline), src),
+  ts_fail_unless (gst_bin_add (GST_BIN (pipeline), src),
     "Could not add the fakesrc");
 
   g_object_get (trans, "gst-sink", &trans_sink, NULL);
 
   padname = g_strdup_printf ("sink%d", component_id);
-  fail_unless (gst_element_link_pads (src, "src", trans_sink, padname),
+  ts_fail_unless (gst_element_link_pads (src, "src", trans_sink, padname),
     "Could not link the fakesrc to %s", padname);
   g_free (padname);
 
-  fail_if (gst_element_set_state (src, GST_STATE_PLAYING) ==
+  ts_fail_if (gst_element_set_state (src, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the fakesrc to playing");
 
   gst_object_unref (trans_sink);
@@ -84,7 +85,7 @@ setup_pipeline (FsTransmitter *trans, GCallback cb)
   GstElement *rtpfakesink, *rtcpfakesink;
   GstElement *trans_sink, *trans_src;
 
-  fail_unless (g_signal_connect (trans, "error",
+  ts_fail_unless (g_signal_connect (trans, "error",
       G_CALLBACK (_transmitter_error), NULL), "Could not connect signal");
 
   pipeline = gst_pipeline_new ("pipeline");
@@ -103,16 +104,16 @@ setup_pipeline (FsTransmitter *trans, GCallback cb)
     g_signal_connect (rtcpfakesink, "handoff", cb, GINT_TO_POINTER (2));
   }
 
-  fail_if (trans_sink == NULL, "No transmitter sink");
-  fail_if (trans_src == NULL, "No transmitter src");
+  ts_fail_if (trans_sink == NULL, "No transmitter sink");
+  ts_fail_if (trans_src == NULL, "No transmitter src");
 
   gst_bin_add_many (GST_BIN (pipeline), rtpfakesink, rtcpfakesink,
     trans_sink, trans_src, NULL);
 
-  fail_unless (gst_element_link_pads (trans_src, "src1",
+  ts_fail_unless (gst_element_link_pads (trans_src, "src1",
       rtpfakesink, "sink"),
     "Coult not link transmitter src and fakesink");
-  fail_unless (gst_element_link_pads (trans_src, "src2",
+  ts_fail_unless (gst_element_link_pads (trans_src, "src2",
       rtcpfakesink, "sink"),
     "Coult not link transmitter src and fakesink");
 
