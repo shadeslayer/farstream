@@ -32,7 +32,6 @@ farsight_la_LDFLAGS =					\
 pyfarsight.c: pyfarsight.override pyfarsight.defs
 	pygtk-codegen-2.0					\
 		--prefix fs					\
-		--register $(PYDEFS)/gnome.defs			\
 		--register $(PYDEFS)/gdk-types.defs		\
 		--register $(PYDEFS)/gtk-types.defs		\
 		--register $(GSTPYDEFS)/gst-types.defs		\

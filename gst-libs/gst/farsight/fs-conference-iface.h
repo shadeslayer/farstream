@@ -27,7 +27,6 @@
 #define __FS_CONFERENCE_H__
 
 #include <gst/gst.h>
-#include <gst/interfaces/interfaces-enumtypes.h>
 
 #include <gst/farsight/fs-session.h>
 #include <gst/farsight/fs-codec.h>
