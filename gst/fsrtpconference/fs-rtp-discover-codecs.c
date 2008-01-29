@@ -323,6 +323,11 @@ create_codec_lists (FsMediaType media_type,
   return TRUE;
 }
 
+/*
+ * This function returns TRUE if the codec_cap should be accepted,
+ * FALSE otherwise
+ */
+
 static gboolean
 validate_h263_codecs (CodecCap *codec_cap)
 {
@@ -333,40 +338,40 @@ validate_h263_codecs (CodecCap *codec_cap)
   GstStructure *rtp_struct;
   const gchar *encoding_name;
 
+  if (!name)
+    return FALSE;
+
   /* let's check if it's h263 */
   if (strcmp (name, "video/x-h263"))
-  {
     return TRUE;
-  }
 
   h263version = gst_structure_get_string (media_struct, "h263version");
   rtp_struct = gst_caps_get_structure (codec_cap->rtp_caps, 0);
+  if (!rtp_struct)
+    return FALSE;
   encoding_name = gst_structure_get_string (rtp_struct, "encoding-name");
+
+  if (!h263version || !encoding_name)
+    return FALSE;
 
   if( !strcmp (h263version, "h263"))
   {
     /* baseline H263 can only be encoding name H263 or H263-1998 */
     if (strcmp (encoding_name, "H263") &&
         strcmp (encoding_name, "H263-1998"))
-    {
       return FALSE;
-    }
   }
   else if (!strcmp (h263version, "h263p"))
   {
     /* has to be H263-1998 */
     if (strcmp (encoding_name, "H263-1998"))
-    {
       return FALSE;
-    }
   }
   else if (!strcmp (h263version, "h263pp"))
   {
     /* has to be H263-2000 */
     if (strcmp (encoding_name, "H263-2000"))
-    {
       return FALSE;
-    }
   }
 
   /* if no h263version specified, we assume it's all h263 versions */
