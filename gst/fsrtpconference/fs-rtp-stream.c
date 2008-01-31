@@ -67,10 +67,6 @@ struct _FsRtpStreamPrivate
 
   FsStreamDirection direction;
 
-  guint id;
-
-  GList *remote_codecs;
-
   /* Protected by the session mutex */
   GList *substreams;
   guint recv_codecs_changed_idle_id;
@@ -252,8 +248,8 @@ fs_rtp_stream_finalize (GObject *object)
 {
   FsRtpStream *self = FS_RTP_STREAM (object);
 
-  if (self->priv->remote_codecs)
-    fs_codec_list_destroy (self->priv->remote_codecs);
+  if (self->remote_codecs)
+    fs_codec_list_destroy (self->remote_codecs);
 
   parent_class->finalize (object);
 }
@@ -281,7 +277,7 @@ fs_rtp_stream_get_property (GObject *object,
 
   switch (prop_id) {
     case PROP_REMOTE_CODECS:
-      g_value_set_boxed (value, self->priv->remote_codecs);
+      g_value_set_boxed (value, self->remote_codecs);
       break;
     case PROP_SESSION:
       g_value_set_object (value, self->priv->session);
@@ -521,8 +517,8 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
   }
 
   if (fs_rtp_session_negotiate_codecs (self->priv->session, remote_codecs,
-      error)) {
-    self->priv->remote_codecs = fs_codec_list_copy (remote_codecs);
+          stream, error)) {
+    self->remote_codecs = fs_codec_list_copy (remote_codecs);
     return TRUE;
   } else {
     return FALSE;

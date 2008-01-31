@@ -66,6 +66,11 @@ struct _FsRtpStreamClass
 struct _FsRtpStream
 {
   FsStream parent;
+
+  /* Can only be accessed by main user thread */
+  /* Dont modify, call set_remote_codecs() */
+  GList *remote_codecs;
+
   FsRtpStreamPrivate *priv;
 };
 

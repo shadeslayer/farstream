@@ -1560,17 +1560,29 @@ _compare_codec_lists (GList *list1, GList *list2)
  */
 
 gboolean
-fs_rtp_session_negotiate_codecs (FsRtpSession *session, GList *remote_codecs,
-  GError **error)
+fs_rtp_session_negotiate_codecs (FsRtpSession *session,
+    GList *remote_codecs,
+    gpointer stream,
+    GError **error)
 {
-  gboolean has_many_streams;
+  gboolean has_many_streams = FALSE;
   GHashTable *new_negotiated_codec_associations = NULL;;
   GList *new_negotiated_codecs = NULL;
+  GList *item;
 
   FS_RTP_SESSION_LOCK (session);
 
-  has_many_streams =
-    (g_list_next (g_list_first (session->priv->streams)) != NULL);
+  for (item = g_list_first (session->priv->streams);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpStream *mystream = item->data;
+    if (stream  != mystream && mystream->remote_codecs)
+    {
+      has_many_streams = TRUE;
+      break;
+    }
+  }
 
   new_negotiated_codec_associations = negotiate_codecs (remote_codecs,
     session->priv->negotiated_codec_associations,
