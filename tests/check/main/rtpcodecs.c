@@ -189,6 +189,37 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_rtpcodecs_invalid_remote_codecs)
+{
+  struct SimpleTestConference *dat = NULL;
+  struct SimpleTestStream *st = NULL;
+  GList *codecs = NULL;
+  GError *error = NULL;
+  gboolean rv;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+  st = simple_conference_add_stream (dat, dat);
+
+  codecs = g_list_prepend (codecs,
+      fs_codec_new (1, "INVALID1", FS_MEDIA_TYPE_AUDIO, 1));
+  codecs = g_list_prepend (codecs,
+      fs_codec_new (2, "INVALID2", FS_MEDIA_TYPE_AUDIO, 1));
+
+  rv = fs_stream_set_remote_codecs (st->stream, codecs, &error);
+
+  fail_unless (rv == FALSE, "Invalid codecs did not fail");
+  fail_if (error == NULL, "Error not set on invalid codecs");
+  fail_unless (error->domain == FS_ERROR, "Error not of domain FS_ERROR");
+  fail_unless (error->code == FS_ERROR_NEGOTIATION_FAILED, "Error isn't"
+      " negotiation failed, it is %d", error->code);
+
+  fs_codec_list_destroy (codecs);
+
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -208,6 +239,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_two_way_negotiation");
   tcase_add_test (tc_chain, test_rtpcodecs_two_way_negotiation);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_invalid_remote_codecs");
+  tcase_add_test (tc_chain, test_rtpcodecs_invalid_remote_codecs);
   suite_add_tcase (s, tc_chain);
 
   return s;
