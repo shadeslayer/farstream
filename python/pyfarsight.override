@@ -40,14 +40,14 @@ _fs_boxed_list_to_value (GValue *value, PyObject *obj, GType type,
   int i;
   GList *boxed = NULL;
 
-  if (!PyList_Check (obj)) {
+  if (!PySequence_Check (obj)) {
     PyErr_Format(PyExc_TypeError, "Must be a List of %s", g_type_name (type));
     return -1;
   }
 
-  for (i = 0; i < PyList_Size (obj); i++)
+  for (i = 0; i < PySequence_Size (obj); i++)
   {
-    PyObject *item = PyList_GetItem (obj, i);
+    PyObject *item = PySequence_GetItem (obj, i);
 
     if (!pyg_boxed_check (item, type))
     {
@@ -57,9 +57,9 @@ _fs_boxed_list_to_value (GValue *value, PyObject *obj, GType type,
     }
   }
 
-  for (i = 0; i < PyList_Size (obj); i++)
+  for (i = 0; i < PySequence_Size (obj); i++)
   {
-    PyObject *item = PyList_GetItem (obj, i);
+    PyObject *item = PySequence_GetItem (obj, i);
 
     boxed = g_list_append (boxed,
         copy_func (
@@ -308,15 +308,16 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
     if (value == NULL)
       goto none;
 
-    if (!PyList_Check (value))
+    if (!PySequence_Check (value))
     {
-      PyErr_Format(PyExc_TypeError, "%s must be a list of (name, value)", attr);
+      PyErr_Format(PyExc_TypeError, "%s must be a sequence of (name, value)",
+          attr);
       return -1;
     }
 
-    for (i = 0; i < PyList_Size (value); i++)
+    for (i = 0; i < PySequence_Size (value); i++)
     {
-      PyObject *item = PyList_GetItem (value, i);
+      PyObject *item = PySequence_GetItem (value, i);
 
       if (!PyTuple_Check (item) ||
           PyTuple_Size (item) != 2 ||
@@ -330,9 +331,9 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
       }
     }
 
-    for (i = 0; i < PyList_Size (value); i++)
+    for (i = 0; i < PySequence_Size (value); i++)
     {
-      PyObject *item = PyList_GetItem (value, i);
+      PyObject *item = PySequence_GetItem (value, i);
       FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
 
       param->name = g_strdup (PyString_AsString (PyTuple_GetItem (item, 0)));
@@ -575,23 +576,23 @@ _wrap_fs_stream_set_remote_codecs (PyGObject *self, PyObject *arg)
   GList *codecs = NULL;
   int i;
 
-  if (!PyList_Check (arg))
+  if (!PySequence_Check (arg))
   {
     PyErr_SetString (PyExc_TypeError,
         "The parameter must be a List of FsCodec");
     return NULL;
   }
 
-  if (PyList_Size (arg) == 0)
+  if (PySequence_Size (arg) == 0)
   {
     PyErr_SetString (PyExc_TypeError,
         "Empty list invalid");
     return NULL;
   }
 
-  for (i = 0; i < PyList_Size (arg); i++)
+  for (i = 0; i < PySequence_Size (arg); i++)
   {
-    PyObject *item = PyList_GetItem (arg, i);
+    PyObject *item = PySequence_GetItem (arg, i);
 
     if (!pyg_boxed_check (item, FS_TYPE_CODEC))
     {
@@ -601,9 +602,9 @@ _wrap_fs_stream_set_remote_codecs (PyGObject *self, PyObject *arg)
     }
   }
 
-  for (i = 0; i < PyList_Size (arg); i++)
+  for (i = 0; i < PySequence_Size (arg); i++)
   {
-    PyObject *item = PyList_GetItem (arg, i);
+    PyObject *item = PySequence_GetItem (arg, i);
 
     codecs = g_list_append (codecs, pyg_boxed_get (item, FsCodec));
   }
