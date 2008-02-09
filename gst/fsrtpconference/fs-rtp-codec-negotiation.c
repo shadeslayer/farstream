@@ -576,7 +576,8 @@ negotiate_codecs (const GList *remote_codecs,
   }
 
   /* If no intersection was found, lets return NULL */
-  if (g_hash_table_size (new_codec_associations) == 0) {
+  if (!new_negotiated_codecs)
+  {
     g_hash_table_destroy (new_codec_associations);
     return NULL;
   }
