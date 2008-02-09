@@ -278,7 +278,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
-  g_object_unref (st);
+  if (st)
+    g_object_unref (st);
 
   g_object_unref (trans);
 
