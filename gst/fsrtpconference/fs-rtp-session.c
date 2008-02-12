@@ -2426,7 +2426,7 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
   if (!stream) {
     gchar *str = g_strdup_printf ("There is no particpant with cname %s for"
         " ssrc %u", cname, ssrc);
-    fs_session_emit_error (FS_SESSION (session),FS_ERROR_UNKNOWN_CNAME,
+    fs_session_emit_error (FS_SESSION (session), FS_ERROR_UNKNOWN_CNAME,
         str, str);
     g_free (str);
     FS_RTP_SESSION_UNLOCK (session);
@@ -2451,7 +2451,11 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
   FS_RTP_SESSION_UNLOCK (session);
 
   if (!substream)
+  {
+    GST_DEBUG ("No free substream with SSRC %x in session %u",
+        ssrc, session->id);
     return;
+  }
 
 
   if (!fs_rtp_stream_add_substream (stream, substream, &error))
@@ -2459,6 +2463,8 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
         "Could not associate a substream with its stream",
         error->message);
   g_clear_error (&error);
+
+  GST_DEBUG ("Associated SSRC %x to session %u", ssrc, session->id);
 }
 
 static void
