@@ -303,7 +303,6 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve)) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the fsvalve element for session"
@@ -313,7 +312,12 @@ fs_rtp_sub_stream_constructed (GObject *object)
   }
 
   /* We set the valve to dropping, the stream will unblock it when its linked */
-  g_object_set (self->priv->valve, "drop", TRUE, NULL);
+  /* We also sync so as to not empty the JB */
+  g_object_set (self->priv->valve,
+      "drop", TRUE,
+      "sync", TRUE,
+      NULL);
+
 
   if (gst_element_set_state (self->priv->valve, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE) {
