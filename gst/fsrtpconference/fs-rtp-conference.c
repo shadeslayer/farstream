@@ -129,6 +129,7 @@ static FsRtpSession *fs_rtp_conference_get_session_by_id_locked (
     FsRtpConference *self, guint session_id);
 static FsRtpSession *fs_rtp_conference_get_session_by_id (
     FsRtpConference *self, guint session_id);
+
 static GstCaps *_rtpbin_request_pt_map (GstElement *element,
     guint session_id,
     guint pt,
@@ -136,6 +137,11 @@ static GstCaps *_rtpbin_request_pt_map (GstElement *element,
 static void _rtpbin_pad_added (GstElement *rtpbin,
     GstPad *new_pad,
     gpointer user_data);
+static void _rtpbin_on_bye_ssrc (GstElement *rtpbin,
+    guint session_id,
+    guint ssrc,
+    gpointer user_data);
+
 static void fs_rtp_conference_handle_message (
     GstBin * bin,
     GstMessage * message);
@@ -293,6 +299,8 @@ fs_rtp_conference_init (FsRtpConference *conf,
                     G_CALLBACK (_rtpbin_request_pt_map), conf);
   g_signal_connect (conf->gstrtpbin, "pad-added",
                     G_CALLBACK (_rtpbin_pad_added), conf);
+  g_signal_connect (conf->gstrtpbin, "on-bye-ssrc",
+                    G_CALLBACK (_rtpbin_on_bye_ssrc), conf);
 
   /* We have to ref the class here because the class initialization
    * in GLib is not thread safe
@@ -436,6 +444,24 @@ _rtpbin_pad_added (GstElement *rtpbin, GstPad *new_pad,
   }
 
   g_free (name);
+}
+
+static void
+_rtpbin_on_bye_ssrc (GstElement *rtpbin,
+    guint session_id,
+    guint ssrc,
+    gpointer user_data)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+  FsRtpSession *session =
+    fs_rtp_conference_get_session_by_id (self, session_id);
+
+  if (session)
+  {
+    fs_rtp_session_bye_ssrc (session, ssrc);
+
+    g_object_unref (session);
+  }
 }
 
 /**
