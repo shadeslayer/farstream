@@ -255,6 +255,10 @@ fs_rawudp_transmitter_constructed (GObject *object)
     return;
   }
 
+  g_object_set (G_OBJECT (self->priv->gst_sink),
+      "async-handling", TRUE,
+      NULL);
+
   gst_object_ref (self->priv->gst_sink);
 
   for (c = 1; c <= self->components; c++)
@@ -341,7 +345,6 @@ fs_rawudp_transmitter_constructed (GObject *object)
 
     g_object_set (fakesink,
         "async", FALSE,
-        "sync" , FALSE,
         NULL);
 
     pad = gst_element_get_request_pad (self->priv->udpsink_tees[c], "src%d");
@@ -742,7 +745,9 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   if (!udpport->udpsink)
     goto error;
 
-  g_object_set (udpport->udpsink, "async", FALSE, NULL);
+  g_object_set (udpport->udpsink,
+      "async", FALSE,
+      NULL);
 
   trans->priv->udpports[component_id] =
     g_list_prepend (trans->priv->udpports[component_id], udpport);
