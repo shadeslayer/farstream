@@ -315,10 +315,8 @@ fs_rtp_sub_stream_constructed (GObject *object)
   }
 
   /* We set the valve to dropping, the stream will unblock it when its linked */
-  /* We also sync so as to not empty the JB */
   g_object_set (self->priv->valve,
       "drop", TRUE,
-      "sync", TRUE,
       NULL);
 
 
