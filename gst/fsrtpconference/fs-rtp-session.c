@@ -1728,20 +1728,50 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   FS_RTP_SESSION_LOCK (session);
   stream = fs_rtp_session_get_stream_by_ssrc (session, ssrc);
 
-  /* Add the substream directly if the no_rtcp_timeout is 0 */
-  if (!stream &&
-      no_rtcp_timeout == 0 &&
-      g_list_length (session->priv->streams) == 1)
-    stream = g_object_ref (g_list_first (session->priv->streams)->data);
+  if (stream)
+    GST_DEBUG ("Already have a stream with SSRC %x, using it", ssrc);
 
+  /* Add the substream directly if the no_rtcp_timeout is 0 */
   if (!stream)
   {
-    session->priv->free_substreams =
-      g_list_prepend (session->priv->free_substreams, substream);
-    g_signal_connect (substream, "no-rtcp-timedout",
-        G_CALLBACK (_substream_no_rtcp_timedout_cb), session);
+    if (no_rtcp_timeout == 0)
+    {
+      if (g_list_length (session->priv->streams) == 1)
+      {
+        stream = g_object_ref (g_list_first (session->priv->streams)->data);
+        GST_DEBUG ("No RTCP timeout and only one stream, giving it substream"
+            " for SSRC %x in session %u", ssrc, session->id);
+      }
+      else
+      {
+        GST_WARNING ("No RTCP timeout is 0, but there is more than one stream,"
+            " we will wait forever for an RTCP SDES to arrive for SSRC %u in"
+            " session %u", ssrc, session->id);
+      }
+    }
+    else
+    {
+      session->priv->free_substreams =
+        g_list_prepend (session->priv->free_substreams, substream);
+
+      if (no_rtcp_timeout > 0)
+      {
+        g_signal_connect (substream, "no-rtcp-timedout",
+            G_CALLBACK (_substream_no_rtcp_timedout_cb), session);
+        GST_DEBUG ("No stream for SSRC %x, waiting for %d ms before associating"
+            "in session %u", ssrc, no_rtcp_timeout, session->id);
+      }
+      else  /* rtcp_timeout < 0 */
+      {
+        GST_DEBUG ("No RTCP timeout is < 0, we will wait forever for an"
+            " RTCP SDES to arrive for SSRC %x in session %u",
+            ssrc, session->id);
+      }
+    }
   }
+
   FS_RTP_SESSION_UNLOCK (session);
+
   if (stream) {
     if (!fs_rtp_stream_add_substream (stream, substream, &error)) {
       fs_session_emit_error (FS_SESSION (session), error->code,
