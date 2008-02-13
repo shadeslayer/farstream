@@ -287,6 +287,9 @@ fs_rtp_sub_stream_constructed (GObject *object)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
 
+  GST_DEBUG ("New substream in session %u for ssrc %x and pt %u",
+      self->priv->session->id, self->priv->ssrc, self->priv->pt);
+
   if (!self->priv->conference) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_INVALID_ARGUMENTS, "A Substream needs a conference object");

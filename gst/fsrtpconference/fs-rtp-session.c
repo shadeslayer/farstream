@@ -2441,6 +2441,7 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     guint32 localssrc;
 
     g_object_get (localsubstream, "ssrc", &localssrc, NULL);
+    GST_LOG ("Have substream with ssrc %x, looking for %x", localssrc, ssrc);
     if (ssrc == localssrc) {
       substream = localsubstream;
       session->priv->free_substreams = g_list_delete_link (
