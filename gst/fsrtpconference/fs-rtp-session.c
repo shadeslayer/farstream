@@ -2463,6 +2463,8 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     return;
   }
 
+  fs_rtp_stream_add_known_ssrc (stream, ssrc);
+
   for (item = g_list_first (session->priv->free_substreams);
        item;
        item = g_list_next (item))

@@ -73,6 +73,8 @@ struct _FsRtpStreamPrivate
 
   GError *construction_error;
 
+  GList *known_ssrcs;
+
   gboolean disposed;
 };
 
@@ -193,6 +195,7 @@ fs_rtp_stream_init (FsRtpStream *self)
   self->priv->session = NULL;
   self->priv->participant = NULL;
   self->priv->stream_transmitter = NULL;
+  self->priv->known_ssrcs = NULL;
 
   self->priv->direction = FS_DIRECTION_NONE;
 }
@@ -250,6 +253,9 @@ fs_rtp_stream_finalize (GObject *object)
 
   if (self->remote_codecs)
     fs_codec_list_destroy (self->remote_codecs);
+
+  if (self->priv->known_ssrcs)
+    g_list_free (self->priv->known_ssrcs);
 
   parent_class->finalize (object);
 }
@@ -656,14 +662,12 @@ fs_rtp_stream_knows_ssrc_locked (FsRtpStream *stream, guint32 ssrc)
 {
   GList *elem;
 
-  for (elem = g_list_first (stream->priv->substreams);
+  for (elem = g_list_first (stream->priv->known_ssrcs);
        elem;
        elem = g_list_next (elem))
   {
-    guint32 substream_ssrc;
-
-    g_object_get (elem->data, "ssrc", &substream_ssrc, NULL);
-    if (substream_ssrc == ssrc)
+    guint32 tmp_ssrc = GPOINTER_TO_UINT (elem->data);
+    if (tmp_ssrc == ssrc)
       return TRUE;
   }
 
@@ -765,4 +769,17 @@ fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
   fs_codec_destroy (codec);
+}
+
+void
+fs_rtp_stream_add_known_ssrc (FsRtpStream *stream,
+    guint32 ssrc)
+{
+  FS_RTP_SESSION_LOCK (stream->priv->session);
+  if (!fs_rtp_stream_knows_ssrc_locked (stream, ssrc))
+  {
+    stream->priv->known_ssrcs = g_list_prepend (stream->priv->known_ssrcs,
+        GUINT_TO_POINTER (ssrc));
+  }
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 }

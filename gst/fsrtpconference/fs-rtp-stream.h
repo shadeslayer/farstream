@@ -96,6 +96,9 @@ void fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
 void fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
     FsRtpSubStream *substream);
 
+void fs_rtp_stream_add_known_ssrc (FsRtpStream *stream,
+    guint32 ssrc);
+
 
 
 G_END_DECLS
