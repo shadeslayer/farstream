@@ -2543,3 +2543,39 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 
   FS_RTP_SESSION_UNLOCK (session);
 }
+
+/**
+ * fs_rtp_session_bye_ssrc:
+ * @session: a #FsRtpSession
+ * @ssrc: The ssrc
+ *
+ * This function is called when a RTCP BYE is received
+ */
+void
+fs_rtp_session_bye_ssrc (FsRtpSession *session,
+    guint32 ssrc)
+{
+  GList *item;
+
+  /* First remove it from the known SSRCs */
+
+  FS_RTP_SESSION_LOCK (session);
+
+  for (item = g_list_first (session->priv->streams);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpStream *stream = FS_RTP_STREAM (item->data);
+
+    fs_rtp_stream_remove_known_ssrc (stream, ssrc);
+  }
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  /*
+   * TODO:
+   *
+   * Remove running streams with that SSRC .. lets also check if they
+   * come from the right ip/port/etc ??
+   */
+}
