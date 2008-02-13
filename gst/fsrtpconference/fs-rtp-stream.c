@@ -771,6 +771,14 @@ fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
   fs_codec_destroy (codec);
 }
 
+/**
+ * fs_rtp_stream_add_known_ssrc:
+ * @stream: a #FsRtpStream
+ * @ssrc: the SSRC to add
+ *
+ * Adds a SSRC to the list of known SSRCs for this stream
+ */
+
 void
 fs_rtp_stream_add_known_ssrc (FsRtpStream *stream,
     guint32 ssrc)
@@ -781,5 +789,22 @@ fs_rtp_stream_add_known_ssrc (FsRtpStream *stream,
     stream->priv->known_ssrcs = g_list_prepend (stream->priv->known_ssrcs,
         GUINT_TO_POINTER (ssrc));
   }
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
+}
+
+/**
+ * fs_rtp_stream_remove_known_ssrc:
+ * @stream: a #FsRtpStream
+ * @ssrc: the SSRC to remove
+ *
+ * Removes the ssrc from the list of known ssrcs
+ */
+void
+fs_rtp_stream_remove_known_ssrc (FsRtpStream *stream,
+    guint32 ssrc)
+{
+  FS_RTP_SESSION_LOCK (stream->priv->session);
+  stream->priv->known_ssrcs = g_list_remove_all (stream->priv->known_ssrcs,
+      GUINT_TO_POINTER (ssrc));
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
 }
