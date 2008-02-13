@@ -140,6 +140,10 @@ static void fs_rtp_conference_handle_message (
     GstBin * bin,
     GstMessage * message);
 
+static GstStateChangeReturn fs_rtp_conference_change_state (
+    GstElement *element,
+    GstStateChange transition);
+
 
 static void
 fs_rtp_conference_do_init (GType type)
@@ -199,6 +203,9 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 
   gstbin_class->handle_message =
     GST_DEBUG_FUNCPTR (fs_rtp_conference_handle_message);
+
+  gstelement_class->change_state =
+    GST_DEBUG_FUNCPTR (fs_rtp_conference_change_state);
 
   gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_rtp_conference_finalize);
   gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_rtp_conference_dispose);
@@ -303,6 +310,9 @@ fs_rtp_conference_get_property (GObject *object,
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (object);
 
+  if (!self->gstrtpbin)
+    return;
+
   switch (prop_id)
   {
     case PROP_SDES_CNAME:
@@ -339,6 +349,9 @@ fs_rtp_conference_set_property (GObject *object,
     GParamSpec *pspec)
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (object);
+
+  if (!self->gstrtpbin)
+    return;
 
   switch (prop_id)
   {
@@ -514,6 +527,13 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
   FsSession *new_session = NULL;
   guint id;
 
+  if (!self->gstrtpbin)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create GstRtpBin");
+    return NULL;
+  }
+
   GST_OBJECT_LOCK (self);
   do {
     id = self->priv->max_session_id++;
@@ -545,6 +565,13 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsParticipant *new_participant = NULL;
   GList *item = NULL;
+
+  if (!self->gstrtpbin)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create GstRtpBin");
+    return NULL;
+  }
 
   if (!cname)
   {
@@ -598,6 +625,9 @@ fs_rtp_conference_handle_message (
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (bin);
 
+  if (!self->gstrtpbin)
+    return;
+
   switch (GST_MESSAGE_TYPE (message)) {
     case GST_MESSAGE_ELEMENT:
     {
@@ -641,5 +671,38 @@ fs_rtp_conference_handle_message (
       GST_BIN_CLASS (parent_class)->handle_message (bin, message);
       break;
     }
+  }
+}
+
+static GstStateChangeReturn
+fs_rtp_conference_change_state (GstElement *element, GstStateChange transition)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (element);
+  GstStateChangeReturn result;
+
+  switch (transition) {
+    case GST_STATE_CHANGE_NULL_TO_READY:
+      if (!self->gstrtpbin)
+      {
+        GST_ERROR_OBJECT (element, "Could not create the GstRtpBin subelement");
+        result = GST_STATE_CHANGE_FAILURE;
+        goto failure;
+      }
+      break;
+    default:
+      break;
+  }
+
+  if ((result =
+          GST_ELEMENT_CLASS (parent_class)->change_state (element,
+              transition)) == GST_STATE_CHANGE_FAILURE)
+    goto failure;
+
+  return result;
+
+ failure:
+  {
+    GST_ERROR_OBJECT (element, "parent failed state change");
+    return result;
   }
 }
