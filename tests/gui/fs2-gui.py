@@ -77,7 +77,6 @@ gladefile = os.path.join(os.path.dirname(__file__),"fs2-gui.glade")
 def make_video_sink(pipeline, xid, name):
     bin = gst.Bin("videosink_%d" % xid)
     sink = gst.element_factory_make("ximagesink", name)
-    sink.set_property("async", False)
     bin.add(sink)
     colorspace = gst.element_factory_make("ffmpegcolorspace")
     bin.add(colorspace)
@@ -105,14 +104,6 @@ class FsUIPipeline:
         if AUDIO:
             self.audiosource = FsUIAudioSource(self.pipeline)
             self.audiosession = FsUISession(self.conf, self.audiosource)
-            self.adder = gst.element_factory_make("adder")
-            self.audiosink = gst.element_factory_make("alsasink")
-            #self.audiosink = gst.element_factory_make("fakesink")
-            self.audiosink.set_property("async", False)
-            #self.audiosink.set_property("sync", False)
-            self.pipeline.add(self.audiosink)
-            self.pipeline.add(self.adder)
-            self.adder.link(self.audiosink)
         self.pipeline.set_state(gst.STATE_PLAYING)
 
     def __del__(self):
@@ -132,7 +123,8 @@ class FsUIPipeline:
         return gst.BUS_PASS
 
     def async_handler(self, bus, message):
-        if message.type != gst.MESSAGE_STATE_CHANGED:
+        if message.type != gst.MESSAGE_STATE_CHANGED \
+               and message.type != gst.MESSAGE_ASYNC_DONE:
             print message.type
         if message.type == gst.MESSAGE_ERROR:
             print message.parse_error()
@@ -140,6 +132,8 @@ class FsUIPipeline:
             #message.src.set_state(gst.STATE_PLAYING)
         elif message.type == gst.MESSAGE_WARNING:
             print message.parse_warning()
+        elif message.type == gst.MESSAGE_ELEMENT:
+            print message.structure.get_name()
         
         return True
 
@@ -153,7 +147,6 @@ class FsUIPipeline:
         self.previewsink.set_state(gst.STATE_PLAYING)
         self.videosource.tee.link(self.previewsink)
         self.pipeline.set_state(gst.STATE_PLAYING)
-        self.pipeline.send_event(gst.event_new_latency(100*gst.MSECOND))
         return self.previewsink
 
     def have_size(self, pad, buffer, callback):
@@ -162,7 +155,14 @@ class FsUIPipeline:
         callback(x,y)
         self.previewsink.get_pad("sink").remove_buffer_probe(self.havesize)
         return True
-                 
+
+    def link_audio_sink(self, pad):
+        print >>sys.stderr, "LINKING AUDIO SINK"
+        self.audiosink = gst.element_factory_make("alsasink")
+        self.pipeline.add(self.audiosink)
+        self.audiosink.set_state(gst.STATE_PLAYING)
+        pad.link(self.audiosink.get_pad("sink"))
+            
 
 class FsUISource:
     def __init__(self, pipeline):
@@ -321,9 +321,7 @@ class FsUIStream:
         if self.session.source.get_type() == farsight.MEDIA_TYPE_VIDEO:
             self.participant.link_video_sink(pad)
         else:
-            print >>sys.stderr, "LINKING AUDIO SINK"
-            pad.link(self.participant.pipeline.adder.get_request_pad("sink%d"))
-            self.participant.pipeline.pipeline.send_event(gst.event_new_latency(100*gst.MSECOND))
+            self.participant.pipeline.link_audio_sink(pad)
 
     def candidate(self, candidate):
         self.stream.add_remote_candidate(candidate)
@@ -415,7 +413,6 @@ class FsUIParticipant:
 
                 self.videosink.set_state(gst.STATE_PLAYING)
                 self.funnel.set_state(gst.STATE_PLAYING)
-                self.pipeline.pipeline.send_event(gst.event_new_latency(100*gst.MSECOND))
                 self.outcv.notifyAll()
             finally:
                 self.outcv.release()
