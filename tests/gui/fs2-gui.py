@@ -206,6 +206,8 @@ class FsUISource:
     def get_src_pad(self, name="src%d"):
         "Gets a source pad from the source"
         queue = gst.element_factory_make("queue")
+        queue.set_properties("leaky", 2,
+                             "max-size-time", 50*gst.MSECOND)
         requestpad = self.tee.get_request_pad(name)
         self.pipeline.add(queue)
         requestpad.link(queue.get_static_pad("sink"))
@@ -236,9 +238,16 @@ class FsUIVideoSource(FsUISource):
             source.set_property("is-live", 1)
             
         bin.add(source)
+
+        filter = gst.element_factory_make("capsfilter")
+        filter.set_property("caps", gst.Caps("video/x-raw-yuv , width=[300,500] , height=[200,500], framerate=[20/1,30/1]"))
+        bin.add(filter)
+        source.link(filter)
+
         videoscale = gst.element_factory_make("videoscale")
         bin.add(videoscale)
-        source.link(videoscale)
+        filter.link(videoscale)
+
         bin.add_pad(gst.GhostPad("src", videoscale.get_pad("src")))
         return bin
             
