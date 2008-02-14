@@ -135,11 +135,11 @@ class FsUIPipeline:
                and message.type != gst.MESSAGE_ASYNC_DONE:
             print message.type
         if message.type == gst.MESSAGE_ERROR:
-            print message.parse_error()
+            print message.src.get_name(), ": ", message.parse_error()
         elif message.type == gst.MESSAGE_WARNING:
-            print message.parse_warning()
+            print message.src.get_name(), ": ", message.parse_warning()
         elif message.type == gst.MESSAGE_ELEMENT:
-            print message.structure.get_name()
+            print message.src.get_name(), ": ", message.structure.get_name()
         
         return True
 
