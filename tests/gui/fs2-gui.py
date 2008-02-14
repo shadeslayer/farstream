@@ -74,10 +74,11 @@ mycname = "".join((pwd.getpwuid(os.getuid())[0],
 gladefile = os.path.join(os.path.dirname(__file__),"fs2-gui.glade")
 
 
-def make_video_sink(pipeline, xid, name):
+def make_video_sink(pipeline, xid, name, async=True):
     "Make a bin with a video sink in it, that will be displayed on xid."
     bin = gst.Bin("videosink_%d" % xid)
     sink = gst.element_factory_make("ximagesink", name)
+    sink.set_property("sync", async)
     bin.add(sink)
     colorspace = gst.element_factory_make("ffmpegcolorspace")
     bin.add(colorspace)
@@ -145,7 +146,7 @@ class FsUIPipeline:
     def make_video_preview(self, xid, newsize_callback):
         "Creates the preview sink"
         self.previewsink = make_video_sink(self.pipeline, xid,
-                                           "previewvideosink")
+                                           "previewvideosink", False)
         self.pipeline.add(self.previewsink)
         #Add a probe to wait for the first buffer to find the image size
         self.havesize = self.previewsink.get_pad("sink").add_buffer_probe(self.have_size,

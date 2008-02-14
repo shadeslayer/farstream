@@ -345,6 +345,7 @@ fs_rawudp_transmitter_constructed (GObject *object)
 
     g_object_set (fakesink,
         "async", FALSE,
+        "sync", FALSE,
         NULL);
 
     pad = gst_element_get_request_pad (self->priv->udpsink_tees[c], "src%d");
@@ -747,6 +748,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   g_object_set (udpport->udpsink,
       "async", FALSE,
+      "sync", FALSE,
       NULL);
 
   trans->priv->udpports[component_id] =
