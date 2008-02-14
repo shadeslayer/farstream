@@ -75,6 +75,7 @@ gladefile = os.path.join(os.path.dirname(__file__),"fs2-gui.glade")
 
 
 def make_video_sink(pipeline, xid, name):
+    "Make a bin with a video sink in it, that will be displayed on xid."
     bin = gst.Bin("videosink_%d" % xid)
     sink = gst.element_factory_make("ximagesink", name)
     bin.add(sink)
@@ -90,12 +91,14 @@ def make_video_sink(pipeline, xid, name):
 
 
 class FsUIPipeline:
+    "Object to wrap the GstPipeline"
     
     def __init__(self, elementname="fsrtpconference"):
         self.pipeline = gst.Pipeline()
         self.pipeline.get_bus().set_sync_handler(self.sync_handler)
         self.pipeline.get_bus().add_watch(self.async_handler)
         self.conf = gst.element_factory_make(elementname)
+        # Sets lets our own cname
         self.conf.set_property("sdes-cname", mycname)
         self.pipeline.add(self.conf)
         if VIDEO:
@@ -110,10 +113,13 @@ class FsUIPipeline:
         self.pipeline.set_state(gst.STATE_NULL)
 
     def sync_handler(self, bus, message):
+        "Message handler to get the prepare-xwindow-id event"
         if message.type == gst.MESSAGE_ELEMENT and \
                message.structure.has_name("prepare-xwindow-id"):
             xid = None
             element = message.src
+            # We stored the XID on the element or its parent on the expose event
+            # Now lets look it up
             while not xid and element:
                 xid = element.get_data("xid")
                 element = element.get_parent()
@@ -123,13 +129,12 @@ class FsUIPipeline:
         return gst.BUS_PASS
 
     def async_handler(self, bus, message):
+        "Async handler to print messages"
         if message.type != gst.MESSAGE_STATE_CHANGED \
                and message.type != gst.MESSAGE_ASYNC_DONE:
             print message.type
         if message.type == gst.MESSAGE_ERROR:
             print message.parse_error()
-            #message.src.set_state(gst.STATE_NULL)
-            #message.src.set_state(gst.STATE_PLAYING)
         elif message.type == gst.MESSAGE_WARNING:
             print message.parse_warning()
         elif message.type == gst.MESSAGE_ELEMENT:
@@ -138,9 +143,11 @@ class FsUIPipeline:
         return True
 
     def make_video_preview(self, xid, newsize_callback):
+        "Creates the preview sink"
         self.previewsink = make_video_sink(self.pipeline, xid,
                                            "previewvideosink")
         self.pipeline.add(self.previewsink)
+        #Add a probe to wait for the first buffer to find the image size
         self.havesize = self.previewsink.get_pad("sink").add_buffer_probe(self.have_size,
                                                           newsize_callback)
                                                           
@@ -150,6 +157,7 @@ class FsUIPipeline:
         return self.previewsink
 
     def have_size(self, pad, buffer, callback):
+        "Callback on the first buffer to know the drawingarea size"
         x = buffer.caps[0]["width"]
         y = buffer.caps[0]["height"]
         callback(x,y)
@@ -157,6 +165,7 @@ class FsUIPipeline:
         return True
 
     def link_audio_sink(self, pad):
+        "Link the audio sink to the pad"
         print >>sys.stderr, "LINKING AUDIO SINK"
         self.audiosink = gst.element_factory_make("alsasink")
         self.pipeline.add(self.audiosink)
@@ -165,6 +174,8 @@ class FsUIPipeline:
             
 
 class FsUISource:
+    "An abstract generic class for media sources"
+
     def __init__(self, pipeline):
         self.pipeline = pipeline
         self.tee = gst.element_factory_make("tee")
@@ -172,7 +183,6 @@ class FsUISource:
         self.tee.set_state(gst.STATE_PLAYING)
 
         self.source = self.make_source()
-#        self.source.set_locked_state(1)
         pipeline.add(self.source)
         self.source.link(self.tee)
         self.playcount = 0
@@ -185,13 +195,16 @@ class FsUISource:
         
         
     def make_source(self):
+        "Creates and returns the source GstElement"
         raise NotImplementedError()
 
 
     def get_type(self):
+        "Returns the FsMediaType of the source."
         raise NotImplementedError()
 
     def get_src_pad(self, name="src%d"):
+        "Gets a source pad from the source"
         queue = gst.element_factory_make("queue")
         requestpad = self.tee.get_request_pad(name)
         self.pipeline.add(queue)
@@ -202,11 +215,14 @@ class FsUISource:
         return pad
 
     def put_src_pad(self, pad):
+        "Puts the source pad from the source"
         self.pipeline.remove(pad.get_data("queue"))
         self.tee.release_request_pad(pad.get_data("requestpad"))
     
 
 class FsUIVideoSource(FsUISource):
+    "A Video source"
+    
     def get_type(self):
         return farsight.MEDIA_TYPE_VIDEO
 
@@ -228,7 +244,9 @@ class FsUIVideoSource(FsUISource):
             
       
 
-class FsUIAudioSource(FsUISource): 
+class FsUIAudioSource(FsUISource):
+    "An audio source"
+
     def get_type(self):
         return farsight.MEDIA_TYPE_AUDIO
 
@@ -241,13 +259,19 @@ class FsUIAudioSource(FsUISource):
 
 
 class FsUISession:
+    "This is one session (audio or video depending on the source)"
+    
     def __init__(self, conference, source):
         self.conference = conference
         self.source = source
         self.streams = weakref.WeakValueDictionary()
-        self.session = conference.new_session(source.get_type())
+        self.fssession = conference.new_session(source.get_type())
         if source.get_type() == farsight.MEDIA_TYPE_VIDEO:
-            self.session.set_property("local-codecs-config",
+            # We prefer H263-1998 because we know it works
+            # We don't know if the others do work
+            # We know H264 doesn't work for now or anything else
+            # that needs to send config data
+            self.fssession.set_property("local-codecs-config",
                                       [farsight.Codec(farsight.CODEC_ID_ANY,
                                                       "H263-1998",
                                                       farsight.MEDIA_TYPE_VIDEO,
@@ -257,7 +281,7 @@ class FsUISession:
                                                       farsight.MEDIA_TYPE_VIDEO,
                                                       0)])
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
-            self.session.set_property("local-codecs-config",
+            self.fssession.set_property("local-codecs-config",
                                       [farsight.Codec(farsight.CODEC_ID_ANY,
                                                       "PCMA",
                                                       farsight.MEDIA_TYPE_AUDIO,
@@ -266,16 +290,17 @@ class FsUISession:
                                                       "PCMU",
                                                       farsight.MEDIA_TYPE_AUDIO,
                                                       0)])
-        self.session.connect("new-negotiated-codecs",
+        self.fssession.connect("new-negotiated-codecs",
                              self.__new_negotiated_codecs)
         self.sourcepad = self.source.get_src_pad()
-        self.sourcepad.link(self.session.get_property("sink-pad"))
+        self.sourcepad.link(self.fssession.get_property("sink-pad"))
 
     def __del__(self):
         self.sourcepad(unlink)
         self.source.put_src_pad(self.sourcepad)
         
     def __new_negotiated_codecs(self, session):
+        "Callback from FsSession"
         for s in self.streams.valuerefs():
             try:
                 s().new_negotiated_codecs()
@@ -283,82 +308,109 @@ class FsUISession:
                 pass
             
             
-    def new_stream(self, id, connect, participant):
+    def new_stream(self, id, participant):
+        "Creates a new stream for a specific participant"
         transmitter_params = {}
+        # If its video, we start at port 9078, to make it more easy
+        # to differentiate it in a tcpdump log
         if self.source.get_type() == farsight.MEDIA_TYPE_VIDEO and \
                TRANSMITTER == "rawudp":
             cand = farsight.Candidate()
             cand.component_id = farsight.COMPONENT_RTP
             cand.port = 9078
             transmitter_params["preferred-local-candidates"] = [cand]
-        realstream = self.session.new_stream(participant.participant,
+        realstream = self.fssession.new_stream(participant.fsparticipant,
                                              farsight.DIRECTION_BOTH,
                                              TRANSMITTER, transmitter_params)
-        stream = FsUIStream(id, connect, self, participant, realstream)
+        stream = FsUIStream(id, self, participant, realstream)
         self.streams[id] = stream
         return stream
     
 
 class FsUIStream:
-    def __init__(self, id, connect, session, participant, stream):
+    "One participant in one session"
+
+    def __init__(self, id, session, participant, fsstream):
         self.id = id
         self.session = session
         self.participant = participant
-        self.stream = stream
-        self.connect = connect
-        self.stream.connect("local-candidates-prepared",
+        self.fsstream = fsstream
+        self.connect = participant.connect
+        self.fsstream.connect("local-candidates-prepared",
                             self.__local_candidates_prepared)
-        self.stream.connect("new-local-candidate",
+        self.fsstream.connect("new-local-candidate",
                             self.__new_local_candidate)
-        self.stream.connect("src-pad-added", self.__src_pad_added)
+        self.fsstream.connect("src-pad-added", self.__src_pad_added)
         self.newcodecs = []
-        
-    def __local_candidates_prepared(self, streem):
+
+    def __local_candidates_prepared(self, stream):
+        "Callback from FsStream"
         self.connect.send_candidates_done(self.participant.id, self.id)
     def __new_local_candidate(self, stream, candidate):
+        "Callback from FsStream"
         self.connect.send_candidate(self.participant.id, self.id, candidate)
     def __src_pad_added(self, stream, pad, codec):
+        "Callback from FsStream"
         if self.session.source.get_type() == farsight.MEDIA_TYPE_VIDEO:
             self.participant.link_video_sink(pad)
         else:
             self.participant.pipeline.link_audio_sink(pad)
 
     def candidate(self, candidate):
-        self.stream.add_remote_candidate(candidate)
+        "Callback for the network object."
+        self.fsstream.add_remote_candidate(candidate)
     def candidates_done(self):
-        self.stream.remote_candidates_added()
+        "Callback for the network object."
+        self.fsstream.remote_candidates_added()
     def codec(self, codec):
+        "Callback for the network object. Stores the codec"
+        
         self.newcodecs.append(codec)
+        
     def codecs_done(self):
+        """Callback for the network object.
+
+        When all the codecs have been received, we can set them on the stream.
+        """
         if len(self.newcodecs) > 0:
             self.codecs = self.newcodecs
             self.newcodecs = []
         try:
-            self.stream.set_remote_codecs(self.codecs)
+            self.fsstream.set_remote_codecs(self.codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
+            
     def send_local_codecs(self):
-        codecs = self.session.session.get_property("negotiated-codecs")
+        "Callback for the network object."
+        codecs = self.session.fssession.get_property("negotiated-codecs")
         if codecs is None or len(codecs) == 0:
-            codecs = self.session.session.get_property("local-codecs")
+            codecs = self.session.fssession.get_property("local-codecs")
         for codec in codecs:
             self.connect.send_codec(self.participant.id, self.id, codec)
         self.connect.send_codecs_done(self.participant.id, self.id)
+
     def new_negotiated_codecs(self):
+        """Callback for the network object.
+
+        We only send our negotiated codecs to the server (participant 1) or
+        to everyone if we are the server.
+        """
         if self.participant.id == 1 or self.connect.myid == 1:
-            for codec in self.session.session.get_property("negotiated-codecs"):
+            for codec in self.session.fssession.get_property("negotiated-codecs"):
                 self.connect.send_codec(self.participant.id, self.id, codec)
             self.connect.send_codecs_done(self.participant.id, self.id)
 
 
 class FsUIParticipant:
+    "Wraps one FsParticipant, is one user remote contact"
+    
     def __init__(self, connect, id, cname, pipeline, mainui):
         self.connect = connect
         self.id = id
         self.cname = cname
         self.pipeline = pipeline
         self.mainui = mainui
-        self.participant = pipeline.conf.new_participant(cname)
+        self.fsparticipant = pipeline.conf.new_participant(cname)
         self.outcv = threading.Condition()
         self.funnel = None
         self.make_widget()
@@ -366,26 +418,31 @@ class FsUIParticipant:
         if VIDEO:
             self.streams[int(farsight.MEDIA_TYPE_VIDEO)] = \
               pipeline.videosession.new_stream(
-                int(farsight.MEDIA_TYPE_VIDEO),
-                connect, self)
+                int(farsight.MEDIA_TYPE_VIDEO), self)
         if AUDIO:
             self.streams[int(farsight.MEDIA_TYPE_AUDIO)] = \
               pipeline.audiosession.new_stream(
-                int(farsight.MEDIA_TYPE_AUDIO),
-                connect, self)
+                int(farsight.MEDIA_TYPE_AUDIO), self)
         
     def candidate(self, media, candidate):
+        "Callback for the network object."
         self.streams[media].candidate(candidate)
     def candidates_done(self, media):
+        "Callback for the network object."
         self.streams[media].candidates_done()
     def codec(self, media, codec):
+        "Callback for the network object."
         self.streams[media].codec(codec)
     def codecs_done(self, media):
+        "Callback for the network object."
         self.streams[media].codecs_done()
     def send_local_codecs(self):
+        "Callback for the network object."
         for id in self.streams:
             self.streams[id].send_local_codecs()
+
     def make_widget(self):
+        "Make the widget of the participant's video stream."
         gtk.gdk.threads_enter()
         self.glade = gtk.glade.XML(gladefile, "user_frame")
         self.userframe = self.glade.get_widget("user_frame")
@@ -395,6 +452,10 @@ class FsUIParticipant:
         gtk.gdk.threads_leave()
 
     def exposed(self, widget, *args):
+        """From the exposed signal, used to create the video sink
+        The video sink will be created here, but will only be linked when the
+        pad arrives and link_video_sink() is called.
+        """
         if not VIDEO:
             return
         try:
@@ -419,6 +480,7 @@ class FsUIParticipant:
             
 
     def have_size(self, pad, buffer):
+        "Callback on the first buffer to know the drawingarea size"
         x = buffer.caps[0]["width"]
         y = buffer.caps[0]["height"]
         gtk.gdk.threads_enter()
@@ -431,6 +493,11 @@ class FsUIParticipant:
 
 
     def link_video_sink(self, pad):
+        """Link the video sink
+
+        Wait for the funnnel for the video sink to be created, when it has been
+        created, link it.
+        """
         try:
             self.outcv.acquire()
             while self.funnel is None:
@@ -462,6 +529,7 @@ class FsUIParticipant:
         gtk.gdk.threads_leave()
 
     def error(self):
+        "Callback for the network object."
         if self.id == 1:
             self.mainui.fatal_error("<b>Disconnected from server</b>")
         else:
@@ -470,6 +538,7 @@ class FsUIParticipant:
     
 
 class FsMainUI:
+    "The main UI and its different callbacks"
     
     def __init__(self, mode, ip, port):
         self.mode = mode
@@ -493,6 +562,7 @@ class FsMainUI:
         self.mainwindow.show()
 
     def exposed(self, widget, *args):
+        "Callback from the exposed event of the widget to make the preview sink"
         if not VIDEO:
             return
         try:
@@ -525,7 +595,10 @@ class FsMainUI:
         gtk.main_quit()
         gtk.gdk.threads_leave()
 
+
 class FsUIStartup:
+    "Displays the startup window and then creates the FsMainUI"
+    
     def __init__(self):
         self.glade = gtk.glade.XML(gladefile, "neworconnect_dialog")
         self.dialog = self.glade.get_widget("neworconnect_dialog")
