@@ -7,6 +7,7 @@ HEADERS=" \
     fs-session.h \
     fs-participant.h \
     fs-stream.h \
+    fs-element-added-notifier.h \
     fs-enum-types.h"
 
 srcdir=../gst-libs/gst/farsight/

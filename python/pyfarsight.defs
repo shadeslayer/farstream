@@ -515,8 +515,61 @@
   (c-name "fs_stream_emit_src_pad_added")
   (return-type "none")
   (parameters
-    '("GstPad*" "ghostpad")
+    '("GstPad*" "pad")
     '("FsCodec*" "codec")
+  )
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+(define-object ElementAddedNotifier
+  (in-module "Fs")
+  (parent "GObject")
+  (c-name "FsElementAddedNotifier")
+  (gtype-id "FS_TYPE_ELEMENT_ADDED_NOTIFIER")
+)
+
+;; Enumerations and flags ...
+
+
+;; From fs-element-added-notifier.h
+
+(define-function fs_element_added_notifier_get_type
+  (c-name "fs_element_added_notifier_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_element_added_notifier_new
+  (c-name "fs_element_added_notifier_new")
+  (is-constructor-of "FsElementAddedNotifier")
+  (return-type "FsElementAddedNotifier*")
+)
+
+(define-method add
+  (of-object "FsElementAddedNotifier")
+  (c-name "fs_element_added_notifier_add")
+  (return-type "none")
+  (parameters
+    '("GstBin*" "bin")
+  )
+)
+
+(define-method remove
+  (of-object "FsElementAddedNotifier")
+  (c-name "fs_element_added_notifier_remove")
+  (return-type "gboolean")
+  (parameters
+    '("GstBin*" "bin")
+  )
+)
+
+(define-method set_properties_from_keyfile
+  (of-object "FsElementAddedNotifier")
+  (c-name "fs_element_added_notifier_set_properties_from_keyfile")
+  (return-type "none")
+  (parameters
+    '("GKeyFile*" "keyfile")
   )
 )
 
