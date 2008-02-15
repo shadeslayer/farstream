@@ -77,7 +77,6 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
  * @add_remote_candidate: Adds a remote candidate
  * @remote_candidates_added: Tell the stream to start the connectivity checks
  * @select_candidate_pair: Select the candidate pair
- * @preload_recv_codec: Set which codec to prelaod
  * @set_remote_codecs: Sets the list of remote codecs
  *
  * You must override add_remote_candidate in a subclass.
@@ -97,9 +96,6 @@ struct _FsStreamClass
 
   gboolean (*select_candidate_pair) (FsStream *stream, gchar *lfoundation,
                                      gchar *rfoundation, GError **error);
-
-  gboolean (*preload_recv_codec) (FsStream *stream, FsCodec *codec,
-                                  GError **error);
 
   gboolean (*set_remote_codecs) (FsStream *stream,
                                  GList *remote_codecs, GError **error);
@@ -134,9 +130,6 @@ void fs_stream_remote_candidates_added (FsStream *stream);
 
 gboolean fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
                                           gchar *rfoundation, GError **error);
-
-gboolean fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec,
-                                       GError **error);
 
 gboolean fs_stream_set_remote_codecs (FsStream *stream,
                                       GList *remote_codecs, GError **error);

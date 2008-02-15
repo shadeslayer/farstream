@@ -479,16 +479,6 @@
   )
 )
 
-(define-method preload_recv_codec
-  (of-object "FsStream")
-  (c-name "fs_stream_preload_recv_codec")
-  (return-type "gboolean")
-  (parameters
-    '("FsCodec*" "codec")
-    '("GError**" "error")
-  )
-)
-
 (define-method set_remote_codecs
   (of-object "FsStream")
   (c-name "fs_stream_set_remote_codecs")

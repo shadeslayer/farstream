@@ -455,35 +455,6 @@ fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
 }
 
 /**
- * fs_stream_preload_recv_codec:
- * @stream: an #FsStream
- * @codec: The #FsCodec to be preloaded
- * @error: location of a #GError, or %NULL if no error occured
- *
- * This function will preload the codec corresponding to the given codec.
- * This codec must correspond exactly to one of the local-codecs returned by
- * the #FsSession that spawned this #FsStream. Preloading a codec is useful for
- * machines where loading the codec is slow. When preloading, decoding can start
- * as soon as a stream is received.
- *
- * Returns: TRUE of the codec could be preloaded, FALSE if there is an error
- */
-gboolean
-fs_stream_preload_recv_codec (FsStream *stream, FsCodec *codec, GError **error)
-{
-  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
-
-  if (klass->preload_recv_codec) {
-    return klass->preload_recv_codec (stream, codec, error);
-  } else {
-    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "preload_recv_codec not defined in class");
-  }
-
-  return FALSE;
-}
-
-/**
  * fs_stream_set_remote_codecs:
  * @stream: an #FsStream
  * @remote_codecs: a #GList of #FsCodec representing the remote codecs
