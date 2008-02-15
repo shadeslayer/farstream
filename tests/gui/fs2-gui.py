@@ -97,6 +97,9 @@ class FsUIPipeline:
     
     def __init__(self, elementname="fsrtpconference"):
         self.pipeline = gst.Pipeline()
+        notifier = farsight.ElementAddedNotifier()
+        notifier.connect("element-added", self.element_added_cb)
+        notifier.add(self.pipeline)
         self.pipeline.get_bus().set_sync_handler(self.sync_handler)
         self.pipeline.get_bus().add_watch(self.async_handler)
         self.conf = gst.element_factory_make(elementname)
@@ -173,6 +176,11 @@ class FsUIPipeline:
         self.pipeline.add(self.audiosink)
         self.audiosink.set_state(gst.STATE_PLAYING)
         pad.link(self.audiosink.get_pad("sink"))
+
+    def element_added_cb(self, notifier, bin, element):
+        if element.get_factory().get_name() == "x264enc":
+            element.set_property("byte-stream", True)
+            element.set_property("bitrate", 128)
             
 
 class FsUISource:
@@ -284,14 +292,19 @@ class FsUISession:
             # We know H264 doesn't work for now or anything else
             # that needs to send config data
             self.fssession.set_property("local-codecs-config",
-                                      [farsight.Codec(farsight.CODEC_ID_ANY,
-                                                      "H263-1998",
-                                                      farsight.MEDIA_TYPE_VIDEO,
-                                                      0),
-                                       farsight.Codec(farsight.CODEC_ID_DISABLE,
+                                        [farsight.Codec(farsight.CODEC_ID_ANY,
                                                       "H264",
                                                       farsight.MEDIA_TYPE_VIDEO,
-                                                      0)])
+                                                      0)],
+                                        farsight.Codec(farsight.CODEC_ID_ANY,
+                                                     "H263-1998",
+                                                     farsight.MEDIA_TYPE_VIDEO,
+                                                     0),
+                                        farsight.Codec(farsight.CODEC_ID_ANY,
+                                                     "H263",
+                                                     farsight.MEDIA_TYPE_VIDEO,
+                                                     0),
+                                       )
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
             self.fssession.set_property("local-codecs-config",
                                       [farsight.Codec(farsight.CODEC_ID_ANY,
