@@ -21,8 +21,8 @@
       <xi:include href="xml/fs-codec.xml"/>
     </chapter>
     <chapter>
-      <title>Farsight Utility Functions</title>
-      <xi:include href="xml/fs-utils.xml"/>
+      <title>Farsight Utility Functions and Objects</title>
+      <xi:include href="xml/fs-element-added-notifier.xml"/>
     </chapter>
   </part>
   <part>

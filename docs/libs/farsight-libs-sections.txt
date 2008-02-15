@@ -78,7 +78,6 @@ FS_IS_CONFERENCE
 FS_TYPE_CONFERENCE
 fs_conference_get_type
 FS_CONFERENCE_GET_IFACE
-FsConference
 FsConferenceClass
 fs_error_quark
 </SECTION>
@@ -191,11 +190,11 @@ fs_stream_transmitter_get_type
 <SECTION>
 <FILE>fs-plugin</FILE>
 <TITLE>FsPlugin</TITLE>
+FsPlugin
 fs_plugin_create_valist
 fs_plugin_create
 FS_INIT_PLUGIN
 <SUBSECTION Standard>
-FsPlugin
 FsPluginClass
 FS_IS_PLUGIN
 FS_IS_PLUGIN_CLASS
@@ -208,10 +207,21 @@ fs_plugin_get_type
 </SECTION>
 
 <SECTION>
-<FILE>fs-utils</FILE>
-<TITLE>Utils</TITLE>
-FsElementAddedCallback
-fs_utils_add_recursive_element_added_notification
-fs_utils_remove_recursive_element_added_notification
-fs_utils_add_recursive_element_setter_from_keyfile
+<FILE>fs-element-added-notifier</FILE>
+<TITLE>FsElementAddedNotifier</TITLE>
+FsElementAddedNotifier
+fs_element_added_notifier_new
+fs_element_added_notifier_add
+fs_element_added_notifier_remove
+fs_element_added_notifier_set_properties_from_keyfile
+<SUBSECTION Standard>
+FsElementAddedNotifierClass
+FsElementAddedNotifierPrivate
+FS_ELEMENT_ADDED_NOTIFIER
+FS_ELEMENT_ADDED_NOTIFIER_CLASS
+FS_ELEMENT_ADDED_NOTIFIER_GET_CLASS
+FS_IS_ELEMENT_ADDED_NOTIFIER
+FS_IS_ELEMENT_ADDED_NOTIFIER_CLASS
+FS_TYPE_ELEMENT_ADDED_NOTIFIER
+fs_element_added_notifier_get_type
 </SECTION>

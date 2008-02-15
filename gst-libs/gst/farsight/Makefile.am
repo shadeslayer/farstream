@@ -13,7 +13,7 @@ libgstfarsightinclude_HEADERS = \
 		fs-plugin.h \
 		fs-marshal.h \
 		fs-enum-types.h \
-		fs-utils.h
+		fs-element-added-notifier.h
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
 
@@ -38,7 +38,7 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-plugin.c \
 		fs-marshal.c \
 		fs-enum-types.c \
-		fs-utils.c
+		fs-element-added-notifier.c
 
 noinst_HEADERS = \
 	fs-marshal.h \

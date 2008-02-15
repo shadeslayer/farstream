@@ -24,14 +24,15 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-utils.h>
+#include <gst/farsight/fs-element-added-notifier.h>
 
 gboolean called = FALSE;
 gpointer last_added = NULL;
 gpointer last_bin = NULL;
 
 static void
-_added_cb (GstBin *bin, GstElement *element, gpointer user_data)
+_added_cb (FsElementAddedNotifier *notifier, GstBin *bin, GstElement *element,
+    gpointer user_data)
 {
   GstObject *parent = NULL;
 
@@ -54,17 +55,19 @@ GST_START_TEST (test_bin_added_simple)
 {
   GstElement *pipeline = NULL;
   GstElement *identity = NULL;
-  gpointer handle = NULL;
+  FsElementAddedNotifier *notifier = NULL;
 
   pipeline = gst_pipeline_new (NULL);
 
   identity = gst_element_factory_make ("identity", NULL);
   gst_object_ref (identity);
 
-  handle = fs_utils_add_recursive_element_added_notification (pipeline,
-      _added_cb, &last_added);
+  notifier = fs_element_added_notifier_new ();
 
-  fail_if (handle == NULL, "Could not add notification to pipeline");
+  g_signal_connect (notifier, "element-added",
+      G_CALLBACK (_added_cb), &last_added);
+
+  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
   fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
       "Could not add identity to pipeline");
@@ -85,10 +88,9 @@ GST_START_TEST (test_bin_added_simple)
   called = FALSE;
   last_added = last_bin = NULL;
 
-
   fail_unless (
-      fs_utils_remove_recursive_element_added_notification (pipeline, handle),
-      "Could not remove notification handle %p", handle);
+      fs_element_added_notifier_remove (notifier, GST_BIN (pipeline)),
+      "Could not remove notification");
 
   fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
       "Could not add identity to pipeline");
@@ -98,6 +100,7 @@ GST_START_TEST (test_bin_added_simple)
   called = FALSE;
   last_added = last_bin = NULL;
 
+  g_object_unref (notifier);
   gst_object_unref (identity);
   gst_object_unref (pipeline);
 }
@@ -109,7 +112,7 @@ GST_START_TEST (test_bin_added_recursive)
   GstElement *pipeline = NULL;
   GstElement *bin = NULL;
   GstElement *identity = NULL;
-  gpointer handle = NULL;
+  FsElementAddedNotifier *notifier = NULL;
 
   pipeline = gst_pipeline_new (NULL);
 
@@ -121,10 +124,12 @@ GST_START_TEST (test_bin_added_recursive)
   identity = gst_element_factory_make ("identity", NULL);
   gst_object_ref (identity);
 
-  handle = fs_utils_add_recursive_element_added_notification (pipeline,
-      _added_cb, &last_added);
+  notifier = fs_element_added_notifier_new ();
 
-  fail_if (handle == NULL, "Could not add notification to bin");
+  g_signal_connect (notifier, "element-added",
+      G_CALLBACK (_added_cb), &last_added);
+
+  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
   fail_unless (gst_bin_add (GST_BIN (bin), identity),
       "Could not add identity to bin");
@@ -147,8 +152,8 @@ GST_START_TEST (test_bin_added_recursive)
 
 
   fail_unless (
-      fs_utils_remove_recursive_element_added_notification (pipeline, handle),
-      "Could not remove notification handle %p", handle);
+      fs_element_added_notifier_remove (notifier, GST_BIN (pipeline)),
+      "Could not remove notification");
 
   fail_unless (gst_bin_add (GST_BIN (bin), identity),
       "Could not add identity to bin");
@@ -158,10 +163,7 @@ GST_START_TEST (test_bin_added_recursive)
   fail_unless (gst_bin_remove (GST_BIN (bin), identity),
       "Could not remove identity from bin");
 
-  handle = fs_utils_add_recursive_element_added_notification (pipeline,
-      _added_cb, &last_added);
-
-  fail_if (handle == NULL, "Could not re-add notification to bin");
+  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
   called = FALSE;
   last_added = last_bin = NULL;
@@ -175,6 +177,7 @@ GST_START_TEST (test_bin_added_recursive)
       " but the callback was still called");
 
 
+  g_object_unref (notifier);
   gst_object_unref (identity);
   gst_object_unref (bin);
   gst_object_unref (pipeline);
@@ -187,7 +190,7 @@ GST_START_TEST (test_bin_keyfile)
   GKeyFile *keyfile = g_key_file_new ();
   GstElement *pipeline = NULL;
   GstElement *identity = NULL;
-  gpointer handle = NULL;
+  FsElementAddedNotifier *notifier = NULL;
   gboolean sync;
 
   g_key_file_set_boolean (keyfile, "identity", "sync", TRUE);
@@ -200,9 +203,11 @@ GST_START_TEST (test_bin_keyfile)
   g_object_get (identity, "sync", &sync, NULL);
   fail_unless (sync == FALSE, "sync prop on identity does not start at FALSE");
 
-  handle = fs_utils_add_recursive_element_setter_from_keyfile (pipeline,
-      keyfile);
-  fail_if (handle == NULL, "Could not add notification to pipeline");
+  notifier = fs_element_added_notifier_new ();
+
+  fs_element_added_notifier_set_properties_from_keyfile (notifier, keyfile);
+
+  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
   fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
       "Could not add identity to pipeline");
@@ -220,8 +225,8 @@ GST_START_TEST (test_bin_keyfile)
   fail_unless (sync == FALSE, "sync prop on identity not reset to FALSE");
 
   fail_unless (
-      fs_utils_remove_recursive_element_added_notification (pipeline, handle),
-      "Could not remove notification handle %p", handle);
+      fs_element_added_notifier_remove (notifier, GST_BIN (pipeline)),
+      "Could not remove notification");
 
   fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
       "Could not add identity to bin");
@@ -229,16 +234,13 @@ GST_START_TEST (test_bin_keyfile)
   g_object_get (identity, "sync", &sync, NULL);
   fail_if (sync == TRUE, "sync prop on identity changed to TRUE");
 
-  handle = fs_utils_add_recursive_element_setter_from_keyfile (pipeline,
-      keyfile);
-  fail_if (handle == NULL, "Could not add notification to pipeline");
+  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
   g_object_get (identity, "sync", &sync, NULL);
   fail_unless (sync == TRUE, "sync prop on identity is not changed to TRUE");
 
   gst_object_unref (identity);
   gst_object_unref (pipeline);
-  g_key_file_free (keyfile);
 }
 GST_END_TEST;
 

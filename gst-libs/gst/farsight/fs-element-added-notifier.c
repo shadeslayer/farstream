@@ -1,11 +1,9 @@
 /*
- * Farsight2 - Utility functions
+ * Farsight2 - Recursive element addition notifier
  *
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- * Copyright 2007 Nokia Corp.
- *
- * fs-session.h - A Farsight Session gobject (base implementation)
+ * Copyright 2007-2008 Nokia Corp.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -24,59 +22,131 @@
 
 
 /**
- * SECTION:fs-utils
- * @short_description: Various utility functions
+ * SECTION:fs-element-added-notifier
+ * @short_description: Recursive element addition notifier
  *
- * This file contains various utility functions for farsight
+ * This object can be attach to any #GstBin and will emit a the
+ * #FsElementAddedNotifier::element-added signal for every element inside the
+ * #GstBin or any sub-bin and any element added in the future to the bin or
+ * its sub-bins. There is also a utility method to have it used to
+ * set the properties of elements based on a GKeyfile.
  */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
-#include "fs-utils.h"
+#include "fs-element-added-notifier.h"
+#include "fs-marshal.h"
 
-struct FsElementAddedData {
-  gint refcount;
-  FsElementAddedCallback callback;
-  gpointer user_data;
-  GstElement *head;
+
+/* Signals */
+enum
+{
+  ELEMENT_ADDED,
+  LAST_SIGNAL
 };
 
+#define FS_ELEMENT_ADDED_NOTIFIER_GET_PRIVATE(o)                     \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_ELEMENT_ADDED_NOTIFIER, \
+      FsElementAddedNotifierPrivate))
 
-static gpointer _element_added_callback (GstBin *parent, GstElement *element,
+struct _FsElementAddedNotifierPrivate {
+  GList *keyfiles;
+};
+
+static void _element_added_callback (GstBin *parent, GstElement *element,
     gpointer user_data);
 
+static void fs_element_added_notifier_finalize (GObject *object);
 
-static struct FsElementAddedData *
-element_added_data_new (FsElementAddedCallback callback, gpointer user_data,
-                        GstElement *head)
-{
-  struct FsElementAddedData *data =
-    g_new (struct FsElementAddedData, 1);
 
-  data->refcount = 0;
-  data->callback = callback;
-  data->user_data = user_data;
-  data->head = head;
+G_DEFINE_TYPE(FsElementAddedNotifier, fs_element_added_notifier, G_TYPE_OBJECT);
 
-  return data;
-}
+static guint signals[LAST_SIGNAL] = { 0 };
+
+static GObjectClass *parent_class = NULL;
 
 static void
-element_added_data_inc (struct FsElementAddedData *data)
+fs_element_added_notifier_class_init (FsElementAddedNotifierClass *klass)
 {
-  g_atomic_int_inc (&data->refcount);
+  GObjectClass *gobject_class;
+
+  gobject_class = (GObjectClass *) klass;
+  parent_class = g_type_class_peek_parent (klass);
+
+  gobject_class->finalize = fs_element_added_notifier_finalize;
+
+   /**
+   * FsElementAddedNotifier::element-added:
+   * @self: #FsElementAddedNotifier that emitted the signal
+   * @bin: The #GstBin to which this object was added
+   * @element: The #GstElement that was added
+   *
+   * This signal is emitted when an element is added to a #GstBin that was added
+   * to this object or one of its sub-bins.
+   */
+  signals[ELEMENT_ADDED] = g_signal_new ("element-added",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      fs_marshal_VOID__OBJECT_OBJECT,
+      G_TYPE_NONE, 2, GST_TYPE_BIN, GST_TYPE_ELEMENT);
+
+  g_type_class_add_private (klass, sizeof (FsElementAddedNotifierPrivate));
 }
 
 
 static void
-element_added_data_dec (struct FsElementAddedData *data)
+fs_element_added_notifier_init (FsElementAddedNotifier *notifier)
 {
-  if (g_atomic_int_dec_and_test (&data->refcount))
-  {
-    g_free (data);
-  }
+  notifier->priv = FS_ELEMENT_ADDED_NOTIFIER_GET_PRIVATE(notifier);
+}
+
+
+
+static void
+fs_element_added_notifier_finalize (GObject *object)
+{
+  FsElementAddedNotifier *self = FS_ELEMENT_ADDED_NOTIFIER (object);
+
+  g_list_foreach (self->priv->keyfiles, (GFunc) g_key_file_free, NULL);
+  g_list_free (self->priv->keyfiles);
+  self->priv->keyfiles = NULL;
+}
+
+/**
+ * fs_element_added_notifier_new:
+ *
+ * Creates a new #FsElementAddedNotifier object
+ *
+ * Returns: the newly-created #FsElementAddedNotifier
+ */
+
+FsElementAddedNotifier *
+fs_element_added_notifier_new (void)
+{
+  return (FsElementAddedNotifier *)
+    g_object_new (FS_TYPE_ELEMENT_ADDED_NOTIFIER, NULL);
+}
+
+/**
+ * fs_element_added_notifier_add:
+ * @notifier: a #FsElementAddedNotifier
+ * @bin: A #GstBin to watch to added elements
+ *
+ * Add a #GstBin to on which the #FsElementAddedNotifier::element-added signal
+ * will be called on every element and sub-element present and added in the
+ * future.
+ */
+
+void
+fs_element_added_notifier_add (FsElementAddedNotifier *notifier,
+    GstBin *bin)
+{
+  _element_added_callback (NULL, GST_ELEMENT_CAST (bin), notifier);
 }
 
 
@@ -122,118 +192,27 @@ _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
   gst_iterator_free (iter);
 }
 
-static gpointer
-_element_added_callback (GstBin *parent, GstElement *element,
-    gpointer user_data)
-{
-  struct FsElementAddedData *data = user_data;
-
-  if (GST_IS_BIN (element)) {
-    GstIterator *iter = NULL;
-    gboolean done;
-
-    element_added_data_inc (data);
-    g_object_weak_ref (G_OBJECT (element), (GWeakNotify) element_added_data_dec,
-        user_data);
-    g_signal_connect (element, "element-added",
-        G_CALLBACK (_element_added_callback), user_data);
-
-    if (data->head != element)
-      g_signal_connect (element, "parent-unset",
-          G_CALLBACK (_bin_unparented_cb), user_data);
-
-    iter = gst_bin_iterate_elements (GST_BIN (element));
-
-    done = FALSE;
-    while (!done)
-    {
-      gpointer item = NULL;
-
-      switch (gst_iterator_next (iter, &item)) {
-       case GST_ITERATOR_OK:
-         /* We make sure the callback has not already been added */
-         if (g_signal_handler_find (item,
-                 G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
-                 0, 0, NULL, /* id, detail, closure */
-                 _element_added_callback, user_data) == 0)
-           _element_added_callback (GST_BIN_CAST (element), item, user_data);
-         gst_object_unref (item);
-         break;
-       case GST_ITERATOR_RESYNC:
-         // We don't rollback anything, we just ignore already processed ones
-         gst_iterator_resync (iter);
-         break;
-       case GST_ITERATOR_ERROR:
-         g_error ("Wrong parameters were given?");
-         done = TRUE;
-         break;
-       case GST_ITERATOR_DONE:
-         done = TRUE;
-         break;
-     }
-    }
-
-    gst_iterator_free (iter);
-  }
-
-  data->callback (parent, element, data->user_data);
-
-  return data;
-}
 
 /**
- * fs_utils_add_recursive_element_added_notification:
- * @element: A #GstElement
- * @callback: the function to be called when a new element is added
- * @user_data: data that will be passed to the callback
+ * fs_element_added_notifier_remove:
+ * @notifier: a #FsElementAddedNotifier
+ * @bin: A #GstBin to stop watching
  *
- * The callback will be called on the element and every sub-element if its a
- * bin and this will be done recursively. The function will also be called on
- * any element added in the future to the bin. The callback may be called more
- * than once and should be thread safe (elements may be added from the streaming
- * threads).
+ * Stop watching the passed bin and its subbins.
  *
- * Returns: a handle that can be used when calling
- *  fs_utils_remove_recursive_element_added_notification(), or NULL if there was
- *  an error
+ * Returns: %TRUE if the #GstBin was being watched, %FALSE otherwise
  */
 
-gpointer
-fs_utils_add_recursive_element_added_notification (GstElement *element,
-    FsElementAddedCallback callback,
-    gpointer user_data)
-{
-  g_assert (callback);
-
-  return _element_added_callback (NULL, element,
-      element_added_data_new (callback, user_data, element));
-}
-
-/**
- * fs_utils_remove_recursive_element_added_notification:
- * @element: a #GstElement on which
- *  fs_utils_add_recursive_element_added_notification() has been called
- * @handle: the handle returned by
- *     fs_utils_add_recursive_element_added_notification()
- *
- * This function will remove the callback added by
- * fs_utils_add_recursive_element_added_notification()
- *
- * Returns: TRUE if the notification could be removed, FALSE otherwise
- */
 gboolean
-fs_utils_remove_recursive_element_added_notification (GstElement *element,
-    gpointer handle)
+fs_element_added_notifier_remove (FsElementAddedNotifier *notifier,
+    GstBin *bin)
 {
-  struct FsElementAddedData *data = handle;
-
-  if (g_signal_handler_find (element,
+  if (g_signal_handler_find (bin,
           G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
           0, 0, NULL, /* id, detail, closure */
-          _element_added_callback, data) != 0)
+          _element_added_callback, notifier) != 0)
   {
-    g_assert (data->head == element);
-    _bin_unparented_cb (GST_OBJECT (data->head), NULL, data);
+    _bin_unparented_cb (GST_OBJECT (bin), NULL, notifier);
     return TRUE;
   }
   else
@@ -242,6 +221,7 @@ fs_utils_remove_recursive_element_added_notification (GstElement *element,
   }
 }
 
+
 #if 1
 # define DEBUG(...) do {} while (0)
 #else
@@ -249,7 +229,8 @@ fs_utils_remove_recursive_element_added_notification (GstElement *element,
 #endif
 
 static void
-_bin_added_from_keyfile (GstBin *bin, GstElement *element, gpointer user_data)
+_bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
+    GstElement *element, gpointer user_data)
 {
   GKeyFile *keyfile = user_data;
   GstElementFactory *factory = NULL;
@@ -388,24 +369,84 @@ _bin_added_from_keyfile (GstBin *bin, GstElement *element, gpointer user_data)
   g_strfreev(keys);
 }
 
+
 /**
- * fs_utils_add_recursive_element_setter_from_keyfile:
- * @element: a #GstElement
+ * fs_element_added_notifier_set_properties_from_keyfile:
+ * @notifier: a #FsElementAddedNotifier
  * @keyfile: a #GKeyFile
  *
- * Using a keyfile where the groups are the element's type and the key=value
- * are the property and its value, this function will set the properties on the
- * element passed and its subelements.
- *
- * Returns: a handle that can be used for
- *  fs_utils_remove_recursive_element_added_notification(), or NULL if there is
- *  an error
+ * Using a #GKeyFile where the groups are the element's type and the key=value
+ * are the property and its value, this function will set the properties
+ * on the elements added to this object after this function has been called.
+ * It will take ownership of the GKeyFile structure.
  */
-gpointer
-fs_utils_add_recursive_element_setter_from_keyfile (GstElement *element,
+void
+fs_element_added_notifier_set_properties_from_keyfile (
+    FsElementAddedNotifier *notifier,
     GKeyFile *keyfile)
 {
-  return fs_utils_add_recursive_element_added_notification (element,
-      _bin_added_from_keyfile,
-      keyfile);
+  g_signal_connect (notifier, "element-added",
+      G_CALLBACK (_bin_added_from_keyfile), keyfile);
+
+  notifier->priv->keyfiles =
+    g_list_prepend (notifier->priv->keyfiles, keyfile);
 }
+
+
+static void
+_element_added_callback (GstBin *parent, GstElement *element,
+    gpointer user_data)
+{
+  FsElementAddedNotifier *notifier = FS_ELEMENT_ADDED_NOTIFIER (user_data);
+
+  if (GST_IS_BIN (element)) {
+    GstIterator *iter = NULL;
+    gboolean done;
+
+    g_object_ref (notifier);
+    g_object_weak_ref (G_OBJECT (element), (GWeakNotify) g_object_unref,
+        notifier);
+    g_signal_connect (element, "element-added",
+        G_CALLBACK (_element_added_callback), notifier);
+
+    if (parent)
+      g_signal_connect (element, "parent-unset",
+          G_CALLBACK (_bin_unparented_cb), notifier);
+
+    iter = gst_bin_iterate_elements (GST_BIN (element));
+
+    done = FALSE;
+    while (!done)
+    {
+      gpointer item = NULL;
+
+      switch (gst_iterator_next (iter, &item)) {
+       case GST_ITERATOR_OK:
+         /* We make sure the callback has not already been added */
+         if (g_signal_handler_find (item,
+                 G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
+                 0, 0, NULL, /* id, detail, closure */
+                 _element_added_callback, notifier) == 0)
+           _element_added_callback (GST_BIN_CAST (element), item, notifier);
+         gst_object_unref (item);
+         break;
+       case GST_ITERATOR_RESYNC:
+         // We don't rollback anything, we just ignore already processed ones
+         gst_iterator_resync (iter);
+         break;
+       case GST_ITERATOR_ERROR:
+         g_error ("Wrong parameters were given?");
+         done = TRUE;
+         break;
+       case GST_ITERATOR_DONE:
+         done = TRUE;
+         break;
+     }
+    }
+
+    gst_iterator_free (iter);
+  }
+
+  g_signal_emit (notifier, signals[ELEMENT_ADDED], 0, parent, element);
+}
+
