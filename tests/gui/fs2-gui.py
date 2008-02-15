@@ -79,6 +79,7 @@ def make_video_sink(pipeline, xid, name, async=True):
     bin = gst.Bin("videosink_%d" % xid)
     sink = gst.element_factory_make("ximagesink", name)
     sink.set_property("sync", async)
+    sink.set_property("async", async)
     bin.add(sink)
     colorspace = gst.element_factory_make("ffmpegcolorspace")
     bin.add(colorspace)
