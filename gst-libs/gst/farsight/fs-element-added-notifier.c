@@ -154,6 +154,7 @@ static void
 _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
 {
   GstIterator *iter = NULL;
+  FsElementAddedNotifier *notifier = FS_ELEMENT_ADDED_NOTIFIER (user_data);
   gboolean done;
 
   /* Return if there was no handler connected */
@@ -170,10 +171,8 @@ _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
 
     switch (gst_iterator_next (iter, &item)) {
       case GST_ITERATOR_OK:
-        {
         if (GST_IS_BIN (item))
           _bin_unparented_cb (GST_OBJECT (item), object, user_data);
-        }
         break;
       case GST_ITERATOR_RESYNC:
         // We don't rollback anything, we just ignore already processed ones
@@ -190,6 +189,10 @@ _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
   }
 
   gst_iterator_free (iter);
+
+  g_object_weak_unref (G_OBJECT (object), (GWeakNotify) g_object_unref,
+      notifier);
+  g_object_unref (notifier);
 }
 
 
