@@ -2343,7 +2343,6 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
     if (fs_codec_are_equal (codec, self->priv->current_send_codec))
     {
       ret = TRUE;
-      fs_codec_destroy (codec);
       goto done;
     }
 
@@ -2373,6 +2372,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
     if (codecbin) {
       self->priv->send_codecbin = codecbin;
       self->priv->current_send_codec = codec;
+      codec = NULL;
 
       g_signal_emit_by_name (self, "send-codec-changed");
     }
@@ -2386,6 +2386,9 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   ret = TRUE;
 
  done:
+
+  if (codec)
+    fs_codec_destroy (codec);
 
   return ret;
 }

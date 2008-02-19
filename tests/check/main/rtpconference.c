@@ -698,6 +698,8 @@ GST_START_TEST (test_rtpconference_errors)
       error->code == FS_ERROR_CONSTRUCTION,
       "The wrong domain or code (%d) was returned", error->code);
 
+  g_clear_error (&error);
+
   g_object_unref (participant);
 
   cleanup_simple_conference (dat);

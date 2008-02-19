@@ -524,6 +524,8 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
 
   if (fs_rtp_session_negotiate_codecs (self->priv->session, remote_codecs,
           stream, error)) {
+    if (self->remote_codecs)
+      fs_codec_list_destroy (self->remote_codecs);
     self->remote_codecs = fs_codec_list_copy (remote_codecs);
     return TRUE;
   } else {
