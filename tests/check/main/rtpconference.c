@@ -593,7 +593,7 @@ set_initial_codecs (
   fs_codec_list_destroy (local_codecs);
 }
 
-typedef void (*extra_init)(void);
+typedef void (*extra_init) (void);
 
 static void
 nway_test (int in_count, extra_init extrainit)
@@ -724,6 +724,90 @@ GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 }
 GST_END_TEST;
 
+
+static void
+_error_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
+  gpointer user_data)
+{
+  ts_fail ("Received a buffer when we shouldn't have");
+}
+
+static void
+_normal_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
+  gpointer user_data)
+{
+  struct SimpleTestStream *st = user_data;
+
+  st->buffer_count++;
+
+  if (st->buffer_count > 100)
+    g_main_loop_quit (loop);
+
+}
+
+static void
+_recv_only_init_1 (void)
+{
+  struct SimpleTestStream *st1 = dats[0]->streams->data;
+  struct SimpleTestStream *st2 = dats[1]->streams->data;
+
+  st1->handoff_handler = G_CALLBACK (_error_handoff_handler);
+  st2->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+
+  g_object_set (st2->stream, "direction", FS_DIRECTION_RECV, NULL);
+}
+
+
+static void
+_recv_only_init_2 (void)
+{
+  struct SimpleTestStream *st1 = dats[0]->streams->data;
+  struct SimpleTestStream *st2 = dats[1]->streams->data;
+
+  st1->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+  st2->handoff_handler = G_CALLBACK (_error_handoff_handler);
+
+  g_object_set (st1->stream, "direction", FS_DIRECTION_RECV, NULL);
+}
+
+GST_START_TEST (test_rtpconference_recv_only)
+{
+  nway_test (2, _recv_only_init_1);
+  nway_test (2, _recv_only_init_2);
+}
+GST_END_TEST;
+
+static void
+_send_only_init_1 (void)
+{
+  struct SimpleTestStream *st1 = dats[0]->streams->data;
+  struct SimpleTestStream *st2 = dats[1]->streams->data;
+
+  st1->handoff_handler = G_CALLBACK (_error_handoff_handler);
+  st2->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+
+  g_object_set (st1->stream, "direction", FS_DIRECTION_SEND, NULL);
+}
+
+static void
+_send_only_init_2 (void)
+{
+  struct SimpleTestStream *st1 = dats[0]->streams->data;
+  struct SimpleTestStream *st2 = dats[1]->streams->data;
+
+  st1->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+  st2->handoff_handler = G_CALLBACK (_error_handoff_handler);
+
+  g_object_set (st2->stream, "direction", FS_DIRECTION_SEND, NULL);
+}
+
+GST_START_TEST (test_rtpconference_send_only)
+{
+  nway_test (2, _send_only_init_1);
+  nway_test (2, _send_only_init_2);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -763,6 +847,15 @@ fsrtpconference_suite (void)
   tc_chain = tcase_create ("fsrtpconfence_select_send_codec_while_running");
   tcase_add_test (tc_chain, test_rtpconference_select_send_codec_while_running);
   suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_recv_only");
+  tcase_add_test (tc_chain, test_rtpconference_recv_only);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_send_only");
+  tcase_add_test (tc_chain, test_rtpconference_send_only);
+  suite_add_tcase (s, tc_chain);
+
   return s;
 }
 
