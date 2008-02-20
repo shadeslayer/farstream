@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRtpConferenceu
+/* Farsight 2 unit tests for FsRtpConference
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -121,7 +121,7 @@ GST_START_TEST (test_rtpconference_new)
 GST_END_TEST;
 
 static gboolean
-_simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
+_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 {
   struct SimpleTestConference *dat = user_data;
 
@@ -177,7 +177,7 @@ _simple_bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 }
 
 static void
-_simple_send_codec_changed (FsSession *session, gpointer user_data)
+_send_codec_changed (FsSession *session, gpointer user_data)
 {
   struct SimpleTestConference *dat = user_data;
   FsCodec *codec = NULL;
@@ -375,22 +375,22 @@ _new_active_candidate_pair (FsStream *stream, FsCandidate *local,
 
 
 static void
-rtpconference_simple_connect_signals (struct SimpleTestConference *dat)
+rtpconference_connect_signals (struct SimpleTestConference *dat)
 {
   GstBus *bus = NULL;
 
   bus = gst_element_get_bus (dat->pipeline);
-  gst_bus_add_watch (bus, _simple_bus_callback, dat);
+  gst_bus_add_watch (bus, _bus_callback, dat);
   gst_object_unref (bus);
 
   g_signal_connect (dat->session, "send-codec-changed",
-      G_CALLBACK (_simple_send_codec_changed), dat);
+      G_CALLBACK (_send_codec_changed), dat);
 }
 
 static void
-rtpconference_simple_connect_streams_signals (struct SimpleTestStream *st)
+rtpconference_connect_streams_signals (struct SimpleTestStream *st)
 {
- g_signal_connect (st->stream, "src-pad-added", G_CALLBACK (_src_pad_added),
+  g_signal_connect (st->stream, "src-pad-added", G_CALLBACK (_src_pad_added),
       st);
 
   g_signal_connect (st->stream, "new-active-candidate-pair",
@@ -596,7 +596,7 @@ set_initial_codecs (
 
 
 static void
-simple_test (int in_count)
+nway_test (int in_count)
 {
   int i, j;
 
@@ -612,7 +612,7 @@ simple_test (int in_count)
     dats[i] = setup_simple_conference (i, "fsrtpconference", tmp);
     g_free (tmp);
 
-    rtpconference_simple_connect_signals (dats[i]);
+    rtpconference_connect_signals (dats[i]);
     g_idle_add (_start_pipeline, dats[i]);
 
     if (i != 0)
@@ -627,7 +627,7 @@ simple_test (int in_count)
         struct SimpleTestStream *st = NULL;
 
         st = simple_conference_add_stream (dats[i], dats[j]);
-        rtpconference_simple_connect_streams_signals (st);
+        rtpconference_connect_streams_signals (st);
 
         g_signal_connect (st->stream, "new-local-candidate",
             G_CALLBACK (_new_local_candidate), st);
@@ -655,21 +655,21 @@ simple_test (int in_count)
 
 GST_START_TEST (test_rtpconference_two_way)
 {
-  simple_test (2);
+  nway_test (2);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_three_way)
 {
-  simple_test (3);
+  nway_test (3);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_ten_way)
 {
-  simple_test (10);
+  nway_test (10);
 }
 GST_END_TEST;
 
@@ -711,7 +711,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
-  simple_test (2);
+  nway_test (2);
 }
 GST_END_TEST;
 
@@ -719,7 +719,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
-  simple_test (2);
+  nway_test (2);
 }
 GST_END_TEST;
 
