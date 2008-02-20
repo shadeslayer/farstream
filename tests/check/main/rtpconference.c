@@ -361,16 +361,11 @@ static void
 _new_active_candidate_pair (FsStream *stream, FsCandidate *local,
     FsCandidate *remote, gpointer user_data)
 {
-  struct SimpleTestStream *st = user_data;
-
   ts_fail_if (local == NULL, "Local candidate NULL");
   ts_fail_if (remote == NULL, "Remote candidate NULL");
 
   if (local->component_id != 1)
     return;
-
-  if (!st->dat->fakesrc)
-    setup_fakesrc (st->dat);
 }
 
 static struct SimpleTestStream *
@@ -614,6 +609,8 @@ nway_test (int in_count, extra_init extrainit)
 
     rtpconference_connect_signals (dats[i]);
     g_idle_add (_start_pipeline, dats[i]);
+
+    setup_fakesrc (dats[i]);
 
     if (i != 0)
       g_signal_connect (dats[i]->session, "new-negotiated-codecs",
