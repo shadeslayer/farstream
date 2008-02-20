@@ -805,6 +805,40 @@ GST_START_TEST (test_rtpconference_send_only)
 }
 GST_END_TEST;
 
+
+
+static void
+_switch_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
+  gpointer user_data)
+{
+  struct SimpleTestStream *st = user_data;
+
+  st->buffer_count++;
+
+  if (st->buffer_count == 20)
+    g_object_set (st->stream, "direction", FS_DIRECTION_SEND, NULL);
+
+  if (st->buffer_count > 20)
+    ts_fail ("Received a buffer on a stream that should have been sendonly");
+}
+
+
+static void
+_change_to_send_only_init (void)
+{
+  struct SimpleTestStream *st1 = dats[0]->streams->data;
+  struct SimpleTestStream *st2 = dats[1]->streams->data;
+
+  st1->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+  st2->handoff_handler = G_CALLBACK (_switch_handoff_handler);
+}
+
+GST_START_TEST (test_rtpconference_change_to_send_only)
+{
+  nway_test (2, _change_to_send_only_init);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -851,6 +885,10 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconfence_send_only");
   tcase_add_test (tc_chain, test_rtpconference_send_only);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_change_to_send_only");
+  tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
   suite_add_tcase (s, tc_chain);
 
   return s;
