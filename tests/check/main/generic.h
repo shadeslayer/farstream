@@ -49,6 +49,8 @@ struct SimpleTestStream {
 
   gint buffer_count;
 
+  GCallback handoff_handler;
+
   gint flags;
 };
 

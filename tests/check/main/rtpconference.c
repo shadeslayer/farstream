@@ -337,7 +337,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   g_object_weak_ref (G_OBJECT (fakesink),
       (GWeakNotify) fs_codec_destroy, codeccopy);
 
-  g_signal_connect (fakesink, "handoff", G_CALLBACK (_handoff_handler), st);
+  g_signal_connect (fakesink, "handoff", st->handoff_handler, st);
 
   gst_bin_add (GST_BIN (st->dat->pipeline), fakesink);
 
@@ -626,6 +626,7 @@ nway_test (int in_count)
         struct SimpleTestStream *st = NULL;
 
         st = simple_conference_add_stream (dats[i], dats[j]);
+        st->handoff_handler = G_CALLBACK (_handoff_handler);
         rtpconference_connect_streams_signals (st);
       }
 
