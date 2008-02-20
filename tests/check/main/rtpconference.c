@@ -373,46 +373,6 @@ _new_active_candidate_pair (FsStream *stream, FsCandidate *local,
     setup_fakesrc (st->dat);
 }
 
-
-static void
-rtpconference_connect_signals (struct SimpleTestConference *dat)
-{
-  GstBus *bus = NULL;
-
-  bus = gst_element_get_bus (dat->pipeline);
-  gst_bus_add_watch (bus, _bus_callback, dat);
-  gst_object_unref (bus);
-
-  g_signal_connect (dat->session, "send-codec-changed",
-      G_CALLBACK (_send_codec_changed), dat);
-}
-
-static void
-rtpconference_connect_streams_signals (struct SimpleTestStream *st)
-{
-  g_signal_connect (st->stream, "src-pad-added", G_CALLBACK (_src_pad_added),
-      st);
-
-  g_signal_connect (st->stream, "new-active-candidate-pair",
-      G_CALLBACK (_new_active_candidate_pair), st);
-}
-
-
-static gboolean
-_start_pipeline (gpointer user_data)
-{
-  struct SimpleTestConference *dat = user_data;
-
-  g_debug ("%d: Starting pipeline", dat->id);
-
-  ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
-    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
-
-  dat->started = TRUE;
-
-  return FALSE;
-}
-
 static struct SimpleTestStream *
 find_pointback_stream (
     struct SimpleTestConference *dat,
@@ -434,6 +394,70 @@ find_pointback_stream (
   return NULL;
 }
 
+static void
+_new_local_candidate (FsStream *stream, FsCandidate *candidate,
+    gpointer user_data)
+{
+  struct SimpleTestStream *st = user_data;
+  gboolean ret;
+  GError *error = NULL;
+  struct SimpleTestStream *other_st = find_pointback_stream (st->target,
+      st->dat);
+
+  g_debug ("%d:%d: Setting remote candidate for component %d",
+      other_st->dat->id,
+      other_st->target->id,
+      candidate->component_id);
+
+  ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
+
+  if (error)
+    ts_fail ("Error while adding candidate: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
+
+  ts_fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
+
+}
+
+static void
+rtpconference_connect_signals (struct SimpleTestConference *dat)
+{
+  GstBus *bus = NULL;
+
+  bus = gst_element_get_bus (dat->pipeline);
+  gst_bus_add_watch (bus, _bus_callback, dat);
+  gst_object_unref (bus);
+
+  g_signal_connect (dat->session, "send-codec-changed",
+      G_CALLBACK (_send_codec_changed), dat);
+}
+
+static void
+rtpconference_connect_streams_signals (struct SimpleTestStream *st)
+{
+  g_signal_connect (st->stream, "src-pad-added",
+      G_CALLBACK (_src_pad_added), st);
+  g_signal_connect (st->stream, "new-active-candidate-pair",
+      G_CALLBACK (_new_active_candidate_pair), st);
+  g_signal_connect (st->stream, "new-local-candidate",
+      G_CALLBACK (_new_local_candidate), st);
+}
+
+
+static gboolean
+_start_pipeline (gpointer user_data)
+{
+  struct SimpleTestConference *dat = user_data;
+
+  g_debug ("%d: Starting pipeline", dat->id);
+
+  ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
+
+  dat->started = TRUE;
+
+  return FALSE;
+}
 
 static gboolean
 _compare_codec_lists (GList *list1, GList *list2)
@@ -508,31 +532,6 @@ _new_negotiated_codecs (FsSession *session, gpointer user_data)
   fs_codec_list_destroy (codecs);
 }
 
-
-static void
-_new_local_candidate (FsStream *stream, FsCandidate *candidate,
-    gpointer user_data)
-{
-  struct SimpleTestStream *st = user_data;
-  gboolean ret;
-  GError *error = NULL;
-  struct SimpleTestStream *other_st = find_pointback_stream (st->target,
-      st->dat);
-
-  g_debug ("%d:%d: Setting remote candidate for component %d",
-      other_st->dat->id,
-      other_st->target->id,
-      candidate->component_id);
-
-  ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
-
-  if (error)
-    ts_fail ("Error while adding candidate: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
-
-  ts_fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
-
-}
 
 static void
 set_initial_codecs (
@@ -628,9 +627,6 @@ nway_test (int in_count)
 
         st = simple_conference_add_stream (dats[i], dats[j]);
         rtpconference_connect_streams_signals (st);
-
-        g_signal_connect (st->stream, "new-local-candidate",
-            G_CALLBACK (_new_local_candidate), st);
       }
 
   for (i = 1; i < count; i++)
