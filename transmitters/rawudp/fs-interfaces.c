@@ -64,10 +64,7 @@ farsight_get_local_interfaces(void)
   struct ifaddrs *ifa, *results;
 
   if (getifaddrs (&results) < 0) {
-    if (errno == ENOMEM)
-      return NULL;
-    else
-      return NULL;
+    return NULL;
   }
 
   /* Loop and get each interface the system has, one by one... */
@@ -97,7 +94,7 @@ farsight_get_local_interfaces (void)
   struct ifreq *ifr;
   struct ifconf ifc;
 
-  if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+  if ((sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
     GST_ERROR ("Cannot open socket to retreive interface list");
     return NULL;
   }
@@ -234,7 +231,7 @@ farsight_get_local_ips (gboolean include_loopback)
   struct ifconf ifc;
   struct sockaddr_in *sa;
 
-  if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+  if ((sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
     GST_ERROR("Cannot open socket to retreive interface list");
     return NULL;
   }
@@ -300,7 +297,7 @@ farsight_get_local_ips (gboolean include_loopback)
  *
  * Retreives the IP Address of an interface by its name
  *
- * Returns:
+ * Returns: a newly-allocated string with the IP address
  **/
 gchar *
 farsight_get_ip_for_interface (gchar *interface_name)
@@ -314,7 +311,7 @@ farsight_get_ip_for_interface (gchar *interface_name)
   memset (ifr.ifr_name, 0, sizeof(ifr.ifr_name));
   strcpy (ifr.ifr_name, interface_name);
 
-  if (0 > (sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP))) {
+  if ((sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
     GST_ERROR("Cannot open socket to retreive interface list");
     return NULL;
   }
@@ -329,7 +326,7 @@ farsight_get_ip_for_interface (gchar *interface_name)
   close (sockfd);
   sa = (struct sockaddr_in *) &ifr.ifr_addr;
   GST_DEBUG ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
-  return inet_ntoa(sa->sin_addr);
+  return g_strdup (inet_ntoa(sa->sin_addr));
 }
 
 #else /* G_OS_UNIX */
