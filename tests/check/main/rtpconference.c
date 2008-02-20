@@ -593,9 +593,10 @@ set_initial_codecs (
   fs_codec_list_destroy (local_codecs);
 }
 
+typedef void (*extra_init)(void);
 
 static void
-nway_test (int in_count)
+nway_test (int in_count, extra_init extrainit)
 {
   int i, j;
 
@@ -636,6 +637,9 @@ nway_test (int in_count)
     set_initial_codecs (dats[0], st);
   }
 
+  if (extrainit)
+    extrainit ();
+
   g_main_loop_run (loop);
 
   for (i = 0; i < count; i++)
@@ -652,21 +656,21 @@ nway_test (int in_count)
 
 GST_START_TEST (test_rtpconference_two_way)
 {
-  nway_test (2);
+  nway_test (2, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_three_way)
 {
-  nway_test (3);
+  nway_test (3, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_ten_way)
 {
-  nway_test (10);
+  nway_test (10, NULL);
 }
 GST_END_TEST;
 
@@ -708,7 +712,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
-  nway_test (2);
+  nway_test (2, NULL);
 }
 GST_END_TEST;
 
@@ -716,7 +720,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
-  nway_test (2);
+  nway_test (2, NULL);
 }
 GST_END_TEST;
 
