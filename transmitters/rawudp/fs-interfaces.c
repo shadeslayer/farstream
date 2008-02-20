@@ -80,6 +80,8 @@ farsight_get_local_interfaces(void)
     interfaces = g_list_prepend (interfaces, g_strdup(ifa->ifa_name));
   }
 
+  freeifaddrs (results);
+
   return interfaces;
 }
 
@@ -116,6 +118,7 @@ farsight_get_local_interfaces (void)
     if (ioctl (sockfd, SIOCGIFCONF, &ifc)) {
       perror ("ioctl SIOCFIFCONF");
       close (sockfd);
+      free (ifc.ifc_req);
       return NULL;
     }
   } while (size <= ifc.ifc_len);
@@ -129,6 +132,7 @@ farsight_get_local_interfaces (void)
     interfaces = g_list_prepend (interfaces, g_strdup(ifr->ifr_name));
   }
 
+  free (ifc.ifc_req);
   close(sockfd);
 
   return interfaces;
@@ -230,6 +234,7 @@ farsight_get_local_ips (gboolean include_loopback)
   struct ifreq *ifr;
   struct ifconf ifc;
   struct sockaddr_in *sa;
+  gchar *loopback = NULL;
 
   if ((sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
     GST_ERROR("Cannot open socket to retreive interface list");
@@ -254,6 +259,7 @@ farsight_get_local_ips (gboolean include_loopback)
     if (ioctl (sockfd, SIOCGIFCONF, &ifc)) {
       perror ("ioctl SIOCFIFCONF");
       close (sockfd);
+      free (ifc.ifc_req);
       return NULL;
     }
   } while  (size <= ifc.ifc_len);
@@ -272,8 +278,11 @@ farsight_get_local_ips (gboolean include_loopback)
     sa = (struct sockaddr_in *) &ifr->ifr_addr;
     GST_DEBUG("Interface:  %s", ifr->ifr_name);
     GST_DEBUG("IP Address: %s", inet_ntoa(sa->sin_addr));
-    if (!include_loopback && (ifr->ifr_flags & IFF_LOOPBACK) == IFF_LOOPBACK){
-      GST_DEBUG("Ignoring loopback interface");
+    if ((ifr->ifr_flags & IFF_LOOPBACK) == IFF_LOOPBACK){
+      if (include_loopback)
+        loopback = g_strdup (inet_ntoa (sa->sin_addr));
+      else
+        GST_DEBUG("Ignoring loopback interface");
     } else {
       if (farsight_is_private_ip (sa->sin_addr)) {
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
@@ -284,6 +293,10 @@ farsight_get_local_ips (gboolean include_loopback)
   }
 
   close(sockfd);
+  free (ifc.ifc_req);
+
+  if (loopback)
+    ips = g_list_append (ips, loopback);
 
   return ips;
 }
@@ -309,7 +322,7 @@ farsight_get_ip_for_interface (gchar *interface_name)
 
   ifr.ifr_addr.sa_family = AF_INET;
   memset (ifr.ifr_name, 0, sizeof(ifr.ifr_name));
-  strcpy (ifr.ifr_name, interface_name);
+  strncpy (ifr.ifr_name, interface_name, sizeof(ifr.ifr_name)-1);
 
   if ((sockfd = socket (AF_INET, SOCK_DGRAM, IPPROTO_IP)) < 0) {
     GST_ERROR("Cannot open socket to retreive interface list");
