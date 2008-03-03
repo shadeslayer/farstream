@@ -56,7 +56,7 @@ transmitter_rawudp_LDADD = $(LDADD) \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 transmitter_rawudp_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_rawudp_SOURCES = \
-	check_threadsafe.h  \
+	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/rawudp.c 
@@ -65,7 +65,7 @@ transmitter_multicast_LDADD = $(LDADD) \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 transmitter_multicast_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_multicast_SOURCES = \
-	check_threadsafe.h  \
+	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/multicast.c 
@@ -76,7 +76,7 @@ main_rtpconference_LDADD = $(LDADD) \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 main_rtpconference_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 main_rtpconference_SOURCES = \
-	check_threadsafe.h  \
+	check-threadsafe.h  \
 	main/generic.c \
 	main/generic.h \
 	main/rtpconference.c
