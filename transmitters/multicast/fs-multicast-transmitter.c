@@ -250,6 +250,10 @@ fs_multicast_transmitter_constructed (GObject *object)
     return;
   }
 
+  g_object_set (G_OBJECT (self->priv->gst_sink),
+      "async-handling", TRUE,
+      NULL);
+
   gst_object_ref (self->priv->gst_sink);
 
   for (c = 1; c <= self->components; c++) {
@@ -809,7 +813,10 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
   if (!udpsock->udpsink)
     goto error;
 
-  g_object_set (udpsock->udpsink, "async", FALSE, NULL);
+  g_object_set (udpsock->udpsink,
+      "async", FALSE,
+      "sync", FALSE,
+      NULL);
 
   trans->priv->udpsocks[component_id] =
     g_list_prepend (trans->priv->udpsocks[component_id], udpsock);
