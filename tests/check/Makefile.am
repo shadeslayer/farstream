@@ -9,7 +9,6 @@ TESTS_ENVIRONMENT = \
 	CK_DEFAULT_TIMEOUT=120					\
 	STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
 	$(REGISTRY_ENVIRONMENT)					\
-	GST_PLUGIN_SYSTEM_PATH=					\
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
 	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs
 
