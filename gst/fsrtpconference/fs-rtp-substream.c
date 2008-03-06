@@ -436,7 +436,7 @@ fs_rtp_sub_stream_set_property (GObject *object,
       FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_RTPBIN_PAD:
-      self->priv->rtpbin_pad = g_value_dup_object (value);
+      self->priv->rtpbin_pad = GST_PAD (g_value_dup_object (value));
       break;
     case PROP_SSRC:
       self->priv->ssrc = g_value_get_uint (value);

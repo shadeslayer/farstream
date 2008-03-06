@@ -654,7 +654,7 @@ fs_rtp_session_set_property (GObject *object,
       }
       break;
     case PROP_CONFERENCE:
-      self->priv->conference = g_value_dup_object (value);
+      self->priv->conference = FS_RTP_CONFERENCE (g_value_dup_object (value));
       break;
     case PROP_NO_RTCP_TIMEOUT:
       FS_RTP_SESSION_LOCK (self);
