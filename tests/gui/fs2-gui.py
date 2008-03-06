@@ -295,7 +295,7 @@ class FsUISession:
                                         [farsight.Codec(farsight.CODEC_ID_ANY,
                                                       "H264",
                                                       farsight.MEDIA_TYPE_VIDEO,
-                                                      0)],
+                                                      0),
                                         farsight.Codec(farsight.CODEC_ID_ANY,
                                                      "H263-1998",
                                                      farsight.MEDIA_TYPE_VIDEO,
@@ -303,8 +303,7 @@ class FsUISession:
                                         farsight.Codec(farsight.CODEC_ID_ANY,
                                                      "H263",
                                                      farsight.MEDIA_TYPE_VIDEO,
-                                                     0),
-                                       )
+                                                     0)])
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
             self.fssession.set_property("local-codecs-config",
                                       [farsight.Codec(farsight.CODEC_ID_ANY,
