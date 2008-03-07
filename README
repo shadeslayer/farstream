@@ -7,6 +7,9 @@ Farsight 2 is a collection of GStreamer modules and libraries for
 videoconferencing. The API is described in the documentation in the
 docs/ directory.
 
+It is distributed under the terms of the GNU Lesser General Public
+License version 2.1 or later (see the COPYING file for details).
+
 
 Requirements
 ============
