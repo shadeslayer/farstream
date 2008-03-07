@@ -15,10 +15,9 @@ Build time:
  - gstreamer 0.10.17
  - gst-plugins-base 0.10.17
  - glib 2.12
- - gtk-doc 1.3
 
 Run time:
- All of the build time requirements plus
+ All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.7
  - gst-plugins-bad 0.10.6
  - gst-plugins-farsight 0.12.6
@@ -33,3 +32,4 @@ For the python module and examples you also need:
  - gst-python 0.10.10
 
 The tests require gst-check (which requires check)
+Building the documentation requires gtk-doc 1.8
