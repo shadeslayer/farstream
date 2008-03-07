@@ -39,3 +39,7 @@ else
 check-torture:
 	true
 endif
+
+dist-hook:
+	chmod u+w ${distdir}/ChangeLog
+	if test -d .git; then git log >${distdir}/ChangeLog; fi
