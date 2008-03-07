@@ -22,8 +22,10 @@ Run time:
  - gst-plugins-bad 0.10.6
  - gst-plugins-farsight 0.12.6
 
-Multicast requires gst-plugins-bad CVS (or 0.10.7)
-Usable video requires h263 (encoder + decoder) from gst-ffmpeg
+Usable video requires H.263 (encoder + decoder) from gst-ffmpeg
+Multicast requires gst-plugins-bad CVS (or 0.10.7) + the patch from 
+http://bugzilla.gnome.org/show_bug.cgi?id=520626
+
 
 For the python module and examples you also need:
  - Python 2.1
