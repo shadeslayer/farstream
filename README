@@ -1,0 +1,35 @@
+Farsight 2
+==========
+
+http://farsight.freedesktop.org/
+
+Farsight 2 is a collection of GStreamer modules and libraries for
+videoconferencing. The API is described in the documentation in the
+docs/ directory.
+
+
+Requirements
+============
+
+Build time:
+ - gstreamer 0.10.17
+ - gst-plugins-base 0.10.17
+ - glib 2.12
+ - gtk-doc 1.3
+
+Run time:
+ All of the build time requirements plus
+ - gst-plugins-good 0.10.7
+ - gst-plugins-bad 0.10.6
+ - gst-plugins-farsight 0.12.6
+
+Multicast requires gst-plugins-bad CVS (or 0.10.7)
+Usable video requires h263 (encoder + decoder) from gst-ffmpeg
+
+For the python module and examples you also need:
+ - Python 2.1
+ - PyGObject 2.12
+ - PyGTK 2.10
+ - gst-python 0.10.10
+
+The tests require gst-check (which requires check)
