@@ -78,7 +78,7 @@ fs-enum-types.h: $(fs_headers) Makefile
 
 fs-enum-types.c: $(fs_headers) Makefile
 	( cd $(srcdir) && glib-mkenums \
-			--fhead "#include <fs-conference-iface.h>" \
+			--fhead "#include <fs-conference-iface.h>\n#include <fs-enum-types.h>" \
 			--fprod "\n/* enumerations from \"@filename@\" */" \
 			--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" 	\
 			--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
