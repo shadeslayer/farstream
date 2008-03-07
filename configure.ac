@@ -218,7 +218,7 @@ AG_GST_CHECK_FUNCTION
 dnl *** checks for dependency libraries ***
 
 dnl GLib is required
-AG_GST_GLIB_CHECK([2.14])
+AG_GST_GLIB_CHECK([2.12])
 
 dnl checks for gstreamer
 dnl uninstalled is selected preferentially -- see pkg-config(1)
@@ -344,9 +344,9 @@ AC_ARG_ENABLE([python],
 	WANT_PYTHON=yes)
 if test "x$WANT_PYTHON" = "xyes"; then
    AM_PATH_PYTHON
-   PKG_CHECK_MODULES(PYFARSIGHT, [ 	pygobject-2.0 >= 2.14.0 
+   PKG_CHECK_MODULES(PYFARSIGHT, [ 	pygobject-2.0 >= 2.12.0 
 					gst-python-0.10 >= 0.10.10
-					pygtk-2.0 >= 2.12 ] )
+					pygtk-2.0 >= 2.10 ] )
 fi
 AM_CONDITIONAL(WANT_PYTHON, test "x$WANT_PYTHON" = "xyes")
 
