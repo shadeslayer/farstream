@@ -56,4 +56,4 @@ DISTCLEANFILES = $(pcinfiles:.in=)
 
 dist-hook:
 	chmod u+w ${distdir}/ChangeLog
-	if test -d .git; then git log >${distdir}/Chght2.pc.insngeLog; fi
+	if test -d .git; then git log >${distdir}/ChangeLog; fi
