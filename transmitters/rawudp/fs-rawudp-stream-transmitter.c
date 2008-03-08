@@ -1070,10 +1070,9 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   data->component_id = component_id;
 
   g_mutex_lock (data->self->priv->sources_mutex);
-#if GLIB_CHECK_VERSION (2, 14, 0)
-  /* This is MAY broken in GLib 2.14 (gnome bug #448943) */
-  /* If the test does not stop (and times out), this may be the cause
-   * and in this case should be investigated further
+#if 0
+  /* This IS broken in GLib 2.14.6
+   * See http://bugzilla.gnome.org/show_bug.cgi?id=448943
    */
   self->priv->stun_timeout_id[component_id] = g_timeout_add_seconds_full (
       G_PRIORITY_DEFAULT, self->priv->stun_timeout,
