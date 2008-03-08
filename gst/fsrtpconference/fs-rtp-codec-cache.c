@@ -330,7 +330,7 @@ load_codecs_cache (FsMediaType media_type, GError **error)
 
   if (size < sizeof(gint)) {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-      "Cache file corrupt (size: %d < sizeof(int))", size);
+      "Cache file corrupt (size: %"G_GSIZE_FORMAT" < sizeof(int))", size);
     goto error;
   }
 
