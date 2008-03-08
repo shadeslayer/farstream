@@ -4,6 +4,6 @@ else
 SUBDIRS_CHECK =
 endif
 
-SUBDIRS = $(SUBDIRS_CHECK) rtp
+SUBDIRS = $(SUBDIRS_CHECK) rtp gui
 
-DIST_SUBDIRS =  check rtp
+DIST_SUBDIRS =  check rtp gui

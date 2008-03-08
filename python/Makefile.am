@@ -40,6 +40,7 @@ pyfarsight.c: pyfarsight.override pyfarsight.defs
 
 EXTRA_DIST =			\
 	pyfarsight.override	\
-	pyfarsight.defs
+	pyfarsight.defs		\
+	example.py
 
 CLEANFILES = $(BUILT_SOURCES)
