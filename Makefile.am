@@ -25,7 +25,8 @@ DIST_SUBDIRS = 			\
 #	pkgconfig
 
 EXTRA_DIST = \
-	AUTHORS COPYING NEWS README ChangeLog autogen.sh
+	AUTHORS COPYING NEWS README ChangeLog autogen.sh \
+	$(pcinfiles)
 
 ACLOCAL_AMFLAGS = -I common/m4
 
@@ -40,6 +41,19 @@ check-torture:
 	true
 endif
 
+pcverfiles = farsight2-@GST_MAJORMINOR@.pc
+pcinfiles = farsight2.pc.in
+
+%-@GST_MAJORMINOR@.pc: %.pc
+	cp $< $@
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = $(pcverfiles)
+
+CLEANFILES = $(pcverfiles)
+
+DISTCLEANFILES = $(pcinfiles:.in=)
+
 dist-hook:
 	chmod u+w ${distdir}/ChangeLog
-	if test -d .git; then git log >${distdir}/ChangeLog; fi
+	if test -d .git; then git log >${distdir}/Chght2.pc.insngeLog; fi
