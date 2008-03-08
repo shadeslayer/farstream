@@ -162,7 +162,7 @@ AC_ARG_WITH(transmitter-plugins,
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_SELECTED)
 
 dnl set the plugindir where plugins should be installed
-AS_AC_EXPAND(FS2_PLUGIN_PATH, ${libdir}/farsight-$FS2_MAJORMINOR)
+AS_AC_EXPAND(FS2_PLUGIN_PATH, ${libdir}/farsight2-$FS2_MAJORMINOR)
 AC_SUBST(FS2_PLUGIN_PATH)
 AC_DEFINE_UNQUOTED(FS2_PLUGIN_PATH, "${FS2_PLUGIN_PATH}", [The path were plugins are installed and search by default])
 
@@ -232,7 +232,7 @@ AM_CONDITIONAL(HAVE_GST_CHECK, test "x$HAVE_GST_CHECK" = "xyes")
 
 dnl Check for documentation xrefs
 GLIB_PREFIX="`$PKG_CONFIG --variable=prefix glib-2.0`"
-FS2_PREFIX="`$PKG_CONFIG --variable=prefix farsight-$FS2_MAJORMINOR`"
+FS2_PREFIX="`$PKG_CONFIG --variable=prefix farsight2-$FS2_MAJORMINOR`"
 AC_SUBST(GLIB_PREFIX)
 AC_SUBST(FS2_PREFIX)
 
