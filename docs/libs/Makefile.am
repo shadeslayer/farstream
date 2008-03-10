@@ -5,7 +5,7 @@
 
 # The name of the module, e.g. 'glib'.
 #DOC_MODULE=gst-plugins-libs-@GST_MAJORMINOR@
-DOC_MODULE=farsight-libs
+DOC_MODULE=farsight2-libs
 
 # generated basefiles
 basefiles = \
