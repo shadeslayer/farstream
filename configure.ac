@@ -325,17 +325,17 @@ AC_SUBST(FS2_ALL_LDFLAGS)
 dnl FS2_LIB_LDFLAGS
 dnl linker flags shared by all libraries
 dnl LDFLAGS modifier defining exported symbols from built libraries
-FS2_LIB_LDFLAGS="-export-symbols-regex fs_.*"
+FS2_LIB_LDFLAGS="-export-symbols-regex ^fs_.*"
 AC_SUBST(FS2_LIB_LDFLAGS)
 
 dnl this really should only contain flags, not libs - they get added before
 dnl whatevertarget_LIBS and -L flags here affect the rest of the linking
-FS2_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*fs_init_plugin\$\$' $GST_ALL_LDFLAGS"
+FS2_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*fs_init_plugin\$\$' $FS2_ALL_LDFLAGS"
 AC_SUBST(FS2_PLUGIN_LDFLAGS)
 
 dnl this really should only contain flags, not libs - they get added before
 dnl whatevertarget_LIBS and -L flags here affect the rest of the linking
-GST_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*gst_plugin_desc\$\$' $GST_ALL_LDFLAGS"
+GST_PLUGIN_LDFLAGS="-module -avoid-version -export-symbols-regex '^[_]*gst_plugin_desc\$\$' $FS2_ALL_LDFLAGS"
 AC_SUBST(GST_PLUGIN_LDFLAGS)
 
 

@@ -124,7 +124,7 @@ fs_participant_class_init (FsParticipantClass *klass)
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__OBJECT_INT_STRING_STRING,
+      _fs_marshal_VOID__OBJECT_INT_STRING_STRING,
       G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   gobject_class->dispose = fs_participant_dispose;

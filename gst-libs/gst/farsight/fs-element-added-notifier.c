@@ -94,7 +94,7 @@ fs_element_added_notifier_class_init (FsElementAddedNotifierClass *klass)
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__OBJECT_OBJECT,
+      _fs_marshal_VOID__OBJECT_OBJECT,
       G_TYPE_NONE, 2, GST_TYPE_BIN, GST_TYPE_ELEMENT);
 
   g_type_class_add_private (klass, sizeof (FsElementAddedNotifierPrivate));

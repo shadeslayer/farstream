@@ -250,7 +250,7 @@ fs_session_class_init (FsSessionClass *klass)
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__OBJECT_INT_STRING_STRING,
+      _fs_marshal_VOID__OBJECT_INT_STRING_STRING,
       G_TYPE_NONE, 4, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
   /**

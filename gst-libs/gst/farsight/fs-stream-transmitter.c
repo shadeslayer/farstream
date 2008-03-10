@@ -153,7 +153,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       0,
       NULL,
       NULL,
-      fs_marshal_VOID__INT_STRING_STRING,
+      _fs_marshal_VOID__INT_STRING_STRING,
       G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
     /**
@@ -171,13 +171,13 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
    */
   signals[NEW_ACTIVE_CANDIDATE_PAIR] = g_signal_new
     ("new-active-candidate-pair",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      fs_marshal_VOID__BOXED_BOXED,
-      G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
+        G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST,
+        0,
+        NULL,
+        NULL,
+        _fs_marshal_VOID__BOXED_BOXED,
+        G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
 
  /**
    * FsStreamTransmitter::new-local-candidate:
