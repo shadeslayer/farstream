@@ -65,8 +65,6 @@ fs_candidate_list_get_type (void)
   return candidate_list_type;
 }
 
-/* TODO Create a fs_candidate_new() function since there is a _destroy() func */
-
 /**
  * fs_candidate_destroy:
  * @cand: a #FsCandidate to delete
@@ -76,18 +74,12 @@ fs_candidate_list_get_type (void)
 void
 fs_candidate_destroy (FsCandidate * cand)
 {
-  if (cand->foundation)
-    g_free ((gchar *)cand->foundation);
-  if (cand->candidate_id)
-    g_free ((gchar *)cand->candidate_id);
-  if (cand->ip)
-    g_free ((gchar *)cand->ip);
-  if (cand->base_ip)
-    g_free ((gchar *)cand->base_ip);
-  if (cand->username)
-    g_free ((gchar *)cand->username);
-  if (cand->password)
-    g_free ((gchar *)cand->password);
+  g_free (cand->foundation);
+  g_free (cand->candidate_id);
+  g_free (cand->ip);
+  g_free (cand->base_ip);
+  g_free (cand->username);
+  g_free (cand->password);
 
   g_free (cand);
 }
