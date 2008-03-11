@@ -76,6 +76,8 @@ fs_candidate_list_get_type (void)
 void
 fs_candidate_destroy (FsCandidate * cand)
 {
+  if (cand->foundation)
+    g_free ((gchar *)cand->foundation);
   if (cand->candidate_id)
     g_free ((gchar *)cand->candidate_id);
   if (cand->ip)
