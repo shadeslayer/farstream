@@ -74,12 +74,12 @@ fs_candidate_list_get_type (void)
 void
 fs_candidate_destroy (FsCandidate * cand)
 {
-  g_free (cand->foundation);
-  g_free (cand->candidate_id);
-  g_free (cand->ip);
-  g_free (cand->base_ip);
-  g_free (cand->username);
-  g_free (cand->password);
+  g_free ((gchar *) cand->foundation);
+  g_free ((gchar *) cand->candidate_id);
+  g_free ((gchar *) cand->ip);
+  g_free ((gchar *) cand->base_ip);
+  g_free ((gchar *) cand->username);
+  g_free ((gchar *) cand->password);
 
   g_free (cand);
 }
