@@ -26,7 +26,7 @@
 #ifndef __FS_RTP_SPECIAL_CODEC_H__
 #define __FS_RTP_SPECIAL_CODEC_H__
 
-#include <glib.h>
+#include <gst/gst.h>
 
 G_BEGIN_DECLS
 
@@ -81,7 +81,6 @@ fs_rtp_special_codecs_update (
 
 GList *
 fs_rtp_special_codecs_add_blueprints (GList *blueprints);
-
 
 G_END_DECLS
 
