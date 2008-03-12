@@ -70,7 +70,7 @@ fs_rtp_special_codec_class_init (FsRtpSpecialCodecClass *klass)
 
   if (!classes)
   {
-    //classes = g_list_prepend (classes, fs_rtp_dtmf_source_get_class ());
+    //classes = g_list_prepend (classes, g_type_ref_class(GTYPE1));
   }
 }
 
@@ -94,3 +94,29 @@ fs_rtp_special_codec_dispose (GObject *object)
   G_OBJECT_CLASS (fs_rtp_special_codec_parent_class)->dispose (object);
 }
 
+
+static GList*
+fs_rtp_special_codec_class_add_blueprint (FsRtpSpecialCodecClass *class,
+    GList *blueprints)
+{
+  if (class->add_blueprint)
+    return class->add_blueprint (blueprints);
+
+  return blueprints;
+}
+
+GList *
+fs_rtp_special_codecs_add_blueprints (GList *blueprints)
+{
+  GList *item = NULL;
+
+  for (item = g_list_first (classes);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpSpecialCodecClass *class = item->data;
+    blueprints = fs_rtp_special_codecs_add_blueprint (class, blueprints);
+  }
+
+  return blueprints;
+}
