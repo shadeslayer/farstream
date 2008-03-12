@@ -173,6 +173,7 @@ class FsUIPipeline:
         "Link the audio sink to the pad"
         print >>sys.stderr, "LINKING AUDIO SINK"
         self.audiosink = gst.element_factory_make("alsasink")
+        self.audiosink.set_property("latency-time", 50000)
         self.pipeline.add(self.audiosink)
         self.audiosink.set_state(gst.STATE_PLAYING)
         pad.link(self.audiosink.get_pad("sink"))
@@ -181,6 +182,8 @@ class FsUIPipeline:
         if element.get_factory().get_name() == "x264enc":
             element.set_property("byte-stream", True)
             element.set_property("bitrate", 128)
+        elif element.get_factory().get_name() == "gstrtpbin":
+            element.set_property("latency", 100)
             
 
 class FsUISource:
