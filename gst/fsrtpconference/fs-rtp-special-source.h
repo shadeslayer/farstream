@@ -85,6 +85,8 @@ GList *
 fs_rtp_special_sources_update (
     GList *current_extra_sources,
     GList *negotiated_codecs,
+    GstElement *bin,
+    GstElement *rtpmuxer,
     GError **error);
 
 GList *
