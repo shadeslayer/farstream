@@ -44,8 +44,19 @@
  */
 
 
+/* props */
+enum
+{
+  PROP_0,
+  PROP_BIN,
+  PROP_RTPMUXER
+};
+
 struct _FsRtpDtmfEventSourcePrivate {
   gboolean disposed;
+
+  GstElement *bin;
+  GstElement *rtpmuxer;
 };
 
 static FsRtpSpecialSourceClass *parent_class = NULL;
@@ -56,6 +67,9 @@ G_DEFINE_TYPE(FsRtpDtmfEventSource, fs_rtp_dtmf_event_source,
 #define FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE(o)                                 \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_DTMF_EVENT_SOURCE,             \
    FsRtpDtmfEventSourcePrivate))
+
+static void fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_id,
+  const GValue *value, GParamSpec *pspec);
 
 static void fs_rtp_dtmf_event_source_dispose (GObject *object);
 
@@ -82,13 +96,28 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   parent_class = fs_rtp_dtmf_event_source_parent_class;
 
   gobject_class->dispose = fs_rtp_dtmf_event_source_dispose;
+  gobject_class->set_property = fs_rtp_dtmf_event_source_set_property;
 
   spsource_class->new = fs_rtp_dtmf_event_source_new;
   spsource_class->want_source = fs_rtp_dtmf_event_source_class_want_source;
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
 
-}
+  g_object_class_install_property (gobject_class,
+      PROP_BIN,
+      g_param_spec_object ("bin",
+          "The GstBin to add the elements to",
+          "This is the GstBin where this class adds elements",
+          GST_TYPE_BIN,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 
+  g_object_class_install_property (gobject_class,
+      PROP_RTPMUXER,
+      g_param_spec_object ("rtpmuxer",
+          "The RTP muxer that the source is linked to",
+          "The RTP muxer that the source is linked to",
+          GST_TYPE_ELEMENT,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+}
 
 static void
 fs_rtp_dtmf_event_source_init (FsRtpDtmfEventSource *self)
@@ -107,6 +136,26 @@ fs_rtp_dtmf_event_source_dispose (GObject *object)
 
   self->priv->disposed = TRUE;
   G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->dispose (object);
+}
+
+static void
+fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_id,
+  const GValue *value, GParamSpec *pspec)
+{
+  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
+
+  switch (prop_id)
+  {
+    case PROP_BIN:
+      self->priv->bin = g_value_get_object (value);
+      break;
+    case PROP_RTPMUXER:
+      self->priv->rtpmuxer = g_value_get_object (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 /**
