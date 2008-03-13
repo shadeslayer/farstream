@@ -62,13 +62,15 @@ static void fs_rtp_special_source_dispose (GObject *object);
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources,
+    GList *negotiated_codecs,
+    FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error);
 static gboolean
 fs_rtp_special_source_update (FsRtpSpecialSource *source,
-    GList *negotiated_sources);
+    GList *negotiated_codecs,
+    FsCodec *selected_codec);
 
 static void
 fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
@@ -119,10 +121,11 @@ fs_rtp_special_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
 
 static gboolean
 fs_rtp_special_source_class_want_source (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources)
+    GList *negotiated_codecs,
+    FsCodec *selected_codec)
 {
   if (klass->want_source)
-    return klass->want_source (klass, negotiated_sources);
+    return klass->want_source (klass, negotiated_codecs, selected_codec);
 
   return FALSE;
 }
@@ -160,6 +163,7 @@ GList *
 fs_rtp_special_sources_update (
     GList *current_extra_sources,
     GList *negotiated_codecs,
+    FsCodec *send_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error)
@@ -186,14 +190,15 @@ fs_rtp_special_sources_update (
 
     if (obj_item)
     {
-      if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs))
+      if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
+              send_codec))
       {
-        if (!fs_rtp_special_source_update (obj, negotiated_codecs))
+        if (!fs_rtp_special_source_update (obj, negotiated_codecs, send_codec))
         {
           current_extra_sources = g_list_remove (current_extra_sources, obj);
           g_object_unref (obj);
-          obj = fs_rtp_special_source_new (klass, negotiated_codecs, bin,
-              rtpmuxer, error);
+          obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
+              bin, rtpmuxer, error);
           if (!obj)
             goto error;
           current_extra_sources = g_list_prepend (current_extra_sources, obj);
@@ -207,10 +212,11 @@ fs_rtp_special_sources_update (
     }
     else
     {
-      if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs))
+      if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
+              send_codec))
       {
-        obj = fs_rtp_special_source_new (klass, negotiated_codecs, bin,
-            rtpmuxer, error);
+        obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
+            bin, rtpmuxer, error);
         if (!obj)
           goto error;
         current_extra_sources = g_list_prepend (current_extra_sources, obj);
@@ -227,12 +233,14 @@ fs_rtp_special_sources_update (
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GList *negotiated_sources,
+    FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error)
 {
   if (klass->new)
-    return klass->new (klass, negotiated_sources, bin, rtpmuxer, error);
+    return klass->new (klass, negotiated_sources, selected_codec, bin, rtpmuxer,
+        error);
 
   g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "new not defined for %s", G_OBJECT_CLASS_NAME (klass));
@@ -242,12 +250,12 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
 
 static gboolean
 fs_rtp_special_source_update (FsRtpSpecialSource *source,
-    GList *negotiated_sources)
+    GList *negotiated_sources, FsCodec *selected_codec)
 {
   FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
 
   if (klass->update)
-    return klass->update (source, negotiated_sources);
+    return klass->update (source, negotiated_sources, selected_codec);
 
   return FALSE;
 }

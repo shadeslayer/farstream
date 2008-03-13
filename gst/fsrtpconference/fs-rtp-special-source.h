@@ -59,17 +59,20 @@ struct _FsRtpSpecialSourceClass
   /* Object methods */
 
   gboolean (*update) (FsRtpSpecialSource *source,
-      GList *negotiated_codecs);
+      GList *negotiated_codecs,
+      FsCodec *selected_codec);
 
   /* Class methods */
   gboolean (*want_source) (FsRtpSpecialSourceClass *klass,
-      GList *negotiated_codecs);
+      GList *negotiated_codecs,
+      FsCodec *selected_codec);
 
   GList* (*add_blueprint) (FsRtpSpecialSourceClass *klass,
       GList *blueprints);
 
   FsRtpSpecialSource* (*new) (FsRtpSpecialSourceClass *klass,
       GList *negotiated_sources,
+      FsCodec *selected_codec,
       GstElement *bin,
       GstElement *rtpmuxer,
       GError **error);
@@ -91,6 +94,7 @@ GList *
 fs_rtp_special_sources_update (
     GList *current_extra_sources,
     GList *negotiated_codecs,
+    FsCodec *send_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error);

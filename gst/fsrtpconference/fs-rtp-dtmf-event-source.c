@@ -60,12 +60,14 @@ static void fs_rtp_dtmf_event_source_dispose (GObject *object);
 static FsRtpSpecialSource *fs_rtp_dtmf_event_source_new (
     FsRtpSpecialSourceClass *klass,
     GList *negotiated_sources,
+    FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error);
 static gboolean fs_rtp_dtmf_event_source_class_want_source (
     FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources);
+    GList *negotiated_codecs,
+    FsCodec *selected_codec);
 static GList *fs_rtp_dtmf_event_source_class_add_blueprint (
     FsRtpSpecialSourceClass *klass,
     GList *blueprints);
@@ -115,15 +117,16 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
 
 static gboolean
 fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources)
+    GList *negotiated_codecs,
+    FsCodec *selected_codec)
 {
   return FALSE;
 }
 
-
 static gboolean
 fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *source,
     GList *negotiated_sources,
+    FsCodec *selected_codec,
     GError **error)
 {
   return FALSE;
@@ -132,6 +135,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *source,
 static FsRtpSpecialSource *
 fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
     GList *negotiated_sources,
+    FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error)
@@ -144,7 +148,8 @@ fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
       NULL);
   g_assert (source);
 
-  if (!fs_rtp_dtmf_event_source_build (source, negotiated_sources, error))
+  if (!fs_rtp_dtmf_event_source_build (source, negotiated_sources,
+          selected_codec, error))
   {
     g_object_unref (source);
     return NULL;
