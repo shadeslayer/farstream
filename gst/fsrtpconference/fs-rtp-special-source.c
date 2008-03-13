@@ -5,7 +5,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-substream.c - A Farsight RTP Substream gobject
+ * fs-rtp-special-source.c - A Farsight RTP Special Source gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,6 +31,8 @@
 
 #include "fs-rtp-special-source.h"
 
+#include "fs-rtp-dtmf-event-source.h"
+
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
 /**
@@ -41,9 +43,6 @@
  * for DMTF and CN sources.
  *
  */
-
-
-#define DEFAULT_NO_RTCP_TIMEOUT (7000)
 
 struct _FsRtpSpecialSourcePrivate {
   gboolean disposed;
@@ -82,7 +81,8 @@ fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
 
   if (!classes)
   {
-    //classes = g_list_prepend (classes, g_type_ref_class(GTYPE1));
+    classes = g_list_prepend (classes,
+        g_type_class_ref (FS_TYPE_RTP_DTMF_EVENT_SOURCE));
   }
 }
 
