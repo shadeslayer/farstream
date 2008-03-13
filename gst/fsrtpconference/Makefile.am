@@ -10,7 +10,7 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
 	fs-rtp-codec-cache.c \
 	fs-rtp-codec-negotiation.c \
 	fs-rtp-specific-nego.c \
-	fs-rtp-special-codec.c
+	fs-rtp-special-source.c
 
 libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
@@ -29,4 +29,4 @@ noinst_HEADERS = \
 	fs-rtp-codec-cache.h \
 	fs-rtp-codec-negotiation.h \
 	fs-rtp-specific-nego.h \
-	fs-rtp-special-codec.h
+	fs-rtp-special-source.h
