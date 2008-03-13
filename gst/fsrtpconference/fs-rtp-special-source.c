@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 
+#include <gst/farsight/fs-base-conference.h>
+
 #include "fs-rtp-special-source.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
@@ -229,7 +231,12 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GstElement *rtpmuxer,
     GError **error)
 {
-  /* STUB */
+  if (klass->new)
+    return klass->new (klass, negotiated_sources, bin, rtpmuxer, error);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
+      "new not defined for %s", G_OBJECT_CLASS_NAME (klass));
+
   return NULL;
 }
 
@@ -237,5 +244,10 @@ static gboolean
 fs_rtp_special_source_update (FsRtpSpecialSource *source,
     GList *negotiated_sources)
 {
+  FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
+
+  if (klass->update)
+    return klass->update (source, negotiated_sources);
+
   return FALSE;
 }

@@ -67,6 +67,12 @@ struct _FsRtpSpecialSourceClass
 
   GList* (*add_blueprint) (FsRtpSpecialSourceClass *klass,
       GList *blueprints);
+
+  FsRtpSpecialSource* (*new) (FsRtpSpecialSourceClass *klass,
+      GList *negotiated_sources,
+      GstElement *bin,
+      GstElement *rtpmuxer,
+      GError **error);
 };
 
 /**
