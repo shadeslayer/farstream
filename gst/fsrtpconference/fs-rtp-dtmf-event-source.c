@@ -173,12 +173,48 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
   return blueprints;
 }
 
+/**
+ * get_telephone_event_codec:
+ * @codecs: a #GList of #FsCodec
+ * @clock_rate: The clock rate to look for
+ *
+ * Find the telephone-event codec with the proper clock rate in the list
+ *
+ * Returns: The #FsCodec of type "telephone-event" with the requested clock-rate
+ *   from the list, or %NULL
+ */
+static FsCodec *
+get_telephone_event_codec (GList *codecs, guint clock_rate)
+{
+  GList *item = NULL;
+  for (item = g_list_first (codecs);
+       item;
+       item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+
+    if (codec->media_type == FS_MEDIA_TYPE_AUDIO &&
+        !g_ascii_strcasecmp (codec->encoding_name, "telephone-event") &&
+        codec->clock_rate == clock_rate)
+      return codec;
+  }
+
+   return NULL;
+}
+
 static gboolean
 fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec)
 {
-  return FALSE;
+
+  if (selected_codec->media_type != FS_MEDIA_TYPE_AUDIO)
+    return FALSE;
+
+  if (get_telephone_event_codec (negotiated_codecs, selected_codec->clock_rate))
+    return TRUE;
+  else
+    return FALSE;
 }
 
 static gboolean
