@@ -31,6 +31,8 @@
 
 #include "fs-rtp-dtmf-event-source.h"
 
+#include "fs-rtp-discover-codecs.h"
+
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
 /**
@@ -107,11 +109,67 @@ fs_rtp_dtmf_event_source_dispose (GObject *object)
   G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->dispose (object);
 }
 
+/**
+ * fs_rtp_dtmf_event_source_class_add_blueprint:
+ *
+ * Add one blueprint for telephone-event for each different clock-rate that
+ * exists in the request
+ */
 
 static GList*
 fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     GList *blueprints)
 {
+  GList *item;
+  GList *already_done = NULL;
+
+  for (item = g_list_first (blueprints);
+       item;
+       item = g_list_next (item))
+  {
+    CodecBlueprint *bp = item->data;
+    GList *done_item = NULL;
+    gboolean skip = FALSE;
+    CodecBlueprint *new_bp = NULL;
+    FsCodecParameter *param = NULL;
+
+    if (bp->codec->media_type != FS_MEDIA_TYPE_AUDIO)
+      continue;
+
+    if (!g_ascii_strcasecmp (bp->codec->encoding_name, "telephone-event"))
+      continue;
+
+    for (done_item = g_list_first (already_done);
+         done_item;
+         done_item = g_list_next (done_item))
+    {
+      if (GPOINTER_TO_UINT (done_item->data) == bp->codec->clock_rate)
+      {
+        skip = TRUE;
+        break;
+      }
+    }
+    if (skip)
+      continue;
+
+
+    new_bp = g_new0 (CodecBlueprint, 1);
+
+    new_bp->codec = fs_codec_new (FS_CODEC_ID_ANY, "telephone-event",
+        FS_MEDIA_TYPE_AUDIO, 8000);
+    param = g_new0 (FsCodecParameter, 1);
+    param->name = "";
+    param->value = "0-15";
+    new_bp->codec->optional_params = g_list_prepend (NULL, param);
+
+    blueprints = g_list_append (blueprints, new_bp);
+
+    already_done = g_list_prepend (already_done,
+        GUINT_TO_POINTER (bp->codec->clock_rate));
+  }
+
+  g_list_free (already_done);
+
   return blueprints;
 }
 
