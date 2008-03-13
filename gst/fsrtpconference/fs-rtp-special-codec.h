@@ -56,9 +56,17 @@ struct _FsRtpSpecialCodecClass
 {
   GObjectClass parent_class;
 
-  gboolean (*want_codec) (GList *negotiated_codecs, GError **error);
+  /* Object methods */
 
-  GList* (*add_blueprint) (GList *blueprints);
+  gboolean (*update) (FsRtpSpecialCodec *codec,
+      GList *negotiated_codecs);
+
+  /* Class methods */
+  gboolean (*want_codec) (FsRtpSpecialCodecClass *klass,
+      GList *negotiated_codecs);
+
+  GList* (*add_blueprint) (FsRtpSpecialCodecClass *klass,
+      GList *blueprints);
 };
 
 /**
