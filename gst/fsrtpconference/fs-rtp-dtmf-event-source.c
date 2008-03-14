@@ -56,8 +56,12 @@ enum
 struct _FsRtpDtmfEventSourcePrivate {
   gboolean disposed;
 
-  GstElement *bin;
+  GstElement *outer_bin;
   GstElement *rtpmuxer;
+
+  GstElement *bin;
+  GstElement *dtmfsrc;
+  GstElement *capsfilter;
 };
 
 static FsRtpSpecialSourceClass *parent_class = NULL;
@@ -141,10 +145,10 @@ fs_rtp_dtmf_event_source_dispose (GObject *object)
     self->priv->rtpmuxer = NULL;
   }
 
-  if (self->priv->bin)
+  if (self->priv->outer_bin)
   {
-    gst_object_unref (self->priv->bin);
-    self->priv->bin = NULL;
+    gst_object_unref (self->priv->outer_bin);
+    self->priv->outer_bin = NULL;
   }
 
   self->priv->disposed = TRUE;
@@ -160,7 +164,7 @@ fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_id,
   switch (prop_id)
   {
     case PROP_BIN:
-      self->priv->bin = g_value_get_object (value);
+      self->priv->outer_bin = g_value_get_object (value);
       break;
     case PROP_RTPMUXER:
       self->priv->rtpmuxer = g_value_get_object (value);
@@ -292,36 +296,148 @@ fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
 }
 
 static gboolean
-fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *source,
-    GList *negotiated_sources,
+fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
+    GList *negotiated_codecs,
     FsCodec *selected_codec,
     GError **error)
 {
+  FsCodec *telephony_codec = NULL;
+  GstCaps *caps = NULL;
+  GstPad *pad = NULL;
+
+  telephony_codec = get_telephone_event_codec (negotiated_codecs,
+      selected_codec->clock_rate);
+
+  if (!telephony_codec)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Could not find a telephone-event for the current codec's clock-rate");
+    return FALSE;
+  }
+
+  if (!self->priv->outer_bin)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid bin set");
+    return FALSE;
+  }
+
+  if (!self->priv->rtpmuxer)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid rtpmuxer set");
+    return FALSE;
+  }
+
+  self->priv->bin = gst_bin_new ();
+  if (!gst_bin_add (GST_BIN (self->priv->outer_bin), self->priv->bin))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add bin to outer bin");
+    gst_object_unref (self->priv->bin);
+    self->priv->bin = NULL;
+    return FALSE;
+  }
+
+  self->priv->dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
+  if (!self->priv->dtmfsrc)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not make rtpdtmfsrc");
+    goto error;
+  }
+  if (!gst_bin_add (GST_BIN (self->priv->bin), self->priv->dtmfsrc))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add rtpdtmfsrc to bin");
+    gst_object_unref (self->priv->dtmfsrc);
+    self->priv->dtmfsrc = NULL;
+    goto error;
+  }
+
+  self->priv->capsfilter = gst_element_factory_make ("capsfilter", NULL);
+  if (!self->priv->capsfilter)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not make rtpcapsfilter");
+    goto error;
+  }
+  if (!gst_bin_add (GST_BIN (self->priv->bin), self->priv->capsfilter))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add capsfilter to bin");
+    gst_object_unref (self->priv->capsfilter);
+    self->priv->capsfilter = NULL;
+    goto error;
+  }
+
+  caps = fs_codec_to_gst_caps (telephony_codec);
+  g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+  gst_object_unref (caps);
+
+  pad = gst_element_get_static_pad (self->priv->capsfilter, "src");
+  if (!pad)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not get \"src\" pad from capsfilter");
+    goto error;
+  }
+  if (!gst_element_add_pad (self->priv->bin, gst_ghost_pad_new ("src", pad)))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not get \"src\" ghostpad to dtmf source bin");
+    gst_object_unref (pad);
+    goto error;
+  }
+  gst_object_unref (pad);
+
+  if (!gst_element_link_pads (self->priv->bin, "src", self->priv->rtpmuxer, NULL))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link rtpdtmfsrc src to muxer sink");
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (self->priv->bin))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync capsfilter state with its parent");
+    goto error;
+  }
+
+  return TRUE;
+
+ error:
+  self->priv->capsfilter = NULL;
+  self->priv->dtmfsrc = NULL;
+  gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->bin);
+  self->priv->bin = NULL;
+
   return FALSE;
 }
 
 static FsRtpSpecialSource *
 fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources,
+    GList *negotiated_codecs,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
     GError **error)
 {
-  FsRtpDtmfEventSource *source = NULL;
+  FsRtpDtmfEventSource *self = NULL;
 
-  source = g_object_new (FS_TYPE_RTP_DTMF_EVENT_SOURCE,
+  self = g_object_new (FS_TYPE_RTP_DTMF_EVENT_SOURCE,
       "bin", bin,
       "rtpmuxer", rtpmuxer,
       NULL);
-  g_assert (source);
+  g_assert (self);
 
-  if (!fs_rtp_dtmf_event_source_build (source, negotiated_sources,
+  if (!fs_rtp_dtmf_event_source_build (self, negotiated_codecs,
           selected_codec, error))
   {
-    g_object_unref (source);
+    g_object_unref (self);
     return NULL;
   }
 
-  return FS_RTP_SPECIAL_SOURCE_CAST (source);
+  return FS_RTP_SPECIAL_SOURCE_CAST (self);
 }
