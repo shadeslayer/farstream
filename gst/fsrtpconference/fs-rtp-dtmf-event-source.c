@@ -29,9 +29,10 @@
 
 #include <gst/farsight/fs-base-conference.h>
 
-#include "fs-rtp-dtmf-event-source.h"
-
+#include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"
+
+#include "fs-rtp-dtmf-event-source.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
@@ -171,6 +172,19 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
 {
   GList *item;
   GList *already_done = NULL;
+  GstElementFactory *fact = NULL;
+
+  fact = gst_element_factory_find ("rtpdtmfsrc");
+  if (fact)
+  {
+    gst_object_unref (fact);
+  }
+  else
+  {
+    GST_CAT_WARNING (fsrtpconference_disco,
+        "Could not find rtpdtmfsrc, will not offer DTMF events");
+    return blueprints;
+  }
 
   for (item = g_list_first (blueprints);
        item;
@@ -256,7 +270,6 @@ fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec)
 {
-
   if (selected_codec->media_type != FS_MEDIA_TYPE_AUDIO)
     return FALSE;
 
