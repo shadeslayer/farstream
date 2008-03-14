@@ -34,7 +34,6 @@ G_BEGIN_DECLS
 
 typedef struct _FsCodec FsCodec;
 typedef struct _FsCodecParameter FsCodecParameter;
-typedef struct _FsCodecPreference FsCodecPreference;
 
 #define FS_TYPE_CODEC \
   (fs_codec_get_type())
@@ -111,18 +110,6 @@ struct _FsCodec
 struct _FsCodecParameter {
     gchar *name;
     gchar *value;
-};
-
-/**
- * FsCodecPreference:
- * @encoding_name: name of encoding preferred
- * @clock_rate: rate of codec preffered
- *
- * Used to give a preferece for what type of codec to use.
- */
-struct _FsCodecPreference {
-    gchar *encoding_name;
-    gint clock_rate;
 };
 
 GType fs_codec_get_type (void);
