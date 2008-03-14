@@ -135,6 +135,18 @@ fs_rtp_dtmf_event_source_dispose (GObject *object)
   if (self->priv->disposed)
     return;
 
+  if (self->priv->rtpmuxer)
+  {
+    gst_object_unref (self->priv->rtpmuxer);
+    self->priv->rtpmuxer = NULL;
+  }
+
+  if (self->priv->bin)
+  {
+    gst_object_unref (self->priv->bin);
+    self->priv->bin = NULL;
+  }
+
   self->priv->disposed = TRUE;
   G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->dispose (object);
 }
