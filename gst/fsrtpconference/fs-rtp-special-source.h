@@ -62,6 +62,15 @@ struct _FsRtpSpecialSourceClass
       GList *negotiated_codecs,
       FsCodec *selected_codec);
 
+  gboolean (*start_telephony_event) (FsRtpSpecialSource *source,
+      guint8 event,
+      guint8 volume,
+      FsDTMFMethod method);
+
+  gboolean (*stop_telephony_event) (FsRtpSpecialSource *source,
+      FsDTMFMethod method);
+
+
   /* Class methods */
   gboolean (*want_source) (FsRtpSpecialSourceClass *klass,
       GList *negotiated_codecs,
@@ -101,6 +110,16 @@ fs_rtp_special_sources_update (
 
 GList *
 fs_rtp_special_sources_add_blueprints (GList *blueprints);
+
+gboolean
+fs_rtp_special_sources_start_telephony_event (GList *current_extra_sources,
+      guint8 event,
+      guint8 volume,
+      FsDTMFMethod method);
+
+gboolean
+fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
+    FsDTMFMethod method);
 
 G_END_DECLS
 

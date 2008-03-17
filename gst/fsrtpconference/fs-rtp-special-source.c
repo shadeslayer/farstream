@@ -259,3 +259,48 @@ fs_rtp_special_source_update (FsRtpSpecialSource *source,
 
   return FALSE;
 }
+
+
+gboolean
+fs_rtp_special_sources_start_telephony_event (GList *current_extra_sources,
+      guint8 event,
+      guint8 volume,
+      FsDTMFMethod method)
+{
+  GList *item = NULL;
+
+  for (item = g_list_first (current_extra_sources);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpSpecialSource *source = item->data;
+    FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
+
+    if (klass->start_telephony_event)
+      if (klass->start_telephony_event (source, event, volume, method))
+        return TRUE;
+  }
+
+  return FALSE;
+}
+
+gboolean
+fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
+    FsDTMFMethod method)
+{
+  GList *item = NULL;
+
+  for (item = g_list_first (current_extra_sources);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpSpecialSource *source = item->data;
+    FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
+
+    if (klass->stop_telephony_event)
+      if (klass->stop_telephony_event (source, method))
+        return TRUE;
+  }
+
+  return FALSE;
+}
