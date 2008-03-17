@@ -53,6 +53,7 @@ enum
   PROP_RTPMUXER
 };
 
+/* all privates variables are protected by the mutex */
 struct _FsRtpDtmfEventSourcePrivate {
   gboolean disposed;
 
@@ -60,8 +61,10 @@ struct _FsRtpDtmfEventSourcePrivate {
   GstElement *rtpmuxer;
 
   GstElement *bin;
-  GstElement *dtmfsrc;
-  GstElement *capsfilter;
+
+  GThread *stop_thread;
+
+  GMutex *mutex;
 };
 
 static FsRtpSpecialSourceClass *parent_class = NULL;
@@ -77,6 +80,7 @@ static void fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_i
   const GValue *value, GParamSpec *pspec);
 
 static void fs_rtp_dtmf_event_source_dispose (GObject *object);
+static void fs_rtp_dtmf_event_source_finalize (GObject *object);
 
 static FsRtpSpecialSource *fs_rtp_dtmf_event_source_new (
     FsRtpSpecialSourceClass *klass,
@@ -93,6 +97,10 @@ static GList *fs_rtp_dtmf_event_source_class_add_blueprint (
     FsRtpSpecialSourceClass *klass,
     GList *blueprints);
 
+
+#define FS_RTP_DTMF_EVENT_SOURCE_LOCK(src)   g_mutex_lock (src->priv->mutex)
+#define FS_RTP_DTMF_EVENT_SOURCE_UNLOCK(src) g_mutex_unlock (src->priv->mutex)
+
 static void
 fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
 {
@@ -101,6 +109,7 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   parent_class = fs_rtp_dtmf_event_source_parent_class;
 
   gobject_class->dispose = fs_rtp_dtmf_event_source_dispose;
+  gobject_class->finalize = fs_rtp_dtmf_event_source_finalize;
   gobject_class->set_property = fs_rtp_dtmf_event_source_set_property;
 
   spsource_class->new = fs_rtp_dtmf_event_source_new;
@@ -129,6 +138,26 @@ fs_rtp_dtmf_event_source_init (FsRtpDtmfEventSource *self)
 {
   self->priv = FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  self->priv->mutex = g_mutex_new ();
+}
+
+static gpointer
+stop_source_thread (gpointer data)
+{
+  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (data);
+
+  gst_element_set_locked_state (self->priv->bin, TRUE);
+  gst_element_set_state (self->priv->bin, GST_STATE_NULL);
+
+  FS_RTP_DTMF_EVENT_SOURCE_LOCK (self);
+  gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->bin);
+  self->priv->bin = NULL;
+  FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
+
+  g_object_unref (self);
+
+  return NULL;
 }
 
 static void
@@ -136,8 +165,38 @@ fs_rtp_dtmf_event_source_dispose (GObject *object)
 {
   FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
 
+  FS_RTP_DTMF_EVENT_SOURCE_LOCK (self);
+
   if (self->priv->disposed)
+  {
+    FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
     return;
+  }
+
+  if (self->priv->bin)
+  {
+    GError *error = NULL;
+
+    if (self->priv->stop_thread)
+    {
+      GST_DEBUG ("stopping thread for rtpdtmfsrc already running");
+      return;
+    }
+
+    g_object_ref (self);
+    self->priv->stop_thread = g_thread_create (stop_source_thread, self, FALSE,
+        &error);
+
+    if (!self->priv->stop_thread)
+    {
+      GST_WARNING ("Could not start stopping thread for FsRtpDtmfEventSource:"
+          " %s", error->message);
+    }
+    g_clear_error (&error);
+
+    FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
+    return;
+  }
 
   if (self->priv->rtpmuxer)
   {
@@ -152,7 +211,22 @@ fs_rtp_dtmf_event_source_dispose (GObject *object)
   }
 
   self->priv->disposed = TRUE;
+
+  FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
+
   G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->dispose (object);
+}
+
+static void
+fs_rtp_dtmf_event_source_finalize (GObject *object)
+{
+  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
+
+  if (self->priv->mutex)
+    g_mutex_free (self->priv->mutex);
+  self->priv->mutex = NULL;
+
+  G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->finalize (object);
 }
 
 static void
@@ -304,6 +378,8 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   FsCodec *telephony_codec = NULL;
   GstCaps *caps = NULL;
   GstPad *pad = NULL;
+  GstElement *dtmfsrc = NULL;
+  GstElement *capsfilter = NULL;
 
   telephony_codec = get_telephone_event_codec (negotiated_codecs,
       selected_codec->clock_rate);
@@ -329,7 +405,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
     return FALSE;
   }
 
-  self->priv->bin = gst_bin_new ();
+  self->priv->bin = gst_bin_new (NULL);
   if (!gst_bin_add (GST_BIN (self->priv->outer_bin), self->priv->bin))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -339,43 +415,41 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
     return FALSE;
   }
 
-  self->priv->dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
-  if (!self->priv->dtmfsrc)
+  dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
+  if (!dtmfsrc)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not make rtpdtmfsrc");
     goto error;
   }
-  if (!gst_bin_add (GST_BIN (self->priv->bin), self->priv->dtmfsrc))
+  if (!gst_bin_add (GST_BIN (self->priv->bin), dtmfsrc))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add rtpdtmfsrc to bin");
-    gst_object_unref (self->priv->dtmfsrc);
-    self->priv->dtmfsrc = NULL;
+    gst_object_unref (dtmfsrc);
     goto error;
   }
 
-  self->priv->capsfilter = gst_element_factory_make ("capsfilter", NULL);
-  if (!self->priv->capsfilter)
+  capsfilter = gst_element_factory_make ("capsfilter", NULL);
+  if (!capsfilter)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not make rtpcapsfilter");
     goto error;
   }
-  if (!gst_bin_add (GST_BIN (self->priv->bin), self->priv->capsfilter))
+  if (!gst_bin_add (GST_BIN (self->priv->bin), capsfilter))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add capsfilter to bin");
-    gst_object_unref (self->priv->capsfilter);
-    self->priv->capsfilter = NULL;
+    gst_object_unref (capsfilter);
     goto error;
   }
 
   caps = fs_codec_to_gst_caps (telephony_codec);
-  g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+  g_object_set (capsfilter, "caps", caps, NULL);
   gst_object_unref (caps);
 
-  pad = gst_element_get_static_pad (self->priv->capsfilter, "src");
+  pad = gst_element_get_static_pad (capsfilter, "src");
   if (!pad)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -408,8 +482,6 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   return TRUE;
 
  error:
-  self->priv->capsfilter = NULL;
-  self->priv->dtmfsrc = NULL;
   gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->bin);
   self->priv->bin = NULL;
 
