@@ -88,7 +88,18 @@ static FsRtpSpecialSource *fs_rtp_dtmf_event_source_new (
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
+    gboolean *last,
     GError **error);
+static gboolean fs_rtp_dtmf_event_source_start_telephony_event (
+    FsRtpSpecialSource *source,
+    guint8 event,
+    guint8 volume,
+    FsDTMFMethod method);
+static gboolean fs_rtp_dtmf_event_source_stop_telephony_event (
+    FsRtpSpecialSource *source,
+    FsDTMFMethod method);
+
+
 static gboolean fs_rtp_dtmf_event_source_class_want_source (
     FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
@@ -115,6 +126,8 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   spsource_class->new = fs_rtp_dtmf_event_source_new;
   spsource_class->want_source = fs_rtp_dtmf_event_source_class_want_source;
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
+  spsource_class->start_telephony_event = fs_rtp_dtmf_event_source_start_telephony_event;
+  spsource_class->stop_telephony_event = fs_rtp_dtmf_event_source_stop_telephony_event;
 
   g_object_class_install_property (gobject_class,
       PROP_BIN,
@@ -511,5 +524,86 @@ fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
     return NULL;
   }
 
+  if (last)
+    last = FALSE;
+
   return FS_RTP_SPECIAL_SOURCE_CAST (self);
+}
+
+static gboolean
+fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
+    guint8 event,
+    guint8 volume,
+    FsDTMFMethod method)
+{
+  GstStructure *structure = NULL;
+  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (source);
+  gchar *method_str;
+
+  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
+      method != FS_DTMF_METHOD_AUTO)
+    return FALSE;
+
+  structure = gst_structure_new ("dtmf-event",
+      "number", G_TYPE_INT, event,
+      "volume", G_TYPE_INT, volume,
+      "start", G_TYPE_BOOLEAN, TRUE,
+      NULL);
+
+  switch (method)
+  {
+    case FS_DTMF_METHOD_AUTO:
+      method_str = "default";
+      break;
+    case FS_DTMF_METHOD_RTP_RFC4733:
+      method_str="RFC4733";
+      gst_structure_set (structure, "type", G_TYPE_INT, 1, NULL);
+      gst_structure_set (structure, "method", G_TYPE_INT, method, NULL);
+      break;
+    default:
+      method_str="other";
+  }
+
+  GST_DEBUG ("sending telephony event %d using method=%s",
+      event, method_str);
+
+  return gst_element_send_event (self->priv->bin,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
+}
+
+
+static gboolean
+fs_rtp_dtmf_event_source_stop_telephony_event (FsRtpSpecialSource *source,
+    FsDTMFMethod method)
+{
+  GstStructure *structure = NULL;
+  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (source);
+  gchar *method_str;
+
+  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
+      method != FS_DTMF_METHOD_AUTO)
+    return FALSE;
+
+  structure = gst_structure_new ("dtmf-event",
+      "start", G_TYPE_BOOLEAN, FALSE,
+      NULL);
+
+  switch (method)
+  {
+    case FS_DTMF_METHOD_AUTO:
+      method_str = "default";
+      break;
+    case FS_DTMF_METHOD_RTP_RFC4733:
+      method_str="RFC4733";
+      gst_structure_set (structure, "type", G_TYPE_INT, 1, NULL);
+      gst_structure_set (structure, "method", G_TYPE_INT, method, NULL);
+      break;
+    default:
+      method_str="other";
+  }
+
+  GST_DEBUG ("stopping telephony event using method=%s", method_str);
+
+  return gst_element_send_event (self->priv->bin,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
 }
