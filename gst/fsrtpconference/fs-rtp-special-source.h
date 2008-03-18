@@ -28,6 +28,8 @@
 
 #include <gst/gst.h>
 
+#include <gst/farsight/fs-session.h>
+
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
@@ -99,6 +101,9 @@ struct _FsRtpSpecialSource
 };
 
 GType fs_rtp_special_source_get_type (void);
+
+void
+fs_rtp_special_sources_init (void);
 
 GList *
 fs_rtp_special_sources_update (

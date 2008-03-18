@@ -29,6 +29,8 @@
 
 #include <gst/farsight/fs-base-conference.h>
 
+#include "fs-rtp-conference.h"
+
 #include "fs-rtp-special-source.h"
 
 #include "fs-rtp-dtmf-event-source.h"
@@ -81,11 +83,20 @@ fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
   parent_class = fs_rtp_special_source_parent_class;
 
   gobject_class->dispose = fs_rtp_special_source_dispose;
+}
 
-  if (!classes)
+void
+fs_rtp_special_sources_init (void)
+{
+  static gsize initialization_value = 0;
+  if (g_once_init_enter (&initialization_value))
   {
+    gsize setup_value = 42;
+
     classes = g_list_prepend (classes,
         g_type_class_ref (FS_TYPE_RTP_DTMF_EVENT_SOURCE));
+
+    g_once_init_leave (&initialization_value, setup_value);
   }
 }
 
@@ -116,6 +127,9 @@ fs_rtp_special_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
 {
   if (klass->add_blueprint)
     return klass->add_blueprint (klass, blueprints);
+  else
+    GST_CAT_DEBUG (fsrtpconference_disco,
+        "Class %s has no add_blueprint function", G_OBJECT_CLASS_NAME(klass));
 
   return blueprints;
 }
