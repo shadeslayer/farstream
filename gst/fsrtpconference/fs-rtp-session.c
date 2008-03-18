@@ -45,6 +45,7 @@
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-codec-negotiation.h"
 #include "fs-rtp-substream.h"
+#include "fs-rtp-special-source.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
@@ -139,6 +140,8 @@ struct _FsRtpSessionPrivate
 
   /* Protected by the session mutex */
   gint no_rtcp_timeout;
+
+  GList *extra_sources;
 
   GError *construction_error;
 
@@ -369,6 +372,9 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->transmitters)
     g_hash_table_foreach (self->priv->transmitters, _stop_transmitter_elem,
       "gst-src");
+
+  self->priv->extra_sources =
+    fs_rtp_special_sources_destroy (self->priv->extra_sources);
 
   /* Now they should all be stopped, we can remove them in peace */
 
@@ -1207,7 +1213,15 @@ static gboolean
 fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
                                       guint8 volume, FsDTMFMethod method)
 {
-  return FALSE;
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  gboolean ret = FALSE;
+
+  FS_RTP_SESSION_LOCK (self);
+  ret = fs_rtp_special_sources_start_telephony_event (
+      self->priv->extra_sources, event, volume, method);
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return ret;
 }
 
 /**
@@ -1227,7 +1241,15 @@ fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
 static gboolean
 fs_rtp_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 {
-  return FALSE;
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  gboolean ret = FALSE;
+
+  FS_RTP_SESSION_LOCK (self);
+  ret = fs_rtp_special_sources_stop_telephony_event (
+      self->priv->extra_sources, method);
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return ret;
 }
 
 /**
