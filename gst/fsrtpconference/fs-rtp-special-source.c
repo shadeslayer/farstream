@@ -83,7 +83,7 @@ register_classes (gpointer data)
   my_classes = g_list_prepend (my_classes,
       g_type_class_ref (FS_TYPE_RTP_DTMF_EVENT_SOURCE));
 
-  return classes;
+  return my_classes;
 }
 
 static void
@@ -102,6 +102,8 @@ fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
   parent_class = fs_rtp_special_source_parent_class;
 
   gobject_class->dispose = fs_rtp_special_source_dispose;
+
+  g_type_class_add_private (klass, sizeof (FsRtpSpecialSourcePrivate));
 }
 
 static void
@@ -160,6 +162,7 @@ fs_rtp_special_sources_add_blueprints (GList *blueprints)
        item = g_list_next (item))
   {
     FsRtpSpecialSourceClass *klass = item->data;
+
     blueprints = fs_rtp_special_source_class_add_blueprint (klass, blueprints);
   }
 

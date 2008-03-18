@@ -144,6 +144,8 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
           "The RTP muxer that the source is linked to",
           GST_TYPE_ELEMENT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+
+  g_type_class_add_private (klass, sizeof (FsRtpDtmfEventSourcePrivate));
 }
 
 static void
@@ -276,6 +278,7 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
   GList *item;
   GList *already_done = NULL;
   GstElementFactory *fact = NULL;
+  GList *new_blueprints = NULL;
 
   fact = gst_element_factory_find ("rtpdtmfsrc");
   if (fact)
@@ -305,6 +308,9 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     if (!g_ascii_strcasecmp (bp->codec->encoding_name, "telephone-event"))
       continue;
 
+    if (bp->codec->clock_rate == 0)
+      continue;
+
     for (done_item = g_list_first (already_done);
          done_item;
          done_item = g_list_next (done_item))
@@ -326,14 +332,18 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     param->name = g_strdup ("");
     param->value = g_strdup ("0-15");
     new_bp->codec->optional_params = g_list_prepend (NULL, param);
+    new_bp->rtp_caps = fs_codec_to_gst_caps (new_bp->codec);
+    new_bp->media_caps = gst_caps_new_any ();
 
-    blueprints = g_list_append (blueprints, new_bp);
+    new_blueprints = g_list_append (new_blueprints, new_bp);
 
     already_done = g_list_prepend (already_done,
         GUINT_TO_POINTER (bp->codec->clock_rate));
   }
 
   g_list_free (already_done);
+
+  blueprints = g_list_concat (blueprints, new_blueprints);
 
   return blueprints;
 }
@@ -459,7 +469,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
 
   caps = fs_codec_to_gst_caps (telephony_codec);
   g_object_set (capsfilter, "caps", caps, NULL);
-  gst_object_unref (caps);
+  gst_caps_unref (caps);
 
   pad = gst_element_get_static_pad (capsfilter, "src");
   if (!pad)
