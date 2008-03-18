@@ -84,6 +84,7 @@ struct _FsRtpSpecialSourceClass
       FsCodec *selected_codec,
       GstElement *bin,
       GstElement *rtpmuxer,
+      gboolean *last,
       GError **error);
 };
 

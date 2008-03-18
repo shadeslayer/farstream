@@ -507,6 +507,7 @@ fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
+    gboolean *last,
     GError **error)
 {
   FsRtpDtmfEventSource *self = NULL;

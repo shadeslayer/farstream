@@ -66,6 +66,7 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
+    gboolean *last,
     GError **error);
 static gboolean
 fs_rtp_special_source_update (FsRtpSpecialSource *source,
@@ -195,13 +196,19 @@ fs_rtp_special_sources_update (
       {
         if (!fs_rtp_special_source_update (obj, negotiated_codecs, send_codec))
         {
+          gboolean last;
+
           current_extra_sources = g_list_remove (current_extra_sources, obj);
           g_object_unref (obj);
           obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-              bin, rtpmuxer, error);
+              bin, rtpmuxer, &last, error);
           if (!obj)
             goto error;
-          current_extra_sources = g_list_prepend (current_extra_sources, obj);
+
+          if (last)
+            current_extra_sources = g_list_append (current_extra_sources, obj);
+          else
+            current_extra_sources = g_list_prepend (current_extra_sources, obj);
         }
       }
       else
@@ -215,11 +222,16 @@ fs_rtp_special_sources_update (
       if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
               send_codec))
       {
+        gboolean last;
+
         obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-            bin, rtpmuxer, error);
+            bin, rtpmuxer, &last, error);
         if (!obj)
           goto error;
-        current_extra_sources = g_list_prepend (current_extra_sources, obj);
+        if (last)
+          current_extra_sources = g_list_append (current_extra_sources, obj);
+        else
+          current_extra_sources = g_list_prepend (current_extra_sources, obj);
       }
     }
   }
@@ -236,11 +248,12 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
+    gboolean *last,
     GError **error)
 {
   if (klass->new)
     return klass->new (klass, negotiated_sources, selected_codec, bin, rtpmuxer,
-        error);
+        last, error);
 
   g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "new not defined for %s", G_OBJECT_CLASS_NAME (klass));
