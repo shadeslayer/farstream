@@ -2431,6 +2431,12 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   if (!codec)
     goto done;
 
+  if (!fs_rtp_special_sources_update (self->priv->extra_sources,
+          self->priv->negotiated_codecs, codec,
+          GST_ELEMENT (self->priv->conference),
+          self->priv->rtpmuxer, error))
+    goto done;
+
   if (self->priv->current_send_codec) {
     if (fs_codec_are_equal (codec, self->priv->current_send_codec))
     {
