@@ -24,6 +24,54 @@
 
 #include "fs-rtp-discover-codecs.h"
 
+
+GST_DEBUG_CATEGORY (fsrtpconference_debug);
+GST_DEBUG_CATEGORY (fsrtpconference_disco);
+GST_DEBUG_CATEGORY (fsrtpconference_nego);
+
+
+static void
+debug_pipeline (GList *pipeline)
+{
+  GList *walk;
+
+  for (walk = pipeline; walk; walk = g_list_next (walk))
+  {
+    GList *walk2;
+    for (walk2 = g_list_first (walk->data); walk2; walk2 = g_list_next (walk2))
+      g_message ("%p:%d:%s ", walk2->data,
+        GST_OBJECT_REFCOUNT_VALUE(GST_OBJECT (walk2->data)),
+        gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (walk2->data)));
+    g_message ("--");
+  }
+}
+
+static void
+debug_blueprint (CodecBlueprint *blueprint)
+{
+  gchar *str;
+
+  str = fs_codec_to_string (blueprint->codec);
+  g_message ("Codec: %s", str);
+  g_free (str);
+
+  str = gst_caps_to_string (blueprint->media_caps);
+  g_message ("media_caps: %s", str);
+  g_free (str);
+
+  str = gst_caps_to_string (blueprint->rtp_caps);
+  g_message ("rtp_caps: %s", str);
+  g_free (str);
+
+  g_message ("send pipeline:");
+  debug_pipeline (blueprint->send_pipeline_factory);
+
+  g_message ("recv pipeline:");
+  debug_pipeline (blueprint->send_pipeline_factory);
+
+  g_message ("================================");
+}
+
 int main (int argc, char **argv)
 {
   GList *elements = NULL;
@@ -31,31 +79,45 @@ int main (int argc, char **argv)
 
   gst_init (&argc, &argv);
 
-  g_debug ("AUDIO STARTING!!");
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_debug, "fsrtpconference", 0,
+      "Farsight RTP Conference Element");
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_disco, "fsrtpconference_disco",
+      0, "Farsight RTP Codec Discovery");
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_nego, "fsrtpconference_nego",
+      0, "Farsight RTP Codec Negotiation");
+
+  gst_debug_set_default_threshold (GST_LEVEL_WARNING);
+
+  g_message ("AUDIO STARTING!!");
 
   elements = fs_rtp_blueprints_get (FS_MEDIA_TYPE_AUDIO, &error);
 
   if (error)
-    g_debug ("Error: %s", error->message);
+    g_message ("Error: %s", error->message);
+  else
+    g_list_foreach (elements, (GFunc) debug_blueprint, NULL);
 
   g_clear_error (&error);
+
   fs_rtp_blueprints_unref (FS_MEDIA_TYPE_AUDIO);
 
-  g_debug ("AUDIO FINISHED!!");
+  g_message ("AUDIO FINISHED!!");
 
 
-  g_debug ("VIDEO STARTING!!");
+  g_message ("VIDEO STARTING!!");
 
   elements = fs_rtp_blueprints_get (FS_MEDIA_TYPE_VIDEO, &error);
 
   if (error)
-    g_debug ("Error: %s", error->message);
+    g_message ("Error: %s", error->message);
+  else
+    g_list_foreach (elements, (GFunc) debug_blueprint, NULL);
 
   g_clear_error (&error);
 
   fs_rtp_blueprints_unref (FS_MEDIA_TYPE_VIDEO);
 
-  g_debug ("VIDEO FINISHED!!");
+  g_message ("VIDEO FINISHED!!");
 
   return 0;
 }
