@@ -317,3 +317,12 @@ fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
 
   return FALSE;
 }
+
+GList *
+fs_rtp_special_sources_destroy (GList *current_extra_sources)
+{
+  g_list_foreach (current_extra_sources, (GFunc) g_object_unref, NULL);
+  g_list_free (current_extra_sources);
+
+  return NULL;
+}

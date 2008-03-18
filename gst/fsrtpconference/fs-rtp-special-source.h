@@ -110,6 +110,9 @@ fs_rtp_special_sources_update (
     GError **error);
 
 GList *
+fs_rtp_special_sources_destroy (GList *current_extra_sources);
+
+GList *
 fs_rtp_special_sources_add_blueprints (GList *blueprints);
 
 gboolean
