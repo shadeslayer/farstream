@@ -312,7 +312,6 @@ create_codec_lists (FsMediaType media_type,
 
   codec_cap_list_free (duplex_list);
 
-  fs_rtp_special_sources_init ();
   list_codec_blueprints[media_type] =
     fs_rtp_special_sources_add_blueprints (list_codec_blueprints[media_type]);
 

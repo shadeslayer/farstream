@@ -75,6 +75,25 @@ fs_rtp_special_source_update (FsRtpSpecialSource *source,
     GList *negotiated_codecs,
     FsCodec *selected_codec);
 
+static gpointer
+register_classes (gpointer data)
+{
+  GList *my_classes = NULL;
+
+  my_classes = g_list_prepend (my_classes,
+      g_type_class_ref (FS_TYPE_RTP_DTMF_EVENT_SOURCE));
+
+  return classes;
+}
+
+static void
+fs_rtp_special_sources_init (void)
+{
+  static GOnce my_once = G_ONCE_INIT;
+
+  classes = g_once (&my_once, register_classes, NULL);
+}
+
 static void
 fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
 {
@@ -84,22 +103,6 @@ fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
 
   gobject_class->dispose = fs_rtp_special_source_dispose;
 }
-
-void
-fs_rtp_special_sources_init (void)
-{
-  static gsize initialization_value = 0;
-  if (g_once_init_enter (&initialization_value))
-  {
-    gsize setup_value = 42;
-
-    classes = g_list_prepend (classes,
-        g_type_class_ref (FS_TYPE_RTP_DTMF_EVENT_SOURCE));
-
-    g_once_init_leave (&initialization_value, setup_value);
-  }
-}
-
 
 static void
 fs_rtp_special_source_init (FsRtpSpecialSource *self)
@@ -150,6 +153,8 @@ fs_rtp_special_sources_add_blueprints (GList *blueprints)
 {
   GList *item = NULL;
 
+  fs_rtp_special_sources_init ();
+
   for (item = g_list_first (classes);
        item;
        item = g_list_next (item))
@@ -184,6 +189,8 @@ fs_rtp_special_sources_update (
     GError **error)
 {
   GList *klass_item = NULL;
+
+  fs_rtp_special_sources_init ();
 
   for (klass_item = g_list_first (classes);
        klass_item;
@@ -258,7 +265,7 @@ fs_rtp_special_sources_update (
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources,
+    GList *negotiated_codecs,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
@@ -266,7 +273,7 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GError **error)
 {
   if (klass->new)
-    return klass->new (klass, negotiated_sources, selected_codec, bin, rtpmuxer,
+    return klass->new (klass, negotiated_codecs, selected_codec, bin, rtpmuxer,
         last, error);
 
   g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
