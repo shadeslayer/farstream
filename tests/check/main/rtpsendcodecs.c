@@ -260,9 +260,13 @@ send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 
   ts_fail_unless (gst_rtp_buffer_validate (buf), "Buffer is not valid rtp");
 
+  fail_unless (gst_rtp_buffer_get_payload_type (buf) == dtmf_id,
+      "Payload type is not DTMF");
+
   data = gst_rtp_buffer_get_payload (buf);
 
-  ts_fail_if (data[0] != digit, "Not sending the right digit");
+  ts_fail_if (data[0] != digit, "Not sending the right digit"
+      " (sending %d, should be %d", data[0], digit);
 
   received = TRUE;
 }
