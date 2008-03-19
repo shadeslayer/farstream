@@ -34,6 +34,7 @@
 #include "fs-rtp-special-source.h"
 
 #include "fs-rtp-dtmf-event-source.h"
+#include "fs-rtp-dtmf-sound-source.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
@@ -114,6 +115,8 @@ register_classes (gpointer data)
 
   my_classes = g_list_prepend (my_classes,
       g_type_class_ref (FS_TYPE_RTP_DTMF_EVENT_SOURCE));
+  my_classes = g_list_prepend (my_classes,
+      g_type_class_ref (FS_TYPE_RTP_DTMF_SOUND_SOURCE));
 
   return my_classes;
 }
