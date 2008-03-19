@@ -329,7 +329,7 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     new_bp->codec = fs_codec_new (FS_CODEC_ID_ANY, "telephone-event",
         FS_MEDIA_TYPE_AUDIO, bp->codec->clock_rate);
     param = g_new0 (FsCodecParameter, 1);
-    param->name = g_strdup ("");
+    param->name = g_strdup ("events");
     param->value = g_strdup ("0-15");
     new_bp->codec->optional_params = g_list_prepend (NULL, param);
     new_bp->rtp_caps = fs_codec_to_gst_caps (new_bp->codec);
