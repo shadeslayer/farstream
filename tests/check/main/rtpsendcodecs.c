@@ -32,7 +32,11 @@
 
 GMainLoop *loop = NULL;
 
+FsDTMFMethod method = FS_DTMF_METHOD_AUTO;
 guint dtmf_id = 0;
+gint digit = 0;
+gboolean sending = FALSE;
+gboolean received = FALSE;
 
 struct SimpleTestConference *dat = NULL;
 
@@ -50,7 +54,6 @@ _start_pipeline (gpointer user_data)
 
   return FALSE;
 }
-
 
 static gboolean
 _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
@@ -246,12 +249,11 @@ one_way (GCallback havedata_handler, gpointer data)
   cleanup_simple_conference (dat);
   gst_object_unref (recv_pipeline);
 
+  digit = 0;
+
   g_main_loop_unref (loop);
 }
 
-gint digit = 0;
-gboolean sending = FALSE;
-gboolean received = FALSE;
 
 static void
 send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
@@ -265,11 +267,18 @@ send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 
   data = gst_rtp_buffer_get_payload (buf);
 
+  if (data[0] < digit)
+  {
+    /* Still on previou digit */
+    return;
+  }
+
   ts_fail_if (data[0] != digit, "Not sending the right digit"
       " (sending %d, should be %d", data[0], digit);
 
   received = TRUE;
 }
+
 
 static gboolean
 start_stop_sending_dtmf (gpointer data)
@@ -280,8 +289,8 @@ start_stop_sending_dtmf (gpointer data)
 
   if (sending)
   {
-    ts_fail_unless (fs_session_stop_telephony_event (dat->session,
-            FS_DTMF_METHOD_RTP_RFC4733), "Could not stop telephony event");
+    ts_fail_unless (fs_session_stop_telephony_event (dat->session, method),
+        "Could not stop telephony event");
     sending = FALSE;
 
     ts_fail_unless (received == TRUE, "Did not receive any buffer for digit %d",
@@ -290,7 +299,6 @@ start_stop_sending_dtmf (gpointer data)
 
     if (digit > FS_DTMF_EVENT_D)
     {
-      digit = 0;
       g_main_loop_quit (loop);
       return FALSE;
     }
@@ -300,7 +308,7 @@ start_stop_sending_dtmf (gpointer data)
     digit++;
 
     ts_fail_unless (fs_session_start_telephony_event (dat->session,
-            digit, digit, FS_DTMF_METHOD_RTP_RFC4733),
+            digit, digit, method),
         "Could not start telephony event");
     sending = TRUE;
   }
@@ -310,6 +318,16 @@ start_stop_sending_dtmf (gpointer data)
 
 GST_START_TEST (test_senddtmf_event)
 {
+  method = FS_DTMF_METHOD_RTP_RFC4733;
+  g_timeout_add (200, start_stop_sending_dtmf, NULL);
+  one_way (G_CALLBACK (send_dmtf_havedata_handler), NULL);
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_senddtmf_auto)
+{
+  method = FS_DTMF_METHOD_AUTO;
   g_timeout_add (200, start_stop_sending_dtmf, NULL);
   one_way (G_CALLBACK (send_dmtf_havedata_handler), NULL);
 }
@@ -328,8 +346,12 @@ fsrtpsendcodecs_suite (void)
   g_log_set_always_fatal (fatal_mask);
 
 
-  tc_chain = tcase_create ("fsrtpsenddtmf");
+  tc_chain = tcase_create ("fsrtpsenddtmf_event");
   tcase_add_test (tc_chain, test_senddtmf_event);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpsenddtmf_auto");
+  tcase_add_test (tc_chain, test_senddtmf_auto);
   suite_add_tcase (s, tc_chain);
 
   return s;
