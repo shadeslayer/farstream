@@ -346,7 +346,7 @@ load_codecs_cache (FsMediaType media_type, GError **error)
 
       goto error;
     }
-    blueprints = g_list_prepend (blueprints, blueprint);
+    blueprints = g_list_append (blueprints, blueprint);
   }
 
  error:
