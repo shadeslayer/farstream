@@ -472,16 +472,63 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
       NULL);
   g_assert (source);
 
+
+  if (!source->priv->outer_bin)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid bin set");
+    goto error;
+  }
+
+  if (!source->priv->rtpmuxer)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid rtpmuxer set");
+    goto error;
+  }
+
   source->priv->src = klass->build (source, negotiated_codecs, selected_codec,
       error);
 
   if (!source->priv->src)
+    goto error;
+
+  if (!gst_bin_add (GST_BIN (source->priv->outer_bin), source->priv->src))
   {
-    g_object_unref (source);
-    return NULL;
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add bin to outer bin");
+    gst_object_unref (source->priv->src);
+    source->priv->src = NULL;
+    goto error;
+  }
+
+  if (!gst_element_link_pads (source->priv->src, "src",
+          rtpmuxer, NULL))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link rtpdtmfsrc src to muxer sink");
+    goto error_added;
+
+  }
+
+  if (!gst_element_sync_state_with_parent (source->priv->src))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync capsfilter state with its parent");
+    goto error_added;
   }
 
   return source;
+
+ error_added:
+  gst_element_set_state (source->priv->src, GST_STATE_NULL);
+  gst_bin_remove (GST_BIN (source->priv->outer_bin), source->priv->src);
+  source->priv->src = NULL;
+
+ error:
+  g_object_unref (source);
+
+  return NULL;
 }
 
 static gboolean

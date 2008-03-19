@@ -238,8 +238,6 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   GstElement *capsfilter = NULL;
   GstPad *ghostpad = NULL;
   GstElement *bin = NULL;
-  GstElement *outer_bin = NULL;
-  GstElement *rtpmuxer = NULL;
 
   telephony_codec = get_telephone_event_codec (negotiated_codecs,
       selected_codec->clock_rate);
@@ -248,34 +246,10 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Could not find a telephone-event for the current codec's clock-rate");
-    goto done;
-  }
-
-  g_object_get (source, "bin", &outer_bin, "rtpmuxer", &rtpmuxer, NULL);
-
-  if (!outer_bin)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid bin set");
-    goto done;
-  }
-
-  if (!rtpmuxer)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid rtpmuxer set");
-    goto done;
+    return NULL;
   }
 
   bin = gst_bin_new (NULL);
-  if (!gst_bin_add (GST_BIN (outer_bin), bin))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add bin to outer bin");
-    gst_object_unref (bin);
-    bin = NULL;
-    goto done;
-  }
 
   dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
   if (!dtmfsrc)
@@ -346,32 +320,11 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   }
   gst_object_unref (pad);
 
-  if (!gst_element_link_pads (bin, "src",
-          rtpmuxer, NULL))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link rtpdtmfsrc src to muxer sink");
-    goto error;
-  }
-
-  if (!gst_element_sync_state_with_parent (bin))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not sync capsfilter state with its parent");
-    goto error;
-  }
-
- done:
-  if (rtpmuxer)
-    gst_object_unref (rtpmuxer);
-  if (outer_bin)
-    gst_object_unref (outer_bin);
-
   return bin;
 
  error:
-  gst_bin_remove (GST_BIN (outer_bin), bin);
+  gst_object_unref (bin);
 
-  goto done;
+  return NULL;
 }
 
