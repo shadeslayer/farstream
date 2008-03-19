@@ -60,6 +60,11 @@ struct _FsRtpSpecialSourceClass
 
   /* Object methods */
 
+  GstElement* (*build) (FsRtpSpecialSource *source,
+      GList *negotiated_codecs,
+      FsCodec *selected_codec,
+      GError **error);
+
   gboolean (*update) (FsRtpSpecialSource *source,
       GList *negotiated_codecs,
       FsCodec *selected_codec);
@@ -71,7 +76,6 @@ struct _FsRtpSpecialSourceClass
 
   gboolean (*stop_telephony_event) (FsRtpSpecialSource *source,
       FsDTMFMethod method);
-
 
   /* Class methods */
   gboolean (*want_source) (FsRtpSpecialSourceClass *klass,
@@ -88,6 +92,7 @@ struct _FsRtpSpecialSourceClass
       GstElement *rtpmuxer,
       gboolean *last,
       GError **error);
+
 };
 
 /**

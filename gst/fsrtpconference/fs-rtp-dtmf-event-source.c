@@ -76,12 +76,23 @@ G_DEFINE_TYPE(FsRtpDtmfEventSource, fs_rtp_dtmf_event_source,
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_DTMF_EVENT_SOURCE,             \
    FsRtpDtmfEventSourcePrivate))
 
-static void fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_id,
-  const GValue *value, GParamSpec *pspec);
+static void fs_rtp_dtmf_event_source_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
+static void fs_rtp_dtmf_event_source_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
 
 static void fs_rtp_dtmf_event_source_dispose (GObject *object);
 static void fs_rtp_dtmf_event_source_finalize (GObject *object);
 
+static GstElement *
+fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
+    GList *negotiated_codecs,
+    FsCodec *selected_codec,
+    GError **error);
 static FsRtpSpecialSource *fs_rtp_dtmf_event_source_new (
     FsRtpSpecialSourceClass *klass,
     GList *negotiated_sources,
@@ -122,8 +133,10 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   gobject_class->dispose = fs_rtp_dtmf_event_source_dispose;
   gobject_class->finalize = fs_rtp_dtmf_event_source_finalize;
   gobject_class->set_property = fs_rtp_dtmf_event_source_set_property;
+  gobject_class->get_property = fs_rtp_dtmf_event_source_get_property;
 
   spsource_class->new = fs_rtp_dtmf_event_source_new;
+  spsource_class->build = fs_rtp_dtmf_event_source_build;
   spsource_class->want_source = fs_rtp_dtmf_event_source_class_want_source;
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
   spsource_class->start_telephony_event = fs_rtp_dtmf_event_source_start_telephony_event;
@@ -135,7 +148,7 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
           "The GstBin to add the elements to",
           "This is the GstBin where this class adds elements",
           GST_TYPE_BIN,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
       PROP_RTPMUXER,
@@ -143,7 +156,7 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
           "The RTP muxer that the source is linked to",
           "The RTP muxer that the source is linked to",
           GST_TYPE_ELEMENT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_type_class_add_private (klass, sizeof (FsRtpDtmfEventSourcePrivate));
 }
@@ -245,8 +258,10 @@ fs_rtp_dtmf_event_source_finalize (GObject *object)
 }
 
 static void
-fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_id,
-  const GValue *value, GParamSpec *pspec)
+fs_rtp_dtmf_event_source_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
 {
   FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
 
@@ -257,6 +272,28 @@ fs_rtp_dtmf_event_source_set_property (GObject *object, guint prop_id,
       break;
     case PROP_RTPMUXER:
       self->priv->rtpmuxer = g_value_get_object (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+static void
+fs_rtp_dtmf_event_source_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+ FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
+
+  switch (prop_id)
+  {
+    case PROP_BIN:
+      g_value_set_object (value, self->priv->outer_bin);
+      break;
+    case PROP_RTPMUXER:
+      g_value_set_object (value, self->priv->rtpmuxer);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -391,8 +428,8 @@ fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
     return FALSE;
 }
 
-static gboolean
-fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
+static GstElement *
+fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
     GList *negotiated_codecs,
     FsCodec *selected_codec,
     GError **error)
@@ -403,6 +440,9 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   GstElement *dtmfsrc = NULL;
   GstElement *capsfilter = NULL;
   GstPad *ghostpad = NULL;
+  GstElement *bin = NULL;
+  GstElement *outer_bin = NULL;
+  GstElement *rtpmuxer = NULL;
 
   telephony_codec = get_telephone_event_codec (negotiated_codecs,
       selected_codec->clock_rate);
@@ -411,31 +451,33 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Could not find a telephone-event for the current codec's clock-rate");
-    return FALSE;
+    goto done;
   }
 
-  if (!self->priv->outer_bin)
+  g_object_get (source, "bin", &outer_bin, "rtpmuxer", &rtpmuxer, NULL);
+
+  if (!outer_bin)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Invalid bin set");
-    return FALSE;
+    goto done;
   }
 
-  if (!self->priv->rtpmuxer)
+  if (!rtpmuxer)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Invalid rtpmuxer set");
-    return FALSE;
+    goto done;
   }
 
-  self->priv->bin = gst_bin_new (NULL);
-  if (!gst_bin_add (GST_BIN (self->priv->outer_bin), self->priv->bin))
+  bin = gst_bin_new (NULL);
+  if (!gst_bin_add (GST_BIN (outer_bin), bin))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add bin to outer bin");
-    gst_object_unref (self->priv->bin);
-    self->priv->bin = NULL;
-    return FALSE;
+    gst_object_unref (bin);
+    bin = NULL;
+    goto done;
   }
 
   dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
@@ -445,7 +487,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
         "Could not make rtpdtmfsrc");
     goto error;
   }
-  if (!gst_bin_add (GST_BIN (self->priv->bin), dtmfsrc))
+  if (!gst_bin_add (GST_BIN (bin), dtmfsrc))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add rtpdtmfsrc to bin");
@@ -460,7 +502,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
         "Could not make capsfilter");
     goto error;
   }
-  if (!gst_bin_add (GST_BIN (self->priv->bin), capsfilter))
+  if (!gst_bin_add (GST_BIN (bin), capsfilter))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add capsfilter to bin");
@@ -498,7 +540,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
         "Could not create a ghostpad for capsfilter src pad for rtpdtmfsrc");
     goto error;
   }
-  if (!gst_element_add_pad (self->priv->bin, ghostpad))
+  if (!gst_element_add_pad (bin, ghostpad))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not get \"src\" ghostpad to dtmf source bin");
@@ -507,28 +549,33 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   }
   gst_object_unref (pad);
 
-  if (!gst_element_link_pads (self->priv->bin, "src",
-          self->priv->rtpmuxer, NULL))
+  if (!gst_element_link_pads (bin, "src",
+          rtpmuxer, NULL))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not link rtpdtmfsrc src to muxer sink");
     goto error;
   }
 
-  if (!gst_element_sync_state_with_parent (self->priv->bin))
+  if (!gst_element_sync_state_with_parent (bin))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not sync capsfilter state with its parent");
     goto error;
   }
 
-  return TRUE;
+ done:
+  if (rtpmuxer)
+    gst_object_unref (rtpmuxer);
+  if (outer_bin)
+    gst_object_unref (outer_bin);
+
+  return bin;
 
  error:
-  gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->bin);
-  self->priv->bin = NULL;
+  gst_bin_remove (GST_BIN (outer_bin), bin);
 
-  return FALSE;
+  goto done;
 }
 
 static FsRtpSpecialSource *
@@ -540,16 +587,21 @@ fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
     gboolean *last,
     GError **error)
 {
+  FsRtpSpecialSource *source = NULL;
   FsRtpDtmfEventSource *self = NULL;
 
-  self = g_object_new (FS_TYPE_RTP_DTMF_EVENT_SOURCE,
+  source = g_object_new (FS_TYPE_RTP_DTMF_EVENT_SOURCE,
       "bin", bin,
       "rtpmuxer", rtpmuxer,
       NULL);
-  g_assert (self);
+  g_assert (source);
 
-  if (!fs_rtp_dtmf_event_source_build (self, negotiated_codecs,
-          selected_codec, error))
+  self = FS_RTP_DTMF_EVENT_SOURCE (source);
+
+  self->priv->bin = fs_rtp_dtmf_event_source_build (source, negotiated_codecs,
+      selected_codec, error);
+
+  if (!self->priv->bin)
   {
     g_object_unref (self);
     return NULL;
@@ -558,7 +610,7 @@ fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
   if (last)
     last = FALSE;
 
-  return FS_RTP_SPECIAL_SOURCE_CAST (self);
+  return source;
 }
 
 
