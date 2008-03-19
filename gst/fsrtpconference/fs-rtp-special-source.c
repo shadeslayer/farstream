@@ -46,21 +46,54 @@
  *
  */
 
+
+/* props */
+enum
+{
+  PROP_0,
+  PROP_BIN,
+  PROP_RTPMUXER
+};
+
 struct _FsRtpSpecialSourcePrivate {
   gboolean disposed;
+
+  GstElement *outer_bin;
+  GstElement *rtpmuxer;
+
+  GstElement *src;
+
+  GThread *stop_thread;
+
+  GMutex *mutex;
 };
 
 static GObjectClass *parent_class = NULL;
 
 static GList *classes = NULL;
 
-G_DEFINE_ABSTRACT_TYPE(FsRtpSpecialSource, fs_rtp_special_source, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE(FsRtpSpecialSource, fs_rtp_special_source,
+    G_TYPE_OBJECT);
 
 #define FS_RTP_SPECIAL_SOURCE_GET_PRIVATE(o)                                 \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SPECIAL_SOURCE,             \
    FsRtpSpecialSourcePrivate))
 
+
+#define FS_RTP_SPECIAL_SOURCE_LOCK(src)   g_mutex_lock (src->priv->mutex)
+#define FS_RTP_SPECIAL_SOURCE_UNLOCK(src) g_mutex_unlock (src->priv->mutex)
+
+static void fs_rtp_special_source_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
+static void fs_rtp_special_source_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
+
 static void fs_rtp_special_source_dispose (GObject *object);
+static void fs_rtp_special_source_finalize (GObject *object);
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
@@ -68,7 +101,6 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
-    gboolean *last,
     GError **error);
 static gboolean
 fs_rtp_special_source_update (FsRtpSpecialSource *source,
@@ -101,7 +133,28 @@ fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
 
   parent_class = fs_rtp_special_source_parent_class;
 
+  gobject_class->set_property = fs_rtp_special_source_set_property;
+  gobject_class->get_property = fs_rtp_special_source_get_property;
   gobject_class->dispose = fs_rtp_special_source_dispose;
+  gobject_class->finalize = fs_rtp_special_source_finalize;
+
+  g_object_class_install_property (gobject_class,
+      PROP_BIN,
+      g_param_spec_object ("bin",
+          "The GstBin to add the elements to",
+          "This is the GstBin where this class adds elements",
+          GST_TYPE_BIN,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_RTPMUXER,
+      g_param_spec_object ("rtpmuxer",
+          "The RTP muxer that the source is linked to",
+          "The RTP muxer that the source is linked to",
+          GST_TYPE_ELEMENT,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+
 
   g_type_class_add_private (klass, sizeof (FsRtpSpecialSourcePrivate));
 }
@@ -111,6 +164,27 @@ fs_rtp_special_source_init (FsRtpSpecialSource *self)
 {
   self->priv = FS_RTP_SPECIAL_SOURCE_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  self->priv->mutex = g_mutex_new ();
+}
+
+
+static gpointer
+stop_source_thread (gpointer data)
+{
+  FsRtpSpecialSource *self = FS_RTP_SPECIAL_SOURCE (data);
+
+  gst_element_set_locked_state (self->priv->src, TRUE);
+  gst_element_set_state (self->priv->src, GST_STATE_NULL);
+
+  FS_RTP_SPECIAL_SOURCE_LOCK (self);
+  gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->src);
+  self->priv->src = NULL;
+  FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
+
+  g_object_unref (self);
+
+  return NULL;
 }
 
 static void
@@ -121,8 +195,115 @@ fs_rtp_special_source_dispose (GObject *object)
   if (self->priv->disposed)
     return;
 
+
+  FS_RTP_SPECIAL_SOURCE_LOCK (self);
+
+  if (self->priv->disposed)
+  {
+    FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
+    return;
+  }
+
+  if (self->priv->src)
+  {
+    GError *error = NULL;
+
+    if (self->priv->stop_thread)
+    {
+      GST_DEBUG ("stopping thread for special source already running");
+      return;
+    }
+
+    g_object_ref (self);
+    self->priv->stop_thread = g_thread_create (stop_source_thread, self, FALSE,
+        &error);
+
+    if (!self->priv->stop_thread)
+    {
+      GST_WARNING ("Could not start stopping thread for FsRtpSpecialSource:"
+          " %s", error->message);
+    }
+    g_clear_error (&error);
+
+    FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
+    return;
+  }
+
+  if (self->priv->rtpmuxer)
+  {
+    gst_object_unref (self->priv->rtpmuxer);
+    self->priv->rtpmuxer = NULL;
+  }
+
+  if (self->priv->outer_bin)
+  {
+    gst_object_unref (self->priv->outer_bin);
+    self->priv->outer_bin = NULL;
+  }
+
   self->priv->disposed = TRUE;
+
+  FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
+
   G_OBJECT_CLASS (fs_rtp_special_source_parent_class)->dispose (object);
+}
+
+
+static void
+fs_rtp_special_source_finalize (GObject *object)
+{
+  FsRtpSpecialSource *self = FS_RTP_SPECIAL_SOURCE (object);
+
+  if (self->priv->mutex)
+    g_mutex_free (self->priv->mutex);
+  self->priv->mutex = NULL;
+
+  G_OBJECT_CLASS (fs_rtp_special_source_parent_class)->finalize (object);
+}
+
+
+static void
+fs_rtp_special_source_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtpSpecialSource *self = FS_RTP_SPECIAL_SOURCE (object);
+
+  switch (prop_id)
+  {
+    case PROP_BIN:
+      self->priv->outer_bin = g_value_get_object (value);
+      break;
+    case PROP_RTPMUXER:
+      self->priv->rtpmuxer = g_value_get_object (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+static void
+fs_rtp_special_source_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+ FsRtpSpecialSource *self = FS_RTP_SPECIAL_SOURCE (object);
+
+  switch (prop_id)
+  {
+    case PROP_BIN:
+      g_value_set_object (value, self->priv->outer_bin);
+      break;
+    case PROP_RTPMUXER:
+      g_value_set_object (value, self->priv->rtpmuxer);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 
@@ -220,19 +401,15 @@ fs_rtp_special_sources_update (
       {
         if (!fs_rtp_special_source_update (obj, negotiated_codecs, send_codec))
         {
-          gboolean last;
 
           current_extra_sources = g_list_remove (current_extra_sources, obj);
           g_object_unref (obj);
           obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-              bin, rtpmuxer, &last, error);
+              bin, rtpmuxer, error);
           if (!obj)
             goto error;
 
-          if (last)
-            current_extra_sources = g_list_append (current_extra_sources, obj);
-          else
-            current_extra_sources = g_list_prepend (current_extra_sources, obj);
+          current_extra_sources = g_list_append (current_extra_sources, obj);
         }
       }
       else
@@ -246,16 +423,11 @@ fs_rtp_special_sources_update (
       if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
               send_codec))
       {
-        gboolean last;
-
         obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-            bin, rtpmuxer, &last, error);
+            bin, rtpmuxer, error);
         if (!obj)
           goto error;
-        if (last)
-          current_extra_sources = g_list_append (current_extra_sources, obj);
-        else
-          current_extra_sources = g_list_prepend (current_extra_sources, obj);
+        current_extra_sources = g_list_append (current_extra_sources, obj);
       }
     }
   }
@@ -272,17 +444,33 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer,
-    gboolean *last,
     GError **error)
 {
-  if (klass->new)
-    return klass->new (klass, negotiated_codecs, selected_codec, bin, rtpmuxer,
-        last, error);
+  FsRtpSpecialSource *source = NULL;
 
-  g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "new not defined for %s", G_OBJECT_CLASS_NAME (klass));
+  if (!klass->build)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
+        "Could not build new %s source", G_OBJECT_CLASS_NAME (klass));
+    return NULL;
+  }
 
-  return NULL;
+  source = g_object_new (G_OBJECT_CLASS_TYPE (klass),
+      "bin", bin,
+      "rtpmuxer", rtpmuxer,
+      NULL);
+  g_assert (source);
+
+  source->priv->src = klass->build (source, negotiated_codecs, selected_codec,
+      error);
+
+  if (!source->priv->src)
+  {
+    g_object_unref (source);
+    return NULL;
+  }
+
+  return source;
 }
 
 static gboolean
@@ -298,48 +486,133 @@ fs_rtp_special_source_update (FsRtpSpecialSource *source,
 }
 
 
+static gboolean
+fs_rtp_special_source_send_event (FsRtpSpecialSource *self,
+    GstEvent *event)
+{
+  gboolean ret = FALSE;
+  GstPad *pad;
+
+  pad = gst_element_get_pad (self->priv->src, "src");
+
+  if (!pad)
+  {
+    GST_ERROR ("Could not find the source pad on the special source");
+    gst_event_unref (event);
+    return FALSE;
+  }
+
+  ret = gst_pad_send_event (pad, event);
+
+  gst_object_unref (pad);
+
+  return ret;
+}
+
+static gboolean
+fs_rtp_special_sources_send_event (GList *current_extra_sources,
+    GstEvent *event)
+{
+  GList *item = NULL;
+
+  gst_event_ref (event);
+  for (item = g_list_first (current_extra_sources);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpSpecialSource *source = item->data;
+    if (fs_rtp_special_source_send_event (source, event))
+    {
+      gst_event_unref (event);
+      return TRUE;
+    }
+  }
+  gst_event_unref (event);
+  return FALSE;
+}
+
+
 gboolean
 fs_rtp_special_sources_start_telephony_event (GList *current_extra_sources,
       guint8 event,
       guint8 volume,
       FsDTMFMethod method)
 {
-  GList *item = NULL;
+  GstStructure *structure = NULL;
+  gchar *method_str;
 
-  for (item = g_list_first (current_extra_sources);
-       item;
-       item = g_list_next (item))
+  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
+      method != FS_DTMF_METHOD_AUTO)
+    return FALSE;
+
+  structure = gst_structure_new ("dtmf-event",
+      "number", G_TYPE_INT, event,
+      "volume", G_TYPE_INT, volume,
+      "start", G_TYPE_BOOLEAN, TRUE,
+      "type", G_TYPE_INT, 1,
+      NULL);
+
+  switch (method)
   {
-    FsRtpSpecialSource *source = item->data;
-    FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
-
-    if (klass->start_telephony_event)
-      if (klass->start_telephony_event (source, event, volume, method))
-        return TRUE;
+    case FS_DTMF_METHOD_AUTO:
+      method_str = "default";
+      break;
+    case FS_DTMF_METHOD_RTP_RFC4733:
+      method_str="RFC4733";
+      gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
+      break;
+    case FS_DTMF_METHOD_IN_BAND:
+      method_str="sound";
+      gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
+      break;
+    default:
+      method_str="other";
   }
 
-  return FALSE;
+  GST_DEBUG ("sending telephony event %d using method=%s",
+      event, method_str);
+
+  return fs_rtp_special_sources_send_event (current_extra_sources,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
 }
 
 gboolean
 fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
     FsDTMFMethod method)
 {
-  GList *item = NULL;
+  GstStructure *structure = NULL;
+  gchar *method_str;
 
-  for (item = g_list_first (current_extra_sources);
-       item;
-       item = g_list_next (item))
+  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
+      method != FS_DTMF_METHOD_AUTO)
+    return FALSE;
+
+  structure = gst_structure_new ("dtmf-event",
+      "start", G_TYPE_BOOLEAN, FALSE,
+      "type", G_TYPE_INT, 1,
+      NULL);
+
+  switch (method)
   {
-    FsRtpSpecialSource *source = item->data;
-    FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
-
-    if (klass->stop_telephony_event)
-      if (klass->stop_telephony_event (source, method))
-        return TRUE;
+    case FS_DTMF_METHOD_AUTO:
+      method_str = "default";
+      break;
+    case FS_DTMF_METHOD_RTP_RFC4733:
+      method_str="RFC4733";
+      gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
+      break;
+    case FS_DTMF_METHOD_IN_BAND:
+      method_str="sound";
+      gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
+      break;
+    default:
+      method_str="other";
   }
 
-  return FALSE;
+  GST_DEBUG ("stopping telephony event using method=%s", method_str);
+
+  return fs_rtp_special_sources_send_event (current_extra_sources,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
 }
 
 GList *

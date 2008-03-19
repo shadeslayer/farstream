@@ -45,26 +45,9 @@
  */
 
 
-/* props */
-enum
-{
-  PROP_0,
-  PROP_BIN,
-  PROP_RTPMUXER
-};
-
 /* all privates variables are protected by the mutex */
 struct _FsRtpDtmfEventSourcePrivate {
   gboolean disposed;
-
-  GstElement *outer_bin;
-  GstElement *rtpmuxer;
-
-  GstElement *bin;
-
-  GThread *stop_thread;
-
-  GMutex *mutex;
 };
 
 static FsRtpSpecialSourceClass *parent_class = NULL;
@@ -72,43 +55,16 @@ static FsRtpSpecialSourceClass *parent_class = NULL;
 G_DEFINE_TYPE(FsRtpDtmfEventSource, fs_rtp_dtmf_event_source,
     FS_TYPE_RTP_SPECIAL_SOURCE);
 
-#define FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE(o)                                 \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_DTMF_EVENT_SOURCE,             \
+#define FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE(o)                         \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_DTMF_EVENT_SOURCE,     \
    FsRtpDtmfEventSourcePrivate))
 
-static void fs_rtp_dtmf_event_source_set_property (GObject *object,
-    guint prop_id,
-    const GValue *value,
-    GParamSpec *pspec);
-static void fs_rtp_dtmf_event_source_get_property (GObject *object,
-    guint prop_id,
-    GValue *value,
-    GParamSpec *pspec);
-
-static void fs_rtp_dtmf_event_source_dispose (GObject *object);
-static void fs_rtp_dtmf_event_source_finalize (GObject *object);
 
 static GstElement *
 fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
     GList *negotiated_codecs,
     FsCodec *selected_codec,
     GError **error);
-static FsRtpSpecialSource *fs_rtp_dtmf_event_source_new (
-    FsRtpSpecialSourceClass *klass,
-    GList *negotiated_sources,
-    FsCodec *selected_codec,
-    GstElement *bin,
-    GstElement *rtpmuxer,
-    gboolean *last,
-    GError **error);
-static gboolean fs_rtp_dtmf_event_source_start_telephony_event (
-    FsRtpSpecialSource *source,
-    guint8 event,
-    guint8 volume,
-    FsDTMFMethod method);
-static gboolean fs_rtp_dtmf_event_source_stop_telephony_event (
-    FsRtpSpecialSource *source,
-    FsDTMFMethod method);
 
 
 static gboolean fs_rtp_dtmf_event_source_class_want_source (
@@ -119,44 +75,15 @@ static GList *fs_rtp_dtmf_event_source_class_add_blueprint (
     FsRtpSpecialSourceClass *klass,
     GList *blueprints);
 
-
-#define FS_RTP_DTMF_EVENT_SOURCE_LOCK(src)   g_mutex_lock (src->priv->mutex)
-#define FS_RTP_DTMF_EVENT_SOURCE_UNLOCK(src) g_mutex_unlock (src->priv->mutex)
-
 static void
 fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
 {
-  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   FsRtpSpecialSourceClass *spsource_class = FS_RTP_SPECIAL_SOURCE_CLASS (klass);
   parent_class = fs_rtp_dtmf_event_source_parent_class;
 
-  gobject_class->dispose = fs_rtp_dtmf_event_source_dispose;
-  gobject_class->finalize = fs_rtp_dtmf_event_source_finalize;
-  gobject_class->set_property = fs_rtp_dtmf_event_source_set_property;
-  gobject_class->get_property = fs_rtp_dtmf_event_source_get_property;
-
-  spsource_class->new = fs_rtp_dtmf_event_source_new;
   spsource_class->build = fs_rtp_dtmf_event_source_build;
   spsource_class->want_source = fs_rtp_dtmf_event_source_class_want_source;
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
-  spsource_class->start_telephony_event = fs_rtp_dtmf_event_source_start_telephony_event;
-  spsource_class->stop_telephony_event = fs_rtp_dtmf_event_source_stop_telephony_event;
-
-  g_object_class_install_property (gobject_class,
-      PROP_BIN,
-      g_param_spec_object ("bin",
-          "The GstBin to add the elements to",
-          "This is the GstBin where this class adds elements",
-          GST_TYPE_BIN,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class,
-      PROP_RTPMUXER,
-      g_param_spec_object ("rtpmuxer",
-          "The RTP muxer that the source is linked to",
-          "The RTP muxer that the source is linked to",
-          GST_TYPE_ELEMENT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_type_class_add_private (klass, sizeof (FsRtpDtmfEventSourcePrivate));
 }
@@ -165,140 +92,6 @@ static void
 fs_rtp_dtmf_event_source_init (FsRtpDtmfEventSource *self)
 {
   self->priv = FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
-
-  self->priv->mutex = g_mutex_new ();
-}
-
-static gpointer
-stop_source_thread (gpointer data)
-{
-  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (data);
-
-  gst_element_set_locked_state (self->priv->bin, TRUE);
-  gst_element_set_state (self->priv->bin, GST_STATE_NULL);
-
-  FS_RTP_DTMF_EVENT_SOURCE_LOCK (self);
-  gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->bin);
-  self->priv->bin = NULL;
-  FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
-
-  g_object_unref (self);
-
-  return NULL;
-}
-
-static void
-fs_rtp_dtmf_event_source_dispose (GObject *object)
-{
-  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
-
-  FS_RTP_DTMF_EVENT_SOURCE_LOCK (self);
-
-  if (self->priv->disposed)
-  {
-    FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
-    return;
-  }
-
-  if (self->priv->bin)
-  {
-    GError *error = NULL;
-
-    if (self->priv->stop_thread)
-    {
-      GST_DEBUG ("stopping thread for rtpdtmfsrc already running");
-      return;
-    }
-
-    g_object_ref (self);
-    self->priv->stop_thread = g_thread_create (stop_source_thread, self, FALSE,
-        &error);
-
-    if (!self->priv->stop_thread)
-    {
-      GST_WARNING ("Could not start stopping thread for FsRtpDtmfEventSource:"
-          " %s", error->message);
-    }
-    g_clear_error (&error);
-
-    FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
-    return;
-  }
-
-  if (self->priv->rtpmuxer)
-  {
-    gst_object_unref (self->priv->rtpmuxer);
-    self->priv->rtpmuxer = NULL;
-  }
-
-  if (self->priv->outer_bin)
-  {
-    gst_object_unref (self->priv->outer_bin);
-    self->priv->outer_bin = NULL;
-  }
-
-  self->priv->disposed = TRUE;
-
-  FS_RTP_DTMF_EVENT_SOURCE_UNLOCK (self);
-
-  G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->dispose (object);
-}
-
-static void
-fs_rtp_dtmf_event_source_finalize (GObject *object)
-{
-  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
-
-  if (self->priv->mutex)
-    g_mutex_free (self->priv->mutex);
-  self->priv->mutex = NULL;
-
-  G_OBJECT_CLASS (fs_rtp_dtmf_event_source_parent_class)->finalize (object);
-}
-
-static void
-fs_rtp_dtmf_event_source_set_property (GObject *object,
-    guint prop_id,
-    const GValue *value,
-    GParamSpec *pspec)
-{
-  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
-
-  switch (prop_id)
-  {
-    case PROP_BIN:
-      self->priv->outer_bin = g_value_get_object (value);
-      break;
-    case PROP_RTPMUXER:
-      self->priv->rtpmuxer = g_value_get_object (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-}
-
-static void
-fs_rtp_dtmf_event_source_get_property (GObject *object,
-    guint prop_id,
-    GValue *value,
-    GParamSpec *pspec)
-{
- FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (object);
-
-  switch (prop_id)
-  {
-    case PROP_BIN:
-      g_value_set_object (value, self->priv->outer_bin);
-      break;
-    case PROP_RTPMUXER:
-      g_value_set_object (value, self->priv->rtpmuxer);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
 }
 
 /**
@@ -578,147 +371,3 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   goto done;
 }
 
-static FsRtpSpecialSource *
-fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec,
-    GstElement *bin,
-    GstElement *rtpmuxer,
-    gboolean *last,
-    GError **error)
-{
-  FsRtpSpecialSource *source = NULL;
-  FsRtpDtmfEventSource *self = NULL;
-
-  source = g_object_new (FS_TYPE_RTP_DTMF_EVENT_SOURCE,
-      "bin", bin,
-      "rtpmuxer", rtpmuxer,
-      NULL);
-  g_assert (source);
-
-  self = FS_RTP_DTMF_EVENT_SOURCE (source);
-
-  self->priv->bin = fs_rtp_dtmf_event_source_build (source, negotiated_codecs,
-      selected_codec, error);
-
-  if (!self->priv->bin)
-  {
-    g_object_unref (self);
-    return NULL;
-  }
-
-  if (last)
-    last = FALSE;
-
-  return source;
-}
-
-
-static gboolean
-fs_rtp_dtmf_event_source_send_event (FsRtpDtmfEventSource *self,
-    GstEvent *event)
-{
-  gboolean ret = FALSE;
-  GstPad *pad;
-
-  pad = gst_element_get_pad (self->priv->bin, "src");
-
-  if (!pad)
-  {
-    GST_ERROR ("Could not find the source pad on the rtpdtmfsrc bin");
-    gst_event_unref (event);
-    return FALSE;
-  }
-
-  ret = gst_pad_send_event (pad, event);
-
-  gst_object_unref (pad);
-
-  return ret;
-}
-
-static gboolean
-fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
-    guint8 event,
-    guint8 volume,
-    FsDTMFMethod method)
-{
-  GstStructure *structure = NULL;
-  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (source);
-  gchar *method_str;
-
-  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
-      method != FS_DTMF_METHOD_AUTO)
-    return FALSE;
-
-  structure = gst_structure_new ("dtmf-event",
-      "number", G_TYPE_INT, event,
-      "volume", G_TYPE_INT, volume,
-      "start", G_TYPE_BOOLEAN, TRUE,
-      "type", G_TYPE_INT, 1,
-      NULL);
-
-  switch (method)
-  {
-    case FS_DTMF_METHOD_AUTO:
-      method_str = "default";
-      break;
-    case FS_DTMF_METHOD_RTP_RFC4733:
-      method_str="RFC4733";
-      gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
-      break;
-    case FS_DTMF_METHOD_IN_BAND:
-      method_str="sound";
-      gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
-      break;
-    default:
-      method_str="other";
-  }
-
-  GST_DEBUG ("sending telephony event %d using method=%s",
-      event, method_str);
-
-  return fs_rtp_dtmf_event_source_send_event (self,
-      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
-}
-
-
-static gboolean
-fs_rtp_dtmf_event_source_stop_telephony_event (FsRtpSpecialSource *source,
-    FsDTMFMethod method)
-{
-  GstStructure *structure = NULL;
-  FsRtpDtmfEventSource *self = FS_RTP_DTMF_EVENT_SOURCE (source);
-  gchar *method_str;
-
-  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
-      method != FS_DTMF_METHOD_AUTO)
-    return FALSE;
-
-  structure = gst_structure_new ("dtmf-event",
-      "start", G_TYPE_BOOLEAN, FALSE,
-      "type", G_TYPE_INT, 1,
-      NULL);
-
-  switch (method)
-  {
-    case FS_DTMF_METHOD_AUTO:
-      method_str = "default";
-      break;
-    case FS_DTMF_METHOD_RTP_RFC4733:
-      method_str="RFC4733";
-      gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
-      break;
-    case FS_DTMF_METHOD_IN_BAND:
-      method_str="sound";
-      gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
-      break;
-    default:
-      method_str="other";
-  }
-
-  GST_DEBUG ("stopping telephony event using method=%s", method_str);
-
-  return fs_rtp_dtmf_event_source_send_event (self,
-      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
-}
