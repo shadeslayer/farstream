@@ -603,6 +603,7 @@ fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
       "number", G_TYPE_INT, event,
       "volume", G_TYPE_INT, volume,
       "start", G_TYPE_BOOLEAN, TRUE,
+      "type", G_TYPE_INT, 1,
       NULL);
 
   switch (method)
@@ -612,8 +613,11 @@ fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
       break;
     case FS_DTMF_METHOD_RTP_RFC4733:
       method_str="RFC4733";
-      gst_structure_set (structure, "type", G_TYPE_INT, 1, NULL);
       gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
+      break;
+    case FS_DTMF_METHOD_IN_BAND:
+      method_str="sound";
+      gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
       break;
     default:
       method_str="other";
@@ -641,6 +645,7 @@ fs_rtp_dtmf_event_source_stop_telephony_event (FsRtpSpecialSource *source,
 
   structure = gst_structure_new ("dtmf-event",
       "start", G_TYPE_BOOLEAN, FALSE,
+      "type", G_TYPE_INT, 1,
       NULL);
 
   switch (method)
@@ -650,8 +655,11 @@ fs_rtp_dtmf_event_source_stop_telephony_event (FsRtpSpecialSource *source,
       break;
     case FS_DTMF_METHOD_RTP_RFC4733:
       method_str="RFC4733";
-      gst_structure_set (structure, "type", G_TYPE_INT, 1, NULL);
       gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
+      break;
+    case FS_DTMF_METHOD_IN_BAND:
+      method_str="sound";
+      gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
       break;
     default:
       method_str="other";
