@@ -402,6 +402,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   GstPad *pad = NULL;
   GstElement *dtmfsrc = NULL;
   GstElement *capsfilter = NULL;
+  GstPad *ghostpad = NULL;
 
   telephony_codec = get_telephone_event_codec (negotiated_codecs,
       selected_codec->clock_rate);
@@ -456,7 +457,7 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   if (!capsfilter)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not make rtpcapsfilter");
+        "Could not make capsfilter");
     goto error;
   }
   if (!gst_bin_add (GST_BIN (self->priv->bin), capsfilter))
@@ -469,7 +470,19 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
 
   caps = fs_codec_to_gst_caps (telephony_codec);
   g_object_set (capsfilter, "caps", caps, NULL);
+  {
+    gchar *str = gst_caps_to_string (caps);
+    GST_DEBUG ("Using caps %s for dtmf", str);
+    g_free (str);
+  }
   gst_caps_unref (caps);
+
+  if (!gst_element_link_pads (dtmfsrc, "src", capsfilter, "sink"))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the rtpdtmfsrc and its capsfilter");
+    goto error;
+  }
 
   pad = gst_element_get_static_pad (capsfilter, "src");
   if (!pad)
@@ -478,7 +491,14 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
         "Could not get \"src\" pad from capsfilter");
     goto error;
   }
-  if (!gst_element_add_pad (self->priv->bin, gst_ghost_pad_new ("src", pad)))
+  ghostpad = gst_ghost_pad_new ("src", pad);
+  if (!ghostpad)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create a ghostpad for capsfilter src pad for rtpdtmfsrc");
+    goto error;
+  }
+  if (!gst_element_add_pad (self->priv->bin, ghostpad))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not get \"src\" ghostpad to dtmf source bin");
@@ -487,7 +507,8 @@ fs_rtp_dtmf_event_source_build (FsRtpDtmfEventSource *self,
   }
   gst_object_unref (pad);
 
-  if (!gst_element_link_pads (self->priv->bin, "src", self->priv->rtpmuxer, NULL))
+  if (!gst_element_link_pads (self->priv->bin, "src",
+          self->priv->rtpmuxer, NULL))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not link rtpdtmfsrc src to muxer sink");
@@ -540,6 +561,30 @@ fs_rtp_dtmf_event_source_new (FsRtpSpecialSourceClass *klass,
   return FS_RTP_SPECIAL_SOURCE_CAST (self);
 }
 
+
+static gboolean
+fs_rtp_dtmf_event_source_send_event (FsRtpDtmfEventSource *self,
+    GstEvent *event)
+{
+  gboolean ret = FALSE;
+  GstPad *pad;
+
+  pad = gst_element_get_pad (self->priv->bin, "src");
+
+  if (!pad)
+  {
+    GST_ERROR ("Could not find the source pad on the rtpdtmfsrc bin");
+    gst_event_unref (event);
+    return FALSE;
+  }
+
+  ret = gst_pad_send_event (pad, event);
+
+  gst_object_unref (pad);
+
+  return ret;
+}
+
 static gboolean
 fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
     guint8 event,
@@ -568,7 +613,7 @@ fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
     case FS_DTMF_METHOD_RTP_RFC4733:
       method_str="RFC4733";
       gst_structure_set (structure, "type", G_TYPE_INT, 1, NULL);
-      gst_structure_set (structure, "method", G_TYPE_INT, method, NULL);
+      gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
       break;
     default:
       method_str="other";
@@ -577,7 +622,7 @@ fs_rtp_dtmf_event_source_start_telephony_event (FsRtpSpecialSource *source,
   GST_DEBUG ("sending telephony event %d using method=%s",
       event, method_str);
 
-  return gst_element_send_event (self->priv->bin,
+  return fs_rtp_dtmf_event_source_send_event (self,
       gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
 }
 
@@ -606,7 +651,7 @@ fs_rtp_dtmf_event_source_stop_telephony_event (FsRtpSpecialSource *source,
     case FS_DTMF_METHOD_RTP_RFC4733:
       method_str="RFC4733";
       gst_structure_set (structure, "type", G_TYPE_INT, 1, NULL);
-      gst_structure_set (structure, "method", G_TYPE_INT, method, NULL);
+      gst_structure_set (structure, "method", G_TYPE_INT, 1, NULL);
       break;
     default:
       method_str="other";
@@ -614,6 +659,6 @@ fs_rtp_dtmf_event_source_stop_telephony_event (FsRtpSpecialSource *source,
 
   GST_DEBUG ("stopping telephony event using method=%s", method_str);
 
-  return gst_element_send_event (self->priv->bin,
+  return fs_rtp_dtmf_event_source_send_event (self,
       gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM, structure));
 }
