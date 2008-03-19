@@ -109,16 +109,19 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 }
 
 static GstElement *
-build_recv_pipeline (GCallback handoff_handler, gpointer data, gint *port)
+build_recv_pipeline (GCallback havedata_handler, gpointer data, gint *port)
 {
   GstElement *pipeline;
   GstElement *src;
   GstElement *sink;
+  GstPad *pad = NULL;
 
   pipeline = gst_pipeline_new (NULL);
 
   src = gst_element_factory_make ("udpsrc", NULL);
   sink = gst_element_factory_make ("fakesink", NULL);
+
+  g_object_set (sink, "sync", FALSE, NULL);
 
   ts_fail_unless (pipeline && src && sink, "Could not make pipeline(%p)"
       " or src(%p) or sink(%p)", pipeline, src, sink);
@@ -128,7 +131,11 @@ build_recv_pipeline (GCallback handoff_handler, gpointer data, gint *port)
   ts_fail_unless (gst_element_link (src, sink), "Could not link udpsrc"
       " and fakesink");
 
-  g_signal_connect (sink, "handoff", handoff_handler, data);
+  pad = gst_element_get_static_pad (sink, "sink");
+
+  gst_pad_add_buffer_probe (pad, havedata_handler, data);
+
+  gst_object_ref (pad);
 
   ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not start recv pipeline");
@@ -183,7 +190,7 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
 }
 
 static void
-one_way (GCallback handoff_handler, gpointer data)
+one_way (GCallback havedata_handler, gpointer data)
 {
   FsStream *stream = NULL;
   FsParticipant *participant = NULL;
@@ -218,7 +225,7 @@ one_way (GCallback handoff_handler, gpointer data)
         error->code, error->message);
   ts_fail_if (stream == NULL, "Could not make stream, but no GError!");
 
-  recv_pipeline = build_recv_pipeline (handoff_handler, NULL, &port);
+  recv_pipeline = build_recv_pipeline (havedata_handler, NULL, &port);
 
   g_debug ("port is %d", port);
 
@@ -242,12 +249,12 @@ one_way (GCallback handoff_handler, gpointer data)
   g_main_loop_unref (loop);
 }
 
-gint digit = 1;
+gint digit = 0;
 gboolean sending = FALSE;
+gboolean received = FALSE;
 
 static void
-send_dmtf_handoff_handler (GstElement *fakesink, GstBuffer *buf, GstPad *pad,
-    gpointer user_data)
+send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 {
   gchar *data;
 
@@ -257,7 +264,7 @@ send_dmtf_handoff_handler (GstElement *fakesink, GstBuffer *buf, GstPad *pad,
 
   ts_fail_if (data[0] != digit, "Not sending the right digit");
 
-
+  received = TRUE;
 }
 
 static gboolean
@@ -273,9 +280,13 @@ start_stop_sending_dtmf (gpointer data)
             FS_DTMF_METHOD_RTP_RFC4733), "Could not stop telephony event");
     sending = FALSE;
 
+    ts_fail_unless (received == TRUE, "Did not receive any buffer for digit %d",
+        digit);
+    received = FALSE;
+
     if (digit > FS_DTMF_EVENT_D)
     {
-      digit = 1;
+      digit = 0;
       g_main_loop_quit (loop);
       return FALSE;
     }
@@ -296,7 +307,7 @@ start_stop_sending_dtmf (gpointer data)
 GST_START_TEST (test_senddtmf_event)
 {
   g_timeout_add (200, start_stop_sending_dtmf, NULL);
-  one_way (G_CALLBACK (send_dmtf_handoff_handler), NULL);
+  one_way (G_CALLBACK (send_dmtf_havedata_handler), NULL);
 }
 GST_END_TEST;
 
