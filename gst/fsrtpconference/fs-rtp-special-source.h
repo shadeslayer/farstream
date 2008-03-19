@@ -85,6 +85,12 @@ struct _FsRtpSpecialSourceClass
 struct _FsRtpSpecialSource
 {
   GObject parent;
+
+  /* This is set by subclasses init or build methods and is used to know
+   * in which order to try events on.
+   */
+  guint order;
+
   FsRtpSpecialSourcePrivate *priv;
 };
 

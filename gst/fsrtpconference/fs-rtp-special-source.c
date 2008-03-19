@@ -350,6 +350,15 @@ fs_rtp_special_sources_add_blueprints (GList *blueprints)
   return blueprints;
 }
 
+static gboolean
+_source_order_compare_func (gconstpointer item1,gconstpointer item2)
+{
+  FsRtpSpecialSource *src1 = FS_RTP_SPECIAL_SOURCE_CAST (item1);
+  FsRtpSpecialSource *src2 = FS_RTP_SPECIAL_SOURCE_CAST (item2);
+
+  return src1->order - src2->order;
+}
+
 /**
  * fs_rtp_special_sources_update:
  * @current_extra_sources: The #GList returned by previous calls to this function
@@ -409,7 +418,8 @@ fs_rtp_special_sources_update (
           if (!obj)
             goto error;
 
-          current_extra_sources = g_list_append (current_extra_sources, obj);
+          current_extra_sources = g_list_insert_sorted (current_extra_sources,
+              obj, _source_order_compare_func);
         }
       }
       else
@@ -427,7 +437,8 @@ fs_rtp_special_sources_update (
             bin, rtpmuxer, error);
         if (!obj)
           goto error;
-        current_extra_sources = g_list_append (current_extra_sources, obj);
+        current_extra_sources = g_list_insert_sorted (current_extra_sources,
+            obj, _source_order_compare_func);
       }
     }
   }
