@@ -14,7 +14,7 @@ TESTS_ENVIRONMENT = \
 
 
 # ths core dumps of some machines have PIDs appended
-CLEANFILES = core.* test-registry.xml
+CLEANFILES = core* test-registry.xml
 
 clean-local: clean-local-check
 
@@ -37,6 +37,7 @@ check_PROGRAMS = \
 	transmitter/multicast \
 	main/rtpconference \
 	main/rtpcodecs \
+	main/rtpsendcodecs \
 	utils/binadded
 
 
@@ -90,6 +91,14 @@ main_rtpcodecs_SOURCES = \
 	main/rtpcodecs.c
 
 
+main_rtpsendcodecs_LDADD = $(LDADD) \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
+	-lgstrtp-0.10
+main_rtpsendcodecs_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+main_rtpsendcodecs_SOURCES = \
+	main/generic.c \
+	main/generic.h \
+	main/rtpsendcodecs.c
 
 
 utils_binadded_LDADD = $(LDADD) \
