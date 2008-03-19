@@ -273,10 +273,10 @@ fs_rtp_special_source_set_property (GObject *object,
   switch (prop_id)
   {
     case PROP_BIN:
-      self->priv->outer_bin = g_value_get_object (value);
+      self->priv->outer_bin = g_value_dup_object (value);
       break;
     case PROP_RTPMUXER:
-      self->priv->rtpmuxer = g_value_get_object (value);
+      self->priv->rtpmuxer = g_value_dup_object (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
