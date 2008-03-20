@@ -576,12 +576,18 @@ fs_rtp_special_sources_send_event (GList *current_extra_sources,
 {
   GList *item = NULL;
 
-  gst_event_ref (event);
+  if (!event)
+  {
+    GST_ERROR ("Could not make dtmf-event");
+    return FALSE;
+  }
+
   for (item = g_list_first (current_extra_sources);
        item;
        item = g_list_next (item))
   {
     FsRtpSpecialSource *source = item->data;
+    gst_event_ref (event);
     if (fs_rtp_special_source_send_event (source, event))
     {
       gst_event_unref (event);
