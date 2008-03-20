@@ -603,7 +603,7 @@ nway_test (int in_count, extra_init extrainit)
 
   for (i = 0; i < count; i++)
   {
-    gchar *tmp = g_strdup_printf ("tester%d@TesterTop3", i);
+    gchar *tmp = g_strdup_printf ("tester%d@hostname", i);
     dats[i] = setup_simple_conference (i, "fsrtpconference", tmp);
     g_free (tmp);
 

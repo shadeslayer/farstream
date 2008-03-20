@@ -42,6 +42,7 @@ tests/check/transmitter/rawudp
 tests/check/transmitter/multicast
 tests/check/main/rtpconference
 tests/check/main/rtpcodecs
+tests/check/main/rtpsendcodecs
 tests/check/utils/binadded
 tests/rtp/codec-discovery
 tests/gui/*.pyo

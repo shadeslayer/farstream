@@ -45,6 +45,7 @@
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-codec-negotiation.h"
 #include "fs-rtp-substream.h"
+#include "fs-rtp-special-source.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
@@ -139,6 +140,8 @@ struct _FsRtpSessionPrivate
 
   /* Protected by the session mutex */
   gint no_rtcp_timeout;
+
+  GList *extra_sources;
 
   GError *construction_error;
 
@@ -369,6 +372,9 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->transmitters)
     g_hash_table_foreach (self->priv->transmitters, _stop_transmitter_elem,
       "gst-src");
+
+  self->priv->extra_sources =
+    fs_rtp_special_sources_destroy (self->priv->extra_sources);
 
   /* Now they should all be stopped, we can remove them in peace */
 
@@ -1196,7 +1202,7 @@ fs_rtp_session_new_stream (FsSession *session,
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsRtpSession. You have to call the function
- * #fs_rtp_session_stop_telephony_event() to stop it. 
+ * #fs_rtp_session_stop_telephony_event() to stop it.
  * This function will use any available method, if you want to use a specific
  * method only, use #fs_rtp_session_start_telephony_event_full()
  *
@@ -1207,7 +1213,15 @@ static gboolean
 fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
                                       guint8 volume, FsDTMFMethod method)
 {
-  return FALSE;
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  gboolean ret = FALSE;
+
+  FS_RTP_SESSION_LOCK (self);
+  ret = fs_rtp_special_sources_start_telephony_event (
+      self->priv->extra_sources, event, volume, method);
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return ret;
 }
 
 /**
@@ -1227,7 +1241,15 @@ fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
 static gboolean
 fs_rtp_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 {
-  return FALSE;
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  gboolean ret = FALSE;
+
+  FS_RTP_SESSION_LOCK (self);
+  ret = fs_rtp_special_sources_stop_telephony_event (
+      self->priv->extra_sources, method);
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return ret;
 }
 
 /**
@@ -1855,6 +1877,17 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
   else
     pipeline_factory = blueprint->receive_pipeline_factory;
 
+  if (!pipeline_factory)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
+        "The %s codec %s does not have a pipeline,"
+        " its probably a special codec",
+        fs_media_type_to_string (codec->media_type),
+        codec->encoding_name);
+    return NULL;
+  }
+
+
   GST_DEBUG ("creating %s codec bin for id %d, pipeline_factory %p",
     direction_str, codec->id, pipeline_factory);
   codec_bin = gst_bin_new (name);
@@ -2034,6 +2067,39 @@ fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
   return codec_bin;
 }
 
+/**
+ * fs_rtp_session_is_valid_send_codec:
+ * @session: a #FsRtpSession
+ * @codec: a #FsCodec to check
+ * @blueprint: %NULL or the address of a pointer where a CodecBlueprint can be
+ *  stored
+ *
+ * Verifies if a codec is a valid send codec for which a pipeline exists,
+ * if it is, it will return the CodecBlueprint.
+ *
+ * Returns: %TRUE if it is a valid send codec, %FALSE otherwise
+ */
+
+static gboolean
+fs_rtp_session_is_valid_send_codec (FsRtpSession *session,
+    FsCodec *codec,
+    CodecBlueprint **blueprint)
+{
+  CodecAssociation *codec_association = NULL;
+
+  codec_association = g_hash_table_lookup (
+      session->priv->negotiated_codec_associations,
+      GINT_TO_POINTER (codec->id));
+  g_assert (codec_association);
+
+  if (codec_association->blueprint->send_pipeline_factory == NULL)
+    return FALSE;
+
+  if (blueprint)
+    *blueprint = codec_association->blueprint;
+
+  return TRUE;
+}
 
 /**
  * fs_rtp_session_select_send_codec_locked:
@@ -2054,6 +2120,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
     GError **error)
 {
   FsCodec *codec = NULL;
+  GList *codec_e = NULL;
 
   if (!session->priv->negotiated_codecs)
   {
@@ -2074,7 +2141,21 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
 
     if (elem)
     {
-      codec = fs_codec_copy (session->priv->requested_send_codec);
+      if (!fs_rtp_session_is_valid_send_codec (session,
+              session->priv->requested_send_codec, blueprint))
+      {
+        fs_codec_destroy (session->priv->requested_send_codec);
+        session->priv->requested_send_codec = NULL;
+
+        GST_DEBUG_OBJECT (session->priv->conference,
+            "The current requested codec is not a valid main send codec,"
+            " ignoring");
+      }
+      else
+      {
+        codec = session->priv->requested_send_codec;
+        goto out;
+      }
     }
     else
     {
@@ -2082,24 +2163,35 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
       fs_codec_destroy (session->priv->requested_send_codec);
       session->priv->requested_send_codec = NULL;
 
-      GST_DEBUG ("The current requested codec no longer exists, resetting");
+      GST_WARNING_OBJECT (session->priv->conference,
+          "The current requested codec no longer exists, resetting");
     }
   }
 
-  if (codec == NULL)
-    codec = fs_codec_copy (
-        g_list_first (session->priv->negotiated_codecs)->data);
-
-  if (blueprint)
+  for (codec_e = g_list_first (session->priv->negotiated_codecs);
+       codec_e;
+       codec_e = g_list_next (codec_e))
   {
-    CodecAssociation *codec_association = g_hash_table_lookup (
-        session->priv->negotiated_codec_associations,
-        GINT_TO_POINTER (codec->id));
-    g_assert (codec_association);
-    *blueprint = codec_association->blueprint;
+    codec = codec_e->data;
+
+    if (fs_rtp_session_is_valid_send_codec (session, codec, blueprint))
+      break;
   }
 
+
+  if (codec_e == NULL)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
+        "Could not get a valid send codec");
+    codec = NULL;
+  }
+
+out:
+
   FS_RTP_SESSION_UNLOCK (session);
+
+  if (codec)
+    codec = fs_codec_copy (codec);
 
   return codec;
 }
@@ -2333,11 +2425,22 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   CodecBlueprint *blueprint = NULL;
   GstElement *codecbin = NULL;
   gboolean ret = FALSE;
+  GError *local_gerror = NULL;
 
   codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, error);
-
   if (!codec)
     goto done;
+
+  self->priv->extra_sources = fs_rtp_special_sources_update (
+      self->priv->extra_sources,
+      self->priv->negotiated_codecs, codec,
+      GST_ELEMENT (self->priv->conference),
+      self->priv->rtpmuxer, error);
+  if (local_gerror)
+  {
+    g_propagate_error (error, local_gerror);
+    goto done;
+  }
 
   if (self->priv->current_send_codec) {
     if (fs_codec_are_equal (codec, self->priv->current_send_codec))

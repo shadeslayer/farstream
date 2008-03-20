@@ -249,9 +249,12 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
 }
 
 
-GHashTable *create_local_codec_associations (FsMediaType media_type,
-  GList *blueprints, GList *codec_prefs, GHashTable *current_codec_associations,
-  GList **local_codecs_list)
+GHashTable *
+create_local_codec_associations (FsMediaType media_type,
+    GList *blueprints,
+    GList *codec_prefs,
+    GHashTable *current_codec_associations,
+    GList **local_codecs_list)
 {
   GHashTable *codec_associations = NULL;
   GList *bp_e = NULL;

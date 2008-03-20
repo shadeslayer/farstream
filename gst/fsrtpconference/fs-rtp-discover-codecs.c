@@ -34,23 +34,15 @@
 
 #include "fs-rtp-discover-codecs.h"
 
+#include "fs-rtp-conference.h"
 #include "fs-rtp-codec-cache.h"
+#include "fs-rtp-special-source.h"
 
 #include <gst/farsight/fs-conference-iface.h>
 
 #include <string.h>
 
-#ifdef STANDALONE
-# undef GST_WARNING
-# undef GST_DEBUG
-# undef GST_LOG
-# define GST_WARNING(...) g_warning (__VA_ARGS__)
-# define GST_DEBUG(...) g_debug (__VA_ARGS__)
-# define GST_LOG(...) g_debug (__VA_ARGS__)
-#else
-# include "fs-rtp-conference.h"
-# define GST_CAT_DEFAULT fsrtpconference_disco
-#endif
+#define GST_CAT_DEFAULT fsrtpconference_disco
 
 /*
  * Local TYPES
@@ -319,6 +311,9 @@ create_codec_lists (FsMediaType media_type,
   parse_codec_cap_list (duplex_list, media_type);
 
   codec_cap_list_free (duplex_list);
+
+  list_codec_blueprints[media_type] =
+    fs_rtp_special_sources_add_blueprints (list_codec_blueprints[media_type]);
 
   return TRUE;
 }
