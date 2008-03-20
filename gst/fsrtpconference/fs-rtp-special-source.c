@@ -608,16 +608,18 @@ fs_rtp_special_sources_start_telephony_event (GList *current_extra_sources,
   GstStructure *structure = NULL;
   gchar *method_str;
 
-  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
-      method != FS_DTMF_METHOD_AUTO)
-    return FALSE;
-
   structure = gst_structure_new ("dtmf-event",
       "number", G_TYPE_INT, event,
       "volume", G_TYPE_INT, volume,
       "start", G_TYPE_BOOLEAN, TRUE,
       "type", G_TYPE_INT, 1,
       NULL);
+
+  if (!structure)
+  {
+    GST_ERROR ("Could not make dtmf-event structure");
+    return FALSE;
+  }
 
   switch (method)
   {
@@ -650,10 +652,6 @@ fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
   GstStructure *structure = NULL;
   gchar *method_str;
 
-  if (method != FS_DTMF_METHOD_RTP_RFC4733 &&
-      method != FS_DTMF_METHOD_AUTO)
-    return FALSE;
-
   structure = gst_structure_new ("dtmf-event",
       "start", G_TYPE_BOOLEAN, FALSE,
       "type", G_TYPE_INT, 1,
@@ -673,7 +671,7 @@ fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
       gst_structure_set (structure, "method", G_TYPE_INT, 2, NULL);
       break;
     default:
-      method_str="other";
+      method_str="unknown (defaulting to auto)";
   }
 
   GST_DEBUG ("stopping telephony event using method=%s", method_str);
