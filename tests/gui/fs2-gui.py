@@ -143,7 +143,10 @@ class FsUIPipeline:
         elif message.type == gst.MESSAGE_WARNING:
             print message.src.get_name(), ": ", message.parse_warning()
         elif message.type == gst.MESSAGE_ELEMENT:
-            print message.src.get_name(), ": ", message.structure.get_name()
+            if message.structure.has_name("dtmf-event"):
+                print "dtmf-event: %d" % message.structure["number"]
+            else:
+                print message.src.get_name(), ": ", message.structure.get_name()
         
         return True
 
@@ -270,11 +273,11 @@ class FsUIAudioSource(FsUISource):
         return farsight.MEDIA_TYPE_AUDIO
 
     def make_source(self):
-        #source = gst.element_factory_make("audiotestsrc")
-        #source.set_property("is-live", True)
-        #source.set_property("wave", 5)
-        #return source
-        return gst.element_factory_make("alsasrc")
+        source = gst.element_factory_make("audiotestsrc")
+        source.set_property("is-live", True)
+        source.set_property("wave", 4)
+        return source
+        #return gst.element_factory_make("alsasrc")
 
 
 
@@ -349,6 +352,18 @@ class FsUISession:
         stream = FsUIStream(id, self, participant, realstream)
         self.streams[id] = stream
         return stream
+
+    def dtmf_start(self, event, method):
+        if (event == "*"):
+            event = farsight.DTMF_EVENT_STAR
+        elif (event == "#"):
+            event = farsight.DTMF_EVENT_POUND
+        else:
+            event = int(event)
+        self.fssession.start_telephony_event(event, 2, method)
+        
+    def dtmf_stop(self, method):
+        self.fssession.stop_telephony_event(method)
     
 
 class FsUIStream:
@@ -618,6 +633,34 @@ class FsMainUI:
         dialog.destroy()
         gtk.main_quit()
         gtk.gdk.threads_leave()
+
+    def show_dtmf(self, button):
+        try:
+            self.dtmf.present()
+        except AttributeError:
+            self.dtmf =  gtk.glade.XML(gladefile, "dtmf_window")
+            self.dtmf.signal_autoconnect(self)
+
+    def dtmf_start(self, button):
+        if (self.dtmf.get_widget("dtmf_as_event").get_active()):
+            self.dtmf_last_method = farsight.DTMF_METHOD_RTP_RFC4733
+        elif (self.dtmf.get_widget("dtmf_as_sound").get_active()):
+            self.dtmf_last_method = farsight.DTMF_METHOD_IN_BAND
+        else:
+            print "Invalid DTMF Method"
+            return
+        self.pipeline.audiosession.dtmf_start(button.get_label(), \
+                                              self.dtmf_last_method)
+                                              
+    def dtmf_stop(self, button):
+        try:
+            self.pipeline.audiosession.dtmf_stop(self.dtmf_last_method)
+            del self.dtmf_last_method
+        except AttributeError:
+            pass
+    def dtmf_destroy(self, button):
+        self.dtmf.get_widget("dtmf_window").destroy()
+        del self.dtmf
 
 
 class FsUIStartup:
