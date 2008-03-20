@@ -126,6 +126,11 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     return blueprints;
   }
 
+  fact = gst_element_factory_find ("rtpdtmfdepay");
+  if (!fact)
+    GST_CAT_WARNING (fsrtpconference_disco,
+        "Could not find rtpdtmfdepay, will not be able to receive DTMF events");
+
   for (item = g_list_first (blueprints);
        item;
        item = g_list_next (item))
@@ -169,11 +174,18 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     new_bp->rtp_caps = fs_codec_to_gst_caps (new_bp->codec);
     new_bp->media_caps = gst_caps_new_any ();
 
+    if (fact)
+      new_bp->receive_pipeline_factory = g_list_prepend (NULL,
+          g_list_prepend (NULL, gst_object_ref (fact)));
+
     new_blueprints = g_list_append (new_blueprints, new_bp);
 
     already_done = g_list_prepend (already_done,
         GUINT_TO_POINTER (bp->codec->clock_rate));
   }
+
+  if (fact)
+    gst_object_unref (fact);
 
   g_list_free (already_done);
 
