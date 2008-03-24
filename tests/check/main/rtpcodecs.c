@@ -220,6 +220,57 @@ GST_START_TEST (test_rtpcodecs_invalid_remote_codecs)
 GST_END_TEST;
 
 
+GST_START_TEST (test_rtpcodecs_reserved_pt)
+{
+  struct SimpleTestConference *dat = NULL;
+  GList *codecs = NULL, *item = NULL;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    if (codec->id == 96)
+      break;
+  }
+
+  fs_codec_list_destroy (codecs);
+
+  if (!item)
+  {
+    g_warning ("Could not find a dynamically allocated codec, skipping testing"
+               " of the payload-type reservation mecanism");
+    goto out;
+  }
+
+  codecs = g_list_prepend (NULL, fs_codec_new (96, "reserve-pt",
+                                               FS_MEDIA_TYPE_AUDIO, 0));
+
+  g_object_set (dat->session, "local-codecs-config", codecs, NULL);
+
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    if (codec->id == 96)
+      break;
+  }
+
+  fs_codec_list_destroy (codecs);
+
+  fail_if (item, "Found codec with payload type 96, even though it should have"
+           " been disabled");
+
+ out:
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -243,6 +294,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_invalid_remote_codecs");
   tcase_add_test (tc_chain, test_rtpcodecs_invalid_remote_codecs);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_reserved_pt");
+  tcase_add_test (tc_chain, test_rtpcodecs_reserved_pt);
   suite_add_tcase (s, tc_chain);
 
   return s;
