@@ -66,6 +66,7 @@ struct _FsRtpSpecialSourcePrivate {
 
   GThread *stop_thread;
 
+  /* Protects the content of this struct after object has been disposed of */
   GMutex *mutex;
 };
 
@@ -171,6 +172,13 @@ fs_rtp_special_source_init (FsRtpSpecialSource *self)
   self->priv->mutex = g_mutex_new ();
 }
 
+/**
+ * stop_source_thread:
+ * @data: a pointer to the current #FsRtpSpecialSource
+ *
+ * This functioin will lock on the source's state change until its release
+ * and only then let the source be disposed of
+ */
 
 static gpointer
 stop_source_thread (gpointer data)
@@ -333,6 +341,17 @@ fs_rtp_special_source_class_want_source (FsRtpSpecialSourceClass *klass,
 
   return FALSE;
 }
+
+/**
+ * fs_rtp_special_sources_add_blueprints:
+ * @blueprints: a #GList of #CodecBlueprint
+ *
+ * This function will add blueprints to the current list of blueprints based
+ * on which elements are installed and on which codecs are already in the list
+ * of blueprints.
+ *
+ * Returns: The updated #GList of #CodecBlueprint
+ */
 
 GList *
 fs_rtp_special_sources_add_blueprints (GList *blueprints)
@@ -546,6 +565,15 @@ fs_rtp_special_source_update (FsRtpSpecialSource *source,
   return FALSE;
 }
 
+/**
+ * fs_rtp_special_source_send_event:
+ * @self: a #FsRtpSpecialSource
+ * @event: a upstream #GstEvent to send
+ *
+ * Sends an upstream event to the source.
+ *
+ * Returns: %TRUE if the event was delivered succesfully, %FALSE otherwise
+ */
 
 static gboolean
 fs_rtp_special_source_send_event (FsRtpSpecialSource *self,
@@ -569,6 +597,17 @@ fs_rtp_special_source_send_event (FsRtpSpecialSource *self,
 
   return ret;
 }
+
+/**
+ * fs_rtp_special_sources_send_event:
+ * @current_extra_sources: The #GList of current #FsRtpSpecialSource
+ * @event: an upstream #GstEvent
+ *
+ * This function will try to deliver the events in the specified order to the
+ * special sources, it will stop once one source has accepted the event.
+ *
+ * Returns: %TRUE if a sources accepted the event, %FALSE otherwise
+ */
 
 static gboolean
 fs_rtp_special_sources_send_event (GList *current_extra_sources,

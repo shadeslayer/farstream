@@ -31,6 +31,13 @@
 
 G_BEGIN_DECLS
 
+/**
+ * CodecBlueprint:
+ *
+ * All the members MUST be filled, except for send_pipeline_factory in the
+ * case of a #FsRtpSpecialSource
+ */
+
 typedef struct _CodecBlueprint
 {
   FsCodec *codec;

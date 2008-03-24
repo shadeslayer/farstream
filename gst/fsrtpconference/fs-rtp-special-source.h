@@ -54,6 +54,25 @@ typedef struct _FsRtpSpecialSource FsRtpSpecialSource;
 typedef struct _FsRtpSpecialSourceClass FsRtpSpecialSourceClass;
 typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
 
+/**
+ * FsRtpSpecialSourceClass:
+ * @build: The method builds the source #GstElement from the list of negotiated
+ *   codecs and selected codecs, it returns %NULL and sets the #GError on error
+ * @update: This optional method can update the content of the current source
+ *  if its possible. If the source can not be modified, it returns %FALSE (and
+ *  a new source will be created)
+ * @want_source: Returns %TRUE if a source of this type should be created
+ *  according to the selected codec and the negotiated codecs
+ * @add_blueprint: Adds #CodecBlueprint structs to the list if the proper
+ *  elements are installed, the result should always be the same if the elements
+ *  installed don't change. It must fill the #CodecBlueprint completely except
+ *  for the send_pipeline_factory field. If no blueprints are installed by this
+ *  class, this method is not required.
+ *
+ * Class structure for #FsRtpSpecialSource, the build() and want_source()
+ * methods are required.
+ */
+
 struct _FsRtpSpecialSourceClass
 {
   GObjectClass parent_class;
@@ -80,7 +99,8 @@ struct _FsRtpSpecialSourceClass
 
 /**
  * FsRtpSpecialSource:
- *
+ * @order: a number between 0 and 100 that defines in which order the sources
+ * will be traversed in order to send events to them.
  */
 struct _FsRtpSpecialSource
 {
