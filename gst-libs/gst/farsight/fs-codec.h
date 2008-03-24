@@ -70,7 +70,7 @@ typedef enum
  *
  * If the id of a #FsCodec is #FS_CODEC_ID_DISABLE, then this codec will
  * not be used
- */ 
+ */
 
 #define FS_CODEC_ID_ANY            (-1)
 #define FS_CODEC_ID_DISABLE        (-2)
@@ -86,9 +86,9 @@ typedef enum
  *
  * This structure reprensents one codec that can be offered or received
  */
+/* TODO Should this be made into a GstStructure? */
 struct _FsCodec
 {
-  /* TODO Should this be made into a GstStructure? */
   gint id;
   char *encoding_name;
   FsMediaType media_type;
