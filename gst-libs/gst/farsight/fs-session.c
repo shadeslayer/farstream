@@ -182,6 +182,10 @@ fs_session_class_init (FsSessionClass *klass)
    * of #FsCodec. User must free this codec list using fs_codec_list_destroy()
    * when done.
    *
+   * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
+   * or %FS_CODEC_ID_ANY. If the encoding name is "reserve-pt", then the
+   * payload type of the codec will be "reserved" and not be used by any
+   * dynamically assigned payload type.
    */
   g_object_class_install_property (gobject_class,
       PROP_LOCAL_CODECS_CONFIG,
