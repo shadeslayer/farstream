@@ -59,6 +59,11 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
       goto remove_this_codec;
     }
 
+    if (codec->id >= 0 && codec->id < 128 && codec->encoding_name &&
+        g_ascii_strcasecmp (codec->encoding_name, "reserve-pt"))
+      goto accept_codec;
+
+
     for (blueprint_e = g_list_first (blueprints);
          blueprint_e;
          blueprint_e = g_list_next (blueprint_e)) {
@@ -111,6 +116,7 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
       goto remove_this_codec;
     }
 
+  accept_codec:
     codec_e = g_list_next (codec_e);
 
     continue;
@@ -284,6 +290,16 @@ create_local_codec_associations (FsMediaType media_type,
     if (codec_pref->id == FS_CODEC_ID_DISABLE)
       continue;
 
+    /* If we want to disable a codec ID, we just insert a NULL in the table */
+    if (codec_pref->id >= 0 && codec_pref->id < 128 &&
+        codec_pref->encoding_name &&
+        g_ascii_strcasecmp (codec_pref->encoding_name, "reserve-pt"))
+    {
+      g_hash_table_insert (codec_associations, GINT_TO_POINTER (codec_pref->id),
+        NULL);
+      continue;
+    }
+
     /* No matching blueprint, can't use this codec */
     if (!bp)
     {
@@ -357,7 +373,7 @@ create_local_codec_associations (FsMediaType media_type,
       lca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
       if (lca->codec->id < 0) {
-        GST_WARNING ("We've run out of dynamic payload types");
+        GST_ERROR ("We've run out of dynamic payload types");
         goto out;
       }
     }
