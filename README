@@ -17,7 +17,7 @@ Requirements
 Build time:
  - gstreamer 0.10.17
  - gst-plugins-base 0.10.17
- - glib 2.12
+ - glib 2.14
 
 Run time:
  All of the build time requirements (except gtk-doc) plus
