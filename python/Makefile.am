@@ -6,7 +6,7 @@ AM_CPPFLAGS =						\
 	-I$(top_srcdir)/gst-libs/gst/farsight/		\
 	-DDATADIR=\""$(datadir)"\"			\
 	$(PYFARSIGHT_CFLAGS)				\
-	`python-config --cflags`			\
+	$(PYTHON_INCLUDES)				\
 	$(FS2_INTERNAL_CFLAGS) 				\
 	$(FS2_CFLAGS) 					\
 	$(WARN_CFLAGS)
