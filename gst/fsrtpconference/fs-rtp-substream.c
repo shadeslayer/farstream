@@ -681,15 +681,6 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
     return TRUE;
   }
 
-  /* Announce the pad if it wasnt there already and this substream
-   * has a stream
-   */
-  if (!substream->priv->output_ghostpad &&
-      substream->priv->stream)
-    return fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
-  else
-    return TRUE;
-
  error:
     gst_element_set_state (codecbin, GST_STATE_NULL);
     gst_object_ref (codecbin);
