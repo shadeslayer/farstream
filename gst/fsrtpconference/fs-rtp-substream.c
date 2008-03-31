@@ -672,8 +672,6 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
     if (!substream->priv->output_ghostpad)
       ret =  fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
 
-    g_signal_emit (substream, signals[CODEC_CHANGED], 0);
-
     return ret;
   }
   else
@@ -837,6 +835,8 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
 
   g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
                  ghostpad, substream->priv->codec);
+
+  g_signal_emit (substream, signals[CODEC_CHANGED], 0);
 
   if (substream->priv->receiving)
     g_object_set (substream->priv->valve, "drop", FALSE, NULL);

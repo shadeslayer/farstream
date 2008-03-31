@@ -110,10 +110,6 @@ static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
-static void
-fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
-    FsRtpSubStream *substream);
-
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
     gpointer user_data);
@@ -132,6 +128,8 @@ static void _transmitter_error (
     gchar *error_msg,
     gchar *debug_msg,
     gpointer user_data);
+static void _substream_codec_changed (FsRtpSubStream *substream,
+    FsRtpStream *stream);
 
 
 
@@ -632,15 +630,6 @@ _substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
 }
 
 static void
-_substream_codec_changed (FsRtpSubStream *substream,
-    gpointer user_data)
-{
-  FsRtpStream *stream = FS_RTP_STREAM (user_data);
-
-  fs_rtp_stream_maybe_emit_codecs_changed (stream, substream);
-}
-
-static void
 _substream_error (FsRtpSubStream *substream,
     gint errorno,
     gchar *error_msg,
@@ -690,8 +679,6 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
   if (codec) {
     ret = fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
     fs_codec_destroy (codec);
-
-    fs_rtp_stream_maybe_emit_codecs_changed (stream, substream);
   }
 
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
@@ -758,9 +745,9 @@ _idle_emit_recv_codecs_changed (gpointer data)
 }
 
 /**
- * fs_stream_maybe_emit_codecs_changed:
- * @stream: a #FsRtpStream
+ *  _substream_codec_changed
  * @substream: The #FsRtpSubStream that may have a new receive codec
+ * @stream: a #FsRtpStream
  *
  * This function checks if the specified substream introduces not a new codec
  * not present in another substream and if it does, it schedules an idle task
@@ -768,8 +755,8 @@ _idle_emit_recv_codecs_changed (gpointer data)
  */
 
 static void
-fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
-    FsRtpSubStream *substream)
+_substream_codec_changed (FsRtpSubStream *substream,
+    FsRtpStream *stream)
 {
   GList *substream_item = NULL;
   FsCodec *codec = NULL;
