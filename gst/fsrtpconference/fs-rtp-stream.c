@@ -628,6 +628,19 @@ _substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
   fs_stream_emit_src_pad_added (stream, pad, codec);
 }
 
+
+static void
+_substream_error (FsRtpSubStream *substream,
+    gint errorno,
+    gchar *error_msg,
+    gchar *debug_msg,
+    gpointer user_data)
+{
+  FsStream *stream = FS_STREAM (user_data);
+
+  fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
+}
+
 /**
  * fs_rtp_stream_add_substream:
  * @stream: a #FsRtpStream
@@ -655,6 +668,8 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
 
   g_signal_connect (substream, "src-pad-added",
                     G_CALLBACK (_substream_src_pad_added), stream);
+  g_signal_connect (substream, "error",
+                    G_CALLBACK (_substream_error), stream);
 
   g_object_get (substream, "codec", &codec, NULL);
 

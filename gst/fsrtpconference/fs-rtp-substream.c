@@ -50,6 +50,7 @@ enum
 {
   NO_RTCP_TIMEDOUT,
   SRC_PAD_ADDED,
+  ERROR,
   LAST_SIGNAL
 };
 
@@ -279,6 +280,25 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       NULL,
       _fs_rtp_marshal_VOID__BOXED_BOXED,
       G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
+
+  /**
+   * FsRtpSubStream::error:
+   * @self: #FsRtpSubStream that emitted the signal
+   * @errorno: The number of the error
+   * @error_msg: Error message to be displayed to user
+   * @debug_msg: Debugging error message
+   *
+   * This signal is emitted in any error condition
+   *
+   */
+  signals[ERROR] = g_signal_new ("error",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_rtp_marshal_VOID__INT_STRING_STRING,
+      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
 
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
@@ -954,10 +974,5 @@ fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
     gchar *error_msg,
     gchar *debug_msg)
 {
-  if (substream->priv->stream)
-    fs_stream_emit_error (FS_STREAM (substream->priv->stream), error_no,
-        error_msg, debug_msg);
-  else
-    fs_session_emit_error (FS_SESSION (substream->priv->session), error_no,
-        error_msg, debug_msg);
+  g_signal_emit (substream, signals[ERROR], 0, error_no, error_msg, debug_msg);
 }
