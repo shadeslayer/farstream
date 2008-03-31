@@ -847,7 +847,7 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   {
     gchar *str = g_strdup_printf ("Could not get the new recv codec for"
         " pt %d", self->priv->pt);
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_UNKNOWN_CODEC, str,
+    fs_rtp_sub_stream_emit_error (self, FS_ERROR_UNKNOWN_CODEC, str,
         str);
     goto done;
   }
