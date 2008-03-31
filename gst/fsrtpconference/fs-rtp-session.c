@@ -2613,6 +2613,8 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
 
   while (
       g_signal_handlers_disconnect_by_func(substream, "error", session) > 0) {}
+  while (
+      g_signal_handlers_disconnect_by_func(substream, "no-rtcp-timedout", session) > 0) {}
 
   if (!fs_rtp_stream_add_substream (stream, substream, &error))
     fs_session_emit_error (FS_SESSION (session), error->code,
@@ -2646,12 +2648,21 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     goto done;
   }
 
+  if (!g_list_find (session->priv->free_substreams, substream))
+  {
+    GST_WARNING ("Could not find substream %p in the list of free substreams",
+        substream);
+    goto done;
+  }
+
   session->priv->free_substreams =
     g_list_remove (session->priv->free_substreams,
         substream);
 
   while (
       g_signal_handlers_disconnect_by_func(substream, "error", session) > 0) {}
+  while (
+      g_signal_handlers_disconnect_by_func(substream, "no-rtcp-timedout", session) > 0) {}
 
   if (!fs_rtp_stream_add_substream (
           g_list_first (session->priv->streams)->data,

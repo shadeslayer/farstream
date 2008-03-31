@@ -320,13 +320,12 @@ _no_rtcp_timeout (gpointer user_data)
 
   FS_RTP_SESSION_LOCK (self->priv->session);
 
-  if (!self->priv->stream)
-    g_signal_emit (self, signals[NO_RTCP_TIMEDOUT], 0);
-
   if (self->priv->no_rtcp_timeout_id)
     self->priv->no_rtcp_timeout_id = 0;
 
   FS_RTP_SESSION_UNLOCK (self->priv->session);
+
+  g_signal_emit (self, signals[NO_RTCP_TIMEDOUT], 0);
 
   return FALSE;
 }
