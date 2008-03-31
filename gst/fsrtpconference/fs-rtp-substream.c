@@ -50,6 +50,7 @@ enum
 {
   NO_RTCP_TIMEDOUT,
   SRC_PAD_ADDED,
+  CODEC_CHANGED,
   ERROR,
   LAST_SIGNAL
 };
@@ -300,6 +301,22 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       _fs_rtp_marshal_VOID__INT_STRING_STRING,
       G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
+ /**
+   * FsRtpSubStream:codec-changed
+   * @self: #FsStream that emitted the signal
+   *
+   * This signal is emitted when the code for this substream has
+   * changed. It can be fetvched from the #FsRtpSubStream:codec property
+   * This is useful for displaying the current active reception codecs.
+   */
+  signals[CODEC_CHANGED] = g_signal_new ("codec-changed",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
@@ -655,8 +672,7 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
     if (!substream->priv->output_ghostpad)
       ret =  fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
 
-    fs_rtp_stream_maybe_emit_codecs_changed (substream->priv->stream,
-        substream);
+    g_signal_emit (substream, signals[CODEC_CHANGED], 0);
 
     return ret;
   }

@@ -110,6 +110,9 @@ static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
+static void
+fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
+    FsRtpSubStream *substream);
 
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
@@ -628,6 +631,14 @@ _substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
   fs_stream_emit_src_pad_added (stream, pad, codec);
 }
 
+static void
+_substream_codec_changed (FsRtpSubStream *substream,
+    gpointer user_data)
+{
+  FsRtpStream *stream = FS_RTP_STREAM (user_data);
+
+  fs_rtp_stream_maybe_emit_codecs_changed (stream, substream);
+}
 
 static void
 _substream_error (FsRtpSubStream *substream,
@@ -668,6 +679,8 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
 
   g_signal_connect (substream, "src-pad-added",
                     G_CALLBACK (_substream_src_pad_added), stream);
+  g_signal_connect (substream, "codec-changed",
+                    G_CALLBACK (_substream_codec_changed), stream);
   g_signal_connect (substream, "error",
                     G_CALLBACK (_substream_error), stream);
 
@@ -754,7 +767,7 @@ _idle_emit_recv_codecs_changed (gpointer data)
  * to emit the signal on the main thread.
  */
 
-void
+static void
 fs_rtp_stream_maybe_emit_codecs_changed (FsRtpStream *stream,
     FsRtpSubStream *substream)
 {
