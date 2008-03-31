@@ -12,7 +12,8 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
 	fs-rtp-specific-nego.c \
 	fs-rtp-special-source.c \
 	fs-rtp-dtmf-event-source.c \
-	fs-rtp-dtmf-sound-source.c
+	fs-rtp-dtmf-sound-source.c \
+	fs-rtp-marshal.c
 
 libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
@@ -33,4 +34,15 @@ noinst_HEADERS = \
 	fs-rtp-specific-nego.h \
 	fs-rtp-special-source.h \
 	fs-rtp-dtmf-event-source.h \
-	fs-rtp-dtmf-sound-source.h
+	fs-rtp-dtmf-sound-source.h \
+	fs-rtp-marshal.h
+
+fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
+		glib-genmarshal --header --prefix=_fs_rtp_marshal $(srcdir)/$< > $@.tmp
+		mv $@.tmp $@
+
+fs-rtp-marshal.c: fs-rtp-marshal.list Makefile
+		echo "#include \"glib-object.h\"" >> $@.tmp
+		echo "#include \"fs-rtp-marshal.h\"" >> $@.tmp
+		glib-genmarshal --body --prefix=_fs_rtp_marshal $(srcdir)/$< >> $@.tmp
+		mv $@.tmp $@

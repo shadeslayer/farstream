@@ -619,6 +619,15 @@ _transmitter_error (
 }
 
 
+static void
+_substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
+                          FsCodec *codec, gpointer user_data)
+{
+  FsStream *stream = FS_STREAM (user_data);
+
+  fs_stream_emit_src_pad_added (stream, pad, codec);
+}
+
 /**
  * fs_rtp_stream_add_substream:
  * @stream: a #FsRtpStream
@@ -643,6 +652,9 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
       "stream", stream,
       "receiving", ((stream->priv->direction & FS_DIRECTION_RECV) != 0),
       NULL);
+
+  g_signal_connect (substream, "src-pad-added",
+                    G_CALLBACK (_substream_src_pad_added), stream);
 
   g_object_get (substream, "codec", &codec, NULL);
 

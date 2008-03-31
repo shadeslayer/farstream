@@ -49,6 +49,7 @@
 enum
 {
   NO_RTCP_TIMEDOUT,
+  SRC_PAD_ADDED,
   LAST_SIGNAL
 };
 
@@ -251,6 +252,34 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
+
+  /**
+   * FsRtpSubStream::src-pad-added:
+   * @self: #FsRtpSubStream that emitted the signal
+   * @pad: #GstPad of the new source pad
+   * @codec: #FsCodec of the codec being received on the new source pad
+   *
+   * This signal is emitted when a new gst source pad has been created for a
+   * specific codec being received. There will be a different source pad for
+   * each codec that is received. The user must ref the #GstPad if he wants to
+   * keep it. The user should not modify the #FsCodec and must copy it if he
+   * wants to use it outside the callback scope.
+   *
+   * This signal is not emitted on the main thread, but on GStreamer's streaming
+   * thread!
+   *
+   * This is probably re-emited by the FsStream
+   *
+   */
+  signals[SRC_PAD_ADDED] = g_signal_new ("src-pad-added",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_rtp_marshal_VOID__BOXED_BOXED,
+      G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
+
 
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
@@ -780,9 +809,8 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
 
   substream->priv->output_ghostpad = ghostpad;
 
-  fs_stream_emit_src_pad_added (FS_STREAM (substream->priv->stream),
-      ghostpad,
-      substream->priv->codec);
+  g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
+                 ghostpad, substream->priv->codec);
 
   if (substream->priv->receiving)
     g_object_set (substream->priv->valve, "drop", FALSE, NULL);
