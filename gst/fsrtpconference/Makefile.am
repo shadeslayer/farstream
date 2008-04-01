@@ -15,12 +15,9 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
 	fs-rtp-dtmf-sound-source.c \
 	fs-rtp-marshal.c
 
-libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
-libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
-libfsrtpconference_la_LIBADD = \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
-	$(FS2_LIBS) $(GST_BASE_LIBS) $(GST_LIBS)
-
+BUILT_SOURCES = \
+		fs-rtp-marshal.c \
+		fs-rtp-marshal.h
 
 noinst_HEADERS = \
 	fs-rtp-conference.h \
@@ -36,6 +33,15 @@ noinst_HEADERS = \
 	fs-rtp-dtmf-event-source.h \
 	fs-rtp-dtmf-sound-source.h \
 	fs-rtp-marshal.h
+
+EXTRA_libfsrtpconference_la_SOURCES = fs-rtp-marshal.list
+
+libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
+libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
+libfsrtpconference_la_LIBADD = \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
+	$(FS2_LIBS) $(GST_BASE_LIBS) $(GST_LIBS)
+
 
 fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
 		glib-genmarshal --header --prefix=_fs_rtp_marshal $(srcdir)/$< > $@.tmp
