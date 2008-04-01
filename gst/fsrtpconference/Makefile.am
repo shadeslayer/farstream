@@ -36,6 +36,8 @@ noinst_HEADERS = \
 
 EXTRA_libfsrtpconference_la_SOURCES = fs-rtp-marshal.list
 
+CLEANFILES = $(BUILT_SOURCES)
+
 libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrtpconference_la_LIBADD = \
