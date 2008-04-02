@@ -264,18 +264,18 @@ load_codecs_cache (FsMediaType media_type, GError **error)
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "Invalid media type %d", media_type);
-    return FALSE;
+    return NULL;
   }
 
   cache_path = get_codecs_cache_path (media_type, error);
 
   if (!cache_path)
-    return FALSE;
+    return NULL;
 
   if (!codecs_cache_valid (cache_path)) {
     GST_DEBUG ("Codecs cache %s is outdated or does not exist", cache_path);
     g_free (cache_path);
-    return FALSE;
+    return NULL;
   }
 
   GST_DEBUG ("Loading codecs cache %s", cache_path);

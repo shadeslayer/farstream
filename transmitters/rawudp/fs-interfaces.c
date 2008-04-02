@@ -411,6 +411,6 @@ gchar * farsight_get_ip_for_interface (gchar *interface_name)
 
 
 #else /* G_OS_WIN32 */
-#error Can\'t use this method for retreiving ip list from OS other than unix or windows
+#error Can not use this method for retreiving ip list from OS other than unix or windows
 #endif /* G_OS_WIN32 */
 #endif /* G_OS_UNIX */

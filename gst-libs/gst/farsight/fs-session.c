@@ -323,7 +323,7 @@ fs_session_set_property (GObject *object,
 {
 }
 
-void
+static void
 fs_session_error_forward (GObject *signal_src,
                           gint error_no, gchar *error_msg,
                           gchar *debug_msg, FsSession *session)

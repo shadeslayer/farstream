@@ -1588,7 +1588,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     GError **error)
 {
   gboolean has_many_streams = FALSE;
-  GHashTable *new_negotiated_codec_associations = NULL;;
+  GHashTable *new_negotiated_codec_associations = NULL;
   GList *new_negotiated_codecs = NULL;
   GList *item;
 

@@ -55,7 +55,7 @@ static void fs_plugin_unload (GTypeModule *module);
 
 static gchar **search_paths = NULL;
 
-GList *plugins = NULL;
+static GList *plugins = NULL;
 
 static GObjectClass *parent_class = NULL;
 
@@ -71,7 +71,7 @@ static void fs_plugin_dispose (GObject * object);
 static void fs_plugin_finalize (GObject * object);
 
 static void
-fs_plugin_search_path_init ()
+fs_plugin_search_path_init (void)
 {
   const gchar *env;
 

@@ -48,7 +48,7 @@ static FsCodec *
 sdp_is_compat_h263_1998 (GstCaps *rtp_caps, FsCodec *local_codec,
     FsCodec *remote_codec);
 
-struct SdpCompatCheck sdp_compat_checks[] = {
+static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc},
   {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998},
   {0, NULL, NULL}
