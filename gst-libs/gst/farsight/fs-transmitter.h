@@ -35,7 +35,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_TRANSMITTER \
-  (fs_transmitter_get_type())
+  (fs_transmitter_get_type ())
 #define FS_TRANSMITTER(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_TRANSMITTER, FsTransmitter))
 #define FS_TRANSMITTER_CLASS(klass) \

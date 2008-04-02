@@ -39,7 +39,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_PLUGIN \
-  (fs_plugin_get_type())
+  (fs_plugin_get_type ())
 #define FS_PLUGIN(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_PLUGIN, FsPlugin))
 #define FS_PLUGIN_CLASS(klass) \

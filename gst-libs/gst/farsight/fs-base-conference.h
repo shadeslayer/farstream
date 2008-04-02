@@ -35,7 +35,7 @@
 G_BEGIN_DECLS
 
 #define FS_TYPE_BASE_CONFERENCE \
-  (fs_base_conference_get_type())
+  (fs_base_conference_get_type ())
 #define FS_BASE_CONFERENCE(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj),FS_TYPE_BASE_CONFERENCE,FsBaseConference))
 #define FS_BASE_CONFERENCE_CLASS(klass) \
@@ -100,7 +100,7 @@ struct _FsBaseConferenceClass
   gpointer _padding[8];
 };
 
-GType fs_base_conference_get_type(void);
+GType fs_base_conference_get_type (void);
 
 G_END_DECLS
 

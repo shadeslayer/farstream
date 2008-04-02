@@ -129,7 +129,7 @@ fs_candidate_list_destroy (GList *candidate_list)
 
   for (lp = candidate_list; lp; lp = g_list_next (lp)) {
     cand = (FsCandidate *) lp->data;
-    fs_candidate_destroy(cand);
+    fs_candidate_destroy (cand);
     lp->data = NULL;
   }
   g_list_free (candidate_list);
@@ -178,10 +178,9 @@ fs_candidate_get_by_id (const GList *candidate_list,
 
   for (lp = candidate_list; lp; lp = g_list_next (lp)) {
     cand = (FsCandidate *) lp->data;
-    if (g_ascii_strcasecmp(cand->candidate_id, candidate_id) == 0)
+    if (g_ascii_strcasecmp (cand->candidate_id, candidate_id) == 0)
     {
       cand_copy = fs_candidate_copy (cand);
-      g_print("%p\n", cand_copy);
       break;
     }
   }
@@ -203,7 +202,7 @@ fs_candidate_are_equal (const FsCandidate *cand1,
 {
   /* TODO we compare just the ip and port for now
    * is this enough ? think about it some more */
-  if ((g_ascii_strcasecmp(cand1->ip, cand2->ip) == 0) &&
+  if ((g_ascii_strcasecmp (cand1->ip, cand2->ip) == 0) &&
       (cand1->port == cand2->port))
     return TRUE;
   else

@@ -53,7 +53,7 @@ typedef enum
 
 /* TYPE MACROS */
 #define FS_TYPE_STREAM \
-  (fs_stream_get_type())
+  (fs_stream_get_type ())
 #define FS_STREAM(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_STREAM, FsStream))
 #define FS_STREAM_CLASS(klass) \

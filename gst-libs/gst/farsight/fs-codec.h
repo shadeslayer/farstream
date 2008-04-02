@@ -36,10 +36,10 @@ typedef struct _FsCodec FsCodec;
 typedef struct _FsCodecParameter FsCodecParameter;
 
 #define FS_TYPE_CODEC \
-  (fs_codec_get_type())
+  (fs_codec_get_type ())
 
 #define FS_TYPE_CODEC_LIST \
-  (fs_codec_list_get_type())
+  (fs_codec_list_get_type ())
 
 /**
  * FsMediaType:

@@ -31,11 +31,11 @@
 G_BEGIN_DECLS
 
 #define FS_TYPE_CANDIDATE \
-  (fs_candidate_get_type())
+  (fs_candidate_get_type ())
 
 
 #define FS_TYPE_CANDIDATE_LIST \
-  (fs_candidate_list_get_type())
+  (fs_candidate_list_get_type ())
 
 /**
  * FsCandidateType:

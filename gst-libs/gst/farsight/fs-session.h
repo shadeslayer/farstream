@@ -36,7 +36,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_SESSION \
-  (fs_session_get_type())
+  (fs_session_get_type ())
 #define FS_SESSION(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_SESSION, FsSession))
 #define FS_SESSION_CLASS(klass) \

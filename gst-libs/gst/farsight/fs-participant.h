@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_PARTICIPANT \
-  (fs_participant_get_type())
+  (fs_participant_get_type ())
 #define FS_PARTICIPANT(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_PARTICIPANT, FsParticipant))
 #define FS_PARTICIPANT_CLASS(klass) \

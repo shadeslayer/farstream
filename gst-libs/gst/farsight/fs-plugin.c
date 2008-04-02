@@ -106,7 +106,7 @@ fs_plugin_class_init (FsPluginClass * klass)
   gobject_class->dispose = fs_plugin_dispose;
   gobject_class->finalize = fs_plugin_finalize;
 
-  parent_class = g_type_class_peek_parent(klass);
+  parent_class = g_type_class_peek_parent (klass);
 
   module_class->load = fs_plugin_load;
   module_class->unload = fs_plugin_unload;
@@ -165,7 +165,7 @@ static gboolean fs_plugin_load (GTypeModule *module)
   for (search_path = search_paths; *search_path; search_path++) {
     GST_DEBUG("looking for plugins in %s", *search_path);
 
-    path = g_module_build_path(*search_path, plugin->name);
+    path = g_module_build_path (*search_path, plugin->name);
 
     plugin->priv->handle = g_module_open (path, G_MODULE_BIND_LOCAL);
     GST_INFO ("opening module %s: %s\n", path,
@@ -240,7 +240,7 @@ fs_plugin_get_by_name (const gchar * name, const gchar * type_suffix)
 
   for (plugin_item = plugins;
        plugin_item;
-       plugin_item = g_list_next(plugin_item))  {
+       plugin_item = g_list_next (plugin_item))  {
     plugin = plugin_item->data;
     if (plugin->name == NULL || plugin->name[0] == 0)
       continue;
@@ -304,7 +304,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
     }
     plugin->name = g_strdup_printf ("%s-%s",name,type_suffix);
     g_type_module_set_name (G_TYPE_MODULE (plugin), plugin->name);
-    plugins = g_list_append(plugins, plugin);
+    plugins = g_list_append (plugins, plugin);
   }
 
   if (!g_type_module_use (G_TYPE_MODULE (plugin))) {
@@ -315,7 +315,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
 
   object = g_object_new_valist (plugin->type, first_property_name, var_args);
 
-  g_type_module_unuse(G_TYPE_MODULE(plugin));
+  g_type_module_unuse (G_TYPE_MODULE (plugin));
 
   return object;
 }

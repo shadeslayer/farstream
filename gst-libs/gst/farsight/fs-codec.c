@@ -182,7 +182,7 @@ fs_codec_list_destroy (GList *codec_list)
 
   for (lp = codec_list; lp; lp = g_list_next (lp)) {
     codec = (FsCodec *) lp->data;
-    fs_codec_destroy(codec);
+    fs_codec_destroy (codec);
     lp->data = NULL;
   }
   g_list_free (codec_list);
@@ -293,10 +293,10 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
       goto next_codec;
     }
 
-    if ((next_tok - groups[i]) == 5 /* strlen("audio") */ &&
+    if ((next_tok - groups[i]) == 5 /* strlen ("audio") */ &&
         !g_ascii_strncasecmp ("audio", groups[i], 5))
       codec->media_type = FS_MEDIA_TYPE_AUDIO;
-    else if ((next_tok - groups[i]) == 5 /* strlen("video") */ &&
+    else if ((next_tok - groups[i]) == 5 /* strlen ("video") */ &&
         !g_ascii_strncasecmp ("video", groups[i], 5))
       codec->media_type = FS_MEDIA_TYPE_VIDEO;
     else {
@@ -458,7 +458,7 @@ fs_codec_to_string (const FsCodec *codec)
  * It compares GLists of FarsightCodecParameter
  */
 static gboolean
-compare_lists(GList *list1, GList *list2)
+compare_lists (GList *list1, GList *list2)
 {
   GList *item1;
 

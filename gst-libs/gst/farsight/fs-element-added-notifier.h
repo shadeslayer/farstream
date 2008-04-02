@@ -30,7 +30,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_ELEMENT_ADDED_NOTIFIER \
-  (fs_element_added_notifier_get_type())
+  (fs_element_added_notifier_get_type ())
 #define FS_ELEMENT_ADDED_NOTIFIER(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_ELEMENT_ADDED_NOTIFIER,    \
       FsElementAddedNotifier))
