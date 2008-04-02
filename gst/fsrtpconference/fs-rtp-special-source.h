@@ -34,7 +34,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_RTP_SPECIAL_SOURCE \
-  (fs_rtp_special_source_get_type())
+  (fs_rtp_special_source_get_type ())
 #define FS_RTP_SPECIAL_SOURCE(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_RTP_SPECIAL_SOURCE, \
       FsRtpSpecialSource))

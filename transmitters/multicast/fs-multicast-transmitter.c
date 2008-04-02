@@ -471,7 +471,7 @@ fs_multicast_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
  * The UdpSock structure is a ref-counted pseudo-object use to represent
  * one local_ip:port:ttl:multicast_ip quatuor on which we listen and send,
  * so it includes a udpsrc and a multiudpsink. It represents one BSD socket.
- * If two UdpSock only differ by their TTL, only the first will have 
+ * If two UdpSock only differ by their TTL, only the first will have
  */
 
 struct _UdpSock {
@@ -518,7 +518,7 @@ _ip_string_into_sockaddr_in (const gchar *ip_as_string,
         gai_strerror (retval));
     return FALSE;
   }
-  memcpy (sockaddr_in, result->ai_addr, sizeof(struct sockaddr_in));
+  memcpy (sockaddr_in, result->ai_addr, sizeof (struct sockaddr_in));
   freeaddrinfo (result);
 
   return TRUE;
@@ -546,14 +546,15 @@ _bind_port (
 
   if (!_ip_string_into_sockaddr_in (multicast_ip, &address, error))
     goto error;
-  memcpy (&mreqn.imr_multiaddr, &address.sin_addr, sizeof(mreqn.imr_multiaddr));
+  memcpy (&mreqn.imr_multiaddr, &address.sin_addr,
+      sizeof (mreqn.imr_multiaddr));
 
   if (local_ip)
   {
     struct sockaddr_in tmpaddr;
     if (!_ip_string_into_sockaddr_in (local_ip, &tmpaddr, error))
       goto error;
-    memcpy (&mreqn.imr_address, &tmpaddr.sin_addr, sizeof(mreqn.imr_address));
+    memcpy (&mreqn.imr_address, &tmpaddr.sin_addr, sizeof (mreqn.imr_address));
   }
   else
   {

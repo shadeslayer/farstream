@@ -1033,7 +1033,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
         self->priv->stun_ip, gai_strerror (retval));
     return FALSE;
   }
-  memcpy (&address, result->ai_addr, sizeof(struct sockaddr_in));
+  memcpy (&address, result->ai_addr, sizeof (struct sockaddr_in));
   freeaddrinfo (result);
 
   address.sin_family = AF_INET;
@@ -1058,7 +1058,7 @@ fs_rawudp_stream_transmitter_start_stun (FsRawUdpStreamTransmitter *self,
   length = stun_message_pack (msg, &packed);
 
   if (!fs_rawudp_transmitter_udpport_sendto (self->priv->udpports[component_id],
-          packed, length, (const struct sockaddr *)&address, sizeof(address),
+          packed, length, (const struct sockaddr *)&address, sizeof (address),
           error))
     ret = FALSE;
 
@@ -1166,7 +1166,7 @@ fs_rawudp_stream_transmitter_emit_local_candidates (
 
   for (current = g_list_first (ips);
        current;
-       current = g_list_next(current))
+       current = g_list_next (current))
   {
     FsCandidate *candidate = g_new0 (FsCandidate, 1);
 

@@ -405,7 +405,7 @@ _rtpbin_request_pt_map (GstElement *element, guint session_id,
     caps = fs_rtp_session_request_pt_map (session, pt);
     g_object_unref (session);
   } else {
-    GST_WARNING_OBJECT(self,"GstRtpBin %p tried to request the caps for "
+    GST_WARNING_OBJECT (self,"GstRtpBin %p tried to request the caps for "
                        " payload type %u for non-existent session %u",
                        element, pt, session_id);
   }
@@ -486,7 +486,7 @@ fs_rtp_conference_get_session_by_id_locked (FsRtpConference *self,
     FsRtpSession *session = item->data;
 
     if (session->id == session_id) {
-      g_object_ref(session);
+      g_object_ref (session);
       break;
     }
   }
@@ -685,7 +685,7 @@ fs_rtp_conference_handle_message (
           fs_rtp_session_associate_ssrc_cname (session, ssrc, cname);
           g_object_unref (session);
         } else {
-          GST_WARNING_OBJECT(self,"Our GstRtpBin announced a new association"
+          GST_WARNING_OBJECT (self,"Our GstRtpBin announced a new association"
               "for non-existent session %u for ssrc: %u and cname %s",
               session_id, ssrc, cname);
         }

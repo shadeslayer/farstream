@@ -31,7 +31,7 @@
 G_BEGIN_DECLS
 
 #define FS_TYPE_RTP_CONFERENCE \
-  (fs_rtp_conference_get_type())
+  (fs_rtp_conference_get_type ())
 #define FS_RTP_CONFERENCE(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj),FS_TYPE_RTP_CONFERENCE,FsRtpConference))
 #define FS_RTP_CONFERENCE_CLASS(klass) \
@@ -64,7 +64,7 @@ struct _FsRtpConferenceClass
   FsBaseConferenceClass parent_class;
 };
 
-GType fs_rtp_conference_get_type(void);
+GType fs_rtp_conference_get_type (void);
 
 
 GST_DEBUG_CATEGORY_EXTERN (fsrtpconference_debug);

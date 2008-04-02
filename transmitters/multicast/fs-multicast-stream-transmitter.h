@@ -36,7 +36,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_MULTICAST_STREAM_TRANSMITTER \
-  (fs_multicast_stream_transmitter_get_type())
+  (fs_multicast_stream_transmitter_get_type ())
 #define FS_MULTICAST_STREAM_TRANSMITTER(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_MULTICAST_STREAM_TRANSMITTER, \
                               FsMulticastStreamTransmitter))

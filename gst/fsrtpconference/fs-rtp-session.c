@@ -148,7 +148,7 @@ struct _FsRtpSessionPrivate
   gboolean disposed;
 };
 
-G_DEFINE_TYPE(FsRtpSession, fs_rtp_session, FS_TYPE_SESSION);
+G_DEFINE_TYPE (FsRtpSession, fs_rtp_session, FS_TYPE_SESSION);
 
 #define FS_RTP_SESSION_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SESSION, FsRtpSessionPrivate))
@@ -655,7 +655,7 @@ fs_rtp_session_set_property (GObject *object,
 
         } else {
           GST_WARNING ("Invalid new codec configurations");
-          fs_codec_list_destroy(new_local_codecs_configuration);
+          fs_codec_list_destroy (new_local_codecs_configuration);
         }
       }
       break;
@@ -693,7 +693,7 @@ fs_rtp_session_constructed (GObject *object)
 
   if (self->id == 0) {
     g_error ("You can no instantiate this element directly, you MUST"
-      " call fs_rtp_session_new()");
+      " call fs_rtp_session_new ()");
     return;
   }
 
@@ -1202,9 +1202,9 @@ fs_rtp_session_new_stream (FsSession *session,
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsRtpSession. You have to call the function
- * #fs_rtp_session_stop_telephony_event() to stop it.
+ * #fs_rtp_session_stop_telephony_event () to stop it.
  * This function will use any available method, if you want to use a specific
- * method only, use #fs_rtp_session_start_telephony_event_full()
+ * method only, use #fs_rtp_session_start_telephony_event_full ()
  *
  * Returns: %TRUE if sucessful, it can return %FALSE if the #FsStream
  * does not support this telephony event.
@@ -1230,7 +1230,7 @@ fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
  * @method: The method used to send the event
  *
  * This function will stop sending a telephony event started by
- * #fs_rtp_session_start_telephony_event(). If the event was being sent
+ * #fs_rtp_session_start_telephony_event (). If the event was being sent
  * for less than 50ms, it will be sent for 50ms minimum. If the
  * duration was a positive and the event is not over, it will cut it
  * short.
@@ -1262,7 +1262,7 @@ fs_rtp_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
  * session. The given #FsCodec must be taken directly from the #negotiated-codecs
  * property of the session. If the given codec is not in the negotiated codecs
  * list, @error will be set and %FALSE will be returned. The @send_codec will be
- * copied so it must be free'd using fs_codec_destroy() when done.
+ * copied so it must be free'd using fs_codec_destroy () when done.
  *
  * Returns: %FALSE if the send codec couldn't be set.
  */
@@ -1379,7 +1379,7 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
   gst_object_unref (requestpad);
   gst_object_unref (transpad);
 
-  if (GST_PAD_LINK_FAILED(ret)) {
+  if (GST_PAD_LINK_FAILED (ret)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Can not link the %s to the transmitter %s", tee_funnel_name,
       (direction == GST_PAD_SINK) ? "sink" : "src");
@@ -1425,33 +1425,33 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
 
   g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
 
-  if(!gst_bin_add (GST_BIN (self->priv->conference), sink)) {
+  if (!gst_bin_add (GST_BIN (self->priv->conference), sink)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the transmitter sink for %s to the conference",
       transmitter_name);
     goto error;
   }
 
-  if(!gst_bin_add (GST_BIN (self->priv->conference), src)) {
+  if (!gst_bin_add (GST_BIN (self->priv->conference), src)) {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the transmitter src for %s to the conference",
       transmitter_name);
     goto error;
   }
 
-  if(!_get_request_pad_and_link (self->priv->transmitter_rtp_tee,
+  if (!_get_request_pad_and_link (self->priv->transmitter_rtp_tee,
       "rtp tee", sink, "sink1", GST_PAD_SINK, error))
     goto error;
 
-  if(!_get_request_pad_and_link (self->priv->transmitter_rtcp_tee,
+  if (!_get_request_pad_and_link (self->priv->transmitter_rtcp_tee,
       "rtcp tee", sink, "sink2", GST_PAD_SINK, error))
     goto error;
 
-  if(!_get_request_pad_and_link (self->priv->transmitter_rtp_funnel,
+  if (!_get_request_pad_and_link (self->priv->transmitter_rtp_funnel,
       "rtp funnel", src, "src1", GST_PAD_SRC, error))
     goto error;
 
-  if(!_get_request_pad_and_link (self->priv->transmitter_rtcp_funnel,
+  if (!_get_request_pad_and_link (self->priv->transmitter_rtcp_funnel,
       "rtcp funnel", src, "src2", GST_PAD_SRC, error))
     goto error;
 
@@ -2339,7 +2339,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   gboolean ret = TRUE;
 
   FS_RTP_SESSION_LOCK (self);
-  codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, &error);
+  codec = fs_rtp_session_select_send_codec_locked (self, &blueprint, &error);
 
   if (!codec)
   {
@@ -2442,7 +2442,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   gboolean ret = FALSE;
   GError *local_gerror = NULL;
 
-  codec = fs_rtp_session_select_send_codec_locked(self, &blueprint, error);
+  codec = fs_rtp_session_select_send_codec_locked (self, &blueprint, error);
   if (!codec)
     goto done;
 
@@ -2612,9 +2612,9 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
   }
 
   while (
-      g_signal_handlers_disconnect_by_func(substream, "error", session) > 0) {}
+      g_signal_handlers_disconnect_by_func (substream, "error", session) > 0) {}
   while (
-      g_signal_handlers_disconnect_by_func(substream, "no-rtcp-timedout", session) > 0) {}
+      g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0) {}
 
   if (!fs_rtp_stream_add_substream (stream, substream, &error))
     fs_session_emit_error (FS_SESSION (session), error->code,
@@ -2660,9 +2660,9 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
         substream);
 
   while (
-      g_signal_handlers_disconnect_by_func(substream, "error", session) > 0) {}
+      g_signal_handlers_disconnect_by_func (substream, "error", session) > 0) {}
   while (
-      g_signal_handlers_disconnect_by_func(substream, "no-rtcp-timedout", session) > 0) {}
+      g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0) {}
 
   if (!fs_rtp_stream_add_substream (
           g_list_first (session->priv->streams)->data,

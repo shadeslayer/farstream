@@ -35,7 +35,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_RTP_SESSION \
-  (fs_rtp_session_get_type())
+  (fs_rtp_session_get_type ())
 #define FS_RTP_SESSION(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_RTP_SESSION, FsRtpSession))
 #define FS_RTP_SESSION_CLASS(klass) \

@@ -266,7 +266,7 @@ GST_START_TEST (test_multicasttransmitter_run_local_candidates)
     return;
   }
 
-  memset (params, 0, sizeof(GParameter) * 1);
+  memset (params, 0, sizeof (GParameter) * 1);
 
   candidate = fs_candidate_new ("L1", FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
       FS_NETWORK_PROTOCOL_UDP, address, 0);

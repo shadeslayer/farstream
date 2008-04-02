@@ -545,7 +545,7 @@ _bind_port (
           "Invalid IP address %s passed: %s", ip, gai_strerror (retval));
       return -1;
     }
-    memcpy (&address, result->ai_addr, sizeof(struct sockaddr_in));
+    memcpy (&address, result->ai_addr, sizeof (struct sockaddr_in));
     freeaddrinfo (result);
   }
 

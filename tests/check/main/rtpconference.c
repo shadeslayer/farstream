@@ -410,7 +410,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate,
     ts_fail ("Error while adding candidate: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
 
-  ts_fail_unless(ret == TRUE, "No detailed error from add_remote_candidate");
+  ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
 
 }
 

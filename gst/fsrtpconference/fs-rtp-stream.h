@@ -38,7 +38,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_RTP_STREAM \
-  (fs_rtp_stream_get_type())
+  (fs_rtp_stream_get_type ())
 #define FS_RTP_STREAM(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_RTP_STREAM, FsRtpStream))
 #define FS_RTP_STREAM_CLASS(klass) \

@@ -52,7 +52,7 @@ struct _FsRtpDtmfEventSourcePrivate {
 
 static FsRtpSpecialSourceClass *parent_class = NULL;
 
-G_DEFINE_TYPE(FsRtpDtmfEventSource, fs_rtp_dtmf_event_source,
+G_DEFINE_TYPE (FsRtpDtmfEventSource, fs_rtp_dtmf_event_source,
     FS_TYPE_RTP_SPECIAL_SOURCE);
 
 #define FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE(o)                         \

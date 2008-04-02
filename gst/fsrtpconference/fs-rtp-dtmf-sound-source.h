@@ -32,7 +32,7 @@ G_BEGIN_DECLS
 
 /* TYPE MACROS */
 #define FS_TYPE_RTP_DTMF_SOUND_SOURCE \
-  (fs_rtp_dtmf_sound_source_get_type())
+  (fs_rtp_dtmf_sound_source_get_type ())
 #define FS_RTP_DTMF_SOUND_SOURCE(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_RTP_DTMF_SOUND_SOURCE, \
       FsRtpDtmfSoundSource))

@@ -39,7 +39,7 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_disco
 
-static gboolean codecs_cache_valid(gchar *cache_path) {
+static gboolean codecs_cache_valid (gchar *cache_path) {
   time_t cache_ts = 0;
   time_t registry_ts = 0;
   struct stat cache_stat;
@@ -54,25 +54,25 @@ static gboolean codecs_cache_valid(gchar *cache_path) {
     registry_xml_path = g_build_filename (g_get_home_dir (),
         ".gstreamer-" GST_MAJORMINOR, "registry." HOST_CPU ".xml", NULL);
   } else {
-    registry_bin_path = g_strdup(registry_xml_path);
+    registry_bin_path = g_strdup (registry_xml_path);
   }
 
-  if (stat(registry_xml_path, &registry_stat) == 0) {
+  if (stat (registry_xml_path, &registry_stat) == 0) {
     registry_ts = registry_stat.st_mtime;
   }
 
-  if (stat(registry_bin_path, &registry_stat) == 0) {
+  if (stat (registry_bin_path, &registry_stat) == 0) {
     if (registry_ts < registry_stat.st_mtime) {
       registry_ts = registry_stat.st_mtime;
     }
   }
 
-  if (stat(cache_path, &cache_stat) == 0) {
+  if (stat (cache_path, &cache_stat) == 0) {
     cache_ts = cache_stat.st_mtime;
   }
 
-  g_free(registry_bin_path);
-  g_free(registry_xml_path);
+  g_free (registry_bin_path);
+  g_free (registry_xml_path);
 
   return (registry_ts != 0 && cache_ts > registry_ts);
 }
@@ -87,7 +87,7 @@ get_codecs_cache_path (FsMediaType media_type, GError **error) {
       cache_path = g_build_filename (g_get_home_dir (), ".farsight",
           "codecs.audio." HOST_CPU ".cache", NULL);
     }
-  } else if(media_type == FS_MEDIA_TYPE_VIDEO) {
+  } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     cache_path = g_strdup (g_getenv ("FS_VIDEO_CODECS_CACHE"));
     if (cache_path == NULL) {
       cache_path = g_build_filename (g_get_home_dir (), ".farsight",
@@ -105,23 +105,23 @@ get_codecs_cache_path (FsMediaType media_type, GError **error) {
 
 static gboolean
 read_codec_blueprint_uint (gchar **in, gsize *size, guint *val) {
-  if (*size < sizeof(guint))
+  if (*size < sizeof (guint))
     return FALSE;
 
   *val = *((guint *) *in);
-  *in += sizeof(guint);
-  *size -= sizeof(guint);
+  *in += sizeof (guint);
+  *size -= sizeof (guint);
   return TRUE;
 }
 
 static gboolean
 read_codec_blueprint_int (gchar **in, gsize *size, gint *val) {
-  if (*size < sizeof(gint))
+  if (*size < sizeof (gint))
     return FALSE;
 
   *val = *((gint *) *in);
-  *in += sizeof(gint);
-  *size -= sizeof(gint);
+  *in += sizeof (gint);
+  *size -= sizeof (gint);
   return TRUE;
 }
 
@@ -144,7 +144,7 @@ read_codec_blueprint_string (gchar **in, gsize *size, gchar **str) {
 }
 
 
-#define READ_CHECK(x) if(!x) goto error;
+#define READ_CHECK(x) if (!x) goto error;
 
 static CodecBlueprint *
 load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
@@ -167,7 +167,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
 
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
-  for(i = 0; i < tmp_size; i++) {
+  for (i = 0; i < tmp_size; i++) {
     FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
     READ_CHECK (read_codec_blueprint_string (in, size, &(param->name)));
     READ_CHECK (read_codec_blueprint_string (in, size, &(param->value)));
@@ -184,7 +184,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
   g_free (tmp);
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
-  for(i = 0; i < tmp_size; i++) {
+  for (i = 0; i < tmp_size; i++) {
     int j, tmp_size2;
     GList *tmplist = NULL;
 
@@ -201,7 +201,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
   }
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
-  for(i = 0; i < tmp_size; i++) {
+  for (i = 0; i < tmp_size; i++) {
     int j, tmp_size2;
     GList *tmplist = NULL;
 
@@ -259,7 +259,7 @@ load_codecs_cache (FsMediaType media_type, GError **error)
 
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
     magic_media = 'A';
-  } else if(media_type == FS_MEDIA_TYPE_VIDEO) {
+  } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     magic_media = 'V';
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -267,14 +267,14 @@ load_codecs_cache (FsMediaType media_type, GError **error)
     return FALSE;
   }
 
-  cache_path = get_codecs_cache_path(media_type, error);
+  cache_path = get_codecs_cache_path (media_type, error);
 
   if (!cache_path)
     return FALSE;
 
-  if (!codecs_cache_valid(cache_path)) {
+  if (!codecs_cache_valid (cache_path)) {
     GST_DEBUG ("Codecs cache %s is outdated or does not exist", cache_path);
-    g_free(cache_path);
+    g_free (cache_path);
     return FALSE;
   }
 
@@ -286,7 +286,7 @@ load_codecs_cache (FsMediaType media_type, GError **error)
       err ? err->message: "unknown error");
     g_clear_error (&err);
 
-    if(!g_file_get_contents (cache_path, &contents, &size, error))
+    if (!g_file_get_contents (cache_path, &contents, &size, error))
       goto error;
   } else {
     if ((contents = g_mapped_file_get_contents (mapped)) == NULL) {
@@ -307,9 +307,9 @@ load_codecs_cache (FsMediaType media_type, GError **error)
     goto error;
   }
 
-  memcpy (magic, in, sizeof(magic));
-  in += sizeof(magic);
-  size -= sizeof(magic);
+  memcpy (magic, in, sizeof (magic));
+  in += sizeof (magic);
+  size -= sizeof (magic);
 
   if (magic[0] != 'F' ||
       magic[1] != 'S' ||
@@ -322,15 +322,15 @@ load_codecs_cache (FsMediaType media_type, GError **error)
     goto error;
   }
 
-  if (size < sizeof(gint)) {
+  if (size < sizeof (gint)) {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-      "Cache file corrupt (size: %"G_GSIZE_FORMAT" < sizeof(int))", size);
+      "Cache file corrupt (size: %"G_GSIZE_FORMAT" < sizeof (int))", size);
     goto error;
   }
 
   num_blueprints = *((gint *) in);
-  in += sizeof(gint);
-  size -= sizeof(gint);
+  in += sizeof (gint);
+  size -= sizeof (gint);
 
   for (i = 0; i < num_blueprints; i++) {
     CodecBlueprint *blueprint = load_codec_blueprint (media_type, &in, &size);
@@ -359,11 +359,11 @@ load_codecs_cache (FsMediaType media_type, GError **error)
   return blueprints;
 }
 
-#define WRITE_CHECK(x) if(!x) return FALSE;
+#define WRITE_CHECK(x) if (!x) return FALSE;
 
 static gboolean
 write_codec_blueprint_int (int fd, gint val) {
-  return write (fd, &val, sizeof(gint)) == sizeof(gint);
+  return write (fd, &val, sizeof (gint)) == sizeof (gint);
 }
 
 static gboolean
@@ -410,13 +410,13 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
 
   walk = codec_blueprint->send_pipeline_factory;
   size = g_list_length (walk);
-  if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+  if (write (fd, &size, sizeof (gint)) != sizeof (gint))
     return FALSE;
 
   for (; walk; walk = g_list_next (walk)) {
     GList *walk2 = walk->data;
     size = g_list_length (walk2);
-    if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+    if (write (fd, &size, sizeof (gint)) != sizeof (gint))
       return FALSE;
     for (; walk2; walk2 = g_list_next (walk2)) {
       GstElementFactory *fact = walk2->data;
@@ -427,13 +427,13 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
 
   walk = codec_blueprint->receive_pipeline_factory;
   size = g_list_length (walk);
-  if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+  if (write (fd, &size, sizeof (gint)) != sizeof (gint))
     return FALSE;
 
   for (; walk; walk = g_list_next (walk)) {
     GList *walk2 = walk->data;
     size = g_list_length (walk2);
-    if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+    if (write (fd, &size, sizeof (gint)) != sizeof (gint))
       return FALSE;
     for (; walk2; walk2 = g_list_next (walk2)) {
       GstElementFactory *fact = walk2->data;
@@ -447,7 +447,7 @@ save_codec_blueprint (int fd, CodecBlueprint *codec_blueprint) {
 
 
 gboolean
-save_codecs_cache(FsMediaType media_type, GList *blueprints)
+save_codecs_cache (FsMediaType media_type, GList *blueprints)
 {
   gchar *cache_path;
   GList *item;
@@ -456,7 +456,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
   int size;
   gchar magic[8] = {0};
 
-  cache_path = get_codecs_cache_path(media_type, NULL);
+  cache_path = get_codecs_cache_path (media_type, NULL);
   if (!cache_path)
     return FALSE;
 
@@ -479,7 +479,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
     fd = g_mkstemp (tmp_path);
 
     if (fd == -1) {
-      GST_DEBUG ("Unable to save codecs cache. g_mkstemp() failed: %s",
+      GST_DEBUG ("Unable to save codecs cache. g_mkstemp () failed: %s",
           g_strerror (errno));
       g_free (tmp_path);
       g_free (cache_path);
@@ -494,7 +494,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
 
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
     magic[2] = 'A';
-  } else if(media_type == FS_MEDIA_TYPE_VIDEO) {
+  } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     magic[2] = 'V';
   }
 
@@ -507,7 +507,7 @@ save_codecs_cache(FsMediaType media_type, GList *blueprints)
 
 
   size = g_list_length (blueprints);
-  if (write (fd, &size, sizeof(gint)) != sizeof(gint))
+  if (write (fd, &size, sizeof (gint)) != sizeof (gint))
     return FALSE;
 
 

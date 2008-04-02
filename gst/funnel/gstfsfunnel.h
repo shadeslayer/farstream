@@ -31,7 +31,7 @@
 G_BEGIN_DECLS
 
 #define FS_TYPE_FUNNEL \
-  (fs_funnel_get_type())
+  (fs_funnel_get_type ())
 #define FS_FUNNEL(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj),FS_TYPE_FUNNEL,FsFunnel))
 #define FS_FUNNEL_CLASS(klass) \
