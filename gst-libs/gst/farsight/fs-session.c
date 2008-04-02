@@ -395,7 +395,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsSession. You have to call the function
- * fs_session_stop_telephony_event() to stop it. 
+ * fs_session_stop_telephony_event() to stop it.
  * This function will use any available method, if you want to use a specific
  * method only, use fs_session_start_telephony_event_full()
  *

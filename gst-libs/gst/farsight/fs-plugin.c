@@ -328,7 +328,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
  * @error: location of a #GError, or NULL if no error occured
  * @first_property_name: The name of the first property to be set on the
  *   object
- * @...: The NULL-terminated list of properties to set on the transmitter 
+ * @...: The NULL-terminated list of properties to set on the transmitter
  *
  * Loads the appropriate plugin if necessary and creates a GObject of
  * the requested type

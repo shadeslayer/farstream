@@ -201,7 +201,7 @@ gboolean
 fs_candidate_are_equal (const FsCandidate *cand1,
     const FsCandidate *cand2)
 {
-  /* TODO we compare just the ip and port for now 
+  /* TODO we compare just the ip and port for now
    * is this enough ? think about it some more */
   if ((g_ascii_strcasecmp(cand1->ip, cand2->ip) == 0) &&
       (cand1->port == cand2->port))

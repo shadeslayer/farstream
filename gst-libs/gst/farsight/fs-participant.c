@@ -112,7 +112,7 @@ fs_participant_class_init (FsParticipantClass *klass)
    * FsParticipant::error:
    * @self: #FsParticipant that emitted the signal
    * @object: The #Gobject that emitted the signal
-   * @errorno: The number of the error 
+   * @errorno: The number of the error
    * @error_msg: Error message to be displayed to user
    * @dbg_msg: Debugging error message
    *

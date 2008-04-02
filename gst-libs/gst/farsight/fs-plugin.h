@@ -63,7 +63,7 @@ struct _FsPlugin
 
   GType  type;
 
-  gchar *name;			/* name of the plugin */
+  gchar *name;                  /* name of the plugin */
 
   /* callbacks */
   /* This function is called when the last instance of the plugin is
