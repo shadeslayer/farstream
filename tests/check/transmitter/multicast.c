@@ -141,6 +141,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params)
   FsTransmitter *trans;
   FsStreamTransmitter *st;
   FsCandidate *tmpcand = NULL;
+  GstBus *bus = NULL;
 
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("multicast", 2, &error);
@@ -164,11 +165,15 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params)
 
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
+  bus = gst_element_get_bus (pipeline);
+  gst_bus_add_watch (bus, bus_error_callback, NULL);
+  gst_object_unref (bus);
+
   ts_fail_unless (g_signal_connect (st, "new-active-candidate-pair",
       G_CALLBACK (_new_active_candidate_pair), trans),
     "Coult not connect new-active-candidate-pair signal");
   ts_fail_unless (g_signal_connect (st, "error",
-      G_CALLBACK (_stream_transmitter_error), NULL),
+      G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
 
   g_idle_add (_start_pipeline, pipeline);

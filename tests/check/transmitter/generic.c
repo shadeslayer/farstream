@@ -39,7 +39,7 @@ _transmitter_error (FsTransmitter *transmitter, gint errorno, gchar *error_msg,
 }
 
 void
-_stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
+stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
   gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data)
 {
   ts_fail ("StreamTransmitter(%x) error(%d) msg:%s debug:%s", streamtransmitter,
@@ -121,4 +121,42 @@ setup_pipeline (FsTransmitter *trans, GCallback cb)
   g_object_unref (trans_sink);
 
   return pipeline;
+}
+
+
+gboolean
+bus_error_callback (GstBus *bus, GstMessage *message, gpointer user_data)
+{
+  switch (GST_MESSAGE_TYPE (message))
+  {
+    case GST_MESSAGE_ERROR:
+      {
+        GError *error = NULL;
+        gchar *debug = NULL;
+        gst_message_parse_error (message, &error, &debug);
+
+        ts_fail ("Got an error on the BUS (%d): %s (%s)", error->code,
+            error->message, debug);
+        g_error_free (error);
+        g_free (debug);
+      }
+      break;
+    case GST_MESSAGE_WARNING:
+      {
+        GError *error = NULL;
+        gchar *debug = NULL;
+        gst_message_parse_warning (message, &error, &debug);
+
+        g_debug ("Got a warning on the BUS (%d): %s (%s)",
+            error->code,
+            error->message, debug);
+        g_error_free (error);
+        g_free (debug);
+      }
+      break;
+    default:
+      break;
+  }
+
+  return TRUE;
 }
