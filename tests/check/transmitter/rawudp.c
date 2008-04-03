@@ -257,13 +257,13 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   ts_fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (flags)),
-    "Coult not connect new-local-candidate signal");
+    "Could not connect new-local-candidate signal");
   ts_fail_unless (g_signal_connect (st, "local-candidates-prepared",
       G_CALLBACK (_local_candidates_prepared), GINT_TO_POINTER (flags)),
-    "Coult not connect local-candidates-prepared signal");
+    "Could not connect local-candidates-prepared signal");
   ts_fail_unless (g_signal_connect (st, "new-active-candidate-pair",
       G_CALLBACK (_new_active_candidate_pair), trans),
-    "Coult not connect new-active-candidate-pair signal");
+    "Could not connect new-active-candidate-pair signal");
   ts_fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (_stream_transmitter_error), NULL),
     "Could not connect error signal");
