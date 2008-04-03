@@ -128,11 +128,16 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
   switch (GST_MESSAGE_TYPE (message))
   {
     case GST_MESSAGE_ELEMENT:
-      if (gst_implements_interface_check (GST_MESSAGE_SRC (message),
-              FS_TYPE_CONFERENCE))
+      if (!strcmp (gst_structure_get_name (message->structure),
+                  "farsight-error"))
       {
         const GValue *errorvalue, *debugvalue;
         gint errno;
+
+        ts_fail_unless (
+            gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                FS_TYPE_CONFERENCE),
+            "Received farsight-error from non-farsight element");
 
         gst_structure_get_int (message->structure, "error-no", &errno);
         errorvalue = gst_structure_get_value (message->structure, "error-msg");
