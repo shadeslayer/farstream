@@ -112,6 +112,7 @@ class FsUIPipeline:
         if AUDIO:
             self.audiosource = FsUIAudioSource(self.pipeline)
             self.audiosession = FsUISession(self.conf, self.audiosource)
+            self.adder = None
         self.pipeline.set_state(gst.STATE_PLAYING)
 
     def __del__(self):
@@ -175,11 +176,34 @@ class FsUIPipeline:
     def link_audio_sink(self, pad):
         "Link the audio sink to the pad"
         print >>sys.stderr, "LINKING AUDIO SINK"
-        self.audiosink = gst.element_factory_make("alsasink")
-        self.audiosink.set_property("latency-time", 50000)
-        self.pipeline.add(self.audiosink)
-        self.audiosink.set_state(gst.STATE_PLAYING)
-        pad.link(self.audiosink.get_pad("sink"))
+        if not self.adder:
+            audiosink = gst.element_factory_make("alsasink")
+            audiosink.set_property("buffer-time", 50000)
+            self.pipeline.add(audiosink)
+
+            try:
+                self.adder = gst.element_factory_make("liveadder")
+            except gst.ElementNotFoundError:
+                audiosink.set_state(gst.STATE_PLAYING)
+                pad.link(audiosink.get_pad("sink"))
+                return
+            self.pipeline.add(self.adder)
+            audiosink.set_state(gst.STATE_PLAYING)
+            self.adder.link(audiosink)
+            self.adder.set_state(gst.STATE_PLAYING)
+        convert1 = gst.element_factory_make("audioconvert")
+        self.pipeline.add(convert1)
+        resample = gst.element_factory_make("audioresample")
+        self.pipeline.add(resample)
+        convert2 = gst.element_factory_make("audioconvert")
+        self.pipeline.add(convert2)
+        convert1.link(resample)
+        resample.link(convert2)
+        convert2.link(self.adder)
+        pad.link(convert1.get_pad("sink"))
+        convert2.set_state(gst.STATE_PLAYING)
+        resample.set_state(gst.STATE_PLAYING)
+        convert1.set_state(gst.STATE_PLAYING)
 
     def element_added_cb(self, notifier, bin, element):
         if element.get_factory().get_name() == "x264enc":
