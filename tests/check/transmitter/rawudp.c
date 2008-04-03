@@ -383,6 +383,95 @@ GST_START_TEST (test_rawudptransmitter_run_local_candidates)
 }
 GST_END_TEST;
 
+static gboolean
+_bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
+{
+  FsStreamTransmitter *st = user_data;
+  GstState oldstate, newstate, pending;
+
+  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_STATE_CHANGED)
+    return TRUE;
+
+  if (G_OBJECT_TYPE (GST_MESSAGE_SRC (message)) != GST_TYPE_PIPELINE)
+    return TRUE;
+
+  gst_message_parse_state_changed (message, &oldstate, &newstate, &pending);
+
+  if (newstate != GST_STATE_PLAYING)
+    return TRUE;
+
+  if (pending != GST_STATE_VOID_PENDING)
+    ts_fail ("New state playing, but pending is %d", pending);
+
+  g_object_unref (st);
+
+  g_main_loop_quit (loop);
+
+  return FALSE;
+}
+
+GST_START_TEST (test_rawudptransmitter_stop_stream)
+{
+  GError *error = NULL;
+  FsTransmitter *trans;
+  FsStreamTransmitter *st;
+  GstBus *bus = NULL;
+
+  loop = g_main_loop_new (NULL, FALSE);
+  trans = fs_transmitter_new ("rawudp", 2, &error);
+
+  if (error) {
+    ts_fail ("Error creating transmitter: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
+  }
+
+  ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
+
+  pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler));
+
+  st = fs_transmitter_new_stream_transmitter (trans, NULL, 0, NULL, &error);
+
+  if (error)
+    ts_fail ("Error creating stream transmitter: (%s:%d) %s",
+        g_quark_to_string (error->domain), error->code, error->message);
+
+  ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
+
+  ts_fail_unless (g_signal_connect (st, "error",
+      G_CALLBACK (_stream_transmitter_error), NULL),
+    "Could not connect error signal");
+
+  bus = gst_element_get_bus (pipeline);
+
+  gst_bus_add_watch (bus, _bus_stop_stream_cb, st);
+
+  gst_object_unref (bus);
+
+  ts_fail_unless (g_signal_connect (st, "new-local-candidate",
+          G_CALLBACK (_new_local_candidate), NULL),
+      "Could not connect new-local-candidate signal");
+  ts_fail_unless (g_signal_connect (st, "new-active-candidate-pair",
+          G_CALLBACK (_new_active_candidate_pair), trans),
+      "Could not connect new-active-candidate-pair signal");
+  ts_fail_unless (g_signal_connect (st, "error",
+          G_CALLBACK (_stream_transmitter_error), NULL),
+      "Could not connect error signal");
+
+  g_idle_add (_start_pipeline, pipeline);
+
+  g_main_run (loop);
+
+  gst_element_set_state (pipeline, GST_STATE_NULL);
+
+  gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+
+  g_object_unref (trans);
+
+  gst_object_unref (pipeline);
+
+  g_main_loop_unref (loop);
+}
+GST_END_TEST;
 
 
 static Suite *
@@ -414,6 +503,10 @@ rawudptransmitter_suite (void)
 
   tc_chain = tcase_create ("rawudptransmitter-local-candidates");
   tcase_add_test (tc_chain, test_rawudptransmitter_run_local_candidates);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("rawudptransmitter-stop-stream");
+  tcase_add_test (tc_chain, test_rawudptransmitter_stop_stream);
   suite_add_tcase (s, tc_chain);
 
   return s;
