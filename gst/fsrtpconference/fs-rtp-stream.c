@@ -395,6 +395,8 @@ fs_rtp_stream_constructed (GObject *object)
       "error",
       G_CALLBACK (_transmitter_error),
       self);
+
+  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
 

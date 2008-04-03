@@ -364,6 +364,8 @@ fs_rawudp_transmitter_constructed (GObject *object)
       return;
     }
   }
+
+  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
 static void

@@ -1122,6 +1122,8 @@ fs_rtp_session_constructed (GObject *object)
   }
 
   gst_element_set_state (capsfilter, GST_STATE_PLAYING);
+
+  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
 

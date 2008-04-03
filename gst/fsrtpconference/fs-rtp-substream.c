@@ -397,6 +397,8 @@ fs_rtp_sub_stream_constructed (GObject *object)
   if (self->priv->no_rtcp_timeout > 0)
     self->priv->no_rtcp_timeout_id = g_timeout_add (self->priv->no_rtcp_timeout,
         _no_rtcp_timeout, self);
+
+  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
 
