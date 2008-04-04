@@ -35,9 +35,9 @@ check_PROGRAMS = \
 	base/fstransmitter \
 	transmitter/rawudp \
 	transmitter/multicast \
-	main/rtpconference \
 	main/rtpcodecs \
 	main/rtpsendcodecs \
+	main/rtpconference \
 	utils/binadded
 
 
