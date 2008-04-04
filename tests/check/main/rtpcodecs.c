@@ -28,11 +28,19 @@
 
 #include "generic.h"
 
+void
+_notify_local_codecs (GObject *object, GParamSpec *param, gpointer user_data)
+{
+  guint *value = user_data;
+  *value = 1;
+}
+
 GST_START_TEST (test_rtpcodecs_local_codecs_config)
 {
   struct SimpleTestConference *dat = NULL;
   GList *codecs = NULL, *codecs2 = NULL, *item = NULL;
   gint has0 = FALSE, has8 = FALSE;
+  gboolean local_codecs_notified = FALSE;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
@@ -72,7 +80,13 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
     codecs = g_list_append (codecs, codec);
   }
 
+  g_signal_connect (dat->session, "notify::local-codecs",
+      G_CALLBACK (_notify_local_codecs), &local_codecs_notified);
+
   g_object_set (dat->session, "local-codecs-config", codecs, NULL);
+
+  fail_unless (local_codecs_notified == TRUE, "Not notified of codec changed");
+  local_codecs_notified = FALSE;
 
   g_object_get (dat->session, "local-codecs-config", &codecs2, NULL);
 
