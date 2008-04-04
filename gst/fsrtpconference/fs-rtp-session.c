@@ -2302,8 +2302,8 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
 /**
  * _idle_emit_send_codec_changed
  *
- * This idle function is called to emit the "send-codec-changed" signal
- * on the main thread
+ * This idle function is called to emit the #GObject::notify signal for the
+ * #FsSession:current-send-codec property on the main thread
  *
  * Returns: FALSE, because the event should be removed
  */
@@ -2313,7 +2313,6 @@ _idle_emit_send_codec_changed (gpointer data)
 {
   FsRtpSession *self = FS_RTP_SESSION (data);
 
-  g_signal_emit_by_name (self, "send-codec-changed");
   g_object_notify (G_OBJECT (self), "current-send-codec");
 
   FS_RTP_SESSION_LOCK (self);
@@ -2498,7 +2497,6 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
       codec = NULL;
 
       g_object_notify (G_OBJECT (self), "current-send-codec");
-      g_signal_emit_by_name (self, "send-codec-changed");
     }
     else
     {

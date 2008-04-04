@@ -57,7 +57,6 @@
 enum
 {
   ERROR,
-  SEND_CODEC_CHANGED,
   NEW_NEGOTIATED_CODECS,
   LAST_SIGNAL
 };
@@ -221,11 +220,10 @@ fs_session_class_init (FsSessionClass *klass)
    *
    * Indicates the currently active send codec. A user can change the active
    * send codec by calling fs_session_set_send_codec(). The send codec could
-   * also be automatically changed by Farsight. In both cases the
-   * ::send-codec-changed signal will be emited. This property is an
+   * also be automatically changed by Farsight. This property is an
    * #FsCodec. User must free the codec using fs_codec_destroy() when done.
-   * The #FsSession::send-codec-changed signal is emitted when the content
-   * of this property changes.
+   * The #GObject::notify signal is emitted when the content of this property
+   * changes.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -256,25 +254,6 @@ fs_session_class_init (FsSessionClass *klass)
       NULL,
       _fs_marshal_VOID__OBJECT_INT_STRING_STRING,
       G_TYPE_NONE, 4, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
-
-  /**
-   * FsSession::send-codec-changed:
-   * @self: #FsSession that emitted the signal
-   *
-   * This signal is emitted when the active send codec has been changed
-   * manually by the user or automatically for QoS purposes. The user should
-   * look at the #FsSession:current-send-codec property in the session to
-   * determine what the new active codec is
-   *
-   */
-  signals[SEND_CODEC_CHANGED] = g_signal_new ("send-codec-changed",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
 
   /**
    * FsSession::new-negotiated-codecs:
