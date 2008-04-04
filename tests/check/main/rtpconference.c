@@ -182,8 +182,10 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 }
 
 static void
-_send_codec_changed (FsSession *session, gpointer user_data)
+_current_send_codec_notify (GObject *object, GParamSpec *paramspec,
+    gpointer user_data)
 {
+  FsSession *session = FS_SESSION (object);
   struct SimpleTestConference *dat = user_data;
   FsCodec *codec = NULL;
   gchar *str = NULL;
@@ -428,8 +430,8 @@ rtpconference_connect_signals (struct SimpleTestConference *dat)
   gst_bus_add_watch (bus, _bus_callback, dat);
   gst_object_unref (bus);
 
-  g_signal_connect (dat->session, "send-codec-changed",
-      G_CALLBACK (_send_codec_changed), dat);
+  g_signal_connect (dat->session, "notify::current-send-codec",
+      G_CALLBACK (_current_send_codec_notify), dat);
 }
 
 static void
