@@ -478,9 +478,11 @@ _compare_codec_lists (GList *list1, GList *list2)
 }
 
 static void
-_new_negotiated_codecs (FsSession *session, gpointer user_data)
+_negotiated_codecs_notify (GObject *object, GParamSpec *paramspec,
+    gpointer user_data)
 {
   struct SimpleTestConference *dat = user_data;
+  FsSession *session = FS_SESSION (object);
   GList *codecs = NULL;
   GError *error = NULL;
   GList *item = NULL;
@@ -620,8 +622,8 @@ nway_test (int in_count, extra_init extrainit)
     setup_fakesrc (dats[i]);
 
     if (i != 0)
-      g_signal_connect (dats[i]->session, "new-negotiated-codecs",
-          G_CALLBACK (_new_negotiated_codecs), dats[i]);
+      g_signal_connect (dats[i]->session, "notify::negotiated-codecs",
+          G_CALLBACK (_negotiated_codecs_notify), dats[i]);
   }
 
   for (i = 0; i < count; i++)

@@ -132,7 +132,8 @@ GST_END_TEST;
 static gboolean has_negotiated = FALSE;
 
 static void
-_new_negotiated_codecs (FsSession *session, gpointer user_data)
+_negotiated_codecs_notify (GObject *object, GParamSpec *paramspec,
+    gpointer user_data)
 {
   has_negotiated = TRUE;
 }
@@ -147,8 +148,8 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
   st = simple_conference_add_stream (dat, dat);
 
-  g_signal_connect (dat->session, "new-negotiated-codecs",
-      G_CALLBACK (_new_negotiated_codecs), dat);
+  g_signal_connect (dat->session, "notify::negotiated-codecs",
+      G_CALLBACK (_negotiated_codecs_notify), dat);
 
   codecs = g_list_append (codecs,
       fs_codec_new (
@@ -180,7 +181,7 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
       "Could not set remote PCMU codec");
 
   fail_unless (has_negotiated == TRUE,
-      "Did not receive the new_negotiated_codecs signal");
+      "Did not receive the notify::negotiated-codecs signal");
 
   g_object_get (dat->session, "negotiated-codecs", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
@@ -194,8 +195,8 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
       "Could not re-set remote PCMU codec");
 
   fail_if (has_negotiated == TRUE,
-      "We received the new_negotiated_codecs signal even though codecs haven't"
-      " changed");
+      "We received the notify::negotiated-codecs signal even though codecs"
+      " have not changed");
 
   fs_codec_list_destroy (codecs);
 

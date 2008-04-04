@@ -344,8 +344,8 @@ class FsUISession:
                                                       "PCMU",
                                                       farsight.MEDIA_TYPE_AUDIO,
                                                       0)])
-        self.fssession.connect("new-negotiated-codecs",
-                             self.__new_negotiated_codecs)
+        self.fssession.connect("notify::negotiated-codecs",
+                             self.__negotiated_codecs_notify)
         self.sourcepad = self.source.get_src_pad()
         self.sourcepad.link(self.fssession.get_property("sink-pad"))
 
@@ -353,7 +353,7 @@ class FsUISession:
         self.sourcepad(unlink)
         self.source.put_src_pad(self.sourcepad)
         
-    def __new_negotiated_codecs(self, session):
+    def __negotiated_codecs_notify(self, session, paramspec):
         "Callback from FsSession"
         for s in self.streams.valuerefs():
             try:
