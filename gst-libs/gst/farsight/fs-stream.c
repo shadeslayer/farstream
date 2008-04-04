@@ -146,12 +146,12 @@ fs_stream_class_init (FsStreamClass *klass)
         G_PARAM_READABLE));
 
   /**
-   * FsStream:current-recv-codec:
+   * FsStream:current-recv-codecs:
    *
    * This is the list of codecs that have been received by this stream.
-   * The user must free the list if fs_codec_list_destroy()
-   * The #FsStream::recv-codecs-changed signal is emitted when the value of
-   * this property changes.
+   * The user must free the list if fs_codec_list_destroy().
+   * The #GObject::notify signal is emitted when the value of this property may
+   * have changed.
    *
    */
   g_object_class_install_property (gobject_class,

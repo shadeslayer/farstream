@@ -738,6 +738,7 @@ _idle_emit_recv_codecs_changed (gpointer data)
 {
   FsRtpStream *stream = FS_RTP_STREAM (data);
 
+  g_object_notify (G_OBJECT (stream), "current-recv-codecs");
   g_signal_emit_by_name (stream, "recv-codecs-changed");
 
   FS_RTP_SESSION_LOCK (stream->priv->session);
