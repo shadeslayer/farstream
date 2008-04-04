@@ -151,7 +151,10 @@ fs_stream_class_init (FsStreamClass *klass)
    * This is the list of codecs that have been received by this stream.
    * The user must free the list if fs_codec_list_destroy().
    * The #GObject::notify signal is emitted when the value of this property may
-   * have changed.
+   * have changed. It is normally emitted right after #FsStream::src-pad-added
+   * only if that codec was not previously received in this stream, but it can
+   * also be emitted if the pad already exists, but the source material that
+   * will come to it is different.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -266,29 +269,6 @@ fs_stream_class_init (FsStreamClass *klass)
       NULL,
       _fs_marshal_VOID__BOXED_BOXED,
       G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
-
-  /**
-   * FsStream::recv-codecs-changed:
-   * @self: #FsStream that emitted the signal
-   *
-   * This signal is emitted when the list of currently received codecs has
-   * changed. They can be fetched from the #FsStream:current-recv-codecs
-   * property.
-   * This is useful for displaying the current active reception codecs.
-   * This signal is normally emitted right after src-pad-added only if that
-   * codec was not previously received in this stream, but it can also be
-   * emitted if the pad already exists, but the source material that will
-   * come to it is different.
-   *
-   */
-  signals[RECV_CODECS_CHANGED] = g_signal_new ("recv-codecs-changed",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
 
   /**
    * FsStream::new-active-candidate-pair:
