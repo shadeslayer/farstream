@@ -1680,7 +1680,10 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     FS_RTP_SESSION_UNLOCK (session);
 
     if (is_new)
+    {
       g_signal_emit_by_name (session, "new-negotiated-codecs");
+      g_object_notify (G_OBJECT (session), "negotiated-codecs");
+    }
 
     return TRUE;
   } else {
