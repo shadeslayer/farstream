@@ -2314,6 +2314,7 @@ _idle_emit_send_codec_changed (gpointer data)
   FsRtpSession *self = FS_RTP_SESSION (data);
 
   g_signal_emit_by_name (self, "send-codec-changed");
+  g_object_notify (G_OBJECT (self), "current-send-codec");
 
   FS_RTP_SESSION_LOCK (self);
   self->priv->send_codec_idle_id = 0;
@@ -2496,6 +2497,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
       self->priv->current_send_codec = codec;
       codec = NULL;
 
+      g_object_notify (G_OBJECT (self), "current-send-codec");
       g_signal_emit_by_name (self, "send-codec-changed");
     }
     else
