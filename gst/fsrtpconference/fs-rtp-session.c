@@ -653,6 +653,8 @@ fs_rtp_session_set_property (GObject *object,
           self->priv->local_codecs_configuration =
             new_local_codecs_configuration;
 
+          g_object_notify (object, "local-codecs");
+
         } else {
           GST_WARNING ("Invalid new codec configurations");
           fs_codec_list_destroy (new_local_codecs_configuration);
