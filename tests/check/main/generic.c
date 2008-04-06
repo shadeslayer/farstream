@@ -77,7 +77,7 @@ simple_conference_add_stream (
   if (error)
     fail ("Error while creating new participant (%d): %s",
         error->code, error->message);
-  fail_if (dat->session == NULL, "Could not make participant, but no GError!");
+  fail_if (st->participant == NULL, "Could not make participant, but no GError!");
 
   st->stream = fs_session_new_stream (dat->session, st->participant,
       FS_DIRECTION_BOTH, "rawudp", 0, NULL, &error);
