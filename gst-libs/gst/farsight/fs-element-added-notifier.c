@@ -87,6 +87,8 @@ fs_element_added_notifier_class_init (FsElementAddedNotifierClass *klass)
    *
    * This signal is emitted when an element is added to a #GstBin that was added
    * to this object or one of its sub-bins.
+   * Be careful, there is no guarantee that this will be emitted on your
+   * main thread, it will be emitted in the thread that added the element.
    */
   signals[ELEMENT_ADDED] = g_signal_new ("element-added",
       G_TYPE_FROM_CLASS (klass),
