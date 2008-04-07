@@ -88,7 +88,7 @@ typedef struct _UdpPort UdpPort;
 
 GType fs_rawudp_transmitter_get_type (void);
 
-
+GST_DEBUG_CATEGORY_EXTERN (fs_rawudp_transmitter_debug);
 
 UdpPort *fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
     guint component_id,
