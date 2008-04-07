@@ -339,17 +339,10 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (object);
   gint c; /* component_id */
 
-  if (self->priv->stun_ip)
-  {
-    g_free (self->priv->stun_ip);
-    self->priv->stun_ip = NULL;
-  }
+  g_free (self->priv->stun_ip);
 
   if (self->priv->preferred_local_candidates)
-  {
     fs_candidate_list_destroy (self->priv->preferred_local_candidates);
-    self->priv->preferred_local_candidates = NULL;
-  }
 
   if (self->priv->remote_candidate)
   {
@@ -367,7 +360,6 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     }
 
     g_free (self->priv->remote_candidate);
-    self->priv->remote_candidate = NULL;
   }
 
   if (self->priv->udpports)
@@ -375,28 +367,21 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     for (c = 1; c <= self->priv->transmitter->components; c++)
     {
       if (self->priv->udpports[c])
-      {
         fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
             self->priv->udpports[c]);
-        self->priv->udpports[c] = NULL;
-      }
     }
 
     g_free (self->priv->udpports);
-    self->priv->udpports = NULL;
   }
 
   if (self->priv->local_forced_candidate)
   {
     for (c = 1; c <= self->priv->transmitter->components; c++)
     {
-      if (self->priv->local_forced_candidate[c]) {
+      if (self->priv->local_forced_candidate[c])
         fs_candidate_destroy (self->priv->local_forced_candidate[c]);
-        self->priv->local_forced_candidate[c] = NULL;
-      }
     }
     g_free (self->priv->local_forced_candidate);
-    self->priv->local_forced_candidate = NULL;
   }
 
   if (self->priv->local_stun_candidate)
@@ -404,13 +389,9 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     for (c = 1; c <= self->priv->transmitter->components; c++)
     {
       if (self->priv->local_stun_candidate[c])
-      {
         fs_candidate_destroy (self->priv->local_stun_candidate[c]);
-        self->priv->local_stun_candidate[c] = NULL;
-      }
     }
     g_free (self->priv->local_stun_candidate);
-    self->priv->local_stun_candidate = NULL;
   }
 
   if (self->priv->local_active_candidate)
@@ -418,32 +399,16 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     for (c = 1; c <= self->priv->transmitter->components; c++)
     {
       if (self->priv->local_active_candidate[c])
-      {
         fs_candidate_destroy (self->priv->local_active_candidate[c]);
         self->priv->local_active_candidate[c] = NULL;
-      }
     }
     g_free (self->priv->local_active_candidate);
-    self->priv->local_active_candidate = NULL;
   }
 
-  if (self->priv->sources_mutex)
-  {
-    g_mutex_free (self->priv->sources_mutex);
-    self->priv->sources_mutex = NULL;
-  }
+  g_mutex_free (self->priv->sources_mutex);
 
-  if (self->priv->stun_recv_id)
-  {
-    g_free (self->priv->stun_recv_id);
-    self->priv->stun_recv_id = NULL;
-  }
-
-  if (self->priv->stun_timeout_id)
-  {
-    g_free (self->priv->stun_timeout_id);
-    self->priv->stun_timeout_id = NULL;
-  }
+  g_free (self->priv->stun_recv_id);
+  g_free (self->priv->stun_timeout_id);
 
   parent_class->finalize (object);
 }
