@@ -105,10 +105,14 @@ struct _FsRtpSubStreamPrivate {
 
   gboolean receiving;
 
-  gint no_rtcp_timeout;
+  /* Protected by the this mutex */
+  GMutex *mutex;
+  GstClockID no_rtcp_timeout_id;
+  GstClockTime next_no_rtcp_timeout;
+  GThread *no_rtcp_timeout_thread;
 
-  /* Protected by the session mutex */
-  gint no_rtcp_timeout_id;
+  /* Protected by the session mutex*/
+  gint no_rtcp_timeout;
 
   GError *construction_error;
 };
@@ -121,6 +125,13 @@ G_DEFINE_TYPE(FsRtpSubStream, fs_rtp_sub_stream, G_TYPE_OBJECT);
 #define FS_RTP_SUB_STREAM_GET_PRIVATE(o)                                 \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_SUB_STREAM,             \
    FsRtpSubStreamPrivate))
+
+
+#define FS_RTP_SUB_STREAM_LOCK(substream) \
+  g_mutex_lock (substream->priv->mutex)
+#define FS_RTP_SUB_STREAM_UNLOCK(substream) \
+  g_mutex_unlock (substream->priv->mutex)
+
 
 static void fs_rtp_sub_stream_dispose (GObject *object);
 static void fs_rtp_sub_stream_finalize (GObject *object);
@@ -328,23 +339,114 @@ fs_rtp_sub_stream_init (FsRtpSubStream *self)
   self->priv = FS_RTP_SUB_STREAM_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
   self->priv->receiving = TRUE;
+  self->priv->mutex = g_mutex_new ();
+}
+
+
+static gpointer
+no_rtcp_timeout_func (gpointer user_data)
+{
+  FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
+  GstClock *sysclock = NULL;
+  GstClockID id;
+  gboolean emit = TRUE;
+
+  sysclock = gst_system_clock_obtain ();
+  if (sysclock == NULL)
+    goto no_sysclock;
+
+  FS_RTP_SUB_STREAM_LOCK(self);
+  id = self->priv->no_rtcp_timeout_id = gst_clock_new_single_shot_id (sysclock,
+      self->priv->next_no_rtcp_timeout);
+
+  FS_RTP_SUB_STREAM_UNLOCK(self);
+  gst_clock_id_wait (id, NULL);
+  FS_RTP_SUB_STREAM_LOCK(self);
+
+  gst_clock_id_unref (id);
+  self->priv->no_rtcp_timeout_id = NULL;
+
+  if (self->priv->next_no_rtcp_timeout == 0)
+    emit = FALSE;
+
+  FS_RTP_SUB_STREAM_UNLOCK(self);
+
+  gst_object_unref (sysclock);
+
+  if (emit)
+    g_signal_emit (self, signals[NO_RTCP_TIMEDOUT], 0);
+
+  return NULL;
+
+ no_sysclock:
+  {
+    fs_rtp_sub_stream_emit_error (self, FS_ERROR_INTERNAL,
+        "Could not get system clock",
+        "Could not get system clock");
+    return NULL;
+  }
 }
 
 static gboolean
-_no_rtcp_timeout (gpointer user_data)
+fs_rtp_sub_stream_start_no_rtcp_timeout_thread (FsRtpSubStream *self,
+    GError **error)
 {
-  FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
+  gboolean res = TRUE;
+  GstClock *sysclock = NULL;
+
+  sysclock = gst_system_clock_obtain ();
+  if (sysclock == NULL)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Could not obtain gst system clock");
+    return FALSE;
+  }
 
   FS_RTP_SESSION_LOCK (self->priv->session);
+  FS_RTP_SUB_STREAM_LOCK(self);
 
-  if (self->priv->no_rtcp_timeout_id)
-    self->priv->no_rtcp_timeout_id = 0;
+  self->priv->next_no_rtcp_timeout = gst_clock_get_time (sysclock) +
+    (self->priv->no_rtcp_timeout * GST_MSECOND);
 
+  gst_object_unref (sysclock);
+
+  if (self->priv->no_rtcp_timeout_thread == NULL) {
+    /* only create a new thread if the old one was stopped. Otherwise we can
+     * just reuse the currently running one. */
+    self->priv->no_rtcp_timeout_thread =
+      g_thread_create (no_rtcp_timeout_func, self, TRUE, error);
+  }
+
+  res = (self->priv->no_rtcp_timeout_thread != NULL);
+
+  if (res == FALSE && error && *error == NULL)
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL, "Unknown error creating"
+        " thread");
+
+  FS_RTP_SUB_STREAM_UNLOCK(self);
   FS_RTP_SESSION_UNLOCK (self->priv->session);
 
-  g_signal_emit (self, signals[NO_RTCP_TIMEDOUT], 0);
+  return res;
+}
 
-  return FALSE;
+static void
+fs_rtp_sub_stream_stop_no_rtcp_timeout_thread (FsRtpSubStream *self)
+{
+  FS_RTP_SUB_STREAM_LOCK(self);
+  self->priv->next_no_rtcp_timeout = 0;
+  if (self->priv->no_rtcp_timeout_id)
+    gst_clock_id_unschedule (self->priv->no_rtcp_timeout_id);
+
+  if (self->priv->no_rtcp_timeout_thread == NULL)
+    return;
+
+  FS_RTP_SUB_STREAM_UNLOCK(self);
+
+  g_thread_join (self->priv->no_rtcp_timeout_thread);
+
+  FS_RTP_SUB_STREAM_LOCK(self);
+  self->priv->no_rtcp_timeout_thread = NULL;
+  FS_RTP_SUB_STREAM_UNLOCK(self);
 }
 
 static void
@@ -395,8 +497,9 @@ fs_rtp_sub_stream_constructed (GObject *object)
   }
 
   if (self->priv->no_rtcp_timeout > 0)
-    self->priv->no_rtcp_timeout_id = g_timeout_add (self->priv->no_rtcp_timeout,
-        _no_rtcp_timeout, self);
+    if (!fs_rtp_sub_stream_start_no_rtcp_timeout_thread (self,
+            &self->priv->construction_error))
+      return;
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
@@ -410,15 +513,7 @@ fs_rtp_sub_stream_dispose (GObject *object)
   if (self->priv->disposed)
     return;
 
-
-  FS_RTP_SESSION_LOCK (self->priv->session);
-  if (self->priv->no_rtcp_timeout_id)
-  {
-    g_source_remove (self->priv->no_rtcp_timeout_id);
-    self->priv->no_rtcp_timeout_id = 0;
-  }
-  FS_RTP_SESSION_UNLOCK (self->priv->session);
-
+  fs_rtp_sub_stream_stop_no_rtcp_timeout_thread (self);
 
   if (self->priv->output_ghostpad) {
     gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
@@ -473,6 +568,9 @@ fs_rtp_sub_stream_finalize (GObject *object)
 
   if (self->priv->codec)
     fs_codec_destroy (self->priv->codec);
+
+  if (self->priv->mutex)
+    g_mutex_free (self->priv->mutex);
 
   G_OBJECT_CLASS (fs_rtp_sub_stream_parent_class)->finalize (object);
 }
