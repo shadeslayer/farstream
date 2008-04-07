@@ -136,12 +136,6 @@ void fs_candidate_list_destroy (GList *candidate_list);
 
 GList *fs_candidate_list_copy (const GList *candidate_list);
 
-FsCandidate *fs_candidate_get_by_id (const GList *candidate_list,
-                                     const gchar *candidate_id);
-
-gboolean fs_candidate_are_equal (const FsCandidate *cand1,
-                                 const FsCandidate *cand2);
-
 FsCandidate * fs_candidate_new (
     const gchar *id,
     guint component_id,

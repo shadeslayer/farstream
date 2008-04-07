@@ -204,24 +204,6 @@
   )
 )
 
-(define-function fs_candidate_get_by_id
-  (c-name "fs_candidate_get_by_id")
-  (return-type "FsCandidate*")
-  (parameters
-    '("const-GList*" "candidate_list")
-    '("const-gchar*" "candidate_id")
-  )
-)
-
-(define-method are_equal
-  (of-object "FsCandidate")
-  (c-name "fs_candidate_are_equal")
-  (return-type "gboolean")
-  (parameters
-    '("const-FsCandidate*" "cand2")
-  )
-)
-
 (define-function fs_candidate_new
   (c-name "fs_candidate_new")
   (is-constructor-of "FsCandidate")

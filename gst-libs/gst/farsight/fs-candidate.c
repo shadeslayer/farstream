@@ -160,56 +160,6 @@ fs_candidate_list_copy (const GList *candidate_list)
 }
 
 /**
- * fs_candidate_get_by_id:
- * @candidate_list: a list of #FsCandidate
- * @candidate_id: the id of the candidate to extract
- *
- * Searches in candidate_list for the candidate indentified by candidate_id
- *
- * Returns: a #FsCandidate or NULL if not found
- */
-FsCandidate *
-fs_candidate_get_by_id (const GList *candidate_list,
-                        const gchar *candidate_id)
-{
-  FsCandidate *cand = NULL;
-  const GList *lp;
-  FsCandidate *cand_copy = NULL;
-
-  for (lp = candidate_list; lp; lp = g_list_next (lp)) {
-    cand = (FsCandidate *) lp->data;
-    if (g_ascii_strcasecmp (cand->candidate_id, candidate_id) == 0)
-    {
-      cand_copy = fs_candidate_copy (cand);
-      break;
-    }
-  }
-  return cand_copy;
-}
-
-/**
- * fs_candidate_are_equal:
- * @cand1: first #FsCandidate to compare
- * @cand2: second #FsCandidate to compare
- *
- * Compares two #FsCandidate to see if they are equivalent.
- *
- * Returns: True if equivalent.
- */
-gboolean
-fs_candidate_are_equal (const FsCandidate *cand1,
-    const FsCandidate *cand2)
-{
-  /* TODO we compare just the ip and port for now
-   * is this enough ? think about it some more */
-  if ((g_ascii_strcasecmp (cand1->ip, cand2->ip) == 0) &&
-      (cand1->port == cand2->port))
-    return TRUE;
-  else
-    return FALSE;
-}
-
-/**
  * fs_candidate_new:
  * @id: The id of the candidate (must be unique for ICE)
  * @component_id: The component this candidate is for
