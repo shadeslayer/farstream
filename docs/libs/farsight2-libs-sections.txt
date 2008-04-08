@@ -93,8 +93,6 @@ fs_candidate_destroy
 fs_candidate_copy
 fs_candidate_list_destroy
 fs_candidate_list_copy
-fs_candidate_get_by_id
-fs_candidate_are_equal
 <SUBSECTION Standard>
 FS_TYPE_CANDIDATE
 fs_candidate_get_type
@@ -109,7 +107,6 @@ FsMediaType
 fs_media_type_to_string
 FsCodec
 FsCodecParameter
-FsCodecPreference
 FS_CODEC_ID_ANY
 FS_CODEC_ID_DISABLE
 fs_codec_new
