@@ -158,6 +158,9 @@ fs_rawudp_component_emit_error (FsRawUdpComponent *self,
     gchar *debug_msg);
 static void
 fs_rawudp_component_maybe_new_active_candidate_pair (FsRawUdpComponent *self);
+static void
+fs_rawudp_component_emit_candidate (FsRawUdpComponent *self,
+    FsCandidate *candidate);
 
 static gboolean
 stun_recv_cb (GstPad *pad, GstBuffer *buffer,
@@ -869,8 +872,7 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
   fs_rawudp_component_stop_stun_locked (self);
   FS_RAWUDP_COMPONENT_UNLOCK(self);
 
-  g_signal_emit (self, signals[NEW_LOCAL_CANDIDATE], 0, candidate);
-  g_signal_emit (self, signals[LOCAL_CANDIDATES_PREPARED], 0);
+  fs_rawudp_component_emit_candidate (self, candidate);
 
   fs_candidate_destroy (candidate);
 
@@ -920,12 +922,17 @@ stun_timeout_func (gpointer user_data)
 
   if (emit)
   {
-    if (!fs_rawudp_component_emit_local_candidates (self, NULL))
+    GError *error = NULL;
+    if (!fs_rawudp_component_emit_local_candidates (self, &error))
     {
-      return NULL;
+      if (error->domain == FS_ERROR)
+        fs_rawudp_component_emit_error (self, error->code,
+            error->message, error->message);
+      else
+        fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
+            "Error emitting local errors", NULL);
     }
-
-    g_signal_emit (self, signals[LOCAL_CANDIDATES_PREPARED], 0);
+    g_clear_error (&error);
   }
 
   return NULL;
@@ -949,18 +956,14 @@ fs_rawudp_component_no_stun (FsRawUdpComponent *self, GError **error)
    * ones */
 
   FS_RAWUDP_COMPONENT_LOCK (self);
+
   if (!self->priv->local_active_candidate)
   {
     FS_RAWUDP_COMPONENT_UNLOCK (self);
-    if (!fs_rawudp_component_emit_local_candidates (self, error))
-      return FALSE;
-  }
-  else
-  {
-    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    return fs_rawudp_component_emit_local_candidates (self, error);
   }
 
-  g_signal_emit (self, signals[LOCAL_CANDIDATES_PREPARED], 0);
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
 
   return TRUE;
 }
@@ -1006,10 +1009,8 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
         self->priv->local_forced_candidate);
     FS_RAWUDP_COMPONENT_UNLOCK (self);
 
-    g_signal_emit (self, signals[NEW_LOCAL_CANDIDATE], 0,
+    fs_rawudp_component_emit_candidate (self,
         self->priv->local_active_candidate);
-    fs_rawudp_component_maybe_new_active_candidate_pair (self);
-
     return TRUE;
   }
 
@@ -1037,7 +1038,7 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
   if (self->priv->local_active_candidate)
   {
     FS_RAWUDP_COMPONENT_UNLOCK (self);
-    g_signal_emit (self, signals[NEW_LOCAL_CANDIDATE], 0,
+    fs_rawudp_component_emit_candidate (self,
         self->priv->local_active_candidate);
   }
   else
@@ -1049,8 +1050,16 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
     return FALSE;
   }
 
-  fs_rawudp_component_maybe_new_active_candidate_pair (self);
-
   return TRUE;
 }
 
+static void
+fs_rawudp_component_emit_candidate (FsRawUdpComponent *self,
+    FsCandidate *candidate)
+{
+    g_signal_emit (self, signals[NEW_LOCAL_CANDIDATE], 0,
+        candidate);
+    g_signal_emit (self, signals[LOCAL_CANDIDATES_PREPARED], 0);
+
+    fs_rawudp_component_maybe_new_active_candidate_pair (self);
+}
