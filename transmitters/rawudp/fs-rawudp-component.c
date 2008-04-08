@@ -103,6 +103,7 @@ struct _FsRawUdpComponentPrivate
   FsCandidate *local_forced_candidate;
   FsCandidate *local_stun_candidate;
 
+  gboolean gathered;
 
   gulong stun_recv_id;
 
@@ -146,8 +147,6 @@ fs_rawudp_component_set_property (GObject *object,
     GParamSpec *pspec);
 
 
-static gboolean
-fs_rawudp_component_no_stun (FsRawUdpComponent *self, GError **error);
 static gboolean
 fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
     GError **eror);
@@ -659,18 +658,17 @@ gboolean
 fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     GError **error)
 {
-  if (self->priv->stun_ip && self->priv->stun_port)
+  if (self->priv->gathered)
   {
-    if (!fs_rawudp_component_start_stun (self, error))
-      return FALSE;
-  }
-  else
-  {
-    if (!fs_rawudp_component_no_stun (self, error))
-      return FALSE;
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Call gather local candidates twice on the same component");
+    return FALSE;
   }
 
-  return TRUE;
+  if (self->priv->stun_ip && self->priv->stun_port)
+    return fs_rawudp_component_start_stun (self, error);
+  else
+    return fs_rawudp_component_emit_local_candidates (self, error);
 }
 
 gboolean
@@ -870,6 +868,8 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 
   FS_RAWUDP_COMPONENT_LOCK(self);
   fs_rawudp_component_stop_stun_locked (self);
+
+  self->priv->local_active_candidate = fs_candidate_copy (candidate);
   FS_RAWUDP_COMPONENT_UNLOCK(self);
 
   fs_rawudp_component_emit_candidate (self, candidate);
@@ -946,26 +946,6 @@ fs_rawudp_component_emit_error (FsRawUdpComponent *self,
     gchar *debug_msg)
 {
   g_signal_emit (self, signals[ERROR], 0, error_no, error_msg, debug_msg);
-}
-
-
-static gboolean
-fs_rawudp_component_no_stun (FsRawUdpComponent *self, GError **error)
-{
-  /* If we have a STUN'd candidate, dont send the locally generated
-   * ones */
-
-  FS_RAWUDP_COMPONENT_LOCK (self);
-
-  if (!self->priv->local_active_candidate)
-  {
-    FS_RAWUDP_COMPONENT_UNLOCK (self);
-    return fs_rawudp_component_emit_local_candidates (self, error);
-  }
-
-  FS_RAWUDP_COMPONENT_UNLOCK (self);
-
-  return TRUE;
 }
 
 
