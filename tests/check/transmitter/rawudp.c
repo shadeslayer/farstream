@@ -175,19 +175,6 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   src_setup[local->component_id-1] = TRUE;
 }
 
-static gboolean
-_start_pipeline (gpointer user_data)
-{
-  GstElement *pipeline = user_data;
-
-  g_debug ("Starting pipeline");
-
-  ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
-    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
-
-  return FALSE;
-}
-
 static void
 _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gpointer user_data)
@@ -272,7 +259,18 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
 
-  g_idle_add (_start_pipeline, pipeline);
+  ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
+
+  if (!fs_stream_transmitter_gather_local_candidates (st, &error))
+  {
+    if (error)
+      ts_fail ("Could not start gathering local candidates %s",
+          error->message);
+    else
+      ts_fail ("Could not start gathering candidates"
+          " (without a specified error)");
+  }
 
   g_main_run (loop);
 
@@ -453,7 +451,18 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
           G_CALLBACK (stream_transmitter_error), NULL),
       "Could not connect error signal");
 
-  g_idle_add (_start_pipeline, pipeline);
+  ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
+
+  if (!fs_stream_transmitter_gather_local_candidates (st, &error))
+  {
+    if (error)
+      ts_fail ("Could not start gathering local candidates %s",
+          error->message);
+    else
+      ts_fail ("Could not start gathering candidates"
+          " (without a specified error)");
+  }
 
   g_main_run (loop);
 
