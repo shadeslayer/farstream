@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RAW UDP with STUN Transmitter
+ * Farsight2 - Farsight RAW UDP with STUN Stream Transmitter
  *
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- * Copyright 2007 Nokia Corp.
+ * Copyright 2007-2008x Nokia Corp.
  *
- * fs-rawudp-transmitter.c - A Farsight UDP transmitter with STUN
+ * fs-rawudp-transmitter.c - A Farsight UDPs stream transmitter with STUN
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -72,6 +72,8 @@
 
 #include "fs-rawudp-stream-transmitter.h"
 
+#include "fs-rawudp-component.h"
+
 #include "stun.h"
 #include "fs-interfaces.h"
 
@@ -129,6 +131,8 @@ struct _FsRawUdpStreamTransmitterPrivate
   FsCandidate **local_active_candidate;
 
   UdpPort **udpports;
+
+  FsRawUdpComponent **component;
 
   gchar *stun_ip;
   guint stun_port;
@@ -223,6 +227,8 @@ fs_rawudp_stream_transmitter_register_type (FsPlugin *module)
     (GInstanceInitFunc) fs_rawudp_stream_transmitter_init
   };
 
+  fs_rawudp_component_register_type (module);
+
   type = g_type_module_register_type (G_TYPE_MODULE (module),
       FS_TYPE_STREAM_TRANSMITTER, "FsRawUdpStreamTransmitter", &info, 0);
 
@@ -306,6 +312,18 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
     /* If dispose did already run, return. */
     return;
 
+  if (self->priv->component)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->component[c])
+      {
+        g_object_unref (self->priv->component[c]);
+        self->priv->component[c] = NULL;
+      }
+    }
+  }
+
   g_mutex_lock (self->priv->sources_mutex);
 
   if (self->priv->stun_recv_id)
@@ -342,6 +360,12 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
 
   if (self->priv->preferred_local_candidates)
     fs_candidate_list_destroy (self->priv->preferred_local_candidates);
+
+  if (self->priv->component)
+  {
+    g_free (self->priv->component);
+    self->priv->component = NULL;
+  }
 
   if (self->priv->remote_candidate)
   {
@@ -514,6 +538,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   gint c;
   guint16 next_port;
 
+  self->priv->component = g_new0 (FsRawUdpComponent *,
+      self->priv->transmitter->components + 1);
   self->priv->udpports = g_new0 (UdpPort *,
       self->priv->transmitter->components + 1);
   self->priv->remote_candidate = g_new0 (FsCandidate *,
@@ -630,6 +656,20 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 
     next_port = used_port+1;
   }
+
+  for (c = 1; c <= self->priv->transmitter->components; c++)
+    if (self->priv->udpports[c])
+    {
+      self->priv->component[c] = fs_rawudp_component_new (c,
+          self->priv->transmitter,
+          self->priv->stun_ip,
+          self->priv->stun_port,
+          self->priv->stun_timeout,
+          self->priv->udpports[c],
+          error);
+      if (self->priv->component[c] == NULL)
+        goto error;
+    }
 
   if (self->priv->stun_ip && self->priv->stun_port)
   {
