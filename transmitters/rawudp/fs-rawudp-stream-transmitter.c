@@ -1081,16 +1081,14 @@ fs_rawudp_stream_transmitter_build_forced_candidate (
     FsRawUdpStreamTransmitter *self, const char *ip, gint port,
     guint component_id)
 {
-  FsCandidate *candidate = g_new0 (FsCandidate, 1);
+  FsCandidate *candidate;
+  gchar *id;
 
-  candidate = g_new0 (FsCandidate,1);
-  candidate->candidate_id = g_strdup_printf ("L%u",
+  id = g_strdup_printf ("L%u",
       self->priv->next_candidate_id++);
-  candidate->component_id = component_id;
-  candidate->ip = g_strdup (ip);
-  candidate->port = port;
-  candidate->proto = FS_NETWORK_PROTOCOL_UDP;
-  candidate->type = FS_CANDIDATE_TYPE_HOST;
+  candidate = fs_candidate_new (id, component_id, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, ip, port);
+  g_free (id);
 
   return candidate;
 }
