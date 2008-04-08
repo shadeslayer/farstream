@@ -142,6 +142,14 @@ static void _rtpbin_on_bye_ssrc (GstElement *rtpbin,
     guint ssrc,
     gpointer user_data);
 
+static void
+_remove_session (gpointer user_data,
+    GObject *where_the_object_was);
+static void
+_remove_participant (gpointer user_data,
+    GObject *where_the_object_was);
+
+
 static void fs_rtp_conference_handle_message (
     GstBin * bin,
     GstMessage * message);
@@ -166,6 +174,7 @@ static void
 fs_rtp_conference_dispose (GObject * object)
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (object);
+  GList *item;
 
   if (self->priv->disposed)
     return;
@@ -174,6 +183,22 @@ fs_rtp_conference_dispose (GObject * object)
     gst_object_unref (self->gstrtpbin);
     self->gstrtpbin = NULL;
   }
+
+  GST_OBJECT_LOCK (object);
+  for (item = g_list_first (self->priv->sessions);
+       item;
+       item = g_list_next (item))
+    g_object_weak_unref (G_OBJECT (item->data), _remove_session, self);
+  g_list_free (self->priv->sessions);
+  self->priv->sessions = NULL;
+
+  for (item = g_list_first (self->priv->participants);
+       item;
+       item = g_list_next (item))
+    g_object_weak_unref (G_OBJECT (item->data), _remove_participant, self);
+  g_list_free (self->priv->participants);
+  self->priv->participants = NULL;
+  GST_OBJECT_UNLOCK (object);
 
   self->priv->disposed = TRUE;
 

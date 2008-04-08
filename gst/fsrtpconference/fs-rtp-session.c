@@ -200,6 +200,9 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   GParameter *parameters,
   GError **error);
 
+static void
+_remove_stream (gpointer user_data,
+    GObject *where_the_object_was);
 
 static GObjectClass *parent_class = NULL;
 
@@ -321,6 +324,7 @@ static void
 fs_rtp_session_dispose (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION (object);
+  GList *item = NULL;
 
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
@@ -524,6 +528,18 @@ fs_rtp_session_dispose (GObject *object)
     g_object_unref (self->priv->conference);
     self->priv->conference = NULL;
   }
+
+  for (item = g_list_first (self->priv->streams);
+       item;
+       item = g_list_next (item))
+    g_object_weak_unref (G_OBJECT (item->data), _remove_stream, self);
+  g_list_free (self->priv->streams);
+  self->priv->streams = NULL;
+
+  self->priv->disposed = TRUE;
+
+
+  FS_RTP_SESSION_UNLOCK (self);
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -1132,7 +1148,7 @@ fs_rtp_session_constructed (GObject *object)
 
 static void
 _remove_stream (gpointer user_data,
-                 GObject *where_the_object_was)
+    GObject *where_the_object_was)
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
 
