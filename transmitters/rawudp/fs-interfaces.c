@@ -148,11 +148,11 @@ farsight_is_private_ip (const struct in_addr in)
     return TRUE;
 
   /* 172.16.0.0 - 172.31.255.255 = 172.16.0.0/10 */
-  if (in.s_addr >> 22 == 0x2B0)
+  if (in.s_addr >> 20 == 0xAC1)
     return TRUE;
 
   /* 192.168.x.x/16 */
-  if (in.s_addr >> 16 == 0xc0A8)
+  if (in.s_addr >> 16 == 0xC0A8)
     return TRUE;
 
   /* 169.254.x.x/16  (for APIPA) */
