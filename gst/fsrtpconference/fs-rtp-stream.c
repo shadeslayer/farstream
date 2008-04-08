@@ -578,22 +578,43 @@ _local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
     gpointer user_data)
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
+  GstElement *conf = NULL;
 
-  g_signal_emit_by_name (self, "local-candidates-prepared");
+  g_object_get (self->priv->session, "conference", &conf, NULL);
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-local-candidates-prepared",
+              "session", FS_TYPE_SESSION, self->priv->session,
+              "stream", FS_TYPE_STREAM, self,
+              NULL)));
+
+  gst_object_unref (conf);
 }
 
 
 static void
 _new_active_candidate_pair (
     FsStreamTransmitter *stream_transmitter,
-    FsCandidate *candidate1,
-    FsCandidate *candidate2,
+    FsCandidate *local_candidate,
+    FsCandidate *remote_candidate,
     gpointer user_data)
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
+  GstElement *conf = NULL;
 
-  g_signal_emit_by_name (self, "new-active-candidate-pair",
-    candidate1, candidate2);
+  g_object_get (self->priv->session, "conference", &conf, NULL);
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-new-active-candidate-pair",
+              "session", FS_TYPE_SESSION, self->priv->session,
+              "stream", FS_TYPE_STREAM, self,
+              "local-candidate", FS_TYPE_CANDIDATE, local_candidate,
+              "remote-candidate", FS_TYPE_CANDIDATE, remote_candidate,
+              NULL)));
+
+  gst_object_unref (conf);
 }
 
 
@@ -604,8 +625,19 @@ _new_local_candidate (
     gpointer user_data)
 {
   FsRtpStream *self = FS_RTP_STREAM (user_data);
+  GstElement *conf = NULL;
 
-  g_signal_emit_by_name (self, "new-local-candidate", candidate);
+  g_object_get (self->priv->session, "conference", &conf, NULL);
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-new-local-candidate",
+              "session", FS_TYPE_SESSION, self->priv->session,
+              "stream", FS_TYPE_STREAM, self,
+              "candidate", FS_TYPE_CANDIDATE, candidate,
+              NULL)));
+
+  gst_object_unref (conf);
 }
 
 static void
@@ -732,20 +764,6 @@ fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
 }
 
 
-
-static gboolean
-_idle_emit_recv_codecs_changed (gpointer data)
-{
-  FsRtpStream *stream = FS_RTP_STREAM (data);
-
-  g_object_notify (G_OBJECT (stream), "current-recv-codecs");
-
-  FS_RTP_SESSION_LOCK (stream->priv->session);
-  stream->priv->recv_codecs_changed_idle_id = 0;
-  FS_RTP_SESSION_UNLOCK (stream->priv->session);
-  return FALSE;
-}
-
 /**
  *  _substream_codec_changed
  * @substream: The #FsRtpSubStream that may have a new receive codec
@@ -792,12 +810,25 @@ _substream_codec_changed (FsRtpSubStream *substream,
     }
   }
 
-  if (substream_item == NULL)
-    if (!stream->priv->recv_codecs_changed_idle_id)
-      stream->priv->recv_codecs_changed_idle_id =
-        g_idle_add (_idle_emit_recv_codecs_changed, stream);
-
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
+
+  if (substream_item == NULL)
+  {
+    GstElement *conf = NULL;
+
+    g_object_notify (G_OBJECT (stream), "current-recv-codecs");
+
+    g_object_get (stream->priv->session, "conference", &conf, NULL);
+
+    gst_element_post_message (conf,
+        gst_message_new_element (GST_OBJECT (conf),
+            gst_structure_new ("farsight-current-recv-codecs-changed",
+                "session", FS_TYPE_SESSION, stream->priv->session,
+                "stream", FS_TYPE_STREAM, stream,
+                NULL)));
+
+    gst_object_unref (conf);
+  }
 
   fs_codec_destroy (codec);
 }
