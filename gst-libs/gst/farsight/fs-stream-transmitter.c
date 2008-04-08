@@ -355,6 +355,32 @@ fs_stream_transmitter_select_candidate_pair (
   return FALSE;
 }
 
+/**
+ * fs_stream_transmitter_gather_local_candidates:
+ * @streamtransmitter: a #FsStreamTransmitter
+ * @error: location of a #GErrorh, or NULL if no error occured
+ *
+ * This function tells the transmitter to start gathering local candidates,
+ * signals for new candidates and newly active candidates can be emitted
+ * during the call to this function.
+ *
+ * Returns: %TRUE if it succeeds (or is not implemented), %FALSE otherwise
+ */
+
+gboolean
+fs_stream_transmitter_gather_local_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GError **error)
+{
+  FsStreamTransmitterClass *klass =
+    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+
+  if (klass->gather_local_candidates)
+    return klass->gather_local_candidates (streamtransmitter, error);
+  else
+    return TRUE;
+}
+
 
 /**
  * fs_stream_transmitter_emit_error:

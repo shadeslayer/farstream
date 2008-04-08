@@ -60,6 +60,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
  * @add_remote_candidate: Sets the remote candidate
  * @remote_candidates_added: Tell the stream to start the connectivity checks
  * @select_candidate_pair: Select the candidate pair
+ * @gather_local_candidates: Starts the gathering of local candidates
  *
  * You must override the add_remote_candidate in a subclass
  */
@@ -77,6 +78,8 @@ struct _FsStreamTransmitterClass
   gboolean (*select_candidate_pair) (FsStreamTransmitter *streamtransmitter,
                                      gchar *lfoundation, gchar *rfoundation,
                                      GError **error);
+  gboolean (*gather_local_candidates) (FsStreamTransmitter *streamtransmitter,
+                                       GError **error);
 
   /*< private >*/
   gpointer _padding[8];
@@ -108,6 +111,11 @@ void fs_stream_transmitter_remote_candidates_added (
 gboolean fs_stream_transmitter_select_candidate_pair (
     FsStreamTransmitter *streamtransmitter, gchar *lfoundation,
     gchar *rfoundation, GError **error);
+
+gboolean
+fs_stream_transmitter_gather_local_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GError **error);
 
 void fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
   gint error_no, gchar *error_msg, gchar *debug_msg);

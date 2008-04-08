@@ -93,10 +93,12 @@ FsRawUdpComponent *
 fs_rawudp_component_new (
     guint component,
     FsRawUdpTransmitter *trans,
+    const gchar *ip,
+    guint port,
     const gchar *stun_ip,
     guint stun_port,
     guint stun_timeout,
-    UdpPort *udpport,
+    guint *used_port,
     GError **error);
 
 gboolean
@@ -104,6 +106,12 @@ fs_rawudp_component_add_remote_candidate (FsRawUdpComponent *self,
     FsCandidate *candidate,
     GError **error);
 
+gboolean
+fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
+    GError **error);
+
+gboolean
+fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error);
 
 G_END_DECLS
 
