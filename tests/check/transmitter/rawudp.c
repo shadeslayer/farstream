@@ -34,6 +34,7 @@ GMainLoop *loop = NULL;
 gint candidates[2] = {0, 0};
 GstElement *pipeline = NULL;
 gboolean src_setup[2] = {FALSE, FALSE};
+volatile gint running = TRUE;
 
 enum {
   FLAG_HAS_STUN = 1 << 0,
@@ -154,7 +155,10 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
    */
 
   if (has_stun)
+  {
     g_main_loop_quit (loop);
+    g_atomic_int_set(&running, FALSE);
+  }
 }
 
 
@@ -198,9 +202,20 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count[0] == 20 && buffer_count[1] == 20) {
     /* TEST OVER */
+    g_atomic_int_set(&running, FALSE);
     g_main_loop_quit (loop);
   }
 }
+
+static gboolean
+check_running (gpointer data)
+{
+  if (g_atomic_int_get (&running) == FALSE)
+    g_main_loop_quit (loop);
+
+  return FALSE;
+}
+
 
 static void
 run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
@@ -271,6 +286,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
       ts_fail ("Could not start gathering candidates"
           " (without a specified error)");
   }
+
+  g_idle_add (check_running, NULL);
 
   g_main_run (loop);
 
@@ -405,6 +422,7 @@ _bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
 
   g_object_unref (st);
 
+  g_atomic_int_set(&running, FALSE);
   g_main_loop_quit (loop);
 
   return TRUE;
@@ -463,6 +481,8 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
       ts_fail ("Could not start gathering candidates"
           " (without a specified error)");
   }
+
+  g_idle_add (check_running, NULL);
 
   g_main_run (loop);
 
