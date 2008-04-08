@@ -396,6 +396,17 @@ fs_rtp_stream_constructed (GObject *object)
       G_CALLBACK (_transmitter_error),
       self);
 
+  if (!fs_stream_transmitter_gather_local_candidates (
+          self->priv->stream_transmitter,
+          &self->priv->construction_error))
+  {
+    if (!self->priv->construction_error)
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_INTERNAL,
+          "Unknown error while gathering local candidates");
+    return;
+  }
+
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
