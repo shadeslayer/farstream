@@ -120,6 +120,32 @@ GST_START_TEST (test_rtpconference_new)
 }
 GST_END_TEST;
 
+
+static void
+_new_local_candidate (FsStream *stream, FsCandidate *candidate)
+{
+  struct SimpleTestStream *st = g_object_get_data (G_OBJECT (stream),
+      "SimpleTestStream");
+  gboolean ret;
+  GError *error = NULL;
+  struct SimpleTestStream *other_st = find_pointback_stream (st->target,
+      st->dat);
+
+  g_debug ("%d:%d: Setting remote candidate for component %d",
+      other_st->dat->id,
+      other_st->target->id,
+      candidate->component_id);
+
+  ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
+
+  if (error)
+    ts_fail ("Error while adding candidate: (%s:%d) %s",
+      g_quark_to_string (error->domain), error->code, error->message);
+
+  ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
+
+}
+
 static gboolean
 _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 {
@@ -396,30 +422,6 @@ find_pointback_stream (
   return NULL;
 }
 
-static void
-_new_local_candidate (FsStream *stream, FsCandidate *candidate,
-    gpointer user_data)
-{
-  struct SimpleTestStream *st = user_data;
-  gboolean ret;
-  GError *error = NULL;
-  struct SimpleTestStream *other_st = find_pointback_stream (st->target,
-      st->dat);
-
-  g_debug ("%d:%d: Setting remote candidate for component %d",
-      other_st->dat->id,
-      other_st->target->id,
-      candidate->component_id);
-
-  ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
-
-  if (error)
-    ts_fail ("Error while adding candidate: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
-
-  ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
-
-}
 
 static void
 rtpconference_connect_signals (struct SimpleTestConference *dat)
