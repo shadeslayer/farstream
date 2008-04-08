@@ -375,10 +375,7 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
       {
         if (self->priv->udpports && self->priv->udpports[c] &&
             self->priv->sending)
-          fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpports[c],
-              self->priv->remote_candidate[c]->ip,
-              self->priv->remote_candidate[c]->port);
-        fs_candidate_destroy (self->priv->remote_candidate[c]);
+          fs_candidate_destroy (self->priv->remote_candidate[c]);
       }
     }
 
@@ -748,21 +745,16 @@ fs_rawudp_stream_transmitter_add_remote_candidate (
    * IMPROVE ME: We should probably check that the candidate's IP
    *  has the format x.x.x.x where x is [0,255] using GRegex, etc
    */
-  if (self->priv->sending)
-  {
-    fs_rawudp_transmitter_udpport_add_dest (
-        self->priv->udpports[candidate->component_id],
-        candidate->ip, candidate->port);
-  }
+
+
+  if (!fs_rawudp_component_add_remote_candidate (
+          self->priv->component[candidate->component_id],
+          candidate, error))
+    return FALSE;
+
   if (self->priv->remote_candidate[candidate->component_id])
-  {
-    fs_rawudp_transmitter_udpport_remove_dest (
-        self->priv->udpports[candidate->component_id],
-        self->priv->remote_candidate[candidate->component_id]->ip,
-        self->priv->remote_candidate[candidate->component_id]->port);
     fs_candidate_destroy (
         self->priv->remote_candidate[candidate->component_id]);
-  }
   self->priv->remote_candidate[candidate->component_id] =
     fs_candidate_copy (candidate);
 

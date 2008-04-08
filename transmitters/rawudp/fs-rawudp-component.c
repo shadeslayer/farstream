@@ -72,6 +72,8 @@ struct _FsRawUdpComponentPrivate
   /* Above this line, its all set at construction time */
   /* This is protected by the mutex */
 
+  FsCandidate *remote_candidate;
+
   gboolean sending;
 };
 
@@ -238,6 +240,13 @@ fs_rawudp_component_dispose (GObject *object)
     /* If dispose did already run, return. */
     return;
 
+  if (self->priv->remote_candidate &&
+      self->priv->udpport &&
+      self->priv->sending)
+      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
+          self->priv->remote_candidate->ip,
+          self->priv->remote_candidate->port);
+
   FS_RAWUDP_COMPONENT_LOCK (self);
 
   self->priv->udpport = NULL;
@@ -258,6 +267,9 @@ static void
 fs_rawudp_component_finalize (GObject *object)
 {
   FsRawUdpComponent *self = FS_RAWUDP_COMPONENT (object);
+
+  if (self->priv->remote_candidate)
+    fs_candidate_destroy (self->priv->remote_candidate);
 
   g_free (self->priv->stun_ip);
 
@@ -358,4 +370,44 @@ fs_rawudp_component_new (
   }
 
   return self;
+}
+
+
+gboolean
+fs_rawudp_component_add_remote_candidate (FsRawUdpComponent *self,
+    FsCandidate *candidate,
+    GError **error)
+{
+  FsCandidate *old_candidate = NULL;
+  gboolean sending;
+
+  if (candidate->component_id != self->priv->component)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Remote candidate routed to wrong component (%d->%d)",
+        candidate->component_id,
+        self->priv->component);
+    return FALSE;
+  }
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
+  old_candidate = self->priv->remote_candidate;
+  self->priv->remote_candidate = fs_candidate_copy (candidate);
+  sending = self->priv->sending;
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+
+  if (sending)
+    fs_rawudp_transmitter_udpport_add_dest (self->priv->udpport,
+        candidate->ip, candidate->port);
+
+  if (old_candidate)
+  {
+    fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
+        old_candidate->ip,
+        old_candidate->port);
+    fs_candidate_destroy (old_candidate);
+  }
+
+  return TRUE;
 }

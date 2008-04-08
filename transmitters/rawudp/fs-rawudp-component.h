@@ -99,6 +99,11 @@ fs_rawudp_component_new (
     UdpPort *udpport,
     GError **error);
 
+gboolean
+fs_rawudp_component_add_remote_candidate (FsRawUdpComponent *self,
+    FsCandidate *candidate,
+    GError **error);
+
 
 G_END_DECLS
 
