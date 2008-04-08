@@ -30,6 +30,12 @@
 
 #include "generic.h"
 
+static struct SimpleTestStream *
+find_pointback_stream (
+    struct SimpleTestConference *dat,
+    struct SimpleTestConference *target);
+
+
 struct SimpleTestConference **dats;
 GMainLoop *loop;
 int count = 0;
@@ -154,26 +160,88 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
   switch (GST_MESSAGE_TYPE (message))
   {
     case GST_MESSAGE_ELEMENT:
-      if (!strcmp (gst_structure_get_name (message->structure),
-                  "farsight-error"))
       {
-        const GValue *errorvalue, *debugvalue;
-        gint errno;
+        const GstStructure *s = gst_message_get_structure (message);
+        ts_fail_if (s==NULL, "NULL structure in element message");
+        if (!strcmp (gst_structure_get_name (s), "farsight-error"))
+        {
+          const GValue *errorvalue, *debugvalue;
+          gint errno;
 
-        ts_fail_unless (
-            gst_implements_interface_check (GST_MESSAGE_SRC (message),
-                FS_TYPE_CONFERENCE),
-            "Received farsight-error from non-farsight element");
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
 
-        gst_structure_get_int (message->structure, "error-no", &errno);
-        errorvalue = gst_structure_get_value (message->structure, "error-msg");
-        debugvalue = gst_structure_get_value (message->structure, "debug-msg");
+          gst_structure_get_int (s, "error-no", &errno);
+          errorvalue = gst_structure_get_value (s, "error-msg");
+          debugvalue = gst_structure_get_value (s, "debug-msg");
 
-        ts_fail ("Error on BUS (%d) %s .. %s", errno,
-            g_value_get_string (errorvalue),
-            g_value_get_string (debugvalue));
-      }
+          ts_fail ("Error on BUS (%d) %s .. %s", errno,
+              g_value_get_string (errorvalue),
+              g_value_get_string (debugvalue));
+        }
+        else if (!strcmp (gst_structure_get_name (s),
+                "farsight-new-local-candidate"))
+        {
+          FsStream *stream;
+          FsCandidate *candidate;
+          const GValue *value;
 
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
+              "farsight-new-local-candidate structure has no stream field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "candidate", FS_TYPE_CANDIDATE),
+              "farsight-new-local-candidate structure has no candidate field");
+
+          value = gst_structure_get_value (s, "stream");
+          stream = g_value_get_object (value);
+
+          value = gst_structure_get_value (s, "candidate");
+          candidate = g_value_get_boxed (value);
+
+          ts_fail_unless (stream && candidate, "new-local-candidate with NULL"
+              " stream(%p) or candidate(%p)", stream, candidate);
+
+          _new_local_candidate (stream, candidate);
+        }
+        else if (!strcmp (gst_structure_get_name (s),
+                "farsight-new-active-candidate-pair"))
+        {
+          FsStream *stream;
+          FsCandidate *local_candidate, *remote_candidate;
+          const GValue *value;
+
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
+              "farsight-new-active-candidate-pair structure"
+              " has no stream field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "local-candidate",
+                  FS_TYPE_CANDIDATE),
+              "farsight-new-active-candidate-pair structure"
+              " has no local-candidate field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "remote-candidate",
+                  FS_TYPE_CANDIDATE),
+              "farsight-new-active-candidate-pair structure"
+              " has no remote-candidate field");
+
+          value = gst_structure_get_value (s, "stream");
+          stream = g_value_get_object (value);
+          value = gst_structure_get_value (s, "local-candidate");
+          local_candidate = g_value_get_boxed (value);
+          value = gst_structure_get_value (s, "remote-candidate");
+          remote_candidate = g_value_get_boxed (value);
+
+          ts_fail_unless (stream && local_candidate && remote_candidate,
+              "new-local-candidate with NULL stream(%p)"
+              " or local_candidate(%p) or remote_candidate(%p)",
+              stream, local_candidate, remote_candidate);
+        }
+
+       }
       break;
     case GST_MESSAGE_ERROR:
       {
@@ -390,17 +458,6 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
 }
 
 
-static void
-_new_active_candidate_pair (FsStream *stream, FsCandidate *local,
-    FsCandidate *remote, gpointer user_data)
-{
-  ts_fail_if (local == NULL, "Local candidate NULL");
-  ts_fail_if (remote == NULL, "Remote candidate NULL");
-
-  if (local->component_id != 1)
-    return;
-}
-
 static struct SimpleTestStream *
 find_pointback_stream (
     struct SimpleTestConference *dat,
@@ -434,17 +491,6 @@ rtpconference_connect_signals (struct SimpleTestConference *dat)
 
   g_signal_connect (dat->session, "notify::current-send-codec",
       G_CALLBACK (_current_send_codec_notify), dat);
-}
-
-static void
-rtpconference_connect_streams_signals (struct SimpleTestStream *st)
-{
-  g_signal_connect (st->stream, "src-pad-added",
-      G_CALLBACK (_src_pad_added), st);
-  g_signal_connect (st->stream, "new-active-candidate-pair",
-      G_CALLBACK (_new_active_candidate_pair), st);
-  g_signal_connect (st->stream, "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), st);
 }
 
 
@@ -636,7 +682,8 @@ nway_test (int in_count, extra_init extrainit)
 
         st = simple_conference_add_stream (dats[i], dats[j]);
         st->handoff_handler = G_CALLBACK (_handoff_handler);
-        rtpconference_connect_streams_signals (st);
+        g_signal_connect (st->stream, "src-pad-added",
+            G_CALLBACK (_src_pad_added), st);
       }
 
   for (i = 1; i < count; i++)

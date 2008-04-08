@@ -86,6 +86,8 @@ simple_conference_add_stream (
         error->code, error->message);
   fail_if (st->stream == NULL, "Could not make stream, but no GError!");
 
+  g_object_set_data (G_OBJECT (st->stream), "SimpleTestStream", st);
+
   dat->streams = g_list_append (dat->streams, st);
 
   return st;
