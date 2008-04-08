@@ -373,8 +373,7 @@ fs_rawudp_stream_transmitter_finalize (GObject *object)
     {
       if (self->priv->remote_candidate[c])
       {
-        if (self->priv->udpports && self->priv->udpports[c] &&
-            self->priv->sending)
+        if (self->priv->udpports && self->priv->udpports[c])
           fs_candidate_destroy (self->priv->remote_candidate[c]);
       }
     }
@@ -476,32 +475,14 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
   {
     case PROP_SENDING:
       {
-        gboolean old_sending = self->priv->sending;
         gint c;
 
         self->priv->sending = g_value_get_boolean (value);
 
-        if (self->priv->sending != old_sending)
-        {
-          if (self->priv->sending)
-          {
-
-            for (c = 1; c <= self->priv->transmitter->components; c++)
-              if (self->priv->remote_candidate[c])
-                fs_rawudp_transmitter_udpport_add_dest (
-                    self->priv->udpports[c],
-                    self->priv->remote_candidate[c]->ip,
-                    self->priv->remote_candidate[c]->port);
-          } else {
-
-            for (c = 1; c <= self->priv->transmitter->components; c++)
-              if (self->priv->remote_candidate[c])
-                fs_rawudp_transmitter_udpport_remove_dest (
-                    self->priv->udpports[c],
-                    self->priv->remote_candidate[c]->ip,
-                    self->priv->remote_candidate[c]->port);
-          }
-        }
+        for (c = 1; c <= self->priv->transmitter->components; c++)
+          if (self->priv->component[c])
+            g_object_set_property (self->priv->component[c],
+                "sending", value);
       }
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:

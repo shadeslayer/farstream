@@ -314,9 +314,27 @@ fs_rawudp_component_set_property (GObject *object,
       self->priv->component = g_value_get_uint (value);
       break;
     case PROP_SENDING:
-      FS_RAWUDP_COMPONENT_LOCK (self);
-      self->priv->sending = g_value_get_boolean (value);
-      FS_RAWUDP_COMPONENT_UNLOCK (self);
+      {
+        gboolean sending, old_sending;
+        FsCandidate *candidate = NULL;
+        FS_RAWUDP_COMPONENT_LOCK (self);
+        old_sending = self->priv->sending;
+        sending = self->priv->sending = g_value_get_boolean (value);
+        if (self->priv->remote_candidate)
+          candidate = fs_candidate_copy (self->priv->remote_candidate);
+        FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+        if (sending != old_sending && candidate)
+        {
+          if (sending)
+            fs_rawudp_transmitter_udpport_add_dest (self->priv->udpport,
+                candidate->ip, candidate->port);
+          else
+            fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
+                candidate->ip, candidate->port);
+          fs_candidate_destroy (candidate);
+        }
+      }
       break;
     case PROP_STUN_IP:
       g_free (self->priv->stun_ip);
