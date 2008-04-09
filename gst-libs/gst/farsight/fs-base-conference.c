@@ -176,9 +176,12 @@ fs_base_conference_error (GObject *signal_src, GObject *error_src,
   GstMessage *gst_msg = NULL;
   GstStructure *error_struct = NULL;
 
+  if (debug_msg == NULL)
+    debug_msg = error_msg;
+
   error_struct = gst_structure_new ("farsight-error",
       "src-object", G_TYPE_OBJECT, error_src,
-      "error-no", G_TYPE_INT, error_no,
+      "error-no", FS_TYPE_ERROR, error_no,
       "error-msg", G_TYPE_STRING, error_msg,
       "debug-msg", G_TYPE_STRING, debug_msg,
       NULL);

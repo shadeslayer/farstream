@@ -40,6 +40,22 @@
  * simply need to derive from the FsBaseConference class and don't need to
  * implement this interface directly.
  *
+ *
+ * This will communicate asynchronous events to the user through #GstMessage
+ * of type #GST_MESSAGE_ELEMENT sent over the #GstBus.
+ * </para>
+ * <refsect2><title>The "<literal>farsight-error</literal>" message</title>
+ * |[
+ * "src-object"       #GObject           The object (#FsConference, #FsSession or #FsStream) that emitted the error
+ * "error-no"         #FsError           The Error number
+ * "error-msg"        #gchar*            The error message
+ * "debug-msg"        #gchar*            The debug string
+ * ]|
+ * <para>
+ * The message is sent on asynchronous errors.
+ * </para>
+ * </refsect2>
+ * <para>
  */
 
 static void fs_conference_iface_init (FsConferenceClass *iface);

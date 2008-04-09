@@ -62,24 +62,53 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 
   switch (GST_MESSAGE_TYPE (message))
   {
+
     case GST_MESSAGE_ELEMENT:
-      if (gst_implements_interface_check (GST_MESSAGE_SRC (message),
-              FS_TYPE_CONFERENCE) &&
-          gst_structure_has_name (gst_message_get_structure (message),
-              "farsight-error"))
       {
-        const GValue *errorvalue, *debugvalue;
-        gint errno;
+        const GstStructure *s = gst_message_get_structure (message);
 
-        gst_structure_get_int (message->structure, "error-no", &errno);
-        errorvalue = gst_structure_get_value (message->structure, "error-msg");
-        debugvalue = gst_structure_get_value (message->structure, "debug-msg");
+        if (gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                FS_TYPE_CONFERENCE) &&
+            gst_structure_has_name (s, "farsight-error"))
+        {
+          const GValue *value;
+          FsError errorno;
+          const gchar *error, *debug;
+          GEnumClass *enumclass = NULL;
+          GEnumValue *enumvalue = NULL;
 
-        ts_fail ("Error on BUS (%d) %s .. %s", errno,
-            g_value_get_string (errorvalue),
-            g_value_get_string (debugvalue));
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
+
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "src-object", G_TYPE_OBJECT),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "error-no", FS_TYPE_ERROR),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "debug-msg", G_TYPE_STRING),
+              "farsight-error structure has no src-object field");
+
+          value = gst_structure_get_value (s, "error-no");
+          errorno = g_value_get_enum (value);
+          error = gst_structure_get_string (s, "error-msg");
+          debug = gst_structure_get_string (s, "debug-msg");
+
+
+          enumclass = g_type_class_ref (FS_TYPE_ERROR);
+          enumvalue = g_enum_get_value (enumclass, errorno);
+          ts_fail ("Error on BUS %s (%d, %s) %s .. %s",
+              enumvalue->value_name, errorno, enumvalue->value_nick,
+              error, debug);
+          g_type_class_unref (enumclass);
+        }
       }
-
       break;
     case GST_MESSAGE_ERROR:
       {

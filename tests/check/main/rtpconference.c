@@ -182,27 +182,45 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         ts_fail_if (s==NULL, "NULL structure in element message");
         if (gst_structure_has_name (s, "farsight-error"))
         {
-          const GValue *errorvalue, *debugvalue;
-          gint errno;
+          const GValue *value;
+          FsError errorno;
+          const gchar *error, *debug;
 
           ts_fail_unless (
               gst_implements_interface_check (GST_MESSAGE_SRC (message),
                   FS_TYPE_CONFERENCE),
               "Received farsight-error from non-farsight element");
 
-          gst_structure_get_int (s, "error-no", &errno);
-          errorvalue = gst_structure_get_value (s, "error-msg");
-          debugvalue = gst_structure_get_value (s, "debug-msg");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "src-object", G_TYPE_OBJECT),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "error-no", FS_TYPE_ERROR),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "debug-msg", G_TYPE_STRING),
+              "farsight-error structure has no src-object field");
 
-          ts_fail ("Error on BUS (%d) %s .. %s", errno,
-              g_value_get_string (errorvalue),
-              g_value_get_string (debugvalue));
+          value = gst_structure_get_value (s, "error-no");
+          errorno = g_value_get_enum (value);
+          error = gst_structure_get_string (s, "error-msg");
+          debug = gst_structure_get_string (s, "debug-msg");
+
+          ts_fail ("Error on BUS (%d) %s .. %s", errorno, error, debug);
         }
         else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
         {
           FsStream *stream;
           FsCandidate *candidate;
           const GValue *value;
+
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
@@ -228,6 +246,11 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           FsStream *stream;
           FsCandidate *local_candidate, *remote_candidate;
           const GValue *value;
+
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
@@ -262,6 +285,11 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           FsSession *session;
           FsCodec *codec;
           const GValue *value;
+
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "session", FS_TYPE_SESSION),
