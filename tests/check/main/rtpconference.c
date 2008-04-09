@@ -163,7 +163,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
       {
         const GstStructure *s = gst_message_get_structure (message);
         ts_fail_if (s==NULL, "NULL structure in element message");
-        if (!strcmp (gst_structure_get_name (s), "farsight-error"))
+        if (gst_structure_has_name (s, "farsight-error"))
         {
           const GValue *errorvalue, *debugvalue;
           gint errno;
@@ -181,8 +181,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
               g_value_get_string (errorvalue),
               g_value_get_string (debugvalue));
         }
-        else if (!strcmp (gst_structure_get_name (s),
-                "farsight-new-local-candidate"))
+        else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
         {
           FsStream *stream;
           FsCandidate *candidate;
@@ -206,7 +205,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 
           _new_local_candidate (stream, candidate);
         }
-        else if (!strcmp (gst_structure_get_name (s),
+        else if (gst_structure_has_name (s,
                 "farsight-new-active-candidate-pair"))
         {
           FsStream *stream;
