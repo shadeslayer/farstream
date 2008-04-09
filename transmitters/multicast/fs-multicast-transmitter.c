@@ -539,7 +539,11 @@ _bind_port (
   int retval;
   guchar loop = 1;
   int reuseaddr = 1;
-  struct ip_mreqn mreqn;
+#ifdef HAVE_IP_MREQN
+  struct ip_mreqn mreq;
+#else
+  struct ip_mreq mreq;
+#endif
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
@@ -548,21 +552,24 @@ _bind_port (
 
   if (!_ip_string_into_sockaddr_in (multicast_ip, &address, error))
     goto error;
-  memcpy (&mreqn.imr_multiaddr, &address.sin_addr,
-      sizeof (mreqn.imr_multiaddr));
+  memcpy (&mreq.imr_multiaddr, &address.sin_addr,
+      sizeof (mreq.imr_multiaddr));
 
   if (local_ip)
   {
     struct sockaddr_in tmpaddr;
     if (!_ip_string_into_sockaddr_in (local_ip, &tmpaddr, error))
       goto error;
-    memcpy (&mreqn.imr_address, &tmpaddr.sin_addr, sizeof (mreqn.imr_address));
+    memcpy (&mreq.imr_address, &tmpaddr.sin_addr, sizeof (mreq.imr_address));
   }
   else
   {
-    mreqn.imr_address.s_addr = INADDR_ANY;
+    mreq.imr_address.s_addr = INADDR_ANY;
   }
-  mreqn.imr_ifindex = 0;
+
+#ifdef HAVE_IP_MREQN
+  mreq.imr_ifindex = 0;
+#endif
 
   if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) <= 0) {
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
@@ -609,7 +616,7 @@ _bind_port (
 #endif
 
   if (setsockopt (sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-          &(mreqn), sizeof (mreqn)) < 0)
+          &(mreq), sizeof (mreq)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Could not join the socket to the multicast group: %s",
