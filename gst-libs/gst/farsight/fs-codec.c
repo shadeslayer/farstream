@@ -109,8 +109,7 @@ fs_codec_new (int id, const char *encoding_name,
 void
 fs_codec_destroy (FsCodec * codec)
 {
-  if (codec->encoding_name)
-    g_free (codec->encoding_name);
+  g_free (codec->encoding_name);
   if (codec->optional_params) {
     GList *lp;
     FsCodecParameter *optional_param;
@@ -509,7 +508,7 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
       codec1->media_type != codec2->media_type ||
       codec1->clock_rate != codec2->clock_rate ||
       codec1->channels != codec2->channels ||
-      strcmp (codec1->encoding_name, codec2->encoding_name))
+      g_strcmp0 (codec1->encoding_name, codec2->encoding_name))
     return FALSE;
 
 
