@@ -36,6 +36,21 @@
  * contained in the same conference will be synchronised together during
  * playback.
  *
+ *
+ * This will communicate asynchronous events to the user through #GstMessage
+ * of type #GST_MESSAGE_ELEMENT sent over the #GstBus.
+ * </para>
+ * <refsect2><title>The "<literal>farsight-send-codec-changed</literal>" message</title>
+ * |[
+ * "session"          #FsSession          The session that emits the message
+ * "codec"            #FsCodec            The new send codec
+ * ]|
+ * <para>
+ * This message is sent on the bus when the value of the
+ * #FsSession:current-send-codec property changes.
+ * </para>
+ * </refsect2>
+ * <para>
  */
 
 #ifdef HAVE_CONFIG_H
@@ -224,9 +239,8 @@ fs_session_class_init (FsSessionClass *klass)
    * send codec by calling fs_session_set_send_codec(). The send codec could
    * also be automatically changed by Farsight. This property is an
    * #FsCodec. User must free the codec using fs_codec_destroy() when done.
-   * The #GObject::notify signal is emitted when the content of this property
-   * changes.
-   *
+   * The "farsight-send-codec-changed" message is emitted on the bus when
+   * the value of this property changes.
    */
   g_object_class_install_property (gobject_class,
       PROP_CURRENT_SEND_CODEC,
