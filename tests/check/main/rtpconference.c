@@ -152,6 +152,23 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
 
 }
 
+static void
+_current_send_codec_changed (FsSession *session, FsCodec *codec)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsConference *conf = NULL;
+  gchar *str = NULL;
+
+  g_object_get (session, "conference", &conf, NULL);
+  dat = g_object_get_data (G_OBJECT (conf), "dat");
+  gst_object_unref (conf);
+
+  str = fs_codec_to_string (codec);
+  g_debug ("%d: New send codec: %s", dat->id, str);
+  g_free (str);
+}
+
+
 static gboolean
 _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 {
@@ -239,6 +256,33 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
               " or local_candidate(%p) or remote_candidate(%p)",
               stream, local_candidate, remote_candidate);
         }
+        else if (gst_structure_has_name (s,
+                "farsight-current-send-codec-changed"))
+        {
+          FsSession *session;
+          FsCodec *codec;
+          const GValue *value;
+
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "session", FS_TYPE_SESSION),
+              "farsight-current-send-codec-changed structure"
+              " has no session field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "codec",
+                  FS_TYPE_CODEC),
+              "");
+
+          value = gst_structure_get_value (s, "session");
+          session = g_value_get_object (value);
+          value = gst_structure_get_value (s, "codec");
+          codec = g_value_get_boxed (value);
+
+          ts_fail_unless (session && codec,
+              "current-send-codec-changed with NULL session(%p) or codec(%p)",
+              session, codec);
+
+          _current_send_codec_changed (session, codec);
+        }
 
        }
       break;
@@ -272,25 +316,6 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
   }
 
   return TRUE;
-}
-
-static void
-_current_send_codec_notify (GObject *object, GParamSpec *paramspec,
-    gpointer user_data)
-{
-  FsSession *session = FS_SESSION (object);
-  struct SimpleTestConference *dat = user_data;
-  FsCodec *codec = NULL;
-  gchar *str = NULL;
-
-  g_object_get (session, "current-send-codec", &codec, NULL);
-  ts_fail_if (codec == NULL, "Could not get new send codec");
-
-  str = fs_codec_to_string (codec);
-  g_debug ("%d: New send codec: %s", dat->id, str);
-  g_free (str);
-
-  fs_codec_destroy (codec);
 }
 
 static void
@@ -487,9 +512,6 @@ rtpconference_connect_signals (struct SimpleTestConference *dat)
   bus = gst_element_get_bus (dat->pipeline);
   gst_bus_add_watch (bus, _bus_callback, dat);
   gst_object_unref (bus);
-
-  g_signal_connect (dat->session, "notify::current-send-codec",
-      G_CALLBACK (_current_send_codec_notify), dat);
 }
 
 

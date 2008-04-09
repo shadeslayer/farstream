@@ -57,6 +57,8 @@ setup_simple_conference (
         error->code, error->message);
   fail_if (dat->session == NULL, "Could not make session, but no GError!");
 
+  g_object_set_data (G_OBJECT (dat->conference), "dat", dat);
+
   return dat;
 }
 
