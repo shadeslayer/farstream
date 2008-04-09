@@ -372,22 +372,14 @@ GST_START_TEST (test_rawudptransmitter_run_local_candidates)
 
   memset (params, 0, sizeof (GParameter) * 1);
 
-  candidate = g_new0 (FsCandidate, 1);
-  candidate->candidate_id = g_strdup ("L1");
-  candidate->component_id = FS_COMPONENT_RTP;
-  candidate->ip = g_strdup ("127.0.0.1");
-  candidate->port = RTP_PORT;
-  candidate->proto = FS_NETWORK_PROTOCOL_UDP;
-  candidate->type = FS_CANDIDATE_TYPE_HOST;
+  candidate = fs_candidate_new ("L1",
+      FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", RTP_PORT);
   list = g_list_prepend (list, candidate);
 
-  candidate = g_new0 (FsCandidate, 1);
-  candidate->candidate_id = g_strdup ("L2");
-  candidate->component_id = FS_COMPONENT_RTCP;
-  candidate->ip = g_strdup ("127.0.0.1");
-  candidate->port = RTCP_PORT;
-  candidate->proto = FS_NETWORK_PROTOCOL_UDP;
-  candidate->type = FS_CANDIDATE_TYPE_HOST;
+  candidate = fs_candidate_new ("L1",
+      FS_COMPONENT_RTCP, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", RTCP_PORT);
   list = g_list_prepend (list, candidate);
 
   params[0].name = "preferred-local-candidates";
