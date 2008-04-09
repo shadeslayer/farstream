@@ -114,7 +114,6 @@ struct _FsRtpSessionPrivate
   GstElement *send_codecbin;
   FsCodec *current_send_codec;
   FsCodec *requested_send_codec;
-  guint send_codec_idle_id;
 
   /* This is the id of the pad probe used to blocked the stream
    * while the codec is changed
@@ -187,6 +186,7 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
 static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     FsRtpSession *self,
     GError **error);
+static void fs_rtp_session_send_codec_changed (FsRtpSession *self);
 
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
@@ -2316,25 +2316,32 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
 }
 
 /**
- * _idle_emit_send_codec_changed
+ * fs_rtp_session_send_codec_changed:
+ * @self: The #FsRtpSession that changed its codec
  *
- * This idle function is called to emit the #GObject::notify signal for the
- * #FsSession:current-send-codec property on the main thread
- *
- * Returns: FALSE, because the event should be removed
+ * Call this function when the value of the #FsSession:current-send-codec
+ * changes
  */
 
-static gboolean
-_idle_emit_send_codec_changed (gpointer data)
+static void
+fs_rtp_session_send_codec_changed (FsRtpSession *self)
 {
-  FsRtpSession *self = FS_RTP_SESSION (data);
+  FsCodec *codec = NULL;
+
+  FS_RTP_SESSION_LOCK (self);
+  codec = fs_codec_copy (self->priv->current_send_codec);
+  FS_RTP_SESSION_UNLOCK (self);
 
   g_object_notify (G_OBJECT (self), "current-send-codec");
 
-  FS_RTP_SESSION_LOCK (self);
-  self->priv->send_codec_idle_id = 0;
-  FS_RTP_SESSION_UNLOCK (self);
-  return FALSE;
+  gst_element_post_message (GST_ELEMENT (self->priv->conference),
+      gst_message_new_element (GST_OBJECT (self->priv->conference),
+          gst_structure_new ("farsight-current-send-codec-changed",
+              "session", FS_TYPE_SESSION, self,
+              "codec", FS_TYPE_CODEC, codec,
+              NULL)));
+
+  fs_codec_destroy (codec);
 }
 
 /**
@@ -2398,9 +2405,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     self->priv->send_codecbin = codecbin;
     self->priv->current_send_codec = codec;
 
-    if (!self->priv->send_codec_idle_id)
-      self->priv->send_codec_idle_id =
-        g_idle_add (_idle_emit_send_codec_changed, self);
+    fs_rtp_session_send_codec_changed (self);
   }
   else
   {
@@ -2512,7 +2517,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
       self->priv->current_send_codec = codec;
       codec = NULL;
 
-      g_object_notify (G_OBJECT (self), "current-send-codec");
+      fs_rtp_session_send_codec_changed (self);
     }
     else
     {
