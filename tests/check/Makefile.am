@@ -10,7 +10,8 @@ TESTS_ENVIRONMENT = \
 	STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
 	$(REGISTRY_ENVIRONMENT)					\
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
-	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs
+	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs \
+	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH}
 
 
 # ths core dumps of some machines have PIDs appended
@@ -42,18 +43,14 @@ check_PROGRAMS = \
 
 
 AM_CFLAGS =  $(FS2_CFLAGS) $(GST_CFLAGS) $(GST_CHECK_CFLAGS)
-LDADD = $(GST_LIBS) $(GST_CHECK_LIBS)
 
-base_fscodec_LDADD = $(LDADD) \
+LDADD = $(GST_LIBS) $(GST_CHECK_LIBS) \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
+
 base_fscodec_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 
-base_fstransmitter_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 base_fstransmitter_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 
-transmitter_rawudp_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 transmitter_rawudp_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_rawudp_SOURCES = \
 	check-threadsafe.h  \
@@ -61,8 +58,6 @@ transmitter_rawudp_SOURCES = \
 	transmitter/generic.h \
 	transmitter/rawudp.c 
 
-transmitter_multicast_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 transmitter_multicast_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_multicast_SOURCES = \
 	check-threadsafe.h  \
@@ -70,10 +65,6 @@ transmitter_multicast_SOURCES = \
 	transmitter/generic.h \
 	transmitter/multicast.c 
 
-
-
-main_rtpconference_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 main_rtpconference_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 main_rtpconference_SOURCES = \
 	check-threadsafe.h  \
@@ -81,28 +72,19 @@ main_rtpconference_SOURCES = \
 	main/generic.h \
 	main/rtpconference.c
 
-
-main_rtpcodecs_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 main_rtpcodecs_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 main_rtpcodecs_SOURCES = \
 	main/generic.c \
 	main/generic.h \
 	main/rtpcodecs.c
 
-
-main_rtpsendcodecs_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
-	-lgstrtp-0.10
+main_rtpsendcodecs_LDADD = $(LDADD) -lgstrtp-0.10
 main_rtpsendcodecs_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 main_rtpsendcodecs_SOURCES = \
 	main/generic.c \
 	main/generic.h \
 	main/rtpsendcodecs.c
 
-
-utils_binadded_LDADD = $(LDADD) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
 utils_binadded_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 utils_binadded_SOURCES = \
 	utils/binadded.c
