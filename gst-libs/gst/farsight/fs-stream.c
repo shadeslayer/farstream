@@ -32,6 +32,55 @@
  * inside a session. In fact, a FarsightStream instance is obtained by adding a
  * participant into a session using #fs_session_add_participant.
  *
+ *
+ * This will communicate asynchronous events to the user through #GstMessage
+ * of type #GST_MESSAGE_ELEMENT sent over the #GstBus.
+ * </para>
+ * <refsect2><title>The "<literal>farsight-new-local-candidate</literal>" message</title>
+ * |[
+ * "stream"           #FsStream          The stream that emits the message
+ * "candidate"        #FsCandidate       The new candidate
+ * ]|
+ * <para>
+ * This message is emitted when a new local candidate is discovered.
+ * </para>
+ * </refsect2>
+ * <refsect2><title>The "<literal>farsight-local-candidates-prepared</literal>" message</title>
+ * |[
+ * "stream"           #FsStream          The stream that emits the message
+ * ]|
+ * <para>
+ * This signal is emitted when all local candidates have been
+ * prepared, an ICE implementation would send its SDP offer or answer.
+ * </para>
+ * </refsect2>
+ * <refsect2><title>The "<literal>farsight-new-active-candidate-pair</literal>" message</title>
+ * |[
+ * "stream"           #FsStream          The stream that emits the message
+ * "local-candidate"  #FsCandidate       Local candidate being using
+ * "remote-candidate" #FsCandidate       Remote candidate being used
+ * ]|
+ * <para>
+ * This message is emitted when there is a new active candidate pair that has
+ * been established. This is specially useful for ICE where the active
+ * candidate pair can change automatically due to network conditions. The user
+ * must not modify the candidates and must copy them if he wants to use them
+ * outside the callback scope.
+ * </para>
+ * </refsect2>
+ * <refsect2><title>The "<literal>farsight-current-recv-codecs-changed</literal>" message</title>
+ * |[
+ * "stream"           #FsStream          The stream that emits the message
+ * ]|
+ * <para>
+ * This message is emitted when the content of the
+ * #FsStream:current-recv-codecs property changes. It is normally emitted
+ * right after the #FsStream::src-pad-added signal only if that codec was not
+ * previously received in this stream, but it can also be emitted if the pad
+ * already exists, but the source material that will come to it is different.
+ * </para>
+ * </refsect2>
+ * <para>
  */
 
 #ifdef HAVE_CONFIG_H
