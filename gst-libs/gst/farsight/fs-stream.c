@@ -56,9 +56,6 @@ enum
 {
   ERROR,
   SRC_PAD_ADDED,
-  NEW_ACTIVE_CANDIDATE_PAIR,
-  NEW_LOCAL_CANDIDATE,
-  LOCAL_CANDIDATES_PREPARED,
   LAST_SIGNAL
 };
 
@@ -268,65 +265,6 @@ fs_stream_class_init (FsStreamClass *klass)
       NULL,
       _fs_marshal_VOID__BOXED_BOXED,
       G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
-
-  /**
-   * FsStream::new-active-candidate-pair:
-   * @self: #FsStream that emitted the signal
-   * @local_candidate: #FsCandidate of the local candidate being used
-   * @remote_candidate: #FsCandidate of the remote candidate being used
-   *
-   * This signal is emitted when there is a new active chandidate pair that has
-   * been established. This is specially useful for ICE where the active
-   * candidate pair can change automatically due to network conditions. The user
-   * must not modify the candidates and must copy them if he wants to use them
-   * outside the callback scope.
-   *
-   */
-  signals[NEW_ACTIVE_CANDIDATE_PAIR] = g_signal_new
-    ("new-active-candidate-pair",
-        G_TYPE_FROM_CLASS (klass),
-        G_SIGNAL_RUN_LAST,
-        0,
-        NULL,
-        NULL,
-        _fs_marshal_VOID__BOXED_BOXED,
-        G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
-
- /**
-   * FsStream::new-local-candidate:
-   * @self: #FsStream that emitted the signal
-   * @local_candidate: #FsCandidate of the local candidate
-   *
-   * This signal is emitted when a new local candidate is discovered.
-   *
-   */
-  signals[NEW_LOCAL_CANDIDATE] = g_signal_new
-    ("new-local-candidate",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__BOXED,
-      G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
-
- /**
-   * FsStream::local-candidates-prepared:
-   * @self: #FsStream that emitted the signal
-   *
-   * This signal is emitted when all local candidates have been
-   * prepared, an ICE implementation would send its SDP offer or answer.
-   *
-   */
-  signals[LOCAL_CANDIDATES_PREPARED] = g_signal_new
-    ("local-candidates-prepared",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__VOID,
-      G_TYPE_NONE, 0);
 
   // g_type_class_add_private (klass, sizeof (FsStreamPrivate));
 }
