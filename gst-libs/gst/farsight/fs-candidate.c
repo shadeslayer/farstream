@@ -75,7 +75,6 @@ void
 fs_candidate_destroy (FsCandidate * cand)
 {
   g_free ((gchar *) cand->foundation);
-  g_free ((gchar *) cand->candidate_id);
   g_free ((gchar *) cand->ip);
   g_free ((gchar *) cand->base_ip);
   g_free ((gchar *) cand->username);
@@ -106,7 +105,6 @@ fs_candidate_copy (const FsCandidate * cand)
   copy->ttl = cand->ttl;
 
   copy->foundation = g_strdup (cand->foundation);
-  copy->candidate_id = g_strdup (cand->candidate_id);
   copy->ip = g_strdup (cand->ip);
   copy->base_ip = g_strdup (cand->base_ip);
   copy->username = g_strdup (cand->username);
@@ -161,7 +159,7 @@ fs_candidate_list_copy (const GList *candidate_list)
 
 /**
  * fs_candidate_new:
- * @id: The id of the candidate (must be unique for ICE)
+ * @foundation: The foundation of the candidate
  * @component_id: The component this candidate is for
  * @type: The type of candidate
  * @proto: The protocol this component is for
@@ -177,7 +175,7 @@ fs_candidate_list_copy (const GList *candidate_list)
 
 FsCandidate *
 fs_candidate_new (
-    const gchar *id,
+    const gchar *foundation,
     guint component_id,
     FsCandidateType type,
     FsNetworkProtocol proto,
@@ -186,7 +184,7 @@ fs_candidate_new (
 {
   FsCandidate *candidate = g_new0 (FsCandidate, 1);
 
-  candidate->candidate_id = g_strdup (id);
+  candidate->foundation = g_strdup (foundation);
   candidate->component_id = component_id;
   candidate->type = type;
   candidate->proto = proto;

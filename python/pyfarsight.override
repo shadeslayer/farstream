@@ -484,9 +484,7 @@ _wrap_fs_candidate_tp_setattr(PyObject *self, char *attr, PyObject *value)
 
 
 
-  if (!strcmp (attr, "candidate_id"))
-    CHECK_SET_STR (candidate_id);
-  else if (!strcmp (attr, "foundation"))
+  if (!strcmp (attr, "foundation"))
     CHECK_SET_STR (foundation);
   else if (!strcmp (attr, "component_id"))
     CHECK_SET_INT (component_id, 1, 256);
@@ -542,9 +540,7 @@ _wrap_fs_candidate_tp_getattr(PyObject *self, char *attr)
 
 #define CHECK_NULL(x) ((x) == NULL ? "" : (x))
 
-  if (!strcmp (attr, "candidate_id"))
-    return PyString_FromString (CHECK_NULL(candidate->candidate_id));
-  else if (!strcmp (attr, "foundation"))
+  if (!strcmp (attr, "foundation"))
     return PyString_FromString (CHECK_NULL(candidate->foundation));
   else if (!strcmp (attr, "component_id"))
     return PyInt_FromLong(candidate->component_id);

@@ -88,7 +88,6 @@ typedef struct _FsCandidate FsCandidate;
 
 /**
  * FsCandidate:
- * @candidate_id: string identifier of the candidate
  * @foundation: a string representing the foundation of this candidate (maximum 32 chars)
  * @component_id: value between 1 and 256 indicating which component this candidate represents (1 is RTP, 2 is RTCP, #FsComponentType can be used here)
  * @ip: IP in dotted format
@@ -108,7 +107,6 @@ typedef struct _FsCandidate FsCandidate;
  */
 struct _FsCandidate
 {
-  const gchar *candidate_id;
   gchar *foundation;
   guint component_id;
   const gchar *ip;
@@ -137,7 +135,7 @@ void fs_candidate_list_destroy (GList *candidate_list);
 GList *fs_candidate_list_copy (const GList *candidate_list);
 
 FsCandidate * fs_candidate_new (
-    const gchar *id,
+    const gchar *foundation,
     guint component_id,
     FsCandidateType type,
     FsNetworkProtocol proto,
