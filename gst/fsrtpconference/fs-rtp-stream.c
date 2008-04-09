@@ -790,6 +790,7 @@ _substream_codec_changed (FsRtpSubStream *substream,
 {
   GList *substream_item = NULL;
   FsCodec *codec = NULL;
+  GList *codeclist = NULL;
 
   g_object_get (substream, "codec", &codec, NULL);
 
@@ -810,13 +811,17 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
       g_object_get (othersubstream, "codec", &othercodec, NULL);
 
-      if (othercodec && ! fs_codec_are_equal (codec, othercodec))
+      if (othercodec)
       {
-        fs_codec_destroy (othercodec);
-        break;
-      }
+        if (!fs_codec_are_equal (codec, othercodec))
+          break;
 
-      fs_codec_destroy (othercodec);
+        if (!_codec_list_has_codec (codeclist, othercodec))
+          codeclist = g_list_append (codeclist, othercodec);
+        else
+          fs_codec_destroy (othercodec);
+
+      }
     }
   }
 
@@ -834,10 +839,13 @@ _substream_codec_changed (FsRtpSubStream *substream,
         gst_message_new_element (GST_OBJECT (conf),
             gst_structure_new ("farsight-current-recv-codecs-changed",
                 "stream", FS_TYPE_STREAM, stream,
+                "codecs", FS_TYPE_CODEC_LIST, codeclist,
                 NULL)));
 
     gst_object_unref (conf);
   }
+
+  fs_codec_list_destroy (codeclist);
 
   fs_codec_destroy (codec);
 }

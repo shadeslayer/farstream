@@ -71,6 +71,7 @@
  * <refsect2><title>The "<literal>farsight-current-recv-codecs-changed</literal>" message</title>
  * |[
  * "stream"           #FsStream          The stream that emits the message
+ * "codecs"           #FsCodecGList      A #GList of #FsCodec
  * ]|
  * <para>
  * This message is emitted when the content of the
@@ -78,6 +79,7 @@
  * right after the #FsStream::src-pad-added signal only if that codec was not
  * previously received in this stream, but it can also be emitted if the pad
  * already exists, but the source material that will come to it is different.
+ * The list of new recv-codecs is included in the message
  * </para>
  * </refsect2>
  * <para>
@@ -195,8 +197,9 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    * This is the list of codecs that have been received by this stream.
    * The user must free the list if fs_codec_list_destroy().
-   * The #GObject::notify signal is emitted when the value of this property may
-   * have changed. It is normally emitted right after #FsStream::src-pad-added
+   * The "farsight-current-recv-codecs-changed" message is send on the #GstBus
+   * when the value of this property changes.
+   * It is normally emitted right after #FsStream::src-pad-added
    * only if that codec was not previously received in this stream, but it can
    * also be emitted if the pad already exists, but the source material that
    * will come to it is different.
