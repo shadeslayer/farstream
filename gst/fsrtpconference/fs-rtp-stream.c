@@ -596,7 +596,6 @@ _local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
           gst_structure_new ("farsight-local-candidates-prepared",
-              "session", FS_TYPE_SESSION, self->priv->session,
               "stream", FS_TYPE_STREAM, self,
               NULL)));
 
@@ -619,7 +618,6 @@ _new_active_candidate_pair (
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
           gst_structure_new ("farsight-new-active-candidate-pair",
-              "session", FS_TYPE_SESSION, self->priv->session,
               "stream", FS_TYPE_STREAM, self,
               "local-candidate", FS_TYPE_CANDIDATE, local_candidate,
               "remote-candidate", FS_TYPE_CANDIDATE, remote_candidate,
@@ -643,7 +641,6 @@ _new_local_candidate (
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
           gst_structure_new ("farsight-new-local-candidate",
-              "session", FS_TYPE_SESSION, self->priv->session,
               "stream", FS_TYPE_STREAM, self,
               "candidate", FS_TYPE_CANDIDATE, candidate,
               NULL)));
@@ -834,7 +831,6 @@ _substream_codec_changed (FsRtpSubStream *substream,
     gst_element_post_message (conf,
         gst_message_new_element (GST_OBJECT (conf),
             gst_structure_new ("farsight-current-recv-codecs-changed",
-                "session", FS_TYPE_SESSION, stream->priv->session,
                 "stream", FS_TYPE_STREAM, stream,
                 NULL)));
 
