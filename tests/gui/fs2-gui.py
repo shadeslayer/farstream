@@ -136,9 +136,6 @@ class FsUIPipeline:
 
     def async_handler(self, bus, message):
         "Async handler to print messages"
-        if message.type != gst.MESSAGE_STATE_CHANGED \
-               and message.type != gst.MESSAGE_ASYNC_DONE:
-            print message.type
         if message.type == gst.MESSAGE_ERROR:
             print message.src.get_name(), ": ", message.parse_error()
         elif message.type == gst.MESSAGE_WARNING:
@@ -146,8 +143,17 @@ class FsUIPipeline:
         elif message.type == gst.MESSAGE_ELEMENT:
             if message.structure.has_name("dtmf-event"):
                 print "dtmf-event: %d" % message.structure["number"]
+            elif message.structure.has_name("farsight-local-candidates-prepared"):
+                message.structure["stream"].uistream.local_candidates_prepared()
+
+            elif message.structure.has_name("farsight-new-local-candidate"):
+                message.structure["stream"].uistream.new_local_candidate(
+                    message.structure["candidate"])
             else:
                 print message.src.get_name(), ": ", message.structure.get_name()
+        elif message.type != gst.MESSAGE_STATE_CHANGED \
+                 and message.type != gst.MESSAGE_ASYNC_DONE:
+            print message.type
         
         return True
 
@@ -402,17 +408,14 @@ class FsUIStream:
         self.participant = participant
         self.fsstream = fsstream
         self.connect = participant.connect
-        self.fsstream.connect("local-candidates-prepared",
-                            self.__local_candidates_prepared)
-        self.fsstream.connect("new-local-candidate",
-                            self.__new_local_candidate)
+        self.fsstream.uistream = self
         self.fsstream.connect("src-pad-added", self.__src_pad_added)
         self.newcodecs = []
 
-    def __local_candidates_prepared(self, stream):
+    def local_candidates_prepared(self):
         "Callback from FsStream"
         self.connect.send_candidates_done(self.participant.id, self.id)
-    def __new_local_candidate(self, stream, candidate):
+    def new_local_candidate(self, candidate):
         "Callback from FsStream"
         self.connect.send_candidate(self.participant.id, self.id, candidate)
     def __src_pad_added(self, stream, pad, codec):
