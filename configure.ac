@@ -207,6 +207,15 @@ dnl *** checks for types/defines ***
 
 dnl *** checks for structures ***
 
+AC_CHECK_MEMBER([struct ip_mreqn.imr_ifindex],
+	        [AC_DEFINE([HAVE_IP_MREQN], [1], [Have the struct ip_mreqn])],
+		[],
+		[
+#include <sys/socket.h>
+#include <netinet/in.h>
+])
+			 
+
 dnl *** checks for compiler characteristics ***
 
 dnl *** checks for library functions ***
