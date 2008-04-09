@@ -312,6 +312,8 @@ fs_rtp_stream_get_property (GObject *object,
           g_object_get (substream_item->data, "codec", &codec, NULL);
           if (!_codec_list_has_codec (codeclist, codec))
             codeclist = g_list_append (codeclist, codec);
+          else
+            fs_codec_destroy (codec);
         }
 
         g_value_take_boxed (value, codeclist);
