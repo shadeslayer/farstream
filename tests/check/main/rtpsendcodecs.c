@@ -64,7 +64,9 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
   {
     case GST_MESSAGE_ELEMENT:
       if (gst_implements_interface_check (GST_MESSAGE_SRC (message),
-              FS_TYPE_CONFERENCE))
+              FS_TYPE_CONFERENCE) &&
+          gst_structure_has_name (gst_message_get_structure (message),
+              "farsight-error"))
       {
         const GValue *errorvalue, *debugvalue;
         gint errno;
