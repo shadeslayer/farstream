@@ -579,6 +579,13 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
     }
     else if (media_type == FS_MEDIA_TYPE_AUDIO)
     {
+      tmpfact = gst_element_factory_find ("audioconvert");
+      if (tmpfact)
+      {
+        codec_blueprint->send_pipeline_factory = g_list_append (
+            codec_blueprint->send_pipeline_factory,
+            g_list_append (NULL, tmpfact));
+      }
       tmpfact = gst_element_factory_find ("audioresample");
       if (tmpfact)
       {
