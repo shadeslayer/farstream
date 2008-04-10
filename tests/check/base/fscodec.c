@@ -76,6 +76,11 @@ GST_START_TEST (test_fscodec_are_equal)
       "Different clock rates not recognized");
   fs_codec_destroy (codec2);
 
+  codec2 = fs_codec_new (1, NULL, FS_MEDIA_TYPE_APPLICATION, 650);
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
+      "NULL encoding name not ignored");
+  fs_codec_destroy (codec2);
+
   fs_codec_destroy (codec1);
 }
 GST_END_TEST;

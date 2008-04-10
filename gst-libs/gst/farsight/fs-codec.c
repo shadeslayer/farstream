@@ -485,14 +485,15 @@ compare_lists (GList *list1, GList *list2)
 
 
 /**
- * fs_codec_are_equal
+ * fs_codec_are_equal:
  * @codec1: First codec
  * @codec2: Second codec
  *
  * Compare two codecs, it will declare two codecs to be identical even
- * if their optional parameters are in a different order.
+ * if their optional parameters are in a different order. %NULL encoding names
+ * are ignored
  *
- * Return value: TRUE of the codecs are identical, FALSE otherwise
+ * Return value: %TRUE of the codecs are identical, %FALSE otherwise
  */
 
 gboolean
@@ -508,7 +509,9 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
       codec1->media_type != codec2->media_type ||
       codec1->clock_rate != codec2->clock_rate ||
       codec1->channels != codec2->channels ||
-      g_strcmp0 (codec1->encoding_name, codec2->encoding_name))
+      codec1->encoding_name == NULL ||
+      codec2->encoding_name == NULL ||
+      strcmp (codec1->encoding_name, codec2->encoding_name))
     return FALSE;
 
 
@@ -539,15 +542,22 @@ fs_codec_to_gst_caps (const FsCodec *codec)
   GstStructure *structure;
   GList *item;
 
-  gchar *encoding_name = g_ascii_strup (codec->encoding_name, -1);
-  if (!g_ascii_strcasecmp (encoding_name, "H263-N800")) {
+  structure = gst_structure_new ("application/x-rtp", NULL);
+
+  if (codec->encoding_name)
+  {
+    gchar *encoding_name = g_ascii_strup (codec->encoding_name, -1);
+
+    if (!g_ascii_strcasecmp (encoding_name, "H263-N800")) {
+      g_free (encoding_name);
+      encoding_name = g_strdup ("H263-1998");
+    }
+
+    gst_structure_set (structure,
+        "encoding-name", G_TYPE_STRING, encoding_name,
+        NULL);
     g_free (encoding_name);
-    encoding_name = g_strdup ("H263-1998");
   }
-  structure = gst_structure_new ("application/x-rtp",
-    "encoding-name", G_TYPE_STRING, encoding_name,
-    NULL);
-  g_free (encoding_name);
 
   if (codec->clock_rate)
     gst_structure_set (structure,
