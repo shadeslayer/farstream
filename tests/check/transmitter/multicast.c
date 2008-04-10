@@ -240,18 +240,28 @@ _find_multicast_capable_address (void)
     if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
       continue;
 
+    if (retval)
+    {
+      g_free (retval);
+      retval = NULL;
+      g_debug ("Disabling test, more than one multicast capable interface");
+      break;
+    }
+
     retval = g_strdup (
         inet_ntoa (((struct sockaddr_in *) ifa->ifa_addr)->sin_addr));
     g_debug ("Sending from %s on interface %s", retval, ifa->ifa_name);
-    break;
   }
 
   freeifaddrs (results);
 
+  if (retval == NULL)
+    g_message ("Skipping test of prefered-local-candidates, no multicast"
+        " capable interface found");
   return retval;
 
 #else
-  g_warning ("This system does not have getifaddrs,"
+  g_message ("This system does not have getifaddrs,"
       " this test will be disabled");
   return NULL;
 #endif
@@ -265,11 +275,7 @@ GST_START_TEST (test_multicasttransmitter_run_local_candidates)
   gchar *address = _find_multicast_capable_address ();
 
   if (address == NULL)
-  {
-    g_warning ("Skipping test of prefered-local-candidates, no multicast"
-        " capable interface found");
     return;
-  }
 
   memset (params, 0, sizeof (GParameter) * 1);
 
