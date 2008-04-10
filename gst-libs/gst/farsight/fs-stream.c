@@ -57,7 +57,7 @@
  * <refsect2><title>The "<literal>farsight-new-active-candidate-pair</literal>" message</title>
  * |[
  * "stream"           #FsStream          The stream that emits the message
- * "local-candidate"  #FsCandidate       Local candidate being using
+ * "local-candidate"  #FsCandidate       Local candidate being used
  * "remote-candidate" #FsCandidate       Remote candidate being used
  * ]|
  * <para>
