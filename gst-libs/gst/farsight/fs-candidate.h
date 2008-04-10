@@ -114,7 +114,7 @@ struct _FsCandidate
   const gchar *base_ip;
   guint16 base_port;
   FsNetworkProtocol proto;
-  gint priority;
+  guint32 priority;
   FsCandidateType type;
   const gchar *username;
   const gchar *password;
