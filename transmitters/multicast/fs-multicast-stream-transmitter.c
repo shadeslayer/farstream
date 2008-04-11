@@ -493,7 +493,7 @@ fs_multicast_stream_transmitter_add_remote_candidate (
   if (candidate->component_id == 0 ||
     candidate->component_id > self->priv->transmitter->components) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "The candidate passed has has an invalid component id %u (not in [0,%u])",
+      "The candidate passed has an invalid component id %u (not in [1,%u])",
       candidate->component_id, self->priv->transmitter->components);
     return FALSE;
   }
