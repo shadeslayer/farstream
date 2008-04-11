@@ -89,6 +89,7 @@ fs_element_added_notifier_class_init (FsElementAddedNotifierClass *klass)
    * to this object or one of its sub-bins.
    * Be careful, there is no guarantee that this will be emitted on your
    * main thread, it will be emitted in the thread that added the element.
+   * The bin may be %NULL if this is the top-level bin.
    */
   signals[ELEMENT_ADDED] = g_signal_new ("element-added",
       G_TYPE_FROM_CLASS (klass),
@@ -150,6 +151,9 @@ void
 fs_element_added_notifier_add (FsElementAddedNotifier *notifier,
     GstBin *bin)
 {
+  g_return_if_fail (notifier && FS_IS_ELEMENT_ADDED_NOTIFIER (notifier));
+  g_return_if_fail (bin && GST_IS_BIN (bin));
+
   _element_added_callback (NULL, GST_ELEMENT_CAST (bin), notifier);
 }
 
@@ -214,6 +218,9 @@ gboolean
 fs_element_added_notifier_remove (FsElementAddedNotifier *notifier,
     GstBin *bin)
 {
+  g_return_val_if_fail (FS_IS_ELEMENT_ADDED_NOTIFIER (notifier), FALSE);
+  g_return_val_if_fail (GST_IS_BIN (bin), FALSE);
+
   if (g_signal_handler_find (bin,
           G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA,
           0, 0, NULL, /* id, detail, closure */
@@ -392,6 +399,9 @@ fs_element_added_notifier_set_properties_from_keyfile (
     FsElementAddedNotifier *notifier,
     GKeyFile *keyfile)
 {
+  g_return_if_fail (FS_IS_ELEMENT_ADDED_NOTIFIER (notifier));
+  g_return_if_fail (keyfile);
+
   g_signal_connect (notifier, "element-added",
       G_CALLBACK (_bin_added_from_keyfile), keyfile);
 
