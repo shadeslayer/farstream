@@ -326,8 +326,8 @@ fs_stream_transmitter_remote_candidates_added (
 /**
  * fs_stream_transmitter_select_candidate_pair:
  * @streamtransmitter: a #FsStreamTransmitter
- * @lfoundation: The foundation of the local candidate to be selected
- * @rfoundation: The foundation of the remote candidate to be selected
+ * @local_foundation: The foundation of the local candidates to be selected
+ * @remote_foundation: The foundation of the remote candidates to be selected
  * @error: location of a #GErrorh, or NULL if no error occured
  *
  * This function selects one pair of candidates to be selected to start
@@ -338,15 +338,17 @@ fs_stream_transmitter_remote_candidates_added (
 
 gboolean
 fs_stream_transmitter_select_candidate_pair (
-    FsStreamTransmitter *streamtransmitter, gchar *lfoundation,
-    gchar *rfoundation, GError **error)
+    FsStreamTransmitter *streamtransmitter,
+    const gchar *local_foundation,
+    const gchar *remote_foundation,
+    GError **error)
 {
   FsStreamTransmitterClass *klass =
     FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
   if (klass->select_candidate_pair) {
-    return klass->select_candidate_pair (streamtransmitter, lfoundation, rfoundation,
-    error);
+    return klass->select_candidate_pair (streamtransmitter,
+        local_foundation, remote_foundation, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "select_candidate_pair not defined in stream transmitter class");

@@ -396,8 +396,8 @@ fs_stream_remote_candidates_added (FsStream *stream)
 /**
  * fs_stream_select_candidate_pair:
  * @stream: a #FsStream
- * @lfoundation: The foundation of the local candidate to be selected
- * @rfoundation: The foundation of the remote candidate to be selected
+ * @local_foundation: The foundation of the local candidates to be selected
+ * @rremote_foundation: The foundation of the remote candidates to be selected
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function selects one pair of candidates to be selected to start
@@ -407,14 +407,18 @@ fs_stream_remote_candidates_added (FsStream *stream)
  */
 
 gboolean
-fs_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
-                                 gchar *rfoundation, GError **error)
+fs_stream_select_candidate_pair (FsStream *stream,
+    const gchar *local_foundation,
+    const gchar *remote_foundation,
+    GError **error)
 {
   FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
 
   if (klass->select_candidate_pair) {
-    return klass->select_candidate_pair (stream, lfoundation, rfoundation,
-    error);
+    return klass->select_candidate_pair (stream,
+        local_foundation,
+        remote_foundation,
+        error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "select_candidate_pair not defined in class");

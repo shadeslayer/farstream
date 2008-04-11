@@ -103,9 +103,9 @@ static gboolean fs_rtp_stream_add_remote_candidate (FsStream *stream,
                                                     GError **error);
 static void fs_rtp_stream_remote_candidates_added (FsStream *stream);
 static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
-                                                     gchar *lfoundation,
-                                                     gchar *rfoundatihon,
-                                                     GError **error);
+    const gchar *local_foundation,
+    const gchar *remote_foundatihon,
+    GError **error);
 
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
@@ -455,8 +455,8 @@ fs_rtp_stream_remote_candidates_added (FsStream *stream)
 /**
  * fs_rtp_stream_select_candidate_pair:
  * @stream: a #FsStream
- * @lfoundation: The foundation of the local candidate to be selected
- * @rfoundation: The foundation of the remote candidate to be selected
+ * @local_foundation: The foundation of the local candidates to be selected
+ * @remote_foundation: The foundation of the remote candidates to be selected
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function selects one pair of candidates to be selected to start
@@ -466,13 +466,16 @@ fs_rtp_stream_remote_candidates_added (FsStream *stream)
  */
 
 static gboolean
-fs_rtp_stream_select_candidate_pair (FsStream *stream, gchar *lfoundation,
-                                     gchar *rfoundation, GError **error)
+fs_rtp_stream_select_candidate_pair (FsStream *stream,
+    const gchar *local_foundation,
+    const gchar *remote_foundation,
+    GError **error)
 {
   FsRtpStream *self = FS_RTP_STREAM (stream);
 
   return fs_stream_transmitter_select_candidate_pair (
-      self->priv->stream_transmitter, lfoundation, rfoundation, error);
+      self->priv->stream_transmitter, local_foundation, remote_foundation,
+      error);
 }
 
 

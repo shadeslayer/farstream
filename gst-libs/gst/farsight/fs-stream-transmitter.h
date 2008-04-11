@@ -76,8 +76,9 @@ struct _FsStreamTransmitterClass
   void (*remote_candidates_added) (FsStreamTransmitter *streamtransmitter);
 
   gboolean (*select_candidate_pair) (FsStreamTransmitter *streamtransmitter,
-                                     gchar *lfoundation, gchar *rfoundation,
-                                     GError **error);
+      const gchar *local_foundation,
+      const gchar *remote_foundation,
+      GError **error);
   gboolean (*gather_local_candidates) (FsStreamTransmitter *streamtransmitter,
                                        GError **error);
 
@@ -109,8 +110,10 @@ void fs_stream_transmitter_remote_candidates_added (
     FsStreamTransmitter *streamtransmitter);
 
 gboolean fs_stream_transmitter_select_candidate_pair (
-    FsStreamTransmitter *streamtransmitter, gchar *lfoundation,
-    gchar *rfoundation, GError **error);
+    FsStreamTransmitter *streamtransmitter,
+    const gchar *local_foundation,
+    const gchar *remote_foundation,
+    GError **error);
 
 gboolean
 fs_stream_transmitter_gather_local_candidates (
