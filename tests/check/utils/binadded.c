@@ -244,6 +244,29 @@ GST_START_TEST (test_bin_keyfile)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_bin_errors)
+{
+  FsElementAddedNotifier *notifier = NULL;
+
+  g_log_set_always_fatal (0);
+  g_log_set_fatal_mask (NULL, 0);
+
+  ASSERT_CRITICAL (fs_element_added_notifier_add (NULL, NULL));
+  ASSERT_CRITICAL (fs_element_added_notifier_remove (NULL, NULL));
+  ASSERT_CRITICAL (fs_element_added_notifier_set_properties_from_keyfile (NULL, NULL));
+
+  notifier = fs_element_added_notifier_new ();
+
+  ASSERT_CRITICAL (fs_element_added_notifier_add (notifier, NULL));
+  ASSERT_CRITICAL (fs_element_added_notifier_remove (notifier, NULL));
+  ASSERT_CRITICAL (fs_element_added_notifier_set_properties_from_keyfile (notifier, NULL));
+
+  g_object_unref (notifier);
+}
+GST_END_TEST;
+
+
 static Suite *
 binadded_suite (void)
 {
@@ -254,6 +277,7 @@ binadded_suite (void)
   tcase_add_test (tc_chain, test_bin_added_simple);
   tcase_add_test (tc_chain, test_bin_added_recursive);
   tcase_add_test (tc_chain, test_bin_keyfile);
+  tcase_add_test (tc_chain, test_bin_errors);
 
   return s;
 }
