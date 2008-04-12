@@ -372,6 +372,16 @@
   )
 )
 
+(define-method set_local_codecs_config
+  (of-object "FsSession")
+  (c-name "fs_session_set_local_codecs_config")
+  (return-type "gboolean")
+  (parameters
+    '("GList*" "local_codecs_config")
+    '("GError**" "error")
+  )
+)
+
 (define-method emit_error
   (of-object "FsSession")
   (c-name "fs_session_emit_error")

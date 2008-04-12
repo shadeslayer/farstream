@@ -624,3 +624,56 @@ _wrap_fs_stream_set_remote_codecs (PyGObject *self, PyObject *arg)
   return PyBool_FromLong (ret);
 }
 %%
+override fs_session_set_local_codecs_config onearg
+static PyObject *
+_wrap_fs_session_set_local_codecs_config (PyGObject *self, PyObject *arg)
+{
+  gboolean ret = FALSE;
+  GError *error = NULL;
+  GList *codecs = NULL;
+  int i;
+
+  if (arg == Py_None)
+    goto none;
+
+  if (!PySequence_Check (arg))
+  {
+    PyErr_SetString (PyExc_TypeError,
+        "The parameter must be a List of FsCodec or None");
+    return NULL;
+  }
+
+  for (i = 0; i < PySequence_Size (arg); i++)
+  {
+    PyObject *item = PySequence_GetItem (arg, i);
+
+    if (!pyg_boxed_check (item, FS_TYPE_CODEC))
+    {
+      PyErr_SetString(PyExc_TypeError,
+          "The parameter must be a List of FsCodec");
+      return NULL;
+    }
+  }
+
+  for (i = 0; i < PySequence_Size (arg); i++)
+  {
+    PyObject *item = PySequence_GetItem (arg, i);
+
+    codecs = g_list_append (codecs, pyg_boxed_get (item, FsCodec));
+  }
+
+none:
+
+  Py_BEGIN_ALLOW_THREADS
+  ret = fs_session_set_local_codecs_config (FS_SESSION(self->obj), codecs,
+      &error);
+  Py_END_ALLOW_THREADS
+
+  g_list_free (codecs);
+
+  if (pyg_error_check(&error))
+    return NULL;
+
+  return PyBool_FromLong (ret);
+}
+%%
