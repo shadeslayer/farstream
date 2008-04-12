@@ -182,7 +182,9 @@ static gboolean fs_rtp_session_stop_telephony_event (FsSession *session,
 static gboolean fs_rtp_session_set_send_codec (FsSession *session,
                                                FsCodec *send_codec,
                                                GError **error);
-
+static gboolean fs_rtp_session_set_local_codecs_config (FsSession *session,
+    GList *local_codecs_config,
+    GError **error);
 static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     FsRtpSession *self,
     GError **error);
@@ -226,6 +228,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->start_telephony_event = fs_rtp_session_start_telephony_event;
   session_class->stop_telephony_event = fs_rtp_session_stop_telephony_event;
   session_class->set_send_codec = fs_rtp_session_set_send_codec;
+  session_class->set_local_codecs_config =
+    fs_rtp_session_set_local_codecs_config;
 
   g_object_class_override_property (gobject_class,
     PROP_MEDIA_TYPE, "media-type");
@@ -640,42 +644,6 @@ fs_rtp_session_set_property (GObject *object,
       break;
     case PROP_ID:
       self->id = g_value_get_uint (value);
-      break;
-    case PROP_LOCAL_CODECS_CONFIG:
-      {
-        GList *new_local_codecs_configuration = g_value_dup_boxed (value);
-        GList *new_local_codecs = NULL;
-        GHashTable  *new_local_codec_associations = NULL;
-
-        new_local_codecs_configuration =
-          validate_codecs_configuration (
-              self->priv->media_type, self->priv->blueprints,
-              new_local_codecs_configuration);
-
-        new_local_codec_associations = create_local_codec_associations (
-            self->priv->media_type, self->priv->blueprints,
-            new_local_codecs_configuration,
-            self->priv->local_codec_associations,
-            &new_local_codecs);
-
-        if (new_local_codecs && new_local_codec_associations) {
-          fs_codec_list_destroy (self->priv->local_codecs);
-          g_hash_table_destroy (self->priv->local_codec_associations);
-          self->priv->local_codec_associations = new_local_codec_associations;
-          self->priv->local_codecs = new_local_codecs;
-
-          if (self->priv->local_codecs_configuration)
-            fs_codec_list_destroy (self->priv->local_codecs_configuration);
-          self->priv->local_codecs_configuration =
-            new_local_codecs_configuration;
-
-          g_object_notify (object, "local-codecs");
-
-        } else {
-          GST_WARNING ("Invalid new codec configurations");
-          fs_codec_list_destroy (new_local_codecs_configuration);
-        }
-      }
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_RTP_CONFERENCE (g_value_dup_object (value));
@@ -1315,6 +1283,58 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   FS_RTP_SESSION_UNLOCK (self);
 
   return ret;
+}
+
+static gboolean
+fs_rtp_session_set_local_codecs_config (FsSession *session,
+    GList *local_codecs_config,
+    GError **error)
+{
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  GList *new_local_codecs = NULL;
+  GHashTable  *new_local_codec_associations = NULL;
+  GList *new_local_codecs_configuration =
+    fs_codec_list_copy (local_codecs_config);
+
+  new_local_codecs_configuration =
+    validate_codecs_configuration (
+        self->priv->media_type, self->priv->blueprints,
+        new_local_codecs_configuration);
+
+  if (new_local_codecs_configuration == NULL)
+    GST_DEBUG ("None of the local codecs configuration passed are usable,"
+        " this will restore the original list of detected codecs");
+
+  new_local_codec_associations = create_local_codec_associations (
+      self->priv->media_type, self->priv->blueprints,
+      new_local_codecs_configuration,
+      self->priv->local_codec_associations,
+      &new_local_codecs);
+
+  if (new_local_codecs && new_local_codec_associations)
+  {
+    fs_codec_list_destroy (self->priv->local_codecs);
+    g_hash_table_destroy (self->priv->local_codec_associations);
+    self->priv->local_codec_associations = new_local_codec_associations;
+    self->priv->local_codecs = new_local_codecs;
+
+    fs_codec_list_destroy (self->priv->local_codecs_configuration);
+    self->priv->local_codecs_configuration =
+      new_local_codecs_configuration;
+
+    g_object_notify ((GObject*) self, "local-codecs");
+    g_object_notify ((GObject*) self, "local-codecs-config");
+
+    return TRUE;
+  }
+  else
+  {
+    GST_WARNING ("Invalid new codec configurations");
+    fs_codec_list_destroy (new_local_codecs_configuration);
+    g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS,
+        "Codec config would leave no valid local codecs, rejecting");
+    return FALSE;
+  }
 }
 
 FsRtpSession *

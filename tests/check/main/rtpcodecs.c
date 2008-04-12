@@ -38,15 +38,16 @@ _notify_local_codecs (GObject *object, GParamSpec *param, gpointer user_data)
 GST_START_TEST (test_rtpcodecs_local_codecs_config)
 {
   struct SimpleTestConference *dat = NULL;
-  GList *codecs = NULL, *codecs2 = NULL, *item = NULL;
+  GList *orig_codecs = NULL, *codecs = NULL, *codecs2 = NULL, *item = NULL;
   gint has0 = FALSE, has8 = FALSE;
   gboolean local_codecs_notified = FALSE;
+  GError *error = NULL;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "local-codecs", &orig_codecs, NULL);
 
-  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  for (item = g_list_first (orig_codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
     if (codec->id == 0)
@@ -56,9 +57,6 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
   }
   fail_unless (has0 && has8, "You need the PCMA and PCMU encoder and payloades"
       " from gst-plugins-good");
-
-  fs_codec_list_destroy (codecs);
-  codecs = NULL;
 
   codecs = g_list_append (codecs,
       fs_codec_new (
@@ -83,7 +81,11 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
   g_signal_connect (dat->session, "notify::local-codecs",
       G_CALLBACK (_notify_local_codecs), &local_codecs_notified);
 
-  g_object_set (dat->session, "local-codecs-config", codecs, NULL);
+  fail_unless (
+      fs_session_set_local_codecs_config (dat->session, codecs, &error),
+      "Could not set local codecs config");
+  fail_unless (error == NULL, "Setting the local codecs config failed,"
+      " but the error is still there");
 
   fail_unless (local_codecs_notified == TRUE, "Not notified of codec changed");
   local_codecs_notified = FALSE;
@@ -122,6 +124,36 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
           "Not the right data in optional params for PCMA");
     }
   }
+
+  fs_codec_list_destroy (codecs);
+
+  fail_unless (fs_session_set_local_codecs_config (dat->session, NULL, &error),
+      "Could not set local-codecs-config");
+  fail_if (error, "Error set while function succeeded?");
+  fail_unless (local_codecs_notified, "We were not notified of the change"
+      " in local-codecs");
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+
+  fail_unless (fs_codec_list_are_equal (codecs, orig_codecs),
+      "Resetting local-codecs-config failed, codec lists are not equal");
+
+  fs_codec_list_destroy (orig_codecs);
+
+  for (item = codecs;
+       item;
+       item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    codec->id = FS_CODEC_ID_DISABLE;
+  }
+
+  fail_if (fs_session_set_local_codecs_config (dat->session, codecs,
+          &error),
+      "Disabling all codecs did not fail");
+  fail_unless (error != NULL, "The error is not set");
+  fail_unless (error->code == FS_ERROR_NO_CODECS,
+      "The error code is %d, not FS_ERROR_NO_CODECS");
 
   fs_codec_list_destroy (codecs);
 
@@ -263,7 +295,8 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   codecs = g_list_prepend (NULL, fs_codec_new (96, "reserve-pt",
                                                FS_MEDIA_TYPE_AUDIO, 0));
 
-  g_object_set (dat->session, "local-codecs-config", codecs, NULL);
+  fail_unless (fs_session_set_local_codecs_config (dat->session, codecs, NULL),
+      "Could not set local-codes config");
 
   fs_codec_list_destroy (codecs);
 
