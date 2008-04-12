@@ -68,7 +68,7 @@ public_headers = fs-candidate.h \
 		fs-stream.h \
 		fs-conference-iface.h
 
-fs-enum-types.h: $(fs_headers) Makefile
+fs-enum-types.h: $(public_headers) Makefile
 	( cd $(srcdir) && glib-mkenums \
 			--fhead "#ifndef __FS_ENUM_TYPES_H__\n#define __FS_ENUM_TYPES_H__\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 			--fprod "/* enumerations from \"@filename@\" */\n" \
@@ -76,7 +76,7 @@ fs-enum-types.h: $(fs_headers) Makefile
 			--ftail "G_END_DECLS\n\n#endif /* __FS_ENUM_TYPES_H__ */" \
 		$(public_headers) ) > fs-enum-types.h
 
-fs-enum-types.c: $(fs_headers) Makefile
+fs-enum-types.c: $(public_headers) Makefile
 	( cd $(srcdir) && glib-mkenums \
 			--fhead "#include <fs-conference-iface.h>\n#include <fs-enum-types.h>" \
 			--fprod "\n/* enumerations from \"@filename@\" */" \
