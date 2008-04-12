@@ -726,13 +726,9 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
-  self->priv->local_codecs_configuration = validate_codecs_configuration (
-      self->priv->media_type, self->priv->blueprints,
-      self->priv->local_codecs_configuration);
-
   self->priv->local_codec_associations = create_local_codec_associations (
       self->priv->media_type, self->priv->blueprints,
-      self->priv->local_codecs_configuration,
+      NULL, /* there are no local codec configurations yet */
       NULL,
       &self->priv->local_codecs);
 
