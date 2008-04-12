@@ -306,11 +306,12 @@ class FsUIAudioSource(FsUISource):
         return farsight.MEDIA_TYPE_AUDIO
 
     def make_source(self):
-        #source = gst.element_factory_make("audiotestsrc")
-        #source.set_property("is-live", True)
+        source = gst.element_factory_make("audiotestsrc")
+        source.set_property("is-live", True)
         #source.set_property("wave", 4)
-        #return source
-        return gst.element_factory_make("alsasrc")
+        return source
+        #return gst.element_factory_make("alsasrc")
+        #return gst.element_factory_make("gconfaudiosrc")
 
 
 
