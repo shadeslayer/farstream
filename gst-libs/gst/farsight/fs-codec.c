@@ -605,3 +605,32 @@ fs_codec_to_gst_caps (const FsCodec *codec)
 
   return caps;
 }
+
+
+/**
+ * fs_codec_list_are_equal:
+ * @list1: a #GList of #FsCodec
+ * @list2: a #GList of #FsCodec
+ *
+ * Verifies if two glist of fscodecs are identical
+ *
+ * Returns: %TRUE if they are identical, %FALSE otherwise
+ */
+
+gboolean
+fs_codec_list_are_equal (GList *list1, GList *list2)
+{
+
+  for (;
+       list1 && list2;
+       list1 = g_list_next (list1), list2 = g_list_next (list2))
+  {
+    if (!fs_codec_are_equal (list1->data, list2->data))
+      return FALSE;
+  }
+
+  if (list1 == NULL && list2 == NULL)
+    return TRUE;
+  else
+    return FALSE;
+}
