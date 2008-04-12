@@ -209,7 +209,7 @@
   (is-constructor-of "FsCandidate")
   (return-type "FsCandidate*")
   (parameters
-    '("const-gchar*" "id")
+    '("const-gchar*" "foundation")
     '("guint" "component_id")
     '("FsCandidateType" "type")
     '("FsNetworkProtocol" "proto")
@@ -455,8 +455,8 @@
   (c-name "fs_stream_select_candidate_pair")
   (return-type "gboolean")
   (parameters
-    '("gchar*" "lfoundation")
-    '("gchar*" "rfoundation")
+    '("const-gchar*" "local_foundation")
+    '("const-gchar*" "remote_foundation")
     '("GError**" "error")
   )
 )
