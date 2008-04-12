@@ -119,6 +119,15 @@
   (return-type "GstCaps*")
 )
 
+(define-function fs_codec_list_are_equal
+  (c-name "fs_codec_list_are_equal")
+  (return-type "gboolean")
+  (parameters
+    '("GList*" "list1")
+    '("GList*" "list2")
+  )
+)
+
 (define-method to_string
   (of-object "FsMediaType")
   (c-name "fs_media_type_to_string")

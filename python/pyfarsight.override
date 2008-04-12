@@ -668,3 +668,39 @@ _wrap_fs_session_set_local_codecs_config (PyGObject *self, PyObject *arg)
   return PyBool_FromLong (ret);
 }
 %%
+override fs_codec_list_are_equal kwargs
+static PyObject *
+_wrap_fs_codec_list_are_equal(PyGObject *self, PyObject *args, PyObject *kwargs)
+{
+  static char *kwlist[] = {"list1", "list2", NULL};
+  PyObject *pylist1 = NULL, *pylist2 = NULL;
+  GList *list1 = NULL, *list2 = NULL;
+  gboolean ret;
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO",
+          kwlist,
+	  &pylist1,
+	  &pylist2))
+    return NULL;
+
+  if (pylist1 == pylist2)
+    return PyBool_FromLong (TRUE);
+
+  list1 = _fs_codec_list_from_pysequence (pylist1);
+  if (!list1)
+    return NULL;
+
+  list2 = _fs_codec_list_from_pysequence (pylist2);
+  if (!list2)
+  {
+    g_list_free (list1);
+    return NULL;
+  }
+
+  ret = fs_codec_list_are_equal (list1, list2);
+
+  g_list_free (list1);
+  g_list_free (list2);
+
+  return PyBool_FromLong (ret);
+}
