@@ -320,7 +320,7 @@ class FsUISession:
     def __init__(self, conference, source):
         self.conference = conference
         self.source = source
-        self.streams = weakref.WeakValueDictionary()
+        self.streams = []
         self.fssession = conference.new_session(source.get_type())
         if source.get_type() == farsight.MEDIA_TYPE_VIDEO:
             # We prefer H263-1998 because we know it works
@@ -361,12 +361,14 @@ class FsUISession:
         
     def __negotiated_codecs_notify(self, session, paramspec):
         "Callback from FsSession"
-        for s in self.streams.valuerefs():
+        for s in self.streams:
             try:
                 s().new_negotiated_codecs()
             except AttributeError:
                 pass
-            
+
+    def __stream_finalized(self, s):
+        self.streams.remove(s)
             
     def new_stream(self, id, participant):
         "Creates a new stream for a specific participant"
@@ -383,7 +385,7 @@ class FsUISession:
                                              farsight.DIRECTION_BOTH,
                                              TRANSMITTER, transmitter_params)
         stream = FsUIStream(id, self, participant, realstream)
-        self.streams[id] = stream
+        self.streams.append(weakref.ref(stream, self.__stream_finalized))
         return stream
 
     def dtmf_start(self, event, method):
