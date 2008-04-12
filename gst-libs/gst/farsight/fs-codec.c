@@ -104,11 +104,14 @@ fs_codec_new (int id, const char *encoding_name,
  * fs_codec_destroy:
  * @codec: #FsCodec structure to free
  *
- * Deletes a #FsCodec structure and all its data
+ * Deletes a #FsCodec structure and all its data. Is a no-op on %NULL codec
  */
 void
 fs_codec_destroy (FsCodec * codec)
 {
+  if (codec == NULL)
+    return;
+
   g_free (codec->encoding_name);
   if (codec->optional_params) {
     GList *lp;
@@ -137,7 +140,12 @@ fs_codec_destroy (FsCodec * codec)
 FsCodec *
 fs_codec_copy (const FsCodec * codec)
 {
-  FsCodec *copy = g_new0 (FsCodec, 1);
+  FsCodec *copy = NULL;
+
+  if (codec == NULL)
+    return NULL;
+
+  copy = g_new0 (FsCodec, 1);
 
   copy->id = codec->id;
   copy->media_type = codec->media_type;
@@ -171,7 +179,8 @@ fs_codec_copy (const FsCodec * codec)
  * fs_codec_list_destroy:
  * @codec_list: a GList of #FsCodec to delete
  *
- * Deletes a list of #FsCodec structures and the list itself
+ * Deletes a list of #FsCodec structures and the list itself.
+ * Does nothing on %NULL lists.
  */
 void
 fs_codec_list_destroy (GList *codec_list)
@@ -429,9 +438,14 @@ fs_media_type_to_string (FsMediaType media_type)
 gchar *
 fs_codec_to_string (const FsCodec *codec)
 {
-  GString *string = g_string_new ("");
+  GString *string = NULL;
   GList *item;
   gchar *charstring;
+
+  if (codec == NULL)
+    return g_strdup ("(NULL)");
+
+  string = g_string_new ("");
 
   g_string_printf (string, "%d: %s %s clock:%d channels:%d",
       codec->id, fs_media_type_to_string (codec->media_type),
@@ -491,7 +505,7 @@ compare_lists (GList *list1, GList *list2)
  *
  * Compare two codecs, it will declare two codecs to be identical even
  * if their optional parameters are in a different order. %NULL encoding names
- * are ignored
+ * are ignored.
  *
  * Return value: %TRUE of the codecs are identical, %FALSE otherwise
  */
@@ -532,7 +546,7 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
  * This function converts a #FsCodec to a fixed #GstCaps with media type
  * application/x-rtp.
  *
- * Return value: A newly-allocated #GstCaps
+ * Return value: A newly-allocated #GstCaps or %NULL if the codec was %NULL
  */
 
 GstCaps *
@@ -541,6 +555,9 @@ fs_codec_to_gst_caps (const FsCodec *codec)
   GstCaps *caps;
   GstStructure *structure;
   GList *item;
+
+  if (codec == NULL)
+    return NULL;
 
   structure = gst_structure_new ("application/x-rtp", NULL);
 

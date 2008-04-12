@@ -233,7 +233,24 @@ GST_START_TEST (test_fscodec_to_gst_caps)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_fscodec_null)
+{
+  gchar *str;
 
+  fs_codec_destroy (NULL);
+  fail_unless (fs_codec_copy (NULL) == NULL, "Failed to copy NULL codec");
+  fs_codec_list_destroy (NULL);
+  fail_unless (fs_codec_list_copy (NULL) == NULL,
+      "Failed to copu NULL codec list");
+  str = fs_codec_to_string (NULL);
+  fail_unless (str && !strcmp (str, "(NULL)"),
+      "Failed to print NULL codec");
+  g_free (str);
+  fail_unless (fs_codec_are_equal (NULL,NULL), "NULL codecs are not equal");
+  fail_unless (fs_codec_to_gst_caps (NULL) == NULL,
+      "NULL codec does not produce NULL caps");
+}
+GST_END_TEST;
 
 static Suite *
 fscodec_suite (void)
@@ -248,6 +265,7 @@ fscodec_suite (void)
   tcase_add_test (tc_chain, test_fscodec_are_equal_opt_params);
   tcase_add_test (tc_chain, test_fscodec_copy);
   tcase_add_test (tc_chain, test_fscodec_to_gst_caps);
+  tcase_add_test (tc_chain, test_fscodec_null);
 
   return s;
 }
