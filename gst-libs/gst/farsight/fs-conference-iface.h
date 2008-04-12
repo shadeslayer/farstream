@@ -90,6 +90,7 @@ GType fs_conference_get_type (void);
  * @FS_ERROR_NEGOTIATION_FAILED: The codec negotiation has failed
  * @FS_ERROR_UNKNOWN_CODEC: The codec is unknown
  * @FS_ERROR_UNKNOWN_CNAME: Data was received for an unknown cname
+ * @FS_ERROR_NO_CODECS: There are no valid codecs left.
  *
  * This is the enum of error numbers that will come either on the "error"
  * signal or from the Gst Bus.
@@ -103,7 +104,8 @@ typedef enum {
   FS_ERROR_NOT_IMPLEMENTED,
   FS_ERROR_NEGOTIATION_FAILED,
   FS_ERROR_UNKNOWN_CODEC,
-  FS_ERROR_UNKNOWN_CNAME
+  FS_ERROR_UNKNOWN_CNAME,
+  FS_ERROR_NO_CODECS
 } FsError;
 
 /**

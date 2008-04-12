@@ -236,6 +236,7 @@
     '("negotiation-failed" "FS_ERROR_NEGOTIATION_FAILED")
     '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
     '("unknown-cname" "FS_ERROR_UNKNOWN_CNAME")
+    '("no-codecs" "FS_ERROR_NO_CODECS")
   )
 )
 

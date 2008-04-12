@@ -260,7 +260,7 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
   if (!recv_list && !send_list)
   {
     codecs_lists_ref[media_type]--;
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+    g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS,
       "No codecs for media type %s detected",
       fs_media_type_to_string (media_type));
 
