@@ -157,7 +157,6 @@ class FsUIConnect:
 
     def __candidate_to_string(self, candidate):
         return "|".join((
-            candidate.candidate_id,
             candidate.foundation,
             str(candidate.component_id),
             candidate.ip,
@@ -172,8 +171,7 @@ class FsUIConnect:
 
     def __candidate_from_string(self, string):
         candidate = farsight.Candidate()
-        (candidate.candidate_id,
-         candidate.foundation,
+        (candidate.foundation,
          component_id,
          candidate.ip,
          port,
