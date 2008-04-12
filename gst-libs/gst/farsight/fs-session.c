@@ -187,13 +187,11 @@ fs_session_class_init (FsSessionClass *klass)
   /**
    * FsSession:local-codecs-config:
    *
-   * This is the current configuration list for the local codecs. It is usually
+   * This is the current configuration list for the local codecs. It is
    * set by the user to specify the codec options and priorities. The user may
-   * change this value during an ongoing session. Note that doing this can cause
-   * the local-codecs to be changed. Therefore this requires the user to fetch
-   * the new local-codecs and renegotiate them with the peers. It is a #GList
-   * of #FsCodec. User must free this codec list using fs_codec_list_destroy()
-   * when done.
+   * change its value with fs_session_set_local_codecs() at any time during a
+   * session. It is a #GList of #FsCodec. The user must free this codec list
+   * using fs_codec_list_destroy() when done.
    *
    * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
    * or %FS_CODEC_ID_ANY. If the encoding name is "reserve-pt", then the
@@ -207,7 +205,7 @@ fs_session_class_init (FsSessionClass *klass)
         "A GList of FsCodecs that allows user to set his codec options and"
         " priorities",
         FS_TYPE_CODEC_LIST,
-        G_PARAM_READWRITE));
+        G_PARAM_READABLE));
 
   /**
    * FsSession:negotiated-codecs:
@@ -285,6 +283,10 @@ fs_session_get_property (GObject *object,
                          GValue *value,
                          GParamSpec *pspec)
 {
+  GST_WARNING ("Subclass %s of FsSession does not override the %s property"
+      " getter",
+      G_OBJECT_TYPE_NAME(object),
+      g_param_spec_get_name (pspec));
 }
 
 static void
@@ -293,6 +295,10 @@ fs_session_set_property (GObject *object,
                          const GValue *value,
                          GParamSpec *pspec)
 {
+  GST_WARNING ("Subclass %s of FsSession does not override the %s property"
+      " setter",
+      G_OBJECT_TYPE_NAME(object),
+      g_param_spec_get_name (pspec));
 }
 
 static void
@@ -308,7 +314,7 @@ fs_session_error_forward (GObject *signal_src,
 
 /**
  * fs_session_new_stream:
- * @session: an #FsSession
+ * @session: a #FsSession
  * @participant: #FsParticipant of a participant for the new stream
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
@@ -358,7 +364,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
 
 /**
  * fs_session_start_telephony_event:
- * @session: an #FsSession
+ * @session: a #FsSession
  * @event: A #FsStreamDTMFEvent or another number defined at
  * http://www.iana.org/assignments/audio-telephone-event-registry
  * @volume: The volume in dBm0 without the negative sign. Should be between
@@ -417,8 +423,8 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 
 /**
  * fs_session_set_send_codec:
- * @session: an #FsSession
- * @send_codec: an #FsCodec representing the codec to send
+ * @session: a #FsSession
+ * @send_codec: a #FsCodec representing the codec to send
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function will set the currently being sent codec for all streams in this
@@ -440,6 +446,44 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "set_send_codec not defined in class");
+  }
+  return FALSE;
+}
+
+/**
+ * fs_session_set_local_codecs_config:
+ * @session: a #FsSession
+ * @local_codecs_config: a #GList of #FsCodec with the desired configuration
+ * @error: location of a #GError, or %NULL if no error occured
+ *
+ * Set the list of desired codec configuration. The user may
+ * change this value during an ongoing session. Note that doing this can cause
+ * the local-codecs to be changed. Therefore this requires the user to fetch
+ * the new local-codecs and renegotiate them with the peers. It is a #GList
+ * of #FsCodec. The function does not take ownership of the list.
+ *
+ * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
+ * or %FS_CODEC_ID_ANY. If the encoding name is "reserve-pt", then the
+ * payload type of the codec will be "reserved" and not be used by any
+ * dynamically assigned payload type.
+ *
+ * If the list of specifications would invalidate all codecs, an error will
+ * be returned.
+ *
+ * Returns: %TRUE on success, %FALSE on error.
+ */
+gboolean
+fs_session_set_local_codecs_config (FsSession *session,
+    GList *local_codecs_config,
+    GError **error)
+{
+  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+
+  if (klass->set_local_codecs_config) {
+    return klass->set_local_codecs_config (session, local_codecs_config, error);
+  } else {
+    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
+        "set_local_codecs_config not defined in class");
   }
   return FALSE;
 }

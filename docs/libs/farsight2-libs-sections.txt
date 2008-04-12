@@ -50,6 +50,7 @@ fs_session_new_stream
 fs_session_start_telephony_event
 fs_session_stop_telephony_event
 fs_session_set_send_codec
+fs_session_set_local_codecs_config
 fs_session_emit_error
 <SUBSECTION Standard>
 FS_SESSION

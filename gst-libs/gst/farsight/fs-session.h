@@ -106,6 +106,8 @@ typedef enum
  * @start_telephony_event: Starts a telephony event
  * @stop_telephony_event: Stops a telephony event
  * @set_send_codec: Forces sending with a specific codec
+ * @set_local_codecs_config: Specifies the favorite configurations for local
+ *   codecs
  *
  * You must override at least new_stream in a subclass.
  */
@@ -130,6 +132,9 @@ struct _FsSessionClass
 
   gboolean (* set_send_codec) (FsSession *session, FsCodec *send_codec,
                                GError **error);
+  gboolean (* set_local_codecs_config) (FsSession *session,
+      GList *local_codecs_config,
+      GError **error);
 
   /*< private >*/
   gpointer _padding[8];
@@ -169,6 +174,10 @@ gboolean fs_session_stop_telephony_event (FsSession *session,
 
 gboolean fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                     GError **error);
+
+gboolean fs_session_set_local_codecs_config (FsSession *session,
+    GList *local_codecs_config,
+    GError **error);
 
 void fs_session_emit_error (FsSession *session, gint error_no,
                             gchar *error_msg, gchar *debug_msg);

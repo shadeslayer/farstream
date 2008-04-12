@@ -397,7 +397,7 @@ fs_stream_remote_candidates_added (FsStream *stream)
  * fs_stream_select_candidate_pair:
  * @stream: a #FsStream
  * @local_foundation: The foundation of the local candidates to be selected
- * @rremote_foundation: The foundation of the remote candidates to be selected
+ * @remote_foundation: The foundation of the remote candidates to be selected
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function selects one pair of candidates to be selected to start
