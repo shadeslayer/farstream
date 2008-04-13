@@ -29,8 +29,6 @@
 
 #include <gst/gst.h>
 
-#include <arpa/inet.h>
-
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
