@@ -38,13 +38,19 @@
 
 #include <string.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+
+#ifdef G_OS_WIN32
+# include <winsock2.h>
+#else /*G_OS_WIN32*/
+# include <netdb.h>
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <arpa/inet.h>
+#endif /*G_OS_WIN32*/
 
 #define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 

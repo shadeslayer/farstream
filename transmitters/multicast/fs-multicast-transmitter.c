@@ -42,13 +42,20 @@
 
 #include <string.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+
+#ifdef G_OS_WIN32
+# include <ws2tcpip.h>
+# define close closesocket
+#else /*G_OS_WIN32*/
+# include <netdb.h>
+# include <sys/socket.h>
+# include <netinet/in.h>
+# include <arpa/inet.h>
+#endif /*G_OS_WIN32*/
 
 GST_DEBUG_CATEGORY (fs_multicast_transmitter_debug);
 #define GST_CAT_DEFAULT fs_multicast_transmitter_debug
