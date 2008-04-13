@@ -523,13 +523,13 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
     next_port = used_port+1;
   }
 
-  g_free (ips);
+  g_free ((gpointer *)ips);
   g_free (ports);
 
   return TRUE;
 
  error:
-  g_free (ips);
+  g_free ((gpointer *)ips);
   g_free (ports);
 
   return FALSE;
