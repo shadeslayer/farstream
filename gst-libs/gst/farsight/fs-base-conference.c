@@ -55,12 +55,14 @@ enum
   PROP_0
 };
 
+/*
 #define FS_BASE_CONFERENCE_GET_PRIVATE(obj) \
   (G_TYPE_INSTANCE_GET_PRIVATE ((obj), FS_TYPE_BASE_CONFERENCE, FsBaseConferencePrivate))
 
 struct _FsBaseConferencePrivate
 {
 };
+*/
 
 GST_BOILERPLATE_WITH_INTERFACE (
     FsBaseConference, fs_base_conference,

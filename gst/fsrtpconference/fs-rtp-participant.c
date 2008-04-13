@@ -47,16 +47,17 @@ enum
   PROP_0,
 };
 
+G_DEFINE_TYPE(FsRtpParticipant, fs_rtp_participant, FS_TYPE_PARTICIPANT);
+
+/*
 struct _FsRtpParticipantPrivate
 {
 };
 
-
-G_DEFINE_TYPE(FsRtpParticipant, fs_rtp_participant, FS_TYPE_PARTICIPANT);
-
 #define FS_RTP_PARTICIPANT_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
    FsRtpParticipantPrivate))
+*/
 
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
