@@ -35,7 +35,9 @@
 #include <gst/farsight/fs-conference-iface.h>
 
 #include <string.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 #define GST_CAT_DEFAULT fsrtpconference_disco
 

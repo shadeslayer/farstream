@@ -81,7 +81,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <unistd.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 
 GST_DEBUG_CATEGORY_EXTERN (fs_multicast_transmitter_debug);
 #define GST_CAT_DEFAULT fs_multicast_transmitter_debug
