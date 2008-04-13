@@ -569,11 +569,19 @@ _bind_port (
     struct sockaddr_in tmpaddr;
     if (!_ip_string_into_sockaddr_in (local_ip, &tmpaddr, error))
       goto error;
+#ifdef HAVE_IP_MREQN
     memcpy (&mreq.imr_address, &tmpaddr.sin_addr, sizeof (mreq.imr_address));
+#else
+    memcpy (&mreq.imr_interface, &tmpaddr.sin_addr, sizeof (mreq.imr_interface));
+#endif
   }
   else
   {
+#ifdef HAVE_IP_MREQN
     mreq.imr_address.s_addr = INADDR_ANY;
+#else
+    mreq.imr_interface.s_addr = INADDR_ANY;
+#endif
   }
 
 #ifdef HAVE_IP_MREQN
