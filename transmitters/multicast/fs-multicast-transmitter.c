@@ -594,7 +594,7 @@ _bind_port (
     goto error;
   }
 
-  if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_TTL, &ttl,
+  if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_TTL, (const void *)&ttl,
           sizeof (ttl)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -603,7 +603,7 @@ _bind_port (
     goto error;
   }
 
-  if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_LOOP, &loop,
+  if (setsockopt (sock, IPPROTO_IP, IP_MULTICAST_LOOP, (const void *)&loop,
           sizeof (loop)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -612,7 +612,7 @@ _bind_port (
     goto error;
   }
 
-  if (setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
+  if (setsockopt (sock, SOL_SOCKET, SO_REUSEADDR, (const void *)&reuseaddr,
           sizeof (reuseaddr)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -622,7 +622,7 @@ _bind_port (
   }
 
 #ifdef SO_REUSEPORT
-  if (setsockopt (sock, SOL_SOCKET, SO_REUSEPORT, &reuseaddr,
+  if (setsockopt (sock, SOL_SOCKET, SO_REUSEPORT, (const void *)&reuseaddr,
           sizeof (reuseaddr)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -633,7 +633,7 @@ _bind_port (
 #endif
 
   if (setsockopt (sock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-          &(mreq), sizeof (mreq)) < 0)
+          (const void *)&mreq, sizeof (mreq)) < 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Could not join the socket to the multicast group: %s",
