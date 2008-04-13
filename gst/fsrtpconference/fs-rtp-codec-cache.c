@@ -39,13 +39,26 @@
 # include <unistd.h>
 #endif
 
+/* Because of annoying CRTs */
+#if defined (_MSC_VER) && _MSC_VER >= 1400
+# include <io.h>
+# define open _open
+# define close _close
+# define read _read
+# define write _write
+# define stat _stat
+# define STAT_TYPE struct _stat
+#else
+# define STAT_TYPE struct stat
+#endif
+
 #define GST_CAT_DEFAULT fsrtpconference_disco
 
 static gboolean codecs_cache_valid (gchar *cache_path) {
   time_t cache_ts = 0;
   time_t registry_ts = 0;
-  struct stat cache_stat;
-  struct stat registry_stat;
+  STAT_TYPE cache_stat;
+  STAT_TYPE registry_stat;
   gchar *registry_xml_path;
   gchar *registry_bin_path;
 
