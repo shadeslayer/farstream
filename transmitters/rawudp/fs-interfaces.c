@@ -4,6 +4,7 @@
  * Farsight Helper functions
  * Copyright (C) 2006 Youness Alaoui <kakaroto@kakaroto.homelinux.net>
  * Copyright (C) 2007 Collabora, Nokia
+ * Copyright (C) 2008 Haakon Sporsheim <haakon.sporsheim@tandberg.com>
  * @author: Youness Alaoui <kakaroto@kakaroto.homelinux.net>
  *
  * This library is free software; you can redistribute it and/or
@@ -21,12 +22,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
+#ifdef HAVE_CONFIG_H
+# include "config.h"
+#endif
+
 #include "fs-interfaces.h"
 
+#include <gst/gst.h>
 
-#ifdef HAVE_CONFIG_H
- #include "config.h"
-#endif
+GST_DEBUG_CATEGORY_EXTERN (fs_rawudp_transmitter_debug);
+#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 
 #ifdef G_OS_UNIX
 
@@ -44,10 +49,6 @@
 #include <net/if.h>
 #include <net/if_arp.h>
 #include <arpa/inet.h>
-#include <gst/gst.h>
-
-GST_DEBUG_CATEGORY_EXTERN (fs_rawudp_transmitter_debug);
-#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 
 /**
  * farsight_get_local_interfaces:
@@ -345,19 +346,17 @@ farsight_get_ip_for_interface (gchar *interface_name)
 #else /* G_OS_UNIX */
 #ifdef G_OS_WIN32
 
-#include <windows.h>
-#include <winsock.h>
+#include <winsock2.h>
+#include <Iphlpapi.h>
 
 static gboolean started_wsa_engine = FALSE;
-
-#error Windows support is not yet implemented
 
 /**
  * private function that initializes the WinSock engine and
  *  returns a prebuilt socket
  **/
-SOCKET farsight_get_WSA_socket () {
-
+SOCKET farsight_get_WSA_socket ()
+{
   WORD wVersionRequested;
   WSADATA wsaData;
   int err;
@@ -384,29 +383,194 @@ SOCKET farsight_get_WSA_socket () {
 }
 
 /**
- * Returns the list of local interfaces
- **/
+ * farsight_get_local_interfaces:
+ *
+ * Get the list of local interfaces
+ *
+ * Returns: a #GList of strings.
+ */
 GList * farsight_get_local_interfaces ()
 {
-  return NULL;
+  ULONG size = 0;
+  PMIB_IFTABLE if_table;
+  GList * ret = NULL;
+
+  GetIfTable(NULL, &size, TRUE);
+
+  if (!size)
+    return NULL;
+
+  if_table = (PMIB_IFTABLE)g_malloc0(size);
+
+  if (GetIfTable(if_table, &size, TRUE) == ERROR_SUCCESS)
+  {
+    DWORD i;
+    for (i = 0; i < if_table->dwNumEntries; i++)
+    {
+      ret = g_list_prepend (ret, g_strdup ((gchar*)if_table->table[i].bDescr));
+    }
+  }
+
+  g_free(if_table);
+
+  return ret;
 }
 
-
 /**
- * Returns the list of local ips
- **/
-GList * farsight_get_local_ips ()
+ * farsight_get_local_ips:
+ * @include_loopback: Include any loopback devices
+ *
+ * Get a list of local ip4 interface addresses
+ *
+ * Returns: A #GList of strings
+ */
+GList * farsight_get_local_ips (gboolean include_loopback)
 {
-  return NULL;
+  ULONG size = 0;
+  DWORD pref = 0;
+  PMIB_IPADDRTABLE ip_table;
+  GList * ret = NULL;
+
+  GetIpAddrTable (NULL, &size, TRUE);
+
+  if (!size)
+    return NULL;
+
+  /*
+   * Get the best interface for transport to 0.0.0.0.
+   * This interface should be first in list!
+   */
+  if (GetBestInterface (0, &pref) != NO_ERROR)
+    pref = 0;
+
+  ip_table = (PMIB_IPADDRTABLE)g_malloc0 (size);
+
+  if (GetIpAddrTable (ip_table, &size, TRUE) == ERROR_SUCCESS)
+  {
+    DWORD i;
+    for (i = 0; i < ip_table->dwNumEntries; i++)
+    {
+      gchar * ipstr;
+      PMIB_IPADDRROW ipaddr = &ip_table->table[i];
+      if (!(ipaddr->wType & (MIB_IPADDR_DISCONNECTED | MIB_IPADDR_DELETED)) &&
+          ipaddr->dwAddr)
+      {
+        if (!include_loopback)
+        {
+		  DWORD type = 0;
+          PMIB_IFROW ifr = (PMIB_IFROW)g_malloc0 (sizeof (MIB_IFROW));
+          ifr->dwIndex = ipaddr->dwIndex;
+		  if (GetIfEntry (ifr) == NO_ERROR)
+		    type = ifr->dwType;
+		  g_free (ifr);
+
+		  if (type == IF_TYPE_SOFTWARE_LOOPBACK)
+		    continue;
+        }
+
+        ipstr = g_strdup_printf ("%d.%d.%d.%d", 
+            (ipaddr->dwAddr      ) & 0xFF,
+            (ipaddr->dwAddr >>  8) & 0xFF,
+            (ipaddr->dwAddr >> 16) & 0xFF,
+            (ipaddr->dwAddr >> 24) & 0xFF);
+        if (ipaddr->dwIndex == pref)
+          ret = g_list_prepend (ret, ipstr);
+        else
+          ret = g_list_append (ret, ipstr);
+      }
+    }
+  }
+
+  g_free(ip_table);
+
+  return ret;
 }
 
 /**
- * retreives the IP Address of an interface by its name
+ * returns ip address as an utf8 string
+ */
+static gchar *
+win32_get_ip_for_interface (IF_INDEX idx)
+{
+  ULONG size = 0;
+  PMIB_IPADDRTABLE ip_table;
+  gchar * ret = NULL;
+
+  GetIpAddrTable (NULL, &size, TRUE);
+
+  if (!size)
+    return NULL;
+
+  ip_table = (PMIB_IPADDRTABLE)g_malloc0 (size);
+
+  if (GetIpAddrTable (ip_table, &size, TRUE) == ERROR_SUCCESS)
+  {
+    DWORD i;
+    for (i = 0; i < ip_table->dwNumEntries; i++)
+    {
+      PMIB_IPADDRROW ipaddr = &ip_table->table[i];
+      if (ipaddr->dwIndex == idx && 
+          !(ipaddr->wType & (MIB_IPADDR_DISCONNECTED | MIB_IPADDR_DELETED)))
+      {
+        ret = g_strdup_printf ("%d.%d.%d.%d", 
+            (ipaddr->dwAddr      ) & 0xFF,
+            (ipaddr->dwAddr >>  8) & 0xFF,
+            (ipaddr->dwAddr >> 16) & 0xFF,
+            (ipaddr->dwAddr >> 24) & 0xFF);
+        break;
+      }
+    }
+  }
+
+  g_free (ip_table);
+  return ret;
+}
+
+/**
+ * farsight_get_ip_for_interface:
+ * @interface_name: name of local interface
+ *
+ * Retreives the IP Address of an interface by its name
+ *
+ * Returns: a newly-allocated string with the IP address
  **/
 gchar * farsight_get_ip_for_interface (gchar *interface_name)
 {
-  return NULL;
+  ULONG size = 0;
+  PMIB_IFTABLE if_table;
+  gchar * ret = NULL;
 
+  GetIfTable (NULL, &size, TRUE);
+
+  if (!size)
+    return NULL;
+
+  if_table = (PMIB_IFTABLE)g_malloc0 (size);
+
+  if (GetIfTable (if_table, &size, TRUE) == ERROR_SUCCESS)
+  {
+    DWORD i;
+    gchar * tmp_str;
+    for (i = 0; i < if_table->dwNumEntries; i++)
+    {
+      tmp_str = g_utf16_to_utf8 (
+          if_table->table[i].wszName, MAX_INTERFACE_NAME_LEN,
+          NULL, NULL, NULL);
+
+      if (g_strcasecmp (interface_name, tmp_str) == 0)
+      {
+        ret = win32_get_ip_for_interface (if_table->table[i].dwIndex);
+        g_free (tmp_str);
+        break;
+      }
+
+      g_free (tmp_str);
+    }
+  }
+
+  g_free (if_table);
+
+  return ret;
 }
 
 
