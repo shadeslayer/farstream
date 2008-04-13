@@ -293,7 +293,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           G_PARAM_WRITABLE));
 
    /**
-   * FsComponent::new-local-candidate:
+   * FsRawUdpComponent::new-local-candidate:
    * @self: #FsStream that emitted the signal
    * @local_candidate: #FsCandidate of the local candidate
    *
@@ -310,7 +310,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
 
  /**
-   * FsComponent::local-candidates-prepared:
+   * FsRawUdpComponent::local-candidates-prepared:
    * @self: #FsStream that emitted the signal
    *
    * This signal is emitted when all local candidates have been
@@ -327,7 +327,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       G_TYPE_NONE, 0);
 
   /**
-   * FsComponent::new-active-candidate-pair:
+   * FsiRawUdpComponent::new-active-candidate-pair:
    * @self: #FsStream that emitted the signal
    * @local_candidate: #FsCandidate of the local candidate being used
    * @remote_candidate: #FsCandidate of the remote candidate being used
@@ -346,6 +346,25 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
         _fs_rawudp_marshal_VOID__BOXED_BOXED,
         G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
 
+
+  /**
+   * FsRawUdpComponent::error:
+   * @self: #FsStreamTransmitter that emitted the signal
+   * @errorno: The number of the error
+   * @error_msg: Error message to be displayed to user
+   * @debug_msg: Debugging error message
+   *
+   * This signal is emitted in any error condition
+   *
+   */
+  signals[ERROR_SIGNAL] = g_signal_new ("error",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_rawudp_marshal_VOID__INT_STRING_STRING,
+      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
 
 
   g_type_class_add_private (klass, sizeof (FsRawUdpComponentPrivate));

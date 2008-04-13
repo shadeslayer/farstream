@@ -172,7 +172,9 @@ _component_local_candidates_prepared (FsRawUdpComponent *component,
 static void
 _component_new_active_candidate_pair (FsRawUdpComponent *component,
     FsCandidate *local, FsCandidate *remote, gpointer user_data);
-
+static void
+_component_error (FsRawUdpComponent *component,
+    gint error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data);
 
 
 static GObjectClass *parent_class = NULL;
@@ -492,6 +494,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         G_CALLBACK (_component_local_candidates_prepared), self);
     g_signal_connect (self->priv->component[c], "new-active-candidate-pair",
         G_CALLBACK (_component_new_active_candidate_pair), self);
+    g_signal_connect (self->priv->component[c], "error",
+        G_CALLBACK (_component_error), self);
 
     /* If we dont get the requested port and it wasnt a forced port,
      * then we rewind up to the last forced port and jump to the next
@@ -707,3 +711,16 @@ _component_new_active_candidate_pair (FsRawUdpComponent *component,
 
   g_signal_emit_by_name (self, "new-active-candidate-pair", local, remote);
 }
+
+
+
+static void
+_component_error (FsRawUdpComponent *component,
+    gint error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data)
+{
+  FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
+
+  fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self), error_no,
+      error_msg, debug_msg);
+}
+
