@@ -60,7 +60,7 @@ enum
   NEW_LOCAL_CANDIDATE,
   LOCAL_CANDIDATES_PREPARED,
   NEW_ACTIVE_CANDIDATE_PAIR,
-  ERROR,
+  ERROR_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -953,7 +953,8 @@ fs_rawudp_component_emit_error (FsRawUdpComponent *self,
     gchar *error_msg,
     gchar *debug_msg)
 {
-  g_signal_emit (self, signals[ERROR], 0, error_no, error_msg, debug_msg);
+  g_signal_emit (self, signals[ERROR_SIGNAL], 0, error_no, error_msg,
+      debug_msg);
 }
 
 

@@ -51,7 +51,7 @@ enum
   NO_RTCP_TIMEDOUT,
   SRC_PAD_ADDED,
   CODEC_CHANGED,
-  ERROR,
+  ERROR_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -303,7 +303,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
    * This signal is emitted in any error condition
    *
    */
-  signals[ERROR] = g_signal_new ("error",
+  signals[ERROR_SIGNAL] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -1080,5 +1080,6 @@ fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
     gchar *error_msg,
     gchar *debug_msg)
 {
-  g_signal_emit (substream, signals[ERROR], 0, error_no, error_msg, debug_msg);
+  g_signal_emit (substream, signals[ERROR_SIGNAL], 0, error_no, error_msg,
+      debug_msg);
 }

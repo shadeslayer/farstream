@@ -51,7 +51,7 @@
 /* Signals */
 enum
 {
-  ERROR,
+  ERROR_SIGNAL,
   NEW_LOCAL_CANDIDATE,
   NEW_ACTIVE_CANDIDATE_PAIR,
   LOCAL_CANDIDATES_PREPARED,
@@ -147,7 +147,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
    * This signal is emitted in any error condition
    *
    */
-  signals[ERROR] = g_signal_new ("error",
+  signals[ERROR_SIGNAL] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -398,6 +398,6 @@ void
 fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
   gint error_no, gchar *error_msg, gchar *debug_msg)
 {
-  g_signal_emit (streamtransmitter, signals[ERROR], 0, error_no, error_msg,
-    debug_msg);
+  g_signal_emit (streamtransmitter, signals[ERROR_SIGNAL], 0, error_no,
+      error_msg, debug_msg);
 }

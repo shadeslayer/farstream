@@ -42,7 +42,7 @@
 /* Signals */
 enum
 {
-  ERROR,
+  ERROR_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -118,7 +118,7 @@ fs_participant_class_init (FsParticipantClass *klass)
    *
    * This signal is emitted in any error condition
    */
-  signals[ERROR] = g_signal_new ("error",
+  signals[ERROR_SIGNAL] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,

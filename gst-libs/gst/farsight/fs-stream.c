@@ -105,7 +105,7 @@
 /* Signals */
 enum
 {
-  ERROR,
+  ERROR_SIGNAL,
   SRC_PAD_ADDED,
   LAST_SIGNAL
 };
@@ -286,7 +286,7 @@ fs_stream_class_init (FsStreamClass *klass)
    * This signal is emitted in any error condition
    *
    */
-  signals[ERROR] = g_signal_new ("error",
+  signals[ERROR_SIGNAL] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -474,7 +474,8 @@ void
 fs_stream_emit_error (FsStream *stream, gint error_no,
                       gchar *error_msg, gchar *debug_msg)
 {
-  g_signal_emit (stream, signals[ERROR], 0, error_no, error_msg, debug_msg);
+  g_signal_emit (stream, signals[ERROR_SIGNAL], 0, error_no, error_msg,
+      debug_msg);
 }
 
 

@@ -71,7 +71,7 @@
 /* Signals */
 enum
 {
-  ERROR,
+  ERROR_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -262,7 +262,7 @@ fs_session_class_init (FsSessionClass *klass)
    * thread. Applications should listen to the GstBus for errors.
    *
    */
-  signals[ERROR] = g_signal_new ("error",
+  signals[ERROR_SIGNAL] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -310,8 +310,8 @@ fs_session_error_forward (GObject *signal_src,
 {
   /* We just need to forward the error signal including a ref to the stream
    * object (signal_src) */
-  g_signal_emit (session, signals[ERROR], 0, signal_src, error_no, error_msg,
-      debug_msg);
+  g_signal_emit (session, signals[ERROR_SIGNAL], 0, signal_src, error_no,
+      error_msg, debug_msg);
 }
 
 /**
@@ -504,6 +504,6 @@ void
 fs_session_emit_error (FsSession *session, gint error_no,
                        gchar *error_msg, gchar *debug_msg)
 {
-  g_signal_emit (session, signals[ERROR], 0, session, error_no, error_msg,
-                 debug_msg);
+  g_signal_emit (session, signals[ERROR_SIGNAL], 0, session, error_no,
+      error_msg, debug_msg);
 }
