@@ -417,6 +417,7 @@ remove_dynamic_duplicates (GList *list)
   CodecCap *codec_cap, *cur_codec_cap;
   GstStructure *rtp_struct, *cur_rtp_struct;
   const gchar *encoding_name, *cur_encoding_name;
+  GList *remove_us = NULL;
 
   for (walk1 = list; walk1; walk1 = g_list_next (walk1))
   {
@@ -460,13 +461,17 @@ remove_dynamic_duplicates (GList *list)
         GType type = G_VALUE_TYPE (value);
         /* this is a dynamic pt that has a static one , let's remove it */
         if (type == GST_TYPE_INT_RANGE)
-        {
-          list = g_list_remove (list, cur_codec_cap);
-          codec_cap_free (cur_codec_cap);
-        }
+          remove_us = g_list_prepend (remove_us, cur_codec_cap);
       }
     }
   }
+
+  for (walk1 = remove_us; walk1; walk1 = g_list_next (walk1))
+  {
+    list = g_list_remove_all (list, walk1->data);
+    codec_cap_free (walk1->data);
+  }
+  g_list_free (remove_us);
 
   return list;
 }
