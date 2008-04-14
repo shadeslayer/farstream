@@ -155,6 +155,8 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
   fail_unless (error->code == FS_ERROR_NO_CODECS,
       "The error code is %d, not FS_ERROR_NO_CODECS");
 
+  g_clear_error (&error);
+
   fs_codec_list_destroy (codecs);
 
   cleanup_simple_conference (dat);
@@ -259,6 +261,8 @@ GST_START_TEST (test_rtpcodecs_invalid_remote_codecs)
   fail_unless (error->domain == FS_ERROR, "Error not of domain FS_ERROR");
   fail_unless (error->code == FS_ERROR_NEGOTIATION_FAILED, "Error isn't"
       " negotiation failed, it is %d", error->code);
+
+  g_clear_error (&error);
 
   fs_codec_list_destroy (codecs);
 
