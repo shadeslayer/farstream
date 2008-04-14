@@ -270,6 +270,8 @@ one_way (GCallback havedata_handler, gpointer data)
       "Could not set remote candidate");
   fs_stream_remote_candidates_added (stream);
 
+  fs_candidate_destroy (candidate);
+
   set_codecs (dat, stream);
 
   g_main_loop_run (loop);
