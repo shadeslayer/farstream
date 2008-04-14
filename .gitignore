@@ -13,6 +13,8 @@ Makefile.in
 
 gst/fsrtpconference/fs-rtp-marshal.[ch]
 
+transmitters/rawudp/fs-rawudp-marshal.[ch]
+
 gst-libs/gst/farsight/fs-marshal.[ch]
 gst-libs/gst/farsight/fs-enum-types.[ch]
 

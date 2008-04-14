@@ -20,6 +20,8 @@ librawudp_transmitter_la_LIBADD = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
 	$(FS2_LIBS) $(GST_BASE_LIBS) $(GST_LIBS)
 
+EXTRA_librawudp_transmitter_la_SOURCES = fs-rawudp-marshal.list
+
 noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
