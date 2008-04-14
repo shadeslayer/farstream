@@ -782,9 +782,9 @@ fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
  * @substream: The #FsRtpSubStream that may have a new receive codec
  * @stream: a #FsRtpStream
  *
- * This function checks if the specified substream introduces not a new codec
- * not present in another substream and if it does, it schedules an idle task
- * to emit the signal on the main thread.
+ * This function checks if the specified substream introduces a new codec
+ * not present in another substream and if it does, it emits a GstMessage
+ * and the notify signal
  */
 
 static void
@@ -818,8 +818,11 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
       if (othercodec)
       {
-        if (!fs_codec_are_equal (codec, othercodec))
+        if (fs_codec_are_equal (codec, othercodec))
+        {
+          fs_codec_destroy (othercodec);
           break;
+        }
 
         if (!_codec_list_has_codec (codeclist, othercodec))
           codeclist = g_list_append (codeclist, othercodec);
