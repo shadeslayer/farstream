@@ -5,11 +5,10 @@ headers
 
 #include <gst/gst.h>
 
-#include "fs-conference-iface.h"
-#include "fs-enum-types.h"
+#include <gst/farsight/fs-conference-iface.h>
 
-#include "fs-transmitter.h"
-#include "fs-element-added-notifier.h"
+#include <gst/farsight/fs-transmitter.h>
+#include <gst/farsight/fs-element-added-notifier.h>
 
 static PyObject *
 _fs_boxed_list_from_value (const GValue *value, GType listtype, GType type)
