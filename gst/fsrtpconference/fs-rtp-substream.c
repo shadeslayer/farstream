@@ -438,9 +438,14 @@ fs_rtp_sub_stream_stop_no_rtcp_timeout_thread (FsRtpSubStream *self)
     gst_clock_id_unschedule (self->priv->no_rtcp_timeout_id);
 
   if (self->priv->no_rtcp_timeout_thread == NULL)
+  {
+    FS_RTP_SUB_STREAM_UNLOCK(self);
     return;
-
-  FS_RTP_SUB_STREAM_UNLOCK(self);
+  }
+  else
+  {
+    FS_RTP_SUB_STREAM_UNLOCK(self);
+  }
 
   g_thread_join (self->priv->no_rtcp_timeout_thread);
 
