@@ -2239,8 +2239,6 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
 
 out:
 
-  FS_RTP_SESSION_UNLOCK (session);
-
   if (codec)
     codec = fs_codec_copy (codec);
 
