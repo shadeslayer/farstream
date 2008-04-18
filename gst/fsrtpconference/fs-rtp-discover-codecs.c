@@ -833,6 +833,8 @@ codec_cap_list_intersect (GList *list1, GList *list2)
         if (item) {
           GstCaps *new_caps = gst_caps_union (item->caps, intersection);
           GList *tmplist;
+
+          gst_caps_unref (item->caps);
           item->caps = new_caps;
 
           for (tmplist = g_list_first (codec_cap2->element_list1->data);

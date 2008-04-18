@@ -556,8 +556,9 @@ fs_rawudp_component_set_property (GObject *object,
           else
             fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
                 candidate->ip, candidate->port);
-          fs_candidate_destroy (candidate);
         }
+        if (candidate)
+          fs_candidate_destroy (candidate);
       }
       break;
     case PROP_IP:

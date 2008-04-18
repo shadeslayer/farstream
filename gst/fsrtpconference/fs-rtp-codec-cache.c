@@ -555,6 +555,7 @@ save_codecs_cache (FsMediaType media_type, GList *blueprints)
   }
 
   g_free (tmp_path);
+  g_free (cache_path);
   GST_DEBUG ("Wrote binary codecs cache");
   return TRUE;
 }
