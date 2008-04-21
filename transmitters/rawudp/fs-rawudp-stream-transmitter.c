@@ -174,7 +174,7 @@ _component_new_active_candidate_pair (FsRawUdpComponent *component,
     FsCandidate *local, FsCandidate *remote, gpointer user_data);
 static void
 _component_error (FsRawUdpComponent *component,
-    gint error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data);
+    FsError error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data);
 
 
 static GObjectClass *parent_class = NULL;
@@ -716,7 +716,7 @@ _component_new_active_candidate_pair (FsRawUdpComponent *component,
 
 static void
 _component_error (FsRawUdpComponent *component,
-    gint error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data)
+    FsError error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
 

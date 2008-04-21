@@ -83,7 +83,7 @@ static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
     GError **error);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
-                               gint error_no, gchar *error_msg,
+                               FsError error_no, gchar *error_msg,
                                gchar *debug_msg, FsBaseConference *conf);
 
 void
@@ -172,7 +172,7 @@ fs_base_conference_new_session (FsConference *conf,
 
 void
 fs_base_conference_error (GObject *signal_src, GObject *error_src,
-                          gint error_no, gchar *error_msg,
+                          FsError error_no, gchar *error_msg,
                           gchar *debug_msg, FsBaseConference *conf)
 {
   GstMessage *gst_msg = NULL;

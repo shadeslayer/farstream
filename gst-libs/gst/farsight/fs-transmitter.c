@@ -171,8 +171,8 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__OBJECT_INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_marshal_VOID__ENUM_STRING_STRING,
+      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
 
 
   gobject_class->dispose = fs_transmitter_dispose;

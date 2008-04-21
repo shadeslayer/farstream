@@ -153,8 +153,8 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_marshal_VOID__ENUM_STRING_STRING,
+      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
 
     /**
    * FsStreamTransmitter::new-active-candidate-pair:

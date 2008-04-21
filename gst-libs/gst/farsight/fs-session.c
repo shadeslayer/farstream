@@ -268,8 +268,9 @@ fs_session_class_init (FsSessionClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__OBJECT_INT_STRING_STRING,
-      G_TYPE_NONE, 4, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_marshal_VOID__OBJECT_ENUM_STRING_STRING,
+      G_TYPE_NONE, 4, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING,
+      G_TYPE_STRING);
 }
 
 static void
@@ -305,7 +306,7 @@ fs_session_set_property (GObject *object,
 
 static void
 fs_session_error_forward (GObject *signal_src,
-                          gint error_no, gchar *error_msg,
+                          FsError error_no, gchar *error_msg,
                           gchar *debug_msg, FsSession *session)
 {
   /* We just need to forward the error signal including a ref to the stream
@@ -493,7 +494,7 @@ fs_session_set_local_codecs_config (FsSession *session,
 /**
  * fs_session_emit_error:
  * @session: #FsSession on which to emit the error signal
- * @error_no: The number of the error
+ * @error_no: The number of the error of type #FsError
  * @error_msg: Error message to be displayed to user
  * @debug_msg: Debugging error message
  *

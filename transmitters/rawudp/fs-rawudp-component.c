@@ -363,8 +363,8 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       0,
       NULL,
       NULL,
-      _fs_rawudp_marshal_VOID__INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_rawudp_marshal_VOID__ENUM_STRING_STRING,
+      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
 
 
   g_type_class_add_private (klass, sizeof (FsRawUdpComponentPrivate));

@@ -37,6 +37,7 @@
 #endif
 
 #include "fs-participant.h"
+#include "fs-enum-types.h"
 #include "fs-marshal.h"
 
 /* Signals */
@@ -124,8 +125,9 @@ fs_participant_class_init (FsParticipantClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__OBJECT_INT_STRING_STRING,
-      G_TYPE_NONE, 3, G_TYPE_OBJECT, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_marshal_VOID__OBJECT_ENUM_STRING_STRING,
+      G_TYPE_NONE, 4, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING,
+      G_TYPE_STRING);
 
   gobject_class->dispose = fs_participant_dispose;
   gobject_class->finalize = fs_participant_finalize;
