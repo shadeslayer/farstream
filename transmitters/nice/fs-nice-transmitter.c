@@ -75,6 +75,7 @@ struct _FsNiceTransmitterPrivate
   GstElement **sink_tees;
 
   GMainContext *main_context;
+  GMainLoop *main_loop;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -201,6 +202,7 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->components = 2;
 
   self->priv->main_context = g_main_context_new ();
+  self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
 }
 
 static void
@@ -402,6 +404,11 @@ fs_nice_transmitter_finalize (GObject *object)
     self->priv->main_context = NULL;
   }
 
+  if (self->priv->main_loop)
+  {
+    g_main_loop_unref (self->priv->main_loop);
+    self->priv->main_loop = NULL;
+  }
 
   parent_class->finalize (object);
 }
