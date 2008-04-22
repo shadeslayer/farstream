@@ -429,6 +429,9 @@ fs_multicast_transmitter_get_property (GObject *object,
     case PROP_GST_SRC:
       g_value_set_object (value, self->priv->gst_src);
       break;
+    case PROP_COMPONENTS:
+      g_value_set_uint (value, self->components);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
