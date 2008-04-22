@@ -5,7 +5,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-multicast-transmitter.c - A Farsight Multiast UDP stream transmitter
+ * fs-multicast-stream-transmitter.c - A Farsight Multiast UDP stream transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
