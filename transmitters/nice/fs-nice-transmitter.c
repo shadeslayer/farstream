@@ -71,8 +71,8 @@ struct _FsNiceTransmitterPrivate
   /* We don't hold a reference to these elements, they are owned
      by the bins */
   /* They are tables of pointers, one per component */
-  GstElement **udpsrc_funnels;
-  GstElement **udpsink_tees;
+  GstElement **src_funnels;
+  GstElement **sink_tees;
 
   gboolean disposed;
 };
@@ -215,8 +215,8 @@ fs_nice_transmitter_constructed (GObject *object)
 
 
   /* We waste one space in order to have the index be the component_id */
-  self->priv->udpsrc_funnels = g_new0 (GstElement *, self->components+1);
-  self->priv->udpsink_tees = g_new0 (GstElement *, self->components+1);
+  self->priv->src_funnels = g_new0 (GstElement *, self->components+1);
+  self->priv->sink_tees = g_new0 (GstElement *, self->components+1);
 
   /* First we need the src elemnet */
 
@@ -254,9 +254,9 @@ fs_nice_transmitter_constructed (GObject *object)
 
     /* Lets create the RTP source funnel */
 
-    self->priv->udpsrc_funnels[c] = gst_element_factory_make ("fsfunnel", NULL);
+    self->priv->src_funnels[c] = gst_element_factory_make ("fsfunnel", NULL);
 
-    if (!self->priv->udpsrc_funnels[c]) {
+    if (!self->priv->src_funnels[c]) {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not make the fsfunnel element");
@@ -264,13 +264,13 @@ fs_nice_transmitter_constructed (GObject *object)
     }
 
     if (!gst_bin_add (GST_BIN (self->priv->gst_src),
-        self->priv->udpsrc_funnels[c])) {
+        self->priv->src_funnels[c])) {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not add the fsfunnel element to the transmitter src bin");
     }
 
-    pad = gst_element_get_static_pad (self->priv->udpsrc_funnels[c], "src");
+    pad = gst_element_get_static_pad (self->priv->src_funnels[c], "src");
     padname = g_strdup_printf ("src%d", c);
     ghostpad = gst_ghost_pad_new (padname, pad);
     g_free (padname);
@@ -282,9 +282,9 @@ fs_nice_transmitter_constructed (GObject *object)
 
     /* Lets create the RTP sink tee */
 
-    self->priv->udpsink_tees[c] = gst_element_factory_make ("tee", NULL);
+    self->priv->sink_tees[c] = gst_element_factory_make ("tee", NULL);
 
-    if (!self->priv->udpsink_tees[c]) {
+    if (!self->priv->sink_tees[c]) {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not make the tee element");
@@ -292,13 +292,13 @@ fs_nice_transmitter_constructed (GObject *object)
     }
 
     if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
-        self->priv->udpsink_tees[c])) {
+        self->priv->sink_tees[c])) {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not add the tee element to the transmitter sink bin");
     }
 
-    pad = gst_element_get_static_pad (self->priv->udpsink_tees[c], "sink");
+    pad = gst_element_get_static_pad (self->priv->sink_tees[c], "sink");
     padname = g_strdup_printf ("sink%d", c);
     ghostpad = gst_ghost_pad_new (padname, pad);
     g_free (padname);
@@ -330,7 +330,7 @@ fs_nice_transmitter_constructed (GObject *object)
         "sync" , FALSE,
         NULL);
 
-    pad = gst_element_get_request_pad (self->priv->udpsink_tees[c], "src%d");
+    pad = gst_element_get_request_pad (self->priv->sink_tees[c], "src%d");
     pad2 = gst_element_get_static_pad (fakesink, "sink");
 
     ret = gst_pad_link (pad, pad2);
@@ -380,14 +380,14 @@ fs_nice_transmitter_finalize (GObject *object)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  if (self->priv->udpsrc_funnels) {
-    g_free (self->priv->udpsrc_funnels);
-    self->priv->udpsrc_funnels = NULL;
+  if (self->priv->src_funnels) {
+    g_free (self->priv->src_funnels);
+    self->priv->src_funnels = NULL;
   }
 
-  if (self->priv->udpsink_tees) {
-    g_free (self->priv->udpsink_tees);
-    self->priv->udpsink_tees = NULL;
+  if (self->priv->sink_tees) {
+    g_free (self->priv->sink_tees);
+    self->priv->sink_tees = NULL;
   }
 
   parent_class->finalize (object);
