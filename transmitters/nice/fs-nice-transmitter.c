@@ -223,7 +223,8 @@ fs_nice_transmitter_constructed (GObject *object)
 
   self->priv->gst_src = gst_bin_new (NULL);
 
-  if (!self->priv->gst_src) {
+  if (!self->priv->gst_src)
+  {
     trans->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION,
       "Could not build the transmitter src bin");
@@ -237,7 +238,8 @@ fs_nice_transmitter_constructed (GObject *object)
 
   self->priv->gst_sink = gst_bin_new (NULL);
 
-  if (!self->priv->gst_sink) {
+  if (!self->priv->gst_sink)
+  {
     trans->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION,
       "Could not build the transmitter sink bin");
@@ -250,14 +252,16 @@ fs_nice_transmitter_constructed (GObject *object)
 
   gst_object_ref (self->priv->gst_sink);
 
-  for (c = 1; c <= self->components; c++) {
+  for (c = 1; c <= self->components; c++)
+  {
     GstElement *fakesink = NULL;
 
     /* Lets create the RTP source funnel */
 
     self->priv->src_funnels[c] = gst_element_factory_make ("fsfunnel", NULL);
 
-    if (!self->priv->src_funnels[c]) {
+    if (!self->priv->src_funnels[c])
+    {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not make the fsfunnel element");
@@ -265,7 +269,8 @@ fs_nice_transmitter_constructed (GObject *object)
     }
 
     if (!gst_bin_add (GST_BIN (self->priv->gst_src),
-        self->priv->src_funnels[c])) {
+        self->priv->src_funnels[c]))
+    {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not add the fsfunnel element to the transmitter src bin");
@@ -285,7 +290,8 @@ fs_nice_transmitter_constructed (GObject *object)
 
     self->priv->sink_tees[c] = gst_element_factory_make ("tee", NULL);
 
-    if (!self->priv->sink_tees[c]) {
+    if (!self->priv->sink_tees[c])
+    {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not make the tee element");
@@ -293,7 +299,8 @@ fs_nice_transmitter_constructed (GObject *object)
     }
 
     if (!gst_bin_add (GST_BIN (self->priv->gst_sink),
-        self->priv->sink_tees[c])) {
+        self->priv->sink_tees[c]))
+    {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not add the tee element to the transmitter sink bin");
@@ -310,7 +317,8 @@ fs_nice_transmitter_constructed (GObject *object)
 
     fakesink = gst_element_factory_make ("fakesink", NULL);
 
-    if (!fakesink) {
+    if (!fakesink)
+    {
       trans->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not make the fakesink element");
@@ -339,7 +347,8 @@ fs_nice_transmitter_constructed (GObject *object)
     gst_object_unref (pad2);
     gst_object_unref (pad);
 
-    if (GST_PAD_LINK_FAILED(ret)) {
+    if (GST_PAD_LINK_FAILED(ret))
+    {
       trans->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not link the tee to the fakesink");
@@ -355,12 +364,14 @@ fs_nice_transmitter_dispose (GObject *object)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  if (self->priv->gst_src) {
+  if (self->priv->gst_src)
+  {
     gst_object_unref (self->priv->gst_src);
     self->priv->gst_src = NULL;
   }
 
-  if (self->priv->gst_sink) {
+  if (self->priv->gst_sink)
+  {
     gst_object_unref (self->priv->gst_sink);
     self->priv->gst_sink = NULL;
   }
@@ -373,12 +384,14 @@ fs_nice_transmitter_finalize (GObject *object)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  if (self->priv->src_funnels) {
+  if (self->priv->src_funnels)
+  {
     g_free (self->priv->src_funnels);
     self->priv->src_funnels = NULL;
   }
 
-  if (self->priv->sink_tees) {
+  if (self->priv->sink_tees)
+  {
     g_free (self->priv->sink_tees);
     self->priv->sink_tees = NULL;
   }
@@ -401,7 +414,8 @@ fs_nice_transmitter_get_property (GObject *object,
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_GST_SINK:
       g_value_set_object (value, self->priv->gst_sink);
       break;
@@ -425,7 +439,8 @@ fs_nice_transmitter_set_property (GObject *object,
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_COMPONENTS:
       self->components = g_value_get_uint (value);
       break;

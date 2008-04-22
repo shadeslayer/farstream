@@ -204,7 +204,8 @@ fs_nice_stream_transmitter_set_property (GObject *object,
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
 
-  switch (prop_id) {
+  switch (prop_id)
+  {
     case PROP_SENDING:
       self->priv->sending = g_value_get_boolean (value);
       break;
@@ -252,7 +253,8 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
   streamtransmitter = g_object_newv (FS_TYPE_NICE_STREAM_TRANSMITTER,
     n_parameters, parameters);
 
-  if (!streamtransmitter) {
+  if (!streamtransmitter)
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not build the stream transmitter");
     return NULL;
@@ -260,7 +262,8 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
 
   streamtransmitter->priv->transmitter = transmitter;
 
-  if (!fs_nice_stream_transmitter_build (streamtransmitter, error)) {
+  if (!fs_nice_stream_transmitter_build (streamtransmitter, error))
+  {
     g_object_unref (streamtransmitter);
     return NULL;
   }
