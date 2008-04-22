@@ -214,7 +214,7 @@ AC_CHECK_MEMBER([struct ip_mreqn.imr_ifindex],
 #include <sys/socket.h>
 #include <netinet/in.h>
 ])
-			 
+
 
 dnl *** checks for compiler characteristics ***
 
@@ -358,7 +358,7 @@ AC_ARG_ENABLE([python],
 if test "x$WANT_PYTHON" = "xyes"; then
    AM_PATH_PYTHON
    AM_CHECK_PYTHON_HEADERS(,[AC_MSG_ERROR(could not find Python headers)])
-   PKG_CHECK_MODULES(PYFARSIGHT, [ 	pygobject-2.0 >= 2.12.0 
+   PKG_CHECK_MODULES(PYFARSIGHT, [ 	pygobject-2.0 >= 2.12.0
 					gst-python-0.10 >= 0.10.10
 					pygtk-2.0 >= 2.10 ] )
 fi
