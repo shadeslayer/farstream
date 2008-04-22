@@ -63,8 +63,6 @@ enum
 
 struct _FsNiceStreamTransmitterPrivate
 {
-  gboolean disposed;
-
   /* We don't actually hold a ref to this,
    * But since our parent FsStream can not exist without its parent
    * FsSession, we should be safe
@@ -157,7 +155,6 @@ fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self)
 {
   /* member init */
   self->priv = FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
 
   self->priv->sending = TRUE;
 }
@@ -165,14 +162,8 @@ fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self)
 static void
 fs_nice_stream_transmitter_dispose (GObject *object)
 {
-  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
+  //FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
 
-  if (self->priv->disposed)
-    /* If dispose did already run, return. */
-    return;
-
-  /* Make sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
 
   parent_class->dispose (object);
 }

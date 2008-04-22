@@ -73,8 +73,6 @@ struct _FsNiceTransmitterPrivate
   /* They are tables of pointers, one per component */
   GstElement **src_funnels;
   GstElement **sink_tees;
-
-  gboolean disposed;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -197,7 +195,6 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
 
   /* member init */
   self->priv = FS_NICE_TRANSMITTER_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
 
   self->components = 2;
 }
@@ -354,11 +351,6 @@ fs_nice_transmitter_dispose (GObject *object)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  if (self->priv->disposed) {
-    /* If dispose did already run, return. */
-    return;
-  }
-
   if (self->priv->gst_src) {
     gst_object_unref (self->priv->gst_src);
     self->priv->gst_src = NULL;
@@ -368,9 +360,6 @@ fs_nice_transmitter_dispose (GObject *object)
     gst_object_unref (self->priv->gst_sink);
     self->priv->gst_sink = NULL;
   }
-
-  /* Make sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
 
   parent_class->dispose (object);
 }
