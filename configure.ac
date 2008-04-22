@@ -141,7 +141,8 @@ dnl *** path for our local plugins ***
 dnl these are all the transmitter plug-ins
 FS2_TRANSMITTER_PLUGINS_ALL=" \
 	rawudp \
-	multicast
+	multicast \
+	nice
 	"
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_ALL)
 
@@ -159,6 +160,25 @@ AC_ARG_WITH(transmitter-plugins,
         fi
     done],
     [FS2_TRANSMITTER_PLUGINS_SELECTED=$FS2_TRANSMITTER_PLUGINS_ALL])
+
+
+
+dnl check for libnice
+if echo $FS2_TRANSMITTER_PLUGINS_SELECTED | grep -qi nice; then
+
+  NICE_REQUIRED=0.0.1
+
+  PKG_CHECK_MODULES(NICE, \
+       nice >= $NICE_REQUIRED,
+       HAVE_NICE=yes,
+       HAVE_NICE=no)
+  AC_SUBST(NICE_CFLAGS)
+  AC_SUBST(NICE_LIBS)
+else
+  AC_MSG_NOTICE(nice transmitter disabled by user request)
+fi
+
+AM_CONDITIONAL(USE_NICE, test "x$HAVE_NICE" == "xyes")
 
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_SELECTED)
 
@@ -407,6 +427,7 @@ gst-libs/gst/farsight/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile
+transmitters/nice/Makefile
 dnl pkgconfig/Makefile
 dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc
