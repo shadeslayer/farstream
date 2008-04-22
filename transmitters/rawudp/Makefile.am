@@ -26,7 +26,7 @@ noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
 	fs-rawudp-component.h \
-	fs-interfaces.h \	
+	fs-interfaces.h \
 	fs-rawudp-marshal.h \
 	stun.h
 
