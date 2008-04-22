@@ -73,6 +73,8 @@ struct _FsNiceTransmitterPrivate
   /* They are tables of pointers, one per component */
   GstElement **src_funnels;
   GstElement **sink_tees;
+
+  GMainContext *main_context;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -197,6 +199,8 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv = FS_NICE_TRANSMITTER_GET_PRIVATE (self);
 
   self->components = 2;
+
+  self->priv->main_context = g_main_context_new ();
 }
 
 static void
@@ -378,6 +382,13 @@ fs_nice_transmitter_finalize (GObject *object)
     g_free (self->priv->sink_tees);
     self->priv->sink_tees = NULL;
   }
+
+  if (self->priv->main_context)
+  {
+    g_main_context_unref (self->priv->main_context);
+    self->priv->main_context = NULL;
+  }
+
 
   parent_class->finalize (object);
 }
