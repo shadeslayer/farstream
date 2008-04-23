@@ -90,7 +90,28 @@ GType fs_nice_stream_transmitter_get_type (void);
 
 FsNiceStreamTransmitter *
 fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
-  guint n_parameters, GParameter *parameters, GError **error);
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error);
+
+
+void fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
+    guint component_id,
+    guint state);
+
+
+void fs_nice_stream_transmitter_selected_pair (
+    FsNiceStreamTransmitter *self,
+    guint component_id,
+    const gchar *lfoundation,
+    const gchar *rfoundation);
+
+
+void fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
+    guint component_id,
+    const gchar *foundation);
+
+
 
 G_END_DECLS
 

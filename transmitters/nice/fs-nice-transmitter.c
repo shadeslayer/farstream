@@ -506,10 +506,39 @@ fs_nice_transmitter_set_property (GObject *object,
   }
 }
 
+static FsNiceStreamTransmitter *
+get_stream_transmitter (FsNiceTransmitter *self, guint stream_id)
+{
+  FsNiceStreamTransmitter *st = NULL;
+
+  FS_NICE_TRANSMITTER_LOCK (self);
+  if (stream_id < self->priv->streams->len)
+    st = g_array_index(self->priv->streams, gpointer, stream_id);
+
+  if (st)
+    g_object_ref (st);
+  FS_NICE_TRANSMITTER_UNLOCK (self);
+
+  return st;
+}
+
 static void
 agent_component_state_changed (NiceAgent *agent, guint stream_id,
-    guint component_id, guint state, gchar user_data)
+    guint component_id, guint state, gpointer user_data)
 {
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
+  FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
+
+  if (!st)
+  {
+    fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
+        "Receiving signal with invalid stream id", NULL);
+    return;
+  }
+
+  fs_nice_stream_transmitter_state_changed (st, component_id, state);
+
+  g_object_unref (st);
 }
 
 
@@ -523,6 +552,20 @@ agent_new_selected_pair (NiceAgent *agent, guint stream_id,
     guint component_id, gchar *lfoundation, gchar *rfoundation,
     gpointer user_data)
 {
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
+  FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
+
+  if (!st)
+  {
+    fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
+        "Receiving signal with invalid stream id", NULL);
+    return;
+  }
+
+  fs_nice_stream_transmitter_selected_pair (st, component_id,
+      lfoundation, rfoundation);
+
+  g_object_unref (st);
 }
 
 
@@ -530,6 +573,19 @@ static void
 agent_new_candidate (NiceAgent *agent, guint stream_id,
     guint component_id, gchar *foundation, gpointer user_data)
 {
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
+  FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
+
+  if (!st)
+  {
+    fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
+        "Receiving signal with invalid stream id", NULL);
+    return;
+  }
+
+  fs_nice_stream_transmitter_new_candidate (st, component_id, foundation);
+
+  g_object_unref (st);
 }
 
 
