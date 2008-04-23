@@ -108,9 +108,14 @@ FsStreamTransmitter *fs_transmitter_new_stream_transmitter (
 FsTransmitter *fs_transmitter_new (const gchar *type, guint components,
   GError **error);
 
-GType
-fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
+GType fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
     GError **error);
+
+void fs_transmitter_emit_error (FsTransmitter *transmitter,
+    gint error_no,
+    gchar *error_msg,
+    gchar *debug_msg);
+
 
 G_END_DECLS
 

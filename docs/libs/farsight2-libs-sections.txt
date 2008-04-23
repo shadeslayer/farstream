@@ -157,6 +157,7 @@ FsTransmitterClass
 fs_transmitter_new
 fs_transmitter_new_stream_transmitter
 fs_transmitter_get_stream_transmitter_type
+fs_transmitter_emit_error
 <SUBSECTION Standard>
 FS_IS_TRANSMITTER
 FS_IS_TRANSMITTER_CLASS

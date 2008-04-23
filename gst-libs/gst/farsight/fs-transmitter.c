@@ -326,3 +326,22 @@ fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
 
   return 0;
 }
+
+
+/**
+ * fs_transmitter_emit_error:
+ * @transmitter: #FsTransmitter on which to emit the error signal
+ * @error_no: The number of the error
+ * @error_msg: Error message to be displayed to user
+ * @debug_msg: Debugging error message
+ *
+ * This function emit the "error" signal on a #FsTransmitter, it should
+ * only be called by subclasses.
+ */
+void
+fs_transmitter_emit_error (FsTransmitter *transmitter,
+  gint error_no, gchar *error_msg, gchar *debug_msg)
+{
+  g_signal_emit (transmitter, signals[ERROR_SIGNAL], 0, error_no,
+      error_msg, debug_msg);
+}
