@@ -77,6 +77,8 @@ struct _FsNiceTransmitterPrivate
   GMainContext *main_context;
   GMainLoop *main_loop;
 
+  NiceAgent *agent;
+
   guint compatiblity_mode;
 };
 
@@ -380,6 +382,12 @@ fs_nice_transmitter_dispose (GObject *object)
   {
     gst_object_unref (self->priv->gst_sink);
     self->priv->gst_sink = NULL;
+  }
+
+  if (self->priv->agent)
+  {
+    g_object_unref (self->priv->agent);
+    self->priv->agent = NULL;
   }
 
   parent_class->dispose (object);
