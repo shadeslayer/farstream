@@ -493,6 +493,32 @@ fs_nice_transmitter_set_property (GObject *object,
   }
 }
 
+static void
+agent_component_state_changed (NiceAgent *agent, guint stream_id,
+    guint component_id, guint state, gchar user_data)
+{
+}
+
+
+static void
+agent_candidate_gathering_done (NiceAgent *agent, gpointer user_data)
+{
+}
+
+static void
+agent_new_selected_pair (NiceAgent *agent, guint stream_id,
+    guint component_id, gchar *lfoundation, gchar *rfoundation,
+    gpointer user_data)
+{
+}
+
+
+static void
+agent_new_candidate (NiceAgent *agent, guint stream_id,
+    guint component_id, gchar *foundation, gpointer user_data)
+{
+}
+
 
 static gpointer
 fs_nice_transmitter_main_thread (gpointer data)
@@ -589,6 +615,15 @@ fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
   self->priv->agent = nice_agent_new (&self->priv->udpfactory,
       self->priv->main_context,
       self->priv->compatiblity_mode);
+
+  g_signal_connect (self->priv->agent, "component-state-changed",
+      G_CALLBACK (agent_component_state_changed), self);
+  g_signal_connect (self->priv->agent, "candidate-gathering-done",
+      G_CALLBACK (agent_candidate_gathering_done), self);
+  g_signal_connect (self->priv->agent, "new-selected-pair",
+      G_CALLBACK (agent_new_selected_pair), self);
+  g_signal_connect (self->priv->agent, "new-candidate",
+      G_CALLBACK (agent_new_candidate), self);
 
   return fs_nice_transmitter_start_thread (self, error);
 }
