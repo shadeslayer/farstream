@@ -41,6 +41,9 @@
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-plugin.h>
 
+#include <agent.h>
+#include <udp-bsd.h>
+
 #include <string.h>
 #include <sys/types.h>
 
@@ -79,9 +82,15 @@ struct _FsNiceTransmitterPrivate
 
   NiceAgent *agent;
 
+  NiceUDPSocketFactory udpfactory;
+
   guint compatiblity_mode;
 
   GMutex *mutex;
+
+  /* Everything below is protected by the mutex */
+
+  GThread *thread;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -110,6 +119,9 @@ static FsStreamTransmitter *fs_nice_transmitter_new_stream_transmitter (
 static GType fs_nice_transmitter_get_stream_transmitter_type (
     FsTransmitter *transmitter,
     GError **error);
+
+static void fs_nice_transmitter_stop_thread (FsNiceTransmitter *self);
+
 
 static GObjectClass *parent_class = NULL;
 //static guint signals[LAST_SIGNAL] = { 0 };
@@ -213,6 +225,8 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
 
   self->priv->compatiblity_mode = G_MAXUINT;
+
+  nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
 }
 
 static void
@@ -376,6 +390,8 @@ fs_nice_transmitter_dispose (GObject *object)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
+  fs_nice_transmitter_stop_thread (self);
+
   if (self->priv->gst_src)
   {
     gst_object_unref (self->priv->gst_src);
@@ -428,6 +444,8 @@ fs_nice_transmitter_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
+  nice_udp_socket_factory_close (&self->priv->udpfactory);
+
   parent_class->finalize (object);
 }
 
@@ -475,6 +493,105 @@ fs_nice_transmitter_set_property (GObject *object,
   }
 }
 
+
+static gpointer
+fs_nice_transmitter_main_thread (gpointer data)
+{
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
+
+  g_main_loop_run (self->priv->main_loop);
+
+  return NULL;
+}
+
+
+static gboolean
+fs_nice_transmitter_start_thread (FsNiceTransmitter *self, GError **error)
+{
+  gboolean ret = FALSE;
+
+  g_mutex_lock (self->priv->mutex);
+  if (self->priv->mutex)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Thread already started??");
+    goto done;
+  }
+
+  self->priv->thread = g_thread_create (fs_nice_transmitter_main_thread,
+      self, TRUE, error);
+
+  if (!self->priv->thread)
+    goto done;
+
+  ret = TRUE;
+
+ done:
+
+  g_mutex_unlock (self->priv->mutex);
+
+  return ret;
+}
+
+static gboolean
+thread_unlock_idler (gpointer data)
+{
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
+
+  g_main_loop_quit (self->priv->main_loop);
+
+  return TRUE;
+}
+
+static void
+fs_nice_transmitter_stop_thread (FsNiceTransmitter *self)
+{
+  GSource *idle_source;
+
+  g_mutex_lock (self->priv->mutex);
+
+  if (self->priv->thread == NULL)
+  {
+    g_mutex_unlock (self->priv->mutex);
+    return;
+  }
+  g_mutex_unlock (self->priv->mutex);
+
+  g_main_loop_quit (self->priv->main_loop);
+
+  idle_source = g_idle_source_new ();
+  g_source_set_priority (idle_source, G_PRIORITY_HIGH);
+  g_source_set_callback (idle_source, thread_unlock_idler, self, NULL);
+  g_source_attach (idle_source, self->priv->main_context);
+
+  g_thread_join (self->priv->thread);
+
+  g_mutex_lock (self->priv->mutex);
+  self->priv->thread = NULL;
+  g_mutex_unlock (self->priv->mutex);
+}
+
+
+static gboolean
+fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
+{
+
+  if (self->priv->thread)
+  {
+    g_mutex_unlock (self->priv->mutex);
+    return TRUE;
+  }
+  else
+  {
+    g_mutex_unlock (self->priv->mutex);
+  }
+
+  self->priv->agent = nice_agent_new (&self->priv->udpfactory,
+      self->priv->main_context,
+      self->priv->compatiblity_mode);
+
+  return fs_nice_transmitter_start_thread (self, error);
+}
 
 /**
  * fs_nice_transmitter_new_stream_nice_transmitter:
@@ -529,6 +646,10 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
       break;
     }
   }
+
+
+  if (!fs_nice_transmitter_start (self, error))
+    return NULL;
 
   return FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
         self, n_parameters, parameters, error));
