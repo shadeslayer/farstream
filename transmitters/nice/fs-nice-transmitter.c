@@ -101,6 +101,10 @@ struct _FsNiceTransmitterPrivate
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_NICE_TRANSMITTER, \
     FsNiceTransmitterPrivate))
 
+
+#define FS_NICE_TRANSMITTER_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
+#define FS_NICE_TRANSMITTER_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
+
 static void fs_nice_transmitter_class_init (
     FsNiceTransmitterClass *klass);
 static void fs_nice_transmitter_init (FsNiceTransmitter *self);
@@ -545,7 +549,7 @@ fs_nice_transmitter_start_thread (FsNiceTransmitter *self, GError **error)
 {
   gboolean ret = FALSE;
 
-  g_mutex_lock (self->priv->mutex);
+  FS_NICE_TRANSMITTER_LOCK (self);
   if (self->priv->mutex)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
@@ -563,7 +567,7 @@ fs_nice_transmitter_start_thread (FsNiceTransmitter *self, GError **error)
 
  done:
 
-  g_mutex_unlock (self->priv->mutex);
+  FS_NICE_TRANSMITTER_UNLOCK (self);
 
   return ret;
 }
@@ -583,14 +587,14 @@ fs_nice_transmitter_stop_thread (FsNiceTransmitter *self)
 {
   GSource *idle_source;
 
-  g_mutex_lock (self->priv->mutex);
+  FS_NICE_TRANSMITTER_LOCK(self);
 
   if (self->priv->thread == NULL)
   {
-    g_mutex_unlock (self->priv->mutex);
+    FS_NICE_TRANSMITTER_UNLOCK (self);
     return;
   }
-  g_mutex_unlock (self->priv->mutex);
+  FS_NICE_TRANSMITTER_UNLOCK (self);
 
   g_main_loop_quit (self->priv->main_loop);
 
@@ -601,9 +605,9 @@ fs_nice_transmitter_stop_thread (FsNiceTransmitter *self)
 
   g_thread_join (self->priv->thread);
 
-  g_mutex_lock (self->priv->mutex);
+  FS_NICE_TRANSMITTER_LOCK (self);
   self->priv->thread = NULL;
-  g_mutex_unlock (self->priv->mutex);
+  FS_NICE_TRANSMITTER_UNLOCK (self);
 }
 
 
@@ -611,14 +615,15 @@ static gboolean
 fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
 {
 
+  FS_NICE_TRANSMITTER_LOCK (self);
   if (self->priv->thread)
   {
-    g_mutex_unlock (self->priv->mutex);
+    FS_NICE_TRANSMITTER_UNLOCK (self);
     return TRUE;
   }
   else
   {
-    g_mutex_unlock (self->priv->mutex);
+    FS_NICE_TRANSMITTER_UNLOCK (self);
   }
 
   self->priv->agent = nice_agent_new (&self->priv->udpfactory,
@@ -711,12 +716,12 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 
   if (st)
   {
-    g_mutex_lock (self->priv->mutex);
+    FS_NICE_TRANSMITTER_LOCK (self);
     stream_id = self->priv->next_stream_id++;
     g_array_insert_val (self->priv->streams, stream_id, st);
     g_object_weak_ref (G_OBJECT (st), stream_transmitter_destroyed,
         &g_array_index (self->priv->streams, gpointer, stream_id));
-    g_mutex_unlock (self->priv->mutex);
+    FS_NICE_TRANSMITTER_UNLOCK (self);
   }
 
   return st;
