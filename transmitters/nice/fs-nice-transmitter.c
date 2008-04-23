@@ -76,6 +76,8 @@ struct _FsNiceTransmitterPrivate
 
   GMainContext *main_context;
   GMainLoop *main_loop;
+
+  guint compatiblity_mode;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -203,6 +205,8 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
 
   self->priv->main_context = g_main_context_new ();
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
+
+  self->priv->compatiblity_mode = G_MAXUINT;
 }
 
 static void
@@ -476,6 +480,41 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   GError **error)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (transmitter);
+  int i;
+  guint mode;
+
+  for (i=0; i < n_parameters; i++)
+  {
+    if (!strcmp ("compatibility-mode", parameters[i].name))
+    {
+      if (!G_VALUE_HOLDS_UINT (&parameters[i].value))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "compatibility-mode should be of type uint");
+        return NULL;
+      }
+
+      mode = g_value_get_uint (&parameters[i].value);
+
+      if (self->priv->compatiblity_mode == G_MAXUINT)
+      {
+        self->priv->compatiblity_mode = mode;
+      }
+      else
+      {
+        if (self->priv->compatiblity_mode != mode)
+        {
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "All streams within the same session MUST have the same"
+              " compatibility mode, you passed %u, but you already had %u",
+              mode, self->priv->compatiblity_mode);
+          return NULL;
+        }
+      }
+
+      break;
+    }
+  }
 
   return FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
         self, n_parameters, parameters, error));
