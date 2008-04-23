@@ -91,6 +91,10 @@ struct _FsNiceTransmitterPrivate
   /* Everything below is protected by the mutex */
 
   GThread *thread;
+
+  GArray *streams;
+
+  guint next_stream_id;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -225,6 +229,9 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
 
   self->priv->compatiblity_mode = G_MAXUINT;
+
+  self->priv->next_stream_id = 1;
+  self->priv->streams = g_array_new (TRUE, TRUE, sizeof (gpointer));
 
   nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
 }
@@ -444,6 +451,8 @@ fs_nice_transmitter_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
+  g_array_free (self->priv->streams, TRUE);
+
   nice_udp_socket_factory_close (&self->priv->udpfactory);
 
   parent_class->finalize (object);
@@ -628,6 +637,15 @@ fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
   return fs_nice_transmitter_start_thread (self, error);
 }
 
+void
+stream_transmitter_destroyed (gpointer data, GObject *obj_addr)
+{
+  GObject **ptr = data;
+
+  if (*ptr == obj_addr)
+    *ptr = NULL;
+}
+
 /**
  * fs_nice_transmitter_new_stream_nice_transmitter:
  * @transmitter: a #FsTranmitter
@@ -646,8 +664,10 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   GError **error)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (transmitter);
+  FsStreamTransmitter *st = NULL;
   int i;
   guint mode;
+  guint stream_id;
 
   for (i=0; i < n_parameters; i++)
   {
@@ -686,8 +706,20 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   if (!fs_nice_transmitter_start (self, error))
     return NULL;
 
-  return FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
-        self, n_parameters, parameters, error));
+  st = FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
+          self, n_parameters, parameters, error));
+
+  if (st)
+  {
+    g_mutex_lock (self->priv->mutex);
+    stream_id = self->priv->next_stream_id++;
+    g_array_insert_val (self->priv->streams, stream_id, st);
+    g_object_weak_ref (G_OBJECT (st), stream_transmitter_destroyed,
+        &g_array_index (self->priv->streams, gpointer, stream_id));
+    g_mutex_unlock (self->priv->mutex);
+  }
+
+  return st;
 }
 
 static GType
