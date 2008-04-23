@@ -80,6 +80,8 @@ struct _FsNiceTransmitterPrivate
   NiceAgent *agent;
 
   guint compatiblity_mode;
+
+  GMutex *mutex;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -204,6 +206,8 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv = FS_NICE_TRANSMITTER_GET_PRIVATE (self);
 
   self->components = 2;
+
+  self->priv->mutex = g_mutex_new ();
 
   self->priv->main_context = g_main_context_new ();
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
@@ -421,6 +425,8 @@ fs_nice_transmitter_finalize (GObject *object)
     g_main_loop_unref (self->priv->main_loop);
     self->priv->main_loop = NULL;
   }
+
+  g_mutex_free (self->priv->mutex);
 
   parent_class->finalize (object);
 }
