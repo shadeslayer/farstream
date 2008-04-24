@@ -1,5 +1,5 @@
 /*
- * farsight-interfaces.c - Source for interface discovery code
+ * fs-interfaces.c - Source for interface discovery code
  *
  * Farsight Helper functions
  * Copyright (C) 2006 Youness Alaoui <kakaroto@kakaroto.homelinux.net>
@@ -51,7 +51,7 @@ GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
 #include <arpa/inet.h>
 
 /**
- * farsight_get_local_interfaces:
+ * fs_interfaces_get_local_interfaces:
  *
  * Get the list of local interfaces
  *
@@ -59,7 +59,7 @@ GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
  */
 #ifdef HAVE_GETIFADDRS
 GList *
-farsight_get_local_interfaces (void)
+fs_interfaces_get_local_interfaces (void)
 {
   GList *interfaces = NULL;
   struct ifaddrs *ifa, *results;
@@ -89,7 +89,7 @@ farsight_get_local_interfaces (void)
 #else /* ! HAVE_GETIFADDRS */
 
 GList *
-farsight_get_local_interfaces (void)
+fs_interfaces_get_local_interfaces (void)
 {
   GList *interfaces = NULL;
   gint sockfd;
@@ -142,7 +142,7 @@ farsight_get_local_interfaces (void)
 
 
 static gboolean
-farsight_is_private_ip (const struct in_addr in)
+fs_interfaces_is_private_ip (const struct in_addr in)
 {
   /* 10.x.x.x/8 */
   if (in.s_addr >> 24 == 0x0A)
@@ -164,7 +164,7 @@ farsight_is_private_ip (const struct in_addr in)
 }
 
 /**
- * farsight_get_local_ips:
+ * fs_interfaces_get_local_ips:
  * @include_loopback: Include any loopback devices
  *
  * Get a list of local ip4 interface addresses
@@ -175,7 +175,7 @@ farsight_is_private_ip (const struct in_addr in)
 #ifdef HAVE_GETIFADDRS
 
 GList *
-farsight_get_local_ips (gboolean include_loopback)
+fs_interfaces_get_local_ips (gboolean include_loopback)
 {
   GList *ips = NULL;
   struct sockaddr_in *sa;
@@ -209,7 +209,7 @@ farsight_get_local_ips (gboolean include_loopback)
     }
     else
     {
-      if (farsight_is_private_ip (sa->sin_addr))
+      if (fs_interfaces_is_private_ip (sa->sin_addr))
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
       else
         ips = g_list_prepend (ips, g_strdup (inet_ntoa (sa->sin_addr)));
@@ -227,7 +227,7 @@ farsight_get_local_ips (gboolean include_loopback)
 #else /* ! HAVE_GETIFADDRS */
 
 GList *
-farsight_get_local_ips (gboolean include_loopback)
+fs_interfaces_get_local_ips (gboolean include_loopback)
 {
   GList *ips = NULL;
   gint sockfd;
@@ -285,7 +285,7 @@ farsight_get_local_ips (gboolean include_loopback)
       else
         GST_DEBUG ("Ignoring loopback interface");
     } else {
-      if (farsight_is_private_ip (sa->sin_addr)) {
+      if (fs_interfaces_is_private_ip (sa->sin_addr)) {
         ips = g_list_append (ips, g_strdup (inet_ntoa (sa->sin_addr)));
       } else {
         ips = g_list_prepend (ips, g_strdup (inet_ntoa (sa->sin_addr)));
@@ -306,7 +306,7 @@ farsight_get_local_ips (gboolean include_loopback)
 
 
 /**
- * farsight_get_ip_for_interface:
+ * fs_interfaces_get_ip_for_interface:
  * @interface_name: name of local interface
  *
  * Retreives the IP Address of an interface by its name
@@ -314,7 +314,7 @@ farsight_get_local_ips (gboolean include_loopback)
  * Returns: a newly-allocated string with the IP address
  **/
 gchar *
-farsight_get_ip_for_interface (gchar *interface_name)
+fs_interfaces_get_ip_for_interface (gchar *interface_name)
 {
   struct ifreq ifr;
   struct sockaddr_in *sa;
@@ -355,7 +355,7 @@ static gboolean started_wsa_engine = FALSE;
  * private function that initializes the WinSock engine and
  *  returns a prebuilt socket
  **/
-SOCKET farsight_get_WSA_socket ()
+SOCKET fs_interfaces_get_WSA_socket ()
 {
   WORD wVersionRequested;
   WSADATA wsaData;
@@ -383,13 +383,13 @@ SOCKET farsight_get_WSA_socket ()
 }
 
 /**
- * farsight_get_local_interfaces:
+ * fs_interfaces_get_local_interfaces:
  *
  * Get the list of local interfaces
  *
  * Returns: a #GList of strings.
  */
-GList * farsight_get_local_interfaces ()
+GList * fs_interfaces_get_local_interfaces ()
 {
   ULONG size = 0;
   PMIB_IFTABLE if_table;
@@ -417,14 +417,14 @@ GList * farsight_get_local_interfaces ()
 }
 
 /**
- * farsight_get_local_ips:
+ * fs_interfaces_get_local_ips:
  * @include_loopback: Include any loopback devices
  *
  * Get a list of local ip4 interface addresses
  *
  * Returns: A #GList of strings
  */
-GList * farsight_get_local_ips (gboolean include_loopback)
+GList * fs_interfaces_get_local_ips (gboolean include_loopback)
 {
   ULONG size = 0;
   DWORD pref = 0;
@@ -527,14 +527,14 @@ win32_get_ip_for_interface (IF_INDEX idx)
 }
 
 /**
- * farsight_get_ip_for_interface:
+ * fs_interfaces_get_ip_for_interface:
  * @interface_name: name of local interface
  *
  * Retreives the IP Address of an interface by its name
  *
  * Returns: a newly-allocated string with the IP address
  **/
-gchar * farsight_get_ip_for_interface (gchar *interface_name)
+gchar * fs_interfaces_get_ip_for_interface (gchar *interface_name)
 {
   ULONG size = 0;
   PMIB_IFTABLE if_table;

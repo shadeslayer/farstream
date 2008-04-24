@@ -26,9 +26,9 @@
 
 G_BEGIN_DECLS
 
-gchar * farsight_get_ip_for_interface (gchar *interface_name);
-GList * farsight_get_local_ips (gboolean include_loopback);
-GList * farsight_get_local_interfaces (void);
+gchar * fs_interfaces_get_ip_for_interface (gchar *interface_name);
+GList * fs_interfaces_get_local_ips (gboolean include_loopback);
+GList * fs_interfaces_get_local_interfaces (void);
 
 G_END_DECLS
 

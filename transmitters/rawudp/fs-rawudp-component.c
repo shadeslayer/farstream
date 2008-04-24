@@ -1025,7 +1025,7 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
 
   port = fs_rawudp_transmitter_udpport_get_port (self->priv->udpport);
 
-  ips = farsight_get_local_ips (TRUE);
+  ips = fs_interfaces_get_local_ips (TRUE);
 
   for (current = g_list_first (ips);
        current;
