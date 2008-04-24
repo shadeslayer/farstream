@@ -27,18 +27,18 @@
     </chapter>
   </part>
   <part>
-    <title>Classes used implements Farsight plugins</title>
+    <title>Classes used to implement Farsight plugins</title>
     <chapter>
-      <title>Farsight GStreamer Base Implementations</title>
+      <title>Farsight Classes Base Implementations</title>
       <xi:include href="xml/fs-base-conference.xml"/>
     </chapter>
     <chapter>
-      <title>Farsight Transmitter objects</title> 
+      <title>Farsight Transmitter Classes</title> 
       <xi:include href="xml/fs-transmitter.xml"/>
       <xi:include href="xml/fs-stream-transmitter.xml"/>
     </chapter>
     <chapter>
-      <title>Farsight Plugins infrastructure</title>
+      <title>Farsight Plugins Infrastructure</title>
       <xi:include href="xml/fs-plugin.xml"/>
     </chapter>
   </part>
