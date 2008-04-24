@@ -65,8 +65,8 @@ enum
   PROP_TURN_IP,
   PROP_TURN_PORT,
   PROP_CONTROLLING_MODE,
-  PROP_COMPATIBILITY,
-  PROP_STREAM_ID
+  PROP_STREAM_ID,
+  PROP_COMPATIBILITY_MODE
 };
 
 struct _FsNiceStreamTransmitterPrivate
@@ -80,7 +80,6 @@ struct _FsNiceStreamTransmitterPrivate
   gchar *turn_ip;
   guint turn_port;
 
-  gboolean compatibility;
   gboolean controlling_mode;
 
   GMutex *mutex;
@@ -237,6 +236,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "Whether the agent is in controlling mode",
           TRUE,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
+
   g_object_class_install_property (gobject_class, PROP_STREAM_ID,
       g_param_spec_uint (
           "stream-id",
@@ -246,6 +246,14 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           0,
           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
+  g_object_class_install_property (gobject_class, PROP_COMPATIBILITY_MODE,
+      g_param_spec_uint (
+          "compatibility-mode",
+          "The compability-mode",
+          "The id of the stream according to libnice",
+          NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
+          NICE_COMPATIBILITY_ID19,
+          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -399,6 +407,9 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       if (self->priv->transmitter->agent)
         g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
             g_param_spec_get_name (pspec), value);
+      break;
+    case PROP_COMPATIBILITY_MODE:
+      /* ignore it here, its been intercepted by our parent */
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

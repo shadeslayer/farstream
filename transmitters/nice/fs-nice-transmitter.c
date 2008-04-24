@@ -768,6 +768,9 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
     }
   }
 
+  if (self->priv->compatiblity_mode == G_MAXUINT)
+    self->priv->compatiblity_mode = NICE_COMPATIBILITY_ID19;
+
 
   if (!fs_nice_transmitter_start (self, error))
     return NULL;
