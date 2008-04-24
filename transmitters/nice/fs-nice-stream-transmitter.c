@@ -511,6 +511,8 @@ fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
     guint component_id,
     guint state)
 {
+  g_debug ("State of nicetransmitter for stream %u component %u changed to %u",
+      self->priv->stream_id, component_id, state);
 }
 
 
