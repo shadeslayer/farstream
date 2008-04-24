@@ -91,6 +91,10 @@ struct _FsNiceStreamTransmitterPrivate
   /* Everything below is protected by the mutex */
 
   gboolean gathered;
+
+  gboolean candidates_added;
+
+  GList *candidates_to_set;
 };
 
 #define FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -377,6 +381,72 @@ fs_nice_stream_transmitter_set_property (GObject *object,
   }
 }
 
+
+static NiceCandidateType
+fs_candidate_type_to_nice_candidate_type (FsCandidateType type)
+{
+  switch (type)
+  {
+    case FS_CANDIDATE_TYPE_HOST:
+      return NICE_CANDIDATE_TYPE_HOST;
+    case FS_CANDIDATE_TYPE_SRFLX:
+      return NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+    case FS_CANDIDATE_TYPE_PRFLX:
+      return NICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
+    case FS_CANDIDATE_TYPE_RELAY:
+      return NICE_CANDIDATE_TYPE_RELAYED;
+    default:
+      GST_WARNING ("Invalid candidate type %d, defaulting to type host", type);
+      return NICE_CANDIDATE_TYPE_HOST;
+  }
+}
+
+static NiceCandidateTransport
+fs_network_protocol_to_nice_candidate_protocol (FsNetworkProtocol proto)
+{
+  switch (proto)
+  {
+    case FS_NETWORK_PROTOCOL_UDP:
+      return NICE_CANDIDATE_TRANSPORT_UDP;
+    default:
+      GST_WARNING ("Invalid Fs network protocol type %u", proto);
+      return NICE_CANDIDATE_TRANSPORT_UDP;
+  }
+}
+
+static NiceCandidate *
+fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
+    FsCandidate *candidate)
+{
+  NiceCandidate *nc = g_new0 (NiceCandidate, 1);
+
+  nc->type = fs_candidate_type_to_nice_candidate_type (candidate->type);
+  nc->transport =
+    fs_network_protocol_to_nice_candidate_protocol (candidate->proto);
+  nc->priority = candidate->priority;
+  nc->stream_id = self->priv->stream_id;
+  nc->component_id = candidate->component_id;
+  strncpy (nc->foundation, candidate->foundation,
+      NICE_CANDIDATE_MAX_FOUNDATION);
+  nc->username = (gchar*) candidate->username;
+  nc->password = (gchar*) candidate->username;
+
+  if (candidate->ip)
+    if (!nice_address_set_from_string (&nc->addr, candidate->ip))
+      goto error;
+  nice_address_set_port (&nc->addr, candidate->port);
+  if (candidate->base_ip)
+    if (!nice_address_set_from_string (&nc->base_addr, candidate->base_ip))
+      goto error;
+  nice_address_set_port (&nc->base_addr, candidate->base_port);
+
+  return nc;
+
+ error:
+  g_free (nc);
+  return NULL;
+}
+
 /**
  * fs_nice_stream_transmitter_add_remote_candidate
  * @streamtransmitter: a #FsStreamTransmitter
@@ -394,6 +464,45 @@ fs_nice_stream_transmitter_add_remote_candidate (
     FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
     GError **error)
 {
+  FsNiceStreamTransmitter *self =
+    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+  GSList *list = NULL;
+  NiceCandidate *cand = NULL;
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (!self->priv->candidates_added)
+  {
+    self->priv->candidates_to_set = g_list_append (
+        self->priv->candidates_to_set,
+        candidate);
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    return TRUE;
+  }
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  cand = fs_candidate_to_nice_candidate (self, candidate);
+
+  if (!cand)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid candidate added");
+    goto error;
+  }
+
+  list = g_slist_prepend (NULL, cand);
+
+  nice_agent_set_remote_candidates (self->priv->transmitter->agent,
+      self->priv->stream_id, candidate->component_id, list);
+
+  g_slist_free (list);
+  g_free (cand);
+
+
+  return TRUE;
+
+ error:
+
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
   return FALSE;
 }
 
@@ -402,6 +511,55 @@ static void
 fs_nice_stream_transmitter_remote_candidates_added (
     FsStreamTransmitter *streamtransmitter)
 {
+  FsNiceStreamTransmitter *self =
+    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+  GList *candidates = NULL, *item;
+  GSList *nice_candidates = NULL;
+  gint c;
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  self->priv->candidates_added = TRUE;
+  candidates = self->priv->candidates_to_set;
+  self->priv->candidates_to_set = NULL;
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+
+  if (candidates)
+  {
+    FsCandidate *cand= candidates->data;
+    nice_agent_set_remote_credentials (self->priv->transmitter->agent,
+        self->priv->stream_id, cand->username, cand->password);
+  }
+
+  for (c = 1; c < self->priv->transmitter->components; c++)
+  {
+    for (item = candidates;
+         item;
+         item = g_list_next (item))
+    {
+      FsCandidate *candidate = item->data;
+      NiceCandidate *nc = fs_candidate_to_nice_candidate (self, candidate);
+
+      if (!nc)
+        goto error;
+
+      nice_candidates = g_slist_append (nice_candidates, nc);
+    }
+
+    nice_agent_set_remote_candidates (self->priv->transmitter->agent,
+        self->priv->stream_id, c, nice_candidates);
+
+    g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
+    g_slist_free (nice_candidates);
+  }
+  return;
+ error:
+  fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+      FS_ERROR_INVALID_ARGUMENTS,
+      "Invalid remote candidate passed",
+      "Remote candidate passed in previous add_remote_candidate() call invalid");
+  g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
+  g_slist_free (nice_candidates);
 }
 
 static gboolean
