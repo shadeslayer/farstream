@@ -8,7 +8,6 @@ librawudp_transmitter_la_SOURCES = \
 	fs-rawudp-transmitter.c \
 	fs-rawudp-stream-transmitter.c \
 	fs-rawudp-component.c \
-	fs-interfaces.c \
 	fs-rawudp-marshal.c \
 	stun.c
 
@@ -26,7 +25,6 @@ noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
 	fs-rawudp-component.h \
-	fs-interfaces.h \
 	fs-rawudp-marshal.h \
 	stun.h
 

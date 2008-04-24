@@ -32,9 +32,9 @@
 #include "fs-rawudp-marshal.h"
 
 #include "stun.h"
-#include "fs-interfaces.h"
 
 #include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-interfaces.h>
 
 #include <string.h>
 #include <sys/types.h>

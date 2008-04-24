@@ -74,8 +74,6 @@
 
 #include "fs-rawudp-component.h"
 
-#include "fs-interfaces.h"
-
 #include <gst/farsight/fs-candidate.h>
 #include <gst/farsight/fs-conference-iface.h>
 

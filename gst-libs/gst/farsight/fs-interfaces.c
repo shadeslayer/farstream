@@ -30,8 +30,8 @@
 
 #include <gst/gst.h>
 
-GST_DEBUG_CATEGORY_EXTERN (fs_rawudp_transmitter_debug);
-#define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
+GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
+#define GST_CAT_DEFAULT fs_base_conference_debug
 
 #ifdef G_OS_UNIX
 
