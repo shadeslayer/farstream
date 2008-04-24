@@ -449,7 +449,7 @@ nice_candidate_type_to_fs_candidate_type (NiceCandidateType type)
     case NICE_CANDIDATE_TYPE_RELAYED:
       return FS_CANDIDATE_TYPE_RELAY;
     default:
-      g_warning ("Invalid candidate type %d, defaulting to type host", type);
+      GST_WARNING ("Invalid candidate type %d, defaulting to type host", type);
       return FS_CANDIDATE_TYPE_HOST;
   }
 }
@@ -462,7 +462,7 @@ nice_candidate_transport_to_fs_network_protocol (NiceCandidateTransport trans)
     case NICE_CANDIDATE_TRANSPORT_UDP:
       return FS_NETWORK_PROTOCOL_UDP;
     default:
-      g_warning ("Invalid Nice network transport type %u", trans);
+      GST_WARNING ("Invalid Nice network transport type %u", trans);
       return FS_NETWORK_PROTOCOL_UDP;
   }
 }
