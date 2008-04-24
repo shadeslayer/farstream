@@ -585,6 +585,11 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
   }
 }
 
+void
+fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
+{
+}
+
 
 FsNiceStreamTransmitter *
 fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,

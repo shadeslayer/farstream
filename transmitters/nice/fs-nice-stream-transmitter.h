@@ -112,6 +112,7 @@ void fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
     guint component_id,
     const gchar *foundation);
 
+void fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self);
 
 
 G_END_DECLS

@@ -543,6 +543,30 @@ agent_component_state_changed (NiceAgent *agent, guint stream_id,
 static void
 agent_candidate_gathering_done (NiceAgent *agent, gpointer user_data)
 {
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
+  FsNiceStreamTransmitter *st = NULL;
+  gint stream_id = 0;;
+
+  for (;;)
+  {
+    FS_NICE_TRANSMITTER_LOCK (self);
+    if (stream_id >= self->priv->streams->len)
+    {
+      FS_NICE_TRANSMITTER_UNLOCK (self);
+      return;
+    }
+    st = g_array_index(self->priv->streams, gpointer, stream_id);
+    if (st)
+      g_object_ref (st);
+
+    FS_NICE_TRANSMITTER_UNLOCK (self);
+
+    if (st)
+    {
+      fs_nice_stream_transmitter_gathering_done (st);
+      g_object_unref (st);
+    }
+  }
 }
 
 static void
