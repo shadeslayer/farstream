@@ -701,10 +701,14 @@ fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
 void
 stream_transmitter_destroyed (gpointer data, GObject *obj_addr)
 {
-  GObject **ptr = data;
+  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
+  int i;
 
-  if (*ptr == obj_addr)
-    *ptr = NULL;
+  FS_NICE_TRANSMITTER_LOCK (self);
+  for (i=0 ; i < self->priv->streams->len; i++)
+    if (g_array_index (self->priv->streams, gpointer, i) == obj_addr)
+      g_array_index (self->priv->streams, gpointer, i) = NULL;
+  FS_NICE_TRANSMITTER_UNLOCK (self);
 }
 
 /**
@@ -775,8 +779,7 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
     FS_NICE_TRANSMITTER_LOCK (self);
     stream_id = self->priv->next_stream_id++;
     g_array_insert_val (self->priv->streams, stream_id, st);
-    g_object_weak_ref (G_OBJECT (st), stream_transmitter_destroyed,
-        &g_array_index (self->priv->streams, gpointer, stream_id));
+    g_object_weak_ref (G_OBJECT (st), stream_transmitter_destroyed, self);
     FS_NICE_TRANSMITTER_UNLOCK (self);
   }
 
