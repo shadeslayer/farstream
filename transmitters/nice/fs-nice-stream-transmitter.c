@@ -421,6 +421,67 @@ fs_nice_stream_transmitter_select_candidate_pair (
   return res;
 }
 
+static FsCandidateType
+nice_candidate_type_to_fs_candidate_type (NiceCandidateType type)
+{
+  switch (type)
+  {
+    case NICE_CANDIDATE_TYPE_HOST:
+      return FS_CANDIDATE_TYPE_HOST;
+    case NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE:
+      return FS_CANDIDATE_TYPE_SRFLX;
+    case NICE_CANDIDATE_TYPE_PEER_REFLEXIVE:
+      return FS_CANDIDATE_TYPE_PRFLX;
+    case NICE_CANDIDATE_TYPE_RELAYED:
+      return FS_CANDIDATE_TYPE_RELAY;
+    default:
+      g_warning ("Invalid candidate type %d, defaulting to type host", type);
+      return FS_CANDIDATE_TYPE_HOST;
+  }
+}
+
+static FsNetworkProtocol
+nice_candidate_transport_to_fs_network_protocol (NiceCandidateTransport trans)
+{
+  switch (trans)
+  {
+    case NICE_CANDIDATE_TRANSPORT_UDP:
+      return FS_NETWORK_PROTOCOL_UDP;
+    default:
+      g_warning ("Invalid Nice network transport type %u", trans);
+      return FS_NETWORK_PROTOCOL_UDP;
+  }
+}
+
+static FsCandidate *
+nice_candidate_to_fs_candidate (NiceCandidate *nicecandidate)
+{
+  FsCandidate *fscandidate;
+  gchar *ipaddr = g_malloc (INET_ADDRSTRLEN);
+
+  nice_address_to_string (&nicecandidate->addr, ipaddr);
+
+  fscandidate = fs_candidate_new (
+      nicecandidate->foundation,
+      nicecandidate->component_id,
+      nice_candidate_type_to_fs_candidate_type (nicecandidate->type),
+      nice_candidate_transport_to_fs_network_protocol (
+          nicecandidate->transport),
+      ipaddr,
+      nice_address_get_port (&nicecandidate->addr));
+
+  nice_address_to_string (&nicecandidate->base_addr, ipaddr);
+
+  fscandidate->base_ip = ipaddr;
+  fscandidate->base_port = nice_address_get_port (&nicecandidate->base_addr);
+
+  fscandidate->username = g_strdup (nicecandidate->username);
+  fscandidate->password = g_strdup (nicecandidate->password);
+  fscandidate->priority = nicecandidate->priority;
+
+  return fscandidate;
+}
+
 static gboolean
 fs_nice_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
@@ -446,6 +507,50 @@ fs_nice_stream_transmitter_selected_pair (
     const gchar *lfoundation,
     const gchar *rfoundation)
 {
+  GSList *candidates, *item;
+  FsCandidate *local = NULL;
+  FsCandidate *remote = NULL;
+
+  candidates = nice_agent_get_local_candidates (
+      self->priv->transmitter->agent,
+      self->priv->stream_id, component_id);
+
+  for (item = candidates; item; item = g_slist_next (item))
+  {
+    NiceCandidate *candidate = item->data;
+
+    if (!strcmp (item->data, lfoundation))
+    {
+      local = nice_candidate_to_fs_candidate (candidate);
+      break;
+    }
+  }
+  g_slist_free (candidates);
+
+  candidates = nice_agent_get_remote_candidates (
+      self->priv->transmitter->agent,
+      self->priv->stream_id, component_id);
+
+  for (item = candidates; item; item = g_slist_next (item))
+  {
+    NiceCandidate *candidate = item->data;
+
+    if (!strcmp (item->data, lfoundation))
+    {
+      remote = nice_candidate_to_fs_candidate (candidate);
+      break;
+    }
+  }
+  g_slist_free (candidates);
+
+
+  if (local && remote)
+    g_signal_emit_by_name (self, "new-active-candidate-pair", local, remote);
+
+  if (local)
+    fs_candidate_destroy (local);
+  if (remote)
+    fs_candidate_destroy (remote);
 }
 
 
