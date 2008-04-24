@@ -611,7 +611,7 @@ fs_nice_transmitter_start_thread (FsNiceTransmitter *self, GError **error)
   gboolean ret = FALSE;
 
   FS_NICE_TRANSMITTER_LOCK (self);
-  if (self->priv->mutex)
+  if (self->priv->thread)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Thread already started??");
