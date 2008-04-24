@@ -34,6 +34,12 @@ EXTRA_DIST = \
 	upnp/WANIPConnection.xml \
 	base/tests1.conf
 
+if USE_NICE
+NICE_TRANSMITTER = transmitter/nice
+else
+NICE_TRANSMITTER = 
+endif
+
 #######
 # From here.. Its a list of our tests and their sub stuff
 #
@@ -42,6 +48,7 @@ check_PROGRAMS = \
 	base/fstransmitter \
 	transmitter/rawudp \
 	transmitter/multicast \
+	$(NICE_TRANSMITTER) \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
@@ -77,6 +84,13 @@ transmitter_multicast_SOURCES = \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/multicast.c 
+
+transmitter_nice_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+transmitter_nice_SOURCES = \
+	check-threadsafe.h  \
+	transmitter/generic.c \
+	transmitter/generic.h \
+	transmitter/nice.c 
 
 rtp_conference_CFLAGS = $(AM_CFLAGS)
 rtp_conference_SOURCES = \
