@@ -106,6 +106,16 @@ static void fs_nice_stream_transmitter_set_property (GObject *object,
 static gboolean fs_nice_stream_transmitter_add_remote_candidate (
     FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
     GError **error);
+static void fs_nice_stream_transmitter_remote_candidates_added (
+    FsStreamTransmitter *streamtransmitter);
+static gboolean fs_nice_stream_transmitter_select_candidate_pair (
+    FsStreamTransmitter *streamtransmitter,
+    const gchar *local_foundation,
+    const gchar *remote_foundation,
+    GError **error);
+static gboolean fs_nice_stream_transmitter_gather_local_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GError **error);
 
 
 static GObjectClass *parent_class = NULL;
@@ -156,6 +166,12 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
 
   streamtransmitterclass->add_remote_candidate =
     fs_nice_stream_transmitter_add_remote_candidate;
+  streamtransmitterclass->remote_candidates_added =
+    fs_nice_stream_transmitter_remote_candidates_added;
+  streamtransmitterclass->select_candidate_pair =
+    fs_nice_stream_transmitter_select_candidate_pair;
+  streamtransmitterclass->gather_local_candidates =
+    fs_nice_stream_transmitter_gather_local_candidates;
 
   g_type_class_add_private (klass, sizeof (FsNiceStreamTransmitterPrivate));
 
@@ -357,6 +373,57 @@ fs_nice_stream_transmitter_add_remote_candidate (
     GError **error)
 {
   return FALSE;
+}
+
+
+static void
+fs_nice_stream_transmitter_remote_candidates_added (
+    FsStreamTransmitter *streamtransmitter)
+{
+}
+
+static gboolean
+fs_nice_stream_transmitter_select_candidate_pair (
+    FsStreamTransmitter *streamtransmitter,
+    const gchar *local_foundation,
+    const gchar *remote_foundation,
+    GError **error)
+{
+  return FALSE;
+}
+static gboolean
+fs_nice_stream_transmitter_gather_local_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GError **error)
+{
+  return TRUE;
+}
+
+
+
+void
+fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
+    guint component_id,
+    guint state)
+{
+}
+
+
+void
+fs_nice_stream_transmitter_selected_pair (
+    FsNiceStreamTransmitter *self,
+    guint component_id,
+    const gchar *lfoundation,
+    const gchar *rfoundation)
+{
+}
+
+
+void
+fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
+    guint component_id,
+    const gchar *foundation)
+{
 }
 
 
