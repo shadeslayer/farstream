@@ -397,8 +397,30 @@ fs_nice_stream_transmitter_select_candidate_pair (
     const gchar *remote_foundation,
     GError **error)
 {
-  return FALSE;
+  FsNiceStreamTransmitter *self =
+    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+  gint c;
+  gboolean res = TRUE;
+
+  if (!self->priv->created)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Can not call this function before gathering local candidates");
+    return FALSE;
+  }
+
+  for (c = 1; c <= self->priv->transmitter->components; c++)
+    if (!nice_agent_set_selected_pair (self->priv->transmitter->agent,
+            self->priv->stream_id, c, local_foundation, remote_foundation))
+      res = FALSE;
+
+  if (!res)
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Unknown error while selecting pairs");
+
+  return res;
 }
+
 static gboolean
 fs_nice_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
