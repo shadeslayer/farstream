@@ -173,8 +173,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
 
   st = fs_transmitter_new_stream_transmitter (trans, NULL, n_parameters, params,
     &error);
-  ts_fail ("Error creating stream transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
+  if (error)
+    ts_fail ("Error creating stream transmitter: (%s:%d) %s",
+        g_quark_to_string (error->domain), error->code, error->message);
 
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
