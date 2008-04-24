@@ -87,6 +87,10 @@ struct _FsNiceStreamTransmitterPrivate
   gboolean controlling_mode;
 
   GMutex *mutex;
+
+  /* Everything below is protected by the mutex */
+
+  gboolean gathered;
 };
 
 #define FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -598,6 +602,32 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
 void
 fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
 {
+  GSList *candidates, *item;
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (self->priv->gathered)
+  {
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    return;
+  }
+  self->priv->gathered = TRUE;
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  candidates = nice_agent_get_local_candidates (
+      self->priv->transmitter->agent,
+      self->priv->stream_id, component_id);
+
+  for (item = candidates; item; item = g_slist_next (item))
+  {
+    NiceCandidate *candidate = item->data;
+    FsCandidate *fscandidate;
+
+    fscandidate = nice_candidate_to_fs_candidate (candidate);
+    g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
+    fs_candidate_destroy (fscandidate);
+  }
+
+  g_signal_emit_by_name (self, "local-candidates-prepared");
 }
 
 
