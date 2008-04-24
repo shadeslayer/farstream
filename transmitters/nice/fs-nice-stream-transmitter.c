@@ -380,31 +380,31 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_STUN_IP:
       self->priv->stun_ip = g_value_dup_string (value);
-      if (self->priv->transmitter->agent)
+      if (self->priv->transmitter && self->priv->transmitter->agent)
         g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_STUN_PORT:
       self->priv->stun_port = g_value_get_uint (value);
-      if (self->priv->transmitter->agent)
+      if (self->priv->transmitter && self->priv->transmitter->agent)
         g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_TURN_IP:
       self->priv->turn_ip = g_value_dup_string (value);
-      if (self->priv->transmitter->agent)
+      if (self->priv->transmitter && self->priv->transmitter->agent)
         g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_TURN_PORT:
       self->priv->turn_port = g_value_get_uint (value);
-      if (self->priv->transmitter->agent)
+      if (self->priv->transmitter && self->priv->transmitter->agent)
         g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_CONTROLLING_MODE:
       self->priv->controlling_mode = g_value_get_boolean (value);
-      if (self->priv->transmitter->agent)
+      if (self->priv->transmitter && self->priv->transmitter->agent)
         g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
             g_param_spec_get_name (pspec), value);
       break;
