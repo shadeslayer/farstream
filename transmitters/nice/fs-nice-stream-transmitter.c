@@ -559,6 +559,30 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
     guint component_id,
     const gchar *foundation)
 {
+  FsCandidate *fscandidate = NULL;
+  GSList *candidates, *item;
+
+  candidates = nice_agent_get_local_candidates (
+      self->priv->transmitter->agent,
+      self->priv->stream_id, component_id);
+
+  for (item = candidates; item; item = g_slist_next (item))
+  {
+    NiceCandidate *candidate = item->data;
+
+    if (!strcmp (item->data, foundation))
+    {
+      fscandidate = nice_candidate_to_fs_candidate (candidate);
+      break;
+    }
+  }
+  g_slist_free (candidates);
+
+  if (fscandidate)
+  {
+    g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
+    fs_candidate_destroy (fscandidate);
+  }
 }
 
 
