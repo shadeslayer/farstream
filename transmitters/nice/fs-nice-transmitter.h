@@ -28,6 +28,7 @@
 #include <gst/farsight/fs-transmitter.h>
 
 #include <gst/gst.h>
+#include <agent.h>
 
 G_BEGIN_DECLS
 
@@ -76,6 +77,9 @@ struct _FsNiceTransmitter
 
   /* The number of components (READONLY)*/
   gint components;
+
+  /* The agent, don't modify the pointer */
+  NiceAgent *agent;
 
   /*< private >*/
   FsNiceTransmitterPrivate *priv;

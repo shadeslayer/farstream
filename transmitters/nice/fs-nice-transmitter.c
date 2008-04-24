@@ -80,8 +80,6 @@ struct _FsNiceTransmitterPrivate
   GMainContext *main_context;
   GMainLoop *main_loop;
 
-  NiceAgent *agent;
-
   NiceUDPSocketFactory udpfactory;
 
   guint compatiblity_mode;
@@ -415,10 +413,10 @@ fs_nice_transmitter_dispose (GObject *object)
     self->priv->gst_sink = NULL;
   }
 
-  if (self->priv->agent)
+  if (self->agent)
   {
-    g_object_unref (self->priv->agent);
-    self->priv->agent = NULL;
+    g_object_unref (self->agent);
+    self->agent = NULL;
   }
 
   parent_class->dispose (object);
@@ -682,17 +680,17 @@ fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
     FS_NICE_TRANSMITTER_UNLOCK (self);
   }
 
-  self->priv->agent = nice_agent_new (&self->priv->udpfactory,
+  self->agent = nice_agent_new (&self->priv->udpfactory,
       self->priv->main_context,
       self->priv->compatiblity_mode);
 
-  g_signal_connect (self->priv->agent, "component-state-changed",
+  g_signal_connect (self->agent, "component-state-changed",
       G_CALLBACK (agent_component_state_changed), self);
-  g_signal_connect (self->priv->agent, "candidate-gathering-done",
+  g_signal_connect (self->agent, "candidate-gathering-done",
       G_CALLBACK (agent_candidate_gathering_done), self);
-  g_signal_connect (self->priv->agent, "new-selected-pair",
+  g_signal_connect (self->agent, "new-selected-pair",
       G_CALLBACK (agent_new_selected_pair), self);
-  g_signal_connect (self->priv->agent, "new-candidate",
+  g_signal_connect (self->agent, "new-candidate",
       G_CALLBACK (agent_new_candidate), self);
 
   return fs_nice_transmitter_start_thread (self, error);
