@@ -74,6 +74,8 @@ struct _FsNiceStreamTransmitterPrivate
 
   FsNiceTransmitter *transmitter;
 
+  gboolean created;
+
   gboolean sending;
 
   gchar *stun_ip;
@@ -234,8 +236,14 @@ fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self)
 static void
 fs_nice_stream_transmitter_dispose (GObject *object)
 {
-  //FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
 
+  if (self->priv->created)
+  {
+    nice_agent_remove_stream (self->priv->transmitter->agent,
+        self->priv->stream_id);
+    self->priv->created = FALSE;
+  }
 
   parent_class->dispose (object);
 }
