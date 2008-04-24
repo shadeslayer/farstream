@@ -227,8 +227,10 @@ fs_nice_stream_transmitter_dispose (GObject *object)
 static void
 fs_nice_stream_transmitter_finalize (GObject *object)
 {
-  // FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
 
+  g_free (self->priv->stun_ip);
+  g_free (self->priv->turn_ip);
 
   parent_class->finalize (object);
 }
@@ -245,6 +247,42 @@ fs_nice_stream_transmitter_get_property (GObject *object,
   {
     case PROP_SENDING:
       g_value_set_boolean (value, self->priv->sending);
+      break;
+    case PROP_STUN_IP:
+      if (self->priv->transmitter->agent)
+        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      else
+        g_value_set_string (value, self->priv->stun_ip);
+      break;
+    case PROP_STUN_PORT:
+      if (self->priv->transmitter->agent)
+        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      else
+        g_value_set_uint (value, self->priv->stun_port);
+      break;
+    case PROP_TURN_IP:
+      if (self->priv->transmitter->agent)
+        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      else
+        g_value_set_string (value, self->priv->turn_ip);
+      break;
+    case PROP_TURN_PORT:
+      if (self->priv->transmitter->agent)
+        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      else
+        g_value_set_uint (value, self->priv->turn_port);
+
+      break;
+    case PROP_CONTROLLING_MODE:
+      if (self->priv->transmitter->agent)
+        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      else
+        g_value_set_boolean (value, self->priv->controlling_mode);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -264,6 +302,36 @@ fs_nice_stream_transmitter_set_property (GObject *object,
   {
     case PROP_SENDING:
       self->priv->sending = g_value_get_boolean (value);
+      break;
+    case PROP_STUN_IP:
+      self->priv->stun_ip = g_value_dup_string (value);
+      if (self->priv->transmitter->agent)
+        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      break;
+    case PROP_STUN_PORT:
+      self->priv->stun_port = g_value_get_uint (value);
+      if (self->priv->transmitter->agent)
+        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      break;
+    case PROP_TURN_IP:
+      self->priv->turn_ip = g_value_dup_string (value);
+      if (self->priv->transmitter->agent)
+        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      break;
+    case PROP_TURN_PORT:
+      self->priv->turn_port = g_value_get_uint (value);
+      if (self->priv->transmitter->agent)
+        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
+      break;
+    case PROP_CONTROLLING_MODE:
+      self->priv->controlling_mode = g_value_get_boolean (value);
+      if (self->priv->transmitter->agent)
+        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+            g_param_spec_get_name (pspec), value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
