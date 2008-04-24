@@ -58,10 +58,6 @@ enum {
 
 GST_START_TEST (test_rawudptransmitter_new)
 {
-  GError *error = NULL;
-  FsTransmitter *trans;
-  GstElement *pipeline;
-  GstElement *trans_sink, *trans_src;
   gchar **transmitters;
   gint i;
   gboolean found_it = FALSE;
@@ -79,53 +75,8 @@ GST_START_TEST (test_rawudptransmitter_new)
 
   ts_fail_unless (found_it, "Did not find rawudp transmitter");
 
-  trans = fs_transmitter_new ("rawudp", 2, &error);
-
-  if (error) {
-    ts_fail ("Error creating transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
-  }
-
-  ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
-
-  pipeline = setup_pipeline (trans, NULL);
-
-  g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
-
-  ts_fail_if (trans_sink == NULL, "Sink is NULL");
-  ts_fail_if (trans_src == NULL, "Src is NULL");
-
-  gst_object_unref (trans_sink);
-  gst_object_unref (trans_src);
-
-  g_object_unref (trans);
-
-  /* lets do it again to see if it still works */
-
-  trans = fs_transmitter_new ("rawudp", 2, &error);
-
-  if (error) {
-    ts_fail ("Error creating transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
-  }
-
-  ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
-
-  pipeline = setup_pipeline (trans, NULL);
-
-  g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
-
-  ts_fail_if (trans_sink == NULL, "Sink is NULL");
-  ts_fail_if (trans_src == NULL, "Src is NULL");
-
-  gst_object_unref (trans_sink);
-  gst_object_unref (trans_src);
-
-  g_object_unref (trans);
-
-
-  gst_object_unref (pipeline);
-
+  test_transmitter_creation ("rawudp");
+  test_transmitter_creation ("rawudp");
 }
 GST_END_TEST;
 

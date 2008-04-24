@@ -36,5 +36,7 @@ void stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
 gboolean bus_error_callback (GstBus *bus, GstMessage *message,
     gpointer user_data);
 
+void test_transmitter_creation (gchar *transmitter_name);
+
 
 #endif /* __GENERIC_H__ */
