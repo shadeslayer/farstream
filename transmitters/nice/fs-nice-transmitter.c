@@ -90,9 +90,7 @@ struct _FsNiceTransmitterPrivate
 
   GThread *thread;
 
-  GArray *streams;
-
-  guint next_stream_id;
+  GList *streams;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -231,9 +229,6 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
 
   self->priv->compatiblity_mode = G_MAXUINT;
-
-  self->priv->next_stream_id = 1;
-  self->priv->streams = g_array_new (TRUE, TRUE, sizeof (gpointer));
 
   nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
 }
@@ -453,8 +448,6 @@ fs_nice_transmitter_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
-  g_array_free (self->priv->streams, TRUE);
-
   nice_udp_socket_factory_close (&self->priv->udpfactory);
 
   parent_class->finalize (object);
@@ -508,13 +501,21 @@ static FsNiceStreamTransmitter *
 get_stream_transmitter (FsNiceTransmitter *self, guint stream_id)
 {
   FsNiceStreamTransmitter *st = NULL;
+  guint my_stream_id;
+  GList *item;
 
   FS_NICE_TRANSMITTER_LOCK (self);
-  if (stream_id < self->priv->streams->len)
-    st = g_array_index(self->priv->streams, gpointer, stream_id);
-
-  if (st)
-    g_object_ref (st);
+  for (item = self->priv->streams;
+       item;
+       item = g_list_next (item))
+  {
+    g_object_get (item->data, "stream-id", &my_stream_id, NULL);
+    if (my_stream_id == stream_id)
+    {
+      st = g_object_ref (item->data);
+      break;
+    }
+  }
   FS_NICE_TRANSMITTER_UNLOCK (self);
 
   return st;
@@ -544,29 +545,11 @@ static void
 agent_candidate_gathering_done (NiceAgent *agent, gpointer user_data)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
-  FsNiceStreamTransmitter *st = NULL;
-  gint stream_id = 0;;
 
-  for (;;)
-  {
-    FS_NICE_TRANSMITTER_LOCK (self);
-    if (stream_id >= self->priv->streams->len)
-    {
-      FS_NICE_TRANSMITTER_UNLOCK (self);
-      return;
-    }
-    st = g_array_index(self->priv->streams, gpointer, stream_id);
-    if (st)
-      g_object_ref (st);
-
-    FS_NICE_TRANSMITTER_UNLOCK (self);
-
-    if (st)
-    {
-      fs_nice_stream_transmitter_gathering_done (st);
-      g_object_unref (st);
-    }
-  }
+  FS_NICE_TRANSMITTER_LOCK (self);
+  g_list_foreach (self->priv->streams,
+      (GFunc) fs_nice_stream_transmitter_gathering_done, NULL);
+  FS_NICE_TRANSMITTER_UNLOCK (self);
 }
 
 static void
@@ -724,12 +707,9 @@ void
 stream_transmitter_destroyed (gpointer data, GObject *obj_addr)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
-  int i;
 
   FS_NICE_TRANSMITTER_LOCK (self);
-  for (i=0 ; i < self->priv->streams->len; i++)
-    if (g_array_index (self->priv->streams, gpointer, i) == obj_addr)
-      g_array_index (self->priv->streams, gpointer, i) = NULL;
+  self->priv->streams = g_list_remove_all (self->priv->streams, obj_addr);
   FS_NICE_TRANSMITTER_UNLOCK (self);
 }
 
@@ -754,7 +734,6 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   FsStreamTransmitter *st = NULL;
   int i;
   guint mode;
-  guint stream_id;
 
   for (i=0; i < n_parameters; i++)
   {
@@ -793,19 +772,13 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   if (!fs_nice_transmitter_start (self, error))
     return NULL;
 
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  stream_id = self->priv->next_stream_id++;
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-
   st = FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
-          self, stream_id, n_parameters, parameters, error));
+          self, n_parameters, parameters, error));
 
   if (st)
   {
     FS_NICE_TRANSMITTER_LOCK (self);
-    stream_id = self->priv->next_stream_id++;
-    g_array_insert_val (self->priv->streams, stream_id, st);
+    self->priv->streams = g_list_append (self->priv->streams, st);
     g_object_weak_ref (G_OBJECT (st), stream_transmitter_destroyed, self);
     FS_NICE_TRANSMITTER_UNLOCK (self);
   }

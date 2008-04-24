@@ -65,7 +65,8 @@ enum
   PROP_TURN_IP,
   PROP_TURN_PORT,
   PROP_CONTROLLING_MODE,
-  PROP_COMPATIBILITY
+  PROP_COMPATIBILITY,
+  PROP_STREAM_ID
 };
 
 struct _FsNiceStreamTransmitterPrivate
@@ -236,6 +237,15 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "Whether the agent is in controlling mode",
           TRUE,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_STREAM_ID,
+      g_param_spec_uint (
+          "stream-id",
+          "The id of the stream",
+          "The id of the stream according to libnice",
+          0, G_MAXINT,
+          0,
+          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
 }
 
 static void
@@ -332,6 +342,11 @@ fs_nice_stream_transmitter_get_property (GObject *object,
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_boolean (value, self->priv->controlling_mode);
+      break;
+    case PROP_STREAM_ID:
+      FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+      g_value_set_uint (value, self->priv->stream_id);
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -864,7 +879,6 @@ fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
 
 FsNiceStreamTransmitter *
 fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
-    guint stream_id,
     guint n_parameters,
     GParameter *parameters,
     GError **error)

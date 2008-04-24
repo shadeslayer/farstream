@@ -90,7 +90,6 @@ GType fs_nice_stream_transmitter_get_type (void);
 
 FsNiceStreamTransmitter *
 fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
-    guint stream_id,
     guint n_parameters,
     GParameter *parameters,
     GError **error);
