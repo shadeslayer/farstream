@@ -468,7 +468,7 @@ nice_candidate_transport_to_fs_network_protocol (NiceCandidateTransport trans)
 }
 
 static FsCandidate *
-nice_candidate_to_fs_candidate (NiceCandidate *nicecandidate)
+nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
 {
   FsCandidate *fscandidate;
   gchar *ipaddr = g_malloc (INET_ADDRSTRLEN);
@@ -492,6 +492,15 @@ nice_candidate_to_fs_candidate (NiceCandidate *nicecandidate)
   fscandidate->username = g_strdup (nicecandidate->username);
   fscandidate->password = g_strdup (nicecandidate->password);
   fscandidate->priority = nicecandidate->priority;
+
+  if (fscandidate->username == NULL && fscandidate->password == NULL)
+  {
+    const gchar *username, *password;
+    nice_agent_get_local_credentials (agent, nicecandidate->stream_id,
+        &username, &password);
+    fscandidate->username = g_strdup (username);
+    fscandidate->password = g_strdup (password);
+  }
 
   return fscandidate;
 }
@@ -537,7 +546,8 @@ fs_nice_stream_transmitter_selected_pair (
 
     if (!strcmp (item->data, lfoundation))
     {
-      local = nice_candidate_to_fs_candidate (candidate);
+      local = nice_candidate_to_fs_candidate (self->priv->transmitter->agent,
+          candidate);
       break;
     }
   }
@@ -553,7 +563,8 @@ fs_nice_stream_transmitter_selected_pair (
 
     if (!strcmp (item->data, lfoundation))
     {
-      remote = nice_candidate_to_fs_candidate (candidate);
+      remote = nice_candidate_to_fs_candidate (self->priv->transmitter->agent,
+          candidate);
       break;
     }
   }
@@ -588,7 +599,8 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
 
     if (!strcmp (item->data, foundation))
     {
-      fscandidate = nice_candidate_to_fs_candidate (candidate);
+      fscandidate = nice_candidate_to_fs_candidate (
+          self->priv->transmitter->agent, candidate);
       break;
     }
   }
