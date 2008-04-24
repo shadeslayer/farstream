@@ -1,5 +1,5 @@
 /*
- * farsight-interfaces.h - Source for interface discovery code
+ * fs-interfaces.h - Source for interface discovery code
  *
  * Farsight Helper functions
  * Copyright (C) 2006 Youness Alaoui <kakaroto@kakaroto.homelinux.net>
@@ -19,13 +19,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#ifndef __FARSIGHT_INTERFACES_H__
-#define __FARSIGHT_INTERFACES_H__
+#ifndef __FS_INTERFACES_H__
+#define __FS_INTERFACES_H__
 
 #include <glib.h>
+
+G_BEGIN_DECLS
 
 gchar * farsight_get_ip_for_interface (gchar *interface_name);
 GList * farsight_get_local_ips (gboolean include_loopback);
 GList * farsight_get_local_interfaces (void);
+
+G_END_DECLS
 
 #endif
