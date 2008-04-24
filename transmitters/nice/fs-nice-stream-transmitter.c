@@ -58,7 +58,14 @@ enum
 enum
 {
   PROP_0,
-  PROP_SENDING
+  PROP_SENDING,
+  PROP_PREFERRED_LOCAL_CANDIDATES,
+  PROP_STUN_IP,
+  PROP_STUN_PORT,
+  PROP_TURN_IP,
+  PROP_TURN_PORT,
+  PROP_CONTROLLING_MODE,
+  PROP_COMPATIBILITY
 };
 
 struct _FsNiceStreamTransmitterPrivate
@@ -68,6 +75,14 @@ struct _FsNiceStreamTransmitterPrivate
   FsNiceTransmitter *transmitter;
 
   gboolean sending;
+
+  gchar *stun_ip;
+  guint stun_port;
+  gchar *turn_ip;
+  guint turn_port;
+
+  gboolean compatibility;
+  gboolean controlling_mode;
 };
 
 #define FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -145,9 +160,50 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
   g_type_class_add_private (klass, sizeof (FsNiceStreamTransmitterPrivate));
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
+  g_object_class_override_property (gobject_class,
+      PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
 
-  
+  g_object_class_install_property (gobject_class, PROP_STUN_IP,
+      g_param_spec_string (
+          "stun-ip",
+          "STUN server",
+          "The STUN server used to obtain server-reflexive candidates",
+          NULL,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
+  g_object_class_install_property (gobject_class, PROP_STUN_PORT,
+      g_param_spec_uint (
+          "stun-port",
+          "STUN server port",
+          "The STUN server used to obtain server-reflexive candidates",
+          1, 65536,
+          3478,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_TURN_IP,
+      g_param_spec_string (
+          "turn-ip",
+          "TURN server",
+          "The TURN server used to obtain relay candidates",
+          NULL,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_TURN_PORT,
+      g_param_spec_uint (
+          "turn-port",
+          "TURN server port",
+          "The TURN server used to obtain relay candidates",
+          1, 65536,
+          3478,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_CONTROLLING_MODE,
+      g_param_spec_boolean (
+          "controlling-mode",
+          "ICE controlling mode",
+          "Whether the agent is in controlling mode",
+          TRUE,
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 }
 
 static void
