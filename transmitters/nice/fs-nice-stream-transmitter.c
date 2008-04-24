@@ -85,11 +85,17 @@ struct _FsNiceStreamTransmitterPrivate
 
   gboolean compatibility;
   gboolean controlling_mode;
+
+  GMutex *mutex;
 };
 
 #define FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_NICE_STREAM_TRANSMITTER, \
                                 FsNiceStreamTransmitterPrivate))
+
+#define FS_NICE_STREAM_TRANSMITTER_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
+#define FS_NICE_STREAM_TRANSMITTER_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
+
 
 static void fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass);
 static void fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self);
@@ -231,6 +237,8 @@ fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self)
   self->priv = FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE (self);
 
   self->priv->sending = TRUE;
+
+  self->priv->mutex = g_mutex_new ();
 }
 
 static void
@@ -255,6 +263,8 @@ fs_nice_stream_transmitter_finalize (GObject *object)
 
   g_free (self->priv->stun_ip);
   g_free (self->priv->turn_ip);
+
+  g_mutex_free (self->priv->mutex);
 
   parent_class->finalize (object);
 }
