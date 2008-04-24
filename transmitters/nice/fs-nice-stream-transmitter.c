@@ -70,11 +70,7 @@ enum
 
 struct _FsNiceStreamTransmitterPrivate
 {
-  guint stream_id;
-
   FsNiceTransmitter *transmitter;
-
-  gboolean created;
 
   gboolean sending;
 
@@ -88,6 +84,8 @@ struct _FsNiceStreamTransmitterPrivate
 
   GMutex *mutex;
 
+  GList *preferred_local_candidates;
+
   /* Everything below is protected by the mutex */
 
   gboolean gathered;
@@ -95,6 +93,8 @@ struct _FsNiceStreamTransmitterPrivate
   gboolean candidates_added;
 
   GList *candidates_to_set;
+
+  guint stream_id;
 };
 
 #define FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -254,12 +254,14 @@ fs_nice_stream_transmitter_dispose (GObject *object)
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
 
-  if (self->priv->created)
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (self->priv->stream_id)
   {
     nice_agent_remove_stream (self->priv->transmitter->agent,
         self->priv->stream_id);
-    self->priv->created = FALSE;
+    self->priv->stream_id = 0;
   }
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   parent_class->dispose (object);
 }
@@ -268,6 +270,8 @@ static void
 fs_nice_stream_transmitter_finalize (GObject *object)
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
+
+  fs_candidate_list_destroy (self->priv->preferred_local_candidates);
 
   g_free (self->priv->stun_ip);
   g_free (self->priv->turn_ip);
@@ -289,6 +293,9 @@ fs_nice_stream_transmitter_get_property (GObject *object,
   {
     case PROP_SENDING:
       g_value_set_boolean (value, self->priv->sending);
+      break;
+    case PROP_PREFERRED_LOCAL_CANDIDATES:
+      g_value_set_boxed (value, self->priv->preferred_local_candidates);
       break;
     case PROP_STUN_IP:
       if (self->priv->transmitter->agent)
@@ -344,6 +351,9 @@ fs_nice_stream_transmitter_set_property (GObject *object,
   {
     case PROP_SENDING:
       self->priv->sending = g_value_get_boolean (value);
+      break;
+    case PROP_PREFERRED_LOCAL_CANDIDATES:
+      self->priv->preferred_local_candidates = g_value_dup_boxed (value);
       break;
     case PROP_STUN_IP:
       self->priv->stun_ip = g_value_dup_string (value);
@@ -468,6 +478,7 @@ fs_nice_stream_transmitter_add_remote_candidate (
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   GSList *list = NULL;
   NiceCandidate *cand = NULL;
+  guint stream_id;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   if (!self->priv->candidates_added)
@@ -478,6 +489,8 @@ fs_nice_stream_transmitter_add_remote_candidate (
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     return TRUE;
   }
+
+  stream_id = self->priv->stream_id;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   cand = fs_candidate_to_nice_candidate (self, candidate);
@@ -492,7 +505,7 @@ fs_nice_stream_transmitter_add_remote_candidate (
   list = g_slist_prepend (NULL, cand);
 
   nice_agent_set_remote_candidates (self->priv->transmitter->agent,
-      self->priv->stream_id, candidate->component_id, list);
+      stream_id, candidate->component_id, list);
 
   g_slist_free (list);
   g_free (cand);
@@ -516,11 +529,13 @@ fs_nice_stream_transmitter_remote_candidates_added (
   GList *candidates = NULL, *item;
   GSList *nice_candidates = NULL;
   gint c;
+  guint stream_id;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   self->priv->candidates_added = TRUE;
   candidates = self->priv->candidates_to_set;
   self->priv->candidates_to_set = NULL;
+  stream_id = self->priv->stream_id;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
 
@@ -528,7 +543,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
   {
     FsCandidate *cand= candidates->data;
     nice_agent_set_remote_credentials (self->priv->transmitter->agent,
-        self->priv->stream_id, cand->username, cand->password);
+        stream_id, cand->username, cand->password);
   }
 
   for (c = 1; c < self->priv->transmitter->components; c++)
@@ -547,7 +562,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
     }
 
     nice_agent_set_remote_candidates (self->priv->transmitter->agent,
-        self->priv->stream_id, c, nice_candidates);
+        stream_id, c, nice_candidates);
 
     g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
     g_slist_free (nice_candidates);
@@ -573,8 +588,13 @@ fs_nice_stream_transmitter_select_candidate_pair (
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   gint c;
   gboolean res = TRUE;
+  guint stream_id;
 
-  if (!self->priv->created)
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  stream_id = self->priv->stream_id;
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  if (stream_id == 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Can not call this function before gathering local candidates");
@@ -583,7 +603,7 @@ fs_nice_stream_transmitter_select_candidate_pair (
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
     if (!nice_agent_set_selected_pair (self->priv->transmitter->agent,
-            self->priv->stream_id, c, local_foundation, remote_foundation))
+            stream_id, c, local_foundation, remote_foundation))
       res = FALSE;
 
   if (!res)
@@ -668,9 +688,44 @@ fs_nice_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
     GError **error)
 {
+  FsNiceStreamTransmitter *self =
+    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+  GList *item;
+
+  for (item = self->priv->preferred_local_candidates;
+       item;
+       item = g_list_next (item))
+  {
+    FsCandidate *cand = item->data;
+    NiceAddress *addr = nice_address_new ();
+
+    nice_address_set_port (addr, cand->port);
+
+    if (nice_address_set_from_string (addr, cand->ip))
+    {
+      if (!nice_agent_add_local_address (self->priv->transmitter->agent, addr))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Unable to set preferred local candidate");
+        return FALSE;
+      }
+    }
+    else
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Invalid local address passed");
+      nice_address_free (addr);
+      return FALSE;
+    }
+    nice_address_free (addr);
+  }
+
+  self->priv->stream_id = nice_agent_add_stream (
+      self->priv->transmitter->agent,
+      self->priv->transmitter->components);
+
   return TRUE;
 }
-
 
 
 void
@@ -827,7 +882,6 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
   }
 
   streamtransmitter->priv->transmitter = transmitter;
-  streamtransmitter->priv->stream_id = stream_id;
 
   return streamtransmitter;
 }
