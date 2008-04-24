@@ -51,11 +51,20 @@ GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
 #include <arpa/inet.h>
 
 /**
+ * SECTION:fs-interfaces
+ * @short_description: Utility functions to discover local network interfaces
+ *
+ * These utility functions allow the discovery of local network interfaces
+ * in a portable manner, they also allow finding the local ip addresses or
+ * the address allocated to a network interface.
+ */
+
+/**
  * fs_interfaces_get_local_interfaces:
  *
  * Get the list of local interfaces
  *
- * Returns: a #GList of strings.
+ * Returns: a newly-allocated #GList of strings. The caller must free it.
  */
 #ifdef HAVE_GETIFADDRS
 GList *
@@ -167,9 +176,9 @@ fs_interfaces_is_private_ip (const struct in_addr in)
  * fs_interfaces_get_local_ips:
  * @include_loopback: Include any loopback devices
  *
- * Get a list of local ip4 interface addresses
+ * Get a list of local ipv4 interface addresses
  *
- * Returns: A #GList of strings
+ * Returns: a newly-allocated #GList of strings. The caller must free it.
  */
 
 #ifdef HAVE_GETIFADDRS
@@ -309,7 +318,7 @@ fs_interfaces_get_local_ips (gboolean include_loopback)
  * fs_interfaces_get_ip_for_interface:
  * @interface_name: name of local interface
  *
- * Retreives the IP Address of an interface by its name
+ * Retreives the IPv4 address of an interface by its name
  *
  * Returns: a newly-allocated string with the IP address
  **/
@@ -382,13 +391,6 @@ SOCKET fs_interfaces_get_WSA_socket ()
   return sock;
 }
 
-/**
- * fs_interfaces_get_local_interfaces:
- *
- * Get the list of local interfaces
- *
- * Returns: a #GList of strings.
- */
 GList * fs_interfaces_get_local_interfaces ()
 {
   ULONG size = 0;
@@ -416,14 +418,6 @@ GList * fs_interfaces_get_local_interfaces ()
   return ret;
 }
 
-/**
- * fs_interfaces_get_local_ips:
- * @include_loopback: Include any loopback devices
- *
- * Get a list of local ip4 interface addresses
- *
- * Returns: A #GList of strings
- */
 GList * fs_interfaces_get_local_ips (gboolean include_loopback)
 {
   ULONG size = 0;
@@ -526,14 +520,6 @@ win32_get_ip_for_interface (IF_INDEX idx)
   return ret;
 }
 
-/**
- * fs_interfaces_get_ip_for_interface:
- * @interface_name: name of local interface
- *
- * Retreives the IP Address of an interface by its name
- *
- * Returns: a newly-allocated string with the IP address
- **/
 gchar * fs_interfaces_get_ip_for_interface (gchar *interface_name)
 {
   ULONG size = 0;
