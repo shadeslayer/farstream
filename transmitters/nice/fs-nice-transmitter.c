@@ -771,8 +771,13 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   if (!fs_nice_transmitter_start (self, error))
     return NULL;
 
+
+  FS_NICE_TRANSMITTER_LOCK (self);
+  stream_id = self->priv->next_stream_id++;
+  FS_NICE_TRANSMITTER_UNLOCK (self);
+
   st = FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
-          self, n_parameters, parameters, error));
+          self, stream_id, n_parameters, parameters, error));
 
   if (st)
   {

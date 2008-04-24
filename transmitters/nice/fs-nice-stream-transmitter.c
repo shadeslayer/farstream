@@ -63,10 +63,8 @@ enum
 
 struct _FsNiceStreamTransmitterPrivate
 {
-  /* We don't actually hold a ref to this,
-   * But since our parent FsStream can not exist without its parent
-   * FsSession, we should be safe
-   */
+  guint stream_id;
+
   FsNiceTransmitter *transmitter;
 
   gboolean sending;
@@ -138,16 +136,18 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
 
   gobject_class->set_property = fs_nice_stream_transmitter_set_property;
   gobject_class->get_property = fs_nice_stream_transmitter_get_property;
+  gobject_class->dispose = fs_nice_stream_transmitter_dispose;
+  gobject_class->finalize = fs_nice_stream_transmitter_finalize;
 
   streamtransmitterclass->add_remote_candidate =
     fs_nice_stream_transmitter_add_remote_candidate;
 
+  g_type_class_add_private (klass, sizeof (FsNiceStreamTransmitterPrivate));
+
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
 
-  gobject_class->dispose = fs_nice_stream_transmitter_dispose;
-  gobject_class->finalize = fs_nice_stream_transmitter_finalize;
+  
 
-  g_type_class_add_private (klass, sizeof (FsNiceStreamTransmitterPrivate));
 }
 
 static void
@@ -246,7 +246,10 @@ fs_nice_stream_transmitter_add_remote_candidate (
 
 FsNiceStreamTransmitter *
 fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
-  guint n_parameters, GParameter *parameters, GError **error)
+    guint stream_id,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error)
 {
   FsNiceStreamTransmitter *streamtransmitter = NULL;
 
@@ -261,6 +264,7 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
   }
 
   streamtransmitter->priv->transmitter = transmitter;
+  streamtransmitter->priv->stream_id = stream_id;
 
   if (!fs_nice_stream_transmitter_build (streamtransmitter, error))
   {
