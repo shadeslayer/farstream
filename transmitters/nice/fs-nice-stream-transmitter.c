@@ -339,14 +339,6 @@ fs_nice_stream_transmitter_set_property (GObject *object,
   }
 }
 
-static gboolean
-fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
-  GError **error)
-{
-
-  return TRUE;
-}
-
 /**
  * fs_nice_stream_transmitter_add_remote_candidate
  * @streamtransmitter: a #FsStreamTransmitter
@@ -389,12 +381,6 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
 
   streamtransmitter->priv->transmitter = transmitter;
   streamtransmitter->priv->stream_id = stream_id;
-
-  if (!fs_nice_stream_transmitter_build (streamtransmitter, error))
-  {
-    g_object_unref (streamtransmitter);
-    return NULL;
-  }
 
   return streamtransmitter;
 }
