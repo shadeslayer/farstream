@@ -515,7 +515,7 @@ fs_nice_stream_transmitter_add_remote_candidate (
   {
     self->priv->candidates_to_set = g_list_append (
         self->priv->candidates_to_set,
-        candidate);
+        fs_candidate_copy (candidate));
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     return TRUE;
   }
