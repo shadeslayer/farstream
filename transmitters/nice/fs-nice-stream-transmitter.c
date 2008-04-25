@@ -694,12 +694,19 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
 
   if (fscandidate->username == NULL && fscandidate->password == NULL)
   {
-    const gchar *username, *password;
+    const gchar *username = NULL, *password = NULL;
     nice_agent_get_local_credentials (agent, nicecandidate->stream_id,
         &username, &password);
     fscandidate->username = g_strdup (username);
     fscandidate->password = g_strdup (password);
+
+    if (username == NULL || password == NULL)
+    {
+      GST_WARNING ("The stream has no credentials??");
+    }
   }
+
+
 
   return fscandidate;
 }
