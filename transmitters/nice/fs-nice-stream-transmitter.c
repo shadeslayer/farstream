@@ -86,6 +86,8 @@ struct _FsNiceStreamTransmitterPrivate
 
   GList *preferred_local_candidates;
 
+  guint stream_id;
+
   /* Everything below is protected by the mutex */
 
   gboolean gathered;
@@ -93,8 +95,6 @@ struct _FsNiceStreamTransmitterPrivate
   gboolean candidates_added;
 
   GList *candidates_to_set;
-
-  guint stream_id;
 
   NiceGstStream *gststream;
 };
@@ -509,7 +509,6 @@ fs_nice_stream_transmitter_add_remote_candidate (
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   GSList *list = NULL;
   NiceCandidate *cand = NULL;
-  guint stream_id;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   if (!self->priv->candidates_added)
@@ -520,8 +519,6 @@ fs_nice_stream_transmitter_add_remote_candidate (
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     return TRUE;
   }
-
-  stream_id = self->priv->stream_id;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   cand = fs_candidate_to_nice_candidate (self, candidate);
@@ -536,7 +533,7 @@ fs_nice_stream_transmitter_add_remote_candidate (
   list = g_slist_prepend (NULL, cand);
 
   nice_agent_set_remote_candidates (self->priv->transmitter->agent,
-      stream_id, candidate->component_id, list);
+      self->priv->stream_id, candidate->component_id, list);
 
   g_slist_free (list);
   g_free (cand);
@@ -560,13 +557,11 @@ fs_nice_stream_transmitter_remote_candidates_added (
   GList *candidates = NULL, *item;
   GSList *nice_candidates = NULL;
   gint c;
-  guint stream_id;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   self->priv->candidates_added = TRUE;
   candidates = self->priv->candidates_to_set;
   self->priv->candidates_to_set = NULL;
-  stream_id = self->priv->stream_id;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
 
@@ -593,7 +588,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
     }
 
     nice_agent_set_remote_candidates (self->priv->transmitter->agent,
-        stream_id, c, nice_candidates);
+        self->priv->stream_id, c, nice_candidates);
 
     g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
     g_slist_free (nice_candidates);
@@ -619,13 +614,8 @@ fs_nice_stream_transmitter_select_candidate_pair (
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   gint c;
   gboolean res = TRUE;
-  guint stream_id;
 
-  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-  stream_id = self->priv->stream_id;
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-
-  if (stream_id == 0)
+  if (self->priv->stream_id == 0)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Can not call this function before gathering local candidates");
@@ -634,7 +624,7 @@ fs_nice_stream_transmitter_select_candidate_pair (
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
     if (!nice_agent_set_selected_pair (self->priv->transmitter->agent,
-            stream_id, c, local_foundation, remote_foundation))
+            self->priv->stream_id, c, local_foundation, remote_foundation))
       res = FALSE;
 
   if (!res)
@@ -715,12 +705,9 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
 }
 
 static gboolean
-fs_nice_stream_transmitter_gather_local_candidates (
-    FsStreamTransmitter *streamtransmitter,
+fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     GError **error)
 {
-  FsNiceStreamTransmitter *self =
-    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   GList *item;
   gboolean set = FALSE;
 
@@ -804,7 +791,21 @@ fs_nice_stream_transmitter_gather_local_candidates (
   if (self->priv->gststream == NULL)
     return FALSE;
 
+  return TRUE;
+}
+
+static gboolean
+fs_nice_stream_transmitter_gather_local_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GError **error)
+{
+  FsNiceStreamTransmitter *self =
+    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+
   GST_DEBUG ("Stream %u started", self->priv->stream_id);
+
+  nice_agent_gather_candidates (self->priv->transmitter->agent,
+      self->priv->stream_id);
 
   return TRUE;
 }
@@ -978,6 +979,12 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
   }
 
   streamtransmitter->priv->transmitter = transmitter;
+
+  if (!fs_nice_stream_transmitter_build (streamtransmitter, error))
+  {
+    g_object_unref (streamtransmitter);
+    return NULL;
+  }
 
   return streamtransmitter;
 }
