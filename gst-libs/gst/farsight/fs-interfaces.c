@@ -321,7 +321,7 @@ fs_interfaces_get_local_ips (gboolean include_loopback)
  * Retreives the IPv4 address of an interface by its name
  *
  * Returns: a newly-allocated string with the IP address
- **/
+ */
 gchar *
 fs_interfaces_get_ip_for_interface (gchar *interface_name)
 {
