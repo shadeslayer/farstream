@@ -790,6 +790,13 @@ fs_nice_stream_transmitter_gather_local_candidates (
       self->priv->transmitter->agent,
       self->priv->transmitter->components);
 
+  if (self->priv->stream_id == 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create libnice stream");
+    return FALSE;
+  }
+
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,
       self->priv->stream_id,
