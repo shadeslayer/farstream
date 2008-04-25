@@ -37,8 +37,8 @@
 #include "fs-nice-stream-transmitter.h"
 #include "fs-nice-transmitter.h"
 
-#include <gst/farsight/fs-candidate.h>
 #include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-interfaces.h>
 
 #include <gst/gst.h>
 
@@ -717,6 +717,7 @@ fs_nice_stream_transmitter_gather_local_candidates (
   FsNiceStreamTransmitter *self =
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   GList *item;
+  gboolean set = FALSE;
 
   for (item = self->priv->preferred_local_candidates;
        item;
@@ -724,8 +725,6 @@ fs_nice_stream_transmitter_gather_local_candidates (
   {
     FsCandidate *cand = item->data;
     NiceAddress *addr = nice_address_new ();
-
-    nice_address_set_port (addr, cand->port);
 
     if (nice_address_set_from_string (addr, cand->ip))
     {
@@ -735,6 +734,7 @@ fs_nice_stream_transmitter_gather_local_candidates (
             "Unable to set preferred local candidate");
         return FALSE;
       }
+      set = TRUE;
     }
     else
     {
@@ -745,6 +745,41 @@ fs_nice_stream_transmitter_gather_local_candidates (
     }
     nice_address_free (addr);
   }
+
+  if (!set)
+  {
+    GList *addresses = fs_interfaces_get_local_ips (FALSE);
+
+    for (item = addresses;
+         item;
+         item = g_list_next (item))
+    {
+      NiceAddress *addr = nice_address_new ();;
+
+      if (nice_address_set_from_string (addr, item->data))
+      {
+        if (!nice_agent_add_local_address (self->priv->transmitter->agent,
+                addr))
+        {
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "Unable to set preferred local candidate");
+          return FALSE;
+        }
+      }
+      else
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Invalid local address passed");
+        nice_address_free (addr);
+        return FALSE;
+      }
+      nice_address_free (addr);
+    }
+
+    g_list_foreach (addresses, (GFunc) g_free, NULL);
+    g_list_free (addresses);
+  }
+
 
   self->priv->stream_id = nice_agent_add_stream (
       self->priv->transmitter->agent,
