@@ -951,9 +951,9 @@ fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
     return;
   }
   self->priv->gathered = TRUE;
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
