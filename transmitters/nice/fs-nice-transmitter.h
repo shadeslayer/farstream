@@ -88,6 +88,18 @@ struct _FsNiceTransmitter
 
 GType fs_nice_transmitter_get_type (void);
 
+struct _NiceGstStream;
+typedef struct _NiceGstStream NiceGstStream;
+
+NiceGstStream *fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
+    guint stream_id,
+    GError **error);
+
+void fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
+    NiceGstStream *ns);
+
+
+
 G_END_DECLS
 
 #endif /* __FS_NICE_TRANSMITTER_H__ */

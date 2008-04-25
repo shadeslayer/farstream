@@ -796,3 +796,223 @@ fs_nice_transmitter_get_stream_transmitter_type (
 {
   return FS_TYPE_NICE_STREAM_TRANSMITTER;
 }
+
+
+
+static GstElement *
+_create_sinksource (
+    gchar *elementname,
+    GstBin *bin,
+    GstElement *teefunnel,
+    NiceAgent *agent,
+    guint stream_id,
+    guint component_id,
+    GstPadDirection direction,
+    GstPad **requested_pad,
+    GError **error)
+{
+  GstElement *elem;
+  GstPadLinkReturn ret;
+  GstPad *elempad = NULL;
+  GstStateChangeReturn state_ret;
+
+  g_assert (direction == GST_PAD_SINK || direction == GST_PAD_SRC);
+
+  elem = gst_element_factory_make (elementname, NULL);
+  if (!elem)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create the %s element", elementname);
+    return NULL;
+  }
+
+  g_object_set (elem,
+      "agent", agent,
+      "stream", stream_id,
+      "component", component_id,
+      NULL);
+
+  if (!gst_bin_add (bin, elem))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the %s element to the gst %s bin", elementname,
+        (direction == GST_PAD_SINK) ? "sink" : "src");
+    gst_object_unref (elem);
+    return NULL;
+  }
+
+  if (direction == GST_PAD_SINK)
+    *requested_pad = gst_element_get_request_pad (teefunnel, "src%d");
+  else
+    *requested_pad = gst_element_get_request_pad (teefunnel, "sink%d");
+
+  if (!*requested_pad)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not get the %s request pad from the %s",
+        (direction == GST_PAD_SINK) ? "src" : "sink",
+        (direction == GST_PAD_SINK) ? "tee" : "funnel");
+    goto error;
+  }
+
+  if (direction == GST_PAD_SINK)
+    elempad = gst_element_get_static_pad (elem, "sink");
+  else
+    elempad = gst_element_get_static_pad (elem, "src");
+
+  if (direction == GST_PAD_SINK)
+    ret = gst_pad_link (*requested_pad, elempad);
+  else
+    ret = gst_pad_link (elempad, *requested_pad);
+
+  gst_object_unref (elempad);
+
+  if (GST_PAD_LINK_FAILED(ret))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the new element %s (%d)", elementname, ret);
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (elem))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the new %s with its parent",
+        elementname);
+    goto error;
+  }
+
+  return elem;
+
+ error:
+
+  gst_element_set_locked_state (elem, TRUE);
+  state_ret = gst_element_set_state (elem, GST_STATE_NULL);
+  if (state_ret != GST_STATE_CHANGE_SUCCESS)
+    GST_ERROR ("On error, could not reset %s to state NULL (%s)", elementname,
+        gst_element_state_change_return_get_name (state_ret));
+  if (!gst_bin_remove (bin, elem))
+    GST_ERROR ("Could not remove element %s from bin on error", elementname);
+
+  if (elempad)
+    gst_object_unref (elempad);
+
+  return NULL;
+}
+
+struct _NiceGstStream {
+  GstElement **nicesrcs;
+  GstElement **nicesinks;
+
+  GstPad **requested_funnel_pads;
+  GstPad **requested_tee_pads;
+};
+
+NiceGstStream *
+fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
+    guint stream_id,
+    GError **error)
+{
+  guint c;
+  NiceGstStream *ns = NULL;
+
+  ns = g_new0 (NiceGstStream, 1);
+  ns->nicesrcs = g_new0 (GstElement *, self->components + 1);
+  ns->nicesinks = g_new0 (GstElement *, self->components + 1);
+  ns->requested_tee_pads = g_new0 (GstPad *, self->components + 1);
+  ns->requested_funnel_pads = g_new0 (GstPad *, self->components + 1);
+
+  for (c = 1; c <= self->components; c++)
+  {
+    ns->nicesrcs[c] = _create_sinksource ("nicesrc",
+        GST_BIN (self->priv->gst_src),
+        self->priv->src_funnels[c],
+        self->agent,
+        stream_id,
+        c,
+        GST_PAD_SRC,
+        &ns->requested_funnel_pads[c],
+        error);
+
+    if (ns->nicesrcs[c] == NULL)
+      goto error;
+
+    ns->nicesinks[c] = _create_sinksource ("nicesink",
+        GST_BIN (self->priv->gst_sink),
+        self->priv->sink_tees[c],
+        self->agent,
+        stream_id,
+        c,
+        GST_PAD_SINK,
+        &ns->requested_tee_pads[c],
+        error);
+
+    if (ns->nicesinks[c] == NULL)
+      goto error;
+
+    g_object_set (ns->nicesinks[c],
+        "async", FALSE,
+        "sync", FALSE,
+        NULL);
+  }
+
+  return ns;
+
+ error:
+  fs_nice_transmitter_free_gst_stream (self, ns);
+  return NULL;
+}
+
+void
+fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
+    NiceGstStream *ns)
+{
+  guint c;
+
+  for (c = 1; c <= self->components; c++)
+  {
+    if (ns->nicesrcs[c])
+    {
+      GstStateChangeReturn ret;
+      gst_element_set_locked_state (ns->nicesrcs[c], TRUE);
+      ret = gst_element_set_state (ns->nicesrcs[c], GST_STATE_NULL);
+      if (ret != GST_STATE_CHANGE_SUCCESS)
+        GST_ERROR ("Error changing state of nicesrc: %s",
+            gst_element_state_change_return_get_name (ret));
+      if (!gst_bin_remove (GST_BIN (self->priv->gst_src), ns->nicesrcs[c]))
+        GST_ERROR ("Could not remove nicesrc element from transmitter source");
+    }
+
+    if (ns->requested_funnel_pads[c])
+    {
+      gst_element_release_request_pad (self->priv->src_funnels[c],
+          ns->requested_funnel_pads[c]);
+      gst_object_unref (ns->requested_funnel_pads[c]);
+    }
+
+    if (ns->nicesinks[c])
+    {
+      GstStateChangeReturn ret;
+      gst_element_set_locked_state (ns->nicesinks[c], TRUE);
+      ret = gst_element_set_state (ns->nicesinks[c], GST_STATE_NULL);
+      if (ret != GST_STATE_CHANGE_SUCCESS)
+        GST_ERROR ("Error changing state of nicesink: %s",
+            gst_element_state_change_return_get_name (ret));
+      if (!gst_bin_remove (GST_BIN (self->priv->gst_sink), ns->nicesinks[c]))
+        GST_ERROR ("Could not remove nicesink element from transmitter source");
+    }
+
+    if (ns->requested_tee_pads[c])
+    {
+      gst_element_release_request_pad (self->priv->sink_tees[c],
+          ns->requested_tee_pads[c]);
+      gst_object_unref (ns->requested_tee_pads[c]);
+    }
+  }
+
+  g_free (ns->nicesrcs);
+  g_free (ns->nicesinks);
+  g_free (ns->requested_tee_pads);
+  g_free (ns->requested_funnel_pads);
+  g_free (ns);
+}
