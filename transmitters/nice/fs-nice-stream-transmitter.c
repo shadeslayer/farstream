@@ -572,7 +572,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
         stream_id, cand->username, cand->password);
   }
 
-  for (c = 1; c < self->priv->transmitter->components; c++)
+  for (c = 1; c <= self->priv->transmitter->components; c++)
   {
     for (item = candidates;
          item;
@@ -939,7 +939,7 @@ fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
-  for (c = 1; c < self->priv->transmitter->components; c++)
+  for (c = 1; c <= self->priv->transmitter->components; c++)
   {
     candidates = nice_agent_get_local_candidates (
         self->priv->transmitter->agent,
