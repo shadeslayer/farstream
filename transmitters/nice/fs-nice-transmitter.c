@@ -531,7 +531,7 @@ agent_component_state_changed (NiceAgent *agent, guint stream_id,
   if (!st)
   {
     fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
-        "Receiving signal with invalid stream id", NULL);
+        "Receiving component-changed signal with invalid stream id", NULL);
     return;
   }
 
@@ -563,7 +563,7 @@ agent_new_selected_pair (NiceAgent *agent, guint stream_id,
   if (!st)
   {
     fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
-        "Receiving signal with invalid stream id", NULL);
+        "Receiving new-selected-pair signal with invalid stream id", NULL);
     return;
   }
 
@@ -581,12 +581,11 @@ agent_new_candidate (NiceAgent *agent, guint stream_id,
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
   FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
 
+  /* We can't emit an error here because it starts emitting this signal
+   * as soon as its created... SUCKY API
+   */
   if (!st)
-  {
-    fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
-        "Receiving signal with invalid stream id", NULL);
     return;
-  }
 
   fs_nice_stream_transmitter_new_candidate (st, component_id, foundation);
 

@@ -875,6 +875,19 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
   FsCandidate *fscandidate = NULL;
   GSList *candidates, *item;
 
+  /* Ignore this signal completely
+   * it seems broken
+   */
+  return;
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (!self->priv->gathered)
+  {
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    return;
+  }
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
   candidates = nice_agent_get_local_candidates (
       self->priv->transmitter->agent,
       self->priv->stream_id, component_id);
