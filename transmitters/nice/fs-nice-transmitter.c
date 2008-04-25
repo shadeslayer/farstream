@@ -831,6 +831,13 @@ _create_sinksource (
       "component", component_id,
       NULL);
 
+
+  if (direction == GST_PAD_SINK)
+    g_object_set (elem,
+        "async", FALSE,
+        "sync", FALSE,
+        NULL);
+
   if (!gst_bin_add (bin, elem))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -948,11 +955,6 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
 
     if (ns->nicesinks[c] == NULL)
       goto error;
-
-    g_object_set (ns->nicesinks[c],
-        "async", FALSE,
-        "sync", FALSE,
-        NULL);
   }
 
   return ns;
