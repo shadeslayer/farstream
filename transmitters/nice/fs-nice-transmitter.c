@@ -540,16 +540,42 @@ agent_component_state_changed (NiceAgent *agent, guint stream_id,
   g_object_unref (st);
 }
 
+/*
+ * The list traversal in this function should be thread safe as
+ * long as the list is not re-ordered
+ *
+ */
 
 static void
 agent_candidate_gathering_done (NiceAgent *agent, gpointer user_data)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
+  FsNiceStreamTransmitter *stream = NULL;
+  GList *item;
 
   FS_NICE_TRANSMITTER_LOCK (self);
-  g_list_foreach (self->priv->streams,
-      (GFunc) fs_nice_stream_transmitter_gathering_done, NULL);
+  item = g_list_first (self->priv->streams);
+  if (item)
+    stream = g_object_ref (item->data);
   FS_NICE_TRANSMITTER_UNLOCK (self);
+
+  while (stream)
+  {
+    FsNiceStreamTransmitter *next_stream = NULL;
+
+    fs_nice_stream_transmitter_gathering_done (stream);
+
+    FS_NICE_TRANSMITTER_LOCK (self);
+    item = g_list_find (self->priv->streams, stream);
+    if (item)
+      item = item->next;
+    if (item)
+      next_stream = g_object_ref (item->data);
+    FS_NICE_TRANSMITTER_UNLOCK (self);
+
+    g_object_unref (stream);
+    stream = next_stream;
+  }
 }
 
 static void
