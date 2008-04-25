@@ -170,15 +170,15 @@ if echo $FS2_TRANSMITTER_PLUGINS_SELECTED | grep -qi nice; then
 
   PKG_CHECK_MODULES(NICE, \
        nice >= $NICE_REQUIRED,
-       HAVE_NICE=yes,
-       HAVE_NICE=no)
+       USE_NICE=yes,
+       AC_MSG_ERROR([Could not build libnice plugin because libnice is not installed]) )
   AC_SUBST(NICE_CFLAGS)
   AC_SUBST(NICE_LIBS)
 else
   AC_MSG_NOTICE(nice transmitter disabled by user request)
 fi
 
-AM_CONDITIONAL(USE_NICE, test "x$HAVE_NICE" == "xyes")
+AM_CONDITIONAL(USE_NICE, test "x$USE_NICE" == "xyes")
 
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_SELECTED)
 
