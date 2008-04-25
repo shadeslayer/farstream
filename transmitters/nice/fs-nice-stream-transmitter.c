@@ -567,9 +567,15 @@ fs_nice_stream_transmitter_remote_candidates_added (
 
   if (candidates)
   {
-    FsCandidate *cand= candidates->data;
+    FsCandidate *cand = candidates->data;
     nice_agent_set_remote_credentials (self->priv->transmitter->agent,
-        stream_id, cand->username, cand->password);
+        self->priv->stream_id, cand->username, cand->password);
+  }
+  else
+  {
+    GST_DEBUG ("Candidates added called before any candidate set,"
+        " assuming we're in ice-6 with dribble, so every candidate has"
+        " its own password");
   }
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
@@ -797,6 +803,9 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       error);
   if (self->priv->gststream == NULL)
     return FALSE;
+
+  GST_DEBUG ("Created a stream with %u components",
+      self->priv->transmitter->components);
 
   return TRUE;
 }
