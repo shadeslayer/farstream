@@ -598,6 +598,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
 
     g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
     g_slist_free (nice_candidates);
+    nice_candidates = NULL;
   }
   return;
  error:
