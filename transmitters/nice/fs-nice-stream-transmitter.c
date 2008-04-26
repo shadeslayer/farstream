@@ -271,7 +271,7 @@ fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self)
   self->priv = FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE (self);
 
   self->priv->sending = TRUE;
-
+  self->priv->state = FS_STREAM_STATE_DISCONNECTED;
   self->priv->mutex = g_mutex_new ();
 }
 
@@ -881,6 +881,9 @@ fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
   FsStreamState fs_state = nice_component_state_to_fs_stream_state (state);
   gboolean identical = TRUE;
   gint i;
+
+  GST_DEBUG ("Stream: %u Component %u has state %u",
+      self->priv->stream_id, component_id, state);
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
 
