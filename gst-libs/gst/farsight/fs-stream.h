@@ -51,6 +51,31 @@ typedef enum
   FS_DIRECTION_BOTH = FS_DIRECTION_SEND | FS_DIRECTION_RECV
 } FsStreamDirection;
 
+/**
+ * FsStreamState:
+ * @FS_STREAM_STATE_FAILED: connectivity checks have been completed,
+ *                          but connectivity was not established
+ * @FS_STREAM_STATE_DISCONNECTED: no activity scheduled
+ * @FS_STREAM_STATE_GATHERING: gathering local candidates
+ * @FS_STREAM_STATE_CONNECTING: establishing connectivity
+ * @FS_STREAM_STATE_CONNECTED: at least one working candidate pair
+ * @FS_STREAM_STATE_READY: ICE concluded, candidate pair selection is now final
+ *
+ * These are the possible states of a stream, a simple multicast stream
+ * could only be in "disconnected" or "ready" state.
+ * An stream using an ICE transmitter would use all of these.
+ */
+
+typedef enum
+{
+  FS_STREAM_STATE_FAILED,
+  FS_STREAM_STATE_DISCONNECTED,
+  FS_STREAM_STATE_GATHERING,
+  FS_STREAM_STATE_CONNECTING,
+  FS_STREAM_STATE_CONNECTED,
+  FS_STREAM_STATE_READY
+} FsStreamState;
+
 /* TYPE MACROS */
 #define FS_TYPE_STREAM \
   (fs_stream_get_type ())
