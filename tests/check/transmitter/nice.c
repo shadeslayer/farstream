@@ -103,8 +103,6 @@ static void
 _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   FsCandidate *remote, gpointer user_data)
 {
-  FsTransmitter *trans = FS_TRANSMITTER (user_data);
-
   ts_fail_if (local == NULL, "Local candidate NULL");
   ts_fail_if (remote == NULL, "Remote candidate NULL");
 
@@ -112,17 +110,6 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
     "Local and remote candidates dont have the same component id");
 
   g_debug ("New active candidate pair");
-
-  if (g_object_get_data (G_OBJECT (trans), "src_setup") == NULL)
-  {
-    GstElement *pipeline = GST_ELEMENT (
-        g_object_get_data (G_OBJECT (trans), "pipeline"));
-    setup_fakesrc (trans, pipeline, 1);
-    setup_fakesrc (trans, pipeline, 2);
-    g_object_set_data (G_OBJECT (trans), "src_setup", "");
-  }
-  else
-    g_debug ("FAKESRC ALREADY SETUP");
 }
 
 static void
@@ -172,6 +159,34 @@ _handoff_handler2 (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gint component_id = GPOINTER_TO_INT (user_data);
 
   _handoff_handler (element, buffer, pad, 1, component_id);
+}
+
+static void
+_stream_state_notify (GObject *obj, GParamSpec *pspec, gpointer user_data)
+{
+  FsTransmitter *trans = FS_TRANSMITTER (user_data);
+  FsStreamState state;
+
+  g_object_get (obj, "state", &state, NULL);
+
+  g_debug ("Stream state is now %u", state);
+
+  ts_fail_if (state == FS_STREAM_STATE_FAILED,
+      "Failed to establish a connection");
+
+  if (state < FS_STREAM_STATE_CONNECTED)
+    return;
+
+  if (g_object_get_data (G_OBJECT (trans), "src_setup") == NULL)
+  {
+    GstElement *pipeline = GST_ELEMENT (
+        g_object_get_data (G_OBJECT (trans), "pipeline"));
+    setup_fakesrc (trans, pipeline, 1);
+    setup_fakesrc (trans, pipeline, 2);
+    g_object_set_data (G_OBJECT (trans), "src_setup", "");
+  }
+  else
+    g_debug ("FAKESRC ALREADY SETUP");
 }
 
 
@@ -253,6 +268,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
+  ts_fail_unless (g_signal_connect (st, "notify::state",
+          G_CALLBACK (_stream_state_notify), trans),
+      "Could not connect to notify::state signal");
 
   ts_fail_unless (g_signal_connect (st2, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), st),
@@ -266,6 +284,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st2, "error",
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
+  ts_fail_unless (g_signal_connect (st2, "notify::state",
+          G_CALLBACK (_stream_state_notify), trans2),
+      "Could not connect to notify::state signal");
 
   ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
