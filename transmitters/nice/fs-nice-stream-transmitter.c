@@ -60,6 +60,7 @@ enum
   PROP_0,
   PROP_SENDING,
   PROP_PREFERRED_LOCAL_CANDIDATES,
+  PROP_STATE,
   PROP_STUN_IP,
   PROP_STUN_PORT,
   PROP_TURN_IP,
@@ -97,6 +98,9 @@ struct _FsNiceStreamTransmitterPrivate
   GList *candidates_to_set;
 
   NiceGstStream *gststream;
+
+  FsStreamState state;
+  FsStreamState *component_states;
 };
 
 #define FS_NICE_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -196,6 +200,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
       PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
+  g_object_class_override_property (gobject_class,
+      PROP_STATE, "state");
 
   g_object_class_install_property (gobject_class, PROP_STUN_IP,
       g_param_spec_string (
@@ -296,6 +302,8 @@ fs_nice_stream_transmitter_finalize (GObject *object)
 
   fs_candidate_list_destroy (self->priv->preferred_local_candidates);
 
+  g_free (self->priv->component_states);
+
   g_free (self->priv->stun_ip);
   g_free (self->priv->turn_ip);
 
@@ -319,6 +327,11 @@ fs_nice_stream_transmitter_get_property (GObject *object,
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       g_value_set_boxed (value, self->priv->preferred_local_candidates);
+      break;
+    case PROP_STATE:
+      FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+      g_value_set_enum (value, self->priv->state);
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       break;
     case PROP_STUN_IP:
       if (self->priv->transmitter->agent)
@@ -732,6 +745,9 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
   GList *item;
   gboolean set = FALSE;
 
+  self->priv->component_states = g_new0 (FsStreamState,
+      self->priv->transmitter->components);
+
   for (item = self->priv->preferred_local_candidates;
        item;
        item = g_list_next (item))
@@ -834,14 +850,55 @@ fs_nice_stream_transmitter_gather_local_candidates (
   return TRUE;
 }
 
+static FsStreamState
+nice_component_state_to_fs_stream_state (NiceComponentState state)
+{
+  switch (state)
+  {
+    case NICE_COMPONENT_STATE_DISCONNECTED:
+      return FS_STREAM_STATE_DISCONNECTED;
+    case NICE_COMPONENT_STATE_GATHERING:
+      return FS_STREAM_STATE_GATHERING;
+    case NICE_COMPONENT_STATE_CONNECTING:
+      return FS_STREAM_STATE_CONNECTING;
+    case NICE_COMPONENT_STATE_CONNECTED:
+      return FS_STREAM_STATE_CONNECTED;
+    case NICE_COMPONENT_STATE_READY:
+      return FS_STREAM_STATE_READY;
+    case NICE_COMPONENT_STATE_FAILED:
+      return FS_STREAM_STATE_FAILED;
+    default:
+      GST_ERROR ("Invalid state %u", state);
+      return FS_STREAM_STATE_FAILED;
+  }
+}
 
 void
 fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
     guint component_id,
     guint state)
 {
-  g_debug ("State of nicetransmitter for stream %u component %u changed to %u",
-      self->priv->stream_id, component_id, state);
+  FsStreamState fs_state = nice_component_state_to_fs_stream_state (state);
+  gboolean identical = TRUE;
+  gint i;
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+
+  self->priv->component_states[component_id - 1] = fs_state;
+
+  for (i = 0; i < self->priv->transmitter->components; i++)
+    if (self->priv->component_states[i] != fs_state)
+    {
+      identical = FALSE;
+      break;
+    }
+  if (identical)
+    self->priv->state = fs_state;
+
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  if (identical)
+    g_object_notify (G_OBJECT (self), "state");
 }
 
 
