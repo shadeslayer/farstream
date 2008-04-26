@@ -864,7 +864,7 @@ fs_nice_stream_transmitter_selected_pair (
   {
     NiceCandidate *candidate = item->data;
 
-    if (!strcmp (item->data, lfoundation))
+    if (!strcmp (candidate->foundation, lfoundation))
     {
       local = nice_candidate_to_fs_candidate (self->priv->transmitter->agent,
           candidate);
@@ -881,7 +881,7 @@ fs_nice_stream_transmitter_selected_pair (
   {
     NiceCandidate *candidate = item->data;
 
-    if (!strcmp (item->data, lfoundation))
+    if (!strcmp (candidate->foundation, lfoundation))
     {
       remote = nice_candidate_to_fs_candidate (self->priv->transmitter->agent,
           candidate);
