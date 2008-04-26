@@ -588,12 +588,16 @@ fs_nice_stream_transmitter_remote_candidates_added (
          item = g_list_next (item))
     {
       FsCandidate *candidate = item->data;
-      NiceCandidate *nc = fs_candidate_to_nice_candidate (self, candidate);
 
-      if (!nc)
-        goto error;
+      if (candidate->component_id == c)
+      {
+        NiceCandidate *nc = fs_candidate_to_nice_candidate (self, candidate);
 
-      nice_candidates = g_slist_append (nice_candidates, nc);
+        if (!nc)
+          goto error;
+
+        nice_candidates = g_slist_append (nice_candidates, nc);
+      }
     }
 
     nice_agent_set_remote_candidates (self->priv->transmitter->agent,
