@@ -166,10 +166,15 @@ _stream_state_notify (GObject *obj, GParamSpec *pspec, gpointer user_data)
 {
   FsTransmitter *trans = FS_TRANSMITTER (user_data);
   FsStreamState state;
+  GEnumClass *enumclass = NULL;
+  GEnumValue *enumvalue = NULL;
 
   g_object_get (obj, "state", &state, NULL);
 
-  g_debug ("Stream state is now %u", state);
+  enumclass = g_type_class_ref (FS_TYPE_STREAM_STATE);
+  enumvalue = g_enum_get_value (enumclass, state);
+  g_debug ("Stream state is now %s (%u)", enumvalue->value_nick, state);
+  g_type_class_unref (enumclass);
 
   ts_fail_if (state == FS_STREAM_STATE_FAILED,
       "Failed to establish a connection");
