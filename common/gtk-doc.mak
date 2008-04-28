@@ -12,7 +12,7 @@
 GPATH = $(srcdir)
 
 # thomas: make docs parallel installable
-TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@
+TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)
 
 EXTRA_DIST = 				\
 	$(content_files)		\
