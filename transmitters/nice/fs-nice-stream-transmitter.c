@@ -77,6 +77,10 @@ struct _FsNiceStreamTransmitterPrivate
 {
   FsNiceTransmitter *transmitter;
 
+  NiceAgent *agent;
+
+  guint stream_id;
+
   gboolean sending;
 
   gchar *stun_ip;
@@ -89,8 +93,6 @@ struct _FsNiceStreamTransmitterPrivate
   GMutex *mutex;
 
   GList *preferred_local_candidates;
-
-  guint stream_id;
 
   /* Everything below is protected by the mutex */
 
@@ -299,9 +301,15 @@ fs_nice_stream_transmitter_dispose (GObject *object)
   self->priv->gststream = NULL;
 
   if (self->priv->stream_id)
-    nice_agent_remove_stream (self->priv->transmitter->agent,
+    nice_agent_remove_stream (self->priv->agent,
         self->priv->stream_id);
   self->priv->stream_id = 0;
+
+  if (self->priv->agent)
+  {
+    g_object_unref (self->priv->agent);
+    self->priv->agent = NULL;
+  }
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   parent_class->dispose (object);
@@ -346,37 +354,37 @@ fs_nice_stream_transmitter_get_property (GObject *object,
       FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       break;
     case PROP_STUN_IP:
-      if (self->priv->transmitter->agent)
-        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->agent)
+        g_object_get_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_string (value, self->priv->stun_ip);
       break;
     case PROP_STUN_PORT:
-      if (self->priv->transmitter->agent)
-        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->agent)
+        g_object_get_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_uint (value, self->priv->stun_port);
       break;
     case PROP_TURN_IP:
-      if (self->priv->transmitter->agent)
-        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->agent)
+        g_object_get_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_string (value, self->priv->turn_ip);
       break;
     case PROP_TURN_PORT:
-      if (self->priv->transmitter->agent)
-        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->agent)
+        g_object_get_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_uint (value, self->priv->turn_port);
 
       break;
     case PROP_CONTROLLING_MODE:
-      if (self->priv->transmitter->agent)
-        g_object_get_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->agent)
+        g_object_get_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_boolean (value, self->priv->controlling_mode);
@@ -410,32 +418,32 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_STUN_IP:
       self->priv->stun_ip = g_value_dup_string (value);
-      if (self->priv->transmitter && self->priv->transmitter->agent)
-        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->transmitter && self->priv->agent)
+        g_object_set_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_STUN_PORT:
       self->priv->stun_port = g_value_get_uint (value);
-      if (self->priv->transmitter && self->priv->transmitter->agent)
-        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->transmitter && self->priv->agent)
+        g_object_set_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_TURN_IP:
       self->priv->turn_ip = g_value_dup_string (value);
-      if (self->priv->transmitter && self->priv->transmitter->agent)
-        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->transmitter && self->priv->agent)
+        g_object_set_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_TURN_PORT:
       self->priv->turn_port = g_value_get_uint (value);
-      if (self->priv->transmitter && self->priv->transmitter->agent)
-        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->transmitter && self->priv->agent)
+        g_object_set_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_CONTROLLING_MODE:
       self->priv->controlling_mode = g_value_get_boolean (value);
-      if (self->priv->transmitter && self->priv->transmitter->agent)
-        g_object_set_property (G_OBJECT (self->priv->transmitter->agent),
+      if (self->priv->transmitter && self->priv->agent)
+        g_object_set_property (G_OBJECT (self->priv->agent),
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_COMPATIBILITY_MODE:
@@ -560,7 +568,7 @@ fs_nice_stream_transmitter_add_remote_candidate (
 
   list = g_slist_prepend (NULL, cand);
 
-  nice_agent_set_remote_candidates (self->priv->transmitter->agent,
+  nice_agent_set_remote_candidates (self->priv->agent,
       self->priv->stream_id, candidate->component_id, list);
 
   g_slist_free (list);
@@ -596,7 +604,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
   if (candidates)
   {
     FsCandidate *cand = candidates->data;
-    nice_agent_set_remote_credentials (self->priv->transmitter->agent,
+    nice_agent_set_remote_credentials (self->priv->agent,
         self->priv->stream_id, cand->username, cand->password);
   }
   else
@@ -625,7 +633,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
       }
     }
 
-    nice_agent_set_remote_candidates (self->priv->transmitter->agent,
+    nice_agent_set_remote_candidates (self->priv->agent,
         self->priv->stream_id, c, nice_candidates);
 
     g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
@@ -662,7 +670,7 @@ fs_nice_stream_transmitter_select_candidate_pair (
   }
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
-    if (!nice_agent_set_selected_pair (self->priv->transmitter->agent,
+    if (!nice_agent_set_selected_pair (self->priv->agent,
             self->priv->stream_id, c, local_foundation, remote_foundation))
       res = FALSE;
 
@@ -769,7 +777,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
     if (nice_address_set_from_string (addr, cand->ip))
     {
-      if (!nice_agent_add_local_address (self->priv->transmitter->agent, addr))
+      if (!nice_agent_add_local_address (self->priv->agent, addr))
       {
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
             "Unable to set preferred local candidate");
@@ -799,7 +807,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
       if (nice_address_set_from_string (addr, item->data))
       {
-        if (!nice_agent_add_local_address (self->priv->transmitter->agent,
+        if (!nice_agent_add_local_address (self->priv->agent,
                 addr))
         {
           g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -823,7 +831,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
 
   self->priv->stream_id = nice_agent_add_stream (
-      self->priv->transmitter->agent,
+      self->priv->agent,
       self->priv->transmitter->components);
 
   if (self->priv->stream_id == 0)
@@ -835,7 +843,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,
-      self->priv->transmitter->agent,
+      self->priv->agent,
       self->priv->stream_id,
       error);
   if (self->priv->gststream == NULL)
@@ -857,7 +865,7 @@ fs_nice_stream_transmitter_gather_local_candidates (
 
   GST_DEBUG ("Stream %u started", self->priv->stream_id);
 
-  nice_agent_gather_candidates (self->priv->transmitter->agent,
+  nice_agent_gather_candidates (self->priv->agent,
       self->priv->stream_id);
 
   return TRUE;
@@ -930,7 +938,7 @@ fs_nice_stream_transmitter_selected_pair (
   FsCandidate *remote = NULL;
 
   candidates = nice_agent_get_local_candidates (
-      self->priv->transmitter->agent,
+      self->priv->agent,
       self->priv->stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
@@ -939,7 +947,7 @@ fs_nice_stream_transmitter_selected_pair (
 
     if (!strcmp (candidate->foundation, lfoundation))
     {
-      local = nice_candidate_to_fs_candidate (self->priv->transmitter->agent,
+      local = nice_candidate_to_fs_candidate (self->priv->agent,
           candidate);
       break;
     }
@@ -947,7 +955,7 @@ fs_nice_stream_transmitter_selected_pair (
   g_slist_free (candidates);
 
   candidates = nice_agent_get_remote_candidates (
-      self->priv->transmitter->agent,
+      self->priv->agent,
       self->priv->stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
@@ -956,7 +964,7 @@ fs_nice_stream_transmitter_selected_pair (
 
     if (!strcmp (candidate->foundation, lfoundation))
     {
-      remote = nice_candidate_to_fs_candidate (self->priv->transmitter->agent,
+      remote = nice_candidate_to_fs_candidate (self->priv->agent,
           candidate);
       break;
     }
@@ -996,7 +1004,7 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   candidates = nice_agent_get_local_candidates (
-      self->priv->transmitter->agent,
+      self->priv->agent,
       self->priv->stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
@@ -1006,7 +1014,7 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
     if (!strcmp (item->data, foundation))
     {
       fscandidate = nice_candidate_to_fs_candidate (
-          self->priv->transmitter->agent, candidate);
+          self->priv->agent, candidate);
       break;
     }
   }
@@ -1039,7 +1047,7 @@ fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
     candidates = nice_agent_get_local_candidates (
-        self->priv->transmitter->agent,
+        self->priv->agent,
         self->priv->stream_id, c);
 
     for (item = candidates; item; item = g_slist_next (item))
@@ -1048,7 +1056,7 @@ fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
       FsCandidate *fscandidate;
 
       fscandidate = nice_candidate_to_fs_candidate (
-          self->priv->transmitter->agent, candidate);
+          self->priv->agent, candidate);
       g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
       fs_candidate_destroy (fscandidate);
     }

@@ -78,9 +78,6 @@ struct _FsNiceTransmitter
   /* The number of components (READONLY)*/
   gint components;
 
-  /* The agent, don't modify the pointer */
-  NiceAgent *agent;
-
   /*< private >*/
   FsNiceTransmitterPrivate *priv;
 };
