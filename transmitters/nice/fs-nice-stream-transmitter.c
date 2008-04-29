@@ -356,6 +356,12 @@ fs_nice_stream_transmitter_dispose (GObject *object)
   }
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
+  if (self->priv->transmitter)
+  {
+    g_object_unref (self->priv->transmitter);
+    self->priv->transmitter = NULL;
+  }
+
   parent_class->dispose (object);
 }
 
@@ -1317,7 +1323,7 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
     return NULL;
   }
 
-  streamtransmitter->priv->transmitter = transmitter;
+  streamtransmitter->priv->transmitter = g_object_ref (transmitter);
 
   if (!fs_nice_stream_transmitter_build (streamtransmitter, participant, error))
   {
