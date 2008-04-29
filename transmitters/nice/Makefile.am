@@ -6,7 +6,8 @@ plugin_LTLIBRARIES = libnice-transmitter.la
 # sources used to compile this lib
 libnice_transmitter_la_SOURCES = \
 	fs-nice-transmitter.c \
-	fs-nice-stream-transmitter.c
+	fs-nice-stream-transmitter.c \
+	fs-nice-thread.c
 
 # flags used to compile this plugin
 libnice_transmitter_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) \
@@ -18,4 +19,5 @@ libnice_transmitter_la_LIBADD = \
 
 noinst_HEADERS = \
 	fs-nice-transmitter.h \
-	fs-nice-stream-transmitter.h
+	fs-nice-stream-transmitter.h \
+	fs-nice-thread.h

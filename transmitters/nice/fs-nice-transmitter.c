@@ -37,6 +37,7 @@
 
 #include "fs-nice-transmitter.h"
 #include "fs-nice-stream-transmitter.h"
+#include "fs-nice-thread.h"
 
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-plugin.h>
@@ -165,6 +166,7 @@ fs_nice_transmitter_register_type (FsPlugin *module)
         "Farsight libnice transmitter");
 
   fs_nice_stream_transmitter_register_type (module);
+  fs_nice_thread_register_type (module);
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
     FS_TYPE_TRANSMITTER, "FsNiceTransmitter", &info, 0);
