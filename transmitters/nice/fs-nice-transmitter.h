@@ -92,6 +92,7 @@ struct _NiceGstStream;
 typedef struct _NiceGstStream NiceGstStream;
 
 NiceGstStream *fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
+    NiceAgent *agent,
     guint stream_id,
     GError **error);
 

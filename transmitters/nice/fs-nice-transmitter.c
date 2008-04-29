@@ -942,6 +942,7 @@ struct _NiceGstStream {
 
 NiceGstStream *
 fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
+    NiceAgent *agent,
     guint stream_id,
     GError **error)
 {
@@ -959,7 +960,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     ns->nicesrcs[c] = _create_sinksource ("nicesrc",
         GST_BIN (self->priv->gst_src),
         self->priv->src_funnels[c],
-        self->agent,
+        agent,
         stream_id,
         c,
         GST_PAD_SRC,
@@ -972,7 +973,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     ns->nicesinks[c] = _create_sinksource ("nicesink",
         GST_BIN (self->priv->gst_sink),
         self->priv->sink_tees[c],
-        self->agent,
+        agent,
         stream_id,
         c,
         GST_PAD_SINK,

@@ -823,6 +823,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,
+      self->priv->transmitter->agent,
       self->priv->stream_id,
       error);
   if (self->priv->gststream == NULL)
