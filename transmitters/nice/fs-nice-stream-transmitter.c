@@ -96,6 +96,11 @@ struct _FsNiceStreamTransmitterPrivate
 
   GList *preferred_local_candidates;
 
+  gulong state_changed_handler_id;
+  gulong gathering_done_handler_id;
+  gulong new_selected_pair_handler_id;
+  gulong new_candidate_handler_id;
+
   /* Everything below is protected by the mutex */
 
   gboolean gathered;
@@ -145,6 +150,24 @@ static gboolean fs_nice_stream_transmitter_select_candidate_pair (
 static gboolean fs_nice_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
     GError **error);
+
+static void agent_state_changed (NiceAgent *agent,
+    guint stream_id,
+    guint component_id,
+    guint state,
+    gpointer user_data);
+static void agent_gathering_done (NiceAgent *agent, gpointer user_data);
+static void agent_new_selected_pair (NiceAgent *agent,
+    guint stream_id,
+    guint component_id,
+    const gchar *lfoundation,
+    const gchar *rfoundation,
+    gpointer user_data);
+static void agent_new_candidate (NiceAgent *agent,
+    guint stream_id,
+    guint component_id,
+    const gchar *foundation,
+    gpointer user_data);
 
 
 static GObjectClass *parent_class = NULL;
@@ -306,6 +329,26 @@ fs_nice_stream_transmitter_dispose (GObject *object)
     nice_agent_remove_stream (self->priv->agent,
         self->priv->stream_id);
   self->priv->stream_id = 0;
+
+  if (self->priv->state_changed_handler_id)
+    g_signal_handler_disconnect (self->priv->agent,
+        self->priv->state_changed_handler_id);
+  self->priv->state_changed_handler_id = 0;
+
+  if (self->priv->gathering_done_handler_id)
+    g_signal_handler_disconnect (self->priv->agent,
+        self->priv->gathering_done_handler_id);
+  self->priv->gathering_done_handler_id = 0;
+
+  if (self->priv->new_selected_pair_handler_id)
+    g_signal_handler_disconnect (self->priv->agent,
+        self->priv->new_selected_pair_handler_id);
+  self->priv->new_selected_pair_handler_id = 0;
+
+  if (self->priv->new_candidate_handler_id)
+    g_signal_handler_disconnect (self->priv->agent,
+        self->priv->new_candidate_handler_id);
+  self->priv->new_candidate_handler_id = 0;
 
   if (self->priv->agent)
   {
@@ -1004,6 +1047,16 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     return FALSE;
   }
 
+  self->priv->state_changed_handler_id = g_signal_connect (agent,
+      "component-state-changed", G_CALLBACK (agent_state_changed), self);
+  self->priv->gathering_done_handler_id = g_signal_connect (agent,
+      "candidate-gathering-done", G_CALLBACK (agent_gathering_done), self);
+  self->priv->new_selected_pair_handler_id = g_signal_connect (agent,
+      "new-selected-pair", G_CALLBACK (agent_new_selected_pair), self);
+  self->priv->new_candidate_handler_id = g_signal_connect (agent,
+      "new-candidate", G_CALLBACK (agent_new_candidate), self);
+
+
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,
       self->priv->agent,
@@ -1057,14 +1110,20 @@ nice_component_state_to_fs_stream_state (NiceComponentState state)
   }
 }
 
-void
-fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
+static void
+agent_state_changed (NiceAgent *agent,
+    guint stream_id,
     guint component_id,
-    guint state)
+    guint state,
+    gpointer user_data)
 {
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   FsStreamState fs_state = nice_component_state_to_fs_stream_state (state);
   gboolean identical = TRUE;
   gint i;
+
+  if (stream_id != self->priv->stream_id)
+    return;
 
   GST_DEBUG ("Stream: %u Component %u has state %u",
       self->priv->stream_id, component_id, state);
@@ -1089,16 +1148,21 @@ fs_nice_stream_transmitter_state_changed (FsNiceStreamTransmitter *self,
 }
 
 
-void
-fs_nice_stream_transmitter_selected_pair (
-    FsNiceStreamTransmitter *self,
+static void
+agent_new_selected_pair (NiceAgent *agent,
+    guint stream_id,
     guint component_id,
     const gchar *lfoundation,
-    const gchar *rfoundation)
+    const gchar *rfoundation,
+    gpointer user_data)
 {
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   GSList *candidates, *item;
   FsCandidate *local = NULL;
   FsCandidate *remote = NULL;
+
+  if (stream_id != self->priv->stream_id)
+    return;
 
   candidates = nice_agent_get_local_candidates (
       self->priv->agent,
@@ -1145,13 +1209,19 @@ fs_nice_stream_transmitter_selected_pair (
 }
 
 
-void
-fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
+static void
+agent_new_candidate (NiceAgent *agent,
+    guint stream_id,
     guint component_id,
-    const gchar *foundation)
+    const gchar *foundation,
+    gpointer user_data)
 {
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   FsCandidate *fscandidate = NULL;
   GSList *candidates, *item;
+
+  if (stream_id != self->priv->stream_id)
+    return;
 
   /* Ignore this signal completely
    * it seems broken
@@ -1190,9 +1260,10 @@ fs_nice_stream_transmitter_new_candidate (FsNiceStreamTransmitter *self,
   }
 }
 
-void
-fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
+static void
+agent_gathering_done (NiceAgent *agent, gpointer user_data)
 {
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   GSList *candidates, *item;
   gint c;
 
