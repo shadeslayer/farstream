@@ -221,14 +221,14 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   trans = fs_transmitter_new ("nice", 2, &error);
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
+        g_quark_to_string (error->domain), error->code, error->message);
   }
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
   trans2 = fs_transmitter_new ("nice", 2, &error);
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
+        g_quark_to_string (error->domain), error->code, error->message);
   }
   ts_fail_if (trans2 == NULL, "No transmitter create, yet error is still NULL");
 
@@ -247,15 +247,20 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   gst_bus_add_watch (bus, bus_error_callback, NULL);
   gst_object_unref (bus);
 
-  st = fs_transmitter_new_stream_transmitter (trans, NULL, n_parameters, params,
-    &error);
+  /*
+   * I'm passing the participant because any gobject will work,
+   * but it should be the participant
+   */
+
+  st = fs_transmitter_new_stream_transmitter (trans, (FsParticipant*) trans,
+      n_parameters,  params, &error);
   if (error)
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
-  st2 = fs_transmitter_new_stream_transmitter (trans2, NULL, n_parameters,
-      params, &error);
+  st2 = fs_transmitter_new_stream_transmitter (trans2, (FsParticipant*) trans2,
+      n_parameters, params, &error);
   if (error)
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
