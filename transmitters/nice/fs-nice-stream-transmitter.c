@@ -48,7 +48,6 @@
 
 #include <udp-bsd.h>
 
-GST_DEBUG_CATEGORY_EXTERN (fs_nice_transmitter_debug);
 #define GST_CAT_DEFAULT fs_nice_transmitter_debug
 
 /* Signals */

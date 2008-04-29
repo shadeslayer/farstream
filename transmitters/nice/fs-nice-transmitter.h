@@ -82,6 +82,7 @@ struct _FsNiceTransmitter
   FsNiceTransmitterPrivate *priv;
 };
 
+GST_DEBUG_CATEGORY_EXTERN (fs_nice_transmitter_debug);
 
 GType fs_nice_transmitter_get_type (void);
 
