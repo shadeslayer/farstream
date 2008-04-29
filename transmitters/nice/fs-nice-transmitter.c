@@ -43,7 +43,6 @@
 #include <gst/farsight/fs-plugin.h>
 
 #include <agent.h>
-#include <udp-bsd.h>
 
 #include <string.h>
 #include <sys/types.h>
@@ -77,30 +76,12 @@ struct _FsNiceTransmitterPrivate
   /* They are tables of pointers, one per component */
   GstElement **src_funnels;
   GstElement **sink_tees;
-
-  GMainContext *main_context;
-  GMainLoop *main_loop;
-
-  NiceUDPSocketFactory udpfactory;
-
-  guint compatiblity_mode;
-
-  GMutex *mutex;
-
-  /* Everything below is protected by the mutex */
-
-  GThread *thread;
-
-  GList *streams;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_NICE_TRANSMITTER, \
     FsNiceTransmitterPrivate))
 
-
-#define FS_NICE_TRANSMITTER_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
-#define FS_NICE_TRANSMITTER_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
 
 static void fs_nice_transmitter_class_init (
     FsNiceTransmitterClass *klass);
@@ -124,9 +105,6 @@ static FsStreamTransmitter *fs_nice_transmitter_new_stream_transmitter (
 static GType fs_nice_transmitter_get_stream_transmitter_type (
     FsTransmitter *transmitter,
     GError **error);
-
-static void fs_nice_transmitter_stop_thread (FsNiceTransmitter *self);
-
 
 static GObjectClass *parent_class = NULL;
 //static guint signals[LAST_SIGNAL] = { 0 };
@@ -224,15 +202,6 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv = FS_NICE_TRANSMITTER_GET_PRIVATE (self);
 
   self->components = 2;
-
-  self->priv->mutex = g_mutex_new ();
-
-  self->priv->main_context = g_main_context_new ();
-  self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
-
-  self->priv->compatiblity_mode = G_MAXUINT;
-
-  nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
 }
 
 static void
@@ -396,8 +365,6 @@ fs_nice_transmitter_dispose (GObject *object)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (object);
 
-  fs_nice_transmitter_stop_thread (self);
-
   if (self->priv->gst_src)
   {
     gst_object_unref (self->priv->gst_src);
@@ -408,12 +375,6 @@ fs_nice_transmitter_dispose (GObject *object)
   {
     gst_object_unref (self->priv->gst_sink);
     self->priv->gst_sink = NULL;
-  }
-
-  if (self->agent)
-  {
-    g_object_unref (self->agent);
-    self->agent = NULL;
   }
 
   parent_class->dispose (object);
@@ -435,22 +396,6 @@ fs_nice_transmitter_finalize (GObject *object)
     g_free (self->priv->sink_tees);
     self->priv->sink_tees = NULL;
   }
-
-  if (self->priv->main_context)
-  {
-    g_main_context_unref (self->priv->main_context);
-    self->priv->main_context = NULL;
-  }
-
-  if (self->priv->main_loop)
-  {
-    g_main_loop_unref (self->priv->main_loop);
-    self->priv->main_loop = NULL;
-  }
-
-  g_mutex_free (self->priv->mutex);
-
-  nice_udp_socket_factory_close (&self->priv->udpfactory);
 
   parent_class->finalize (object);
 }
@@ -499,247 +444,6 @@ fs_nice_transmitter_set_property (GObject *object,
   }
 }
 
-static FsNiceStreamTransmitter *
-get_stream_transmitter (FsNiceTransmitter *self, guint stream_id)
-{
-  FsNiceStreamTransmitter *st = NULL;
-  guint my_stream_id;
-  GList *item;
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  for (item = self->priv->streams;
-       item;
-       item = g_list_next (item))
-  {
-    g_object_get (item->data, "stream-id", &my_stream_id, NULL);
-    if (my_stream_id == stream_id)
-    {
-      st = g_object_ref (item->data);
-      break;
-    }
-  }
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-
-  return st;
-}
-
-static void
-agent_component_state_changed (NiceAgent *agent, guint stream_id,
-    guint component_id, guint state, gpointer user_data)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
-  FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
-
-  if (!st)
-  {
-    fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
-        "Receiving component-changed signal with invalid stream id", NULL);
-    return;
-  }
-
-  fs_nice_stream_transmitter_state_changed (st, component_id, state);
-
-  g_object_unref (st);
-}
-
-/*
- * The list traversal in this function should be thread safe as
- * long as the list is not re-ordered
- *
- */
-
-static void
-agent_candidate_gathering_done (NiceAgent *agent, gpointer user_data)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
-  FsNiceStreamTransmitter *stream = NULL;
-  GList *item;
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  item = g_list_first (self->priv->streams);
-  if (item)
-    stream = g_object_ref (item->data);
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-
-  while (stream)
-  {
-    FsNiceStreamTransmitter *next_stream = NULL;
-
-    fs_nice_stream_transmitter_gathering_done (stream);
-
-    FS_NICE_TRANSMITTER_LOCK (self);
-    item = g_list_find (self->priv->streams, stream);
-    if (item)
-      item = item->next;
-    if (item)
-      next_stream = g_object_ref (item->data);
-    FS_NICE_TRANSMITTER_UNLOCK (self);
-
-    g_object_unref (stream);
-    stream = next_stream;
-  }
-}
-
-static void
-agent_new_selected_pair (NiceAgent *agent, guint stream_id,
-    guint component_id, gchar *lfoundation, gchar *rfoundation,
-    gpointer user_data)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
-  FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
-
-  if (!st)
-  {
-    fs_transmitter_emit_error (FS_TRANSMITTER (self), FS_ERROR_INTERNAL,
-        "Receiving new-selected-pair signal with invalid stream id", NULL);
-    return;
-  }
-
-  fs_nice_stream_transmitter_selected_pair (st, component_id,
-      lfoundation, rfoundation);
-
-  g_object_unref (st);
-}
-
-
-static void
-agent_new_candidate (NiceAgent *agent, guint stream_id,
-    guint component_id, gchar *foundation, gpointer user_data)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (user_data);
-  FsNiceStreamTransmitter *st = get_stream_transmitter (self, stream_id);
-
-  /* We can't emit an error here because it starts emitting this signal
-   * as soon as its created... SUCKY API
-   */
-  if (!st)
-    return;
-
-  fs_nice_stream_transmitter_new_candidate (st, component_id, foundation);
-
-  g_object_unref (st);
-}
-
-
-static gpointer
-fs_nice_transmitter_main_thread (gpointer data)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
-
-  g_main_loop_run (self->priv->main_loop);
-
-  return NULL;
-}
-
-
-static gboolean
-fs_nice_transmitter_start_thread (FsNiceTransmitter *self, GError **error)
-{
-  gboolean ret = FALSE;
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  if (self->priv->thread)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Thread already started??");
-    goto done;
-  }
-
-  self->priv->thread = g_thread_create (fs_nice_transmitter_main_thread,
-      self, TRUE, error);
-
-  if (!self->priv->thread)
-    goto done;
-
-  ret = TRUE;
-
- done:
-
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-
-  return ret;
-}
-
-static gboolean
-thread_unlock_idler (gpointer data)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
-
-  g_main_loop_quit (self->priv->main_loop);
-
-  return TRUE;
-}
-
-static void
-fs_nice_transmitter_stop_thread (FsNiceTransmitter *self)
-{
-  GSource *idle_source;
-
-  FS_NICE_TRANSMITTER_LOCK(self);
-
-  if (self->priv->thread == NULL)
-  {
-    FS_NICE_TRANSMITTER_UNLOCK (self);
-    return;
-  }
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-
-  g_main_loop_quit (self->priv->main_loop);
-
-  idle_source = g_idle_source_new ();
-  g_source_set_priority (idle_source, G_PRIORITY_HIGH);
-  g_source_set_callback (idle_source, thread_unlock_idler, self, NULL);
-  g_source_attach (idle_source, self->priv->main_context);
-
-  g_thread_join (self->priv->thread);
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  self->priv->thread = NULL;
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-}
-
-
-static gboolean
-fs_nice_transmitter_start (FsNiceTransmitter *self, GError **error)
-{
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  if (self->priv->thread)
-  {
-    FS_NICE_TRANSMITTER_UNLOCK (self);
-    return TRUE;
-  }
-  else
-  {
-    FS_NICE_TRANSMITTER_UNLOCK (self);
-  }
-
-  self->agent = nice_agent_new (&self->priv->udpfactory,
-      self->priv->main_context,
-      self->priv->compatiblity_mode);
-
-  g_signal_connect (self->agent, "component-state-changed",
-      G_CALLBACK (agent_component_state_changed), self);
-  g_signal_connect (self->agent, "candidate-gathering-done",
-      G_CALLBACK (agent_candidate_gathering_done), self);
-  g_signal_connect (self->agent, "new-selected-pair",
-      G_CALLBACK (agent_new_selected_pair), self);
-  g_signal_connect (self->agent, "new-candidate",
-      G_CALLBACK (agent_new_candidate), self);
-
-  return fs_nice_transmitter_start_thread (self, error);
-}
-
-void
-stream_transmitter_destroyed (gpointer data, GObject *obj_addr)
-{
-  FsNiceTransmitter *self = FS_NICE_TRANSMITTER (data);
-
-  FS_NICE_TRANSMITTER_LOCK (self);
-  self->priv->streams = g_list_remove_all (self->priv->streams, obj_addr);
-  FS_NICE_TRANSMITTER_UNLOCK (self);
-}
-
 /**
  * fs_nice_transmitter_new_stream_nice_transmitter:
  * @transmitter: a #FsTranmitter
@@ -758,62 +462,9 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
   GError **error)
 {
   FsNiceTransmitter *self = FS_NICE_TRANSMITTER (transmitter);
-  FsStreamTransmitter *st = NULL;
-  int i;
-  guint mode;
 
-  for (i=0; i < n_parameters; i++)
-  {
-    if (!strcmp ("compatibility-mode", parameters[i].name))
-    {
-      if (!G_VALUE_HOLDS_UINT (&parameters[i].value))
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "compatibility-mode should be of type uint");
-        return NULL;
-      }
-
-      mode = g_value_get_uint (&parameters[i].value);
-
-      if (self->priv->compatiblity_mode == G_MAXUINT)
-      {
-        self->priv->compatiblity_mode = mode;
-      }
-      else
-      {
-        if (self->priv->compatiblity_mode != mode)
-        {
-          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-              "All streams within the same session MUST have the same"
-              " compatibility mode, you passed %u, but you already had %u",
-              mode, self->priv->compatiblity_mode);
-          return NULL;
-        }
-      }
-
-      break;
-    }
-  }
-
-  if (self->priv->compatiblity_mode == G_MAXUINT)
-    self->priv->compatiblity_mode = NICE_COMPATIBILITY_ID19;
-
-
-  if (!fs_nice_transmitter_start (self, error))
-    return NULL;
-
-  st = FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
-          self, n_parameters, parameters, error));
-
-  if (st)
-  {
-    FS_NICE_TRANSMITTER_LOCK (self);
-    self->priv->streams = g_list_append (self->priv->streams, st);
-    g_object_weak_ref (G_OBJECT (st), stream_transmitter_destroyed, self);
-    FS_NICE_TRANSMITTER_UNLOCK (self);
-  }
-
-  return st;
+  return FS_STREAM_TRANSMITTER (fs_nice_stream_transmitter_newv (
+          self, participant, n_parameters, parameters, error));
 }
 
 static GType

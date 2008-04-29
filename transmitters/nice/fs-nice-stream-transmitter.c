@@ -45,6 +45,9 @@
 #include <string.h>
 #include <sys/types.h>
 
+#include <udp-bsd.h>
+
+
 GST_DEBUG_CATEGORY_EXTERN (fs_nice_transmitter_debug);
 #define GST_CAT_DEFAULT fs_nice_transmitter_debug
 
@@ -144,6 +147,12 @@ static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
 
 static GType type = 0;
+
+/*
+ * This is global because its not a ref-counted object
+ */
+static NiceUDPSocketFactory udpfactory;
+
 
 GType
 fs_nice_stream_transmitter_get_type (void)
@@ -262,6 +271,9 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
           NICE_COMPATIBILITY_ID19,
           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+
+  nice_udp_bsd_socket_factory_init (&udpfactory);
+
 }
 
 static void
@@ -1047,6 +1059,7 @@ fs_nice_stream_transmitter_gathering_done (FsNiceStreamTransmitter *self)
 
 FsNiceStreamTransmitter *
 fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
+    FsParticipant *participant,
     guint n_parameters,
     GParameter *parameters,
     GError **error)
