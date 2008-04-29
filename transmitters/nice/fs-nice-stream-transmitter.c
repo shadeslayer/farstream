@@ -311,6 +311,8 @@ fs_nice_stream_transmitter_init (FsNiceStreamTransmitter *self)
   self->priv->sending = TRUE;
   self->priv->state = FS_STREAM_STATE_DISCONNECTED;
   self->priv->mutex = g_mutex_new ();
+
+  self->priv->controlling_mode = TRUE;
 }
 
 static void
@@ -958,6 +960,10 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
           "turn-server", self->priv->turn_ip,
           "turn-server-port", self->priv->turn_port,
           NULL);
+
+    g_object_set (agent,
+        "controlling-mode", self->priv->controlling_mode,
+        NULL);
 
     local_prefs_copy = fs_candidate_list_copy (
         self->priv->preferred_local_candidates);
