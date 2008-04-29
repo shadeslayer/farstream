@@ -760,6 +760,7 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
 
 static gboolean
 fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
+    FsParticipant *participant,
     GError **error)
 {
   GList *item;
@@ -1086,7 +1087,7 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
 
   streamtransmitter->priv->transmitter = transmitter;
 
-  if (!fs_nice_stream_transmitter_build (streamtransmitter, error))
+  if (!fs_nice_stream_transmitter_build (streamtransmitter, participant, error))
   {
     g_object_unref (streamtransmitter);
     return NULL;
