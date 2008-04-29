@@ -36,6 +36,7 @@
 
 #include "fs-nice-stream-transmitter.h"
 #include "fs-nice-transmitter.h"
+#include "fs-nice-thread.h"
 
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-interfaces.h>
@@ -46,7 +47,6 @@
 #include <sys/types.h>
 
 #include <udp-bsd.h>
-
 
 GST_DEBUG_CATEGORY_EXTERN (fs_nice_transmitter_debug);
 #define GST_CAT_DEFAULT fs_nice_transmitter_debug
@@ -89,6 +89,8 @@ struct _FsNiceStreamTransmitterPrivate
   guint turn_port;
 
   gboolean controlling_mode;
+
+  guint compatibility_mode;
 
   GMutex *mutex;
 
@@ -394,6 +396,8 @@ fs_nice_stream_transmitter_get_property (GObject *object,
       g_value_set_uint (value, self->priv->stream_id);
       FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       break;
+    case PROP_COMPATIBILITY_MODE:
+      g_value_set_uint (value, self->priv->compatibility_mode);
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -418,27 +422,15 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_STUN_IP:
       self->priv->stun_ip = g_value_dup_string (value);
-      if (self->priv->transmitter && self->priv->agent)
-        g_object_set_property (G_OBJECT (self->priv->agent),
-            g_param_spec_get_name (pspec), value);
       break;
     case PROP_STUN_PORT:
       self->priv->stun_port = g_value_get_uint (value);
-      if (self->priv->transmitter && self->priv->agent)
-        g_object_set_property (G_OBJECT (self->priv->agent),
-            g_param_spec_get_name (pspec), value);
       break;
     case PROP_TURN_IP:
       self->priv->turn_ip = g_value_dup_string (value);
-      if (self->priv->transmitter && self->priv->agent)
-        g_object_set_property (G_OBJECT (self->priv->agent),
-            g_param_spec_get_name (pspec), value);
       break;
     case PROP_TURN_PORT:
       self->priv->turn_port = g_value_get_uint (value);
-      if (self->priv->transmitter && self->priv->agent)
-        g_object_set_property (G_OBJECT (self->priv->agent),
-            g_param_spec_get_name (pspec), value);
       break;
     case PROP_CONTROLLING_MODE:
       self->priv->controlling_mode = g_value_get_boolean (value);
@@ -447,7 +439,7 @@ fs_nice_stream_transmitter_set_property (GObject *object,
             g_param_spec_get_name (pspec), value);
       break;
     case PROP_COMPATIBILITY_MODE:
-      /* ignore it here, its been intercepted by our parent */
+      self->priv->compatibility_mode = g_value_get_uint (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -758,6 +750,24 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
   return fscandidate;
 }
 
+
+static gboolean
+candidate_list_are_equal (GList *list1, GList *list2)
+{
+  for (;
+       list1 && list2;
+       list1 = list1->next, list2 = list2->next)
+  {
+    FsCandidate *cand1 = list1->data;
+    FsCandidate *cand2 = list2->data;
+
+    if (strcmp (cand1->ip, cand2->ip))
+        return FALSE;
+  }
+
+  return TRUE;
+}
+
 static gboolean
 fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     FsParticipant *participant,
@@ -765,56 +775,171 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 {
   GList *item;
   gboolean set = FALSE;
+  GList *agents  = NULL;
+  FsNiceThread *thread = NULL;
+  NiceAgent *agent = NULL;
 
-  self->priv->component_states = g_new0 (FsStreamState,
-      self->priv->transmitter->components);
+  /* Before going any further, check that the list of candidates are ok */
 
-  for (item = self->priv->preferred_local_candidates;
+  for (item = g_list_first (self->priv->preferred_local_candidates);
        item;
        item = g_list_next (item))
   {
     FsCandidate *cand = item->data;
-    NiceAddress *addr = nice_address_new ();
 
-    if (nice_address_set_from_string (addr, cand->ip))
-    {
-      if (!nice_agent_add_local_address (self->priv->agent, addr))
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "Unable to set preferred local candidate");
-        return FALSE;
-      }
-      set = TRUE;
-    }
-    else
+    if (cand->ip == NULL)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "Invalid local address passed");
-      nice_address_free (addr);
+          "You have to set an ip on your preferred candidate");
       return FALSE;
     }
-    nice_address_free (addr);
+
+    if (cand->port || cand->component_id)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "You can not set a port or component id"
+          " for the preferred nice candidate");
+      return FALSE;
+    }
+
+    if (cand->type != FS_CANDIDATE_TYPE_HOST)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "You can only set preferred candidates of type host");
+      return FALSE;
+    }
+
+    if (cand->proto != FS_NETWORK_PROTOCOL_UDP)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Only UDP preferred candidates can be set");
+      return FALSE;
+    }
   }
 
-  if (!set)
-  {
-    GList *addresses = fs_interfaces_get_local_ips (FALSE);
 
-    for (item = addresses;
+  /* First find if there is already a matching agent */
+
+  agents = g_object_get_data (G_OBJECT (participant), "nice-agents");
+
+  for (item = g_list_first (agents);
+       item;
+       item = g_list_next (item))
+  {
+    guint stun_port, turn_port;
+    gchar *stun_server, *turn_server;
+    guint compatibility;
+
+    agent = item->data;
+
+    g_object_get (agent,
+        "stun-server", &stun_server,
+        "stun-server-port", &stun_port,
+        "turn-server", &turn_server,
+        "turn-server-port", &turn_port,
+        "compatibility", &compatibility,
+        NULL);
+
+    if (!thread)
+      thread = g_object_get_data (G_OBJECT (agent), "nice-thread");
+
+    /*
+     * Check if the agent matches our requested criteria
+     */
+    if (compatibility == self->priv->compatibility_mode &&
+        stun_port == self->priv->stun_port &&
+        turn_port == self->priv->turn_port &&
+        (stun_server == self->priv->stun_ip ||
+            (stun_server && self->priv->stun_ip &&
+                !strcmp (stun_server, self->priv->stun_ip))) &&
+        (turn_server == self->priv->turn_ip ||
+            (turn_server && self->priv->turn_ip &&
+                !strcmp (turn_server, self->priv->turn_ip))))
+    {
+      GList *prefs = g_object_get_data (G_OBJECT (agent),
+          "preferred-local-candidates");
+
+      if (candidate_list_are_equal (prefs,
+              self->priv->preferred_local_candidates))
+        break;
+    }
+  }
+
+
+  /* In this case we need to build a new agent */
+  if (item == NULL)
+  {
+    GMainContext *ctx = NULL;
+    GList *local_prefs_copy;
+
+    /* If we don't have a thread, build one */
+    if (thread == NULL)
+    {
+      thread = fs_nice_thread_new (error);
+      if (!thread)
+        return FALSE;
+    }
+
+    ctx = fs_nice_thread_get_context (thread);
+
+    agent = nice_agent_new (&udpfactory, ctx, self->priv->compatibility_mode);
+
+    if (!agent)
+    {
+      g_object_unref (thread);
+      g_object_unref (thread);
+      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+          "Could not make nice agent");
+      return FALSE;
+    }
+
+    fs_nice_thread_add_weak_object (thread, G_OBJECT (agent));
+
+    g_object_set_data (G_OBJECT (thread), "nice-thread", thread);
+
+    g_object_unref (thread);
+
+    if (self->priv->stun_ip && self->priv->stun_port)
+      g_object_set (agent,
+          "stun-server", self->priv->stun_ip,
+          "stun-server-port", self->priv->stun_port,
+          NULL);
+
+    if (self->priv->turn_ip && self->priv->turn_port)
+      g_object_set (agent,
+          "turn-server", self->priv->turn_ip,
+          "turn-server-port", self->priv->turn_port,
+          NULL);
+
+    local_prefs_copy = fs_candidate_list_copy (
+        self->priv->preferred_local_candidates);
+    g_object_set_data (G_OBJECT (agent), "preferred-local-candidates",
+        local_prefs_copy);
+    g_object_weak_ref (G_OBJECT (agent),
+        (GWeakNotify) fs_candidate_list_destroy,
+        local_prefs_copy);
+
+    agents = g_list_prepend (agents, agents);
+    g_object_set_data (G_OBJECT (participant), "nice-agents", agents);
+
+    self->priv->agent = agent;
+
+    for (item = self->priv->preferred_local_candidates;
          item;
          item = g_list_next (item))
     {
-      NiceAddress *addr = nice_address_new ();;
+      FsCandidate *cand = item->data;
+      NiceAddress *addr = nice_address_new ();
 
-      if (nice_address_set_from_string (addr, item->data))
+      if (nice_address_set_from_string (addr, cand->ip))
       {
-        if (!nice_agent_add_local_address (self->priv->agent,
-                addr))
+        if (!nice_agent_add_local_address (self->priv->agent, addr))
         {
           g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
               "Unable to set preferred local candidate");
           return FALSE;
         }
+        set = TRUE;
       }
       else
       {
@@ -826,9 +951,46 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       nice_address_free (addr);
     }
 
-    g_list_foreach (addresses, (GFunc) g_free, NULL);
-    g_list_free (addresses);
+    if (!set)
+    {      GList *addresses = fs_interfaces_get_local_ips (FALSE);
+
+      for (item = addresses;
+           item;
+           item = g_list_next (item))
+      {
+        NiceAddress *addr = nice_address_new ();;
+
+        if (nice_address_set_from_string (addr, item->data))
+        {
+          if (!nice_agent_add_local_address (self->priv->agent,
+                  addr))
+          {
+            g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+                "Unable to set preferred local candidate");
+            return FALSE;
+          }
+        }
+        else
+        {
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "Invalid local address passed");
+          nice_address_free (addr);
+          return FALSE;
+        }
+        nice_address_free (addr);
+      }
+
+      g_list_foreach (addresses, (GFunc) g_free, NULL);
+      g_list_free (addresses);
+    }
+
+
+  } else {
+    self->priv->agent = g_object_ref (agent);
   }
+
+  self->priv->component_states = g_new0 (FsStreamState,
+      self->priv->transmitter->components);
 
 
   self->priv->stream_id = nice_agent_add_stream (
