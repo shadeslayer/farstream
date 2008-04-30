@@ -1234,11 +1234,6 @@ agent_new_candidate (NiceAgent *agent,
   if (stream_id != self->priv->stream_id)
     return;
 
-  /* Ignore this signal completely
-   * it seems broken
-   */
-  return;
-
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   if (!self->priv->gathered)
   {
@@ -1246,6 +1241,9 @@ agent_new_candidate (NiceAgent *agent,
     return;
   }
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  GST_DEBUG ("New candidate found for stream %u component %u",
+      stream_id, component_id);
 
   candidates = nice_agent_get_local_candidates (
       self->priv->agent,
