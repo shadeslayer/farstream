@@ -22,7 +22,7 @@ local_codecs list that points to this local_codecs_association table,
 this is valid until a new list of FsCodecs is passed. The
 codec_associations table is initialized as a copy of local_codec_associations.
 
-For SDP codec negociation: since there are codec-specific things, we
+For SDP codec negotiation: since there are codec-specific things, we
 will use a table of tuples (media_type, encoding-name, function) where
 the function is: 
 FsCodec *sdp_codec_negotiate(GstCaps *rtpcaps, FsCodec *mycodec, FsCodec *hiscodec); 
@@ -41,7 +41,7 @@ the codec_associations, but we keep a NULL entry so that the PT is not
 re-used. If a remote PT was rejected, we also store a NULL in
 codec_associations to prevent the re-use of that PT.
 
-If the user wants to initiate a new negociation, he can optionally
+If the user wants to initiate a new negotiation, he can optionally
 give farsight a new list of FsCodec. This list will be merged into
 local_codec_associations, while not re-using already used PTs by
 looking at codec_associations. Using the same process used the first
@@ -51,7 +51,7 @@ regenerated from local_codec_associations and remote_codecs, while
 keeping NULLs in the place of old codecs to make sure the PTs are not
 re-used.
 
-If the remote end initiates a new codec negociation, we get a new
+If the remote end initiates a new codec negotiation, we get a new
 list of remote codecs, and we merge it into a new codec_associations,
 if its not empty, we replace the old one with it and set_remote_codec
 succeeds. If its empty, set_remote_codec fails and we keep the old
