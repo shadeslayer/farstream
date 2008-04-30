@@ -10,7 +10,7 @@ desires to have the same codec many times with different properties. This
 list of FsCodec can contain codec ids (to force specific codecs into
 specific ids), otherwise if the codec id is < 0 or > 127, a dynamic
 codec id will be attributed... To remove a codec from the list of
-offered codecs, it would be preferable to have a flag in the codec list.
+offered codecs, the codec id is set to a special value.
 
 For each loaded codec (aka CodecBlueprint), we check if there is one
 or more compatible (as in gstcaps comptatible) section in the passed
@@ -57,28 +57,3 @@ if its not empty, we replace the old one with it and set_remote_codec
 succeeds. If its empty, set_remote_codec fails and we keep the old
 codec_associations. get_codec_intersection which will return a
 list of codecs from the codec_associations table.
-
-
-TODO:
-
-- Generate the local_codec_associations table using passed list (DONE)
-- Build local_codecs from local_codec_associations (DONE)
-- Add codec negociation functions (generic and specific) (DONE)
-- Use new codec negociation functions to do SDP negociation on
-  set_remote_codecs (DONE)
-- Generate pt_caps_table with negociated properties (DONE)
-- Make get_codec_intersection return the list of negociation codes
-  from codec_associations (DONE)
-
-- Add helper to build list of fscodecs from a file (DONE)
-- Add API function to pass desired Codecs and merged them into
-  local_codec_associations (with tp/s-e stuff?)
-
-
-- Add a function to validate user passed FsCodec based on rtp caps
-
-PROBLEMS:
-
-- What about atomic codec/port/ip changes (create new streams)
-- How to keep the order in codec_associations (it is a hash
-  table).. Create a list to go with it, that points to the same structures
