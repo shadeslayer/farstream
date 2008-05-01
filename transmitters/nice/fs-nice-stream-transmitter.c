@@ -550,14 +550,18 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
   nc->password = g_strdup(candidate->password);
   */
 
-  if (candidate->ip)
-    if (!nice_address_set_from_string (&nc->addr, candidate->ip))
-      goto error;
+  if (candidate->ip == NULL || candidate->port == 0)
+    goto error;
+  if (!nice_address_set_from_string (&nc->addr, candidate->ip))
+    goto error;
   nice_address_set_port (&nc->addr, candidate->port);
-  if (candidate->base_ip)
+
+  if (candidate->base_ip && candidate->base_port)
+  {
     if (!nice_address_set_from_string (&nc->base_addr, candidate->base_ip))
       goto error;
-  nice_address_set_port (&nc->base_addr, candidate->base_port);
+    nice_address_set_port (&nc->base_addr, candidate->base_port);
+  }
 
   return nc;
 
