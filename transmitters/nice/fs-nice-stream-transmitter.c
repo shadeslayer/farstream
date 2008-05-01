@@ -640,6 +640,13 @@ fs_nice_stream_transmitter_remote_candidates_added (
   gint c;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (self->priv->candidates_added)
+  {
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    GST_LOG ("remote_candidates_added already called, ignoring");
+    return;
+  }
+
   self->priv->candidates_added = TRUE;
   candidates = self->priv->candidates_to_set;
   self->priv->candidates_to_set = NULL;
