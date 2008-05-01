@@ -619,8 +619,6 @@ fs_nice_stream_transmitter_add_remote_candidate (
 
   g_slist_foreach (list, (GFunc)nice_candidate_free, NULL);
   g_slist_free (list);
-  g_free (cand);
-
 
   return TRUE;
 
