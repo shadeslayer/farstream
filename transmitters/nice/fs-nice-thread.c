@@ -214,19 +214,12 @@ fs_nice_thread_get_context (FsNiceThread *self)
   return self->priv->main_context;
 }
 
-static void
-object_dead (gpointer data, GObject *where_the_object_was)
-{
-  FsNiceThread *self = FS_NICE_THREAD (data);
-
-  g_object_unref (self);
-}
 
 void
 fs_nice_thread_add_weak_object (FsNiceThread *self,
     GObject *object)
 {
-  g_object_weak_ref (G_OBJECT (object), object_dead, self);
+  g_object_weak_ref (G_OBJECT (object), (GWeakNotify) g_object_unref, self);
 
   g_object_ref (self);
 }
