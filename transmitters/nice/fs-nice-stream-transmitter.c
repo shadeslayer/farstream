@@ -1190,6 +1190,7 @@ agent_new_selected_pair (NiceAgent *agent,
       break;
     }
   }
+  g_slist_foreach (candidates, (GFunc)nice_candidate_free, NULL);
   g_slist_free (candidates);
 
   candidates = nice_agent_get_remote_candidates (
@@ -1207,6 +1208,7 @@ agent_new_selected_pair (NiceAgent *agent,
       break;
     }
   }
+  g_slist_foreach (candidates, (GFunc)nice_candidate_free, NULL);
   g_slist_free (candidates);
 
 
