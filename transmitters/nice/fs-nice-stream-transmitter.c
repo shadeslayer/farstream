@@ -701,7 +701,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
       FS_ERROR_INVALID_ARGUMENTS,
       "Invalid remote candidate passed",
       "Remote candidate passed in previous add_remote_candidate() call invalid");
-  g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
+  g_slist_foreach (nice_candidates, (GFunc) nice_candidate_free, NULL);
   g_slist_free (nice_candidates);
   fs_candidate_list_destroy (candidates);
 }
