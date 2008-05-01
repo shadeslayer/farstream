@@ -832,6 +832,7 @@ weak_agent_removed (gpointer user_data, GObject *where_the_object_was)
   agents = g_object_get_data (G_OBJECT (participant), "nice-agents");
   agents = g_list_remove (agents, where_the_object_was);
   g_object_set_data (G_OBJECT (participant), "nice-agents", agents);
+  g_object_unref (participant);
 }
 
 static gboolean
@@ -992,6 +993,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     agents = g_list_prepend (agents, agent);
     g_object_set_data (G_OBJECT (participant), "nice-agents", agents);
     g_object_weak_ref (G_OBJECT (agent), weak_agent_removed, participant);
+    g_object_ref (participant);
 
     self->priv->agent = agent;
 
