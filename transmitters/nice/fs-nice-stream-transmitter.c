@@ -534,9 +534,9 @@ static NiceCandidate *
 fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
     FsCandidate *candidate)
 {
-  NiceCandidate *nc = g_new0 (NiceCandidate, 1);
+  NiceCandidate *nc = nice_candidate_new (
+      fs_candidate_type_to_nice_candidate_type (candidate->type));
 
-  nc->type = fs_candidate_type_to_nice_candidate_type (candidate->type);
   nc->transport =
     fs_network_protocol_to_nice_candidate_protocol (candidate->proto);
   nc->priority = candidate->priority;
@@ -613,6 +613,7 @@ fs_nice_stream_transmitter_add_remote_candidate (
   nice_agent_set_remote_candidates (self->priv->agent,
       self->priv->stream_id, candidate->component_id, list);
 
+  g_slist_foreach (list, (GFunc)nice_candidate_free, NULL);
   g_slist_free (list);
   g_free (cand);
 
@@ -678,10 +679,13 @@ fs_nice_stream_transmitter_remote_candidates_added (
     nice_agent_set_remote_candidates (self->priv->agent,
         self->priv->stream_id, c, nice_candidates);
 
-    g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
+    g_slist_foreach (nice_candidates, (GFunc)nice_candidate_free, NULL);
     g_slist_free (nice_candidates);
     nice_candidates = NULL;
   }
+
+  fs_candidate_list_destroy (candidates);
+
   return;
  error:
   fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
@@ -690,6 +694,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
       "Remote candidate passed in previous add_remote_candidate() call invalid");
   g_slist_foreach (nice_candidates, (GFunc) g_free, NULL);
   g_slist_free (nice_candidates);
+  fs_candidate_list_destroy (candidates);
 }
 
 static gboolean
@@ -816,6 +821,17 @@ candidate_list_are_equal (GList *list1, GList *list2)
   }
 
   return TRUE;
+}
+
+static void
+weak_agent_removed (gpointer user_data, GObject *where_the_object_was)
+{
+  GList *agents = NULL;
+  FsParticipant *participant = user_data;
+
+  agents = g_object_get_data (G_OBJECT (participant), "nice-agents");
+  agents = g_list_remove (agents, where_the_object_was);
+  g_object_set_data (G_OBJECT (participant), "nice-agents", agents);
 }
 
 static gboolean
@@ -973,8 +989,9 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
         (GWeakNotify) fs_candidate_list_destroy,
         local_prefs_copy);
 
-    agents = g_list_prepend (agents, agents);
+    agents = g_list_prepend (agents, agent);
     g_object_set_data (G_OBJECT (participant), "nice-agents", agents);
+    g_object_weak_ref (G_OBJECT (agent), weak_agent_removed, participant);
 
     self->priv->agent = agent;
 
@@ -1305,6 +1322,10 @@ agent_gathering_done (NiceAgent *agent, gpointer user_data)
       g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
       fs_candidate_destroy (fscandidate);
     }
+
+
+    g_slist_foreach (candidates, (GFunc)nice_candidate_free, NULL);
+    g_slist_free (candidates);
   }
   g_signal_emit_by_name (self, "local-candidates-prepared");
 }

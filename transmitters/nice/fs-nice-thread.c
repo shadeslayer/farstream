@@ -200,6 +200,9 @@ fs_nice_thread_stop_thread (FsNiceThread *self)
 
   g_thread_join (self->priv->thread);
 
+  g_source_destroy (idle_source);
+  g_source_unref (idle_source);
+
   FS_NICE_THREAD_LOCK (self);
   self->priv->thread = NULL;
   FS_NICE_THREAD_UNLOCK (self);
