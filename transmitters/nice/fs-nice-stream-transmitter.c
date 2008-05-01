@@ -546,8 +546,8 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
       NICE_CANDIDATE_MAX_FOUNDATION);
   /*
    * ICE-6 per-candidate style passwords are broken in libnice
-  nc->username = (gchar*) candidate->username;
-  nc->password = (gchar*) candidate->username;
+  nc->username = g_strdup(candidate->username);
+  nc->password = g_strdup(candidate->password);
   */
 
   if (candidate->ip)
