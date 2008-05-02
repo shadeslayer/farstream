@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight libnice Transmitter thread object
+ * Farsight2 - Farsight libnice Transmitter agent object
  *
  * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2008 Nokia Corp.
  *
- * fs-nice-thread.h - A Farsight libnice transmitter thread object
+ * fs-nice-agent.h - A Farsight libnice transmitter agent object
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,8 +22,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-#ifndef __FS_NICE_THREAD_H__
-#define __FS_NICE_THREAD_H__
+#ifndef __FS_NICE_AGENT_H__
+#define __FS_NICE_AGENT_H__
 
 #include <glib-object.h>
 #include <gst-libs/gst/farsight/fs-plugin.h>
@@ -32,67 +32,67 @@
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
-#define FS_TYPE_NICE_THREAD \
-  (fs_nice_thread_get_type ())
-#define FS_NICE_THREAD(obj) \
-  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_NICE_THREAD, \
-    FsNiceThread))
-#define FS_NICE_THREAD_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_NICE_THREAD, \
-    FsNiceThreadClass))
-#define FS_IS_NICE_THREAD(obj) \
-  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_NICE_THREAD))
-#define FS_IS_NICE_THREAD_CLASS(klass) \
-  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_NICE_THREAD))
-#define FS_NICE_THREAD_GET_CLASS(obj) \
-  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_NICE_THREAD, \
-    FsNiceThreadClass))
-#define FS_NICE_THREAD_CAST(obj) ((FsNiceThread *) (obj))
+#define FS_TYPE_NICE_AGENT \
+  (fs_nice_agent_get_type ())
+#define FS_NICE_AGENT(obj) \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), FS_TYPE_NICE_AGENT, \
+    FsNiceAgent))
+#define FS_NICE_AGENT_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass), FS_TYPE_NICE_AGENT, \
+    FsNiceAgentClass))
+#define FS_IS_NICE_AGENT(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), FS_TYPE_NICE_AGENT))
+#define FS_IS_NICE_AGENT_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), FS_TYPE_NICE_AGENT))
+#define FS_NICE_AGENT_GET_CLASS(obj) \
+  (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_NICE_AGENT, \
+    FsNiceAgentClass))
+#define FS_NICE_AGENT_CAST(obj) ((FsNiceAgent *) (obj))
 
-typedef struct _FsNiceThread FsNiceThread;
-typedef struct _FsNiceThreadClass FsNiceThreadClass;
-typedef struct _FsNiceThreadPrivate FsNiceThreadPrivate;
+typedef struct _FsNiceAgent FsNiceAgent;
+typedef struct _FsNiceAgentClass FsNiceAgentClass;
+typedef struct _FsNiceAgentPrivate FsNiceAgentPrivate;
 
 /**
- * FsNiceThreadClass:
+ * FsNiceAgentClass:
  * @parent_class: Our parent
  *
  * The class structure
  */
 
-struct _FsNiceThreadClass
+struct _FsNiceAgentClass
 {
   GObjectClass parent_class;
 };
 
 /**
- * FsNiceThread:
+ * FsNiceAgent:
  *
  * All members are private, access them using methods and properties
  */
-struct _FsNiceThread
+struct _FsNiceAgent
 {
   GObject parent;
 
   /*< private >*/
-  FsNiceThreadPrivate *priv;
+  FsNiceAgentPrivate *priv;
 };
 
 
-GType fs_nice_thread_get_type (void);
+GType fs_nice_agent_get_type (void);
 
 GMainContext *
-fs_nice_thread_get_context (FsNiceThread *self);
+fs_nice_agent_get_context (FsNiceAgent *self);
 
-void fs_nice_thread_add_weak_object (FsNiceThread *self,
+void fs_nice_agent_add_weak_object (FsNiceAgent *self,
     GObject *object);
 
-FsNiceThread *fs_nice_thread_new (GError **error);
+FsNiceAgent *fs_nice_agent_new (GError **error);
 
 
 GType
-fs_nice_thread_register_type (FsPlugin *module);
+fs_nice_agent_register_type (FsPlugin *module);
 
 G_END_DECLS
 
-#endif /* __FS_NICE_THREAD_H__ */
+#endif /* __FS_NICE_AGENT_H__ */

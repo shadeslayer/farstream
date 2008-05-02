@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight libnice Transmitter thread object
+ * Farsight2 - Farsight libnice Transmitter agent object
  *
  * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2008 Nokia Corp.
  *
- * fs-nice-thread.c - A Farsight libnice transmitter thread object
+ * fs-nice-agent.c - A Farsight libnice transmitter agent object
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -23,8 +23,8 @@
  */
 
 /**
- * SECTION:fs-nice-thread
- * @short_description: A transmitter for threads for libnice
+ * SECTION:fs-nice-agent
+ * @short_description: A transmitter for agents for libnice
  *
  */
 
@@ -55,7 +55,7 @@ enum
   PROP_COMPATIBILITY_MODE
 };
 
-struct _FsNiceThreadPrivate
+struct _FsNiceAgentPrivate
 {
   GMainContext *main_context;
   GMainLoop *main_loop;
@@ -72,22 +72,22 @@ struct _FsNiceThreadPrivate
   GThread *thread;
 };
 
-#define FS_NICE_THREAD_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_NICE_THREAD, \
-    FsNiceThreadPrivate))
+#define FS_NICE_AGENT_GET_PRIVATE(o)  \
+  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_NICE_AGENT, \
+    FsNiceAgentPrivate))
 
 
-#define FS_NICE_THREAD_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
-#define FS_NICE_THREAD_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
+#define FS_NICE_AGENT_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
+#define FS_NICE_AGENT_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
 
-static void fs_nice_thread_class_init (
-    FsNiceThreadClass *klass);
-static void fs_nice_thread_init (FsNiceThread *self);
-static void fs_nice_thread_finalize (GObject *object);
-static void fs_nice_thread_stop_thread (FsNiceThread *self);
+static void fs_nice_agent_class_init (
+    FsNiceAgentClass *klass);
+static void fs_nice_agent_init (FsNiceAgent *self);
+static void fs_nice_agent_finalize (GObject *object);
+static void fs_nice_agent_stop_thread (FsNiceAgent *self);
 
 static void
-fs_nice_thread_set_property (GObject *object,
+fs_nice_agent_set_property (GObject *object,
     guint prop_id,
     const GValue *value,
     GParamSpec *pspec);
@@ -103,44 +103,44 @@ static GObjectClass *parent_class = NULL;
 static GType type = 0;
 
 GType
-fs_nice_thread_get_type (void)
+fs_nice_agent_get_type (void)
 {
   g_assert (type);
   return type;
 }
 
 GType
-fs_nice_thread_register_type (FsPlugin *module)
+fs_nice_agent_register_type (FsPlugin *module)
 {
   static const GTypeInfo info = {
-    sizeof (FsNiceThreadClass),
+    sizeof (FsNiceAgentClass),
     NULL,
     NULL,
-    (GClassInitFunc) fs_nice_thread_class_init,
+    (GClassInitFunc) fs_nice_agent_class_init,
     NULL,
     NULL,
-    sizeof (FsNiceThread),
+    sizeof (FsNiceAgent),
     0,
-    (GInstanceInitFunc) fs_nice_thread_init
+    (GInstanceInitFunc) fs_nice_agent_init
   };
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
-      G_TYPE_OBJECT, "FsNiceThread", &info, 0);
+      G_TYPE_OBJECT, "FsNiceAgent", &info, 0);
 
   return type;
 }
 
 static void
-fs_nice_thread_class_init (FsNiceThreadClass *klass)
+fs_nice_agent_class_init (FsNiceAgentClass *klass)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
 
   parent_class = g_type_class_peek_parent (klass);
 
-  gobject_class->set_property = fs_nice_thread_set_property;
-  gobject_class->finalize = fs_nice_thread_finalize;
+  gobject_class->set_property = fs_nice_agent_set_property;
+  gobject_class->finalize = fs_nice_agent_finalize;
 
-  g_type_class_add_private (klass, sizeof (FsNiceThreadPrivate));
+  g_type_class_add_private (klass, sizeof (FsNiceAgentPrivate));
 
   g_object_class_install_property (gobject_class, PROP_COMPATIBILITY_MODE,
       g_param_spec_uint (
@@ -153,11 +153,11 @@ fs_nice_thread_class_init (FsNiceThreadClass *klass)
 }
 
 static void
-fs_nice_thread_init (FsNiceThread *self)
+fs_nice_agent_init (FsNiceAgent *self)
 {
 
   /* member init */
-  self->priv = FS_NICE_THREAD_GET_PRIVATE (self);
+  self->priv = FS_NICE_AGENT_GET_PRIVATE (self);
 
   nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
 
@@ -170,11 +170,11 @@ fs_nice_thread_init (FsNiceThread *self)
 }
 
 static void
-fs_nice_thread_finalize (GObject *object)
+fs_nice_agent_finalize (GObject *object)
 {
-  FsNiceThread *self = FS_NICE_THREAD (object);
+  FsNiceAgent *self = FS_NICE_AGENT (object);
 
-  fs_nice_thread_stop_thread (self);
+  fs_nice_agent_stop_thread (self);
 
   if (self->priv->main_context)
   {
@@ -196,12 +196,12 @@ fs_nice_thread_finalize (GObject *object)
 }
 
 static void
-fs_nice_thread_set_property (GObject *object,
+fs_nice_agent_set_property (GObject *object,
     guint prop_id,
     const GValue *value,
     GParamSpec *pspec)
 {
-  FsNiceThread *self = FS_NICE_THREAD (object);
+  FsNiceAgent *self = FS_NICE_AGENT (object);
 
   switch (prop_id)
   {
@@ -219,7 +219,7 @@ fs_nice_thread_set_property (GObject *object,
 static gboolean
 thread_unlock_idler (gpointer data)
 {
-  FsNiceThread *self = FS_NICE_THREAD (data);
+  FsNiceAgent *self = FS_NICE_AGENT (data);
 
   g_main_loop_quit (self->priv->main_loop);
 
@@ -227,18 +227,18 @@ thread_unlock_idler (gpointer data)
 }
 
 static void
-fs_nice_thread_stop_thread (FsNiceThread *self)
+fs_nice_agent_stop_thread (FsNiceAgent *self)
 {
   GSource *idle_source;
 
-  FS_NICE_THREAD_LOCK(self);
+  FS_NICE_AGENT_LOCK(self);
 
   if (self->priv->thread == NULL)
   {
-    FS_NICE_THREAD_UNLOCK (self);
+    FS_NICE_AGENT_UNLOCK (self);
     return;
   }
-  FS_NICE_THREAD_UNLOCK (self);
+  FS_NICE_AGENT_UNLOCK (self);
 
   g_main_loop_quit (self->priv->main_loop);
 
@@ -252,20 +252,20 @@ fs_nice_thread_stop_thread (FsNiceThread *self)
   g_source_destroy (idle_source);
   g_source_unref (idle_source);
 
-  FS_NICE_THREAD_LOCK (self);
+  FS_NICE_AGENT_LOCK (self);
   self->priv->thread = NULL;
-  FS_NICE_THREAD_UNLOCK (self);
+  FS_NICE_AGENT_UNLOCK (self);
 }
 
 GMainContext *
-fs_nice_thread_get_context (FsNiceThread *self)
+fs_nice_agent_get_context (FsNiceAgent *self)
 {
   return self->priv->main_context;
 }
 
 
 void
-fs_nice_thread_add_weak_object (FsNiceThread *self,
+fs_nice_agent_add_weak_object (FsNiceAgent *self,
     GObject *object)
 {
   g_object_weak_ref (G_OBJECT (object), (GWeakNotify) g_object_unref, self);
@@ -276,33 +276,33 @@ fs_nice_thread_add_weak_object (FsNiceThread *self,
 
 
 static gpointer
-fs_nice_thread_main_thread (gpointer data)
+fs_nice_agent_main_thread (gpointer data)
 {
-  FsNiceThread *self = FS_NICE_THREAD (data);
+  FsNiceAgent *self = FS_NICE_AGENT (data);
 
   g_main_loop_run (self->priv->main_loop);
 
   return NULL;
 }
 
-FsNiceThread *
-fs_nice_thread_new (GError **error)
+FsNiceAgent *
+fs_nice_agent_new (GError **error)
 {
-  FsNiceThread *self = NULL;
+  FsNiceAgent *self = NULL;
 
-  self = g_object_new (FS_TYPE_NICE_THREAD, NULL);
+  self = g_object_new (FS_TYPE_NICE_AGENT, NULL);
 
-  FS_NICE_THREAD_LOCK (self);
-  self->priv->thread = g_thread_create (fs_nice_thread_main_thread,
+  FS_NICE_AGENT_LOCK (self);
+  self->priv->thread = g_thread_create (fs_nice_agent_main_thread,
       self, TRUE, error);
 
   if (!self->priv->thread)
   {
-    FS_NICE_THREAD_UNLOCK (self);
+    FS_NICE_AGENT_UNLOCK (self);
     g_object_unref (self);
     return NULL;
   }
-  FS_NICE_THREAD_UNLOCK (self);
+  FS_NICE_AGENT_UNLOCK (self);
 
   return self;
 }

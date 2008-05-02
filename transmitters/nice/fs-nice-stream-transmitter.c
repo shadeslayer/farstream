@@ -862,7 +862,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
   GList *item;
   gboolean set = FALSE;
   GList *agents  = NULL;
-  FsNiceThread *thread = NULL;
+  FsNiceAgent *thread = NULL;
   NiceAgent *agent = NULL;
 
   /* Before going any further, check that the list of candidates are ok */
@@ -961,12 +961,12 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     /* If we don't have a thread, build one */
     if (thread == NULL)
     {
-      thread = fs_nice_thread_new (error);
+      thread = fs_nice_agent_new (error);
       if (!thread)
         return FALSE;
     }
 
-    ctx = fs_nice_thread_get_context (thread);
+    ctx = fs_nice_agent_get_context (thread);
 
     agent = nice_agent_new (&udpfactory, ctx, self->priv->compatibility_mode);
 
@@ -979,7 +979,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       return FALSE;
     }
 
-    fs_nice_thread_add_weak_object (thread, G_OBJECT (agent));
+    fs_nice_agent_add_weak_object (thread, G_OBJECT (agent));
 
     g_object_set_data (G_OBJECT (thread), "nice-thread", thread);
 
