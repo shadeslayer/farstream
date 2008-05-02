@@ -33,7 +33,7 @@
 #endif
 
 #include "fs-nice-transmitter.h"
-#include "fs-nice-thread.h"
+#include "fs-nice-agent.h"
 
 #include <nice/nice.h>
 

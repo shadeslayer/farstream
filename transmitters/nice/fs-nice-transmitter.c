@@ -37,7 +37,7 @@
 
 #include "fs-nice-transmitter.h"
 #include "fs-nice-stream-transmitter.h"
-#include "fs-nice-thread.h"
+#include "fs-nice-agent.h"
 
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-plugin.h>
