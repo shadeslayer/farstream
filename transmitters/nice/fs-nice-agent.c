@@ -32,6 +32,9 @@
 #include "config.h"
 #endif
 
+#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-interfaces.h>
+
 #include "fs-nice-transmitter.h"
 #include "fs-nice-agent.h"
 
@@ -338,6 +341,75 @@ fs_nice_agent_main_thread (gpointer data)
   return NULL;
 }
 
+static gboolean
+fs_nice_agent_init_agent (FsNiceAgent *self, GError **error)
+{
+  GList *item;
+  gboolean set = FALSE;
+
+  for (item = self->priv->preferred_local_candidates;
+       item;
+       item = g_list_next (item))
+  {
+    FsCandidate *cand = item->data;
+    NiceAddress *addr = nice_address_new ();
+
+    if (nice_address_set_from_string (addr, cand->ip))
+    {
+      if (!nice_agent_add_local_address (self->agent, addr))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Unable to set preferred local candidate");
+        return FALSE;
+      }
+      set = TRUE;
+    }
+    else
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Invalid local address passed");
+      nice_address_free (addr);
+      return FALSE;
+    }
+    nice_address_free (addr);
+  }
+
+  if (!set)
+  {      GList *addresses = fs_interfaces_get_local_ips (FALSE);
+
+    for (item = addresses;
+         item;
+         item = g_list_next (item))
+    {
+      NiceAddress *addr = nice_address_new ();;
+
+      if (nice_address_set_from_string (addr, item->data))
+      {
+        if (!nice_agent_add_local_address (self->agent,
+                addr))
+        {
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "Unable to set preferred local candidate");
+          return FALSE;
+        }
+      }
+      else
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Invalid local address passed");
+        nice_address_free (addr);
+        return FALSE;
+      }
+      nice_address_free (addr);
+    }
+
+    g_list_foreach (addresses, (GFunc) g_free, NULL);
+    g_list_free (addresses);
+  }
+
+  return TRUE;
+}
+
 FsNiceAgent *
 fs_nice_agent_new (guint compatibility_mode,
     GList *preferred_local_candidates,
@@ -353,6 +425,12 @@ fs_nice_agent_new (guint compatibility_mode,
   self->agent = nice_agent_new (&self->priv->udpfactory,
       self->priv->main_context,
       self->priv->compatibility_mode);
+
+  if (!fs_nice_agent_init_agent (self, error))
+  {
+    g_object_unref (self);
+    return NULL;
+  }
 
   FS_NICE_AGENT_LOCK (self);
 
