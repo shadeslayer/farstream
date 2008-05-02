@@ -772,7 +772,8 @@ nice_candidate_transport_to_fs_network_protocol (NiceCandidateTransport trans)
 }
 
 static FsCandidate *
-nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
+nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate,
+    gboolean local)
 {
   FsCandidate *fscandidate;
   gchar *ipaddr = g_malloc (INET_ADDRSTRLEN);
@@ -804,7 +805,7 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
   fscandidate->password = g_strdup (nicecandidate->password);
   fscandidate->priority = nicecandidate->priority;
 
-  if (fscandidate->username == NULL && fscandidate->password == NULL)
+  if (local && fscandidate->username == NULL && fscandidate->password == NULL)
   {
     const gchar *username = NULL, *password = NULL;
     nice_agent_get_local_credentials (agent, nicecandidate->stream_id,
@@ -1221,7 +1222,7 @@ agent_new_selected_pair (NiceAgent *agent,
     if (!strcmp (candidate->foundation, lfoundation))
     {
       local = nice_candidate_to_fs_candidate (self->priv->agent,
-          candidate);
+          candidate, TRUE);
       break;
     }
   }
@@ -1239,7 +1240,7 @@ agent_new_selected_pair (NiceAgent *agent,
     if (!strcmp (candidate->foundation, rfoundation))
     {
       remote = nice_candidate_to_fs_candidate (self->priv->agent,
-          candidate);
+          candidate, FALSE);
       break;
     }
   }
@@ -1293,7 +1294,7 @@ agent_new_candidate (NiceAgent *agent,
     if (!strcmp (item->data, foundation))
     {
       fscandidate = nice_candidate_to_fs_candidate (
-          self->priv->agent, candidate);
+          self->priv->agent, candidate, TRUE);
       break;
     }
   }
@@ -1336,7 +1337,7 @@ agent_gathering_done (NiceAgent *agent, gpointer user_data)
       FsCandidate *fscandidate;
 
       fscandidate = nice_candidate_to_fs_candidate (
-          self->priv->agent, candidate);
+          self->priv->agent, candidate, TRUE);
       g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
       fs_candidate_destroy (fscandidate);
     }
