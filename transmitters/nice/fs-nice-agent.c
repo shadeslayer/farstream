@@ -426,6 +426,14 @@ fs_nice_agent_new (guint compatibility_mode,
       self->priv->main_context,
       self->priv->compatibility_mode);
 
+  if (self->agent == NULL)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Could not make nice agent");
+    g_object_unref (self);
+    return NULL;
+  }
+
   if (!fs_nice_agent_init_agent (self, error))
   {
     g_object_unref (self);
