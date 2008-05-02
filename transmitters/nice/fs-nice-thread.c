@@ -35,6 +35,8 @@
 #include "fs-nice-transmitter.h"
 #include "fs-nice-thread.h"
 
+#include <nice/nice.h>
+
 #include <string.h>
 #include <sys/types.h>
 
@@ -59,6 +61,9 @@ struct _FsNiceThreadPrivate
   GMainLoop *main_loop;
 
   guint compatibility_mode;
+
+  NiceUDPSocketFactory udpfactory;
+
 
   GMutex *mutex;
 
@@ -154,6 +159,8 @@ fs_nice_thread_init (FsNiceThread *self)
   /* member init */
   self->priv = FS_NICE_THREAD_GET_PRIVATE (self);
 
+  nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
+
   self->priv->mutex = g_mutex_new ();
 
   self->priv->main_context = g_main_context_new ();
@@ -182,6 +189,8 @@ fs_nice_thread_finalize (GObject *object)
   }
 
   g_mutex_free (self->priv->mutex);
+
+  nice_udp_socket_factory_close (&self->priv->udpfactory);
 
   parent_class->finalize (object);
 }
