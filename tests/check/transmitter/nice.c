@@ -40,7 +40,6 @@ GST_START_TEST (test_nicetransmitter_new)
 }
 GST_END_TEST;
 
-
 static void
 _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
@@ -204,6 +203,22 @@ check_running (gpointer data)
   return FALSE;
 }
 
+typedef FsParticipant FsNiceTestParticipant;
+typedef FsParticipantClass FsNiceTestParticipantClass;
+
+G_DEFINE_TYPE (FsNiceTestParticipant, fs_nice_test_participant,
+    FS_TYPE_PARTICIPANT)
+
+static void
+fs_nice_test_participant_init (FsNiceTestParticipant *self)
+{
+}
+
+static void
+fs_nice_test_participant_class_init (FsNiceTestParticipantClass *klass)
+{
+}
+
 
 static void
 run_nice_transmitter_test (gint n_parameters, GParameter *params,
@@ -215,6 +230,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   GstBus *bus = NULL;
   GstElement *pipeline = NULL;
   GstElement *pipeline2 = NULL;
+  FsNiceTestParticipant *p1 = NULL, *p2 = NULL;
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -252,14 +268,17 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
    * but it should be the participant
    */
 
-  st = fs_transmitter_new_stream_transmitter (trans, (FsParticipant*) trans,
+  p1 = g_object_new (fs_nice_test_participant_get_type (), NULL);
+  p2 = g_object_new (fs_nice_test_participant_get_type (), NULL);
+
+  st = fs_transmitter_new_stream_transmitter (trans, FS_PARTICIPANT (p1),
       n_parameters,  params, &error);
   if (error)
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
-  st2 = fs_transmitter_new_stream_transmitter (trans2, (FsParticipant*) trans2,
+  st2 = fs_transmitter_new_stream_transmitter (trans2, FS_PARTICIPANT (p2),
       n_parameters, params, &error);
   if (error)
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
@@ -342,6 +361,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
 
   g_object_unref (trans);
   g_object_unref (trans2);
+
+  g_object_unref (p1);
+  g_object_unref (p2);
 
   gst_object_unref (pipeline);
 
