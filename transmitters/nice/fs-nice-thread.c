@@ -49,13 +49,16 @@ enum
 /* props */
 enum
 {
-  PROP_0
+  PROP_0,
+  PROP_COMPATIBILITY_MODE
 };
 
 struct _FsNiceThreadPrivate
 {
   GMainContext *main_context;
   GMainLoop *main_loop;
+
+  guint compatibility_mode;
 
   GMutex *mutex;
 
@@ -78,9 +81,14 @@ static void fs_nice_thread_init (FsNiceThread *self);
 static void fs_nice_thread_finalize (GObject *object);
 static void fs_nice_thread_stop_thread (FsNiceThread *self);
 
+static void
+fs_nice_thread_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
+
 
 static GObjectClass *parent_class = NULL;
-//static guint signals[LAST_SIGNAL] = { 0 };
 
 
 /*
@@ -124,9 +132,19 @@ fs_nice_thread_class_init (FsNiceThreadClass *klass)
 
   parent_class = g_type_class_peek_parent (klass);
 
+  gobject_class->set_property = fs_nice_thread_set_property;
   gobject_class->finalize = fs_nice_thread_finalize;
 
   g_type_class_add_private (klass, sizeof (FsNiceThreadPrivate));
+
+  g_object_class_install_property (gobject_class, PROP_COMPATIBILITY_MODE,
+      g_param_spec_uint (
+          "compatibility-mode",
+          "The compability-mode",
+          "The id of the stream according to libnice",
+          NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
+          NICE_COMPATIBILITY_ID19,
+          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -140,6 +158,8 @@ fs_nice_thread_init (FsNiceThread *self)
 
   self->priv->main_context = g_main_context_new ();
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
+
+  self->priv->compatibility_mode = NICE_COMPATIBILITY_ID19;
 }
 
 static void
@@ -165,6 +185,26 @@ fs_nice_thread_finalize (GObject *object)
 
   parent_class->finalize (object);
 }
+
+static void
+fs_nice_thread_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  FsNiceThread *self = FS_NICE_THREAD (object);
+
+  switch (prop_id)
+  {
+    case PROP_COMPATIBILITY_MODE:
+      self->priv->compatibility_mode = g_value_get_uint (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
 
 
 static gboolean
