@@ -1227,7 +1227,7 @@ agent_new_selected_pair (NiceAgent *agent,
   {
     NiceCandidate *candidate = item->data;
 
-    if (!strcmp (candidate->foundation, lfoundation))
+    if (!strcmp (candidate->foundation, rfoundation))
     {
       remote = nice_candidate_to_fs_candidate (self->priv->agent,
           candidate);
