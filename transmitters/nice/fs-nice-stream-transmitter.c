@@ -983,6 +983,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
     g_object_set_data (G_OBJECT (thread), "nice-thread", thread);
 
+    g_object_unref (thread);
+
     if (self->priv->stun_ip && self->priv->stun_port)
       g_object_set (agent,
           "stun-server", self->priv->stun_ip,

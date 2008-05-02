@@ -112,7 +112,7 @@ fs_nice_thread_register_type (FsPlugin *module)
   };
 
   type = g_type_module_register_type (G_TYPE_MODULE (module),
-      G_TYPE_INITIALLY_UNOWNED, "FsNiceThread", &info, 0);
+      G_TYPE_OBJECT, "FsNiceThread", &info, 0);
 
   return type;
 }
@@ -221,8 +221,9 @@ fs_nice_thread_add_weak_object (FsNiceThread *self,
 {
   g_object_weak_ref (G_OBJECT (object), (GWeakNotify) g_object_unref, self);
 
-  g_object_ref_sink (self);
+  g_object_ref (self);
 }
+
 
 
 static gpointer

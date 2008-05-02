@@ -62,7 +62,7 @@ typedef struct _FsNiceThreadPrivate FsNiceThreadPrivate;
 
 struct _FsNiceThreadClass
 {
-  GInitiallyUnownedClass parent_class;
+  GObjectClass parent_class;
 };
 
 /**
@@ -72,7 +72,7 @@ struct _FsNiceThreadClass
  */
 struct _FsNiceThread
 {
-  GInitiallyUnowned parent;
+  GObject parent;
 
   /*< private >*/
   FsNiceThreadPrivate *priv;
