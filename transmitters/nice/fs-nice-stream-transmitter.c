@@ -848,9 +848,14 @@ weak_agent_removed (gpointer user_data, GObject *where_the_object_was)
   GList *agents = NULL;
   FsParticipant *participant = user_data;
 
+  FS_PARTICIPANT_DATA_LOCK (participant);
+
   agents = g_object_get_data (G_OBJECT (participant), "nice-agents");
   agents = g_list_remove (agents, where_the_object_was);
   g_object_set_data (G_OBJECT (participant), "nice-agents", agents);
+
+  FS_PARTICIPANT_DATA_UNLOCK (participant);
+
   g_object_unref (participant);
 }
 
@@ -903,6 +908,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
 
   /* First find if there is already a matching agent */
+
+  FS_PARTICIPANT_DATA_LOCK (participant);
 
   agents = g_object_get_data (G_OBJECT (participant), "nice-agents");
 
@@ -989,6 +996,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
   } else {
     self->priv->agent = g_object_ref (agent);
   }
+
+  FS_PARTICIPANT_DATA_UNLOCK (participant);
 
   self->priv->component_states = g_new0 (FsStreamState,
       self->priv->transmitter->components);
