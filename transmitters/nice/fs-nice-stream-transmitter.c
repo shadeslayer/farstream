@@ -544,11 +544,12 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
   nc->component_id = candidate->component_id;
   strncpy (nc->foundation, candidate->foundation,
       NICE_CANDIDATE_MAX_FOUNDATION);
-  /*
-   * ICE-6 per-candidate style passwords are broken in libnice
+
   nc->username = g_strdup(candidate->username);
   nc->password = g_strdup(candidate->password);
-  */
+
+
+  g_warning ("%s %s", nc->username, nc->password);
 
   if (candidate->ip == NULL || candidate->port == 0)
     goto error;
@@ -652,7 +653,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
   self->priv->candidates_to_set = NULL;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
-
+  /*
   if (candidates)
   {
     FsCandidate *cand = candidates->data;
@@ -665,6 +666,7 @@ fs_nice_stream_transmitter_remote_candidates_added (
         " assuming we're in ice-6 with dribble, so every candidate has"
         " its own password");
   }
+  */
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
