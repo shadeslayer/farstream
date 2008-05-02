@@ -83,6 +83,7 @@ struct _FsNiceAgentPrivate
 static void fs_nice_agent_class_init (
     FsNiceAgentClass *klass);
 static void fs_nice_agent_init (FsNiceAgent *self);
+static void fs_nice_agent_dispose (GObject *object);
 static void fs_nice_agent_finalize (GObject *object);
 static void fs_nice_agent_stop_thread (FsNiceAgent *self);
 
@@ -138,6 +139,7 @@ fs_nice_agent_class_init (FsNiceAgentClass *klass)
   parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->set_property = fs_nice_agent_set_property;
+  gobject_class->dispose = fs_nice_agent_dispose;
   gobject_class->finalize = fs_nice_agent_finalize;
 
   g_type_class_add_private (klass, sizeof (FsNiceAgentPrivate));
@@ -169,12 +171,24 @@ fs_nice_agent_init (FsNiceAgent *self)
   self->priv->compatibility_mode = NICE_COMPATIBILITY_ID19;
 }
 
+
 static void
-fs_nice_agent_finalize (GObject *object)
+fs_nice_agent_dispose (GObject *object)
 {
   FsNiceAgent *self = FS_NICE_AGENT (object);
 
   fs_nice_agent_stop_thread (self);
+
+  if (self->agent)
+    g_object_unref (self->agent);
+  self->agent = NULL;
+
+  parent_class->dispose (object);
+}
+static void
+fs_nice_agent_finalize (GObject *object)
+{
+  FsNiceAgent *self = FS_NICE_AGENT (object);
 
   if (self->priv->main_context)
   {
@@ -293,6 +307,10 @@ fs_nice_agent_new (guint compatibility_mode, GError **error)
   self = g_object_new (FS_TYPE_NICE_AGENT,
       "compatibility-mode", compatibility_mode,
       NULL);
+
+  self->agent = nice_agent_new (&self->priv->udpfactory,
+      self->priv->main_context,
+      self->priv->compatibility_mode);
 
   FS_NICE_AGENT_LOCK (self);
 

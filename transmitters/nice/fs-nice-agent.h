@@ -67,12 +67,14 @@ struct _FsNiceAgentClass
 
 /**
  * FsNiceAgent:
+ * @agent: The underlying nice agent
  *
- * All members are private, access them using methods and properties
  */
 struct _FsNiceAgent
 {
   GObject parent;
+
+  NiceAgent *agent;
 
   /*< private >*/
   FsNiceAgentPrivate *priv;
