@@ -52,7 +52,8 @@ enum
 enum
 {
   PROP_0,
-  PROP_COMPATIBILITY_MODE
+  PROP_COMPATIBILITY_MODE,
+  PROP_PREFERRED_LOCAL_CANDIDATES,
 };
 
 struct _FsNiceAgentPrivate
@@ -64,6 +65,7 @@ struct _FsNiceAgentPrivate
 
   NiceUDPSocketFactory udpfactory;
 
+  GList *preferred_local_candidates;
 
   GMutex *mutex;
 
@@ -87,10 +89,13 @@ static void fs_nice_agent_dispose (GObject *object);
 static void fs_nice_agent_finalize (GObject *object);
 static void fs_nice_agent_stop_thread (FsNiceAgent *self);
 
-static void
-fs_nice_agent_set_property (GObject *object,
+static void fs_nice_agent_set_property (GObject *object,
     guint prop_id,
     const GValue *value,
+    GParamSpec *pspec);
+static void fs_nice_agent_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
     GParamSpec *pspec);
 
 
@@ -139,6 +144,7 @@ fs_nice_agent_class_init (FsNiceAgentClass *klass)
   parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->set_property = fs_nice_agent_set_property;
+  gobject_class->get_property = fs_nice_agent_get_property;
   gobject_class->dispose = fs_nice_agent_dispose;
   gobject_class->finalize = fs_nice_agent_finalize;
 
@@ -151,7 +157,15 @@ fs_nice_agent_class_init (FsNiceAgentClass *klass)
           "The id of the stream according to libnice",
           NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
           NICE_COMPATIBILITY_ID19,
-          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class,
+      PROP_PREFERRED_LOCAL_CANDIDATES,
+      g_param_spec_boxed ("preferred-local-candidates",
+        "The preferred candidates",
+        "A GList of FsCandidates",
+        FS_TYPE_CANDIDATE_LIST,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 }
 
 static void
@@ -191,18 +205,18 @@ fs_nice_agent_finalize (GObject *object)
   FsNiceAgent *self = FS_NICE_AGENT (object);
 
   if (self->priv->main_context)
-  {
     g_main_context_unref (self->priv->main_context);
-    self->priv->main_context = NULL;
-  }
+  self->priv->main_context = NULL;
 
   if (self->priv->main_loop)
-  {
     g_main_loop_unref (self->priv->main_loop);
-    self->priv->main_loop = NULL;
-  }
+  self->priv->main_loop = NULL;
+
+  fs_candidate_list_destroy (self->priv->preferred_local_candidates);
+  self->priv->preferred_local_candidates = NULL;
 
   g_mutex_free (self->priv->mutex);
+  self->priv->mutex = NULL;
 
   nice_udp_socket_factory_close (&self->priv->udpfactory);
 
@@ -222,12 +236,37 @@ fs_nice_agent_set_property (GObject *object,
     case PROP_COMPATIBILITY_MODE:
       self->priv->compatibility_mode = g_value_get_uint (value);
       break;
+    case PROP_PREFERRED_LOCAL_CANDIDATES:
+      self->priv->preferred_local_candidates = g_value_dup_boxed (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
 
+
+static void
+fs_nice_agent_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  FsNiceAgent *self = FS_NICE_AGENT (object);
+
+  switch (prop_id)
+  {
+    case PROP_COMPATIBILITY_MODE:
+      g_value_set_uint (value, self->priv->compatibility_mode);
+      break;
+    case PROP_PREFERRED_LOCAL_CANDIDATES:
+      g_value_set_boxed (value, self->priv->preferred_local_candidates);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
 
 
 static gboolean
