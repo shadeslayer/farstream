@@ -286,13 +286,16 @@ fs_nice_agent_main_thread (gpointer data)
 }
 
 FsNiceAgent *
-fs_nice_agent_new (GError **error)
+fs_nice_agent_new (guint compatibility_mode, GError **error)
 {
   FsNiceAgent *self = NULL;
 
-  self = g_object_new (FS_TYPE_NICE_AGENT, NULL);
+  self = g_object_new (FS_TYPE_NICE_AGENT,
+      "compatibility-mode", compatibility_mode,
+      NULL);
 
   FS_NICE_AGENT_LOCK (self);
+
   self->priv->thread = g_thread_create (fs_nice_agent_main_thread,
       self, TRUE, error);
 

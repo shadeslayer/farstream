@@ -87,7 +87,7 @@ fs_nice_agent_get_context (FsNiceAgent *self);
 void fs_nice_agent_add_weak_object (FsNiceAgent *self,
     GObject *object);
 
-FsNiceAgent *fs_nice_agent_new (GError **error);
+FsNiceAgent *fs_nice_agent_new (guint compatibility_mode, GError **error);
 
 
 GType
