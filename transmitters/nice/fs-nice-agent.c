@@ -160,7 +160,7 @@ fs_nice_agent_class_init (FsNiceAgentClass *klass)
           "The id of the stream according to libnice",
           NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
           NICE_COMPATIBILITY_ID19,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class,
       PROP_PREFERRED_LOCAL_CANDIDATES,

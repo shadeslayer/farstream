@@ -253,7 +253,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The STUN server used to obtain server-reflexive candidates",
           1, 65536,
           3478,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class, PROP_TURN_IP,
       g_param_spec_string (
@@ -261,7 +261,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "TURN server",
           "The TURN server used to obtain relay candidates",
           NULL,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class, PROP_TURN_PORT,
       g_param_spec_uint (
@@ -270,7 +270,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The TURN server used to obtain relay candidates",
           1, 65536,
           3478,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class, PROP_CONTROLLING_MODE,
       g_param_spec_boolean (
@@ -278,7 +278,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "ICE controlling mode",
           "Whether the agent is in controlling mode",
           TRUE,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
 
   g_object_class_install_property (gobject_class, PROP_STREAM_ID,
       g_param_spec_uint (
@@ -287,7 +287,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The id of the stream according to libnice",
           0, G_MAXINT,
           0,
-          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READABLE));
 
   g_object_class_install_property (gobject_class, PROP_COMPATIBILITY_MODE,
       g_param_spec_uint (
@@ -296,7 +296,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The id of the stream according to libnice",
           NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
           NICE_COMPATIBILITY_ID19,
-          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
+          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   nice_udp_bsd_socket_factory_init (&udpfactory);
 
