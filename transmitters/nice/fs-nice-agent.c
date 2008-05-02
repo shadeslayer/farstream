@@ -313,24 +313,6 @@ fs_nice_agent_stop_thread (FsNiceAgent *self)
   FS_NICE_AGENT_UNLOCK (self);
 }
 
-GMainContext *
-fs_nice_agent_get_context (FsNiceAgent *self)
-{
-  return self->priv->main_context;
-}
-
-
-void
-fs_nice_agent_add_weak_object (FsNiceAgent *self,
-    GObject *object)
-{
-  g_object_weak_ref (G_OBJECT (object), (GWeakNotify) g_object_unref, self);
-
-  g_object_ref (self);
-}
-
-
-
 static gpointer
 fs_nice_agent_main_thread (gpointer data)
 {
