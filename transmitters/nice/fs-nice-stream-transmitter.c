@@ -788,10 +788,17 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate)
       ipaddr,
       nice_address_get_port (&nicecandidate->addr));
 
-  nice_address_to_string (&nicecandidate->base_addr, ipaddr);
-
-  fscandidate->base_ip = ipaddr;
-  fscandidate->base_port = nice_address_get_port (&nicecandidate->base_addr);
+  if (nice_address_is_valid (&nicecandidate->base_addr))
+  {
+    nice_address_to_string (&nicecandidate->base_addr, ipaddr);
+    fscandidate->base_ip = ipaddr;
+    fscandidate->base_port = nice_address_get_port (&nicecandidate->base_addr);
+  }
+  else
+  {
+    g_free (ipaddr);
+    ipaddr = NULL;
+  }
 
   fscandidate->username = g_strdup (nicecandidate->username);
   fscandidate->password = g_strdup (nicecandidate->password);
