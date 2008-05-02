@@ -549,8 +549,6 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
   nc->password = g_strdup(candidate->password);
 
 
-  g_warning ("%s %s", nc->username, nc->password);
-
   if (candidate->ip == NULL || candidate->port == 0)
     goto error;
   if (!nice_address_set_from_string (&nc->addr, candidate->ip))
