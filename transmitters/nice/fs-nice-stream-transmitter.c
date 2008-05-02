@@ -961,7 +961,9 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     /* If we don't have a thread, build one */
     if (thread == NULL)
     {
-      thread = fs_nice_agent_new (self->priv->compatibility_mode, error);
+      thread = fs_nice_agent_new (self->priv->compatibility_mode,
+          self->priv->preferred_local_candidates,
+          error);
       if (!thread)
         return FALSE;
     }

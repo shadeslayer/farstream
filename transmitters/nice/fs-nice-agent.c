@@ -339,12 +339,15 @@ fs_nice_agent_main_thread (gpointer data)
 }
 
 FsNiceAgent *
-fs_nice_agent_new (guint compatibility_mode, GError **error)
+fs_nice_agent_new (guint compatibility_mode,
+    GList *preferred_local_candidates,
+    GError **error)
 {
   FsNiceAgent *self = NULL;
 
   self = g_object_new (FS_TYPE_NICE_AGENT,
       "compatibility-mode", compatibility_mode,
+      "preferred-local-candidates", preferred_local_candidates,
       NULL);
 
   self->agent = nice_agent_new (&self->priv->udpfactory,
