@@ -141,6 +141,8 @@ fs_participant_init (FsParticipant *self)
   /* member init */
   self->priv = FS_PARTICIPANT_GET_PRIVATE (self);
   self->priv->disposed = FALSE;
+
+  self->mutex = g_mutex_new ();
 }
 
 static void
@@ -168,6 +170,8 @@ fs_participant_finalize (GObject *object)
     g_free (self->priv->cname);
     self->priv->cname = NULL;
   }
+
+  g_mutex_free (self->mutex);
 
   parent_class->finalize (object);
 }
