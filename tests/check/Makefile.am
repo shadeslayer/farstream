@@ -42,50 +42,53 @@ check_PROGRAMS = \
 	utils/binadded
 
 
-AM_CFLAGS =  $(FS2_CFLAGS) $(GST_CFLAGS) $(GST_CHECK_CFLAGS)
+AM_CFLAGS = \
+	$(CFLAGS) \
+	$(FS2_INTERNAL_CFLAGS) \
+	$(FS2_CFLAGS) \
+	$(GST_CHECK_CFLAGS) \
+	$(GST_CFLAGS)
 
-LDADD = $(GST_LIBS) $(GST_CHECK_LIBS) \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la
+LDADD = \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
+	$(GST_CHECK_LIBS) \
+	$(GST_LIBS)
 
-base_fscodec_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
-
-base_fstransmitter_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
-
-transmitter_rawudp_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+transmitter_rawudp_CFLAGS = $(AM_CFLAGS)
 transmitter_rawudp_SOURCES = \
 	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/rawudp.c 
 
-transmitter_multicast_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+transmitter_multicast_CFLAGS = $(AM_CFLAGS)
 transmitter_multicast_SOURCES = \
 	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/multicast.c 
 
-main_rtpconference_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+main_rtpconference_CFLAGS = $(AM_CFLAGS)
 main_rtpconference_SOURCES = \
 	check-threadsafe.h  \
 	main/generic.c \
 	main/generic.h \
 	main/rtpconference.c
 
-main_rtpcodecs_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+main_rtpcodecs_CFLAGS = $(AM_CFLAGS)
 main_rtpcodecs_SOURCES = \
 	main/generic.c \
 	main/generic.h \
 	main/rtpcodecs.c
 
+main_rtpsendcodecs_CFLAGS = $(AM_CFLAGS)
 main_rtpsendcodecs_LDADD = $(LDADD) -lgstrtp-0.10
-main_rtpsendcodecs_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 main_rtpsendcodecs_SOURCES = \
 	main/generic.c \
 	main/generic.h \
 	main/rtpsendcodecs.c
 
-utils_binadded_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
 	utils/binadded.c
 

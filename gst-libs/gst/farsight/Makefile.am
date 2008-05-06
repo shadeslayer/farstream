@@ -58,9 +58,18 @@ fs-marshal.c: Makefile fs-marshal.list
 		glib-genmarshal --body --prefix=_fs_marshal $(srcdir)/fs-marshal.list >> fs-marshal.c.tmp
 		mv fs-marshal.c.tmp fs-marshal.c
 
-libgstfarsight_@GST_MAJORMINOR@_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) $(GST_CFLAGS)
-libgstfarsight_@GST_MAJORMINOR@_la_LIBADD = $(GST_BASE_LIBS) $(GST_LIBS)
-libgstfarsight_@GST_MAJORMINOR@_la_LDFLAGS = $(FS2_LIB_LDFLAGS) $(FS2_ALL_LDFLAGS) $(FS2_LT_LDFLAGS) 
+libgstfarsight_@GST_MAJORMINOR@_la_CFLAGS = \
+	$(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) \
+	$(GST_PLUGINS_BASE_CFLAGS) \
+	$(GST_BASE_CFLAGS) \
+	$(GST_CFLAGS)
+libgstfarsight_@GST_MAJORMINOR@_la_LIBADD = \
+	$(GST_BASE_LIBS) \
+	$(GST_LIBS)
+libgstfarsight_@GST_MAJORMINOR@_la_LDFLAGS = \
+	$(FS2_LIB_LDFLAGS) \
+	$(FS2_ALL_LDFLAGS) \
+	$(FS2_LT_LDFLAGS) 
 
 
 public_headers = fs-candidate.h \

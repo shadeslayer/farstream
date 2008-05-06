@@ -38,12 +38,17 @@ EXTRA_libfsrtpconference_la_SOURCES = fs-rtp-marshal.list
 
 CLEANFILES = $(BUILT_SOURCES)
 
-libfsrtpconference_la_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(FS2_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_CFLAGS)
+libfsrtpconference_la_CFLAGS = \
+	$(FS2_INTERNAL_CFLAGS) \
+	$(FS2_CFLAGS) \
+	$(GST_PLUGINS_BASE_CFLAGS) \
+	$(GST_CFLAGS)
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrtpconference_la_LIBADD = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
-	$(FS2_LIBS) $(GST_BASE_LIBS) $(GST_LIBS)
-
+	$(FS2_LIBS) \
+	$(GST_BASE_LIBS) \
+	$(GST_LIBS)
 
 fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
 		glib-genmarshal --header --prefix=_fs_rtp_marshal $(srcdir)/$< > $@.tmp
