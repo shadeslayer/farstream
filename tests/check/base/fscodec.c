@@ -89,22 +89,10 @@ static FsCodec *
 init_codec_with_three_params (void)
 {
   FsCodec *codec = fs_codec_new (1, "aa", FS_MEDIA_TYPE_APPLICATION, 650);
-  FsCodecParameter *p1 = NULL;
 
-  p1 = g_new0 (FsCodecParameter, 1);
-  p1->name = g_strdup ("aa1");
-  p1->value = g_strdup ("bb1");
-  codec->optional_params = g_list_append (codec->optional_params, p1);
-
-  p1 = g_new0 (FsCodecParameter, 1);
-  p1->name = g_strdup ("aa2");
-  p1->value = g_strdup ("bb2");
-  codec->optional_params = g_list_append (codec->optional_params, p1);
-
-  p1 = g_new0 (FsCodecParameter, 1);
-  p1->name = g_strdup ("aa3");
-  p1->value = g_strdup ("bb3");
-  codec->optional_params = g_list_append (codec->optional_params, p1);
+  fs_codec_add_optional_parameter (codec, "aa1", "bb1");
+  fs_codec_add_optional_parameter (codec, "aa2", "bb2");
+  fs_codec_add_optional_parameter (codec, "aa3", "bb3");
 
   return codec;
 }
@@ -115,14 +103,13 @@ _free_codec_param (gpointer param)
   FsCodecParameter *p = param;
   g_free (p->name);
   g_free (p->value);
-  g_free (p);
+  g_slice_free (FsCodecParameter, p);
 }
 
 GST_START_TEST (test_fscodec_are_equal_opt_params)
 {
   FsCodec *codec1;
   FsCodec *codec2;
-  FsCodecParameter *p1 = NULL;
 
   codec1 = init_codec_with_three_params ();
   codec2 = init_codec_with_three_params ();
@@ -134,10 +121,7 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   codec1->optional_params = g_list_remove (codec1->optional_params,
       g_list_first (codec1->optional_params)->data);
 
-  p1 = g_new0 (FsCodecParameter, 1);
-  p1->name = g_strdup ("aa1");
-  p1->value = g_strdup ("bb1");
-  codec1->optional_params = g_list_append (codec1->optional_params, p1);
+  fs_codec_add_optional_parameter (codec1, "aa1", "bb1");
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 1) not recognized");
@@ -146,10 +130,7 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   codec1->optional_params = g_list_remove (codec1->optional_params,
       g_list_first (codec1->optional_params)->data);
 
-  p1 = g_new0 (FsCodecParameter, 1);
-  p1->name = g_strdup ("aa2");
-  p1->value = g_strdup ("bb2");
-  codec1->optional_params = g_list_append (codec1->optional_params, p1);
+  fs_codec_add_optional_parameter (codec1, "aa2", "bb2");
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 2) not recognized");

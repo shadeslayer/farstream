@@ -71,10 +71,7 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
         "PCMA",
         FS_MEDIA_TYPE_AUDIO,
         8000);
-    FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
-    param->name = g_strdup ("p1");
-    param->value = g_strdup ("v1");
-    codec->optional_params = g_list_append (NULL, param);
+    fs_codec_add_optional_parameter (codec, "p1", "v1");
     codecs = g_list_append (codecs, codec);
   }
 

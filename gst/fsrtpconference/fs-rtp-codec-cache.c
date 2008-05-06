@@ -183,11 +183,12 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
   for (i = 0; i < tmp_size; i++) {
-    FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
-    READ_CHECK (read_codec_blueprint_string (in, size, &(param->name)));
-    READ_CHECK (read_codec_blueprint_string (in, size, &(param->value)));
-    codec_blueprint->codec->optional_params =
-        g_list_append (codec_blueprint->codec->optional_params, param);
+    gchar *name, *value;
+    READ_CHECK (read_codec_blueprint_string (in, size, &(name)));
+    READ_CHECK (read_codec_blueprint_string (in, size, &(value)));
+    fs_codec_add_optional_parameter (codec_blueprint->codec, name, value);
+    g_free (name);
+    g_free (value);
   }
 
   READ_CHECK (read_codec_blueprint_string (in, size, &tmp));

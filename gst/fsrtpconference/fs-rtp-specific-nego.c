@@ -153,13 +153,9 @@ sdp_is_compat_default (GstCaps *rtp_caps, FsCodec *local_codec,
 
     /* Let's add the local param to the negotiated codec if it does not exist in
      * the remote codec */
-    if (!negotiated_param_list) {
-      FsCodecParameter *newparam = g_new (FsCodecParameter, 1);
-      newparam->name = g_strdup (local_param->name);
-      newparam->value = g_strdup (local_param->value);
-      negotiated_codec->optional_params = g_list_append (
-          negotiated_codec->optional_params, newparam);
-    }
+    if (!negotiated_param_list)
+      fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
+          local_param->value);
   }
 
   return negotiated_codec;
@@ -239,11 +235,8 @@ sdp_is_compat_ilbc (GstCaps *rtp_caps, FsCodec *local_codec,
     /* Let's add the local param to the negotiated codec if it does not exist in
      * the remote codec */
     if (!negotiated_param_list) {
-      FsCodecParameter *newparam = g_new (FsCodecParameter, 1);
-      newparam->name = g_strdup (local_param->name);
-      newparam->value = g_strdup (local_param->value);
-      negotiated_codec->optional_params = g_list_append (
-          negotiated_codec->optional_params, newparam);
+      fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
+          local_param->value);
 
       if (!g_ascii_strcasecmp (local_param->name, "mode")) {
         has_mode = TRUE;
@@ -267,13 +260,8 @@ sdp_is_compat_ilbc (GstCaps *rtp_caps, FsCodec *local_codec,
 
   /* If we still can't find the mode anywhere, let's add it since it's
    *  mandatory and use default value of 30 ms */
-  if (!has_mode) {
-    FsCodecParameter *newparam = g_new0 (FsCodecParameter, 1);
-    newparam->name = g_strdup ("mode");
-    newparam->value = g_strdup ("30");
-    negotiated_codec->optional_params = g_list_append (
-        negotiated_codec->optional_params, newparam);
-  }
+  if (!has_mode)
+    fs_codec_add_optional_parameter (negotiated_codec, "mode", "30");
 
   return negotiated_codec;
 

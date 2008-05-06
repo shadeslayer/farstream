@@ -139,7 +139,6 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     GList *done_item = NULL;
     gboolean skip = FALSE;
     CodecBlueprint *new_bp = NULL;
-    FsCodecParameter *param = NULL;
 
     if (bp->codec->media_type != FS_MEDIA_TYPE_AUDIO)
       continue;
@@ -167,10 +166,7 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
 
     new_bp->codec = fs_codec_new (FS_CODEC_ID_ANY, "telephone-event",
         FS_MEDIA_TYPE_AUDIO, bp->codec->clock_rate);
-    param = g_new0 (FsCodecParameter, 1);
-    param->name = g_strdup ("events");
-    param->value = g_strdup ("0-15");
-    new_bp->codec->optional_params = g_list_prepend (NULL, param);
+    fs_codec_add_optional_parameter (new_bp->codec, "events", "0-15");
     new_bp->rtp_caps = fs_codec_to_gst_caps (new_bp->codec);
     new_bp->media_caps = gst_caps_new_any ();
 

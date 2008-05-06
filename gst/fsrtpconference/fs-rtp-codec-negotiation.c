@@ -344,13 +344,9 @@ create_local_codec_associations (FsMediaType media_type,
         if (!g_ascii_strcasecmp (bp_param->name, pref_param->name))
           break;
       }
-      if (!pref_param_e) {
-        FsCodecParameter *newparam = g_new0 (FsCodecParameter, 1);
-        newparam->name = g_strdup (bp_param->name);
-        newparam->value = g_strdup (bp_param->value);
-        ca->codec->optional_params = g_list_append (ca->codec->optional_params,
-            newparam);
-      }
+      if (!pref_param_e)
+        fs_codec_add_optional_parameter (ca->codec, bp_param->name,
+            bp_param->value);
     }
 
     {

@@ -1398,14 +1398,8 @@ extract_field_data (GQuark field_id,
   else
   {
     if (type == G_TYPE_STRING)
-    {
-      FsCodecParameter *optional_param = g_new0 (FsCodecParameter, 1);
-
-      optional_param->name = g_strdup (field_name);
-      optional_param->value = g_strdup (g_value_get_string (value));
-      codec->optional_params = g_list_append (codec->optional_params,
-          optional_param);
-    }
+      fs_codec_add_optional_parameter (codec, field_name,
+          g_value_get_string (value));
   }
 
   return TRUE;

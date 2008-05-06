@@ -343,7 +343,6 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
   else if (!strcmp (attr, "optional_params"))
   {
     GList *p;
-    GList *newlist = NULL;
     int i = 0;
 
     if (value == NULL)
@@ -372,16 +371,6 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
       }
     }
 
-    for (i = 0; i < PySequence_Size (value); i++)
-    {
-      PyObject *item = PySequence_GetItem (value, i);
-      FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
-
-      param->name = g_strdup (PyString_AsString (PyTuple_GetItem (item, 0)));
-      param->value = g_strdup (PyString_AsString (PyTuple_GetItem (item, 1)));
-      newlist = g_list_append (newlist, param);
-    }
-
   none:
 
     for (p = g_list_first (codec->optional_params); p; p = g_list_next (p))
@@ -392,7 +381,17 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
       g_free (p->data);
     }
     g_list_free (codec->optional_params);
-    codec->optional_params = newlist;
+
+    if (value == NULL)
+      return 0;
+
+    for (i = 0; i < PySequence_Size (value); i++)
+    {
+      PyObject *item = PySequence_GetItem (value, i);
+      fs_codec_add_optional_parameter(codec,
+          PyString_AsString (PyTuple_GetItem (item, 0)),
+          PyString_AsString (PyTuple_GetItem (item, 1)));
+    }
   }
   else
   {
