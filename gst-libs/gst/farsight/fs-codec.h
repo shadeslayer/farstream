@@ -135,6 +135,9 @@ gboolean fs_codec_list_are_equal (GList *list1, GList *list2);
 
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 
+void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
+    const gchar *value);
+
 G_END_DECLS
 
 #endif /* __FS_CODEC_H__ */

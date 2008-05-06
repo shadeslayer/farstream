@@ -638,3 +638,29 @@ fs_codec_list_are_equal (GList *list1, GList *list2)
   else
     return FALSE;
 }
+
+/**
+ * fs_codec_add_optional_parameter:
+ * @codec: The #FsCodec to add the parameter to
+ * @name: The name of the optional parameter
+ * @value: The value of the optional parameter
+ *
+ * This function adds an new optional parameter to a #FsCodec
+ */
+
+void
+fs_codec_add_optional_parameter (FsCodec *codec,
+    const gchar *name,
+    const gchar *value)
+{
+  FsCodecParameter *param;
+
+  g_return_if_fail (name != NULL && value != NULL);
+
+  param = g_slice_new (FsCodecParameter);
+
+  param->name = g_strdup (name);
+  param->value = g_strdup (value);
+
+  codec->optional_params = g_list_append (codec->optional_params, param);
+}
