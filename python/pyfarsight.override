@@ -468,7 +468,7 @@ _wrap_fs_candidate_new(PyGBoxed *self)
 {
   self->gtype = FS_TYPE_CANDIDATE;
   self->free_on_dealloc = FALSE;
-  self->boxed = g_new0 (FsCandidate, 1);
+  self->boxed = g_slice_new0 (FsCandidate);
 
   if (!self->boxed) {
     PyErr_SetString(PyExc_RuntimeError, "could not create FsCodec object");

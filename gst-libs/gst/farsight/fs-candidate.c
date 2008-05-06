@@ -84,7 +84,7 @@ fs_candidate_destroy (FsCandidate * cand)
   g_free ((gchar *) cand->username);
   g_free ((gchar *) cand->password);
 
-  g_free (cand);
+  g_slice_free (FsCandidate, cand);
 }
 
 /**
@@ -98,7 +98,7 @@ fs_candidate_destroy (FsCandidate * cand)
 FsCandidate *
 fs_candidate_copy (const FsCandidate * cand)
 {
-  FsCandidate *copy = g_new0 (FsCandidate, 1);
+  FsCandidate *copy = g_slice_new0 (FsCandidate);
 
   copy->component_id = cand->component_id;
   copy->port = cand->port;
@@ -186,7 +186,7 @@ fs_candidate_new (
     const gchar *ip,
     guint port)
 {
-  FsCandidate *candidate = g_new0 (FsCandidate, 1);
+  FsCandidate *candidate = g_slice_new0 (FsCandidate);
 
   candidate->foundation = g_strdup (foundation);
   candidate->component_id = component_id;
