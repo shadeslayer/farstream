@@ -805,7 +805,7 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
     }
   }
 
-  udpsock = g_new0 (UdpSock, 1);
+  udpsock = g_slice_new0 (UdpSock);
 
   udpsock->refcount = 1;
   udpsock->local_ip = g_strdup (local_ip);
@@ -916,7 +916,7 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
 
   g_free (udpsock->multicast_ip);
   g_free (udpsock->local_ip);
-  g_free (udpsock);
+  g_slice_free (UdpSock, udpsock);
 }
 
 void
