@@ -378,7 +378,7 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
       FsCodecParameter *param = p->data;
       g_free (param->name);
       g_free (param->value);
-      g_free (p->data);
+      g_slice_free (FsCodecParameter, p->data);
     }
     g_list_free (codec->optional_params);
 

@@ -94,7 +94,7 @@ FsCodec *
 fs_codec_new (int id, const char *encoding_name,
               FsMediaType media_type, guint clock_rate)
 {
-  FsCodec *codec = g_new0 (FsCodec, 1);
+  FsCodec *codec = g_slice_new0 (FsCodec);
 
   codec->id = id;
   codec->encoding_name = g_strdup (encoding_name);
@@ -125,12 +125,12 @@ fs_codec_destroy (FsCodec * codec)
       optional_param = (FsCodecParameter *) lp->data;
       g_free (optional_param->name);
       g_free (optional_param->value);
-      g_free (optional_param);
+      g_slice_free (FsCodecParameter, optional_param);
     }
     g_list_free (codec->optional_params);
   }
 
-  g_free (codec);
+  g_slice_free (FsCodec, codec);
 }
 
 /**
@@ -149,7 +149,7 @@ fs_codec_copy (const FsCodec * codec)
   if (codec == NULL)
     return NULL;
 
-  copy = g_new0 (FsCodec, 1);
+  copy = g_slice_new0 (FsCodec);
 
   copy->id = codec->id;
   copy->media_type = codec->media_type;
@@ -166,7 +166,7 @@ fs_codec_copy (const FsCodec * codec)
     FsCodecParameter *param_copy;
 
     for (lp = codec->optional_params; lp; lp = g_list_next (lp)) {
-      param_copy = g_new0(FsCodecParameter,1);
+      param_copy = g_slice_new (FsCodecParameter);
       param = (FsCodecParameter *) lp->data;
       param_copy->name = g_strdup (param->name);
       param_copy->value = g_strdup (param->value);
@@ -274,7 +274,7 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
     goto out;
 
   for (i=0; i < groups_count && groups[i]; i++) {
-    FsCodec *codec = g_new0 (FsCodec, 1);
+    FsCodec *codec = g_slice_new0 (FsCodec);
     gchar **keys = NULL;
     gsize keys_count;
     int j;
@@ -360,7 +360,7 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
         }
 
       } else {
-        FsCodecParameter *param = g_new0 (FsCodecParameter, 1);
+        FsCodecParameter *param = g_slice_new (FsCodecParameter);
 
         param->name = g_strdup (keys[j]);
         param->value = g_key_file_get_string (keyfile, groups[i], keys[j],
@@ -368,14 +368,14 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
         if (gerror) {
           g_free (param->name);
           g_free (param->value);
-          g_free (param);
+          g_slice_free (FsCodecParameter, param);
           goto keyerror;
         }
 
         if (!param->name || !param->value) {
           g_free (param->name);
           g_free (param->value);
-          g_free (param);
+          g_slice_free (FsCodecParameter, param);
         } else {
           codec->optional_params = g_list_append (codec->optional_params,
               param);

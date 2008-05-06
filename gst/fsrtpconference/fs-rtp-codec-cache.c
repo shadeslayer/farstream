@@ -168,7 +168,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
   gint tmp_size;
   int i;
 
-  codec_blueprint->codec = g_new0 (FsCodec, 1);
+  codec_blueprint->codec = g_slice_new0 (FsCodec);
   codec_blueprint->codec->media_type = media_type;
 
   READ_CHECK (read_codec_blueprint_int

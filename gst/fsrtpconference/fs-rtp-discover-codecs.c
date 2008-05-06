@@ -506,7 +506,7 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
   {
     codec_cap = (CodecCap *)(walk->data);
 
-    codec = g_new0 (FsCodec, 1);
+    codec = g_slice_new0 (FsCodec);
     codec->id = FS_CODEC_ID_ANY;
     codec->clock_rate = 0;
 
