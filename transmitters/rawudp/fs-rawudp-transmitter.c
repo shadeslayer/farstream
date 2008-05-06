@@ -728,7 +728,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   GST_DEBUG ("Make new UdpPort for component %u requesting %s:%u", component_id,
       requested_ip ? requested_ip : "ANY", requested_port);
 
-  udpport = g_new0 (UdpPort, 1);
+  udpport = g_slice_new0 (UdpPort);
 
   udpport->refcount = 1;
   udpport->requested_ip = g_strdup (requested_ip);
@@ -833,7 +833,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
     close (udpport->fd);
 
   g_free (udpport->requested_ip);
-  g_free (udpport);
+  g_slice_free (UdpPort, udpport);
 }
 
 void
