@@ -134,6 +134,16 @@
   (return-type "const-gchar*")
 )
 
+(define-method add_optional_parameter
+  (of-object "FsCodec")
+  (c-name "fs_codec_add_optional_parameter")
+  (return-type "none")
+  (parameters
+    '("const-gchar*" "name")
+    '("const-gchar*" "value")
+  )
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...
