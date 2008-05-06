@@ -180,7 +180,7 @@ codec_cap_free (CodecCap *codec_cap)
   {
     g_list_free (codec_cap->element_list2);
   }
-  g_free (codec_cap);
+  g_slice_free (CodecCap, codec_cap);
 }
 
 static void
@@ -850,7 +850,7 @@ codec_cap_list_intersect (GList *list1, GList *list2)
           }
         } else {
 
-          item = g_new0 (CodecCap, 1);
+          item = g_slice_new0 (CodecCap);
           item->caps = intersection;
 
           if (rtp_caps1 && rtp_caps2)
@@ -1139,7 +1139,7 @@ create_codec_cap_list (GstElementFactory *factory,
 
       if (!entry)
       {
-        entry = g_new0 (CodecCap, 1);
+        entry = g_slice_new0 (CodecCap);
 
         entry->caps = cur_caps;
         if (rtp_caps)
