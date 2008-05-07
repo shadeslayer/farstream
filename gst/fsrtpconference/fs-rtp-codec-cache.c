@@ -163,7 +163,7 @@ read_codec_blueprint_string (gchar **in, gsize *size, gchar **str) {
 
 static CodecBlueprint *
 load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
-  CodecBlueprint *codec_blueprint = g_new0 (CodecBlueprint, 1);
+  CodecBlueprint *codec_blueprint = g_slice_new0 (CodecBlueprint);
   gchar *tmp;
   gint tmp_size;
   int i;

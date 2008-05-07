@@ -554,7 +554,7 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
 
   another:
 
-    codec_blueprint = g_new0 (CodecBlueprint, 1);
+    codec_blueprint = g_slice_new0 (CodecBlueprint);
     codec_blueprint->codec = codec;
     codec_blueprint->media_caps = gst_caps_copy (codec_cap->caps);
     codec_blueprint->rtp_caps = gst_caps_copy (codec_cap->rtp_caps);
@@ -937,7 +937,7 @@ codec_blueprint_destroy (CodecBlueprint *codec_blueprint)
   g_list_free (codec_blueprint->receive_pipeline_factory);
 
 
-  g_free (codec_blueprint);
+  g_slice_free (CodecBlueprint, codec_blueprint);
 }
 
 void

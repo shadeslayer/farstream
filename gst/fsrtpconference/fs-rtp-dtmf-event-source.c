@@ -162,7 +162,7 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
     if (skip)
       continue;
 
-    new_bp = g_new0 (CodecBlueprint, 1);
+    new_bp = g_slice_new0 (CodecBlueprint);
 
     new_bp->codec = fs_codec_new (FS_CODEC_ID_ANY, "telephone-event",
         FS_MEDIA_TYPE_AUDIO, bp->codec->clock_rate);
