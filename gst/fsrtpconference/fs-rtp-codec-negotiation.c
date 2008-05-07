@@ -148,7 +148,7 @@ _codec_association_destroy (CodecAssociation *ca)
     return;
 
   fs_codec_destroy (ca->codec);
-  g_free (ca);
+  g_slice_free (CodecAssociation, ca);
 }
 
 
@@ -313,7 +313,7 @@ create_local_codec_associations (FsMediaType media_type,
       continue;
     }
 
-    ca = g_new0 (CodecAssociation, 1);
+    ca = g_slice_new0 (CodecAssociation);
     ca->blueprint = bp;
     ca->codec = fs_codec_copy (codec_pref);
 
@@ -409,7 +409,7 @@ create_local_codec_associations (FsMediaType media_type,
       continue;
     }
 
-    ca = g_new0 (CodecAssociation, 1);
+    ca = g_slice_new0 (CodecAssociation);
     ca->blueprint = bp;
     ca->codec = fs_codec_copy (bp->codec);
 
@@ -571,7 +571,7 @@ negotiate_codecs (const GList *remote_codecs,
     }
 
     if (nego_codec) {
-      CodecAssociation *new_ca = g_new0 (CodecAssociation, 1);
+      CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
       gchar *tmp;
 
       new_ca->codec = nego_codec;
@@ -618,7 +618,7 @@ negotiate_codecs (const GList *remote_codecs,
     */
     local_ca = lookup_codec_association_by_pt (local_codec_associations, i);
     if (local_ca) {
-      CodecAssociation *new_ca = g_new0 (CodecAssociation, 1);
+      CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
       new_ca->codec = fs_codec_copy (local_ca->codec);
       new_ca->blueprint = local_ca->blueprint;
 
