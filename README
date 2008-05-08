@@ -17,16 +17,15 @@ Requirements
 Build time:
  - gstreamer 0.10.17
  - gst-plugins-base 0.10.17
- - glib 2.14
+ - glib 2.16
 
 Run time:
  All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.7
- - gst-plugins-bad 0.10.6
+ - gst-plugins-bad 0.10.7
  - gst-plugins-farsight 0.12.7
 
 Usable video requires H.263 (encoder + decoder) from gst-ffmpeg
-Multicast requires gst-plugins-bad CVS post March 11, 2008
 
 For the python module and examples you also need:
  - Python 2.1
