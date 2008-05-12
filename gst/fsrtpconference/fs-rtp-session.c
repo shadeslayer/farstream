@@ -1581,7 +1581,6 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   new_negotiated_codec_associations = negotiate_codecs (remote_codecs,
     session->priv->negotiated_codec_associations,
     session->priv->local_codec_associations,
-    session->priv->local_codecs,
     has_many_streams,
     &new_negotiated_codecs);
 

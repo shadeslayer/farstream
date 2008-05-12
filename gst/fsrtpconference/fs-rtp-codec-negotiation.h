@@ -44,7 +44,7 @@ GHashTable *create_local_codec_associations (FsMediaType media_type,
 
 GHashTable *negotiate_codecs (const GList *remote_codecs,
     GHashTable *current_negotiated_codec_associations,
-    GHashTable *local_codec_associations, GList *local_codecs,
+    GHashTable *local_codec_associations,
     gboolean use_local_ids,
     GList **new_negotiated_codecs);
 

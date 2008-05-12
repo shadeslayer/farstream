@@ -500,7 +500,6 @@ _do_sdp_codec_nego (gpointer key, gpointer value, gpointer user_data)
  * negotiate_codecs:
  * @remote_codecs: The list of remote codecs passed from the other side
  * @local_codec_associations: The hash table of local codec associations
- * @local_codecs: The ordered list of local codecs
  * @use_local_ids: Wheter to use local or remote PTs if they dont match (%TRUE
  *  for local, %FALSE for remote)
  * @negotiated_codecs_out: A pointer to a pointer to a #GList where the ordered
@@ -515,7 +514,7 @@ _do_sdp_codec_nego (gpointer key, gpointer value, gpointer user_data)
 GHashTable *
 negotiate_codecs (const GList *remote_codecs,
     GHashTable *negotiated_codec_associations,
-    GHashTable *local_codec_associations, GList *local_codecs,
+    GHashTable *local_codec_associations,
     gboolean use_local_ids,
     GList **negotiated_codecs_out)
 {
@@ -526,7 +525,6 @@ negotiate_codecs (const GList *remote_codecs,
 
   g_return_val_if_fail (remote_codecs, NULL);
   g_return_val_if_fail (local_codec_associations, NULL);
-  g_return_val_if_fail (local_codecs, NULL);
 
   new_codec_associations = g_hash_table_new_full (g_direct_hash,
       g_direct_equal, NULL, (GDestroyNotify) _codec_association_destroy);
