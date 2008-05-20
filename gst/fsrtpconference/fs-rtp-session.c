@@ -1261,6 +1261,12 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     g_object_notify ((GObject*) self, "local-codecs");
     g_object_notify ((GObject*) self, "local-codecs-config");
 
+    gst_element_post_message (GST_ELEMENT (self->priv->conference),
+        gst_message_new_element (GST_OBJECT (self->priv->conference),
+            gst_structure_new ("farsight-codecs-changed",
+                "session", FS_TYPE_SESSION, session,
+                NULL)));
+
     return TRUE;
   }
   else
@@ -1647,7 +1653,15 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     FS_RTP_SESSION_UNLOCK (session);
 
     if (is_new)
+    {
       g_object_notify (G_OBJECT (session), "negotiated-codecs");
+
+      gst_element_post_message (GST_ELEMENT (session->priv->conference),
+          gst_message_new_element (GST_OBJECT (session->priv->conference),
+              gst_structure_new ("farsight-codecs-changed",
+                  "session", FS_TYPE_SESSION, session,
+                  NULL)));
+    }
 
     return TRUE;
   } else {
