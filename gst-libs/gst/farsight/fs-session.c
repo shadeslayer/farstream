@@ -40,7 +40,8 @@
  * This will communicate asynchronous events to the user through #GstMessage
  * of type #GST_MESSAGE_ELEMENT sent over the #GstBus.
  * </para>
- * <refsect2><title>The "<literal>farsight-send-codec-changed</literal>" message</title>
+ * <refsect2><title>The "<literal>farsight-send-codec-changed</literal>"
+ *   message</title>
  * |[
  * "session"          #FsSession          The session that emits the message
  * "codec"            #FsCodec            The new send codec
@@ -48,6 +49,21 @@
  * <para>
  * This message is sent on the bus when the value of the
  * #FsSession:current-send-codec property changes.
+ * </para>
+ * </refsect2>
+ * <refsect2><title>The "<literal>farsight-codecs-changed</literal>"
+ *  message</title>
+ * |[
+ * "session"          #FsSession          The session that emits the message
+ * ]|
+ * <para>
+ * This message is sent on the bus when the value of the
+ * #FsSession:negotiated-codecs or #FsSession:local-codecs properties change.
+ * If one is using codecs that have configuration data that needs to be
+ * transmitted reliably, once should check the value of #FsSession:codecs-ready
+ * property to make sure all of the codecs configuration are ready and have been
+ * discovered before using the codecs. If its not %TRUE, one should wait for the
+ * next "farsight-codecs-changed" message until reading the codecs.
  * </para>
  * </refsect2>
  * <para>
