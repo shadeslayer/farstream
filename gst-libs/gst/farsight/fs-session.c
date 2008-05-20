@@ -85,7 +85,8 @@ enum
   PROP_LOCAL_CODECS,
   PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
-  PROP_CURRENT_SEND_CODEC
+  PROP_CURRENT_SEND_CODEC,
+  PROP_CODECS_READY
 };
 
 /*
@@ -251,6 +252,26 @@ fs_session_class_init (FsSessionClass *klass)
         G_PARAM_READABLE));
 
   /**
+   * FsSession:codecs-ready
+   *
+   * Some codecs that have configuration data that needs to be sent reliably
+   * may need to be initialized from actual data before being ready. If your
+   * application uses such codecs, wait until this property is %TRUE before
+   * using the #FsSession:local-codecs and #FsSession:negotiated-codecs
+   * properties. If the value if not %TRUE, the "farsight-codecs-changed"
+   * message will be emitted when it becomes %TRUE. You should re-check
+   * the value of this property when you receive the message.
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_CODECS_READY,
+      g_param_spec_boolean ("codecs-ready",
+          "Indicates if the codecs are ready",
+          "Indicates if the codecs are ready or if their configuration is"
+          " still being discovered",
+          TRUE,
+          G_PARAM_READABLE));
+
+  /**
    * FsSession::error:
    * @self: #FsSession that emitted the signal
    * @object: The #Gobject that emitted the signal
@@ -286,10 +307,19 @@ fs_session_get_property (GObject *object,
                          GValue *value,
                          GParamSpec *pspec)
 {
-  GST_WARNING ("Subclass %s of FsSession does not override the %s property"
-      " getter",
-      G_OBJECT_TYPE_NAME(object),
-      g_param_spec_get_name (pspec));
+  switch (prop_id)
+  {
+    case PROP_CODECS_READY:
+      g_value_set_boolean (value, TRUE);
+      break;
+
+    default:
+      GST_WARNING ("Subclass %s of FsSession does not override the %s property"
+          " getter",
+          G_OBJECT_TYPE_NAME(object),
+          g_param_spec_get_name (pspec));
+      break;
+  }
 }
 
 static void
