@@ -1,5 +1,5 @@
 /*
- * fs-rtp-specific-nego.c - Per-codec SDP negociation
+ * fs-rtp-specific-nego.c - Per-codec SDP negotiation
  *
  * Farsight RTP/AVP/SAVP/AVPF Module
  * Copyright (C) 2007 Collabora Ltd.
