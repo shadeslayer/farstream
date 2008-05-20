@@ -119,15 +119,23 @@ fs_codec_destroy (FsCodec * codec)
   g_free (codec->encoding_name);
   if (codec->optional_params) {
     GList *lp;
-    FsCodecParameter *optional_param;
+    FsCodecParameter *param;
 
     for (lp = codec->optional_params; lp; lp = g_list_next (lp)) {
-      optional_param = (FsCodecParameter *) lp->data;
-      g_free (optional_param->name);
-      g_free (optional_param->value);
-      g_slice_free (FsCodecParameter, optional_param);
+      param = (FsCodecParameter *) lp->data;
+      g_free (param->name);
+      g_free (param->value);
+      g_slice_free (FsCodecParameter, param);
     }
     g_list_free (codec->optional_params);
+
+    for (lp = codec->config_params; lp; lp = g_list_next (lp)) {
+      param = (FsCodecParameter *) lp->data;
+      g_free (param->name);
+      g_free (param->value);
+      g_slice_free (FsCodecParameter, param);
+    }
+    g_list_free (codec->config_params);
   }
 
   g_slice_free (FsCodec, codec);
@@ -172,9 +180,19 @@ fs_codec_copy (const FsCodec * codec)
       param_copy->value = g_strdup (param->value);
       /* prepend then reverse the list for efficiency */
       copy->optional_params = g_list_prepend (copy->optional_params,
-                                              param_copy);
+          param_copy);
     }
     copy->optional_params = g_list_reverse (copy->optional_params);
+
+    for (lp = codec->config_params; lp; lp = g_list_next (lp)) {
+      param_copy = g_slice_new (FsCodecParameter);
+      param = (FsCodecParameter *) lp->data;
+      param_copy->name = g_strdup (param->name);
+      param_copy->value = g_strdup (param->value);
+      /* prepend then reverse the list for efficiency */
+      copy->config_params = g_list_prepend (copy->config_params, param_copy);
+    }
+    copy->config_params = g_list_reverse (copy->config_params);
   }
   return copy;
 }
@@ -462,6 +480,14 @@ fs_codec_to_string (const FsCodec *codec)
     g_string_append_printf (string, " %s=%s", param->name, param->value);
   }
 
+  for (item = codec->config_params;
+       item;
+       item = g_list_next (item)) {
+    FsCodecParameter *param = item->data;
+    g_string_append_printf (string, " %s=%s", param->name, param->value);
+  }
+
+
   charstring = string->str;
   g_string_free (string, FALSE);
 
@@ -509,7 +535,7 @@ compare_lists (GList *list1, GList *list2)
  *
  * Compare two codecs, it will declare two codecs to be identical even
  * if their optional parameters are in a different order. %NULL encoding names
- * are ignored.
+ * are ignored. Configuration parameters are ignored when comparing.
  *
  * Return value: %TRUE of the codecs are identical, %FALSE otherwise
  */
@@ -604,6 +630,17 @@ fs_codec_to_gst_caps (const FsCodec *codec)
       NULL);
     g_free (lower_name);
   }
+
+  for (item = codec->config_params;
+       item;
+       item = g_list_next (item)) {
+    FsCodecParameter *param = item->data;
+    gchar *lower_name = g_ascii_strdown (param->name, -1);
+    gst_structure_set (structure, lower_name, G_TYPE_STRING, param->value,
+      NULL);
+    g_free (lower_name);
+  }
+
 
   caps = gst_caps_new_full (structure, NULL);
 

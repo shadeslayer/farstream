@@ -82,7 +82,8 @@ typedef enum
  * @media_type: type of media this codec is for
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
- * @optional_params:  key pairs of param name to param data
+ * @optional_params: key pairs of param name to param data for neutral and receive side params
+ * @config_params: key pairs of param name to params data for send-side params
  *
  * This structure reprensents one codec that can be offered or received
  */
@@ -95,6 +96,7 @@ struct _FsCodec
   guint clock_rate;
   guint channels;
   GList *optional_params;
+  GList *config_params;
   /*< private >*/
   gpointer _padding[4];         /* padding for binary-compatible
                                    expansion*/
