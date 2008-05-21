@@ -45,21 +45,28 @@ typedef struct _CodecAssociation {
 } CodecAssociation;
 
 
-GList *validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
-  GList *codecs);
+GList *validate_codecs_configuration (
+    FsMediaType media_type,
+    GList *blueprints,
+    GList *codecs);
 
-GHashTable *create_local_codec_associations (FsMediaType media_type,
-  GList *blueprints, GList *codec_prefs, GHashTable *current_codec_associations,
-  GList **local_codecs_list);
+GHashTable *
+create_local_codec_associations (
+    FsMediaType media_type,
+    GList *blueprints,
+    GList *codec_prefs,
+    GHashTable *current_codec_associations,
+    GList **local_codecs_list);
 
-GHashTable *negotiate_codecs (const GList *remote_codecs,
+GHashTable *
+negotiate_codecs (const GList *remote_codecs,
     GHashTable *current_negotiated_codec_associations,
     GHashTable *local_codec_associations,
     gboolean use_local_ids,
     GList **new_negotiated_codecs);
 
-CodecAssociation *lookup_codec_association_by_pt (
-    GHashTable *codec_associations, gint pt);
+CodecAssociation *
+lookup_codec_association_by_pt (GHashTable *codec_associations, gint pt);
 
 
 
