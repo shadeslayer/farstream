@@ -34,6 +34,10 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_nego
 
+static CodecAssociation *
+lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
+    gboolean want_empty);
+
 /**
  * validate_codecs_configuration:
  * @media_type: The #FsMediaType these codecs should be for
@@ -193,35 +197,21 @@ _find_matching_blueprint (FsCodec *codec, GList *blueprints)
 }
 
 static gint
-_find_first_empty_dynamic_entry (GHashTable *new_codec_associations,
-    GHashTable *old_codec_associations)
+_find_first_empty_dynamic_entry (
+    GList *new_codec_associations,
+    GList *old_codec_associations)
 {
   int id;
 
   for (id = 96; id < 128; id++) {
-    if (new_codec_associations &&
-        g_hash_table_lookup_extended (new_codec_associations,
-            GINT_TO_POINTER (id), NULL, NULL))
+    if (lookup_codec_association_by_pt_list (new_codec_associations, id, TRUE))
       continue;
-    if (old_codec_associations &&
-        g_hash_table_lookup_extended (old_codec_associations,
-            GINT_TO_POINTER (id), NULL, NULL))
+    if (lookup_codec_association_by_pt_list (old_codec_associations, id, TRUE))
       continue;
     return id;
   }
 
   return -1;
-}
-
-static gboolean
-_ht_has_codec_blueprint (gpointer key, gpointer value, gpointer user_data)
-{
-  CodecAssociation *ca = value;
-
-  if (ca->blueprint == user_data)
-    return TRUE;
-  else
-    return FALSE;
 }
 
 static gboolean
@@ -259,17 +249,16 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
 }
 
 
-GHashTable *
+GList *
 create_local_codec_associations (FsMediaType media_type,
     GList *blueprints,
     GList *codec_prefs,
-    GHashTable *current_codec_associations,
+    GList *current_codec_associations,
     GList **local_codecs_list)
 {
-  GHashTable *codec_associations = NULL;
+  GList *codec_associations = NULL;
   GList *bp_e = NULL;
   GList *local_codecs = NULL;
-  GList *local_codec_association_list = NULL;
   GList *codec_pref_e = NULL;
   GList *lca_e = NULL;
 
@@ -277,9 +266,6 @@ create_local_codec_associations (FsMediaType media_type,
 
   if (blueprints == NULL)
     return NULL;
-
-  codec_associations = g_hash_table_new_full (g_direct_hash, g_direct_equal,
-    NULL, (GDestroyNotify) _codec_association_destroy);
 
   /* First, lets create the original table by looking at our preferred codecs */
   for (codec_pref_e = codec_prefs;
@@ -299,8 +285,10 @@ create_local_codec_associations (FsMediaType media_type,
         codec_pref->encoding_name &&
         g_ascii_strcasecmp (codec_pref->encoding_name, "reserve-pt"))
     {
-      g_hash_table_insert (codec_associations, GINT_TO_POINTER (codec_pref->id),
-        NULL);
+      CodecAssociation *ca = g_slice_new0 (CodecAssociation);
+      ca->codec = fs_codec_copy (codec_pref);
+      ca->disable = TRUE;
+      codec_associations = g_list_append (codec_associations, ca);
       continue;
     }
 
@@ -355,42 +343,35 @@ create_local_codec_associations (FsMediaType media_type,
       g_free (tmp);
     }
 
-    local_codec_association_list = g_list_append (local_codec_association_list,
-        ca);
+    codec_associations = g_list_append (codec_associations, ca);
   }
 
   /* Now, only codecs with specified ids are here,
    * the rest are dynamic
    * Lets attribute them here */
-  lca_e = local_codec_association_list;
-  while (lca_e) {
+  for (lca_e = codec_associations;
+       lca_e;
+       lca_e = g_list_next (lca_e))
+  {
     CodecAssociation *lca = lca_e->data;
-    GList *next = g_list_next (lca_e);
 
-    if (g_hash_table_lookup_extended (codec_associations,
-            GINT_TO_POINTER (lca->codec->id), NULL, NULL) ||
+    if (lookup_codec_association_by_pt_list (current_codec_associations,
+            lca->codec->id, TRUE) ||
         lca->codec->id < 0) {
       lca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
       if (lca->codec->id < 0) {
         GST_ERROR ("We've run out of dynamic payload types");
-        goto out;
+        goto error;
       }
     }
-
-    local_codecs = g_list_append (local_codecs, fs_codec_copy (lca->codec));
-    g_hash_table_insert (codec_associations, GINT_TO_POINTER (lca->codec->id),
-        lca);
-
-    local_codec_association_list = g_list_delete_link (
-        local_codec_association_list, lca_e);
-    lca_e = next;
   }
 
   /* Now, lets add all other codecs from the blueprints */
   for (bp_e = g_list_first (blueprints); bp_e; bp_e = g_list_next (bp_e)) {
     CodecBlueprint *bp = bp_e->data;
     CodecAssociation *ca = NULL;
+    GList *tmpca_e;
 
     /* Lets skip codecs that dont have all of the required informations */
     if (bp->codec->clock_rate == 0) {
@@ -398,7 +379,15 @@ create_local_codec_associations (FsMediaType media_type,
     }
 
     /* Check if its already used */
-    if (g_hash_table_find (codec_associations, _ht_has_codec_blueprint, bp))
+    for (tmpca_e = codec_associations;
+         tmpca_e;
+         tmpca_e = g_list_next (tmpca_e))
+    {
+      CodecAssociation *tmpca = tmpca_e->data;
+      if (tmpca->blueprint == bp)
+        break;
+    }
+    if (tmpca_e)
       continue;
 
     /* Check if it is disabled in the list of preferred codecs */
@@ -418,33 +407,22 @@ create_local_codec_associations (FsMediaType media_type,
           current_codec_associations, codec_associations);
       if (ca->codec->id < 0) {
         GST_WARNING ("We've run out of dynamic payload types");
-        goto out;
+        goto error;
       }
     }
 
-    g_hash_table_insert (codec_associations, GINT_TO_POINTER (ca->codec->id),
-        ca);
+    codec_associations = g_list_append (codec_associations, ca);
     local_codecs = g_list_append (local_codecs, fs_codec_copy (ca->codec));
   }
-
- out:
-
-  g_list_foreach (local_codec_association_list,
-    (GFunc) _codec_association_destroy,
-      NULL);
-  g_list_free (local_codec_association_list);
 
 #if 0
   /*
    * BIG hack, we have to manually add CN
    * because we can send it, but not receive it yet
-   * Do the same for DTMF for the same reason
    * This is because there is no blueprint for them
    */
   if (media_type == FS_MEDIA_TYPE_AUDIO && local_codecs) {
     local_codecs = _add_cn_type (local_codecs, codec_associations);
-    local_codecs = _add_dtmf_type (local_codecs, codec_associations,
-        current_codec_associations, NULL);
   }
 #endif
 
@@ -452,54 +430,24 @@ create_local_codec_associations (FsMediaType media_type,
 
   /* If no local codecs where detected */
   if (!local_codecs) {
-    g_hash_table_destroy (codec_associations);
-    codec_associations = NULL;
     GST_DEBUG ("There are no local codecs for this stream of media type %s",
         fs_media_type_to_string (media_type));
+    goto error;
   }
 
   return codec_associations;
+
+ error:
+  codec_association_list_destroy (codec_associations);
+
+  return NULL;
 }
 
-
-
-
-
-struct SDPNegoData {
-  /* in  */
-  FsCodec *remote_codec;
-  /* out */
-  CodecAssociation *local_ca;
-  FsCodec *nego_codec;
-};
-
-
-static gboolean
-_do_sdp_codec_nego (gpointer key, gpointer value, gpointer user_data)
-{
-  struct SDPNegoData *tmpdata = user_data;
-  CodecAssociation *local_ca = value;
-  FsCodec *nego_codec = NULL;
-
-  if (local_ca == NULL)
-    return FALSE;
-
-  nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
-      local_ca->codec, tmpdata->remote_codec);
-
-  if (nego_codec) {
-    tmpdata->nego_codec = nego_codec;
-    tmpdata->local_ca = local_ca;
-    return TRUE;
-  }
-
-  return FALSE;
-}
 
 /**
  * negotiate_codecs:
  * @remote_codecs: The list of remote codecs passed from the other side
- * @local_codec_associations: The hash table of local codec associations
+ * @local_codec_associations: The list of local codec associations
  * @use_local_ids: Wheter to use local or remote PTs if they dont match (%TRUE
  *  for local, %FALSE for remote)
  * @negotiated_codecs_out: A pointer to a pointer to a #GList where the ordered
@@ -514,7 +462,7 @@ _do_sdp_codec_nego (gpointer key, gpointer value, gpointer user_data)
 GHashTable *
 negotiate_codecs (const GList *remote_codecs,
     GHashTable *negotiated_codec_associations,
-    GHashTable *local_codec_associations,
+    GList *local_codec_associations,
     gboolean use_local_ids,
     GList **negotiated_codecs_out)
 {
@@ -542,8 +490,8 @@ negotiate_codecs (const GList *remote_codecs,
 
     /* First lets try the codec that is in the same PT */
 
-    local_ca = lookup_codec_association_by_pt (local_codec_associations,
-      remote_codec->id);
+    local_ca = lookup_codec_association_by_pt_list (local_codec_associations,
+        remote_codec->id, FALSE);
 
     if (local_ca) {
       GST_DEBUG ("Have local codec in the same PT, lets try it first");
@@ -552,19 +500,22 @@ negotiate_codecs (const GList *remote_codecs,
     }
 
     if (!nego_codec) {
-      struct SDPNegoData tmpdata;
-      tmpdata.remote_codec = remote_codec;
-      tmpdata.local_ca = NULL;
-      tmpdata.nego_codec = NULL;
+      GList *item = NULL;
 
-      g_hash_table_find (local_codec_associations, _do_sdp_codec_nego,
-          &tmpdata);
+      for (item = local_codec_associations;
+           item;
+           item = g_list_next (item))
+      {
+        local_ca = item->data;
 
-      if (tmpdata.local_ca && tmpdata.nego_codec) {
-        local_ca = tmpdata.local_ca;
-        nego_codec = tmpdata.nego_codec;
-        if (use_local_ids)
+        nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
+            local_ca->codec, remote_codec);
+
+        if (nego_codec)
+        {
           nego_codec->id = local_ca->codec->id;
+          break;
+        }
       }
     }
 
@@ -614,7 +565,8 @@ negotiate_codecs (const GList *remote_codecs,
        something, we add it. Some broken implementation (like Tandberg's)
        send packets on PTs that they did not put in their response
     */
-    local_ca = lookup_codec_association_by_pt (local_codec_associations, i);
+    local_ca = lookup_codec_association_by_pt_list (local_codec_associations,
+        i, FALSE);
     if (local_ca) {
       CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
       new_ca->codec = fs_codec_copy (local_ca->codec);
@@ -635,8 +587,7 @@ negotiate_codecs (const GList *remote_codecs,
      * table (the result of previous negotiations). And kill all of the
      * PTs used in there
      */
-    if (g_hash_table_lookup_extended (local_codec_associations,
-                GINT_TO_POINTER (i), NULL, NULL)
+    if (lookup_codec_association_by_pt_list (local_codec_associations, i, TRUE)
         || (negotiated_codec_associations &&
             g_hash_table_lookup_extended (negotiated_codec_associations,
                 GINT_TO_POINTER (i), NULL, NULL))) {
@@ -650,15 +601,12 @@ negotiate_codecs (const GList *remote_codecs,
   /*
    * BIG hack, we have to manually add CN
    * because we can send it, but not receive it yet
-   * Do the same for DTMF for the same reason
    * This is because there is no blueprint for them
    */
 
   if (new_negotiated_codecs) {
     new_negotiated_codecs = add_cn_type (new_negotiated_codecs,
         new_codec_associations);
-    new_negotiated_codecs = add_dtmf_type (new_negotiated_codecs,
-        local_codec_associations, negotiated_codec_associations, remote_codecs);
   }
 #endif
 
@@ -674,4 +622,30 @@ lookup_codec_association_by_pt (GHashTable *codec_associations, gint pt)
     return NULL;
 
   return g_hash_table_lookup (codec_associations, GINT_TO_POINTER (pt));
+}
+
+
+static CodecAssociation *
+lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
+                                     gboolean want_disabled)
+{
+  while (codec_associations)
+  {
+    if (codec_associations->data)
+    {
+      CodecAssociation *ca = codec_associations->data;
+      if (ca->codec->id == pt && (want_disabled || !ca->disable))
+        return ca;
+    }
+    codec_associations = g_list_next (codec_associations);
+  }
+
+  return NULL;
+}
+
+void
+codec_association_list_destroy (GList *list)
+{
+  g_list_foreach (list, (GFunc) _codec_association_destroy, NULL);
+  g_list_free (list);
 }

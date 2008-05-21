@@ -30,14 +30,14 @@
 G_BEGIN_DECLS
 
 /*
- * @empty: means that its not a real association, just a spot thats saved
+ * @disable: means that its not a real association, just a spot thats disabled
  * @need_config: means that the config has to be retreived from the codec data
  * @recv_only: means thats its not a real negotiated codec, just a codec that
  * we have offered from which we have to be ready to receive stuff, just in case
  */
 
 typedef struct _CodecAssociation {
-  gboolean empty;
+  gboolean disable;
   gboolean need_config;
   gboolean recv_only;
   CodecBlueprint *blueprint;
@@ -50,25 +50,26 @@ GList *validate_codecs_configuration (
     GList *blueprints,
     GList *codecs);
 
-GHashTable *
+GList *
 create_local_codec_associations (
     FsMediaType media_type,
     GList *blueprints,
     GList *codec_prefs,
-    GHashTable *current_codec_associations,
+    GList *current_codec_associations,
     GList **local_codecs_list);
 
 GHashTable *
 negotiate_codecs (const GList *remote_codecs,
     GHashTable *current_negotiated_codec_associations,
-    GHashTable *local_codec_associations,
+    GList *local_codec_associations,
     gboolean use_local_ids,
     GList **new_negotiated_codecs);
 
 CodecAssociation *
 lookup_codec_association_by_pt (GHashTable *codec_associations, gint pt);
 
-
+void
+codec_association_list_destroy (GList *list);
 
 G_END_DECLS
 

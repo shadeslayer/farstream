@@ -131,7 +131,7 @@ struct _FsRtpSessionPrivate
   GList *local_codecs_configuration;
 
   GList *local_codecs;
-  GHashTable *local_codec_associations;
+  GList *local_codec_associations;
 
   /* These are protected by the session mutex */
   GList *negotiated_codecs;
@@ -501,7 +501,7 @@ fs_rtp_session_finalize (GObject *object)
     fs_codec_list_destroy (self->priv->local_codecs);
 
   if (self->priv->local_codec_associations)
-    g_hash_table_destroy (self->priv->local_codec_associations);
+    codec_association_list_destroy (self->priv->local_codec_associations);
 
   if (self->priv->negotiated_codecs)
     fs_codec_list_destroy (self->priv->negotiated_codecs);
@@ -1228,7 +1228,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
   GList *new_local_codecs = NULL;
-  GHashTable  *new_local_codec_associations = NULL;
+  GList  *new_local_codec_associations = NULL;
   GList *new_local_codecs_configuration =
     fs_codec_list_copy (local_codecs_config);
 
@@ -1250,7 +1250,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
   if (new_local_codecs && new_local_codec_associations)
   {
     fs_codec_list_destroy (self->priv->local_codecs);
-    g_hash_table_destroy (self->priv->local_codec_associations);
+    codec_association_list_destroy (self->priv->local_codec_associations);
     self->priv->local_codec_associations = new_local_codec_associations;
     self->priv->local_codecs = new_local_codecs;
 
