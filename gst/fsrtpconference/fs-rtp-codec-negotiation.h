@@ -29,7 +29,17 @@
 
 G_BEGIN_DECLS
 
+/*
+ * @empty: means that its not a real association, just a spot thats saved
+ * @need_config: means that the config has to be retreived from the codec data
+ * @recv_only: means thats its not a real negotiated codec, just a codec that
+ * we have offered from which we have to be ready to receive stuff, just in case
+ */
+
 typedef struct _CodecAssociation {
+  gboolean empty;
+  gboolean need_config;
+  gboolean recv_only;
   CodecBlueprint *blueprint;
   FsCodec *codec;
 } CodecAssociation;
