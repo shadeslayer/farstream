@@ -130,7 +130,6 @@ struct _FsRtpSessionPrivate
 
   GList *local_codecs_configuration;
 
-  GList *local_codecs;
   GList *local_codec_associations;
 
   /* These are protected by the session mutex */
@@ -497,9 +496,6 @@ fs_rtp_session_finalize (GObject *object)
   if (self->priv->local_codecs_configuration)
     fs_codec_list_destroy (self->priv->local_codecs_configuration);
 
-  if (self->priv->local_codecs)
-    fs_codec_list_destroy (self->priv->local_codecs);
-
   if (self->priv->local_codec_associations)
     codec_association_list_destroy (self->priv->local_codec_associations);
 
@@ -650,8 +646,7 @@ fs_rtp_session_constructed (GObject *object)
   self->priv->local_codec_associations = create_local_codec_associations (
       self->priv->blueprints,
       NULL, /* there are no local codec configurations yet */
-      NULL,
-      &self->priv->local_codecs);
+      NULL);
 
   if (!self->priv->local_codec_associations) {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -1243,7 +1238,6 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  GList *new_local_codecs = NULL;
   GList  *new_local_codec_associations = NULL;
   GList *new_local_codecs_configuration =
     fs_codec_list_copy (local_codecs_config);
@@ -1259,15 +1253,12 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
 
   new_local_codec_associations = create_local_codec_associations (
       self->priv->blueprints, new_local_codecs_configuration,
-      self->priv->local_codec_associations,
-      &new_local_codecs);
+      self->priv->local_codec_associations);
 
-  if (new_local_codecs && new_local_codec_associations)
+  if (new_local_codec_associations)
   {
-    fs_codec_list_destroy (self->priv->local_codecs);
     codec_association_list_destroy (self->priv->local_codec_associations);
     self->priv->local_codec_associations = new_local_codec_associations;
-    self->priv->local_codecs = new_local_codecs;
 
     fs_codec_list_destroy (self->priv->local_codecs_configuration);
     self->priv->local_codecs_configuration =

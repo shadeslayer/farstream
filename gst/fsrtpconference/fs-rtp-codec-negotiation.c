@@ -253,16 +253,12 @@ GList *
 create_local_codec_associations (
     GList *blueprints,
     GList *codec_prefs,
-    GList *current_codec_associations,
-    GList **local_codecs_list)
+    GList *current_codec_associations)
 {
   GList *codec_associations = NULL;
   GList *bp_e = NULL;
-  GList *local_codecs = NULL;
   GList *codec_pref_e = NULL;
   GList *lca_e = NULL;
-
-  *local_codecs_list = NULL;
 
   if (blueprints == NULL)
     return NULL;
@@ -412,14 +408,7 @@ create_local_codec_associations (
     }
 
     codec_associations = g_list_append (codec_associations, ca);
-    local_codecs = g_list_append (local_codecs, fs_codec_copy (ca->codec));
   }
-
-  *local_codecs_list = local_codecs;
-
-  /* If no local codecs where detected */
-  if (!local_codecs)
-    goto error;
 
   return codec_associations;
 

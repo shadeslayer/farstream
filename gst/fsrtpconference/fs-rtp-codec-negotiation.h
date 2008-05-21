@@ -54,8 +54,7 @@ GList *
 create_local_codec_associations (
     GList *blueprints,
     GList *codec_prefs,
-    GList *current_codec_associations,
-    GList **local_codecs_list);
+    GList *current_codec_associations);
 
 GHashTable *
 negotiate_codecs (const GList *remote_codecs,
