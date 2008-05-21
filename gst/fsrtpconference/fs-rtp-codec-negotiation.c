@@ -32,11 +32,16 @@
 
 #include "fs-rtp-conference.h"
 
+#include <string.h>
+
 #define GST_CAT_DEFAULT fsrtpconference_nego
 
 static CodecAssociation *
 lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
     gboolean want_empty);
+
+static CodecAssociation *
+codec_association_copy (CodecAssociation *ca);
 
 /**
  * validate_codecs_configuration:
@@ -422,6 +427,7 @@ create_local_codec_associations (
 /**
  * negotiate_codecs:
  * @remote_codecs: The list of remote codecs passed from the other side
+ * @negotiated_codec_associations: The previous negotiated codecs
  * @local_codec_associations: The list of local codec associations
  * @use_local_ids: Wheter to use local or remote PTs if they dont match (%TRUE
  *  for local, %FALSE for remote)
@@ -431,26 +437,23 @@ create_local_codec_associations (
  *
  * This function performs the codec negotiation.
  *
- * Returns: a #GHashTable of (guint pt) => (CodecAssociation*) or %NULL no codec could be negotiated
+ * Returns: a #GList of CodecAssociation or %NULL no codec could be negotiated
  */
 
-GHashTable *
+GList *
 negotiate_codecs (const GList *remote_codecs,
-    GHashTable *negotiated_codec_associations,
+    GList *negotiated_codec_associations,
     GList *local_codec_associations,
     gboolean use_local_ids,
     GList **negotiated_codecs_out)
 {
-  GHashTable *new_codec_associations = NULL;
+  GList *new_codec_associations = NULL;
   GList *new_negotiated_codecs = NULL;
   const GList *rcodec_e = NULL;
   int i;
 
   g_return_val_if_fail (remote_codecs, NULL);
   g_return_val_if_fail (local_codec_associations, NULL);
-
-  new_codec_associations = g_hash_table_new_full (g_direct_hash,
-      g_direct_equal, NULL, (GDestroyNotify) _codec_association_destroy);
 
   for (rcodec_e = remote_codecs;
        rcodec_e;
@@ -504,24 +507,28 @@ negotiate_codecs (const GList *remote_codecs,
       GST_DEBUG ("Negotiated codec %s", tmp);
       g_free (tmp);
 
-      g_hash_table_insert (new_codec_associations,
-          GINT_TO_POINTER (remote_codec->id), new_ca);
+      new_codec_associations = g_list_append (new_codec_associations,
+          new_ca);
       new_negotiated_codecs = g_list_append (new_negotiated_codecs,
           fs_codec_copy (new_ca->codec));
     } else {
       gchar *tmp = fs_codec_to_string (remote_codec);
+      CodecAssociation *ca = g_slice_new0 (CodecAssociation);
       GST_DEBUG ("Could not find a valid intersection... for codec %s",
                  tmp);
       g_free (tmp);
-      g_hash_table_insert (new_codec_associations,
-          GINT_TO_POINTER (remote_codec->id), NULL);
+
+      ca->codec = fs_codec_copy (remote_codec);
+      ca->disable = TRUE;
+
+      new_codec_associations = g_list_append (new_codec_associations, ca);
     }
   }
 
   /* If no intersection was found, lets return NULL */
   if (!new_negotiated_codecs)
   {
-    g_hash_table_destroy (new_codec_associations);
+    codec_association_list_destroy (new_codec_associations);
     return NULL;
   }
 
@@ -532,8 +539,7 @@ negotiate_codecs (const GList *remote_codecs,
     CodecAssociation *local_ca = NULL;
 
     /* We can skip those currently in use */
-    if (g_hash_table_lookup_extended (new_codec_associations,
-            GINT_TO_POINTER (i), NULL, NULL))
+    if (lookup_codec_association_by_pt_list (new_codec_associations, i, TRUE))
       continue;
 
     /* We check if our local table (our offer) and if we offered
@@ -543,18 +549,9 @@ negotiate_codecs (const GList *remote_codecs,
     local_ca = lookup_codec_association_by_pt_list (local_codec_associations,
         i, FALSE);
     if (local_ca) {
-      CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
-      new_ca->codec = fs_codec_copy (local_ca->codec);
-      new_ca->blueprint = local_ca->blueprint;
-
-      g_hash_table_insert (new_codec_associations,
-          GINT_TO_POINTER (i), new_ca);
-      /*
-       * We dont insert it into the list, because the list is used for offers
-       * and answers.. and we shouldn't offer/answer with codecs that
-       * were not in the remote codecs
-       */
-      //new_negotiated_codecs = g_list_append (new_negotiated_codecs, new_ca->codec);
+      CodecAssociation *new_ca = codec_association_copy (local_ca);
+      new_ca->recv_only = TRUE;
+      new_codec_associations = g_list_append (new_codec_associations, new_ca);
       continue;
     }
 
@@ -562,28 +559,20 @@ negotiate_codecs (const GList *remote_codecs,
      * table (the result of previous negotiations). And kill all of the
      * PTs used in there
      */
-    if (lookup_codec_association_by_pt_list (local_codec_associations, i, TRUE)
-        || (negotiated_codec_associations &&
-            g_hash_table_lookup_extended (negotiated_codec_associations,
-                GINT_TO_POINTER (i), NULL, NULL))) {
-      g_hash_table_insert (new_codec_associations,
-          GINT_TO_POINTER (i), NULL);
+    if ((local_ca = lookup_codec_association_by_pt_list (
+                local_codec_associations, i, TRUE)) != NULL ||
+        (local_ca = lookup_codec_association_by_pt_list (
+            negotiated_codec_associations, i, TRUE)) != NULL)
+    {
+      CodecAssociation *newca = codec_association_copy (local_ca);
+      newca->disable = TRUE;
+      new_codec_associations = g_list_append (new_codec_associations, newca);
     }
 
   }
 
   *negotiated_codecs_out = new_negotiated_codecs;
   return new_codec_associations;
-}
-
-
-CodecAssociation *
-lookup_codec_association_by_pt (GHashTable *codec_associations, gint pt)
-{
-  if (!codec_associations)
-    return NULL;
-
-  return g_hash_table_lookup (codec_associations, GINT_TO_POINTER (pt));
 }
 
 
@@ -605,9 +594,30 @@ lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
   return NULL;
 }
 
+
+CodecAssociation *
+lookup_codec_association_by_pt (GList *codec_associations, gint pt)
+{
+  return lookup_codec_association_by_pt_list (codec_associations, pt, FALSE);
+}
+
+
+
 void
 codec_association_list_destroy (GList *list)
 {
   g_list_foreach (list, (GFunc) _codec_association_destroy, NULL);
   g_list_free (list);
+}
+
+
+static CodecAssociation *
+codec_association_copy (CodecAssociation *ca)
+{
+  CodecAssociation *newca = g_slice_new (CodecAssociation);
+
+  memcpy (newca, ca, sizeof(CodecAssociation));
+  newca->codec = fs_codec_copy (ca->codec);
+
+  return newca;
 }

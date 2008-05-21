@@ -134,7 +134,7 @@ struct _FsRtpSessionPrivate
 
   /* These are protected by the session mutex */
   GList *negotiated_codecs;
-  GHashTable *negotiated_codec_associations;
+  GList *negotiated_codec_associations;
 
   /* Protected by the session mutex */
   gint no_rtcp_timeout;
@@ -503,7 +503,7 @@ fs_rtp_session_finalize (GObject *object)
     fs_codec_list_destroy (self->priv->negotiated_codecs);
 
   if (self->priv->negotiated_codec_associations)
-    g_hash_table_destroy (self->priv->negotiated_codec_associations);
+    codec_association_list_destroy (self->priv->negotiated_codec_associations);
 
   if (self->priv->current_send_codec)
     fs_codec_destroy (self->priv->current_send_codec);
@@ -1313,13 +1313,11 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
 
   FS_RTP_SESSION_LOCK (session);
 
-  if (session->priv->negotiated_codec_associations) {
-    ca = lookup_codec_association_by_pt (
-        session->priv->negotiated_codec_associations, pt);
+  ca = lookup_codec_association_by_pt (
+      session->priv->negotiated_codec_associations, pt);
 
-    if (ca)
-      caps = fs_codec_to_gst_caps (ca->codec);
-  }
+  if (ca)
+    caps = fs_codec_to_gst_caps (ca->codec);
 
   FS_RTP_SESSION_UNLOCK (session);
 
@@ -1572,7 +1570,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     GError **error)
 {
   gboolean has_many_streams = FALSE;
-  GHashTable *new_negotiated_codec_associations = NULL;
+  GList *new_negotiated_codec_associations = NULL;
   GList *new_negotiated_codecs = NULL;
   GList *item;
 
@@ -1598,7 +1596,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
   if (new_negotiated_codec_associations) {
     gboolean is_new = TRUE;
-    GHashTable *old_negotiated_codec_associations =
+    GList *old_negotiated_codec_associations =
       session->priv->negotiated_codec_associations;
     GList *old_negotiated_codecs = session->priv->negotiated_codecs;
 
@@ -1648,7 +1646,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     }
 
     if (old_negotiated_codec_associations)
-      g_hash_table_destroy (old_negotiated_codec_associations);
+      codec_association_list_destroy (old_negotiated_codec_associations);
     if (old_negotiated_codecs)
       fs_codec_list_destroy (old_negotiated_codecs);
 
