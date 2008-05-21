@@ -415,25 +415,11 @@ create_local_codec_associations (FsMediaType media_type,
     local_codecs = g_list_append (local_codecs, fs_codec_copy (ca->codec));
   }
 
-#if 0
-  /*
-   * BIG hack, we have to manually add CN
-   * because we can send it, but not receive it yet
-   * This is because there is no blueprint for them
-   */
-  if (media_type == FS_MEDIA_TYPE_AUDIO && local_codecs) {
-    local_codecs = _add_cn_type (local_codecs, codec_associations);
-  }
-#endif
-
   *local_codecs_list = local_codecs;
 
   /* If no local codecs where detected */
-  if (!local_codecs) {
-    GST_DEBUG ("There are no local codecs for this stream of media type %s",
-        fs_media_type_to_string (media_type));
+  if (!local_codecs)
     goto error;
-  }
 
   return codec_associations;
 
