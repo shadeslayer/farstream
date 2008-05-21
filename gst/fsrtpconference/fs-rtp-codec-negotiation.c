@@ -250,7 +250,7 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
 
 
 GList *
-create_local_codec_associations (FsMediaType media_type,
+create_local_codec_associations (
     GList *blueprints,
     GList *codec_prefs,
     GList *current_codec_associations,

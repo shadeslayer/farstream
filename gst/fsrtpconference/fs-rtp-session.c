@@ -631,7 +631,7 @@ fs_rtp_session_constructed (GObject *object)
   }
 
   self->priv->local_codec_associations = create_local_codec_associations (
-      self->priv->media_type, self->priv->blueprints,
+      self->priv->blueprints,
       NULL, /* there are no local codec configurations yet */
       NULL,
       &self->priv->local_codecs);
@@ -1241,8 +1241,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
         " this will restore the original list of detected codecs");
 
   new_local_codec_associations = create_local_codec_associations (
-      self->priv->media_type, self->priv->blueprints,
-      new_local_codecs_configuration,
+      self->priv->blueprints, new_local_codecs_configuration,
       self->priv->local_codec_associations,
       &new_local_codecs);
 

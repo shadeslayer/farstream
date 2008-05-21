@@ -52,7 +52,6 @@ GList *validate_codecs_configuration (
 
 GList *
 create_local_codec_associations (
-    FsMediaType media_type,
     GList *blueprints,
     GList *codec_prefs,
     GList *current_codec_associations,
