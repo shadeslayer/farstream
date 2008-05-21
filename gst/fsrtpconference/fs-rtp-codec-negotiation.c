@@ -572,19 +572,6 @@ negotiate_codecs (const GList *remote_codecs,
 
   }
 
-#if 0
-  /*
-   * BIG hack, we have to manually add CN
-   * because we can send it, but not receive it yet
-   * This is because there is no blueprint for them
-   */
-
-  if (new_negotiated_codecs) {
-    new_negotiated_codecs = add_cn_type (new_negotiated_codecs,
-        new_codec_associations);
-  }
-#endif
-
   *negotiated_codecs_out = new_negotiated_codecs;
   return new_codec_associations;
 }
