@@ -1314,8 +1314,8 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
   FS_RTP_SESSION_LOCK (session);
 
   if (session->priv->negotiated_codec_associations) {
-    ca = g_hash_table_lookup (session->priv->negotiated_codec_associations,
-      GINT_TO_POINTER (pt));
+    ca = lookup_codec_association_by_pt (
+        session->priv->negotiated_codec_associations, pt);
 
     if (ca)
       caps = fs_codec_to_gst_caps (ca->codec);
@@ -1617,10 +1617,12 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
       /* Lets remove the codec bin for any PT that has changed type */
       for (pt = 0; pt < 128; pt++) {
-        CodecAssociation *old_codec_association = g_hash_table_lookup (
-            old_negotiated_codec_associations, GINT_TO_POINTER (pt));
-        CodecAssociation *new_codec_association = g_hash_table_lookup (
-            new_negotiated_codec_associations, GINT_TO_POINTER (pt));
+        CodecAssociation *old_codec_association =
+          lookup_codec_association_by_pt (
+              old_negotiated_codec_associations, pt);
+        CodecAssociation *new_codec_association =
+          lookup_codec_association_by_pt (
+              new_negotiated_codec_associations, pt);
 
         if (old_codec_association == NULL && new_codec_association == NULL)
           continue;
@@ -2047,8 +2049,8 @@ fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
       return NULL;
   }
 
-  ca = g_hash_table_lookup (session->priv->negotiated_codec_associations,
-    GINT_TO_POINTER (pt));
+  ca = lookup_codec_association_by_pt (
+      session->priv->negotiated_codec_associations, pt);
 
   if (ca) {
     /* We don't need to copy the blueprint because its static
@@ -2093,9 +2095,8 @@ fs_rtp_session_is_valid_send_codec (FsRtpSession *session,
 {
   CodecAssociation *codec_association = NULL;
 
-  codec_association = g_hash_table_lookup (
-      session->priv->negotiated_codec_associations,
-      GINT_TO_POINTER (codec->id));
+  codec_association = lookup_codec_association_by_pt (
+      session->priv->negotiated_codec_associations, codec->id);
   g_assert (codec_association);
 
   if (codec_association->blueprint->send_pipeline_factory == NULL)
@@ -2523,8 +2524,8 @@ fs_rtp_session_get_recv_codec_for_pt (FsRtpSession *session,
 
   FS_RTP_SESSION_LOCK (session);
 
-  codec_association = g_hash_table_lookup (
-      session->priv->negotiated_codec_associations, GINT_TO_POINTER (pt));
+  codec_association = lookup_codec_association_by_pt (
+      session->priv->negotiated_codec_associations, pt);
 
   if (codec_association)
     codec = fs_codec_copy (codec_association->codec);
