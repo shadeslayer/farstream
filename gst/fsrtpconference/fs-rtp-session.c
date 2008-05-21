@@ -638,9 +638,8 @@ fs_rtp_session_constructed (GObject *object)
 
   if (!self->priv->local_codec_associations) {
     self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_INVALID_ARGUMENTS,
-      "The passed codec preferences does not contain enough parameters to"
-        "use at least one codec or disables them all");
+      FS_ERROR_INTERNAL,
+      "No codecs found for the media type of this session");
     return;
   }
 
