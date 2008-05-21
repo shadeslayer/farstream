@@ -537,8 +537,25 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_object (value, self->priv->media_sink_pad);
       break;
     case PROP_LOCAL_CODECS:
-      g_value_set_boxed (value, self->priv->local_codecs);
-      break;
+      {
+        GList *local_codecs = NULL;
+        GList *item = NULL;
+        FS_RTP_SESSION_LOCK (self);
+        for (item = g_list_first (self->priv->local_codec_associations);
+             item;
+             item = g_list_next (item))
+        {
+          CodecAssociation *ca = item->data;
+          if (!ca->disable && !ca->recv_only && ca->codec)
+          {
+            local_codecs = g_list_append (local_codecs,
+                fs_codec_copy (ca->codec));
+          }
+        }
+        FS_RTP_SESSION_UNLOCK (self);
+        g_value_take_boxed (value, local_codecs);
+        break;
+      }
     case PROP_LOCAL_CODECS_CONFIG:
       g_value_set_boxed (value, self->priv->local_codecs_configuration);
       break;
