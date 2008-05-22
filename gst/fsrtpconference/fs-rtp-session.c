@@ -2122,7 +2122,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
   FsCodec *codec = NULL;
   GList *codec_e = NULL;
 
-  if (!session->priv->negotiated_codecs)
+  if (!session->priv->negotiated_codec_associations)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Tried to call fs_rtp_session_select_send_codec_bin before the codec"
@@ -2131,15 +2131,10 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
   }
 
   if (session->priv->requested_send_codec) {
-    GList *elem = NULL;
 
-    for (elem = g_list_first (session->priv->negotiated_codecs);
-         elem;
-         elem = g_list_next (elem))
-      if (fs_codec_are_equal (elem->data, session->priv->requested_send_codec))
-        break;
-
-    if (elem)
+    if (lookup_codec_association_by_codec (
+            session->priv->negotiated_codec_associations,
+            session->priv->requested_send_codec))
     {
       if (!fs_rtp_session_is_valid_send_codec (session,
               session->priv->requested_send_codec, blueprint))
