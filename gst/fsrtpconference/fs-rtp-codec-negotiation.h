@@ -70,8 +70,7 @@ GList *
 negotiate_codecs (const GList *remote_codecs,
     GList *current_negotiated_codec_associations,
     GList *local_codec_associations,
-    gboolean use_local_ids,
-    GList **new_negotiated_codecs);
+    gboolean use_local_ids);
 
 CodecAssociation *
 lookup_codec_association_by_pt (GList *codec_associations, gint pt);

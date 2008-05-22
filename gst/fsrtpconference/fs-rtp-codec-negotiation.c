@@ -428,12 +428,10 @@ create_local_codec_associations (
  * negotiate_codecs:
  * @remote_codecs: The list of remote codecs passed from the other side
  * @negotiated_codec_associations: The previous negotiated codecs
- * @local_codec_associations: The list of local #CodecAssociation
+ * @local_codec_associations: The list of local #CodecAssociation ordered by
+ *  priority
  * @use_local_ids: Wheter to use local or remote PTs if they dont match (%TRUE
  *  for local, %FALSE for remote)
- * @negotiated_codecs_out: A pointer to a pointer to a #GList where the ordered
- *  GList of negotiated codecs can be stored (its not touched if no codec could
- *  be negotiated)
  *
  * This function performs the codec negotiation.
  *
@@ -444,11 +442,9 @@ GList *
 negotiate_codecs (const GList *remote_codecs,
     GList *negotiated_codec_associations,
     GList *local_codec_associations,
-    gboolean use_local_ids,
-    GList **negotiated_codecs_out)
+    gboolean use_local_ids)
 {
   GList *new_codec_associations = NULL;
-  GList *new_negotiated_codecs = NULL;
   const GList *rcodec_e = NULL;
   int i;
 
@@ -509,8 +505,6 @@ negotiate_codecs (const GList *remote_codecs,
 
       new_codec_associations = g_list_append (new_codec_associations,
           new_ca);
-      new_negotiated_codecs = g_list_append (new_negotiated_codecs,
-          fs_codec_copy (new_ca->codec));
     } else {
       gchar *tmp = fs_codec_to_string (remote_codec);
       CodecAssociation *ca = g_slice_new0 (CodecAssociation);
@@ -526,11 +520,8 @@ negotiate_codecs (const GList *remote_codecs,
   }
 
   /* If no intersection was found, lets return NULL */
-  if (!new_negotiated_codecs)
-  {
-    codec_association_list_destroy (new_codec_associations);
+  if (!new_codec_associations)
     return NULL;
-  }
 
   /* Now, lets fill all of the PTs that were previously used in the session
    * even if they are not currently used, so they can't be re-used
@@ -571,7 +562,6 @@ negotiate_codecs (const GList *remote_codecs,
 
   }
 
-  *negotiated_codecs_out = new_negotiated_codecs;
   return new_codec_associations;
 }
 

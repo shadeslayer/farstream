@@ -133,7 +133,6 @@ struct _FsRtpSessionPrivate
   GList *local_codec_associations;
 
   /* These are protected by the session mutex */
-  GList *negotiated_codecs;
   GList *negotiated_codec_associations;
 
   /* Protected by the session mutex */
@@ -498,9 +497,6 @@ fs_rtp_session_finalize (GObject *object)
 
   if (self->priv->local_codec_associations)
     codec_association_list_destroy (self->priv->local_codec_associations);
-
-  if (self->priv->negotiated_codecs)
-    fs_codec_list_destroy (self->priv->negotiated_codecs);
 
   if (self->priv->negotiated_codec_associations)
     codec_association_list_destroy (self->priv->negotiated_codec_associations);
@@ -1582,7 +1578,6 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 {
   gboolean has_many_streams = FALSE;
   GList *new_negotiated_codec_associations = NULL;
-  GList *new_negotiated_codecs = NULL;
   GList *item;
 
   FS_RTP_SESSION_LOCK (session);
@@ -1602,20 +1597,17 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   new_negotiated_codec_associations = negotiate_codecs (remote_codecs,
     session->priv->negotiated_codec_associations,
     session->priv->local_codec_associations,
-    has_many_streams,
-    &new_negotiated_codecs);
+    has_many_streams);
 
   if (new_negotiated_codec_associations) {
     gboolean is_new = TRUE;
     GList *old_negotiated_codec_associations =
       session->priv->negotiated_codec_associations;
-    GList *old_negotiated_codecs = session->priv->negotiated_codecs;
 
     session->priv->negotiated_codec_associations =
       new_negotiated_codec_associations;
-    session->priv->negotiated_codecs = new_negotiated_codecs;
 
-    if (old_negotiated_codecs)
+    if (old_negotiated_codec_associations)
     {
       gboolean clear_pts = FALSE;
       int pt;
@@ -1658,8 +1650,6 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
     if (old_negotiated_codec_associations)
       codec_association_list_destroy (old_negotiated_codec_associations);
-    if (old_negotiated_codecs)
-      fs_codec_list_destroy (old_negotiated_codecs);
 
     if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
     {
