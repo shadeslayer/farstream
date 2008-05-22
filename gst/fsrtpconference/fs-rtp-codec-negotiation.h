@@ -31,6 +31,7 @@ G_BEGIN_DECLS
 
 /**
  * CodecAssociation:
+ * @reserved: Marks a payload-type reserved at the users request
  * @disable: means that its not a real association, just a spot thats disabled
  * @need_config: means that the config has to be retreived from the codec data
  * @recv_only: means thats its not a real negotiated codec, just a codec that
@@ -47,6 +48,7 @@ G_BEGIN_DECLS
 typedef struct _CodecAssociation {
   /*< private >*/
 
+  gboolean reserved;
   gboolean disable;
   gboolean need_config;
   gboolean recv_only;

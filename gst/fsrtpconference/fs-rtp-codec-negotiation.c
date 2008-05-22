@@ -286,7 +286,7 @@ create_local_codec_associations (
     {
       CodecAssociation *ca = g_slice_new0 (CodecAssociation);
       ca->codec = fs_codec_copy (codec_pref);
-      ca->disable = TRUE;
+      ca->reserved = TRUE;
       codec_associations = g_list_append (codec_associations, ca);
       continue;
     }
@@ -573,7 +573,8 @@ lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
     if (codec_associations->data)
     {
       CodecAssociation *ca = codec_associations->data;
-      if (ca->codec->id == pt && (want_disabled || !ca->disable))
+      if (ca->codec->id == pt &&
+          (want_disabled || (!ca->disable && !ca->reserved)))
         return ca;
     }
     codec_associations = g_list_next (codec_associations);
@@ -673,7 +674,7 @@ codec_associations_to_codecs (GList *codec_associations)
        item = g_list_next (item))
   {
     CodecAssociation *ca = item->data;
-    if (!ca->disable && !ca->recv_only && ca->codec)
+    if (!ca->disable && !ca->reserved && !ca->recv_only && ca->codec)
     {
       codecs = g_list_append (codecs,
           fs_codec_copy (ca->codec));
@@ -687,6 +688,7 @@ gboolean
 codec_association_is_valid_for_sending (CodecAssociation *ca)
 {
   if (!ca->disable &&
+      !ca->reserved &&
       !ca->recv_only &&
       ca->blueprint && ca->blueprint->send_pipeline_factory)
     return TRUE;
@@ -708,7 +710,7 @@ codec_association_find_custom (GList *codec_associations,
        item = g_list_next (item))
   {
     CodecAssociation *ca = item->data;
-    if (ca->disable)
+    if (ca->disable || ca->reserved)
       continue;
 
     if (func (ca, user_data))
@@ -741,13 +743,13 @@ codec_associations_list_are_equal (GList *list1, GList *list2)
     /* Skip disabled codecs */
     while (list1) {
       ca1 = list1->data;
-      if (!ca1->disable)
+      if (!ca1->disable || !ca1->reserved)
         break;
       list1 = g_list_next (list1);
     }
     while (list2) {
       ca2 = list2->data;
-      if (!ca2->disable)
+      if (!ca2->disable || !ca2->reserved)
         break;
       list2 = g_list_next (list2);
     }
