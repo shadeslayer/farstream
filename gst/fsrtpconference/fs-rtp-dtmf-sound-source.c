@@ -118,7 +118,7 @@ get_pcm_law_sound_codec (GList *codecs,
 {
   CodecAssociation *ca = NULL;
 
-  ca = codec_association_find_custom (codecs, _is_law_codec, NULL);
+  ca = lookup_codec_association_custom (codecs, _is_law_codec, NULL);
 
   if (!ca)
     return NULL;

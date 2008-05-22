@@ -698,7 +698,7 @@ codec_association_is_valid_for_sending (CodecAssociation *ca)
 
 
 CodecAssociation *
-codec_association_find_custom (GList *codec_associations,
+lookup_codec_association_custom (GList *codec_associations,
     CAFindFunc func, gpointer user_data)
 {
   GList *item;

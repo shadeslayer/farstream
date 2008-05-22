@@ -219,7 +219,7 @@ get_telephone_event_codec (GList *codecs, guint clock_rate)
 {
   CodecAssociation *ca = NULL;
 
-  ca = codec_association_find_custom (codecs, _is_telephony_codec,
+  ca = lookup_codec_association_custom (codecs, _is_telephony_codec,
       GUINT_TO_POINTER (clock_rate));
 
   if (ca)

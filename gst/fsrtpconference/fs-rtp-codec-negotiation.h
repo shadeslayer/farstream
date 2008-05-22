@@ -95,7 +95,7 @@ codec_association_list_destroy (GList *list);
 typedef gboolean (*CAFindFunc) (CodecAssociation *ca, gpointer user_data);
 
 CodecAssociation *
-codec_association_find_custom (GList *codec_associations,
+lookup_codec_association_custom (GList *codec_associations,
     CAFindFunc func, gpointer user_data);
 
 
