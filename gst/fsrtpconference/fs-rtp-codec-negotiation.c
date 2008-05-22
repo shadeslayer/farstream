@@ -694,3 +694,14 @@ codec_associations_to_codecs (GList *codec_associations)
 
   return codecs;
 }
+
+gboolean
+codec_association_is_valid_for_sending (CodecAssociation *ca)
+{
+  if (!ca->disable &&
+      !ca->recv_only &&
+      ca->blueprint && ca->blueprint->send_pipeline_factory)
+    return TRUE;
+  else
+    return FALSE;
+}

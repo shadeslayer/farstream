@@ -79,6 +79,9 @@ lookup_codec_association_by_pt (GList *codec_associations, gint pt);
 CodecAssociation *
 lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec);
 
+gboolean
+codec_association_is_valid_for_sending (CodecAssociation *ca);
+
 GList *
 codec_associations_to_codecs (GList *codec_associations);
 
