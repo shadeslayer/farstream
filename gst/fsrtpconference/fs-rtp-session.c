@@ -546,9 +546,15 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_boxed (value, self->priv->local_codecs_configuration);
       break;
     case PROP_NEGOTIATED_CODECS:
-      FS_RTP_SESSION_LOCK (self);
-      g_value_set_boxed (value, self->priv->negotiated_codecs);
-      FS_RTP_SESSION_UNLOCK (self);
+      {
+        GList *negotiated_codecs = NULL;
+        FS_RTP_SESSION_LOCK (self);
+        negotiated_codecs = codec_associations_to_codecs (
+            self->priv->negotiated_codec_associations);
+        FS_RTP_SESSION_UNLOCK (self);
+        g_value_take_boxed (value, negotiated_codecs);
+        break;
+      }
       break;
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
