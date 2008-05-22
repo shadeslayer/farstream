@@ -384,7 +384,7 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
 /**
  * fs_rtp_special_sources_update:
  * @current_extra_sources: The #GList returned by previous calls to this function
- * @negotiated_codecs: A #GList of current negotiated #FsCodec
+ * @negotiated_codecs: A #GList of current negotiated #CodecAssociation
  * @error: NULL or the local of a #GError
  *
  * This function checks which extra sources are currently being used and

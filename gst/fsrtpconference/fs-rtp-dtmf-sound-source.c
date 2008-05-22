@@ -31,6 +31,7 @@
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"
+#include "fs-rtp-codec-negotiation.h"
 
 #include "fs-rtp-dtmf-sound-source.h"
 
@@ -94,6 +95,14 @@ fs_rtp_dtmf_sound_source_init (FsRtpDtmfSoundSource *self)
   source->order = 2;
 }
 
+static gboolean
+_is_law_codec (CodecAssociation *ca, gpointer user_data)
+{
+  if (ca->codec->id == 0 || ca->codec->id == 8)
+    return TRUE;
+  else return FALSE;
+}
+
 /**
  * get_telephone_sound_codec:
  * @codecs: a #GList of #FsCodec
@@ -107,37 +116,29 @@ get_pcm_law_sound_codec (GList *codecs,
     gchar **encoder_name,
     gchar **payloader_name)
 {
-  GList *item = NULL;
-  for (item = g_list_first (codecs);
-       item;
-       item = g_list_next (item))
+  CodecAssociation *ca = NULL;
+
+  ca = codec_association_find_custom (codecs, _is_law_codec, NULL);
+
+  if (!ca)
+    return NULL;
+
+  if (ca->codec->id == 0)
   {
-    FsCodec *codec = item->data;
-
-    if (codec->media_type == FS_MEDIA_TYPE_AUDIO &&
-        (codec->id == 0 || codec->id == 8))
-    {
-
-      if (codec->id == 0)
-      {
-        if (encoder_name)
-          *encoder_name = "mulawenc";
-        if (payloader_name)
-          *payloader_name = "rtppcmupay";
-      }
-      else if (codec->id == 8)
-      {
-        if (encoder_name)
-          *encoder_name = "alawenc";
-        if (payloader_name)
-          *payloader_name = "rtppcmapay";
-      }
-
-      return codec;
-    }
+    if (encoder_name)
+      *encoder_name = "mulawenc";
+    if (payloader_name)
+      *payloader_name = "rtppcmupay";
+  }
+  else if (ca->codec->id == 8)
+  {
+    if (encoder_name)
+      *encoder_name = "alawenc";
+    if (payloader_name)
+      *payloader_name = "rtppcmapay";
   }
 
-  return NULL;
+  return ca->codec;
 }
 
 static gboolean

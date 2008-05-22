@@ -2404,7 +2404,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 
   self->priv->extra_sources = fs_rtp_special_sources_update (
       self->priv->extra_sources,
-      self->priv->negotiated_codecs, ca->codec,
+      self->priv->negotiated_codec_associations, ca->codec,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer, error);
   if (local_gerror)

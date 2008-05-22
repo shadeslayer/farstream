@@ -31,6 +31,7 @@
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"
+#include "fs-rtp-codec-negotiation.h"
 
 #include "fs-rtp-dtmf-event-source.h"
 
@@ -190,6 +191,19 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
   return blueprints;
 }
 
+static gboolean
+_is_telephony_codec (CodecAssociation *ca, gpointer user_data)
+{
+  guint clock_rate = GPOINTER_TO_UINT (user_data);
+
+  if (ca->codec->media_type == FS_MEDIA_TYPE_AUDIO &&
+      !g_ascii_strcasecmp (ca->codec->encoding_name, "telephone-event") &&
+      ca->codec->clock_rate == clock_rate)
+    return TRUE;
+  else
+    return FALSE;
+}
+
 /**
  * get_telephone_event_codec:
  * @codecs: a #GList of #FsCodec
@@ -203,20 +217,15 @@ fs_rtp_dtmf_event_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
 static FsCodec *
 get_telephone_event_codec (GList *codecs, guint clock_rate)
 {
-  GList *item = NULL;
-  for (item = g_list_first (codecs);
-       item;
-       item = g_list_next (item))
-  {
-    FsCodec *codec = item->data;
+  CodecAssociation *ca = NULL;
 
-    if (codec->media_type == FS_MEDIA_TYPE_AUDIO &&
-        !g_ascii_strcasecmp (codec->encoding_name, "telephone-event") &&
-        codec->clock_rate == clock_rate)
-      return codec;
-  }
+  ca = codec_association_find_custom (codecs, _is_telephony_codec,
+      GUINT_TO_POINTER (clock_rate));
 
-   return NULL;
+  if (ca)
+    return ca->codec;
+  else
+    return NULL;
 }
 
 static gboolean

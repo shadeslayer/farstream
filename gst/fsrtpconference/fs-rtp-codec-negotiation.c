@@ -705,3 +705,25 @@ codec_association_is_valid_for_sending (CodecAssociation *ca)
   else
     return FALSE;
 }
+
+
+CodecAssociation *
+codec_association_find_custom (GList *codec_associations,
+    CAFindFunc func, gpointer user_data)
+{
+  GList *item;
+
+  for (item = codec_associations;
+       item;
+       item = g_list_next (item))
+  {
+    CodecAssociation *ca = item->data;
+    if (ca->disable)
+      continue;
+
+    if (func (ca, user_data))
+      return ca;
+  }
+
+  return NULL;
+}

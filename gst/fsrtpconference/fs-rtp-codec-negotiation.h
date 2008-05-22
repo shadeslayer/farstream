@@ -88,6 +88,13 @@ codec_associations_to_codecs (GList *codec_associations);
 void
 codec_association_list_destroy (GList *list);
 
+typedef gboolean (*CAFindFunc) (CodecAssociation *ca, gpointer user_data);
+
+CodecAssociation *
+codec_association_find_custom (GList *codec_associations,
+    CAFindFunc func, gpointer user_data);
+
+
 G_END_DECLS
 
 #endif /* __FS_RTP_CODEC_NEGOTIATION_H__ */
