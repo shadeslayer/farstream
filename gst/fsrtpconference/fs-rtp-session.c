@@ -1512,7 +1512,7 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
 }
 
 /**
- * _compare_codec_lists:
+ * codec_association_list_are_equal
  * @list1: a #GList of #FsCodec
  * @list2: a #GList of #FsCodec
  *
@@ -1521,8 +1521,8 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
  * Returns: TRUE if they are identical, FALSE otherwise
  */
 
-static gboolean
-_compare_codec_lists (GList *list1, GList *list2)
+gboolean
+codec_associations_list_are_equal (GList *list1, GList *list2)
 {
   for (;list1 && list2;
        list1 = g_list_next (list1), list2 = g_list_next (list2))
@@ -1612,7 +1612,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
       gboolean clear_pts = FALSE;
       int pt;
 
-      is_new = !_compare_codec_lists (
+      is_new = !codec_associations_list_are_equal (
           old_negotiated_codec_associations,
           new_negotiated_codec_associations);
 
