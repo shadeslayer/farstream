@@ -308,7 +308,7 @@ create_local_codec_associations (
      * The blueprint has its own id, lets use it */
     if (ca->codec->id == FS_CODEC_ID_ANY &&
         (bp->codec->id >= 0 || bp->codec->id < 128)) {
-        ca->codec->id = bp->codec->id;
+      ca->codec->id = bp->codec->id;
     }
 
     if (ca->codec->clock_rate == 0) {
