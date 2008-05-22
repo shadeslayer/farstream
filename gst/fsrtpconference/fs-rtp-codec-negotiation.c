@@ -715,3 +715,50 @@ codec_association_find_custom (GList *codec_associations,
 
   return NULL;
 }
+
+
+/**
+ * codec_association_list_are_equal
+ * @list1: a #GList of #FsCodec
+ * @list2: a #GList of #FsCodec
+ *
+ * Compares the non-disabled #FsCodec of two lists of #CodecAssociation
+ *
+ * Returns: TRUE if they are identical, FALSE otherwise
+ */
+
+gboolean
+codec_associations_list_are_equal (GList *list1, GList *list2)
+{
+  for (;list1 && list2;
+       list1 = g_list_next (list1), list2 = g_list_next (list2))
+  {
+    CodecAssociation *ca1 = NULL;
+    CodecAssociation *ca2 = NULL;
+
+    /* Skip disabled codecs */
+    while (list1) {
+      ca1 = list1->data;
+      if (!ca1->disable)
+        break;
+      list1 = g_list_next (list1);
+    }
+    while (list2) {
+      ca2 = list2->data;
+      if (!ca2->disable)
+        break;
+      list2 = g_list_next (list2);
+    }
+
+    if (list1 == NULL || list2 == NULL)
+      break;
+
+    if (!fs_codec_are_equal (ca1->codec, ca2->codec))
+      return FALSE;
+  }
+
+  if (list1 == NULL && list2 == NULL)
+    return TRUE;
+  else
+    return FALSE;
+}
