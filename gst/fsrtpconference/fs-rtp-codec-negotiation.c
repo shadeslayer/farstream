@@ -595,11 +595,31 @@ lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
 }
 
 
+/**
+ * lookup_codec_association_by_codec:
+ * @codec_associations: a #GList of CodecAssociation
+ * @pt: a payload-type number
+ *
+ * Finds the first CodecAssociation that matches the payload type
+ *
+ * Returns: a CodecAssociation
+ */
+
 CodecAssociation *
 lookup_codec_association_by_pt (GList *codec_associations, gint pt)
 {
   return lookup_codec_association_by_pt_list (codec_associations, pt, FALSE);
 }
+
+/**
+ * lookup_codec_association_by_codec:
+ * @codec_associations: a #GList of CodecAssociation
+ * @codec: The #FsCodec to look for
+ *
+ * Finds the first CodecAssociation that matches the #FsCodec
+ *
+ * Returns: a CodecAssociation
+ */
 
 CodecAssociation *
 lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec)
@@ -618,6 +638,12 @@ lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec)
   return NULL;
 }
 
+/**
+ * codec_association_list_destroy:
+ * @list: a #GList of CodecAssociation
+ *
+ * Frees a #GList of CodecAssociations
+ */
 
 void
 codec_association_list_destroy (GList *list)
