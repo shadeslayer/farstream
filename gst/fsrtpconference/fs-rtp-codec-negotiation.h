@@ -69,6 +69,9 @@ lookup_codec_association_by_pt (GList *codec_associations, gint pt);
 CodecAssociation *
 lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec);
 
+GList *
+codec_associations_to_codecs (GList *codec_associations);
+
 void
 codec_association_list_destroy (GList *list);
 

@@ -664,3 +664,33 @@ codec_association_copy (CodecAssociation *ca)
   return newca;
 }
 
+/**
+ * codec_associations_to_codecs:
+ * @codec_associations: a #GList of CodecAssociation
+ *
+ * Returns a #GList of the #FsCodec that are inside the list of associations
+ * excluding those that are disabled or otherwise receive-only. It copies
+ * the #FsCodec structures.
+ *
+ * Returns: a #GList of #FsCodec
+ */
+GList *
+codec_associations_to_codecs (GList *codec_associations)
+{
+  GList *codecs = NULL;
+  GList *item = NULL;
+
+  for (item = g_list_first (codec_associations);
+       item;
+       item = g_list_next (item))
+  {
+    CodecAssociation *ca = item->data;
+    if (!ca->disable && !ca->recv_only && ca->codec)
+    {
+      codecs = g_list_append (codecs,
+          fs_codec_copy (ca->codec));
+    }
+  }
+
+  return codecs;
+}
