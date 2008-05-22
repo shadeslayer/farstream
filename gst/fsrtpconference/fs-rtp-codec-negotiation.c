@@ -428,7 +428,7 @@ create_local_codec_associations (
  * negotiate_codecs:
  * @remote_codecs: The list of remote codecs passed from the other side
  * @negotiated_codec_associations: The previous negotiated codecs
- * @local_codec_associations: The list of local codec associations
+ * @local_codec_associations: The list of local #CodecAssociation
  * @use_local_ids: Wheter to use local or remote PTs if they dont match (%TRUE
  *  for local, %FALSE for remote)
  * @negotiated_codecs_out: A pointer to a pointer to a #GList where the ordered
@@ -437,7 +437,7 @@ create_local_codec_associations (
  *
  * This function performs the codec negotiation.
  *
- * Returns: a #GList of CodecAssociation or %NULL no codec could be negotiated
+ * Returns: a #GList of #CodecAssociation or %NULL no codec could be negotiated
  */
 
 GList *
@@ -600,9 +600,9 @@ lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
  * @codec_associations: a #GList of CodecAssociation
  * @pt: a payload-type number
  *
- * Finds the first CodecAssociation that matches the payload type
+ * Finds the first #CodecAssociation that matches the payload type
  *
- * Returns: a CodecAssociation
+ * Returns: a #CodecAssociation
  */
 
 CodecAssociation *
@@ -613,12 +613,12 @@ lookup_codec_association_by_pt (GList *codec_associations, gint pt)
 
 /**
  * lookup_codec_association_by_codec:
- * @codec_associations: a #GList of CodecAssociation
+ * @codec_associations: a #GList of #CodecAssociation
  * @codec: The #FsCodec to look for
  *
- * Finds the first CodecAssociation that matches the #FsCodec
+ * Finds the first #CodecAssociation that matches the #FsCodec
  *
- * Returns: a CodecAssociation
+ * Returns: a #CodecAssociation
  */
 
 CodecAssociation *
@@ -640,9 +640,9 @@ lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec)
 
 /**
  * codec_association_list_destroy:
- * @list: a #GList of CodecAssociation
+ * @list: a #GList of #CodecAssociation
  *
- * Frees a #GList of CodecAssociations
+ * Frees a #GList of #CodecAssociation
  */
 
 void
@@ -666,7 +666,7 @@ codec_association_copy (CodecAssociation *ca)
 
 /**
  * codec_associations_to_codecs:
- * @codec_associations: a #GList of CodecAssociation
+ * @codec_associations: a #GList of #CodecAssociation
  *
  * Returns a #GList of the #FsCodec that are inside the list of associations
  * excluding those that are disabled or otherwise receive-only. It copies

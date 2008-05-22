@@ -29,14 +29,24 @@
 
 G_BEGIN_DECLS
 
-/*
+/**
+ * CodecAssociation:
  * @disable: means that its not a real association, just a spot thats disabled
  * @need_config: means that the config has to be retreived from the codec data
  * @recv_only: means thats its not a real negotiated codec, just a codec that
  * we have offered from which we have to be ready to receive stuff, just in case
+ *
+ * The codec association structure represents the link between a #FsCodec and
+ * a CodecBlueprint that implements it.
+ *
+ * It should be treated as opaque by any function outside of
+ * fs-rtp-codec-negotiation.c
+ *
  */
 
 typedef struct _CodecAssociation {
+  /*< private >*/
+
   gboolean disable;
   gboolean need_config;
   gboolean recv_only;
