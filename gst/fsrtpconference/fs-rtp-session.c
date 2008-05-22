@@ -1201,18 +1201,13 @@ static gboolean
 fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                GError **error)
 {
-  GList *elem;
   FsRtpSession *self = FS_RTP_SESSION (session);
   gboolean ret = FALSE;
 
   FS_RTP_SESSION_LOCK (self);
-  for (elem = g_list_first (self->priv->negotiated_codecs);
-       elem;
-       elem = g_list_next (elem))
-    if (fs_codec_are_equal (elem->data, send_codec))
-      break;
 
-  if (elem)
+  if (lookup_codec_association_by_codec (
+          self->priv->negotiated_codec_associations, send_codec))
   {
     if (self->priv->requested_send_codec)
       fs_codec_destroy (self->priv->requested_send_codec);
