@@ -1520,7 +1520,7 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
  * @list1: a #GList of #FsCodec
  * @list2: a #GList of #FsCodec
  *
- * Compares two lists of #FsCodec
+ * Compares the non-disabled #FsCodec of two lists of #CodecAssociation
  *
  * Returns: TRUE if they are identical, FALSE otherwise
  */
@@ -1528,10 +1528,30 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
 static gboolean
 _compare_codec_lists (GList *list1, GList *list2)
 {
-  for (; list1 && list2;
-       list1 = g_list_next (list1),
-       list2 = g_list_next (list2)) {
-    if (!fs_codec_are_equal (list1->data, list2->data))
+  for (;list1 && list2;
+       list1 = g_list_next (list1), list2 = g_list_next (list2))
+  {
+    CodecAssociation *ca1 = NULL;
+    CodecAssociation *ca2 = NULL;
+
+    /* Skip disabled codecs */
+    while (list1) {
+      ca1 = list1->data;
+      if (!ca1->disable)
+        break;
+      list1 = g_list_next (list1);
+    }
+    while (list2) {
+      ca2 = list2->data;
+      if (!ca2->disable)
+        break;
+      list2 = g_list_next (list2);
+    }
+
+    if (list1 == NULL || list2 == NULL)
+      break;
+
+    if (!fs_codec_are_equal (ca1->codec, ca2->codec))
       return FALSE;
   }
 
@@ -1601,8 +1621,8 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
       int pt;
 
       is_new = !_compare_codec_lists (
-          old_negotiated_codecs,
-          new_negotiated_codecs);
+          old_negotiated_codec_associations,
+          new_negotiated_codec_associations);
 
       /* Lets remove the codec bin for any PT that has changed type */
       for (pt = 0; pt < 128; pt++) {
