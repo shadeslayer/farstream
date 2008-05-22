@@ -66,6 +66,9 @@ negotiate_codecs (const GList *remote_codecs,
 CodecAssociation *
 lookup_codec_association_by_pt (GList *codec_associations, gint pt);
 
+CodecAssociation *
+lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec);
+
 void
 codec_association_list_destroy (GList *list);
 

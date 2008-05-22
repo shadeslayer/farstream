@@ -601,6 +601,22 @@ lookup_codec_association_by_pt (GList *codec_associations, gint pt)
   return lookup_codec_association_by_pt_list (codec_associations, pt, FALSE);
 }
 
+CodecAssociation *
+lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec)
+{
+  while (codec_associations)
+  {
+    if (codec_associations->data)
+    {
+      CodecAssociation *ca = codec_associations->data;
+      if (fs_codec_are_equal (ca->codec, codec))
+        return ca;
+    }
+    codec_associations = g_list_next (codec_associations);
+  }
+
+  return NULL;
+}
 
 
 void
@@ -621,3 +637,4 @@ codec_association_copy (CodecAssociation *ca)
 
   return newca;
 }
+
