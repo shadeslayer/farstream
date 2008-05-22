@@ -701,6 +701,8 @@ codec_association_find_custom (GList *codec_associations,
 {
   GList *item;
 
+  g_return_val_if_fail (func, NULL);
+
   for (item = codec_associations;
        item;
        item = g_list_next (item))
