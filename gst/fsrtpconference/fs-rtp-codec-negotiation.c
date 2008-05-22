@@ -467,8 +467,7 @@ negotiate_codecs (const GList *remote_codecs,
 
     if (local_ca) {
       GST_DEBUG ("Have local codec in the same PT, lets try it first");
-      nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
-          local_ca->codec, remote_codec);
+      nego_codec = sdp_is_compat (local_ca->codec, remote_codec);
     }
 
     if (!nego_codec) {
@@ -480,8 +479,7 @@ negotiate_codecs (const GList *remote_codecs,
       {
         local_ca = item->data;
 
-        nego_codec = sdp_is_compat (local_ca->blueprint->rtp_caps,
-            local_ca->codec, remote_codec);
+        nego_codec = sdp_is_compat (local_ca->codec, remote_codec);
 
         if (nego_codec)
         {

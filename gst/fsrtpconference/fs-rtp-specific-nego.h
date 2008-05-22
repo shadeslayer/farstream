@@ -32,8 +32,7 @@
 G_BEGIN_DECLS
 
 FsCodec *
-sdp_is_compat (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec);
+sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec);
 
 G_END_DECLS
 

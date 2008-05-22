@@ -40,17 +40,14 @@
 struct SdpCompatCheck {
   FsMediaType media_type;
   const gchar *encoding_name;
-  FsCodec * (* sdp_is_compat) (GstCaps *rtp_caps, FsCodec *local_codec,
-      FsCodec *remote_codec);
+  FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec);
 };
 
 
 static FsCodec *
-sdp_is_compat_ilbc (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec);
+sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
-sdp_is_compat_h263_1998 (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec);
+sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc},
@@ -60,18 +57,15 @@ static struct SdpCompatCheck sdp_compat_checks[] = {
 
 
 static FsCodec *
-sdp_is_compat_default (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec);
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
 
 FsCodec *
-sdp_is_compat (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec)
+sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
 {
   gint i;
 
-  g_assert (local_codec);
-  g_assert (remote_codec);
-  g_assert (rtp_caps);
+  g_return_val_if_fail (local_codec, NULL);
+  g_return_val_if_fail (remote_codec, NULL);
 
   if (local_codec->media_type != remote_codec->media_type) {
     GST_DEBUG ("Wrong media type, local: %s, remote: %s",
@@ -90,17 +84,15 @@ sdp_is_compat (GstCaps *rtp_caps, FsCodec *local_codec,
     if (sdp_compat_checks[i].media_type == remote_codec->media_type &&
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             remote_codec->encoding_name)) {
-      return sdp_compat_checks[i].sdp_is_compat (rtp_caps, local_codec,
-          remote_codec);
+      return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec);
     }
   }
 
-  return sdp_is_compat_default (rtp_caps, local_codec, remote_codec);
+  return sdp_is_compat_default (local_codec, remote_codec);
 }
 
 static FsCodec *
-sdp_is_compat_default (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec)
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *local_param_list = NULL, *negotiated_param_list = NULL;
@@ -162,8 +154,7 @@ sdp_is_compat_default (GstCaps *rtp_caps, FsCodec *local_codec,
 }
 
 static FsCodec *
-sdp_is_compat_ilbc (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec)
+sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *mylistitem = NULL, *negotiated_param_list = NULL;
@@ -275,8 +266,7 @@ sdp_is_compat_ilbc (GstCaps *rtp_caps, FsCodec *local_codec,
 
 
 static FsCodec *
-sdp_is_compat_h263_1998 (GstCaps *rtp_caps, FsCodec *local_codec,
-    FsCodec *remote_codec)
+sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *mylistitem = NULL, *remote_param_list = NULL;
