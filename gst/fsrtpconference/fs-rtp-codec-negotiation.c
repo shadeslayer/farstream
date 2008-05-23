@@ -649,6 +649,8 @@ codec_association_copy (CodecAssociation *ca)
 {
   CodecAssociation *newca = g_slice_new (CodecAssociation);
 
+  g_return_val_if_fail (ca, NULL);
+
   memcpy (newca, ca, sizeof(CodecAssociation));
   newca->codec = fs_codec_copy (ca->codec);
 
