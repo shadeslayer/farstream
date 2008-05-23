@@ -519,6 +519,7 @@ negotiate_stream_codecs (const GList *remote_codecs,
 {
   GList *new_codec_associations = NULL;
   const GList *rcodec_e = NULL;
+  GList *item = NULL;
 
   for (rcodec_e = remote_codecs;
        rcodec_e;
@@ -586,8 +587,23 @@ negotiate_stream_codecs (const GList *remote_codecs,
     }
   }
 
+  /*
+   * Check if there is a non-disabled codec left
+   */
+  for (item = new_codec_associations;
+       item;
+       item = g_list_next (item))
+  {
+    CodecAssociation *ca = item->data;
 
-  return new_codec_associations;
+    if (!ca->disable && !ca->reserved && !ca->recv_only)
+      return new_codec_associations;
+  }
+
+  /* Else we destroy when and return NULL.. ie .. an error */
+  codec_association_list_destroy (new_codec_associations);
+
+  return NULL;
 }
 
 /**
