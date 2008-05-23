@@ -41,6 +41,10 @@ lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
 static CodecAssociation *
 codec_association_copy (CodecAssociation *ca);
 
+static CodecAssociation *
+lookup_codec_association_custom_intern (GList *codec_associations,
+    gboolean want_disabled, CAFindFunc func, gpointer user_data);
+
 /**
  * validate_codecs_configuration:
  * @media_type: The #FsMediaType these codecs should be for
@@ -695,9 +699,9 @@ codec_association_is_valid_for_sending (CodecAssociation *ca)
 }
 
 
-CodecAssociation *
-lookup_codec_association_custom (GList *codec_associations,
-    CAFindFunc func, gpointer user_data)
+static CodecAssociation *
+lookup_codec_association_custom_intern (GList *codec_associations,
+    gboolean want_disabled, CAFindFunc func, gpointer user_data)
 {
   GList *item;
 
@@ -708,7 +712,7 @@ lookup_codec_association_custom (GList *codec_associations,
        item = g_list_next (item))
   {
     CodecAssociation *ca = item->data;
-    if (ca->disable || ca->reserved)
+    if ((ca->disable && !want_disabled) || ca->reserved)
       continue;
 
     if (func (ca, user_data))
@@ -716,6 +720,16 @@ lookup_codec_association_custom (GList *codec_associations,
   }
 
   return NULL;
+}
+
+
+CodecAssociation *
+lookup_codec_association_custom (GList *codec_associations,
+    CAFindFunc func, gpointer user_data)
+{
+
+  return lookup_codec_association_custom_intern (codec_associations, FALSE,
+      func, user_data);
 }
 
 
