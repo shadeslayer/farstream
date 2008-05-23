@@ -255,6 +255,24 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
   return FALSE;
 }
 
+/*
+ * This function should return TRUE if the codec pref is a "base" of the
+ * negotiated codec, but %FALSE otherwise.
+ */
+
+static gboolean
+match_original_codec_and_codec_pref (CodecAssociation *ca, gpointer user_data)
+{
+  FsCodec *codec_pref = user_data;
+  FsCodec *tmpcodec = NULL;
+
+  tmpcodec = sdp_is_compat (codec_pref, ca->codec);
+
+  if (tmpcodec)
+    fs_codec_destroy (tmpcodec);
+
+  return (tmpcodec != NULL);
+}
 
 GList *
 create_local_codec_associations (
@@ -302,6 +320,41 @@ create_local_codec_associations (
           fs_media_type_to_string (codec_pref->media_type),
           codec_pref->encoding_name);
       continue;
+    }
+
+    /* Now lets see if there is an existing codec that matches this preference
+     */
+
+    {
+      CodecAssociation *oldca = NULL;
+
+      if (codec_pref->id == FS_CODEC_ID_ANY)
+      {
+        oldca = lookup_codec_association_custom_intern (
+            current_codec_associations, TRUE,
+            match_original_codec_and_codec_pref, codec_pref);
+      }
+      else
+      {
+        oldca = lookup_codec_association_by_pt_list (current_codec_associations,
+            codec_pref->id, FALSE);
+        if (oldca->reserved)
+          oldca = NULL;
+      }
+
+      /* In this case, we have a matching codec association, lets keep it */
+      if (oldca)
+      {
+        FsCodec *codec = sdp_is_compat (codec_pref, oldca->codec);
+        if (codec)
+        {
+          ca = g_slice_new (CodecAssociation);
+          memcpy (ca, oldca, sizeof (CodecAssociation));
+          ca->codec = codec;
+          codec_associations = g_list_append (codec_associations, ca);
+          continue;
+        }
+      }
     }
 
     ca = g_slice_new0 (CodecAssociation);
