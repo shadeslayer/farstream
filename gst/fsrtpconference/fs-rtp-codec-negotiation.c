@@ -499,6 +499,96 @@ create_local_codec_associations (
   return NULL;
 }
 
+/**
+ * negotiate_stream_codecs:
+ * @remote_codecs: Remote codecs for the stream
+ * @current_codec_assocations: The current list of #CodecAssociation
+ * @use_local_ids: Whether to use local or remote PTs if they dont match (%TRUE
+ *  for local, %FALSE for remote)
+ *
+ * This function performs codec negotiation for a single stream. It does an
+ * intersection of the current codecs and the remote codecs.
+ *
+ * Returns: a #GList of #CodecAssociation
+ */
+
+GList *
+negotiate_stream_codecs (const GList *remote_codecs,
+    GList *current_codec_associations,
+    gboolean use_local_ids)
+{
+  GList *new_codec_associations = NULL;
+  const GList *rcodec_e = NULL;
+
+  for (rcodec_e = remote_codecs;
+       rcodec_e;
+       rcodec_e = g_list_next (rcodec_e)) {
+    FsCodec *remote_codec = rcodec_e->data;
+    FsCodec *nego_codec = NULL;
+    CodecAssociation *ca = NULL;
+
+    gchar *tmp = fs_codec_to_string (remote_codec);
+    GST_DEBUG ("Remote codec %s", tmp);
+    g_free (tmp);
+
+    /* First lets try the codec that is in the same PT */
+
+    ca = lookup_codec_association_by_pt_list (current_codec_associations,
+        remote_codec->id, FALSE);
+
+    if (ca) {
+      GST_DEBUG ("Have local codec in the same PT, lets try it first");
+      nego_codec = sdp_is_compat (ca->codec, remote_codec);
+    }
+
+    if (!nego_codec) {
+      GList *item = NULL;
+
+      for (item = current_codec_associations;
+           item;
+           item = g_list_next (item))
+      {
+        ca = item->data;
+
+        nego_codec = sdp_is_compat (ca->codec, remote_codec);
+
+        if (nego_codec)
+        {
+          nego_codec->id = ca->codec->id;
+          break;
+        }
+      }
+    }
+
+    if (nego_codec) {
+      CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
+      gchar *tmp;
+
+      new_ca->codec = nego_codec;
+      new_ca->blueprint = ca->blueprint;
+      tmp = fs_codec_to_string (nego_codec);
+      GST_DEBUG ("Negotiated codec %s", tmp);
+      g_free (tmp);
+
+      new_codec_associations = g_list_append (new_codec_associations,
+          new_ca);
+    } else {
+      gchar *tmp = fs_codec_to_string (remote_codec);
+      CodecAssociation *ca = g_slice_new0 (CodecAssociation);
+      GST_DEBUG ("Could not find a valid intersection... for codec %s",
+          tmp);
+      g_free (tmp);
+
+      ca->codec = fs_codec_copy (remote_codec);
+      ca->disable = TRUE;
+
+      new_codec_associations = g_list_append (new_codec_associations, ca);
+    }
+  }
+
+
+  return new_codec_associations;
+}
 
 /**
  * negotiate_codecs:
@@ -506,7 +596,7 @@ create_local_codec_associations (
  * @negotiated_codec_associations: The previous negotiated codecs
  * @local_codec_associations: The list of local #CodecAssociation ordered by
  *  priority
- * @use_local_ids: Wheter to use local or remote PTs if they dont match (%TRUE
+ * @use_local_ids: Whether to use local or remote PTs if they dont match (%TRUE
  *  for local, %FALSE for remote)
  *
  * This function performs the codec negotiation.
