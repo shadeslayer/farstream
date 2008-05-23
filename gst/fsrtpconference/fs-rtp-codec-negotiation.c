@@ -75,7 +75,7 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
       goto remove_this_codec;
 
     if (codec->id >= 0 && codec->id < 128 && codec->encoding_name &&
-        g_ascii_strcasecmp (codec->encoding_name, "reserve-pt"))
+        !g_ascii_strcasecmp (codec->encoding_name, "reserve-pt"))
       goto accept_codec;
 
 
@@ -322,7 +322,7 @@ create_local_codec_associations (
     /* If we want to disable a codec ID, we just insert a NULL in the table */
     if (codec_pref->id >= 0 && codec_pref->id < 128 &&
         codec_pref->encoding_name &&
-        g_ascii_strcasecmp (codec_pref->encoding_name, "reserve-pt"))
+        !g_ascii_strcasecmp (codec_pref->encoding_name, "reserve-pt"))
     {
       CodecAssociation *ca = g_slice_new0 (CodecAssociation);
       ca->codec = fs_codec_copy (codec_pref);
