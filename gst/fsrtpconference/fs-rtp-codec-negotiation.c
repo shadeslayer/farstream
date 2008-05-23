@@ -274,6 +274,19 @@ match_original_codec_and_codec_pref (CodecAssociation *ca, gpointer user_data)
   return (tmpcodec != NULL);
 }
 
+/**
+ * create_local_codec_associations:
+ * @blueprints: The #GList of CodecBlueprint
+ * @codec_pref: The #GList of #FsCodec representing codec preferences
+ * @current_codec_associations: The #GList of current #CodecAssociation
+ *
+ * This function creates a list of codec associations from installed codecs
+ * and the preferences. It also takes into account the currently negotiated
+ * codecs to keep the same payload types and optional parameters.
+ *
+ * Returns: a #GList of #CodecAssociation
+ */
+
 GList *
 create_local_codec_associations (
     GList *blueprints,
