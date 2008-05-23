@@ -783,7 +783,7 @@ fs_rtp_session_constructed (GObject *object)
   /* Lets now create the RTP muxer */
 
   tmp = g_strdup_printf ("send_rtp_muxer_%u", self->id);
-  muxer = gst_element_factory_make ("rtpmux", tmp);
+  muxer = gst_element_factory_make ("rtpdtmfmux", tmp);
   g_free (tmp);
 
   if (!muxer) {
