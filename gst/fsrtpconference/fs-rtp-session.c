@@ -531,9 +531,14 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_LOCAL_CODECS:
       {
         GList *local_codecs = NULL;
+        GList *local_codec_associations = NULL;
         FS_RTP_SESSION_LOCK (self);
-        local_codecs = codec_associations_to_codecs (
-            self->priv->local_codec_associations);
+        local_codec_associations = create_local_codec_associations (
+            self->priv->blueprints,
+            self->priv->local_codecs_configuration,
+            self->priv->negotiated_codec_associations);
+        local_codecs = codec_associations_to_codecs (local_codec_associations);
+        codec_association_list_destroy (local_codec_associations);
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, local_codecs);
         break;
