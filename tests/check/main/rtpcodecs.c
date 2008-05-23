@@ -272,18 +272,19 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 {
   struct SimpleTestConference *dat = NULL;
   GList *codecs = NULL, *item = NULL;
+  GList *codec_prefs = NULL;
+  FsParticipant *p = NULL;
+  FsStream *s = NULL;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
   g_object_get (dat->session, "local-codecs", &codecs, NULL);
-
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
     if (codec->id == 96)
       break;
   }
-
   fs_codec_list_destroy (codecs);
 
   if (!item)
@@ -293,28 +294,87 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
     goto out;
   }
 
-  codecs = g_list_prepend (NULL, fs_codec_new (96, "reserve-pt",
+  codec_prefs = g_list_prepend (NULL, fs_codec_new (96, "reserve-pt",
                                                FS_MEDIA_TYPE_AUDIO, 0));
 
-  fail_unless (fs_session_set_local_codecs_config (dat->session, codecs, NULL),
-      "Could not set local-codes config");
-
-  fs_codec_list_destroy (codecs);
+  fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
+          NULL), "Could not set local-codes config");
 
   g_object_get (dat->session, "local-codecs", &codecs, NULL);
-
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
     if (codec->id == 96)
       break;
   }
+  fail_if (item, "Found codec with payload type 96, even though it should have"
+           " been reserved");
+  fs_codec_list_destroy (codecs);
+
+  cleanup_simple_conference (dat);
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  p = fs_conference_new_participant (FS_CONFERENCE (dat->conference),
+      "aa", NULL);
+  fail_if (p == NULL, "Could not add participant");
+
+  s = fs_session_new_stream (dat->session, p,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (s == NULL, "Could not add stream");
+  g_object_unref (p);
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+
+  fail_unless (fs_stream_set_remote_codecs (s, codecs, NULL),
+               "Could not set local codecs as remote codecs");
 
   fs_codec_list_destroy (codecs);
 
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    if (codec->id == 96)
+      break;
+  }
+  fs_codec_list_destroy (codecs);
+
+  fail_if (item == NULL, "There is no pt 96 in the negotiated codecs, "
+      "but there was one in the local codecs");
+
+  fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
+          NULL), "Could not set local-codes config after set_remote_codecs");
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    if (codec->id == 96)
+      break;
+  }
   fail_if (item, "Found codec with payload type 96, even though it should have"
            " been disabled");
+  fs_codec_list_destroy (codecs);
 
+
+  fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
+          NULL), "Could not re-set local-codes config after set_remote_codecs");
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    if (codec->id == 96)
+      break;
+  }
+  fail_if (item, "Found codec with payload type 96, even though it should have"
+           " been disabled");
+  fs_codec_list_destroy (codecs);
+
+  fs_codec_list_destroy (codec_prefs);
+
+  g_object_unref (s);
  out:
   cleanup_simple_conference (dat);
 }
