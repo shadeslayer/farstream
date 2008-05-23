@@ -46,14 +46,15 @@ G_BEGIN_DECLS
  */
 
 typedef struct _CodecAssociation {
+  CodecBlueprint *blueprint;
+  FsCodec *codec;
+
   /*< private >*/
 
   gboolean reserved;
   gboolean disable;
   gboolean need_config;
   gboolean recv_only;
-  CodecBlueprint *blueprint;
-  FsCodec *codec;
 } CodecAssociation;
 
 
