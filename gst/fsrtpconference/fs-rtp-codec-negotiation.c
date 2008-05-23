@@ -64,15 +64,15 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
 {
   GList *codec_e = codecs;
 
-  while (codec_e) {
+  while (codec_e)
+  {
     FsCodec *codec = codec_e->data;
     GList *blueprint_e = NULL;
 
     /* Check if codec is for the wrong media_type.. this would be wrong
      */
-    if (media_type != codec->media_type) {
+    if (media_type != codec->media_type)
       goto remove_this_codec;
-    }
 
     if (codec->id >= 0 && codec->id < 128 && codec->encoding_name &&
         g_ascii_strcasecmp (codec->encoding_name, "reserve-pt"))
@@ -81,7 +81,8 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
 
     for (blueprint_e = g_list_first (blueprints);
          blueprint_e;
-         blueprint_e = g_list_next (blueprint_e)) {
+         blueprint_e = g_list_next (blueprint_e))
+    {
       CodecBlueprint *blueprint = blueprint_e->data;
       GList *codecparam_e = NULL;
 
@@ -91,32 +92,33 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
         continue;
       /* If both have a clock_rate, it must be the same */
       if (blueprint->codec->clock_rate && codec->clock_rate &&
-          blueprint->codec->clock_rate != codec->clock_rate) {
+          blueprint->codec->clock_rate != codec->clock_rate)
         continue;
         /* At least one needs to have a clockrate */
-      } else if (!blueprint->codec->clock_rate && !codec->clock_rate) {
+      else if (!blueprint->codec->clock_rate && !codec->clock_rate)
         continue;
-      }
 
       /* Now lets check that all params that are present in both
        * match
        */
       for (codecparam_e = codec->optional_params;
            codecparam_e;
-           codecparam_e = g_list_next (codecparam_e)) {
+           codecparam_e = g_list_next (codecparam_e))
+      {
         FsCodecParameter *codecparam = codecparam_e->data;
         GList *bpparam_e = NULL;
         for (bpparam_e = blueprint->codec->optional_params;
              bpparam_e;
-             bpparam_e = g_list_next (bpparam_e)) {
+             bpparam_e = g_list_next (bpparam_e))
+        {
           FsCodecParameter *bpparam = bpparam_e->data;
-          if (!g_ascii_strcasecmp (codecparam->name, bpparam->name)) {
+          if (!g_ascii_strcasecmp (codecparam->name, bpparam->name))
+          {
             /* If the blueprint and the codec specify the value
              * of a parameter, they should be the same
              */
-            if (g_ascii_strcasecmp (codecparam->value, bpparam->value)) {
+            if (g_ascii_strcasecmp (codecparam->value, bpparam->value))
               goto next_blueprint;
-            }
             break;
           }
         }
@@ -127,9 +129,8 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
     }
 
     /* If no blueprint was found */
-    if (blueprint_e == NULL) {
+    if (blueprint_e == NULL)
       goto remove_this_codec;
-    }
 
   accept_codec:
     codec_e = g_list_next (codec_e);
@@ -179,7 +180,8 @@ _find_matching_blueprint (FsCodec *codec, GList *blueprints)
     return NULL;
   }
 
-  for (item = g_list_first (blueprints); item; item = g_list_next (item)) {
+  for (item = g_list_first (blueprints); item; item = g_list_next (item))
+  {
     CodecBlueprint *bp = item->data;
     GstCaps *intersectedcaps = NULL;
     gboolean ok = FALSE;
@@ -210,7 +212,8 @@ _find_first_empty_dynamic_entry (
 {
   int id;
 
-  for (id = 96; id < 128; id++) {
+  for (id = 96; id < 128; id++)
+  {
     if (lookup_codec_association_by_pt_list (new_codec_associations, id, TRUE))
       continue;
     if (lookup_codec_association_by_pt_list (old_codec_associations, id, TRUE))
@@ -226,7 +229,8 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
 {
   GList *item = NULL;
 
-  for (item = g_list_first (codec_prefs); item; item = g_list_next (item)) {
+  for (item = g_list_first (codec_prefs); item; item = g_list_next (item))
+  {
     FsCodec *codec = item->data;
     GstCaps *intersectedcaps = NULL;
     GstCaps *caps = NULL;
@@ -304,7 +308,8 @@ create_local_codec_associations (
   /* First, lets create the original table by looking at our preferred codecs */
   for (codec_pref_e = codec_prefs;
        codec_pref_e;
-       codec_pref_e = g_list_next (codec_pref_e)) {
+       codec_pref_e = g_list_next (codec_pref_e))
+  {
     FsCodec *codec_pref = codec_pref_e->data;
     CodecBlueprint *bp = _find_matching_blueprint (codec_pref, blueprints);
     CodecAssociation *ca = NULL;
@@ -377,26 +382,25 @@ create_local_codec_associations (
     /* Codec pref does not come with a number, but
      * The blueprint has its own id, lets use it */
     if (ca->codec->id == FS_CODEC_ID_ANY &&
-        (bp->codec->id >= 0 || bp->codec->id < 128)) {
+        (bp->codec->id >= 0 || bp->codec->id < 128))
       ca->codec->id = bp->codec->id;
-    }
 
-    if (ca->codec->clock_rate == 0) {
+    if (ca->codec->clock_rate == 0)
       ca->codec->clock_rate = bp->codec->clock_rate;
-    }
 
-    if (ca->codec->channels == 0) {
+    if (ca->codec->channels == 0)
       ca->codec->channels = bp->codec->channels;
-    }
 
     for (bp_param_e = bp->codec->optional_params;
          bp_param_e;
-         bp_param_e = g_list_next (bp_param_e)) {
+         bp_param_e = g_list_next (bp_param_e))
+    {
       GList *pref_param_e = NULL;
       FsCodecParameter *bp_param = bp_param_e->data;
       for (pref_param_e = ca->codec->optional_params;
            pref_param_e;
-           pref_param_e = g_list_next (pref_param_e)) {
+           pref_param_e = g_list_next (pref_param_e))
+      {
         FsCodecParameter *pref_param = pref_param_e->data;
         if (!g_ascii_strcasecmp (bp_param->name, pref_param->name))
           break;
@@ -426,10 +430,12 @@ create_local_codec_associations (
 
     if (lookup_codec_association_by_pt_list (current_codec_associations,
             lca->codec->id, TRUE) ||
-        lca->codec->id < 0) {
+        lca->codec->id < 0)
+    {
       lca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
-      if (lca->codec->id < 0) {
+      if (lca->codec->id < 0)
+      {
         GST_ERROR ("We've run out of dynamic payload types");
         goto error;
       }
@@ -443,9 +449,8 @@ create_local_codec_associations (
     GList *tmpca_e;
 
     /* Lets skip codecs that dont have all of the required informations */
-    if (bp->codec->clock_rate == 0) {
+    if (bp->codec->clock_rate == 0)
       continue;
-    }
 
     /* Check if its already used */
     for (tmpca_e = codec_associations;
@@ -460,7 +465,8 @@ create_local_codec_associations (
       continue;
 
     /* Check if it is disabled in the list of preferred codecs */
-    if (_is_disabled (codec_prefs, bp)) {
+    if (_is_disabled (codec_prefs, bp))
+    {
       gchar *tmp = fs_codec_to_string (bp->codec);
       GST_DEBUG ("Codec %s disabled by config", tmp);
       g_free (tmp);
@@ -471,10 +477,12 @@ create_local_codec_associations (
     ca->blueprint = bp;
     ca->codec = fs_codec_copy (bp->codec);
 
-    if (ca->codec->id < 0) {
+    if (ca->codec->id < 0)
+    {
       ca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
-      if (ca->codec->id < 0) {
+      if (ca->codec->id < 0)
+      {
         GST_WARNING ("We've run out of dynamic payload types");
         goto error;
       }
