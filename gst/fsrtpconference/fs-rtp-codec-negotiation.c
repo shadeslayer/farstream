@@ -627,77 +627,13 @@ negotiate_codecs (const GList *remote_codecs,
     gboolean use_local_ids)
 {
   GList *new_codec_associations = NULL;
-  const GList *rcodec_e = NULL;
   int i;
 
   g_return_val_if_fail (remote_codecs, NULL);
   g_return_val_if_fail (local_codec_associations, NULL);
 
-  for (rcodec_e = remote_codecs;
-       rcodec_e;
-       rcodec_e = g_list_next (rcodec_e)) {
-    FsCodec *remote_codec = rcodec_e->data;
-    FsCodec *nego_codec = NULL;
-    CodecAssociation *local_ca = NULL;
-
-    gchar *tmp = fs_codec_to_string (remote_codec);
-    GST_DEBUG ("Remote codec %s", tmp);
-    g_free (tmp);
-
-    /* First lets try the codec that is in the same PT */
-
-    local_ca = lookup_codec_association_by_pt_list (local_codec_associations,
-        remote_codec->id, FALSE);
-
-    if (local_ca) {
-      GST_DEBUG ("Have local codec in the same PT, lets try it first");
-      nego_codec = sdp_is_compat (local_ca->codec, remote_codec);
-    }
-
-    if (!nego_codec) {
-      GList *item = NULL;
-
-      for (item = local_codec_associations;
-           item;
-           item = g_list_next (item))
-      {
-        local_ca = item->data;
-
-        nego_codec = sdp_is_compat (local_ca->codec, remote_codec);
-
-        if (nego_codec)
-        {
-          nego_codec->id = local_ca->codec->id;
-          break;
-        }
-      }
-    }
-
-    if (nego_codec) {
-      CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
-      gchar *tmp;
-
-      new_ca->codec = nego_codec;
-      new_ca->blueprint = local_ca->blueprint;
-      tmp = fs_codec_to_string (nego_codec);
-      GST_DEBUG ("Negotiated codec %s", tmp);
-      g_free (tmp);
-
-      new_codec_associations = g_list_append (new_codec_associations,
-          new_ca);
-    } else {
-      gchar *tmp = fs_codec_to_string (remote_codec);
-      CodecAssociation *ca = g_slice_new0 (CodecAssociation);
-      GST_DEBUG ("Could not find a valid intersection... for codec %s",
-                 tmp);
-      g_free (tmp);
-
-      ca->codec = fs_codec_copy (remote_codec);
-      ca->disable = TRUE;
-
-      new_codec_associations = g_list_append (new_codec_associations, ca);
-    }
-  }
+  new_codec_associations = negotiate_stream_codecs (remote_codecs,
+      local_codec_associations, use_local_ids);
 
   /* If no intersection was found, lets return NULL */
   if (!new_codec_associations)
