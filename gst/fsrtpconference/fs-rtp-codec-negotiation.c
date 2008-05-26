@@ -658,46 +658,6 @@ finish_codec_negotiation (
   return new_codec_associations;
 }
 
-/**
- * negotiate_codecs:
- * @remote_codecs: The list of remote codecs passed from the other side
- * @negotiated_codec_associations: The previous negotiated codecs
- * @local_codec_associations: The list of local #CodecAssociation ordered by
- *  priority
- * @use_local_ids: Whether to use local or remote PTs if they dont match (%TRUE
- *  for local, %FALSE for remote)
- *
- * This function performs the codec negotiation.
- *
- * Returns: a #GList of #CodecAssociation or %NULL no codec could be negotiated
- */
-
-GList *
-negotiate_codecs (const GList *remote_codecs,
-    GList *negotiated_codec_associations,
-    GList *local_codec_associations,
-    gboolean use_local_ids)
-{
-  GList *new_codec_associations = NULL;
-
-  g_return_val_if_fail (remote_codecs, NULL);
-  g_return_val_if_fail (local_codec_associations, NULL);
-
-  new_codec_associations = negotiate_stream_codecs (remote_codecs,
-      local_codec_associations, use_local_ids);
-
-  /* If no intersection was found, lets return NULL */
-  if (!new_codec_associations)
-    return NULL;
-
-
-  new_codec_associations = finish_codec_negotiation (
-      negotiated_codec_associations,
-      new_codec_associations);
-
-  return new_codec_associations;
-}
-
 
 static CodecAssociation *
 lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
