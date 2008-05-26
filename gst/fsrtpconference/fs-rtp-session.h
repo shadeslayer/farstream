@@ -92,11 +92,6 @@ GstCaps *fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt);
 void fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   guint32 ssrc, guint pt);
 
-gboolean fs_rtp_session_negotiate_codecs (FsRtpSession *session,
-    gpointer stream,
-    GList *remote_codecs,
-    GError **error);
-
 GstElement *fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
     guint32 ssrc,
     guint pt,

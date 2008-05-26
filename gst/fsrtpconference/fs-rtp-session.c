@@ -189,6 +189,9 @@ static void fs_rtp_session_send_codec_changed (FsRtpSession *self);
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
 
+static GError* _stream_new_remote_codecs (FsRtpStream *stream, GList *codecs,
+    FsRtpSession *session);
+
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   FsRtpSession *self,
@@ -1093,6 +1096,9 @@ fs_rtp_session_new_stream (FsSession *session,
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
       direction, st, error));
 
+  g_signal_connect (new_stream, "new-remote-codecs",
+      G_CALLBACK (_stream_new_remote_codecs), self);
+
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
   FS_RTP_SESSION_UNLOCK (self);
@@ -1513,9 +1519,9 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
  * Returns: TRUE if the negotiation succeeds, FALSE otherwise
  */
 
-gboolean
+static gboolean
 fs_rtp_session_negotiate_codecs (FsRtpSession *session,
-    gpointer stream,
+    FsRtpStream *stream,
     GList *remote_codecs,
     GError **error)
 {
@@ -1669,6 +1675,24 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
       "There was no intersection between the remote codecs and the local ones");
   return FALSE;
+}
+
+
+static GError *
+_stream_new_remote_codecs (FsRtpStream *stream,
+    GList *codecs,
+    FsRtpSession *session)
+{
+  GError *error = NULL;
+  gboolean rv;
+
+  rv = fs_rtp_session_negotiate_codecs (session, stream, codecs, &error);
+
+  if (!rv && !error)
+    error = g_error_new (FS_ERROR, FS_ERROR_INTERNAL,
+        "Unknown error while negotiating codecs");
+
+  return error;
 }
 
 

@@ -113,7 +113,8 @@ static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GError **error);
 static gboolean
 fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
-    GList *codecs);
+    GList *codecs,
+    GError **error);
 
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
@@ -189,10 +190,9 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
    * @codecs: #GList of new remote #FsCodec
    *
    * This signal is emitted after a user does fs_stream_set_remote_codecs(),
-   * with the new codecs. If the return value if %FALSE, then the codecs
-   * have been ignored and nothing has changed. If it is true, the new remote
-   * codecs have been set and the negotiation has completed
+   * with the new codecs.
    *
+   * Returns: %NULL on success, or a #GError if an error occured
    */
   signals[NEW_REMOTE_CODECS] = g_signal_new ("new-remote-codecs",
       G_TYPE_FROM_CLASS (klass),
@@ -200,8 +200,8 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
       0,
       NULL,
       NULL,
-      _fs_rtp_marshal_BOOLEAN__BOXED,
-      G_TYPE_BOOLEAN, 1, FS_TYPE_CODEC_LIST);
+      _fs_rtp_marshal_POINTER__BOXED,
+      G_TYPE_POINTER, 1, FS_TYPE_CODEC_LIST);
 }
 
 static void
@@ -559,10 +559,8 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     }
   }
 
-  fs_rtp_stream_emit_new_remote_codecs (self, remote_codecs);
-
-  if (fs_rtp_session_negotiate_codecs (self->priv->session, stream,
-          remote_codecs, error)) {
+  if (fs_rtp_stream_emit_new_remote_codecs (self, remote_codecs, error))
+  {
     if (self->remote_codecs)
       fs_codec_list_destroy (self->remote_codecs);
     self->remote_codecs = fs_codec_list_copy (remote_codecs);
@@ -917,11 +915,14 @@ fs_rtp_stream_remove_known_ssrc (FsRtpStream *stream,
 
 static gboolean
 fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
-    GList *codecs)
+    GList *codecs, GError **error)
 {
-  gboolean res = FALSE;
+  GError *myerror = NULL;
 
-  g_signal_emit (stream, signals[NEW_REMOTE_CODECS], 0, codecs, &res);
+  g_signal_emit (stream, signals[NEW_REMOTE_CODECS], 0, codecs, &myerror);
 
-  return res;
+  if (myerror)
+    g_propagate_error (error, myerror);
+
+  return !myerror;
 }
