@@ -70,6 +70,19 @@ create_local_codec_associations (
     GList *current_codec_associations);
 
 GList *
+negotiate_stream_codecs (
+    const GList *remote_codecs,
+    GList *current_codec_associations,
+    gboolean use_local_ids);
+
+GList *
+finish_codec_negotiation (
+    GList *old_codec_associations,
+    GList *new_codec_associations);
+
+
+
+GList *
 negotiate_codecs (const GList *remote_codecs,
     GList *current_negotiated_codec_associations,
     GList *local_codec_associations,
