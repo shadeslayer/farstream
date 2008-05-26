@@ -40,6 +40,7 @@
 /* Signals */
 enum
 {
+  NEW_REMOTE_CODECS,
   LAST_SIGNAL
 };
 
@@ -110,6 +111,10 @@ static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
+static gboolean
+fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
+    GList *codecs);
+
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
     gpointer user_data);
@@ -134,7 +139,7 @@ static void _substream_codec_changed (FsRtpSubStream *substream,
 
 
 static GObjectClass *parent_class = NULL;
-// static guint signals[LAST_SIGNAL] = { 0 };
+static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
 fs_rtp_stream_class_init (FsRtpStreamClass *klass)
@@ -148,17 +153,16 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   gobject_class->set_property = fs_rtp_stream_set_property;
   gobject_class->get_property = fs_rtp_stream_get_property;
   gobject_class->constructed = fs_rtp_stream_constructed;
+  gobject_class->dispose = fs_rtp_stream_dispose;
+  gobject_class->finalize = fs_rtp_stream_finalize;
 
   stream_class->add_remote_candidate = fs_rtp_stream_add_remote_candidate;
   stream_class->set_remote_codecs = fs_rtp_stream_set_remote_codecs;
   stream_class->remote_candidates_added = fs_rtp_stream_remote_candidates_added;
   stream_class->select_candidate_pair = fs_rtp_stream_select_candidate_pair;
 
-#if 0
-  g_object_class_override_property (gobject_class,
-                                    PROP_SOURCE_PADS,
-                                    "source-pads");
-#endif
+
+  g_type_class_add_private (klass, sizeof (FsRtpStreamPrivate));
 
   g_object_class_override_property (gobject_class,
                                     PROP_REMOTE_CODECS,
@@ -179,11 +183,25 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
                                     PROP_STREAM_TRANSMITTER,
                                    "stream-transmitter");
 
-
-  gobject_class->dispose = fs_rtp_stream_dispose;
-  gobject_class->finalize = fs_rtp_stream_finalize;
-
-  g_type_class_add_private (klass, sizeof (FsRtpStreamPrivate));
+   /**
+   * FsRtpStream::new-remote-codecs
+   * @self: #FsRtpStream that emitted the signal
+   * @codecs: #GList of new remote #FsCodec
+   *
+   * This signal is emitted after a user does fs_stream_set_remote_codecs(),
+   * with the new codecs. If the return value if %FALSE, then the codecs
+   * have been ignored and nothing has changed. If it is true, the new remote
+   * codecs have been set and the negotiation has completed
+   *
+   */
+  signals[NEW_REMOTE_CODECS] = g_signal_new ("new-remote-codecs",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_rtp_marshal_BOOLEAN__BOXED,
+      G_TYPE_BOOLEAN, 1, FS_TYPE_CODEC_LIST);
 }
 
 static void
@@ -541,6 +559,8 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     }
   }
 
+  fs_rtp_stream_emit_new_remote_codecs (self, remote_codecs);
+
   if (fs_rtp_session_negotiate_codecs (self->priv->session, stream,
           remote_codecs, error)) {
     if (self->remote_codecs)
@@ -892,4 +912,16 @@ fs_rtp_stream_remove_known_ssrc (FsRtpStream *stream,
   stream->priv->known_ssrcs = g_list_remove_all (stream->priv->known_ssrcs,
       GUINT_TO_POINTER (ssrc));
   FS_RTP_SESSION_UNLOCK (stream->priv->session);
+}
+
+
+static gboolean
+fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
+    GList *codecs)
+{
+  gboolean res = FALSE;
+
+  g_signal_emit (stream, signals[NEW_REMOTE_CODECS], 0, codecs, &res);
+
+  return res;
 }
