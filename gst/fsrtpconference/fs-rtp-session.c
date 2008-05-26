@@ -1245,7 +1245,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
 
   new_local_codec_associations = create_local_codec_associations (
       self->priv->blueprints, new_local_codecs_configuration,
-      self->priv->local_codec_associations);
+      self->priv->negotiated_codec_associations);
 
   if (new_local_codec_associations)
   {
