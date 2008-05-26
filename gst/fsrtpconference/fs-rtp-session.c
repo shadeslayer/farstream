@@ -1519,10 +1519,13 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
 /**
  * fs_rtp_session_negotiate_codecs:
  * @session: a #FsRtpSession
- * @remote_codecs: a #GList of #FsCodec
+ * @stream: The #FsRtpStream to which the new remote codecs belong
+ * @remote_codecs: The #GList of remote codecs to use for that stream
  *
  * Negotiates the codecs using the current (stored) codecs
- * and the new remote codecs.
+ * and the remote codecs from each stream.
+ * If a stream is specified, it will use the specified remote codecs
+ * instead of the ones currently in the stream
  *
  * MT safe
  *
@@ -1531,8 +1534,8 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
 
 gboolean
 fs_rtp_session_negotiate_codecs (FsRtpSession *session,
-    GList *remote_codecs,
     gpointer stream,
+    GList *remote_codecs,
     GError **error)
 {
   gboolean has_many_streams = FALSE;
