@@ -607,6 +607,56 @@ negotiate_stream_codecs (const GList *remote_codecs,
 }
 
 /**
+ * finish_codec_negotiation:
+ * @old_codec_associations: The previous list of negotiated #CodecAssociation
+ * @new_codec_associations: The new list of negotiated #CodecAssociation,
+ *   will be modified by the negotiation
+ *
+ * This function performs the last step of the codec negotiation after the
+ * intersection will all of the remote codecs has been done. It will keep
+ * old codecs in case the other end does the non-standard thing and sends
+ * using the PT we offered instead of using the negotiated result.
+ * It also adds a marker to the list for every previously disabled codec so
+ * they're not re-used.
+ *
+ * Returns: a modified list of #CodecAssociation
+ */
+
+GList *
+finish_codec_negotiation (GList *old_codec_associations,
+    GList *new_codec_associations)
+{
+  int i;
+
+  /* Now, lets fill all of the PTs that were previously used in the session
+   * even if they are not currently used, so they can't be re-used
+   */
+
+  for (i=0; i < 128; i++)
+  {
+    CodecAssociation *local_ca = NULL;
+
+    /* We can skip ids where something already exists */
+    if (lookup_codec_association_by_pt_list (new_codec_associations, i, TRUE))
+      continue;
+
+    /* We check if our local table (our offer) and if we offered
+     * something, we add it. Some broken implementation (like Tandberg's)
+     * send packets on PTs that they did not put in their response
+     */
+    local_ca = lookup_codec_association_by_pt_list (old_codec_associations,
+        i, FALSE);
+    if (local_ca) {
+      CodecAssociation *new_ca = codec_association_copy (local_ca);
+      new_ca->recv_only = TRUE;
+      new_codec_associations = g_list_append (new_codec_associations, new_ca);
+    }
+  }
+
+  return new_codec_associations;
+}
+
+/**
  * negotiate_codecs:
  * @remote_codecs: The list of remote codecs passed from the other side
  * @negotiated_codec_associations: The previous negotiated codecs
