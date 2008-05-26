@@ -677,7 +677,6 @@ negotiate_codecs (const GList *remote_codecs,
     gboolean use_local_ids)
 {
   GList *new_codec_associations = NULL;
-  int i;
 
   g_return_val_if_fail (remote_codecs, NULL);
   g_return_val_if_fail (local_codec_associations, NULL);
@@ -689,44 +688,10 @@ negotiate_codecs (const GList *remote_codecs,
   if (!new_codec_associations)
     return NULL;
 
-  /* Now, lets fill all of the PTs that were previously used in the session
-   * even if they are not currently used, so they can't be re-used
-   */
-  for (i=0; i < 128; i++) {
-    CodecAssociation *local_ca = NULL;
 
-    /* We can skip those currently in use */
-    if (lookup_codec_association_by_pt_list (new_codec_associations, i, TRUE))
-      continue;
-
-    /* We check if our local table (our offer) and if we offered
-       something, we add it. Some broken implementation (like Tandberg's)
-       send packets on PTs that they did not put in their response
-    */
-    local_ca = lookup_codec_association_by_pt_list (local_codec_associations,
-        i, FALSE);
-    if (local_ca) {
-      CodecAssociation *new_ca = codec_association_copy (local_ca);
-      new_ca->recv_only = TRUE;
-      new_codec_associations = g_list_append (new_codec_associations, new_ca);
-      continue;
-    }
-
-    /* We check in our local table (our offer) and in the old negotiated
-     * table (the result of previous negotiations). And kill all of the
-     * PTs used in there
-     */
-    if ((local_ca = lookup_codec_association_by_pt_list (
-                local_codec_associations, i, TRUE)) != NULL ||
-        (local_ca = lookup_codec_association_by_pt_list (
-            negotiated_codec_associations, i, TRUE)) != NULL)
-    {
-      CodecAssociation *newca = codec_association_copy (local_ca);
-      newca->disable = TRUE;
-      new_codec_associations = g_list_append (new_codec_associations, newca);
-    }
-
-  }
+  new_codec_associations = finish_codec_negotiation (
+      negotiated_codec_associations,
+      new_codec_associations);
 
   return new_codec_associations;
 }
