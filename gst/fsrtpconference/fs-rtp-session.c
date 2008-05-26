@@ -130,8 +130,6 @@ struct _FsRtpSessionPrivate
 
   GList *local_codecs_configuration;
 
-  GList *local_codec_associations;
-
   /* These are protected by the session mutex */
   GList *negotiated_codec_associations;
 
@@ -495,9 +493,6 @@ fs_rtp_session_finalize (GObject *object)
   if (self->priv->local_codecs_configuration)
     fs_codec_list_destroy (self->priv->local_codecs_configuration);
 
-  if (self->priv->local_codec_associations)
-    codec_association_list_destroy (self->priv->local_codec_associations);
-
   if (self->priv->negotiated_codec_associations)
     codec_association_list_destroy (self->priv->negotiated_codec_associations);
 
@@ -637,18 +632,6 @@ fs_rtp_session_constructed (GObject *object)
       self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_INTERNAL,
         "Unknown error while trying to discover codecs");
-    return;
-  }
-
-  self->priv->local_codec_associations = create_local_codec_associations (
-      self->priv->blueprints,
-      NULL, /* there are no local codec configurations yet */
-      NULL);
-
-  if (!self->priv->local_codec_associations) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_INTERNAL,
-      "No codecs found for the media type of this session");
     return;
   }
 
@@ -1249,9 +1232,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
 
   if (new_local_codec_associations)
   {
-    codec_association_list_destroy (self->priv->local_codec_associations);
-    self->priv->local_codec_associations = new_local_codec_associations;
-
+    codec_association_list_destroy (new_local_codec_associations);
     fs_codec_list_destroy (self->priv->local_codecs_configuration);
     self->priv->local_codecs_configuration =
       new_local_codecs_configuration;
