@@ -709,10 +709,11 @@ fs_rtp_sub_stream_get_property (GObject *object,
 
 
 /**
- * fs_rtp_session_add_codecbin_locked:
+ * fs_rtp_session_set_codecbin_locked:
  * @substream: a #FsRtpSubStream
  *
  * Add and links the rtpbin for a given substream.
+ * Removes any codecbin that was previously there.
  *
  * The caller MUST hold the session lock
  *
@@ -720,7 +721,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
  */
 
 static gboolean
-fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
+fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
     GError **error)
 {
   GstPad *codec_bin_sink_pad;
@@ -730,9 +731,22 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
 
   if (substream->priv->codecbin)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "There already is a codec bin for this substream");
-    goto error_no_remove;
+    if (gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL) !=
+        GST_STATE_CHANGE_SUCCESS)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+          "Could not set the codec bin for ssrc %u"
+          " and payload type %d to the state NULL", substream->priv->ssrc,
+          substream->priv->pt);
+      goto error_no_remove;
+    }
+
+    gst_bin_remove (GST_BIN (substream->priv->conference),
+        substream->priv->codecbin);
+    substream->priv->codecbin = NULL;
+
+    fs_codec_destroy (substream->priv->codec);
+    substream->priv->codec = NULL;
   }
 
   codecbin = fs_rtp_session_new_recv_codec_bin_locked (
@@ -816,10 +830,11 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
 }
 
 /**
- * fs_rtp_sub_stream_add_codecbin:
+ * fs_rtp_sub_stream_set_codecbin:
  * @substream: a #FsRtpSubStream
  *
  * Add and links the rtpbin for a given substream.
+ * Removes any codecbin that was previously there.
  *
  * MT safe.
  *
@@ -827,13 +842,13 @@ fs_rtp_sub_stream_add_codecbin_locked (FsRtpSubStream *substream,
  */
 
 gboolean
-fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
+fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GError **error)
 {
   gboolean ret;
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
-  ret = fs_rtp_sub_stream_add_codecbin_locked (substream, error);
+  ret = fs_rtp_sub_stream_set_codecbin_locked (substream, error);
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   return ret;
@@ -1012,27 +1027,7 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   }
 
 
-  if (gst_element_set_state (self->priv->codecbin, GST_STATE_NULL) !=
-      GST_STATE_CHANGE_SUCCESS)
-  {
-    gchar *str = g_strdup_printf ("Could not set the codec bin for ssrc %u"
-        " and payload type %d to the state NULL", self->priv->ssrc,
-        self->priv->pt);
-
-    fs_rtp_sub_stream_emit_error (self, FS_ERROR_INTERNAL,
-        "Could not set the codec bin to NULL", str);
-    g_free (str);
-    goto done;
-  }
-
-  gst_bin_remove (GST_BIN (self->priv->conference), self->priv->codecbin);
-  self->priv->codecbin = NULL;
-
-  fs_codec_destroy (self->priv->codec);
-  self->priv->codec = NULL;
-
-
-  if (!fs_rtp_sub_stream_add_codecbin_locked (self, &error))
+  if (!fs_rtp_sub_stream_set_codecbin_locked (self, &error))
   {
     gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
         " ssrc %u and payload type %d to the state NULL", self->priv->ssrc,

@@ -80,7 +80,7 @@ FsRtpSubStream *fs_rtp_sub_stream_new (FsRtpConference *conference,
     GError **error);
 
 
-gboolean fs_rtp_sub_stream_add_codecbin (FsRtpSubStream *substream,
+gboolean fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GError **error);
 
 void fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
