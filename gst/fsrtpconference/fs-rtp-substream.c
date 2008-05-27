@@ -709,25 +709,26 @@ fs_rtp_sub_stream_get_property (GObject *object,
 
 
 /**
- * fs_rtp_session_set_codecbin_locked:
+ * fs_rtp_session_set_codecbin:
  * @substream: a #FsRtpSubStream
  *
  * Add and links the rtpbin for a given substream.
  * Removes any codecbin that was previously there.
  *
- * The caller MUST hold the session lock
  *
  * Returns: TRUE on success
  */
 
-static gboolean
-fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
+gboolean
+fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GError **error)
 {
   GstPad *codec_bin_sink_pad;
   GstPadLinkReturn linkret;
   FsCodec *codec = NULL;
   GstElement *codecbin;
+
+  FS_RTP_SESSION_LOCK (substream->priv->session);
 
   if (substream->priv->codecbin)
   {
@@ -809,10 +810,12 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
     if (!substream->priv->output_ghostpad)
       ret =  fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
 
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
     return ret;
   }
   else
   {
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
     return TRUE;
   }
 
@@ -826,32 +829,9 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
     fs_rtp_sub_stream_invalidate_codec_locked (substream, substream->priv->pt,
         NULL);
 
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+
     return FALSE;
-}
-
-/**
- * fs_rtp_sub_stream_set_codecbin:
- * @substream: a #FsRtpSubStream
- *
- * Add and links the rtpbin for a given substream.
- * Removes any codecbin that was previously there.
- *
- * MT safe.
- *
- * Returns: TRUE on success
- */
-
-gboolean
-fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
-    GError **error)
-{
-  gboolean ret;
-
-  FS_RTP_SESSION_LOCK (substream->priv->session);
-  ret = fs_rtp_sub_stream_set_codecbin_locked (substream, error);
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
-
-  return ret;
 }
 
 FsRtpSubStream *
@@ -1027,7 +1007,7 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   }
 
 
-  if (!fs_rtp_sub_stream_set_codecbin_locked (self, &error))
+  if (!fs_rtp_sub_stream_set_codecbin (self, &error))
   {
     gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
         " ssrc %u and payload type %d to the state NULL", self->priv->ssrc,
