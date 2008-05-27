@@ -52,6 +52,7 @@ enum
   SRC_PAD_ADDED,
   CODEC_CHANGED,
   ERROR_SIGNAL,
+  BLOCKED,
   LAST_SIGNAL
 };
 
@@ -314,7 +315,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
 
  /**
    * FsRtpSubStream:codec-changed
-   * @self: #FsStream that emitted the signal
+   * @self: #FsRtpSubStream that emitted the signal
    *
    * This signal is emitted when the code for this substream has
    * changed. It can be fetvched from the #FsRtpSubStream:codec property
@@ -328,6 +329,23 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       NULL,
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
+
+ /**
+   * FsRtpSubStream:blocked
+   * @self: #FsRtpSubStream that emitted the signal
+   * @stream: the #FsRtpStream this substream is attached to if any (or %NULL)
+   *
+   * This signal is emitted after the substream has been blocked because its
+   * codec has been invalidated OR because no codecbin was set on its creation.
+   */
+  signals[BLOCKED] = g_signal_new ("blocked",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__POINTER,
+      G_TYPE_NONE, 1, G_TYPE_POINTER);
 
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
@@ -970,6 +988,8 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   gboolean success = FALSE;
 
   FS_RTP_SESSION_LOCK (self->priv->session);
+
+  g_signal_emit (self, signals[BLOCKED], 0, self->priv->stream);
 
   codec = fs_rtp_session_get_recv_codec_for_pt (self->priv->session,
       self->priv->pt);
