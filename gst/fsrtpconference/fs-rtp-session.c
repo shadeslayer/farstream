@@ -131,7 +131,7 @@ struct _FsRtpSessionPrivate
   GList *local_codecs_configuration;
 
   /* These are protected by the session mutex */
-  GList *negotiated_codec_associations;
+  GList *codec_associations;
 
   /* Protected by the session mutex */
   gint no_rtcp_timeout;
@@ -505,8 +505,8 @@ fs_rtp_session_finalize (GObject *object)
   if (self->priv->local_codecs_configuration)
     fs_codec_list_destroy (self->priv->local_codecs_configuration);
 
-  if (self->priv->negotiated_codec_associations)
-    codec_association_list_destroy (self->priv->negotiated_codec_associations);
+  if (self->priv->codec_associations)
+    codec_association_list_destroy (self->priv->codec_associations);
 
   if (self->priv->current_send_codec)
     fs_codec_destroy (self->priv->current_send_codec);
@@ -543,7 +543,7 @@ fs_rtp_session_get_property (GObject *object,
         local_codec_associations = create_local_codec_associations (
             self->priv->blueprints,
             self->priv->local_codecs_configuration,
-            self->priv->negotiated_codec_associations);
+            self->priv->codec_associations);
         local_codecs = codec_associations_to_codecs (local_codec_associations);
         codec_association_list_destroy (local_codec_associations);
         FS_RTP_SESSION_UNLOCK (self);
@@ -558,7 +558,7 @@ fs_rtp_session_get_property (GObject *object,
         GList *negotiated_codecs = NULL;
         FS_RTP_SESSION_LOCK (self);
         negotiated_codecs = codec_associations_to_codecs (
-            self->priv->negotiated_codec_associations);
+            self->priv->codec_associations);
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, negotiated_codecs);
         break;
@@ -1202,7 +1202,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   FS_RTP_SESSION_LOCK (self);
 
   if (lookup_codec_association_by_codec (
-          self->priv->negotiated_codec_associations, send_codec))
+          self->priv->codec_associations, send_codec))
   {
     if (self->priv->requested_send_codec)
       fs_codec_destroy (self->priv->requested_send_codec);
@@ -1243,7 +1243,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
 
   new_local_codec_associations = create_local_codec_associations (
       self->priv->blueprints, new_local_codecs_configuration,
-      self->priv->negotiated_codec_associations);
+      self->priv->codec_associations);
 
   if (new_local_codec_associations)
   {
@@ -1302,7 +1302,7 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
   FS_RTP_SESSION_LOCK (session);
 
   ca = lookup_codec_association_by_pt (
-      session->priv->negotiated_codec_associations, pt);
+      session->priv->codec_associations, pt);
 
   if (ca)
     caps = fs_codec_to_gst_caps (ca->codec);
@@ -1544,7 +1544,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   FS_RTP_SESSION_LOCK (session);
 
   old_negotiated_codec_associations =
-    session->priv->negotiated_codec_associations;
+    session->priv->codec_associations;
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -1567,7 +1567,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
   new_negotiated_codec_associations = create_local_codec_associations (
       session->priv->blueprints, session->priv->local_codecs_configuration,
-      session->priv->negotiated_codec_associations);
+      session->priv->codec_associations);
 
   if (!new_negotiated_codec_associations)
   {
@@ -1607,11 +1607,10 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     goto nego_error;
 
   new_negotiated_codec_associations = finish_codec_negotiation (
-      session->priv->negotiated_codec_associations,
+      session->priv->codec_associations,
       new_negotiated_codec_associations);
 
-  session->priv->negotiated_codec_associations =
-    new_negotiated_codec_associations;
+  session->priv->codec_associations = new_negotiated_codec_associations;
 
   if (old_negotiated_codec_associations)
   {
@@ -2070,14 +2069,13 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
 
   FS_RTP_SESSION_LOCK (session);
 
-  if (!session->priv->negotiated_codec_associations) {
+  if (!session->priv->codec_associations) {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "No negotiated codecs yet");
     goto out;
   }
 
-  ca = lookup_codec_association_by_pt (
-      session->priv->negotiated_codec_associations, pt);
+  ca = lookup_codec_association_by_pt (session->priv->codec_associations, pt);
 
   if (!ca) {
     g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
@@ -2131,7 +2129,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
   CodecAssociation *ca = NULL;
   GList *ca_e = NULL;
 
-  if (!session->priv->negotiated_codec_associations)
+  if (!session->priv->codec_associations)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Tried to call fs_rtp_session_select_send_codec_bin before the codec"
@@ -2141,7 +2139,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
 
   if (session->priv->requested_send_codec) {
     ca = lookup_codec_association_by_codec (
-        session->priv->negotiated_codec_associations,
+        session->priv->codec_associations,
         session->priv->requested_send_codec);
     if (ca)
     {
@@ -2170,7 +2168,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
     }
   }
 
-  for (ca_e = g_list_first (session->priv->negotiated_codec_associations);
+  for (ca_e = g_list_first (session->priv->codec_associations);
        ca_e;
        ca_e = g_list_next (ca_e))
   {
@@ -2430,7 +2428,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 
   self->priv->extra_sources = fs_rtp_special_sources_update (
       self->priv->extra_sources,
-      self->priv->negotiated_codec_associations, ca->codec,
+      self->priv->codec_associations, ca->codec,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer, error);
   if (local_gerror)
