@@ -201,6 +201,13 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   GParameter *parameters,
   GError **error);
 
+static GstElement *
+fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
+    guint32 ssrc,
+    guint pt,
+    FsCodec **out_codec,
+    GError **error);b
+
 static void
 _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
@@ -2064,7 +2071,7 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 }
 
 /**
- * fs_rtp_session_new_recv_codec_bin:
+ * fs_rtp_session_new_recv_codec_bin_locked:
  * @session: a #FsRtpSession
  * @ssrc: The SSRC that this codec bin will receive from
  * @pt: The payload type to create a codec bin for
@@ -2079,7 +2086,7 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
  * Returns: a newly-allocated codec bin
  */
 
-GstElement *
+static GstElement *
 fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
     guint32 ssrc,
     guint pt,
