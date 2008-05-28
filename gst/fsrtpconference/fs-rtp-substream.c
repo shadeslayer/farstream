@@ -708,7 +708,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
 }
 
 /**
- * fs_rtp_session_set_codecbin:
+ * fs_rtp_sub_stream_set_codecbin:
  * @substream: a #FsRtpSubStream
  * @codec: The codec to set
  * @codecbin: the codecbin to set
