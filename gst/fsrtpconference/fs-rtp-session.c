@@ -205,7 +205,7 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
 
 static gboolean
 fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
-    gpointer ss,
+    FsRtpSubStream *substream,
     guint32 ssrc,
     guint pt,
     GError **error);
@@ -2046,7 +2046,7 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 /**
  * fs_rtp_session_substream_add_codec_bin:
  * @session: a #FsRtpSession
- * @ss: a #FsRtpSubStream
+ * @substream: a #FsRtpSubStream
  * @ssrc: the ssrc of the substream
  * @pt: the payload type of the substream
  * @error: location of a #GError, or NULL if no error occured
@@ -2058,12 +2058,11 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
 
 static gboolean
 fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
-    gpointer ss,
+    FsRtpSubStream *substream,
     guint32 ssrc,
     guint pt,
     GError **error)
 {
-  FsRtpSubStream *substream = ss;
   gboolean ret = FALSE;
   GstElement *codecbin = NULL;
   CodecAssociation *ca = NULL;
