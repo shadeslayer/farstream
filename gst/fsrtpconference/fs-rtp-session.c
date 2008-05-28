@@ -1709,6 +1709,39 @@ _substream_error (FsRtpSubStream *substream,
 }
 
 
+gboolean
+fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
+    gpointer ss,
+    guint32 ssrc,
+    guint pt,
+    GError **error)
+{
+  FsRtpSubStream *substream = ss;
+  gboolean ret = FALSE;
+  FsCodec *codec = NULL;
+  GstElement *codecbin = NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+
+  codecbin = fs_rtp_session_new_recv_codec_bin_locked (session, ssrc, pt,
+      &codec, error);
+
+  if (!codecbin)
+  {
+    ret = FALSE;
+    goto out;
+  }
+
+  ret = fs_rtp_sub_stream_set_codecbin (substream, codec, codecbin, error);
+
+ out:
+  FS_RTP_SESSION_UNLOCK (session);
+
+  fs_codec_destroy (codec);
+
+  return ret;
+}
+
 /**
  * fs_rtp_session_new_recv_pad:
  * @session: a #FsSession
@@ -1751,7 +1784,9 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
-  if (!fs_rtp_sub_stream_create_codecbin (substream, &error)) {
+  if (!fs_rtp_session_substream_add_codec_bin (session, substream, ssrc, pt,
+          &error))
+  {
     if (error)
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the codec bin to the new substream", error->message);

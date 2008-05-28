@@ -85,10 +85,6 @@ gboolean fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GstElement *codecbin,
     GError **error);
 
-gboolean
-fs_rtp_sub_stream_create_codecbin (FsRtpSubStream *substream,
-    GError **error);
-
 void fs_rtp_sub_stream_stop (FsRtpSubStream *substream);
 
 gboolean fs_rtp_sub_stream_add_output_ghostpad_locked (

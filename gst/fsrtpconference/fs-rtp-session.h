@@ -108,6 +108,14 @@ void fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
 void fs_rtp_session_bye_ssrc (FsRtpSession *session,
     guint32 ssrc);
 
+gboolean
+fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
+    gpointer ss,
+    guint32 ssrc,
+    guint pt,
+    GError **error);
+
+
 G_END_DECLS
 
 #endif /* __FS_RTP_SESSION_H__ */
