@@ -2535,6 +2535,8 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
 
   FS_RTP_SESSION_UNLOCK (session);
 
+  fs_codec_destroy (current_codec);
+
   g_clear_error (&error);
 }
 
