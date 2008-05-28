@@ -487,7 +487,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
       NULL);
 
   ts_fail_if (codec->encoding_name == NULL,
-      "Got invalid codec without an encoding_name");,
+      "Got invalid codec without an encoding_name");
 
   g_object_set_data (G_OBJECT (fakesink), "codec", codeccopy);
   g_object_weak_ref (G_OBJECT (fakesink),
