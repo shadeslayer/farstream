@@ -2470,6 +2470,57 @@ static void
 _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session)
 {
+  FsCodec *codec = NULL;
+  FsCodec *current_codec = NULL;
+  GError *error = NULL;
+  gint pt;
+  guint32 ssrc;
+
+  g_object_get (substream,
+      "pt", &pt,
+      "ssrc", &ssrc,
+      "codec", &current_codec,
+      NULL);
+
+  codec = fs_rtp_session_get_recv_codec_for_pt (session, pt);
+
+  if (!codec)
+  {
+    gchar *str = g_strdup_printf ("Could not get the new recv codec for"
+        " pt %d", pt);
+    if (stream)
+      fs_stream_emit_error (FS_STREAM (stream), FS_ERROR_UNKNOWN_CODEC, str,
+          str);
+    else
+      fs_session_emit_error (FS_SESSION (session), FS_ERROR_UNKNOWN_CODEC, str,
+          str);
+    goto done;
+  }
+
+  if (fs_codec_are_equal (codec, current_codec))
+    goto done;
+
+  if (!fs_rtp_session_substream_add_codec_bin (session, substream, ssrc, pt,
+          &error))
+  {
+    gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
+        " ssrc %u and payload type %d to the state NULL", ssrc, pt);
+
+    if (stream)
+      fs_stream_emit_error (FS_STREAM (stream), FS_ERROR_CONSTRUCTION,
+          "Could not add the new recv codec bin", error->message);
+    else
+      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
+          "Could not add the new recv codec bin", error->message);
+    g_free (str);
+    goto done;
+  }
+
+ done:
+
+  fs_codec_destroy (current_codec);
+
+  g_clear_error (&error);
 }
 
 /**

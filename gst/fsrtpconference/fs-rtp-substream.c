@@ -971,48 +971,11 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     gpointer user_data)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
-  FsCodec *codec = NULL;
   gboolean ret = TRUE;
-  GError *error = NULL;
-
-  FS_RTP_SESSION_LOCK (self->priv->session);
 
   g_signal_emit (self, signals[BLOCKED], 0, self->priv->stream);
 
-  codec = fs_rtp_session_get_recv_codec_for_pt (self->priv->session,
-      self->priv->pt);
-
-  if (!codec)
-  {
-    gchar *str = g_strdup_printf ("Could not get the new recv codec for"
-        " pt %d", self->priv->pt);
-    fs_rtp_sub_stream_emit_error (self, FS_ERROR_UNKNOWN_CODEC, str,
-        str);
-    goto done;
-  }
-
-  g_clear_error (&error);
-
-  if (fs_codec_are_equal (codec, self->priv->codec))
-    goto done;
-
-
-  if (!fs_rtp_session_substream_add_codec_bin (self->priv->session,
-          self, self->priv->ssrc, self->priv->pt, &error))
-  {
-    gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
-        " ssrc %u and payload type %d to the state NULL", self->priv->ssrc,
-        self->priv->pt);
-
-    fs_rtp_sub_stream_emit_error (self, FS_ERROR_CONSTRUCTION,
-        "Could not add the new recv codec bin", str);
-    g_free (str);
-    goto done;
-  }
-
-  g_clear_error (&error);
-
- done:
+  FS_RTP_SESSION_LOCK (self->priv->session);
 
   if (!self->priv->codecbin || !self->priv->codec)
   {
