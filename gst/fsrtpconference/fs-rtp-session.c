@@ -2068,6 +2068,7 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
   GstElement *codecbin = NULL;
   CodecAssociation *ca = NULL;
   gchar *name;
+  FsCodec *current_codec = NULL;
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -2086,6 +2087,14 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
     goto out;
   }
 
+  g_object_get (substream, "codec", &current_codec, NULL);
+
+  if (fs_codec_are_equal (ca->codec, current_codec))
+  {
+    ret = TRUE;
+    goto out;
+  }
+
   name = g_strdup_printf ("recv%u_%d", ssrc, pt);
   codecbin = _create_codec_bin (ca->blueprint, ca->codec, name, FALSE, error);
   g_free (name);
@@ -2096,6 +2105,8 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
   ret = fs_rtp_sub_stream_set_codecbin (substream, ca->codec, codecbin, error);
 
  out:
+  fs_codec_destroy (current_codec);
+
   FS_RTP_SESSION_UNLOCK (session);
 
   return ret;
@@ -2484,9 +2495,6 @@ static void
 _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session)
 {
-  CodecAssociation *codec_association = NULL;
-  FsCodec *codec = NULL;
-  FsCodec *current_codec = NULL;
   GError *error = NULL;
   gint pt;
   guint32 ssrc;
@@ -2494,32 +2502,7 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
   g_object_get (substream,
       "pt", &pt,
       "ssrc", &ssrc,
-      "codec", &current_codec,
       NULL);
-
-  FS_RTP_SESSION_LOCK (session);
-
-  codec_association = lookup_codec_association_by_pt (
-      session->priv->negotiated_codec_associations, pt);
-
-  if (!codec_association)
-  {
-    gchar *str = g_strdup_printf ("Could not get the new recv codec for"
-        " pt %d", pt);
-    if (stream)
-      fs_stream_emit_error (FS_STREAM (stream), FS_ERROR_UNKNOWN_CODEC, str,
-          str);
-    else
-      fs_session_emit_error (FS_SESSION (session), FS_ERROR_UNKNOWN_CODEC, str,
-          str);
-    goto done;
-  }
-
-
-  codec = codec_association->codec;
-
-  if (fs_codec_are_equal (codec, current_codec))
-    goto done;
 
   if (!fs_rtp_session_substream_add_codec_bin (session, substream, ssrc, pt,
           &error))
@@ -2538,10 +2521,6 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
   }
 
  done:
-
-  FS_RTP_SESSION_UNLOCK (session);
-
-  fs_codec_destroy (current_codec);
 
   g_clear_error (&error);
 }
