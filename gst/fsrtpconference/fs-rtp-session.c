@@ -201,13 +201,6 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
   GParameter *parameters,
   GError **error);
 
-static GstElement *
-fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
-    guint32 ssrc,
-    guint pt,
-    FsCodec **out_codec,
-    GError **error);b
-
 static void
 _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
@@ -1715,40 +1708,6 @@ _substream_error (FsRtpSubStream *substream,
   fs_session_emit_error (session, errorno, error_msg, debug_msg);
 }
 
-
-gboolean
-fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
-    gpointer ss,
-    guint32 ssrc,
-    guint pt,
-    GError **error)
-{
-  FsRtpSubStream *substream = ss;
-  gboolean ret = FALSE;
-  FsCodec *codec = NULL;
-  GstElement *codecbin = NULL;
-
-  FS_RTP_SESSION_LOCK (session);
-
-  codecbin = fs_rtp_session_new_recv_codec_bin_locked (session, ssrc, pt,
-      &codec, error);
-
-  if (!codecbin)
-  {
-    ret = FALSE;
-    goto out;
-  }
-
-  ret = fs_rtp_sub_stream_set_codecbin (substream, codec, codecbin, error);
-
- out:
-  FS_RTP_SESSION_UNLOCK (session);
-
-  fs_codec_destroy (codec);
-
-  return ret;
-}
-
 /**
  * fs_rtp_session_new_recv_pad:
  * @session: a #FsSession
@@ -2070,65 +2029,63 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
   return NULL;
 }
 
+
 /**
- * fs_rtp_session_new_recv_codec_bin_locked:
+ * fs_rtp_session_substream_add_codec_bin:
  * @session: a #FsRtpSession
- * @ssrc: The SSRC that this codec bin will receive from
- * @pt: The payload type to create a codec bin for
- * @out_codec: The address where a newly-allocated copy of the #FsCodec
- *   this codec bin is for
- * @error: the location where a #GError can be stored (or NULL)
+ * @ss: a #FsRtpSubStream
+ * @ssrc: the ssrc of the substream
+ * @pt: the payload type of the substream
+ * @error: location of a #GError, or NULL if no error occured
  *
- * This function will create a new reception codec bin for the specified codec
+ * Adds a codecbin to a substream according to the currently negotiated codecs
  *
- * Must be called with the FsRtpSession lock taken
- *
- * Returns: a newly-allocated codec bin
+ * Returns: %TRUE on success, %FALSE on error
  */
 
-static GstElement *
-fs_rtp_session_new_recv_codec_bin_locked (FsRtpSession *session,
+gboolean
+fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
+    gpointer ss,
     guint32 ssrc,
     guint pt,
-    FsCodec **out_codec,
     GError **error)
 {
-  GstElement *codec_bin = NULL;
+  FsRtpSubStream *substream = ss;
+  gboolean ret = FALSE;
+  GstElement *codecbin = NULL;
   CodecAssociation *ca = NULL;
-  CodecBlueprint *blueprint = NULL;
-  FsCodec *codec = NULL;
   gchar *name;
+
+  FS_RTP_SESSION_LOCK (session);
 
   if (!session->priv->negotiated_codec_associations) {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-      "No negotiated codecs yet");
-      return NULL;
+        "No negotiated codecs yet");
+    goto out;
   }
 
   ca = lookup_codec_association_by_pt (
       session->priv->negotiated_codec_associations, pt);
 
-  if (ca) {
-    /* We don't need to copy the blueprint because its static
-     * as long as the session object exists */
-    blueprint = ca->blueprint;
-    codec = fs_codec_copy (ca->codec);
-  }
-
   if (!ca) {
     g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
       "There is no negotiated codec with pt %d", pt);
-    return NULL;
+    goto out;
   }
 
   name = g_strdup_printf ("recv%u_%d", ssrc, pt);
-  codec_bin = _create_codec_bin (blueprint, codec, name, FALSE, error);
+  codecbin = _create_codec_bin (ca->blueprint, ca->codec, name, FALSE, error);
   g_free (name);
 
-  if (out_codec)
-    *out_codec = codec;
+  if (!codecbin)
+    goto out;
 
-  return codec_bin;
+  ret = fs_rtp_sub_stream_set_codecbin (substream, ca->codec, codecbin, error);
+
+ out:
+  FS_RTP_SESSION_UNLOCK (session);
+
+  return ret;
 }
 
 
