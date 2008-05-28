@@ -1751,7 +1751,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
-  if (!fs_rtp_sub_stream_set_codecbin (substream, &error)) {
+  if (!fs_rtp_sub_stream_create_codecbin (substream, &error)) {
     if (error)
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the codec bin to the new substream", error->message);
