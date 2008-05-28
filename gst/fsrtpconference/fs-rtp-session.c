@@ -2474,6 +2474,12 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   return TRUE;
 }
 
+/*
+ * This callback is called when the pad of a substream has been locked because
+ * the codec needs to be changed. It will see if there is a new codec to be set,
+ * if there is, it will change the codec bin.
+ */
+
 static void
 _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session)
