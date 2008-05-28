@@ -2474,37 +2474,11 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   return TRUE;
 }
 
-/**
- * fs_rtp_session_get_recv_codec_for_pt
- *
- * Gets the Codec from its PT from the codecs associations table
- *
- * Return: a copy of the #FsCodec or NULL
- */
-static FsCodec *
-fs_rtp_session_get_recv_codec_for_pt (FsRtpSession *session,
-    gint pt)
-{
-  CodecAssociation *codec_association = NULL;
-  FsCodec *codec = NULL;
-
-  FS_RTP_SESSION_LOCK (session);
-
-  codec_association = lookup_codec_association_by_pt (
-      session->priv->negotiated_codec_associations, pt);
-
-  if (codec_association)
-    codec = fs_codec_copy (codec_association->codec);
-
-  FS_RTP_SESSION_UNLOCK (session);
-
-  return codec;
-}
-
 static void
 _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session)
 {
+  CodecAssociation *codec_association = NULL;
   FsCodec *codec = NULL;
   FsCodec *current_codec = NULL;
   GError *error = NULL;
@@ -2517,9 +2491,12 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
       "codec", &current_codec,
       NULL);
 
-  codec = fs_rtp_session_get_recv_codec_for_pt (session, pt);
+  FS_RTP_SESSION_LOCK (session);
 
-  if (!codec)
+  codec_association = lookup_codec_association_by_pt (
+      session->priv->negotiated_codec_associations, pt);
+
+  if (!codec_association)
   {
     gchar *str = g_strdup_printf ("Could not get the new recv codec for"
         " pt %d", pt);
@@ -2531,6 +2508,9 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
           str);
     goto done;
   }
+
+
+  codec = codec_association->codec;
 
   if (fs_codec_are_equal (codec, current_codec))
     goto done;
@@ -2553,7 +2533,7 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
 
  done:
 
-  fs_codec_destroy (current_codec);
+  FS_RTP_SESSION_UNLOCK (session);
 
   g_clear_error (&error);
 }
