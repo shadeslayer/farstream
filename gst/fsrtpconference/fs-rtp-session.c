@@ -188,6 +188,8 @@ static void fs_rtp_session_send_codec_changed (FsRtpSession *self);
 
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
+static void _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
+    FsRtpSession *session);
 
 static GError* _stream_new_remote_codecs (FsRtpStream *stream, GList *codecs,
     FsRtpSession *session);
@@ -1750,6 +1752,9 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
+  g_signal_connect (substream, "blocked", G_CALLBACK (_substream_blocked),
+      session);
+
   if (!fs_rtp_session_substream_add_codec_bin (session, substream, ssrc, pt,
           &error))
   {
@@ -2461,6 +2466,11 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   return TRUE;
 }
 
+static void
+_substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
+    FsRtpSession *session)
+{
+}
 
 /**
  * fs_rtp_session_get_recv_codec_for_pt
