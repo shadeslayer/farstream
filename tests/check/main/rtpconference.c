@@ -392,7 +392,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
         fs_codec_are_equal (
             g_list_last (negotiated_codecs)->data,
             g_object_get_data (G_OBJECT (element), "codec")),
-        "The handoff handler got a buffer from the wrong codec");
+        "The handoff handler got a buffer from the wrong codec (last)");
   else
     ts_fail_unless (
         fs_codec_are_equal (
@@ -485,6 +485,9 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
       "sync", TRUE,
       "async", TRUE,
       NULL);
+
+  ts_fail_if (codec->encoding_name == NULL,
+      "Got invalid codec without an encoding_name");,
 
   g_object_set_data (G_OBJECT (fakesink), "codec", codeccopy);
   g_object_weak_ref (G_OBJECT (fakesink),
