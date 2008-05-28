@@ -152,32 +152,32 @@ static void fs_rtp_session_dispose (GObject *object);
 static void fs_rtp_session_finalize (GObject *object);
 
 static void fs_rtp_session_get_property (GObject *object,
-                                         guint prop_id,
-                                         GValue *value,
-                                         GParamSpec *pspec);
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
 static void fs_rtp_session_set_property (GObject *object,
-                                         guint prop_id,
-                                         const GValue *value,
-                                         GParamSpec *pspec);
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
 
 static void fs_rtp_session_constructed (GObject *object);
 
 static FsStream *fs_rtp_session_new_stream (FsSession *session,
-                                            FsParticipant *participant,
-                                            FsStreamDirection direction,
-                                            const gchar *transmitter,
-                                            guint n_parameters,
-                                            GParameter *parameters,
-                                            GError **error);
+    FsParticipant *participant,
+    FsStreamDirection direction,
+    const gchar *transmitter,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error);
 static gboolean fs_rtp_session_start_telephony_event (FsSession *session,
-                                                      guint8 event,
-                                                      guint8 volume,
-                                                      FsDTMFMethod method);
+    guint8 event,
+    guint8 volume,
+    FsDTMFMethod method);
 static gboolean fs_rtp_session_stop_telephony_event (FsSession *session,
-                                                     FsDTMFMethod method);
+    FsDTMFMethod method);
 static gboolean fs_rtp_session_set_send_codec (FsSession *session,
-                                               FsCodec *send_codec,
-                                               GError **error);
+    FsCodec *send_codec,
+    GError **error);
 static gboolean fs_rtp_session_set_local_codecs_config (FsSession *session,
     GList *local_codecs_config,
     GError **error);
@@ -196,24 +196,23 @@ static GError* _stream_new_remote_codecs (FsRtpStream *stream, GList *codecs,
 
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
-  FsRtpSession *self,
-  const gchar *transmitter_name,
-  FsParticipant *participant,
-  guint n_parameters,
-  GParameter *parameters,
-  GError **error);
+    FsRtpSession *self,
+    const gchar *transmitter_name,
+    FsParticipant *participant,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error);
 
-static gboolean
-fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
+static gboolean fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
     FsRtpSubStream *substream,
     guint32 ssrc,
     guint pt,
     GError **error);
 
-
-static void
-_remove_stream (gpointer user_data,
+static void _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
+
+
 
 static GObjectClass *parent_class = NULL;
 
