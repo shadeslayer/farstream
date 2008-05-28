@@ -974,7 +974,6 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   FsCodec *codec = NULL;
   gboolean ret = TRUE;
   GError *error = NULL;
-  gboolean success = FALSE;
 
   FS_RTP_SESSION_LOCK (self->priv->session);
 
@@ -995,10 +994,7 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   g_clear_error (&error);
 
   if (fs_codec_are_equal (codec, self->priv->codec))
-  {
-    success = TRUE;
     goto done;
-  }
 
 
   if (!fs_rtp_session_substream_add_codec_bin (self->priv->session,
@@ -1016,12 +1012,15 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   g_clear_error (&error);
 
-  success = TRUE;
-
  done:
-  if (success && GST_IS_BUFFER (miniobj))
+
+  if (!self->priv->codecbin || !self->priv->codec)
   {
-    GstCaps *caps = fs_codec_to_gst_caps (codec);
+    ret = FALSE;
+  }
+  else if (GST_IS_BUFFER (miniobj))
+  {
+    GstCaps *caps = fs_codec_to_gst_caps (self->priv->codec);
     GstCaps *intersection = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
         caps);
 
