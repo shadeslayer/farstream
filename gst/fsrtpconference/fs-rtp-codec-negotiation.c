@@ -430,6 +430,9 @@ create_local_codec_associations (
   {
     CodecAssociation *lca = lca_e->data;
 
+    if (lca->reserved)
+      continue;
+
     if (lookup_codec_association_by_pt_list (current_codec_associations,
             lca->codec->id, TRUE) ||
         lca->codec->id < 0)
