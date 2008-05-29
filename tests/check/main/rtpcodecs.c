@@ -275,6 +275,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   GList *codec_prefs = NULL;
   FsParticipant *p = NULL;
   FsStream *s = NULL;
+  guint id = 96;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
@@ -282,7 +283,14 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    if (codec->id == 96)
+    g_debug ("Found %s", fs_codec_to_string (codec));
+  }
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+
+    id = codec->id;
+    if (codec->id >= 96)
       break;
   }
   fs_codec_list_destroy (codecs);
@@ -294,7 +302,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
     goto out;
   }
 
-  codec_prefs = g_list_prepend (NULL, fs_codec_new (96, "reserve-pt",
+  codec_prefs = g_list_prepend (NULL, fs_codec_new (id, "reserve-pt",
                                                FS_MEDIA_TYPE_AUDIO, 0));
 
   fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
@@ -304,11 +312,11 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    if (codec->id == 96)
+    if (codec->id == id)
       break;
   }
-  fail_if (item, "Found codec with payload type 96, even though it should have"
-           " been reserved");
+  fail_if (item, "Found codec with payload type %u, even though it should have"
+      " been reserved", id);
   fs_codec_list_destroy (codecs);
 
   cleanup_simple_conference (dat);
@@ -335,13 +343,13 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    if (codec->id == 96)
+    if (codec->id == id)
       break;
   }
   fs_codec_list_destroy (codecs);
 
-  fail_if (item == NULL, "There is no pt 96 in the negotiated codecs, "
-      "but there was one in the local codecs");
+  fail_if (item == NULL, "There is no pt %u in the negotiated codecs, "
+      "but there was one in the local codecs", id);
 
   fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
           NULL), "Could not set local-codes config after set_remote_codecs");
@@ -350,11 +358,11 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    if (codec->id == 96)
+    if (codec->id == id)
       break;
   }
-  fail_if (item, "Found codec with payload type 96, even though it should have"
-           " been disabled");
+  fail_if (item, "Found codec with payload type %u, even though it should have"
+      " been disabled", id);
   fs_codec_list_destroy (codecs);
 
 
@@ -365,11 +373,11 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    if (codec->id == 96)
+    if (codec->id == id)
       break;
   }
-  fail_if (item, "Found codec with payload type 96, even though it should have"
-           " been disabled");
+  fail_if (item, "Found codec with payload type %u, even though it should have"
+      " been disabled", id);
   fs_codec_list_destroy (codecs);
 
   fs_codec_list_destroy (codec_prefs);
