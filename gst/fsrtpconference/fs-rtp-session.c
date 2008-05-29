@@ -1539,10 +1539,10 @@ fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
  *
  * MT safe
  *
- * Returns: TRUE if the negotiation succeeds, FALSE otherwise
+ * Returns: the newly negotiated codec associations or %NULL on error
  */
 
-static gboolean
+static GList *
 fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     FsRtpStream *stream,
     GList *remote_codecs,
@@ -1552,13 +1552,8 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   gboolean has_many_streams = FALSE;
   GList *new_negotiated_codec_associations = NULL;
   GList *item;
-  gboolean is_new = TRUE;
-  GList *old_negotiated_codec_associations;
 
   FS_RTP_SESSION_LOCK (session);
-
-  old_negotiated_codec_associations =
-    session->priv->codec_associations;
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -1623,6 +1618,62 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   new_negotiated_codec_associations = finish_codec_negotiation (
       session->priv->codec_associations,
       new_negotiated_codec_associations);
+
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  return new_negotiated_codec_associations;
+
+ nego_error:
+  FS_RTP_SESSION_UNLOCK (session);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
+      "There was no intersection between the remote codecs and the local ones");
+  return NULL;;
+
+}
+
+
+
+/**
+ * fs_rtp_session_update_codecs:
+ * @session: a #FsRtpSession
+ * @stream: The #FsRtpStream to which the new remote codecs belong
+ * @remote_codecs: The #GList of remote codecs to use for that stream
+ *
+ * Negotiates the codecs using the current (stored) codecs
+ * and the remote codecs from each stream.
+ * If a stream is specified, it will use the specified remote codecs
+ * instead of the ones currently in the stream
+ *
+ * MT safe
+ *
+ * Returns: TRUE if the negotiation succeeds, FALSE otherwise
+ */
+
+static gboolean
+fs_rtp_session_update_codecs (FsRtpSession *session,
+    FsRtpStream *stream,
+    GList *remote_codecs,
+    GError **error)
+{
+  GList *new_negotiated_codec_associations = NULL;
+  gboolean is_new = TRUE;
+  GList *old_negotiated_codec_associations;
+
+  FS_RTP_SESSION_LOCK (session);
+
+  old_negotiated_codec_associations =
+    session->priv->codec_associations;
+
+  new_negotiated_codec_associations = fs_rtp_session_negotiate_codecs (
+      session, stream, remote_codecs, error);
+
+  if (!new_negotiated_codec_associations)
+  {
+    FS_RTP_SESSION_UNLOCK (session);
+    return FALSE;
+  }
 
   session->priv->codec_associations = new_negotiated_codec_associations;
 
@@ -1690,15 +1741,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   }
 
   return TRUE;
-
- nego_error:
-  FS_RTP_SESSION_UNLOCK (session);
-
-  g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
-      "There was no intersection between the remote codecs and the local ones");
-  return FALSE;
 }
-
 
 static GError *
 _stream_new_remote_codecs (FsRtpStream *stream,
@@ -1708,7 +1751,7 @@ _stream_new_remote_codecs (FsRtpStream *stream,
   GError *error = NULL;
   gboolean rv;
 
-  rv = fs_rtp_session_negotiate_codecs (session, stream, codecs, &error);
+  rv = fs_rtp_session_update_codecs (session, stream, codecs, &error);
 
   if (!rv && !error)
     error = g_error_new (FS_ERROR, FS_ERROR_INTERNAL,
