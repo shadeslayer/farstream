@@ -506,10 +506,10 @@ create_local_codec_associations (
                 tmpca->codec->id, TRUE))
           continue;
 
-        ca = g_slice_new0 (CodecAssociation);
-        ca->blueprint = bp;
-        ca->codec = fs_codec_copy (bp->codec);
-        ca->codec->id = tmpca->codec->id;
+        ca = codec_association_copy (tmpca);
+        ca->disable = FALSE;
+        ca->reserved = FALSE;
+        ca->recv_only = FALSE;
         codec_associations = g_list_append (codec_associations, ca);
         next = TRUE;
       }
