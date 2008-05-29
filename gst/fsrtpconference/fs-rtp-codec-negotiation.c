@@ -319,7 +319,9 @@ create_local_codec_associations (
     if (codec_pref->id == FS_CODEC_ID_DISABLE)
       continue;
 
-    /* If we want to disable a codec ID, we just insert a NULL in the table */
+    /* If we want to disable a codec ID, we just insert a reserved codec assoc
+     * in the list
+     */
     if (codec_pref->id >= 0 && codec_pref->id < 128 &&
         codec_pref->encoding_name &&
         !g_ascii_strcasecmp (codec_pref->encoding_name, "reserve-pt"))
@@ -773,8 +775,7 @@ codec_associations_to_codecs (GList *codec_associations)
     CodecAssociation *ca = item->data;
     if (!ca->disable && !ca->reserved && !ca->recv_only && ca->codec)
     {
-      codecs = g_list_append (codecs,
-          fs_codec_copy (ca->codec));
+      codecs = g_list_append (codecs, fs_codec_copy (ca->codec));
     }
   }
 
