@@ -649,6 +649,18 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
+  /* Create an initial list of local codec associations */
+  self->priv->codec_associations = create_local_codec_associations (
+      self->priv->blueprints, NULL, NULL);
+
+  if (!self->priv->codec_associations)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR, FS_ERROR_INTERNAL,
+        "Unable to create initial codec associations"
+        " from the discovered codecs");
+    return;
+  }
+
   tmp = g_strdup_printf ("valve_send_%u", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
   g_free (tmp);
