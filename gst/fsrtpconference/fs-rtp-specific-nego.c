@@ -41,6 +41,7 @@ struct SdpCompatCheck {
   FsMediaType media_type;
   const gchar *encoding_name;
   FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec);
+  gboolean needs_config;
 };
 
 
@@ -52,16 +53,32 @@ static FsCodec *
 sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
-  {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc},
-  {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998},
-  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_theora_vorbis},
-  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_theora_vorbis},
+  {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc, FALSE},
+  {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998, FALSE},
+  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_theora_vorbis, TRUE},
+  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_theora_vorbis, TRUE},
   {0, NULL, NULL}
 };
 
-
 static FsCodec *
 sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
+
+
+gboolean
+codec_needs_config (FsCodec *codec)
+{
+  gint i;
+
+  g_return_val_if_fail (codec, FALSE);
+
+  for (i = 0; sdp_compat_checks[i].sdp_is_compat; i++)
+    if (sdp_compat_checks[i].media_type == codec->media_type &&
+        !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
+            codec->encoding_name))
+      return sdp_compat_checks[i].needs_config;
+
+  return FALSE;
+}
 
 FsCodec *
 sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)

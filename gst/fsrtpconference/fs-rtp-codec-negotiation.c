@@ -535,6 +535,19 @@ create_local_codec_associations (
     codec_associations = g_list_append (codec_associations, ca);
   }
 
+  for (lca_e = codec_associations;
+       lca_e;
+       lca_e = g_list_next (lca_e))
+  {
+    CodecAssociation *ca = lca_e->data;
+
+    if (ca->reserved || ca->disable)
+      ca->need_config = FALSE;
+    else
+      ca->need_config= codec_needs_config (ca->codec);
+  }
+
+
   return codec_associations;
 
  error:

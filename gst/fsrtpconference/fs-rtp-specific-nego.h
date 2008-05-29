@@ -34,6 +34,9 @@ G_BEGIN_DECLS
 FsCodec *
 sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec);
 
+gboolean
+codec_needs_config (FsCodec *codec);
+
 G_END_DECLS
 
 #endif
