@@ -358,7 +358,7 @@ create_local_codec_associations (
       {
         oldca = lookup_codec_association_by_pt_list (current_codec_associations,
             codec_pref->id, FALSE);
-        if (oldca->reserved)
+        if (oldca && oldca->reserved)
           oldca = NULL;
       }
 
