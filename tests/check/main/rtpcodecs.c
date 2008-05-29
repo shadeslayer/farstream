@@ -47,6 +47,17 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
 
   g_object_get (dat->session, "local-codecs", &orig_codecs, NULL);
 
+  fail_unless (fs_session_set_local_codecs_config (dat->session, orig_codecs,
+          &error), "Could not set local codecs as codec config");
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+
+  fail_unless (fs_codec_list_are_equal (orig_codecs, codecs),
+      "Setting local codecs as preferences changes the list of local codecs");
+
+  fs_codec_list_destroy (codecs);
+  codecs = NULL;
+
   for (item = g_list_first (orig_codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -58,7 +69,7 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
   fail_unless (has0 && has8, "You need the PCMA and PCMU encoder and payloades"
       " from gst-plugins-good");
 
-  codecs = g_list_append (codecs,
+  codecs = g_list_append (NULL,
       fs_codec_new (
           FS_CODEC_ID_DISABLE,
           "PCMU",
