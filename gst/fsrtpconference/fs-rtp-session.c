@@ -2377,6 +2377,11 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
 
   g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
 
+  session->priv->send_codecbin = codecbin;
+  session->priv->current_send_codec = fs_codec_copy (codec);
+
+  fs_rtp_session_send_codec_changed (session);
+
   return codecbin;
 
  error:
@@ -2470,14 +2475,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   codecbin = fs_rtp_session_add_send_codec_bin (self, ca->codec, ca->blueprint,
       &error);
 
-  if (codecbin)
-  {
-    self->priv->send_codecbin = codecbin;
-    self->priv->current_send_codec = fs_codec_copy (ca->codec);
-
-    fs_rtp_session_send_codec_changed (self);
-  }
-  else
+  if (!codecbin)
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not build a new send codec bin", error->message);
@@ -2578,13 +2576,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
         ca->blueprint,
         error);
 
-    if (codecbin) {
-      self->priv->send_codecbin = codecbin;
-      self->priv->current_send_codec = fs_codec_copy (ca->codec);
-
-      fs_rtp_session_send_codec_changed (self);
-    }
-    else
+    if (!codecbin)
     {
       /* We have an error !! */
       return FALSE;
