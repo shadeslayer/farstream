@@ -294,11 +294,6 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    g_debug ("Found %s", fs_codec_to_string (codec));
-  }
-  for (item = g_list_first (codecs); item; item = g_list_next (item))
-  {
-    FsCodec *codec = item->data;
 
     id = codec->id;
     if (codec->id >= 96)
