@@ -37,6 +37,9 @@ sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec);
 gboolean
 codec_needs_config (FsCodec *codec);
 
+gboolean
+codec_has_config_data_named (FsCodec *codec, const gchar *name);
+
 G_END_DECLS
 
 #endif
