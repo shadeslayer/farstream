@@ -121,6 +121,7 @@ fs_codec_list_are_equal
 fs_codec_to_string
 fs_codec_to_gst_caps
 fs_codec_add_optional_parameter
+fs_codec_add_config_parameter
 <SUBSECTION Standard>
 FS_TYPE_CODEC
 FS_TYPE_CODEC_LIST
