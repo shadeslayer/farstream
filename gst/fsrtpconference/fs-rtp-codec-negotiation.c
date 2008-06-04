@@ -506,10 +506,11 @@ create_local_codec_associations (
                 tmpca->codec->id, TRUE))
           continue;
 
-        ca = codec_association_copy (tmpca);
-        ca->disable = FALSE;
-        ca->reserved = FALSE;
-        ca->recv_only = FALSE;
+        ca = g_slice_new0 (CodecAssociation);
+        ca->blueprint = bp;
+        ca->codec = fs_codec_copy (bp->codec);
+        ca->codec->id = tmpca->codec->id;
+
         codec_associations = g_list_append (codec_associations, ca);
         next = TRUE;
       }
@@ -692,6 +693,32 @@ finish_codec_negotiation (
     GList *new_codec_associations)
 {
   int i;
+  GList *item = NULL;
+
+  /* Keep the codec config data if the codecs haven't changed */
+
+  for (item = new_codec_associations;
+       item;
+       item = g_list_next (item))
+  {
+    CodecAssociation *newca = item->data;
+    CodecAssociation *oldca = lookup_codec_association_by_codec (
+        old_codec_associations, newca->codec);
+
+    if (oldca)
+    {
+      GList *item2 = NULL;
+
+      for (item2 = oldca->codec->config_params;
+           item2;
+           item2 = g_list_next (item2))
+      {
+        FsCodecParameter *param = item2->data;
+        fs_codec_add_config_parameter (newca->codec, param->name, param->value);
+      }
+    }
+  }
+
 
   /* Now, lets fill all of the PTs that were previously used in the session
    * even if they are not currently used, so they can't be re-used
