@@ -46,6 +46,7 @@
 #include "fs-rtp-codec-negotiation.h"
 #include "fs-rtp-substream.h"
 #include "fs-rtp-special-source.h"
+#include "fs-rtp-specific-nego.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
@@ -107,6 +108,18 @@ struct _FsRtpSessionPrivate
    * only this element's methods can add/remote it
    */
   GstPad *media_sink_pad;
+
+
+  /* The discovery elements are only created when codec parameter discovery is
+   * under progress.
+   * They are normally destroyed when the caps are found but may be destroyed
+   * by the dispose function too, we hold refs to them
+   */
+  GstElement *discovery_fakesink;
+  GstElement *discovery_capsfilter;
+  GstElement *discovery_codecbin;
+  FsCodec *discovery_codec;
+  gulong discovery_blocking_id;
 
   /* Request pad to release on dispose */
   GstPad *rtpbin_send_rtp_sink;
@@ -223,6 +236,12 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     FsRtpStream *stream,
     GList *remote_codecs,
     GError **error);
+
+static void
+fs_rtp_session_start_codec_param_gathering (FsRtpSession *session);
+static void
+fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session);
+
 
 static GObjectClass *parent_class = NULL;
 
@@ -389,6 +408,8 @@ fs_rtp_session_dispose (GObject *object)
     gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
   if (self->priv->rtpbin_send_rtp_sink)
     gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
+
+  fs_rtp_session_stop_codec_param_gathering (self);
 
   stop_and_remove (conferencebin, &self->priv->rtpmuxer, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_capsfilter, TRUE);
@@ -589,7 +610,7 @@ fs_rtp_session_get_property (GObject *object,
              item = g_list_next (item))
         {
           CodecAssociation *ca = item->data;
-          if (ca->need_config)
+          if (!ca->disable && ca->need_config)
             break;
         }
         FS_RTP_SESSION_UNLOCK (self);
@@ -1122,6 +1143,8 @@ fs_rtp_session_constructed (GObject *object)
   }
 
   gst_element_set_state (capsfilter, GST_STATE_PLAYING);
+
+  fs_rtp_session_start_codec_param_gathering (self);
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
@@ -1790,6 +1813,8 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
   if (old_negotiated_codec_associations)
     codec_association_list_destroy (old_negotiated_codec_associations);
+
+  fs_rtp_session_start_codec_param_gathering (session);
 
   if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
   {
@@ -2832,4 +2857,452 @@ fs_rtp_session_bye_ssrc (FsRtpSession *session,
    * Remove running streams with that SSRC .. lets also check if they
    * come from the right ip/port/etc ??
    */
+}
+
+static void
+_discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
+{
+  GstCaps *caps = NULL;
+  GstStructure *s = NULL;
+  int i;
+  FsCodec *codec = NULL;
+  CodecAssociation *ca = NULL;
+
+  g_object_get (pad, "caps", &caps, NULL);
+
+  g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
+
+  s = gst_caps_get_structure (caps, 0);
+
+  FS_RTP_SESSION_LOCK (session);
+
+  if (!session->priv->discovery_codec)
+  {
+    fs_session_emit_error (FS_SESSION (session), FS_ERROR_INTERNAL,
+        "Internal error while discovering codecs configurations",
+        "Got notify::caps signal on the discovery codecs whith no codecs"
+        " being discovered");
+    goto out;
+  }
+
+  codec = session->priv->discovery_codec;
+
+  session->priv->discovery_codec = NULL;
+
+  ca = lookup_codec_association_by_codec (session->priv->codec_associations,
+      codec);
+
+  if (!ca)
+  {
+    fs_codec_destroy (codec);
+    goto out;
+  }
+
+  for (i = 0; i < gst_structure_n_fields (s); i++)
+  {
+    const gchar *name = gst_structure_nth_field_name (s, i);
+    if (name)
+    {
+      const gchar *value = gst_structure_get_string (s, name);
+      if (value)
+      {
+        if (codec_has_config_data_named (codec, name))
+        {
+          GList *item = NULL;
+
+          for (item = codec->config_params; item; item = g_list_next (item))
+          {
+            FsCodecParameter *param = item->data;
+            if (!g_ascii_strcasecmp (param->name, name))
+            {
+              if (!g_ascii_strcasecmp (param->value, value))
+                break;
+
+              /* replace the value if its different */
+              codec->config_params = g_list_delete_link (codec->config_params,
+                  item);
+              fs_codec_add_config_parameter (codec, name, value);
+              break;
+            }
+          }
+
+          /* Add it if it wasn't there */
+          if (item == NULL)
+            fs_codec_add_config_parameter (codec, name, value);
+        }
+      }
+    }
+  }
+
+  fs_codec_destroy (ca->codec);
+  ca->codec = codec;
+  ca->need_config = FALSE;
+
+ out:
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  if (caps)
+    gst_caps_unref (caps);
+}
+
+/**
+ * fs_rtp_session_get_codec_params:
+ * @session: a #FsRtpSession
+ * @ca: the #CodecAssociaton to get params for
+ *
+ * Gets the parameters for the specified #CodecAssociation
+ *
+ * Returns: %TRUE on success, %FALSE on error
+ */
+
+static gboolean
+fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
+    GError **error)
+{
+  GstPad *pad = NULL;
+  gchar *tmp;
+
+  FS_RTP_SESSION_LOCK (session);
+
+  if (session->priv->discovery_codecbin)
+  {
+    gst_element_set_locked_state (session->priv->discovery_codecbin, TRUE);
+    gst_element_set_state (session->priv->discovery_codecbin, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_codecbin);
+    session->priv->discovery_codecbin = NULL;
+  }
+
+  if ((session->priv->discovery_fakesink == NULL ||
+          session->priv->discovery_capsfilter == NULL) &&
+      session->priv->discovery_fakesink != session->priv->discovery_capsfilter)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Capsfilter and fakesink not synchronized, fakesink:%p capsfilter:%p",
+        session->priv->discovery_fakesink, session->priv->discovery_capsfilter);
+    goto error;
+  }
+
+  if (session->priv->discovery_fakesink == NULL &&
+      session->priv->discovery_capsfilter == NULL)
+  {
+    GstCaps *caps;
+
+    session->priv->discovery_fakesink =
+      gst_element_factory_make ("fakesink", NULL);
+    if (!session->priv->discovery_fakesink)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not make fakesink element");
+      goto error;
+    }
+    g_object_set (session->priv->discovery_fakesink,
+        "sync", FALSE,
+        "async", FALSE,
+        NULL);
+
+    if (!gst_bin_add (GST_BIN (session->priv->conference),
+            session->priv->discovery_fakesink))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not add the discovery fakesink to the bin");
+      goto error;
+    }
+
+    if (!gst_element_sync_state_with_parent (session->priv->discovery_fakesink))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not sync the discovery fakesink's state with its parent");
+      goto error;
+    }
+
+    session->priv->discovery_capsfilter =
+      gst_element_factory_make ("capsfilter", NULL);
+    if (!session->priv->discovery_capsfilter)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not make capsfilter element");
+      goto error;
+    }
+
+    caps = fs_codec_to_gst_caps (ca->codec);
+    g_object_set (session->priv->discovery_capsfilter,
+        "caps", caps,
+        NULL);
+    gst_caps_unref (caps);
+
+    if (!gst_bin_add (GST_BIN (session->priv->conference),
+            session->priv->discovery_capsfilter))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not add the discovery capsfilter to the bin");
+      goto error;
+    }
+
+    if (!gst_element_sync_state_with_parent (session->priv->discovery_fakesink))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not sync the discovery capsfilter's state with its parent");
+      goto error;
+    }
+
+    if (!gst_element_link_pads (session->priv->discovery_capsfilter, "src",
+            session->priv->discovery_fakesink, "sink"))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not link discovery capsfilter and fakesink");
+      goto error;
+    }
+
+    pad = gst_element_get_static_pad (session->priv->discovery_capsfilter,
+        "src");
+    g_signal_connect (pad, "notify::caps", G_CALLBACK (_discovery_caps_changed),
+        session);
+    gst_object_unref (pad);
+  }
+
+  tmp = g_strdup_printf ("discover_%d_%d", session->id, ca->codec->id);
+  session->priv->discovery_codecbin = _create_codec_bin (ca->blueprint,
+      ca->codec, tmp, TRUE, error);
+  g_free (tmp);
+
+  if (!session->priv->discovery_codecbin)
+    goto error;
+
+  if (!gst_bin_add (GST_BIN (session->priv->conference),
+            session->priv->discovery_codecbin))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the discovery codecbin to the bin");
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (session->priv->discovery_codecbin))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the discovery codecbin's state with its parent");
+    goto error;
+  }
+
+  if (!gst_element_link_pads (session->priv->discovery_codecbin, "src",
+            session->priv->discovery_capsfilter, "sink"))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link discovery codecbin and capsfilter");
+    goto error;
+  }
+
+  pad = gst_element_get_static_pad (session->priv->discovery_codecbin, "sink");
+
+  if (GST_PAD_LINK_FAILED (gst_pad_link (session->priv->send_tee_discovery_pad,
+              pad)))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the tee and the discovery codecbin");
+    gst_object_unref (pad);
+    goto error;
+  }
+
+  gst_object_unref (pad);
+
+  session->priv->discovery_codec = fs_codec_copy (ca->codec);
+
+  g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  return TRUE;
+
+ error:
+
+  if (session->priv->discovery_fakesink)
+  {
+    gst_element_set_locked_state (session->priv->discovery_fakesink, TRUE);
+    gst_element_set_state (session->priv->discovery_fakesink, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_fakesink);
+    session->priv->discovery_fakesink = NULL;
+  }
+
+  if (session->priv->discovery_capsfilter)
+  {
+    gst_element_set_locked_state (session->priv->discovery_capsfilter, TRUE);
+    gst_element_set_state (session->priv->discovery_capsfilter, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_capsfilter);
+    session->priv->discovery_capsfilter = NULL;
+  }
+
+  if (session->priv->discovery_codecbin)
+  {
+    gst_element_set_locked_state (session->priv->discovery_codecbin, TRUE);
+    gst_element_set_state (session->priv->discovery_codecbin, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_codecbin);
+    session->priv->discovery_codecbin = NULL;
+  }
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  return FALSE;
+}
+
+/**
+ * _send_sink_pad_have_data_callback:
+ *
+ * This is a callback function for the "have-data" signal, it returns always
+ * %TRUE, because we never drop buffers at this stage
+ */
+
+static gboolean
+_send_sink_pad_have_data_callback (GstPad *pad, GstMiniObject *obj,
+    FsRtpSession *session)
+{
+  GError *error = NULL;
+  GList *item = NULL;
+  CodecAssociation *ca = NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+
+  if (session->priv->discovery_codec)
+    goto out;
+
+
+  /* Find out if there is a codec that needs the config to be fetched */
+  for (item = g_list_first (session->priv->codec_associations);
+       item;
+       item = g_list_next (item))
+  {
+    ca = item->data;
+    if (ca->need_config)
+      break;
+  }
+  if (!item)
+  {
+    fs_rtp_session_stop_codec_param_gathering (session);
+    g_object_notify (G_OBJECT (session), "codecs-ready");
+    gst_element_post_message (GST_ELEMENT (session->priv->conference),
+        gst_message_new_element (GST_OBJECT (session->priv->conference),
+            gst_structure_new ("farsight-codecs-ready",
+                "session", FS_TYPE_SESSION, session,
+                NULL)));
+
+    goto out;
+  }
+
+  if (!fs_rtp_session_get_codec_params (session, ca, &error))
+  {
+    fs_rtp_session_stop_codec_param_gathering (session);
+    fs_session_emit_error (FS_SESSION (session), error->code,
+        "Error while discovering codec data, discovery cancelled",
+        error->message);
+  }
+
+ out:
+
+  g_clear_error (&error);
+
+  FS_RTP_SESSION_UNLOCK (session);
+  return TRUE;
+}
+
+/**
+ * fs_rtp_session_start_codec_param_gathering
+ * @session: a #FsRtpSession
+ *
+ * Check if there is any codec associations that requires codec discovery and
+ * if there is, starts the gathering process by adding a pad probe to the
+ * send valve
+ */
+
+static void
+fs_rtp_session_start_codec_param_gathering (FsRtpSession *session)
+{
+  GList *item = NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+
+  /* Find out if there is a codec that needs the config to be fetched */
+  for (item = g_list_first (session->priv->codec_associations);
+       item;
+       item = g_list_next (item))
+  {
+    CodecAssociation *ca = item->data;
+    if (ca->need_config)
+      break;
+  }
+  if (!item)
+    goto out;
+
+  if (!session->priv->discovery_blocking_id)
+    session->priv->discovery_blocking_id = gst_pad_add_data_probe (
+        session->priv->media_sink_pad,
+        G_CALLBACK (_send_sink_pad_have_data_callback), session);
+
+ out:
+
+  FS_RTP_SESSION_UNLOCK (session);
+}
+
+
+/**
+ * fs_rtp_session_stop_codec_param_gathering
+ * @session: a #FsRtpSession
+ *
+ * Check if there is any codec associations that requires codec discovery and
+ * if there is, starts the gathering process by adding a pad probe to the
+ * send valve
+ */
+
+static void
+fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
+{
+
+  FS_RTP_SESSION_LOCK (session);
+
+  if (session->priv->discovery_codec)
+  {
+    fs_codec_destroy (session->priv->discovery_codec);
+    session->priv->discovery_codec = NULL;
+  }
+
+  if (session->priv->discovery_blocking_id)
+  {
+    gst_pad_remove_data_probe (session->priv->media_sink_pad,
+        session->priv->discovery_blocking_id);
+    session->priv->discovery_blocking_id = 0;
+  }
+
+  if (!session->priv->send_codecbin)
+    g_object_set (session->priv->media_sink_valve, "drop", TRUE, NULL);
+
+  if (session->priv->discovery_fakesink)
+  {
+    gst_element_set_locked_state (session->priv->discovery_fakesink, TRUE);
+    gst_element_set_state (session->priv->discovery_fakesink, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_fakesink);
+    session->priv->discovery_fakesink = NULL;
+  }
+
+  if (session->priv->discovery_capsfilter)
+  {
+    gst_element_set_locked_state (session->priv->discovery_capsfilter, TRUE);
+    gst_element_set_state (session->priv->discovery_capsfilter, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_capsfilter);
+    session->priv->discovery_capsfilter = NULL;
+  }
+
+  if (session->priv->discovery_codecbin)
+  {
+    gst_element_set_locked_state (session->priv->discovery_codecbin, TRUE);
+    gst_element_set_state (session->priv->discovery_codecbin, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (session->priv->conference),
+        session->priv->discovery_codecbin);
+    session->priv->discovery_codecbin = NULL;
+  }
+
+  FS_RTP_SESSION_UNLOCK (session);
 }
