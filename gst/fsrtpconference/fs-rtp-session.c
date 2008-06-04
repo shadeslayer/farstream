@@ -218,7 +218,11 @@ static gboolean fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
 static void _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
 
-
+static gboolean
+fs_rtp_session_update_codecs (FsRtpSession *session,
+    FsRtpStream *stream,
+    GList *remote_codecs,
+    GError **error);
 
 static GObjectClass *parent_class = NULL;
 
@@ -1303,9 +1307,10 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  GList *new_local_codec_associations = NULL;
+  GList *old_codec_configs = NULL;
   GList *new_local_codecs_configuration =
     fs_codec_list_copy (local_codecs_config);
+  gboolean ret;
 
   new_local_codecs_configuration =
     validate_codecs_configuration (
@@ -1316,16 +1321,16 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     GST_DEBUG ("None of the local codecs configuration passed are usable,"
         " this will restore the original list of detected codecs");
 
-  new_local_codec_associations = create_local_codec_associations (
-      self->priv->blueprints, new_local_codecs_configuration,
-      self->priv->codec_associations);
+  FS_RTP_SESSION_LOCK (self);
 
-  if (new_local_codec_associations)
+  old_codec_configs = self->priv->local_codecs_configuration;
+
+  self->priv->local_codecs_configuration = new_local_codecs_configuration;
+
+  ret = fs_rtp_session_update_codecs (self, NULL, NULL, error);
+  if (ret)
   {
-    codec_association_list_destroy (new_local_codec_associations);
-    fs_codec_list_destroy (self->priv->local_codecs_configuration);
-    self->priv->local_codecs_configuration =
-      new_local_codecs_configuration;
+    fs_codec_list_destroy (old_codec_configs);
 
     g_object_notify ((GObject*) self, "local-codecs");
     g_object_notify ((GObject*) self, "local-codecs-config");
@@ -1333,19 +1338,20 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
         gst_message_new_element (GST_OBJECT (self->priv->conference),
             gst_structure_new ("farsight-codecs-changed",
-                "session", FS_TYPE_SESSION, session,
+                "session", FS_TYPE_SESSION, self,
                 NULL)));
 
-    return TRUE;
   }
   else
   {
-    GST_WARNING ("Invalid new codec configurations");
     fs_codec_list_destroy (new_local_codecs_configuration);
-    g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS,
-        "Codec config would leave no valid local codecs, rejecting");
-    return FALSE;
+    self->priv->local_codecs_configuration = old_codec_configs;
+    GST_WARNING ("Invalid new codec configurations");
   }
+
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return ret;
 }
 
 FsRtpSession *
@@ -1641,10 +1647,10 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
   if (!new_negotiated_codec_associations)
   {
-    GST_ERROR ("Could not generate local codecs");
-    goto nego_error;
+    g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS,
+        "Codec config would leave no valid local codecs");
+    goto error;
   }
-
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -1674,7 +1680,12 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   }
 
   if (!new_negotiated_codec_associations)
-    goto nego_error;
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
+        "There was no intersection between the remote codecs"
+        " and the local ones");
+    goto error;
+  }
 
   new_negotiated_codec_associations = finish_codec_negotiation (
       session->priv->codec_associations,
@@ -1685,13 +1696,11 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
   return new_negotiated_codec_associations;
 
- nego_error:
+ error:
+
   FS_RTP_SESSION_UNLOCK (session);
 
-  g_set_error (error, FS_ERROR, FS_ERROR_NEGOTIATION_FAILED,
-      "There was no intersection between the remote codecs and the local ones");
   return NULL;;
-
 }
 
 
