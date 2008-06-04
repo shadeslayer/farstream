@@ -394,6 +394,54 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpcodecs_config_data)
+{
+  struct SimpleTestConference *dat = NULL;
+  GList *codecs = NULL, *item = NULL;
+  gboolean ready;
+  GError *error = NULL;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  codecs = g_list_prepend (NULL, fs_codec_new (FS_CODEC_ID_ANY, "VORBIS",
+          FS_MEDIA_TYPE_AUDIO, 16000));
+
+  fail_unless (fs_session_set_local_codecs_config (dat->session, codecs,
+          &error),
+      "Unable to set local codecs config: %s",
+      error ? error->message : "UNKNOWN");
+
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    if (!g_ascii_strcasecmp ("vorbis", codec->encoding_name))
+      break;
+
+  }
+  fs_codec_list_destroy (codecs);
+
+  if (!item)
+  {
+    g_warning ("Could not find Vorbis encoder/decoder/payloader/depayloaders,"
+        " so we are skipping the config-data test");
+    goto out;
+  }
+
+  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+
+  fail_if (ready, "Codecs are ready before the pipeline is playing, it does not"
+      " try to detect vorbis codec data");
+
+ out:
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -421,6 +469,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_reserved_pt");
   tcase_add_test (tc_chain, test_rtpcodecs_reserved_pt);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_config_data");
+  tcase_add_test (tc_chain, test_rtpcodecs_config_data);
   suite_add_tcase (s, tc_chain);
 
   return s;
