@@ -66,6 +66,7 @@ enum
   PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_SEND_CODEC,
+  PROP_CODECS_READY,
   PROP_CONFERENCE,
   PROP_NO_RTCP_TIMEOUT
 };
@@ -258,6 +259,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
     PROP_NEGOTIATED_CODECS, "negotiated-codecs");
   g_object_class_override_property (gobject_class,
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS_READY, "codecs-ready");
 
   g_object_class_install_property (gobject_class,
     PROP_CONFERENCE,
@@ -570,6 +573,24 @@ fs_rtp_session_get_property (GObject *object,
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, negotiated_codecs);
         break;
+      }
+      break;
+    case PROP_CODECS_READY:
+      {
+        GList *item = NULL;
+
+        FS_RTP_SESSION_LOCK (self);
+        for (item = g_list_first (self->priv->codec_associations);
+             item;
+             item = g_list_next (item))
+        {
+          CodecAssociation *ca = item->data;
+          if (ca->need_config)
+            break;
+        }
+        FS_RTP_SESSION_UNLOCK (self);
+
+        g_value_set_boolean (value, item == NULL);
       }
       break;
     case PROP_CONFERENCE:
