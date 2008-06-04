@@ -438,7 +438,7 @@ create_local_codec_associations (
         lca->codec->id, TRUE);
 
     /* Same blueprint, we've copied the ID voluntarily, continue */
-    if (tmpca->blueprint == lca->blueprint)
+    if (tmpca && tmpca->blueprint == lca->blueprint)
       continue;
 
     /* If we have a different blueprint or a ANY id, we have to get a new id */
