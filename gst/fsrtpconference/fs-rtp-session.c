@@ -1636,12 +1636,15 @@ static GList *
 fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     FsRtpStream *stream,
     GList *remote_codecs,
+    gboolean *has_remotes,
     GError **error)
 {
   gint streams_with_codecs = 0;
   gboolean has_many_streams = FALSE;
   GList *new_negotiated_codec_associations = NULL;
   GList *item;
+
+  has_remotes = FALSE;
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -1690,6 +1693,8 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     if (codecs)
     {
       GList *tmp_codec_associations = NULL;
+
+      *has_remotes = TRUE;
 
       tmp_codec_associations = negotiate_stream_codecs (codecs,
           new_negotiated_codec_associations, has_many_streams);
@@ -1753,6 +1758,7 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
   GList *new_negotiated_codec_associations = NULL;
   gboolean is_new = TRUE;
   GList *old_negotiated_codec_associations;
+  gboolean has_remotes = FALSE;
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -1760,7 +1766,7 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     session->priv->codec_associations;
 
   new_negotiated_codec_associations = fs_rtp_session_negotiate_codecs (
-      session, stream, remote_codecs, error);
+      session, stream, remote_codecs, &has_remotes, error);
 
   if (!new_negotiated_codec_associations)
   {
@@ -1816,17 +1822,19 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
   fs_rtp_session_start_codec_param_gathering (session);
 
-  if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
-  {
-    FS_RTP_SESSION_UNLOCK (session);
-    return FALSE;
-  }
+  if (has_remotes)
+    if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
+    {
+      FS_RTP_SESSION_UNLOCK (session);
+      return FALSE;
+    }
 
   FS_RTP_SESSION_UNLOCK (session);
 
   if (is_new)
   {
-    g_object_notify (G_OBJECT (session), "negotiated-codecs");
+    if (has_remotes)
+      g_object_notify (G_OBJECT (session), "negotiated-codecs");
 
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
