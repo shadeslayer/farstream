@@ -2982,6 +2982,7 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
     session->priv->discovery_codecbin = NULL;
   }
 
+  /* They must both exist or neither exists, anything else is wrong */
   if ((session->priv->discovery_fakesink == NULL ||
           session->priv->discovery_capsfilter == NULL) &&
       session->priv->discovery_fakesink != session->priv->discovery_capsfilter)
@@ -2997,8 +2998,10 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
   {
     GstCaps *caps;
 
+    tmp = g_strdup_printf ("discovery_fakesink_%d", session->id);
     session->priv->discovery_fakesink =
-      gst_element_factory_make ("fakesink", NULL);
+      gst_element_factory_make ("fakesink", tmp);
+    g_free (tmp);
     if (!session->priv->discovery_fakesink)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -3025,8 +3028,10 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
       goto error;
     }
 
+    tmp = g_strdup_printf ("discovery_capsfilter_%d", session->id);
     session->priv->discovery_capsfilter =
-      gst_element_factory_make ("capsfilter", NULL);
+      gst_element_factory_make ("capsfilter", tmp);
+    g_free (tmp);
     if (!session->priv->discovery_capsfilter)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
