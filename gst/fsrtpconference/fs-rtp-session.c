@@ -1643,7 +1643,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
   GList *new_negotiated_codec_associations = NULL;
   GList *item;
 
-  has_remotes = FALSE;
+  *has_remotes = FALSE;
 
   FS_RTP_SESSION_LOCK (session);
 
