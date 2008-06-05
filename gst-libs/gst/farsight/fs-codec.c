@@ -168,7 +168,8 @@ fs_codec_copy (const FsCodec * codec)
 
   copy->optional_params = NULL;
 
-  if (codec->optional_params) {
+  if (codec->optional_params)
+  {
     GList *lp;
     FsCodecParameter *param;
     FsCodecParameter *param_copy;
@@ -183,6 +184,13 @@ fs_codec_copy (const FsCodec * codec)
           param_copy);
     }
     copy->optional_params = g_list_reverse (copy->optional_params);
+  }
+
+  if (codec->config_params)
+  {
+    GList *lp;
+    FsCodecParameter *param;
+    FsCodecParameter *param_copy;
 
     for (lp = codec->config_params; lp; lp = g_list_next (lp)) {
       param_copy = g_slice_new (FsCodecParameter);
