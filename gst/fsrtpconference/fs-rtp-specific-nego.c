@@ -51,27 +51,24 @@ struct SdpCompatCheck {
 
 
 static FsCodec *
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
+
+static FsCodec *
 sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
 sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec);
-static FsCodec *
-sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
    {NULL}},
   {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998,
    {NULL}},
-  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_theora_vorbis,
+  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_default,
    {"configuration", NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_theora_vorbis,
+  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_default,
    {"configuration", NULL}},
   {0, NULL, NULL}
 };
-
-static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
-
 
 gboolean
 codec_needs_config (FsCodec *codec)
@@ -386,43 +383,3 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
   negotiated_codec = fs_codec_copy (local_codec);
   return negotiated_codec;
 }
-
-
-static FsCodec *
-sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec)
-{
-  FsCodec *negotiated_codec = NULL;
-  FsCodec *tmp_remote_codec;
-  GList *item = NULL;
-
-  GST_DEBUG ("Using Theora/Vorbis negotiation function");
-
-  tmp_remote_codec = fs_codec_copy (remote_codec);
-
-  for (item = tmp_remote_codec->optional_params;
-       item;
-       item = g_list_next (item))
-  {
-    FsCodecParameter *param = item->data;
-
-    if (!g_ascii_strcasecmp ("configuration", param->name))
-    {
-      GList *nextitem = item->next;
-
-      tmp_remote_codec->optional_params = g_list_delete_link (
-          tmp_remote_codec->optional_params, item);
-
-      tmp_remote_codec->config_params = g_list_append (
-          tmp_remote_codec->config_params, param);
-
-      item = nextitem;
-    }
-  }
-
-  negotiated_codec = sdp_is_compat_default (local_codec, tmp_remote_codec);
-
-  fs_codec_destroy (tmp_remote_codec);
-
-  return negotiated_codec;
-}
-
