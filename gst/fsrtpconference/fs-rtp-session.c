@@ -584,8 +584,8 @@ fs_rtp_session_get_property (GObject *object,
         FS_RTP_SESSION_UNLOCK (self);
 
         g_value_take_boxed (value, local_codecs);
-        break;
       }
+      break;
     case PROP_LOCAL_CODECS_CONFIG:
       g_value_set_boxed (value, self->priv->local_codecs_configuration);
       break;
@@ -597,7 +597,6 @@ fs_rtp_session_get_property (GObject *object,
             self->priv->codec_associations);
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, negotiated_codecs);
-        break;
       }
       break;
     case PROP_CODECS_READY:
@@ -2873,7 +2872,6 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   GstCaps *caps = NULL;
   GstStructure *s = NULL;
   int i;
-  FsCodec *codec = NULL;
   CodecAssociation *ca = NULL;
 
   g_object_get (pad, "caps", &caps, NULL);
@@ -2893,18 +2891,14 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
     goto out;
   }
 
-  codec = session->priv->discovery_codec;
+  ca = lookup_codec_association_by_codec (session->priv->codec_associations,
+      session->priv->discovery_codec);
 
+  fs_codec_destroy (session->priv->discovery_codec);
   session->priv->discovery_codec = NULL;
 
-  ca = lookup_codec_association_by_codec (session->priv->codec_associations,
-      codec);
-
   if (!ca)
-  {
-    fs_codec_destroy (codec);
     goto out;
-  }
 
   for (i = 0; i < gst_structure_n_fields (s); i++)
   {
@@ -2914,11 +2908,11 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
       const gchar *value = gst_structure_get_string (s, name);
       if (value)
       {
-        if (codec_has_config_data_named (codec, name))
+        if (codec_has_config_data_named (ca->codec, name))
         {
           GList *item = NULL;
 
-          for (item = codec->config_params; item; item = g_list_next (item))
+          for (item = ca->codec->config_params; item; item = g_list_next (item))
           {
             FsCodecParameter *param = item->data;
             if (!g_ascii_strcasecmp (param->name, name))
@@ -2927,23 +2921,21 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
                 break;
 
               /* replace the value if its different */
-              codec->config_params = g_list_delete_link (codec->config_params,
-                  item);
-              fs_codec_add_config_parameter (codec, name, value);
+              ca->codec->config_params =
+                g_list_delete_link (ca->codec->config_params, item);
+              fs_codec_add_config_parameter (ca->codec, name, value);
               break;
             }
           }
 
           /* Add it if it wasn't there */
           if (item == NULL)
-            fs_codec_add_config_parameter (codec, name, value);
+            fs_codec_add_config_parameter (ca->codec, name, value);
         }
       }
     }
   }
 
-  fs_codec_destroy (ca->codec);
-  ca->codec = codec;
   ca->need_config = FALSE;
 
  out:
