@@ -153,6 +153,9 @@ FsCodec *
 fs_codec_copy (const FsCodec * codec)
 {
   FsCodec *copy = NULL;
+  GList *lp;
+  FsCodecParameter *param;
+  FsCodecParameter *param_copy;
 
   if (codec == NULL)
     return NULL;
@@ -166,42 +169,29 @@ fs_codec_copy (const FsCodec * codec)
 
   copy->encoding_name = g_strdup (codec->encoding_name);
 
-  copy->optional_params = NULL;
-
-  if (codec->optional_params)
+  for (lp = codec->optional_params; lp; lp = g_list_next (lp))
   {
-    GList *lp;
-    FsCodecParameter *param;
-    FsCodecParameter *param_copy;
-
-    for (lp = codec->optional_params; lp; lp = g_list_next (lp)) {
-      param_copy = g_slice_new (FsCodecParameter);
-      param = (FsCodecParameter *) lp->data;
-      param_copy->name = g_strdup (param->name);
-      param_copy->value = g_strdup (param->value);
-      /* prepend then reverse the list for efficiency */
-      copy->optional_params = g_list_prepend (copy->optional_params,
-          param_copy);
-    }
-    copy->optional_params = g_list_reverse (copy->optional_params);
+    param_copy = g_slice_new (FsCodecParameter);
+    param = (FsCodecParameter *) lp->data;
+    param_copy->name = g_strdup (param->name);
+    param_copy->value = g_strdup (param->value);
+    /* prepend then reverse the list for efficiency */
+    copy->optional_params = g_list_prepend (copy->optional_params,
+        param_copy);
   }
+  copy->optional_params = g_list_reverse (copy->optional_params);
 
-  if (codec->config_params)
+  for (lp = codec->config_params; lp; lp = g_list_next (lp))
   {
-    GList *lp;
-    FsCodecParameter *param;
-    FsCodecParameter *param_copy;
-
-    for (lp = codec->config_params; lp; lp = g_list_next (lp)) {
-      param_copy = g_slice_new (FsCodecParameter);
-      param = (FsCodecParameter *) lp->data;
-      param_copy->name = g_strdup (param->name);
-      param_copy->value = g_strdup (param->value);
-      /* prepend then reverse the list for efficiency */
-      copy->config_params = g_list_prepend (copy->config_params, param_copy);
-    }
-    copy->config_params = g_list_reverse (copy->config_params);
+    param_copy = g_slice_new (FsCodecParameter);
+    param = (FsCodecParameter *) lp->data;
+    param_copy->name = g_strdup (param->name);
+    param_copy->value = g_strdup (param->value);
+    /* prepend then reverse the list for efficiency */
+    copy->config_params = g_list_prepend (copy->config_params, param_copy);
   }
+  copy->config_params = g_list_reverse (copy->config_params);
+
   return copy;
 }
 
