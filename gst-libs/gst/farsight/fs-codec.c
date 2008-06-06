@@ -535,6 +535,9 @@ compare_lists (GList *list1, GList *list2)
  * if their optional parameters are in a different order. %NULL encoding names
  * are ignored. Configuration parameters are ignored when comparing.
  *
+ * fs_codec_are_equal_including_config() is the same as this function, but also
+ * compares the configuration data
+ *
  * Return value: %TRUE of the codecs are identical, %FALSE otherwise
  */
 
@@ -566,6 +569,36 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
 
   return TRUE;
 }
+
+/**
+ * fs_codec_are_equal:
+ * @codec1: First codec
+ * @codec2: Second codec
+ *
+ * Compare two codecs, it will declare two codecs to be identical even
+ * if their optional parameters are in a different order. %NULL encoding names
+ * are ignored.
+ *
+ * This is the same as fs_codec_are_equal(), but also makes sure that the
+ * codec configurations are the same.
+ *
+ * Return value: %TRUE of the codecs are identical, %FALSE otherwise
+ */
+gboolean
+fs_codec_are_equal_including_config (
+    const FsCodec *codec1,
+    const FsCodec *codec2)
+{
+  if (!fs_codec_are_equal (codec1, codec2))
+    return FALSE;
+
+  if (!compare_lists (codec1->config_params, codec2->config_params) ||
+      !compare_lists (codec2->config_params, codec1->config_params))
+    return FALSE;
+
+  return TRUE;
+}
+
 
 /**
  * fs_codec_to_gst_caps

@@ -114,6 +114,7 @@ fs_codec_new
 fs_codec_destroy
 fs_codec_copy
 fs_codec_are_equal
+fs_codec_are_equal_including_config
 fs_codec_list_from_keyfile
 fs_codec_list_destroy
 fs_codec_list_copy

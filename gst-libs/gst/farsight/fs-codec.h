@@ -135,6 +135,11 @@ GstCaps *fs_codec_to_gst_caps (const FsCodec *codec);
 
 gboolean fs_codec_list_are_equal (GList *list1, GList *list2);
 
+gboolean fs_codec_are_equal_including_config (
+    const FsCodec *codec1,
+    const FsCodec *codec2);
+
+
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 
 void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
