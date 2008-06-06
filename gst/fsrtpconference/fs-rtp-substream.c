@@ -41,7 +41,7 @@
  *
  * This object controls a part of the receive pipeline, with the following shape
  *
- * rtpbin_pad -> codecbin -> valve  -> output_ghostad
+ * rtpbin_pad -> capsfilter -> codecbin -> valve  -> output_ghostad
  *
  */
 
@@ -88,6 +88,8 @@ struct _FsRtpSubStreamPrivate {
   GstPad *rtpbin_pad;
 
   GstElement *valve;
+
+  GstElement *capsfilter;
 
   /* This only exists if the codec is valid,
    * otherwise the rtpbin_pad is blocked */
@@ -476,6 +478,8 @@ static void
 fs_rtp_sub_stream_constructed (GObject *object)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
+  GstPad *capsfilter_sink_pad = NULL;
+  GstPadLinkReturn linkret;
 
   GST_DEBUG ("New substream in session %u for ssrc %x and pt %u",
       self->priv->session->id, self->priv->ssrc, self->priv->pt);
@@ -519,6 +523,56 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
+  self->priv->capsfilter = gst_element_factory_make ("capsfilter", NULL);
+
+  if (!self->priv->capsfilter) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not create a capsfilter element for"
+      " session substream with ssrc: %u and pt:%d", self->priv->ssrc,
+      self->priv->pt);
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for session"
+      " substream with ssrc: %u and pt:%d to the conference bin",
+      self->priv->ssrc, self->priv->pt);
+    return;
+  }
+
+  if (gst_element_set_state (self->priv->capsfilter, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not set the capsfilter element for session"
+      " substream with ssrc: %u and pt:%d to the playing state",
+      self->priv->ssrc, self->priv->pt);
+    return;
+  }
+
+  capsfilter_sink_pad = gst_element_get_static_pad (self->priv->capsfilter,
+      "sink");
+  if (!capsfilter_sink_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not get the capsfilter's sink pad");
+    return;
+  }
+
+  linkret = gst_pad_link (self->priv->rtpbin_pad, capsfilter_sink_pad);
+
+  gst_object_unref (capsfilter_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (linkret))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link the rtpbin to the codec bin (%d)", linkret);
+    return;
+  }
+
+
   if (self->priv->no_rtcp_timeout > 0)
     if (!fs_rtp_sub_stream_start_no_rtcp_timeout_thread (self,
             &self->priv->construction_error))
@@ -542,6 +596,15 @@ fs_rtp_sub_stream_dispose (GObject *object)
     gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
       self->priv->output_ghostpad);
     self->priv->output_ghostpad = NULL;
+  }
+
+  if (self->priv->capsfilter) {
+    gst_object_ref (self->priv->capsfilter);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_object_unref (self->priv->capsfilter);
+    self->priv->capsfilter = NULL;
   }
 
   if (self->priv->valve) {
@@ -727,8 +790,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GstElement *codecbin,
     GError **error)
 {
-  GstPad *codec_bin_sink_pad;
-  GstPadLinkReturn linkret;
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
 
@@ -775,22 +836,12 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     goto error;
   }
 
-  codec_bin_sink_pad = gst_element_get_static_pad (codecbin, "sink");
-  if (!codec_bin_sink_pad)
+  if (!gst_element_link_pads (substream->priv->capsfilter, "src",
+          codecbin, "sink"))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not get the codecbin's sink pad");
-    goto error;
-  }
-
-  linkret = gst_pad_link (substream->priv->rtpbin_pad, codec_bin_sink_pad);
-
-  gst_object_unref (codec_bin_sink_pad);
-
-  if (GST_PAD_LINK_FAILED (linkret))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not link the rtpbin to the codec bin (%d)", linkret);
+     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+         "Could not link the receive capsfilter and the codecbin for pt %d",
+         substream->priv->pt);
     goto error;
   }
 
@@ -874,6 +925,9 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
   if (substream->priv->codecbin)
     gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL);
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
+
+  if (substream->priv->capsfilter)
+    gst_element_set_state (substream->priv->capsfilter, GST_STATE_NULL);
 }
 
 
