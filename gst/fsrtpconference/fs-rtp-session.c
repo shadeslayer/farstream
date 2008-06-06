@@ -2199,6 +2199,105 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
   return NULL;
 }
 
+/**
+ * fs_rtp_session_get_recv_codec_locked:
+ * @session: a #FsRtpSession
+ * @pt: The payload type to find the codec for
+ * @stream: an optional #FsRtpStream for which this data is received
+ * @bp: Then returned CodecBlueprint to create a codecbin
+ *
+ * This function returns the codec and blueprint that will be used to receive
+ * data on a specific payload type, optionally from a specific stream.
+ *
+ * Returns: A new #FsCodec or %NULL on error
+ */
+
+static FsCodec *
+fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
+    guint pt,
+    FsRtpStream *stream,
+    CodecBlueprint **bp,
+    GError **error)
+{
+  FsCodec *recv_codec = NULL;
+  CodecAssociation *ca = NULL;
+  GList *item = NULL;
+
+
+  if (!session->priv->codec_associations)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "No negotiated codecs yet");
+    return NULL;
+  }
+
+  ca = lookup_codec_association_by_pt (session->priv->codec_associations, pt);
+
+  if (!ca)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
+      "There is no negotiated codec with pt %d", pt);
+    return NULL;
+  }
+
+  recv_codec = fs_codec_copy (ca->codec);
+
+  for (item = recv_codec->config_params; item; item = g_list_next (item))
+    g_slice_free (FsCodecParameter, item->data);
+
+  g_list_free (recv_codec->config_params);
+  recv_codec->config_params = NULL;
+
+  if (stream)
+  {
+    GList *remote_codecs = NULL;
+    FsCodec *remote_codec = NULL;
+
+    g_object_get (stream, "remote-codecs", &remote_codecs, NULL);
+
+    for (item = remote_codecs; item; item = g_list_next (item))
+    {
+      remote_codec = item->data;
+
+      if (recv_codec->clock_rate == remote_codec->clock_rate &&
+          (!recv_codec->channels || !remote_codec->channels ||
+              recv_codec->channels == remote_codec->channels) &&
+          (!recv_codec->encoding_name || !remote_codec->encoding_name ||
+              !g_ascii_strcasecmp (recv_codec->encoding_name,
+                  remote_codec->encoding_name)))
+      {
+        FsCodec *tmpcodec = sdp_is_compat (ca->codec, remote_codec);
+        if (tmpcodec)
+        {
+          if (fs_codec_are_equal (tmpcodec, ca->codec))
+          {
+            fs_codec_destroy (tmpcodec);
+            break;
+          }
+          fs_codec_destroy (tmpcodec);
+        }
+      }
+    }
+
+    if (item == NULL)
+      remote_codec = NULL;
+
+    if (remote_codec)
+    {
+      for (item = remote_codec->config_params; item; item = g_list_next (item))
+      {
+        FsCodecParameter *param = item->data;
+        fs_codec_add_config_parameter (recv_codec, param->name, param->value);
+      }
+    }
+
+    fs_codec_list_destroy (remote_codecs);
+  }
+
+  *bp = ca->blueprint;
+
+  return recv_codec;
+}
 
 /**
  * fs_rtp_session_substream_add_codec_bin:
@@ -2222,44 +2321,45 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
 {
   gboolean ret = FALSE;
   GstElement *codecbin = NULL;
-  CodecAssociation *ca = NULL;
   gchar *name;
+  FsRtpStream *stream = NULL;
   FsCodec *current_codec = NULL;
+  FsCodec *new_codec = NULL;
+  CodecBlueprint *bp = NULL;
 
   FS_RTP_SESSION_LOCK (session);
 
-  if (!session->priv->codec_associations) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "No negotiated codecs yet");
+  g_object_get (substream,
+      "codec", &current_codec,
+      "stream", &stream,
+      NULL);
+
+  new_codec = fs_rtp_session_get_recv_codec_locked (session, pt, stream, &bp,
+      error);
+
+  if (!new_codec)
     goto out;
-  }
 
-  ca = lookup_codec_association_by_pt (session->priv->codec_associations, pt);
-
-  if (!ca) {
-    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
-      "There is no negotiated codec with pt %d", pt);
-    goto out;
-  }
-
-  g_object_get (substream, "codec", &current_codec, NULL);
-
-  if (fs_codec_are_equal (ca->codec, current_codec))
+  if (fs_codec_are_equal_including_config (new_codec, current_codec))
   {
     ret = TRUE;
     goto out;
   }
 
   name = g_strdup_printf ("recv%u_%d", ssrc, pt);
-  codecbin = _create_codec_bin (ca->blueprint, ca->codec, name, FALSE, error);
+  codecbin = _create_codec_bin (bp, new_codec, name, FALSE, error);
   g_free (name);
 
   if (!codecbin)
     goto out;
 
-  ret = fs_rtp_sub_stream_set_codecbin (substream, ca->codec, codecbin, error);
+  ret = fs_rtp_sub_stream_set_codecbin (substream, new_codec, codecbin, error);
 
  out:
+  if (stream)
+    g_object_unref (stream);
+
+  fs_codec_destroy (new_codec);
   fs_codec_destroy (current_codec);
 
   FS_RTP_SESSION_UNLOCK (session);
