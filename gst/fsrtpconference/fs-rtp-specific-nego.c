@@ -190,7 +190,7 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
     return NULL;
   }
 
-  negotiated_codec = fs_codec_copy (remote_codec);
+  negotiated_codec = codec_copy_without_config (remote_codec);
 
   /* Lets fix here missing clock rates and channels counts */
   if (negotiated_codec->channels == 0 && local_codec->channels)
