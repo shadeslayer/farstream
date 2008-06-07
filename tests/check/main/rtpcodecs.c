@@ -414,7 +414,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   fail_unless (ready, "Got ready bus message, but codecs aren't ready yet");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     codec = item->data;
