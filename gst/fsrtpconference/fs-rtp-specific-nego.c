@@ -108,7 +108,7 @@ codec_has_config_data_named (FsCodec *codec, const gchar *name)
   return FALSE;
 }
 
-FsCodec *
+static FsCodec *
 codec_copy_without_config (FsCodec *codec)
 {
   FsCodec *copy = fs_codec_copy (codec);
@@ -138,14 +138,16 @@ sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
   g_return_val_if_fail (local_codec, NULL);
   g_return_val_if_fail (remote_codec, NULL);
 
-  if (local_codec->media_type != remote_codec->media_type) {
+  if (local_codec->media_type != remote_codec->media_type)
+  {
     GST_DEBUG ("Wrong media type, local: %s, remote: %s",
         fs_media_type_to_string (local_codec->media_type),
         fs_media_type_to_string (remote_codec->media_type));
     return NULL;
   }
   if (g_ascii_strcasecmp (local_codec->encoding_name,
-        remote_codec->encoding_name)) {
+        remote_codec->encoding_name))
+  {
     GST_DEBUG ("Encoding names dont match, local: %s, remote: %s",
         local_codec->encoding_name, remote_codec->encoding_name);
     return NULL;
@@ -154,7 +156,8 @@ sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
   for (i = 0; sdp_compat_checks[i].sdp_is_compat; i++) {
     if (sdp_compat_checks[i].media_type == remote_codec->media_type &&
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
-            remote_codec->encoding_name)) {
+            remote_codec->encoding_name))
+    {
       return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec);
     }
   }
@@ -171,14 +174,16 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
   GST_DEBUG ("Using default codec negotiation function");
 
   if (remote_codec->clock_rate &&
-      local_codec->clock_rate != remote_codec->clock_rate) {
+      local_codec->clock_rate != remote_codec->clock_rate)
+  {
     GST_DEBUG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
         remote_codec->clock_rate);
     return NULL;
   }
 
   if (local_codec->channels && remote_codec->channels &&
-      local_codec->channels != remote_codec->channels) {
+      local_codec->channels != remote_codec->channels)
+  {
     GST_DEBUG ("Channel counts differ local=%u remote=%u",
         local_codec->channels,
         remote_codec->channels);
@@ -195,17 +200,23 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
 
   for (local_param_list = local_codec->optional_params;
        local_param_list;
-       local_param_list = g_list_next (local_param_list)) {
+       local_param_list = g_list_next (local_param_list))
+  {
     FsCodecParameter *local_param = local_param_list->data;
 
     for (negotiated_param_list = negotiated_codec->optional_params;
          negotiated_param_list;
-         negotiated_param_list = g_list_next (negotiated_param_list)) {
+         negotiated_param_list = g_list_next (negotiated_param_list))
+    {
       FsCodecParameter *negotiated_param = negotiated_param_list->data;
-      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name)) {
-        if (!strcmp (local_param->value, negotiated_param->value)) {
+      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name))
+      {
+        if (!strcmp (local_param->value, negotiated_param->value))
+        {
           break;
-        } else {
+        }
+        else
+        {
           GST_DEBUG ("Different values for %s, local=%s remote=%s",
               local_param->name, local_param->value, negotiated_param->value);
           fs_codec_destroy (negotiated_codec);
@@ -234,14 +245,16 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
   GST_DEBUG ("Using ilbc negotiation function");
 
   if (remote_codec->clock_rate &&
-      local_codec->clock_rate != remote_codec->clock_rate) {
+      local_codec->clock_rate != remote_codec->clock_rate)
+  {
     GST_DEBUG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
         remote_codec->clock_rate);
     return NULL;
   }
 
   if (local_codec->channels && remote_codec->channels &&
-      local_codec->channels != remote_codec->channels) {
+      local_codec->channels != remote_codec->channels)
+  {
     GST_DEBUG ("Channel counts differ local=%u remote=%u",
         local_codec->channels,
         remote_codec->channels);
@@ -258,34 +271,45 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 
   for (mylistitem = local_codec->optional_params;
        mylistitem;
-       mylistitem = g_list_next (mylistitem)) {
+       mylistitem = g_list_next (mylistitem))
+  {
     FsCodecParameter *local_param = mylistitem->data;
 
     for (negotiated_param_list = negotiated_codec->optional_params;
          negotiated_param_list;
-         negotiated_param_list = g_list_next (negotiated_param_list)) {
+         negotiated_param_list = g_list_next (negotiated_param_list))
+    {
       FsCodecParameter *negotiated_param = negotiated_param_list->data;
 
-      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name)) {
-        if (!g_ascii_strcasecmp (local_param->name, "mode")) {
+      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name))
+      {
+        if (!g_ascii_strcasecmp (local_param->name, "mode"))
+        {
           gint local_mode = atoi (local_param->value);
           gint remote_mode = atoi (negotiated_param->value);
 
           has_mode = TRUE;
 
-          if (remote_mode != 20 && remote_mode != 30) {
+          if (remote_mode != 20 && remote_mode != 30)
+          {
             GST_DEBUG ("Invalid mode on ilbc");
             goto failure;
           }
-          if (local_mode != remote_mode) {
+          if (local_mode != remote_mode)
+          {
             g_free (negotiated_param->value);
             negotiated_param->value = g_strdup ("30");
             break;
           }
-        } else {
-          if (!strcmp (local_param->value, negotiated_param->value)) {
+        }
+        else
+        {
+          if (!strcmp (local_param->value, negotiated_param->value))
+          {
             break;
-          } else {
+          }
+          else
+          {
             GST_DEBUG ("Different values for %s, local=%s remote=%s",
                 local_param->name, local_param->value, negotiated_param->value);
             goto failure;
@@ -296,11 +320,13 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 
     /* Let's add the local param to the negotiated codec if it does not exist in
      * the remote codec */
-    if (!negotiated_param_list) {
+    if (!negotiated_param_list)
+    {
       fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
           local_param->value);
 
-      if (!g_ascii_strcasecmp (local_param->name, "mode")) {
+      if (!g_ascii_strcasecmp (local_param->name, "mode"))
+      {
         has_mode = TRUE;
       }
     }
@@ -308,12 +334,15 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 
   /* If more has not be found in the local codec, let's check if it's in the
    * remote codec */
-  if (!has_mode) {
+  if (!has_mode)
+  {
     for (negotiated_param_list = negotiated_codec->optional_params;
          negotiated_param_list;
-         negotiated_param_list = g_list_next (negotiated_param_list)) {
+         negotiated_param_list = g_list_next (negotiated_param_list))
+    {
       FsCodecParameter *negotiated_param = negotiated_param_list->data;
-      if (!g_ascii_strcasecmp (negotiated_param->name, "mode")) {
+      if (!g_ascii_strcasecmp (negotiated_param->name, "mode"))
+      {
         has_mode = TRUE;
         break;
       }
@@ -344,14 +373,16 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
 
   GST_DEBUG ("Using H263-1998 negotiation function");
 
-  if (remote_codec->clock_rate != 90000) {
+  if (remote_codec->clock_rate != 90000)
+  {
     GST_DEBUG ("Remote clock rate is %d which is not 90000",
         remote_codec->clock_rate);
     return NULL;
   }
 
 
-  if (remote_codec->channels > 1) {
+  if (remote_codec->channels > 1)
+  {
     GST_DEBUG ("Channel count  %d > 1", remote_codec->channels);
     return NULL;
   }
@@ -360,31 +391,41 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
 
   for (remote_param_list = remote_codec->optional_params;
        remote_param_list;
-       remote_param_list = g_list_next (remote_param_list)) {
+       remote_param_list = g_list_next (remote_param_list))
+  {
     FsCodecParameter *remote_param = remote_param_list->data;
 
-    if (!g_ascii_strcasecmp (remote_param->name, "profile")) {
+    if (!g_ascii_strcasecmp (remote_param->name, "profile"))
+    {
 
-      if (profile) {
+      if (profile)
+      {
         GST_DEBUG ("The remote codecs contain the profile item more than once,"
             " ignoring");
         return NULL;
-      } else {
+      }
+      else
+      {
         profile = remote_param;
       }
 
       for (mylistitem = local_codec->optional_params;
            mylistitem;
-           mylistitem = g_list_next (mylistitem)) {
+           mylistitem = g_list_next (mylistitem))
+      {
         FsCodecParameter *local_param = mylistitem->data;
 
-        if (!g_ascii_strcasecmp (local_param->name, "profile")) {
+        if (!g_ascii_strcasecmp (local_param->name, "profile"))
+        {
 
-          if (g_ascii_strcasecmp (local_param->value, remote_param->value)) {
+          if (g_ascii_strcasecmp (local_param->value, remote_param->value))
+          {
             GST_DEBUG ("Local (%s) and remote (%s) profiles are different",
                 local_param->value, remote_param->value);
             return NULL;
-          } else {
+          }
+          else
+          {
             GST_DEBUG ("We have the same profile, lets return our local codec");
 
             negotiated_codec = fs_codec_copy (local_codec);
