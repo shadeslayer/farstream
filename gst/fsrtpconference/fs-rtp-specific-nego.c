@@ -70,10 +70,16 @@ static struct SdpCompatCheck sdp_compat_checks[] = {
   {0, NULL, NULL}
 };
 
+/*
+ * This function currently returns %TRUE if any configuration parameter is there
+ * if some codecs require something more complicated, we will need a custom
+ * functions for each codec
+ */
+
 gboolean
 codec_needs_config (FsCodec *codec)
 {
-  gint i;
+  gint i,j;
 
   g_return_val_if_fail (codec, FALSE);
 
@@ -81,7 +87,21 @@ codec_needs_config (FsCodec *codec)
     if (sdp_compat_checks[i].media_type == codec->media_type &&
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             codec->encoding_name))
-      return (sdp_compat_checks[i].config_param[0] != NULL);
+    {
+      GList *item;
+      if (sdp_compat_checks[i].config_param[0] == NULL)
+        return FALSE;
+
+      for (item = codec->optional_params; item; item = g_list_next (item))
+      {
+        FsCodecParameter *param = item->data;
+        for (j = 0; sdp_compat_checks[i].config_param[j]; j++)
+          if (!g_ascii_strcasecmp (sdp_compat_checks[i].config_param[j],
+                  param->name))
+            return TRUE;
+      }
+      return FALSE;
+    }
 
   return FALSE;
 }
