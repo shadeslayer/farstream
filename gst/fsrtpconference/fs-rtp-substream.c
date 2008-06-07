@@ -1078,8 +1078,7 @@ fs_rtp_sub_stream_invalidate_codec_locked (FsRtpSubStream *substream, gint pt,
   if (substream->priv->pt == pt &&
       substream->priv->codec &&
       !substream->priv->blocking_id &&
-      (!codec ||
-          !fs_codec_are_equal_including_config (substream->priv->codec, codec)))
+      (!codec || !fs_codec_are_equal (substream->priv->codec, codec)))
     substream->priv->blocking_id = gst_pad_add_data_probe (
         substream->priv->rtpbin_pad,
         G_CALLBACK (_rtpbin_pad_have_data_callback), substream);

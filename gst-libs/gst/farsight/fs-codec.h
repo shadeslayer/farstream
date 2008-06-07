@@ -83,7 +83,6 @@ typedef enum
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
  * @optional_params: key pairs of param name to param data for neutral and receive side params
- * @config_params: key pairs of param name to params data for send-side params
  *
  * This structure reprensents one codec that can be offered or received
  */
@@ -96,7 +95,6 @@ struct _FsCodec
   guint clock_rate;
   guint channels;
   GList *optional_params;
-  GList *config_params;
   /*< private >*/
   gpointer _padding[4];         /* padding for binary-compatible
                                    expansion*/
@@ -135,11 +133,6 @@ GstCaps *fs_codec_to_gst_caps (const FsCodec *codec);
 
 gboolean fs_codec_list_are_equal (GList *list1, GList *list2);
 
-gboolean fs_codec_are_equal_including_config (
-    const FsCodec *codec1,
-    const FsCodec *codec2);
-
-
 const gchar *fs_media_type_to_string (FsMediaType media_type);
 
 void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
@@ -147,9 +140,6 @@ void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
 
 void fs_codec_remove_optional_parameter (FsCodec *codec,
     FsCodecParameter *param);
-
-void fs_codec_add_config_parameter (FsCodec *codec, const gchar *name,
-    const gchar *value);
 
 G_END_DECLS
 

@@ -114,7 +114,6 @@ fs_codec_new
 fs_codec_destroy
 fs_codec_copy
 fs_codec_are_equal
-fs_codec_are_equal_including_config
 fs_codec_list_from_keyfile
 fs_codec_list_destroy
 fs_codec_list_copy
@@ -123,7 +122,6 @@ fs_codec_to_string
 fs_codec_to_gst_caps
 fs_codec_add_optional_parameter
 fs_codec_remove_optional_parameter
-fs_codec_add_config_parameter
 <SUBSECTION Standard>
 FS_TYPE_CODEC
 FS_TYPE_CODEC_LIST

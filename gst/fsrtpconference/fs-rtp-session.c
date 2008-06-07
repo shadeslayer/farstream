@@ -2327,7 +2327,7 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
   if (!new_codec)
     goto out;
 
-  if (fs_codec_are_equal_including_config (new_codec, current_codec))
+  if (fs_codec_are_equal (new_codec, current_codec))
   {
     ret = TRUE;
     goto out;

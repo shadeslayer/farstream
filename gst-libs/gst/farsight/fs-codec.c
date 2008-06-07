@@ -128,14 +128,6 @@ fs_codec_destroy (FsCodec * codec)
       g_slice_free (FsCodecParameter, param);
     }
     g_list_free (codec->optional_params);
-
-    for (lp = codec->config_params; lp; lp = g_list_next (lp)) {
-      param = (FsCodecParameter *) lp->data;
-      g_free (param->name);
-      g_free (param->value);
-      g_slice_free (FsCodecParameter, param);
-    }
-    g_list_free (codec->config_params);
   }
 
   g_slice_free (FsCodec, codec);
@@ -180,17 +172,6 @@ fs_codec_copy (const FsCodec * codec)
         param_copy);
   }
   copy->optional_params = g_list_reverse (copy->optional_params);
-
-  for (lp = codec->config_params; lp; lp = g_list_next (lp))
-  {
-    param_copy = g_slice_new (FsCodecParameter);
-    param = (FsCodecParameter *) lp->data;
-    param_copy->name = g_strdup (param->name);
-    param_copy->value = g_strdup (param->value);
-    /* prepend then reverse the list for efficiency */
-    copy->config_params = g_list_prepend (copy->config_params, param_copy);
-  }
-  copy->config_params = g_list_reverse (copy->config_params);
 
   return copy;
 }
@@ -478,14 +459,6 @@ fs_codec_to_string (const FsCodec *codec)
     g_string_append_printf (string, " %s=%s", param->name, param->value);
   }
 
-  for (item = codec->config_params;
-       item;
-       item = g_list_next (item)) {
-    FsCodecParameter *param = item->data;
-    g_string_append_printf (string, " %s=%s", param->name, param->value);
-  }
-
-
   charstring = string->str;
   g_string_free (string, FALSE);
 
@@ -533,10 +506,7 @@ compare_lists (GList *list1, GList *list2)
  *
  * Compare two codecs, it will declare two codecs to be identical even
  * if their optional parameters are in a different order. %NULL encoding names
- * are ignored. Configuration parameters are ignored when comparing.
- *
- * fs_codec_are_equal_including_config() is the same as this function, but also
- * compares the configuration data
+ * are ignored.
  *
  * Return value: %TRUE of the codecs are identical, %FALSE otherwise
  */
@@ -569,36 +539,6 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
 
   return TRUE;
 }
-
-/**
- * fs_codec_are_equal:
- * @codec1: First codec
- * @codec2: Second codec
- *
- * Compare two codecs, it will declare two codecs to be identical even
- * if their optional parameters are in a different order. %NULL encoding names
- * are ignored.
- *
- * This is the same as fs_codec_are_equal(), but also makes sure that the
- * codec configurations are the same.
- *
- * Return value: %TRUE of the codecs are identical, %FALSE otherwise
- */
-gboolean
-fs_codec_are_equal_including_config (
-    const FsCodec *codec1,
-    const FsCodec *codec2)
-{
-  if (!fs_codec_are_equal (codec1, codec2))
-    return FALSE;
-
-  if (!compare_lists (codec1->config_params, codec2->config_params) ||
-      !compare_lists (codec2->config_params, codec1->config_params))
-    return FALSE;
-
-  return TRUE;
-}
-
 
 /**
  * fs_codec_to_gst_caps
@@ -662,17 +602,6 @@ fs_codec_to_gst_caps (const FsCodec *codec)
     g_free (lower_name);
   }
 
-  for (item = codec->config_params;
-       item;
-       item = g_list_next (item)) {
-    FsCodecParameter *param = item->data;
-    gchar *lower_name = g_ascii_strdown (param->name, -1);
-    gst_structure_set (structure, lower_name, G_TYPE_STRING, param->value,
-      NULL);
-    g_free (lower_name);
-  }
-
-
   caps = gst_caps_new_full (structure, NULL);
 
   return caps;
@@ -731,33 +660,6 @@ fs_codec_add_optional_parameter (FsCodec *codec,
   param->value = g_strdup (value);
 
   codec->optional_params = g_list_append (codec->optional_params, param);
-}
-
-
-/**
- * fs_codec_add_config_parameter:
- * @codec: The #FsCodec to add the parameter to
- * @name: The name of the config parameter
- * @value: The value of the config parameter
- *
- * This function adds an new config parameter to a #FsCodec
- */
-
-void
-fs_codec_add_config_parameter (FsCodec *codec,
-    const gchar *name,
-    const gchar *value)
-{
-  FsCodecParameter *param;
-
-  g_return_if_fail (name != NULL && value != NULL);
-
-  param = g_slice_new (FsCodecParameter);
-
-  param->name = g_strdup (name);
-  param->value = g_strdup (value);
-
-  codec->config_params = g_list_append (codec->config_params, param);
 }
 
 /**
