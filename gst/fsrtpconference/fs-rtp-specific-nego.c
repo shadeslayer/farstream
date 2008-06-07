@@ -109,6 +109,28 @@ codec_has_config_data_named (FsCodec *codec, const gchar *name)
 }
 
 FsCodec *
+codec_copy_without_config (FsCodec *codec)
+{
+  FsCodec *copy = fs_codec_copy (codec);
+  GList *item = NULL;
+
+  for (item = copy->optional_params; item;)
+  {
+    FsCodecParameter *param = item->data;
+    GList *next = g_list_next (item);
+
+    if (codec_has_config_data_named (codec, param->name))
+      fs_codec_remove_optional_parameter (copy, param);
+
+    item = next;
+  }
+
+  return copy;
+}
+
+
+
+FsCodec *
 sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
 {
   gint i;
