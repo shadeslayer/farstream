@@ -542,12 +542,6 @@ create_local_codec_associations (
   {
     CodecAssociation *ca = lca_e->data;
 
-    if (ca->codec->config_params)
-    {
-      ca->need_config = FALSE;
-      continue;
-    }
-
     if (ca->reserved || ca->disable)
       ca->need_config = FALSE;
     else
