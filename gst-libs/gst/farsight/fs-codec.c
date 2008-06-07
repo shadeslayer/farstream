@@ -759,3 +759,19 @@ fs_codec_add_config_parameter (FsCodec *codec,
 
   codec->config_params = g_list_append (codec->config_params, param);
 }
+
+/**
+ * fs_codec_remove_optional_parameter:
+ * @codec: a #FsCodec
+ * @param: a pointer to the #FsCodecParameter to remove
+ *
+ * Removes an optional parameter from a codec
+ */
+
+void
+fs_codec_remove_optional_parameter (FsCodec *codec,
+    FsCodecParameter *param)
+{
+  g_slice_free (FsCodecParameter, param);
+  codec->optional_params = g_list_remove (codec->optional_params, param);
+}

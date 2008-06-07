@@ -145,6 +145,9 @@ const gchar *fs_media_type_to_string (FsMediaType media_type);
 void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
     const gchar *value);
 
+void fs_codec_remove_optional_parameter (FsCodec *codec,
+    FsCodecParameter *param);
+
 void fs_codec_add_config_parameter (FsCodec *codec, const gchar *name,
     const gchar *value);
 
