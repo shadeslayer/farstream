@@ -703,12 +703,14 @@ finish_codec_negotiation (
     {
       GList *item2 = NULL;
 
-      for (item2 = oldca->codec->config_params;
+      for (item2 = oldca->codec->optional_params;
            item2;
            item2 = g_list_next (item2))
       {
         FsCodecParameter *param = item2->data;
-        fs_codec_add_config_parameter (newca->codec, param->name, param->value);
+        if (codec_has_config_data_named (newca->codec, param->name))
+          fs_codec_add_optional_parameter (newca->codec, param->name,
+              param->value);
       }
     }
   }
