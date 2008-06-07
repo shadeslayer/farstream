@@ -1302,7 +1302,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 
   FS_RTP_SESSION_LOCK (self);
 
-  if (lookup_codec_association_by_codec (
+  if (lookup_codec_association_by_codec_without_config (
           self->priv->codec_associations, send_codec))
   {
     if (self->priv->requested_send_codec)
@@ -2363,13 +2363,14 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
  * This function selects the codec to send using either the user preference
  * or the remote preference (from the negotiation).
  *
- * YOU must own the FsRtpSession mutex to call this function
+ * You MUST own the FsRtpSession mutex to call this function
  *
- * Returns: a pointer to a #CodecAssociation
+ * Returns: a newly-allocated #FsCodec
  */
 
-static CodecAssociation *
+static FsCodec *
 fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
+    CodecBlueprint *blueprint,
     GError **error)
 {
   CodecAssociation *ca = NULL;
@@ -2384,7 +2385,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
   }
 
   if (session->priv->requested_send_codec) {
-    ca = lookup_codec_association_by_codec (
+    ca = lookup_codec_association_by_codec_without_config (
         session->priv->codec_associations,
         session->priv->requested_send_codec);
     if (ca)
@@ -2431,7 +2432,15 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
 
 out:
 
-  return ca;
+  if (ca)
+  {
+    *blueprint = ca->blueprint;
+    return codec_copy_without_config (ca->codec);
+  }
+  else
+  {
+    return NULL;
+  }
 }
 
 
@@ -2583,13 +2592,14 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     gpointer user_data)
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
-  CodecAssociation *ca = NULL;
+  FsCodec *codec = NULL;
+  CodecBlueprint *bp = NULL;
   GError *error = NULL;
   GstElement *codecbin = NULL;
   gboolean ret = TRUE;
 
   FS_RTP_SESSION_LOCK (self);
-  ca = fs_rtp_session_select_send_codec_locked (self, &error);
+  codec = fs_rtp_session_select_send_codec_locked (self, &bp, &error);
 
   if (!ca)
   {
@@ -2600,7 +2610,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   g_clear_error (&error);
 
-  if (fs_codec_are_equal (ca->codec, self->priv->current_send_codec))
+  if (fs_codec_are_equal (codec, self->priv->current_send_codec))
     goto done;
 
 
@@ -2621,7 +2631,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   self->priv->current_send_codec = NULL;
 
 
-  codecbin = fs_rtp_session_add_send_codec_bin (self, ca->codec, ca->blueprint,
+  codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp,
       &error);
 
   if (!codecbin)
@@ -2637,6 +2647,8 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
    * in this case, we need to drop the current buffer and wait for a buffer
    * with the right caps to come in. Only then can we drop the pad probe
    */
+
+  fs_codec_destroy (codec);
 
   if (codecbin)
   {

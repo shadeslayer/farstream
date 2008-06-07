@@ -958,3 +958,41 @@ codec_associations_list_are_equal (GList *list1, GList *list2)
   else
     return FALSE;
 }
+
+
+/**
+ * lookup_codec_association_by_codec:
+ * @codec_associations: a #GList of #CodecAssociation
+ * @codec: The #FsCodec to look for
+ *
+ * Finds the first #CodecAssociation that matches the #FsCodec, the config data
+ * inside both are removed.
+ *
+ * Returns: a #CodecAssociation
+ */
+
+CodecAssociation *
+lookup_codec_association_by_codec_without_config (GList *codec_associations,
+    FsCodec *codec)
+{
+  FsCodec *lookup_codec = codec_copy_without_config (codec);
+  CodecAssociation *ca = NULL;
+
+  while (codec_associations)
+  {
+    CodecAssociation *tmpca = codec_associations->data;
+    FsCodec *tmpcodec = codec_copy_without_config (tmpca->codec);
+
+    if (fs_codec_are_equal (tmpcodec, lookup_codec))
+      ca = tmpca;
+    fs_codec_destroy (tmpcodec);
+    if (ca)
+      break;
+
+    codec_associations = g_list_next (codec_associations);
+  }
+
+  fs_codec_destroy (lookup_codec);
+
+  return ca;
+}
