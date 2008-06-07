@@ -2240,13 +2240,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     return NULL;
   }
 
-  recv_codec = fs_codec_copy (ca->codec);
-
-  for (item = recv_codec->config_params; item; item = g_list_next (item))
-    g_slice_free (FsCodecParameter, item->data);
-
-  g_list_free (recv_codec->config_params);
-  recv_codec->config_params = NULL;
+  recv_codec = codec_copy_without_config (ca->codec);
 
   if (stream)
   {
@@ -2255,27 +2249,17 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 
     g_object_get (stream, "remote-codecs", &remote_codecs, NULL);
 
+
     for (item = remote_codecs; item; item = g_list_next (item))
     {
+      FsCodec *tmpcodec = NULL;
       remote_codec = item->data;
 
-      if (recv_codec->clock_rate == remote_codec->clock_rate &&
-          (!recv_codec->channels || !remote_codec->channels ||
-              recv_codec->channels == remote_codec->channels) &&
-          (!recv_codec->encoding_name || !remote_codec->encoding_name ||
-              !g_ascii_strcasecmp (recv_codec->encoding_name,
-                  remote_codec->encoding_name)))
+      tmpcodec = sdp_is_compat (ca->codec, remote_codec);
+      if (tmpcodec)
       {
-        FsCodec *tmpcodec = sdp_is_compat (ca->codec, remote_codec);
-        if (tmpcodec)
-        {
-          if (fs_codec_are_equal (tmpcodec, ca->codec))
-          {
-            fs_codec_destroy (tmpcodec);
-            break;
-          }
-          fs_codec_destroy (tmpcodec);
-        }
+        fs_codec_destroy (tmpcodec);
+        break;
       }
     }
 
@@ -2284,10 +2268,13 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 
     if (remote_codec)
     {
-      for (item = remote_codec->config_params; item; item = g_list_next (item))
+      for (item = remote_codec->optional_params; item;
+           item = g_list_next (item))
       {
         FsCodecParameter *param = item->data;
-        fs_codec_add_config_parameter (recv_codec, param->name, param->value);
+        if (codec_has_config_data_named (recv_codec, param->name))
+          fs_codec_add_optional_parameter (recv_codec, param->name,
+              param->value);
       }
     }
 
