@@ -128,7 +128,16 @@ codec_has_config_data_named (FsCodec *codec, const gchar *name)
   return FALSE;
 }
 
-static FsCodec *
+/**
+ * codec_copy_without_config:
+ * @codec: a #FsCodec
+ *
+ * Makes a copy of a #FsCodec, but removes all configuration parameters
+ *
+ * Returns: the newly-allocated #FsCodec
+ */
+
+FsCodec *
 codec_copy_without_config (FsCodec *codec)
 {
   FsCodec *copy = fs_codec_copy (codec);

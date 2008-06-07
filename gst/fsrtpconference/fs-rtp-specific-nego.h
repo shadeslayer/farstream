@@ -40,6 +40,9 @@ codec_needs_config (FsCodec *codec);
 gboolean
 codec_has_config_data_named (FsCodec *codec, const gchar *name);
 
+FsCodec *
+codec_copy_without_config (FsCodec *codec);
+
 G_END_DECLS
 
 #endif
