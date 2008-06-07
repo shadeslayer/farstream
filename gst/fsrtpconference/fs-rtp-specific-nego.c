@@ -98,9 +98,9 @@ codec_needs_config (FsCodec *codec)
         for (j = 0; sdp_compat_checks[i].config_param[j]; j++)
           if (!g_ascii_strcasecmp (sdp_compat_checks[i].config_param[j],
                   param->name))
-            return TRUE;
+            return FALSE;
       }
-      return FALSE;
+      return TRUE;
     }
 
   return FALSE;
