@@ -424,7 +424,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   fail_if (item == NULL, "Could not find Vorbis in local codecs");
 
-  for (item = codec->config_params; item; item = g_list_next (item))
+  for (item = codec->optional_params; item; item = g_list_next (item))
   {
     FsCodecParameter *param = item->data;
 

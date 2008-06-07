@@ -2999,7 +2999,8 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
         {
           GList *item = NULL;
 
-          for (item = ca->codec->config_params; item; item = g_list_next (item))
+          for (item = ca->codec->optional_params; item;
+               item = g_list_next (item))
           {
             FsCodecParameter *param = item->data;
             if (!g_ascii_strcasecmp (param->name, name))
@@ -3008,16 +3009,15 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
                 break;
 
               /* replace the value if its different */
-              ca->codec->config_params =
-                g_list_delete_link (ca->codec->config_params, item);
-              fs_codec_add_config_parameter (ca->codec, name, value);
+              fs_codec_remove_optional_parameter (ca->codec, param);
+              fs_codec_add_optional_parameter (ca->codec, name, value);
               break;
             }
           }
 
           /* Add it if it wasn't there */
           if (item == NULL)
-            fs_codec_add_config_parameter (ca->codec, name, value);
+            fs_codec_add_optional_parameter (ca->codec, name, value);
         }
       }
     }
