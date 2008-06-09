@@ -94,7 +94,8 @@ gboolean
 codec_association_is_valid_for_sending (CodecAssociation *ca);
 
 GList *
-codec_associations_to_codecs (GList *codec_associations);
+codec_associations_to_codecs (GList *codec_associations,
+    gboolean include_config);
 
 gboolean
 codec_associations_list_are_equal (GList *list1, GList *list2);

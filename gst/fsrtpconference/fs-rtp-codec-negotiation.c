@@ -839,6 +839,7 @@ codec_association_copy (CodecAssociation *ca)
 /**
  * codec_associations_to_codecs:
  * @codec_associations: a #GList of #CodecAssociation
+ * @include_config: whether to include the config data
  *
  * Returns a #GList of the #FsCodec that are inside the list of associations
  * excluding those that are disabled or otherwise receive-only. It copies
@@ -847,7 +848,8 @@ codec_association_copy (CodecAssociation *ca)
  * Returns: a #GList of #FsCodec
  */
 GList *
-codec_associations_to_codecs (GList *codec_associations)
+codec_associations_to_codecs (GList *codec_associations,
+    gboolean include_config)
 {
   GList *codecs = NULL;
   GList *item = NULL;
@@ -859,7 +861,13 @@ codec_associations_to_codecs (GList *codec_associations)
     CodecAssociation *ca = item->data;
     if (!ca->disable && !ca->reserved && !ca->recv_only && ca->codec)
     {
-      codecs = g_list_append (codecs, fs_codec_copy (ca->codec));
+      FsCodec *codec = NULL;
+
+      if (include_config)
+        codec = fs_codec_copy (ca->codec);
+      else
+        codec = codec_copy_without_config (ca->codec);
+      codecs = g_list_append (codecs, codec);
     }
   }
 
