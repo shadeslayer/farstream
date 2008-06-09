@@ -3138,6 +3138,9 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 
   g_object_get (pad, "caps", &caps, NULL);
 
+  if (!caps)
+    return;
+
   g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
 
   s = gst_caps_get_structure (caps, 0);
