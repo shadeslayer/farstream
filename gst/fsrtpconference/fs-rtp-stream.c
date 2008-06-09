@@ -564,7 +564,7 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     if (codec->clock_rate == 0)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "The codec %s must has a non-0 clock rate", codec->encoding_name);
+          "The codec %s must have a non-0 clock rate", codec->encoding_name);
       goto error;
     }
     if (codec->media_type != media_type)
