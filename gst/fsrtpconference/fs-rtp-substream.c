@@ -1056,9 +1056,8 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 }
 
 /**
- * fs_rtp_sub_stream_invalidate_codec_locked:
+ * fs_rtp_sub_stream_verify_codec_locked:
  * @substream: A #FsRtpSubStream
- * @pt: The payload type to invalidate (does nothing if it does not match)
  * @codec: The new fscodec (the substream is invalidated if it not using this
  *  codec). You can pass NULL to match any codec.
  *
@@ -1069,11 +1068,10 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
  */
 
 void
-fs_rtp_sub_stream_invalidate_codec_locked (FsRtpSubStream *substream, gint pt,
+fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream,
     const FsCodec *codec)
 {
-  if (substream->priv->pt == pt &&
-      substream->priv->codec &&
+  if (substream->priv->codec &&
       !substream->priv->blocking_id &&
       (!codec || !fs_codec_are_equal (substream->priv->codec, codec)))
     substream->priv->blocking_id = gst_pad_add_data_probe (

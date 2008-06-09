@@ -237,6 +237,13 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     GList *remote_codecs,
     GError **error);
 
+static FsCodec *
+fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
+    guint pt,
+    FsRtpStream *stream,
+    CodecBlueprint **bp,
+    GError **error);
+
 static void
 fs_rtp_session_start_codec_param_gathering (FsRtpSession *session);
 static void
@@ -1629,32 +1636,63 @@ fs_rtp_session_get_stream_by_ssrc (FsRtpSession *self,
 }
 
 /**
- * fs_rtp_session_invalidate_pt:
- * @session: A #FsRtpSession
- * @pt: the PT to invalidate
- * @codec: the new codec
+ * fs_rtp_session_verify_substream
  *
- * Invalidates all codec bins for the selected payload type, because its
- * definition has changed
+ * Verifies that a substream still has the right codec and resets it if its not
+ *
+ * MUST hold the FsRtpSession lock while calling it
  */
 
 static void
-fs_rtp_session_invalidate_pt (FsRtpSession *session, gint pt,
-    const FsCodec *codec)
+fs_rtp_session_verify_substream_locked (FsRtpSession *session,
+    FsRtpSubStream *substream)
 {
-  GList *item;
+  FsCodec *codec = NULL;
+  guint pt;
+
+  g_object_get (substream, "pt", &pt, NULL);
+
+  codec = fs_rtp_session_get_recv_codec_locked (session, pt, NULL, NULL, NULL);
+
+  if (!codec)
+    return;
+
+  fs_rtp_sub_stream_verify_codec_locked (substream, codec);
+
+  fs_codec_destroy (codec);
+}
+
+/**
+ * fs_rtp_session_verify_recv_codecs
+ * @session: A #FsRtpSession
+ *
+ * Verifies that the various substreams still have the right codec, otherwise
+ * re-sets it.
+ */
+
+static void
+fs_rtp_session_verify_recv_codecs (FsRtpSession *session)
+{
+  GList *item, *item2;
+
   FS_RTP_SESSION_LOCK (session);
 
   for (item = g_list_first (session->priv->free_substreams);
        item;
        item = g_list_next (item))
-    fs_rtp_sub_stream_invalidate_codec_locked (item->data, pt, codec);
-
+    fs_rtp_session_verify_substream_locked (session, item->data);
 
   for (item = g_list_first (session->priv->streams);
        item;
        item = g_list_next (item))
-    fs_rtp_stream_invalidate_codec_locked (item->data, pt, codec);
+  {
+    FsRtpStream *stream = item->data;
+
+    for (item2 = g_list_first (stream->substreams);
+         item2;
+         item2 = g_list_next (item2))
+      fs_rtp_session_verify_substream_locked (session, item2->data);
+  }
 
   FS_RTP_SESSION_UNLOCK (session);
 }
@@ -1821,59 +1859,29 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
   if (old_negotiated_codec_associations)
   {
-    gboolean clear_pts = FALSE;
-    int pt;
-
-    is_new = !codec_associations_list_are_equal (
+    is_new = ! codec_associations_list_are_equal (
         old_negotiated_codec_associations,
         new_negotiated_codec_associations);
 
-    /* Lets remove the codec bin for any PT that has changed type */
-    for (pt = 0; pt < 128; pt++)
-    {
-      CodecAssociation *old_codec_association =
-        lookup_codec_association_by_pt (
-            old_negotiated_codec_associations, pt);
-      CodecAssociation *new_codec_association =
-        lookup_codec_association_by_pt (
-            new_negotiated_codec_associations, pt);
-
-      if (old_codec_association == NULL && new_codec_association == NULL)
-        continue;
-
-      if (old_codec_association == NULL || new_codec_association == NULL)
-      {
-        fs_rtp_session_invalidate_pt (session, pt, NULL);
-        clear_pts = TRUE;
-        continue;
-      }
-
-      if (!fs_codec_are_equal (old_codec_association->codec,
-              new_codec_association->codec))
-      {
-        fs_rtp_session_invalidate_pt (session, pt,
-            new_codec_association->codec);
-        clear_pts = TRUE;
-        continue;
-      }
-    }
-
-    if (clear_pts)
-      g_signal_emit_by_name (session->priv->conference->gstrtpbin,
-          "clear-pt-map");
+    codec_association_list_destroy (old_negotiated_codec_associations);
   }
 
-  if (old_negotiated_codec_associations)
-    codec_association_list_destroy (old_negotiated_codec_associations);
+  if (is_new)
+    g_signal_emit_by_name (session->priv->conference->gstrtpbin,
+        "clear-pt-map");
 
   fs_rtp_session_start_codec_param_gathering (session);
 
+  fs_rtp_session_verify_recv_codecs (session);
+
   if (has_remotes)
+  {
     if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
     {
       FS_RTP_SESSION_UNLOCK (session);
       return FALSE;
     }
+  }
 
   FS_RTP_SESSION_UNLOCK (session);
 
@@ -2343,7 +2351,8 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     fs_codec_list_destroy (remote_codecs);
   }
 
-  *bp = ca->blueprint;
+  if (bp)
+    *bp = ca->blueprint;
 
   return recv_codec;
 }

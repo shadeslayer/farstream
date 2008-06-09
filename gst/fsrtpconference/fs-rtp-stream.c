@@ -767,32 +767,6 @@ fs_rtp_stream_knows_ssrc_locked (FsRtpStream *stream, guint32 ssrc)
   return FALSE;
 }
 
-/**
- * fs_rtp_stream_invalidate_codec_locked:
- * @stream: A #FsRtpStream
- * @pt: The payload type to invalidate (does nothing if it does not match)
- * @codec: The new fscodec (the substream is invalidated if it not using this
- *  codec). You can pass NULL to match any codec.
- *
- * This function will start the process that invalidates the codec
- * for this rtpbin, if it doesnt match the passed codec
- *
- * You must hold the session lock to call it.
- */
-
-void
-fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
-    gint pt,
-    const FsCodec *codec)
-{
-  GList *item;
-
-  for (item = g_list_first (stream->substreams);
-       item;
-       item = g_list_next (item))
-    fs_rtp_sub_stream_invalidate_codec_locked (item->data, pt, codec);
-}
-
 
 /**
  *  _substream_codec_changed
