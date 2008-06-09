@@ -119,6 +119,7 @@ enum
   PROP_SOURCE_PADS,
 #endif
   PROP_REMOTE_CODECS,
+  PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_RECV_CODECS,
   PROP_DIRECTION,
   PROP_PARTICIPANT,
@@ -191,6 +192,24 @@ fs_stream_class_init (FsStreamClass *klass)
       g_param_spec_boxed ("remote-codecs",
         "List of remote codecs",
         "A GList of FsCodecs of the remote codecs",
+        FS_TYPE_CODEC_LIST,
+        G_PARAM_READABLE));
+
+  /**
+   * FsStream:negotiated-codecs:
+   *
+   * This is the list of negotiatied codecs, it is the same list as the list
+   * of #FsCodec from the parent #FsSession, except that the codec config data
+   * has been replaced with the data from the remote codecs for this stream.
+   * This is the list of #FsCodec used to receive data from this stream.
+   * It is a #GList of #FsCodec.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_NEGOTIATED_CODECS,
+      g_param_spec_boxed ("negotiated-codecs",
+        "List of remote codecs",
+        "A GList of FsCodecs of the negotiated codecs for this stream",
         FS_TYPE_CODEC_LIST,
         G_PARAM_READABLE));
 
