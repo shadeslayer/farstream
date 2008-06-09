@@ -790,6 +790,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GstElement *codecbin,
     GError **error)
 {
+  GstCaps *caps = NULL;
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
 
@@ -844,6 +845,10 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
          substream->priv->pt);
     goto error;
   }
+
+  caps = fs_codec_to_gst_caps (codec);
+  g_object_set (substream->priv->capsfilter, "caps", caps, NULL);
+  gst_caps_unref (caps);
 
   substream->priv->codecbin = codecbin;
   substream->priv->codec = fs_codec_copy (codec);
