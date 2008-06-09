@@ -1703,6 +1703,96 @@ fs_rtp_session_verify_recv_codecs (FsRtpSession *session)
 }
 
 /**
+ * fs_rtp_session_distribute_recv_codecs:
+ * @session: a #FsRtpSession
+ * @force_stream: The #FsRtpStream to which the new remote codecs belong
+ * @forced_remote_codecs: The #GList of remote codecs to use for that stream
+ *
+ * This function distributes the codecs to the streams including their
+ * own config data.
+ *
+ * If a stream is specified, it will use the specified remote codecs
+ * instead of the ones currently in the stream.
+ */
+
+
+static void
+fs_rtp_session_distribute_recv_codecs (FsRtpSession *session,
+    FsRtpStream *force_stream,
+    GList *forced_remote_codecs)
+{
+  GList *item = NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+
+  for (item = session->priv->streams;
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpStream *stream = item->data;
+    GList *remote_codecs = NULL;
+
+    if (stream == force_stream)
+      remote_codecs = forced_remote_codecs;
+    else
+      g_object_get (stream, "remote-codecs", &remote_codecs, NULL);
+
+    if (remote_codecs)
+    {
+      GList *new_codecs = codec_associations_to_codecs (
+          session->priv->codec_associations, FALSE);
+      GList *item2 = NULL;
+
+      for (item2 = new_codecs;
+           item2;
+           item2 = g_list_next (item2))
+      {
+        FsCodec *codec = item2->data;
+        GList *item3 = NULL;
+        FsCodec *remote_codec = NULL;
+
+        for (item3 = remote_codecs; item3; item3 = g_list_next (item3))
+        {
+          FsCodec *tmpcodec = NULL;
+          remote_codec = item3->data;
+
+          tmpcodec = sdp_is_compat (codec, remote_codec);
+          if (tmpcodec)
+          {
+            fs_codec_destroy (tmpcodec);
+            break;
+          }
+        }
+
+        if (item3 == NULL)
+          remote_codec = NULL;
+
+        if (remote_codec)
+        {
+          for (item3 = remote_codec->optional_params; item3;
+               item3 = g_list_next (item3))
+          {
+            FsCodecParameter *param = item3->data;
+            if (codec_has_config_data_named (codec, param->name))
+              fs_codec_add_optional_parameter (codec, param->name,
+                  param->value);
+          }
+        }
+
+      }
+
+      fs_rtp_stream_set_negotiated_codecs (stream, new_codecs);
+    }
+
+    if (stream != force_stream)
+      fs_codec_list_destroy (remote_codecs);
+  }
+
+  FS_RTP_SESSION_UNLOCK (session);
+}
+
+
+/**
  * fs_rtp_session_negotiate_codecs:
  * @session: a #FsRtpSession
  * @stream: The #FsRtpStream to which the new remote codecs belong
@@ -1875,9 +1965,11 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     g_signal_emit_by_name (session->priv->conference->gstrtpbin,
         "clear-pt-map");
 
-  fs_rtp_session_start_codec_param_gathering (session);
+  fs_rtp_session_distribute_recv_codecs (session, stream, remote_codecs);
 
   fs_rtp_session_verify_recv_codecs (session);
+
+  fs_rtp_session_start_codec_param_gathering (session);
 
   if (has_remotes)
   {
