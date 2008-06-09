@@ -2370,7 +2370,7 @@ fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
 
 static FsCodec *
 fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
-    CodecBlueprint *blueprint,
+    CodecBlueprint **blueprint,
     GError **error)
 {
   CodecAssociation *ca = NULL;
@@ -2601,7 +2601,7 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   FS_RTP_SESSION_LOCK (self);
   codec = fs_rtp_session_select_send_codec_locked (self, &bp, &error);
 
-  if (!ca)
+  if (!codec)
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not select a new send codec", error->message);
@@ -2692,26 +2692,27 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 {
   GstElement *codecbin = NULL;
   GError *local_gerror = NULL;
-  CodecAssociation *ca = NULL;
+  FsCodec *codec = NULL;
+  CodecBlueprint *bp = NULL;
 
-  ca = fs_rtp_session_select_send_codec_locked (self, error);
-  if (!ca)
+  codec = fs_rtp_session_select_send_codec_locked (self, &bp, error);
+  if (!codec)
     return FALSE;
 
   self->priv->extra_sources = fs_rtp_special_sources_update (
       self->priv->extra_sources,
-      self->priv->codec_associations, ca->codec,
+      self->priv->codec_associations, codec,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer, error);
   if (local_gerror)
   {
     g_propagate_error (error, local_gerror);
-    return FALSE;
+    goto error;
   }
 
   if (self->priv->current_send_codec) {
-    if (fs_codec_are_equal (ca->codec, self->priv->current_send_codec))
-      return TRUE;
+    if (fs_codec_are_equal (codec, self->priv->current_send_codec))
+      goto done;
 
     /* If we have to change an already made pipeline,
      * we have to make sure that is it blocked
@@ -2733,17 +2734,20 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   {
     /* The codec does exist yet, lets just create it */
 
-    codecbin = fs_rtp_session_add_send_codec_bin (self, ca->codec,
-        ca->blueprint,
-        error);
+    codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp, error);
 
     if (!codecbin)
-    {
       /* We have an error !! */
-      return FALSE;
-    }
+      goto error;
   }
 
+ done:
+
+  fs_codec_destroy (codec);
+  return TRUE;
+
+ error:
+  fs_codec_destroy (codec);
   return TRUE;
 }
 
