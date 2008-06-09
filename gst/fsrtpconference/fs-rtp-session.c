@@ -1454,7 +1454,11 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
       session->priv->codec_associations, pt);
 
   if (ca)
-    caps = fs_codec_to_gst_caps (ca->codec);
+  {
+    FsCodec *tmpcodec = codec_copy_without_config (ca->codec);
+    caps = fs_codec_to_gst_caps (tmpcodec);
+    fs_codec_destroy (tmpcodec);
+  }
 
   FS_RTP_SESSION_UNLOCK (session);
 
