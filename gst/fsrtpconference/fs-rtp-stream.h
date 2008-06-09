@@ -101,6 +101,9 @@ void fs_rtp_stream_add_known_ssrc (FsRtpStream *stream,
 void fs_rtp_stream_remove_known_ssrc (FsRtpStream *stream,
     guint32 ssrc);
 
+void
+fs_rtp_stream_set_negotiated_codecs (FsRtpStream *stream,
+    GList *codecs);
 
 G_END_DECLS
 

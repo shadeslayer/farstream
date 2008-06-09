@@ -53,6 +53,7 @@ enum
   PROP_SOURCE_PADS,
 #endif
   PROP_REMOTE_CODECS,
+  PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_RECV_CODECS,
   PROP_DIRECTION,
   PROP_PARTICIPANT,
@@ -70,6 +71,8 @@ struct _FsRtpStreamPrivate
 
   /* Protected by the session mutex */
   guint recv_codecs_changed_idle_id;
+
+  GList *negotiated_codecs;
 
   GError *construction_error;
 
@@ -167,6 +170,9 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   g_object_class_override_property (gobject_class,
                                     PROP_REMOTE_CODECS,
                                     "remote-codecs");
+  g_object_class_override_property (gobject_class,
+                                    PROP_NEGOTIATED_CODECS,
+                                    "negotiated-codecs");
   g_object_class_override_property (gobject_class,
                                     PROP_CURRENT_RECV_CODECS,
                                     "current-recv-codecs");
@@ -272,6 +278,9 @@ fs_rtp_stream_finalize (GObject *object)
   if (self->remote_codecs)
     fs_codec_list_destroy (self->remote_codecs);
 
+  if (self->priv->negotiated_codecs)
+    fs_codec_list_destroy (self->priv->negotiated_codecs);
+
   if (self->priv->known_ssrcs)
     g_list_free (self->priv->known_ssrcs);
 
@@ -301,7 +310,14 @@ fs_rtp_stream_get_property (GObject *object,
 
   switch (prop_id) {
     case PROP_REMOTE_CODECS:
+      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_boxed (value, self->remote_codecs);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
+      break;
+    case PROP_NEGOTIATED_CODECS:
+      FS_RTP_SESSION_LOCK (self->priv->session);
+      g_value_set_boxed (value, self->priv->negotiated_codecs);
+      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_SESSION:
       g_value_set_object (value, self->priv->session);
@@ -907,3 +923,35 @@ fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
 
   return !myerror;
 }
+
+/**
+ * fs_rtp_stream_set_negotiated_codecs
+ * @stream: a #FsRtpStream
+ * @codecs: The #GList of #FsCodec to set for the negotiated-codecs property
+ *
+ * This function sets the value of the FsStream:negotiated-codecs property.
+ * Unlike most other functions in this element, it TAKES the reference to the
+ * codecs, so you have to give it its own copy.
+ */
+void
+fs_rtp_stream_set_negotiated_codecs (FsRtpStream *stream,
+    GList *codecs)
+{
+  FS_RTP_SESSION_LOCK (stream->priv->session);
+  if (fs_codec_list_are_equal (stream->priv->negotiated_codecs, codecs))
+  {
+    fs_codec_list_destroy (codecs);
+    FS_RTP_SESSION_UNLOCK (stream->priv->session);
+    return;
+  }
+
+  if (stream->priv->negotiated_codecs)
+    fs_codec_list_destroy (stream->priv->negotiated_codecs);
+
+  stream->priv->negotiated_codecs = codecs;
+
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
+
+  g_object_notify (G_OBJECT (stream), "negotiated-codecs");
+}
+
