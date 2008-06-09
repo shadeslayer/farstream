@@ -871,9 +871,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
  error_no_remove:
 
-    fs_rtp_sub_stream_invalidate_codec_locked (substream, substream->priv->pt,
-        NULL);
-
     FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
     return FALSE;
