@@ -82,7 +82,7 @@ typedef enum
  * @media_type: type of media this codec is for
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
- * @optional_params: key pairs of param name to param data for neutral and receive side params
+ * @optional_params: key pairs of param name to param data
  *
  * This structure reprensents one codec that can be offered or received
  */
