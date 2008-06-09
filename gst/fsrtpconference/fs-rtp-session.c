@@ -2209,6 +2209,8 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
  * This function returns the codec and blueprint that will be used to receive
  * data on a specific payload type, optionally from a specific stream.
  *
+ * MUST be called with the FsRtpSession lock held
+ *
  * Returns: A new #FsCodec or %NULL on error
  */
 
