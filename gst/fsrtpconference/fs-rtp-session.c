@@ -1650,6 +1650,7 @@ fs_rtp_session_get_stream_by_ssrc (FsRtpSession *self,
 
 static void
 fs_rtp_session_verify_substream_locked (FsRtpSession *session,
+    FsRtpStream *stream,
     FsRtpSubStream *substream)
 {
   FsCodec *codec = NULL;
@@ -1657,7 +1658,8 @@ fs_rtp_session_verify_substream_locked (FsRtpSession *session,
 
   g_object_get (substream, "pt", &pt, NULL);
 
-  codec = fs_rtp_session_get_recv_codec_locked (session, pt, NULL, NULL, NULL);
+  codec = fs_rtp_session_get_recv_codec_locked (session, pt, stream, NULL,
+      NULL);
 
   if (!codec)
     return;
@@ -1685,7 +1687,7 @@ fs_rtp_session_verify_recv_codecs (FsRtpSession *session)
   for (item = g_list_first (session->priv->free_substreams);
        item;
        item = g_list_next (item))
-    fs_rtp_session_verify_substream_locked (session, item->data);
+    fs_rtp_session_verify_substream_locked (session, NULL, item->data);
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -1696,7 +1698,7 @@ fs_rtp_session_verify_recv_codecs (FsRtpSession *session)
     for (item2 = g_list_first (stream->substreams);
          item2;
          item2 = g_list_next (item2))
-      fs_rtp_session_verify_substream_locked (session, item2->data);
+      fs_rtp_session_verify_substream_locked (session, stream, item2->data);
   }
 
   FS_RTP_SESSION_UNLOCK (session);
