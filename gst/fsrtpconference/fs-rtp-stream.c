@@ -518,10 +518,12 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
   GList *item = NULL;
   FsMediaType media_type;
 
+  FS_RTP_SESSION_LOCK (self->priv->session);
+
   if (remote_codecs == NULL) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "You can not set NULL remote codecs");
-    return FALSE;
+    goto error;
   }
 
   g_object_get (self->priv->session, "media-type", &media_type, NULL);
@@ -534,27 +536,27 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The codec must have an encoding name");
-      return FALSE;
+      goto error;
     }
     if (codec->id < 0 || codec->id > 128)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The codec id must be between 0 ans 128 for %s",
           codec->encoding_name);
-      return FALSE;
+      goto error;
     }
     if (codec->clock_rate == 0)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The codec %s must has a non-0 clock rate", codec->encoding_name);
-      return FALSE;
+      goto error;
     }
     if (codec->media_type != media_type)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The media type for codec %s is not %s", codec->encoding_name,
           fs_media_type_to_string (media_type));
-      return FALSE;
+      goto error;
     }
   }
 
@@ -563,10 +565,16 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     if (self->remote_codecs)
       fs_codec_list_destroy (self->remote_codecs);
     self->remote_codecs = fs_codec_list_copy (remote_codecs);
-    return TRUE;
   } else {
-    return FALSE;
+    goto error;
   }
+
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+  return TRUE;
+
+ error:
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+  return FALSE;
 }
 
 /**
