@@ -2392,7 +2392,6 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
   CodecAssociation *ca = NULL;
   GList *item = NULL;
 
-
   if (!session->priv->codec_associations)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
@@ -2409,46 +2408,29 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     return NULL;
   }
 
-  recv_codec = codec_copy_without_config (ca->codec);
-
   if (stream)
   {
-    GList *remote_codecs = NULL;
-    FsCodec *remote_codec = NULL;
+    GList *stream_codecs = NULL;
 
-    g_object_get (stream, "remote-codecs", &remote_codecs, NULL);
+    g_object_get (stream, "negotiated-codecs", &stream_codecs, NULL);
 
-
-    for (item = remote_codecs; item; item = g_list_next (item))
+    for(item = stream_codecs; item; item = g_list_next (item))
     {
-      FsCodec *tmpcodec = NULL;
-      remote_codec = item->data;
-
-      tmpcodec = sdp_is_compat (ca->codec, remote_codec);
-      if (tmpcodec)
-      {
-        fs_codec_destroy (tmpcodec);
+      recv_codec = item->data;
+      if (recv_codec->id == pt)
         break;
-      }
     }
 
-    if (item == NULL)
-      remote_codec = NULL;
+    if (item)
+      stream_codecs = g_list_remove_all (stream_codecs, item);
+    else
+      recv_codec = NULL;
 
-    if (remote_codec)
-    {
-      for (item = remote_codec->optional_params; item;
-           item = g_list_next (item))
-      {
-        FsCodecParameter *param = item->data;
-        if (codec_has_config_data_named (recv_codec, param->name))
-          fs_codec_add_optional_parameter (recv_codec, param->name,
-              param->value);
-      }
-    }
-
-    fs_codec_list_destroy (remote_codecs);
+    fs_codec_list_destroy (stream_codecs);
   }
+
+  if (!recv_codec)
+    recv_codec = codec_copy_without_config (ca->codec);
 
   if (bp)
     *bp = ca->blueprint;
