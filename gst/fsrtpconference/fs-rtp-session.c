@@ -3310,7 +3310,8 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
       goto error;
     }
 
-    if (!gst_element_sync_state_with_parent (session->priv->discovery_fakesink))
+    if (!gst_element_sync_state_with_parent (
+            session->priv->discovery_capsfilter))
     {
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not sync the discovery capsfilter's state with its parent");
