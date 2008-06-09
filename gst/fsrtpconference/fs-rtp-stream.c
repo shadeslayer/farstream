@@ -69,7 +69,6 @@ struct _FsRtpStreamPrivate
   FsStreamDirection direction;
 
   /* Protected by the session mutex */
-  GList *substreams;
   guint recv_codecs_changed_idle_id;
 
   GError *construction_error;
@@ -241,10 +240,10 @@ fs_rtp_stream_dispose (GObject *object)
     self->priv->recv_codecs_changed_idle_id = 0;
   }
 
-  if (self->priv->substreams) {
-    g_list_foreach (self->priv->substreams, (GFunc) g_object_unref, NULL);
-    g_list_free (self->priv->substreams);
-    self->priv->substreams = NULL;
+  if (self->substreams) {
+    g_list_foreach (self->substreams, (GFunc) g_object_unref, NULL);
+    g_list_free (self->substreams);
+    self->substreams = NULL;
   }
   FS_RTP_SESSION_UNLOCK (self->priv->session);
 
@@ -322,7 +321,7 @@ fs_rtp_stream_get_property (GObject *object,
         GList *substream_item;
 
         FS_RTP_SESSION_LOCK (self->priv->session);
-        for (substream_item = g_list_first (self->priv->substreams);
+        for (substream_item = g_list_first (self->substreams);
              substream_item;
              substream_item = g_list_next (substream_item))
         {
@@ -370,7 +369,7 @@ fs_rtp_stream_set_property (GObject *object,
         g_object_set (self->priv->stream_transmitter, "sending",
             self->priv->direction & FS_DIRECTION_SEND, NULL);
       FS_RTP_SESSION_LOCK (self->priv->session);
-      for (item = g_list_first (self->priv->substreams);
+      for (item = g_list_first (self->substreams);
            item;
            item = g_list_next (item))
         g_object_set (G_OBJECT (item->data),
@@ -724,7 +723,7 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
   gboolean ret = TRUE;
 
   FS_RTP_SESSION_LOCK (stream->priv->session);
-  stream->priv->substreams = g_list_prepend (stream->priv->substreams,
+  stream->substreams = g_list_prepend (stream->substreams,
       substream);
   g_object_set (substream,
       "stream", stream,
@@ -788,7 +787,7 @@ fs_rtp_stream_invalidate_codec_locked (FsRtpStream *stream,
 {
   GList *item;
 
-  for (item = g_list_first (stream->priv->substreams);
+  for (item = g_list_first (stream->substreams);
        item;
        item = g_list_next (item))
     fs_rtp_sub_stream_invalidate_codec_locked (item->data, pt, codec);
@@ -822,7 +821,7 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
   FS_RTP_SESSION_LOCK (stream->priv->session);
 
-  for (substream_item = stream->priv->substreams;
+  for (substream_item = stream->substreams;
        substream_item;
        substream_item = g_list_next (substream_item))
   {
