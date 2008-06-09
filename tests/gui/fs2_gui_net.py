@@ -28,6 +28,15 @@ import sys, os, pwd, os.path
 import socket, struct
 import gc
 
+
+try:
+    import pygst
+    pygst.require('0.10')
+        
+    import gst
+except ImportError, e:
+    raise SystemExit("Gst-Python couldn't be found! (%s)" % (e[0]))
+
 try:
     import farsight
 except:
@@ -418,7 +427,9 @@ if __name__ == "__main__":
     mainloop = gobject.MainLoop()
     gobject.threads_init()
     if len(sys.argv) > 1:
-        client = FsUIClient("127.0.0.1", int(sys.argv[1]), TestParticipant)
+        client = FsUIClient("127.0.0.1", int(sys.argv[1]),
+                            "cname" + sys.argv[1],
+                            TestParticipant)
     else:
-        listener = FsUIListener(9893, FsUIServer, TestParticipant)
+        listener = FsUIListener(9893, FsUIServer, "cnameServ", TestParticipant)
     mainloop.run()
