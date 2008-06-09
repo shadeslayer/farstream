@@ -405,22 +405,22 @@ if __name__ == "__main__":
     class TestParticipant:
         def __init__(self, connect, id, cname, *args):
             self.id = id
-            self.medias = {1: TestMedia(id, 1, connect),
-                           2: TestMedia(id, 2, connect)}
+            self.streams = {1: TestMedia(id, 1, connect),
+                            2: TestMedia(id, 2, connect)}
             self.cname = cname
             self.connect = connect
             print "New Participant %s and cname %s" % (id,cname)
         def candidate(self, media, candidate):
-            self.medias[media].candidate(candidate)
+            self.streams[media].candidate(candidate)
         def candidates_done(self, media):
-            self.medias[media].candidates_done()
+            self.streams[media].candidates_done()
         def codec(self, media, codec):
-            self.medias[media].codec(codec)
+            self.streams[media].codec(codec)
         def codecs_done(self, media):
-            self.medias[media].codecs_done()
+            self.streams[media].codecs_done()
         def send_local_codecs(self):
-            for id in self.medias:
-                self.medias[id].send_local_codecs()
+            for id in self.streams:
+                self.streams[id].send_local_codecs()
             
 
     mycname = "test"
