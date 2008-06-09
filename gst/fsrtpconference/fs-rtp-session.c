@@ -222,7 +222,7 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     GParameter *parameters,
     GError **error);
 
-static gboolean fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
+static gboolean fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
     FsRtpSubStream *substream,
     guint32 ssrc,
     guint pt,
@@ -1968,7 +1968,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   g_signal_connect (substream, "blocked", G_CALLBACK (_substream_blocked),
       session);
 
-  if (!fs_rtp_session_substream_add_codec_bin (session, substream, ssrc, pt,
+  if (!fs_rtp_session_substream_set_codec_bin (session, substream, ssrc, pt,
           &error))
   {
     if (error)
@@ -2349,20 +2349,20 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 }
 
 /**
- * fs_rtp_session_substream_add_codec_bin:
+ * fs_rtp_session_substream_set_codec_bin:
  * @session: a #FsRtpSession
  * @substream: a #FsRtpSubStream
  * @ssrc: the ssrc of the substream
  * @pt: the payload type of the substream
  * @error: location of a #GError, or NULL if no error occured
  *
- * Adds a codecbin to a substream according to the currently negotiated codecs
+ * Sets a codecbin on a substream according to the currently negotiated codecs
  *
  * Returns: %TRUE on success, %FALSE on error
  */
 
 static gboolean
-fs_rtp_session_substream_add_codec_bin (FsRtpSession *session,
+fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
     FsRtpSubStream *substream,
     guint32 ssrc,
     guint pt,
@@ -2837,7 +2837,7 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
       "ssrc", &ssrc,
       NULL);
 
-  if (!fs_rtp_session_substream_add_codec_bin (session, substream, ssrc, pt,
+  if (!fs_rtp_session_substream_set_codec_bin (session, substream, ssrc, pt,
           &error))
   {
     gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
