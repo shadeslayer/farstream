@@ -218,7 +218,7 @@ class FsUIConnect:
         codec.channels = int(channels)
         if len(end):
             codec.optional_params = \
-                  [tuple(x.split("=")) for x in end.split(":") if len(x) > 0]
+                  [tuple(x.split("=",1)) for x in end.split(":") if len(x) > 0]
         return codec
 
 class FsUIConnectClient (FsUIConnect):
