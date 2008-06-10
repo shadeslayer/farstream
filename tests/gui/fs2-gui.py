@@ -151,6 +151,8 @@ class FsUIPipeline:
                     message.structure["candidate"])
             elif message.structure.has_name("farsight-codecs-ready"):
                 message.structure["session"].uisession.codecs_ready()
+            elif message.structure.has_name("farsight-codecs-changed"):
+                message.structure["session"].uisession.codecs_changed()
             else:
                 print message.src.get_name(), ": ", message.structure.get_name()
         elif message.type != gst.MESSAGE_STATE_CHANGED \
@@ -354,8 +356,7 @@ class FsUISession:
                                                       "PCMU",
                                                       farsight.MEDIA_TYPE_AUDIO,
                                                       0)])
-        self.fssession.connect("notify::negotiated-codecs",
-                             self.__negotiated_codecs_notify)
+
         self.sourcepad = self.source.get_src_pad()
         self.sourcepad.link(self.fssession.get_property("sink-pad"))
 
@@ -363,7 +364,7 @@ class FsUISession:
         self.sourcepad(unlink)
         self.source.put_src_pad(self.sourcepad)
         
-    def __negotiated_codecs_notify(self, session, paramspec):
+    def codecs_changed(self):
         "Callback from FsSession"
         for s in self.streams:
             try:
