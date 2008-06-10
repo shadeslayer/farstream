@@ -396,7 +396,6 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 static FsCodec *
 sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
 {
-  FsCodec *negotiated_codec = NULL;
   GList *mylistitem = NULL, *remote_param_list = NULL;
   FsCodecParameter *profile = NULL;
 
@@ -455,13 +454,8 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
           }
           else
           {
-            GST_DEBUG ("We have the same profile, lets return our local codec");
-
-            negotiated_codec = fs_codec_copy (local_codec);
-
-            negotiated_codec->id = remote_codec->id;
-
-            return negotiated_codec;
+            GST_DEBUG ("We have the same profile, lets return the remote codec");
+            return fs_codec_copy (local_codec);
           }
         }
       }
@@ -472,6 +466,5 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
   }
 
 
-  negotiated_codec = fs_codec_copy (local_codec);
-  return negotiated_codec;
+  return fs_codec_copy (remote_codec);
 }
