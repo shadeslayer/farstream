@@ -149,6 +149,8 @@ class FsUIPipeline:
             elif message.structure.has_name("farsight-new-local-candidate"):
                 message.structure["stream"].uistream.new_local_candidate(
                     message.structure["candidate"])
+            elif message.structure.has_name("farsight-codecs-ready"):
+                message.structure["session"].uisession.codecs_ready()
             else:
                 print message.src.get_name(), ": ", message.structure.get_name()
         elif message.type != gst.MESSAGE_STATE_CHANGED \
@@ -323,6 +325,7 @@ class FsUISession:
         self.source = source
         self.streams = []
         self.fssession = conference.new_session(source.get_type())
+        self.fssession.uisession = self
         if source.get_type() == farsight.MEDIA_TYPE_VIDEO:
             # We prefer H263-1998 because we know it works
             # We don't know if the others do work
@@ -400,7 +403,14 @@ class FsUISession:
         
     def dtmf_stop(self, method):
         self.fssession.stop_telephony_event(method)
-    
+
+    def codecs_ready(self):
+        "Callback from FsSession"
+        for s in self.streams:
+            try:
+                s().check_send_local_codecs()
+            except AttributeError:
+                pass
 
 class FsUIStream:
     "One participant in one session"
@@ -414,6 +424,7 @@ class FsUIStream:
         self.fsstream.uistream = self
         self.fsstream.connect("src-pad-added", self.__src_pad_added)
         self.newcodecs = []
+        self.send_codecs = False
 
     def local_candidates_prepared(self):
         "Callback from FsStream"
@@ -451,14 +462,25 @@ class FsUIStream:
             self.fsstream.set_remote_codecs(self.codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
-            
+
+
     def send_local_codecs(self):
         "Callback for the network object."
+        self.send_codecs = True
+        self.check_send_local_codecs()
+
+    def check_send_local_codecs(self):
+        "Internal function to send codecs when they're ready"
+        if not self.send_codecs or \
+               not self.session.fssession.get_property("codecs-ready"):
+            return
+        self.send_codecs = False
         codecs = self.session.fssession.get_property("negotiated-codecs")
         assert(codecs is not None and len(codecs) > 0)
         for codec in codecs:
             self.connect.send_codec(self.participant.id, self.id, codec)
         self.connect.send_codecs_done(self.participant.id, self.id)
+
 
     def new_negotiated_codecs(self):
         """Callback for the network object.
