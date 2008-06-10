@@ -417,6 +417,19 @@ fs_rtp_session_dispose (GObject *object)
 
   fs_rtp_session_stop_codec_param_gathering (self);
 
+
+  if (self->priv->send_tee_discovery_pad)
+  {
+    gst_object_unref (self->priv->send_tee_discovery_pad);
+    self->priv->send_tee_discovery_pad = NULL;
+  }
+
+  if (self->priv->send_tee_media_pad)
+  {
+    gst_object_unref (self->priv->send_tee_media_pad);
+    self->priv->send_tee_media_pad = NULL;
+  }
+
   stop_and_remove (conferencebin, &self->priv->rtpmuxer, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_capsfilter, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
@@ -493,8 +506,6 @@ fs_rtp_session_dispose (GObject *object)
     gst_object_unref (self->priv->rtpbin_recv_rtcp_sink);
     self->priv->rtpbin_recv_rtcp_sink = NULL;
   }
-
-
 
   if (self->priv->transmitters)
   {
