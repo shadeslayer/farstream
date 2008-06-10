@@ -791,6 +791,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GError **error)
 {
   GstCaps *caps = NULL;
+  gchar *tmp;
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
 
@@ -847,6 +848,9 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   }
 
   caps = fs_codec_to_gst_caps (codec);
+  tmp = gst_caps_to_string (caps);
+  GST_DEBUG ("Setting caps %s on recv substream", tmp);
+  g_free (tmp);
   g_object_set (substream->priv->capsfilter, "caps", caps, NULL);
   gst_caps_unref (caps);
 
