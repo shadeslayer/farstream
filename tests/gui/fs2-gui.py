@@ -455,8 +455,7 @@ class FsUIStream:
     def send_local_codecs(self):
         "Callback for the network object."
         codecs = self.session.fssession.get_property("negotiated-codecs")
-        if codecs is None or len(codecs) == 0:
-            codecs = self.session.fssession.get_property("local-codecs")
+        assert(codecs is not None and len(codecs) > 0)
         for codec in codecs:
             self.connect.send_codec(self.participant.id, self.id, codec)
         self.connect.send_codecs_done(self.participant.id, self.id)
