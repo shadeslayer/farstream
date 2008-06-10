@@ -808,7 +808,7 @@ fs_rtp_session_constructed (GObject *object)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
-        "Could not ");
+        "Could not link the send valve to the send tee");
     return;
   }
 
@@ -816,6 +816,13 @@ fs_rtp_session_constructed (GObject *object)
       "src%d");
   self->priv->send_tee_media_pad = gst_element_get_request_pad (tee,
       "src%d");
+
+  if (!self->priv->send_tee_discovery_pad || !self->priv->send_tee_media_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not create the send tee request src pads");
+  }
 
   /* Now create the transmitter RTP funnel */
 
