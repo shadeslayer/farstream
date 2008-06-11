@@ -331,29 +331,29 @@ class FsUISession:
             # We don't know if the others do work
             # We know H264 doesn't work for now or anything else
             # that needs to send config data
-            self.fssession.set_local_codecs_config(
-                                        [farsight.Codec(farsight.CODEC_ID_DISABLE,
-                                                      "H264",
-                                                      farsight.MEDIA_TYPE_VIDEO,
-                                                      0),
-                                        farsight.Codec(farsight.CODEC_ID_ANY,
-                                                     "H263-1998",
-                                                     farsight.MEDIA_TYPE_VIDEO,
-                                                     0),
-                                        farsight.Codec(farsight.CODEC_ID_ANY,
-                                                     "H263",
-                                                     farsight.MEDIA_TYPE_VIDEO,
-                                                     0)])
+            self.fssession.set_local_codecs_config( [ \
+                farsight.Codec(farsight.CODEC_ID_DISABLE,
+                               "H264",
+                               farsight.MEDIA_TYPE_VIDEO,
+                               0),
+                farsight.Codec(farsight.CODEC_ID_ANY,
+                               "H263-1998",
+                               farsight.MEDIA_TYPE_VIDEO,
+                               0),
+                farsight.Codec(farsight.CODEC_ID_ANY,
+                               "H263",
+                               farsight.MEDIA_TYPE_VIDEO,
+                               0)])
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
-            self.fssession.set_local_codecs_config(
-                                      [farsight.Codec(farsight.CODEC_ID_ANY,
-                                                      "PCMA",
-                                                      farsight.MEDIA_TYPE_AUDIO,
-                                                      0),
-                                       farsight.Codec(farsight.CODEC_ID_ANY,
-                                                      "PCMU",
-                                                      farsight.MEDIA_TYPE_AUDIO,
-                                                      0)])
+            self.fssession.set_local_codecs_config( [ \
+                farsight.Codec(farsight.CODEC_ID_ANY,
+                               "PCMA",
+                               farsight.MEDIA_TYPE_AUDIO,
+                               0),
+                farsight.Codec(farsight.CODEC_ID_ANY,
+                               "PCMU",
+                               farsight.MEDIA_TYPE_AUDIO,
+                               0)])
 
         self.sourcepad = self.source.get_src_pad()
         self.sourcepad.link(self.fssession.get_property("sink-pad"))
