@@ -438,9 +438,12 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   gboolean ready;
   const GstStructure *s = gst_message_get_structure (message);
   FsParticipant *p = NULL;
+  FsParticipant *p2 = NULL;
   FsStream *stream = NULL;
+  FsStream *stream2 = NULL;
   const gchar config[] = "asildksahkjewafrefenbwqgiufewaiufhwqiu"
     "enfiuewfkdnwqiucnwiufenciuawndiunfucnweciuqfiucina";
+  const gchar config2[] = "sadsajdsakdjlksajdsajldsaldjsalkjdl";
   GError *error = NULL;
 
   if (!gst_structure_has_name (s, "farsight-codecs-ready"))
@@ -495,8 +498,58 @@ _bus_message_element (GstBus *bus, GstMessage *message,
       codecs, config);
   fs_codec_list_destroy (codecs);
 
+  p2 = fs_conference_new_participant (FS_CONFERENCE (dat->conference), "name2",
+      &error);
+  if (!p2)
+    fail ("Could not add second participant to conference %s", error->message);
+
+  stream2 = fs_session_new_stream (dat->session, p2, FS_DIRECTION_BOTH,
+      "rawudp", 0, NULL, NULL);
+
+  fail_if (stream == NULL, "Could not second create new stream");
+
+
+  codec = fs_codec_new (117, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+  fs_codec_add_optional_parameter (codec, "delivery-method", "inline");
+  fs_codec_add_optional_parameter (codec, "configuration", config2);
+  codecs = g_list_prepend (NULL, codec);
+
+  if (!fs_stream_set_remote_codecs (stream2, codecs, &error))
+  {
+    if (error)
+      fail ("Could not set vorbis as remote codec on the stream: %s",
+          error->message);
+    else
+      fail ("Could not set vorbis as remote codec on the stream"
+          " WITHOUT SETTING THE GError");
+  }
+  fs_codec_list_destroy (codecs);
+
+
+
+  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+  fail_unless (ready, "Codecs became unready after setting new remote codecs");
+
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  check_vorbis_and_configuration ("session codecs after renegotiation",
+      codecs, NULL);
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (stream, "negotiated-codecs", &codecs, NULL);
+  check_vorbis_and_configuration ("stream codecs after renegotiation",
+      codecs, config);
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (stream2, "negotiated-codecs", &codecs, NULL);
+  check_vorbis_and_configuration ("stream2 codecs after renegotiation",
+      codecs, config2);
+  fs_codec_list_destroy (codecs);
+
+
   g_object_unref (p);
   g_object_unref (stream);
+  g_object_unref (p2);
+  g_object_unref (stream2);
 
   g_main_loop_quit (loop);
 }
