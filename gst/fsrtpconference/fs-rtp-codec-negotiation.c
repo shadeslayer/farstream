@@ -602,7 +602,6 @@ negotiate_stream_codecs (
     }
 
     if (!nego_codec) {
-      GList *item = NULL;
 
       for (item = current_codec_associations;
            item;
