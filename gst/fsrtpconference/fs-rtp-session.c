@@ -1981,13 +1981,13 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     codec_association_list_destroy (old_negotiated_codec_associations);
   }
 
-  if (is_new)
-    g_signal_emit_by_name (session->priv->conference->gstrtpbin,
-        "clear-pt-map");
-
   fs_rtp_session_distribute_recv_codecs (session, stream, remote_codecs);
 
   fs_rtp_session_verify_recv_codecs (session);
+
+  if (is_new)
+    g_signal_emit_by_name (session->priv->conference->gstrtpbin,
+        "clear-pt-map");
 
   fs_rtp_session_start_codec_param_gathering (session);
 
