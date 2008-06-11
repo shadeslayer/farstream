@@ -415,6 +415,7 @@ class FsUIStream:
         self.fsstream.connect("src-pad-added", self.__src_pad_added)
         self.newcodecs = []
         self.send_codecs = False
+        self.last_codecs = []
 
     def local_candidates_prepared(self):
         "Callback from FsStream"
@@ -468,6 +469,9 @@ class FsUIStream:
         self.send_codecs = False
         codecs = self.session.fssession.get_property("negotiated-codecs")
         assert(codecs is not None and len(codecs) > 0)
+        if (farsight.fs_codec_list_are_equal(codecs, self.last_codecs)):
+            return
+        self.last_codecs = codecs
         for codec in codecs:
             print "sending local codec: " + codec.to_string()
             self.connect.send_codec(self.participant.id, self.id, codec)
