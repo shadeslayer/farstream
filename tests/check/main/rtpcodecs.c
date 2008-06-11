@@ -406,6 +406,11 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   FsCodec *codec = NULL;
   gboolean ready;
   const GstStructure *s = gst_message_get_structure (message);
+  FsParticipant *p = NULL;
+  FsStream *stream = NULL;
+  const gchar config[] = "asildksahkjewafrefenbwqgiufewaiufhwqiu"
+    "enfiuewfkdnwqiucnwiufenciuawndiunfucnweciuqfiucina";
+  GError *error = NULL;
 
   if (!gst_structure_has_name (s, "farsight-codecs-ready"))
     return;
@@ -436,6 +441,93 @@ _bus_message_element (GstBus *bus, GstMessage *message,
       " params, but Vorbis does not have the \"configuration\" parameter");
 
   fs_codec_list_destroy (codecs);
+
+  p = fs_conference_new_participant (FS_CONFERENCE (dat->conference), "name",
+      NULL);
+
+  fail_if (p == NULL, "Could not add participant to conference");
+
+  stream = fs_session_new_stream (dat->session, p, FS_DIRECTION_BOTH,
+      "rawudp", 0, NULL, NULL);
+
+  fail_if (stream == NULL, "Could not create new stream");
+
+  codec = fs_codec_new (105, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+
+  fs_codec_add_optional_parameter (codec, "delivery-method", "inline");
+  fs_codec_add_optional_parameter (codec, "configuration", config);
+
+  codecs = g_list_prepend (NULL, codec);
+
+  if (!fs_stream_set_remote_codecs (stream, codecs, &error))
+  {
+    if (error)
+      fail ("Could not set vorbis as remote codec on the stream: %s",
+          error->message);
+    else
+      fail ("Could not set vorbis as remote codec on the stream"
+          " WITHOUT SETTING THE GError");
+  }
+
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    codec = item->data;
+    if (!g_ascii_strcasecmp ("vorbis", codec->encoding_name))
+      break;
+  }
+
+  fail_if (item == NULL, "Could not find Vorbis in negotiated codecs after"
+      " negotiation");
+
+  for (item = codec->optional_params; item; item = g_list_next (item))
+  {
+    FsCodecParameter *param = item->data;
+
+    if (!g_ascii_strcasecmp (param->name, "configuration"))
+      break;
+  }
+
+  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+
+  fail_if (item == NULL, "The configuration parameter is no longer in the"
+      " vorbis codec after the negotiation");
+  fs_codec_list_destroy (codecs);
+
+
+
+  g_object_get (stream, "negotiated-codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    codec = item->data;
+    if (!g_ascii_strcasecmp ("vorbis", codec->encoding_name))
+      break;
+  }
+
+  fail_if (item == NULL, "Could not find Vorbis in negotiated codecs"
+      " on the stream");
+
+  for (item = codec->optional_params; item; item = g_list_next (item))
+  {
+    FsCodecParameter *param = item->data;
+
+    if (!g_ascii_strcasecmp (param->name, "configuration"))
+    {
+      fail_if (strcmp (param->value, config),
+          "The value of the configuration param on the stream in not what it"
+          " was set to");
+      break;
+    }
+  }
+
+  fail_if (item == NULL, "The configuration parameter is not in the stream"
+      "codec list after the negotiation");
+  fs_codec_list_destroy (codecs);
+
+  g_object_unref (p);
+  g_object_unref (stream);
 
   g_main_loop_quit (loop);
 }
