@@ -163,6 +163,9 @@ void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
 void fs_codec_remove_optional_parameter (FsCodec *codec,
     FsCodecParameter *param);
 
+FsCodecParameter *fs_codec_get_optional_parameter (FsCodec *codec,
+    gchar *name, gchar *value);
+
 G_END_DECLS
 
 #endif /* __FS_CODEC_H__ */

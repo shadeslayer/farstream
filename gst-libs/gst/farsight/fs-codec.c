@@ -679,3 +679,36 @@ fs_codec_remove_optional_parameter (FsCodec *codec,
   g_slice_free (FsCodecParameter, param);
   codec->optional_params = g_list_remove (codec->optional_params, param);
 }
+
+/**
+ * fs_codec_get_optional_parameter:
+ * @codec: a #FsCodec
+ * @name: The name of the parameter to search for
+ * @value: The value of the parameter to search for or %NULL for any value
+ *
+ * Finds the #FsCodecParameter in the #FsCodec that has the requested name
+ * and, if not %NULL, the requested value
+ *
+ * Returns: the #FsCodecParameter from the #FsCodec or %NULL
+ */
+
+FsCodecParameter *
+fs_codec_get_optional_parameter (FsCodec *codec, gchar *name, gchar *value)
+{
+  GList *item = NULL;
+
+  g_return_val_if_fail (codec != NULL, NULL);
+  g_return_val_if_fail (name != NULL, NULL);
+
+  for (item = g_list_first (codec->optional_params);
+       item;
+       item = g_list_next (item))
+  {
+    FsCodecParameter *param = item->data;
+    if (!g_ascii_strcasecmp (param->name, name) &&
+        (value == NULL || !g_ascii_strcasecmp (param->value, value)))
+      return param;
+  }
+
+  return NULL;
+}

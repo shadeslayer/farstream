@@ -122,6 +122,7 @@ fs_codec_to_string
 fs_codec_to_gst_caps
 fs_codec_add_optional_parameter
 fs_codec_remove_optional_parameter
+fs_codec_get_optional_parameter
 FS_CODEC_FORMAT
 FS_CODEC_ARGS
 <SUBSECTION Standard>
