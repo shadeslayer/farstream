@@ -57,13 +57,15 @@ static FsCodec *
 sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
 sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec);
+static FsCodec *
+sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
    {NULL}},
   {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998,
    {NULL}},
-  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_default,
+  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_vorbis,
    {"configuration", NULL}},
   {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_default,
    {"configuration", NULL}},
@@ -467,4 +469,14 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
 
 
   return fs_codec_copy (remote_codec);
+}
+
+
+static FsCodec *
+sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec)
+{
+  if (!fs_codec_get_optional_parameter (remote_codec, "configuration", NULL))
+    return NULL;
+
+  return sdp_is_compat_default (local_codec, remote_codec);
 }
