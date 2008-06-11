@@ -2741,7 +2741,7 @@ fs_rtp_session_send_codec_changed (FsRtpSession *self)
 
   gst_element_post_message (GST_ELEMENT (self->priv->conference),
       gst_message_new_element (GST_OBJECT (self->priv->conference),
-          gst_structure_new ("farsight-current-send-codec-changed",
+          gst_structure_new ("farsight-send-codec-changed",
               "session", FS_TYPE_SESSION, self,
               "codec", FS_TYPE_CODEC, codec,
               NULL)));
