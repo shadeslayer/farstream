@@ -674,6 +674,8 @@ void
 fs_codec_remove_optional_parameter (FsCodec *codec,
     FsCodecParameter *param)
 {
+  g_free (param->name);
+  g_free (param->value);
   g_slice_free (FsCodecParameter, param);
   codec->optional_params = g_list_remove (codec->optional_params, param);
 }
