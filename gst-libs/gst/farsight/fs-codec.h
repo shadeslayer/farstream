@@ -112,6 +112,28 @@ struct _FsCodecParameter {
     gchar *value;
 };
 
+
+/**
+ * FS_CODEC_FORMAT:
+ *
+ * A format that can be used in printf like format strings to format a FsCodec
+ */
+
+/**
+ * FS_CODEC_ARGS:
+ * @codec: a #FsCodec
+ *
+ * Formats the codec in args for FS_CODEC_FORMAT
+ */
+
+#define FS_CODEC_FORMAT "%d: %s %s clock:%d channels:%d"
+#define FS_CODEC_ARGS(codec)                            \
+    (codec)->id,                                        \
+    fs_media_type_to_string ((codec)->media_type),      \
+    (codec)->encoding_name,                             \
+    (codec)->clock_rate,                                \
+    (codec)->channels                                   \
+
 GType fs_codec_get_type (void);
 GType fs_codec_list_get_type (void);
 
