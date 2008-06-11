@@ -492,6 +492,8 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   g_object_get (dat->session, "codecs-ready", &ready, NULL);
 
+  fail_unless (ready, "Codecs became unready after setting new remote codecs");
+
   fail_if (item == NULL, "The configuration parameter is no longer in the"
       " vorbis codec after the negotiation");
   fs_codec_list_destroy (codecs);
