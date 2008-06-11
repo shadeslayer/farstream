@@ -149,8 +149,6 @@ class FsUIPipeline:
             elif message.structure.has_name("farsight-new-local-candidate"):
                 message.structure["stream"].uistream.new_local_candidate(
                     message.structure["candidate"])
-            elif message.structure.has_name("farsight-codecs-ready"):
-                message.structure["session"].uisession.codecs_ready()
             elif message.structure.has_name("farsight-codecs-changed"):
                 message.structure["session"].uisession.codecs_changed()
             else:
@@ -363,15 +361,6 @@ class FsUISession:
     def __del__(self):
         self.sourcepad(unlink)
         self.source.put_src_pad(self.sourcepad)
-        
-    def codecs_changed(self):
-        "Callback from FsSession"
-        for s in self.streams:
-            try:
-                s().new_negotiated_codecs()
-            except AttributeError:
-                pass
-
     def __stream_finalized(self, s):
         self.streams.remove(s)
             
@@ -405,7 +394,7 @@ class FsUISession:
     def dtmf_stop(self, method):
         self.fssession.stop_telephony_event(method)
 
-    def codecs_ready(self):
+    def codecs_changed(self):
         "Callback from FsSession"
         for s in self.streams:
             try:
@@ -463,6 +452,7 @@ class FsUIStream:
             self.fsstream.set_remote_codecs(self.codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
+        self.send_local_codecs()
 
 
     def send_local_codecs(self):
@@ -479,20 +469,9 @@ class FsUIStream:
         codecs = self.session.fssession.get_property("negotiated-codecs")
         assert(codecs is not None and len(codecs) > 0)
         for codec in codecs:
+            print "sending local codec: " + codec.to_string()
             self.connect.send_codec(self.participant.id, self.id, codec)
         self.connect.send_codecs_done(self.participant.id, self.id)
-
-
-    def new_negotiated_codecs(self):
-        """Callback for the network object.
-
-        We only send our negotiated codecs to the server (participant 1) or
-        to everyone if we are the server.
-        """
-        if self.participant.id == 1 or self.connect.myid == 1:
-            for codec in self.session.fssession.get_property("negotiated-codecs"):
-                self.connect.send_codec(self.participant.id, self.id, codec)
-            self.connect.send_codecs_done(self.participant.id, self.id)
 
 
 class FsUIParticipant:
