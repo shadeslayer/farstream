@@ -687,34 +687,6 @@ finish_codec_negotiation (
     GList *new_codec_associations)
 {
   int i;
-  GList *item = NULL;
-
-  /* Keep the codec config data if the codecs haven't changed */
-
-  for (item = new_codec_associations;
-       item;
-       item = g_list_next (item))
-  {
-    CodecAssociation *newca = item->data;
-    CodecAssociation *oldca = lookup_codec_association_by_codec (
-        old_codec_associations, newca->codec);
-
-    if (oldca)
-    {
-      GList *item2 = NULL;
-
-      for (item2 = oldca->codec->optional_params;
-           item2;
-           item2 = g_list_next (item2))
-      {
-        FsCodecParameter *param = item2->data;
-        if (codec_has_config_data_named (newca->codec, param->name))
-          fs_codec_add_optional_parameter (newca->codec, param->name,
-              param->value);
-      }
-    }
-  }
-
 
   /* Now, lets fill all of the PTs that were previously used in the session
    * even if they are not currently used, so they can't be re-used
