@@ -2892,7 +2892,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 
  error:
   fs_codec_destroy (codec);
-  return TRUE;
+  return FALSE;
 }
 
 /*
