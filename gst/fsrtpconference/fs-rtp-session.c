@@ -134,12 +134,6 @@ struct _FsRtpSessionPrivate
   FsCodec *current_send_codec;
   FsCodec *requested_send_codec;
 
-  /* This is the id of the pad probe used to blocked the stream
-   * while the codec is changed
-   * Protected by the session mutex
-   */
-  gulong send_blocking_id;
-
   /* These lists are protected by the session mutex */
   GList *streams;
   GList *free_substreams;
@@ -2752,18 +2746,20 @@ fs_rtp_session_send_codec_changed (FsRtpSession *self)
   fs_codec_destroy (codec);
 }
 
+static void
+pad_block_do_nothing (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+}
+
 /**
- * _send_src_pad_have_data_callback:
+ * _send_src_pad_blocked_callback:
  *
- * This is the pad probe callback on the sink pad of the valve.
+ * This is the callback for the pad blocking on the media src pad
  * It is used to replace the codec bin when the send codec has been changed.
- *
- * Its a callback, it returns TRUE to let the data through and FALSE to drop it
- * (See the "have-data" signal documentation of #GstPad).
  */
 
-static gboolean
-_send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
+static void
+_send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     gpointer user_data)
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
@@ -2771,7 +2767,6 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   CodecBlueprint *bp = NULL;
   GError *error = NULL;
   GstElement *codecbin = NULL;
-  gboolean ret = TRUE;
 
   FS_RTP_SESSION_LOCK (self);
   codec = fs_rtp_session_select_send_codec_locked (self, &bp, &error);
@@ -2815,9 +2810,9 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
         "Could not build a new send codec bin", error->message);
   }
 
+ done:
   g_clear_error (&error);
 
- done:
   /* If we have a codec bin, the required/preferred caps may have changed,
    * in this case, we need to drop the current buffer and wait for a buffer
    * with the right caps to come in. Only then can we drop the pad probe
@@ -2825,32 +2820,9 @@ _send_src_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   fs_codec_destroy (codec);
 
-  if (codecbin)
-  {
-    if (GST_IS_BUFFER (miniobj))
-    {
-      GstPad *codecbin_sink_pad = gst_pad_get_peer (pad);
-
-      if (!gst_pad_accept_caps (codecbin_sink_pad, GST_BUFFER_CAPS (miniobj)))
-      {
-        ret = FALSE;
-        GST_WARNING ("Dropping buffer because its caps do not match the"
-            " requirements of the new send codec bin");
-      }
-      gst_object_unref (codecbin_sink_pad);
-    }
-  }
-
-  if (ret && self->priv->send_blocking_id)
-  {
-    gst_pad_remove_data_probe (pad, self->priv->send_blocking_id);
-    self->priv->send_blocking_id = 0;
-  }
+  gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
 
   FS_RTP_SESSION_UNLOCK (self);
-
-  return ret;
-
 }
 
 /**
@@ -2896,17 +2868,11 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
      * we have to make sure that is it blocked
      */
 
-    if (!self->priv->send_blocking_id)
-    {
-      GstPad *pad;
 
-      pad = gst_element_get_static_pad (self->priv->media_sink_valve, "src");
-
-      self->priv->send_blocking_id = gst_pad_add_data_probe (pad,
-          G_CALLBACK (_send_src_pad_have_data_callback), self);
-
-      gst_object_unref (pad);
-    }
+    pad = gst_element_get_static_pad (self->priv->media_sink_valve, "src");
+    gst_pad_set_blocked_async (pad, TRUE, _send_src_pad_blocked_callback,
+        self);
+    gst_object_unref (pad);
   }
   else
   {
