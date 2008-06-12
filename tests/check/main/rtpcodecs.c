@@ -452,15 +452,42 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   const gchar config2[] = "sadsajdsakdjlksajdsajldsaldjsalkjdl";
   GError *error = NULL;
 
-  if (!gst_structure_has_name (s, "farsight-codecs-ready"))
+  if (!gst_structure_has_name (s, "farsight-codecs-ready") &&
+      !gst_structure_has_name (s, "farsight-codecs-changed"))
     return;
 
   g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
 
-  fail_unless (ready, "Got ready bus message, but codecs aren't ready yet");
+  if (!ready)
+    return;
 
   g_object_get (cd->dat->session, "negotiated-codecs", &codecs, NULL);
   check_vorbis_and_configuration ("codecs before negotiation", codecs, NULL);
+  fs_codec_list_destroy (codecs);
+
+  if (cd->config)
+  {
+    g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
+    check_vorbis_and_configuration ("stream codecs before negotiation",
+        codecs ,cd->config);
+    fs_codec_list_destroy (codecs);
+  }
+
+  codec = fs_codec_new (105, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+  codecs = g_list_prepend (NULL, codec);
+
+  fail_if (fs_stream_set_remote_codecs (cd->stream, codecs, &error),
+      "Succeed in setting vorbis codec without configuration");
+
+  fail_if (error == NULL, "Failed to set vorbis without config, but did not"
+      " get an error");
+
+  fail_unless (error->code == FS_ERROR_NEGOTIATION_FAILED,
+      "Did not get the right error, expected %d, got %d",
+      FS_ERROR_NEGOTIATION_FAILED, error->code);
+
+  g_clear_error (&error);
+
   fs_codec_list_destroy (codecs);
 
 
@@ -557,6 +584,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
   gboolean ready;
   GError *error = NULL;
   GstBus *bus = NULL;
+  const gchar config[] = "lksajdoiwqjfd2ohqfpiuwqjofqiufhqfqw";
 
   memset (&cd, 0, sizeof(cd));
 
@@ -602,6 +630,37 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
         " so we are skipping the config-data test");
     goto out;
   }
+
+
+  g_object_get (cd.dat->session, "codecs-ready", &ready, NULL);
+
+  fail_if (ready, "Codecs are ready before the pipeline is playing, it does not"
+      " try to detect vorbis codec data");
+
+
+  if (preset_remotes)
+  {
+    FsCodec *codec = NULL;
+
+    cd.config = config;
+    codec = fs_codec_new (105, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+    fs_codec_add_optional_parameter (codec, "delivery-method", "inline");
+    fs_codec_add_optional_parameter (codec, "configuration", config);
+    codecs = g_list_prepend (NULL, codec);
+
+    if (!fs_stream_set_remote_codecs (cd.stream, codecs, &error))
+    {
+      if (error)
+        fail ("Could not set vorbis as remote codec on the stream: %s",
+            error->message);
+      else
+        fail ("Could not set vorbis as remote codec on the stream"
+            " WITHOUT SETTING THE GError");
+    }
+
+    fs_codec_list_destroy (codecs);
+  }
+
 
   g_object_get (cd.dat->session, "codecs-ready", &ready, NULL);
 
