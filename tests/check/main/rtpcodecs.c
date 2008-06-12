@@ -554,9 +554,17 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   g_main_loop_quit (loop);
 }
 
-GST_START_TEST (test_rtpcodecs_config_data)
+struct ConfigDataTest {
+  struct SimpleTestConference *dat;
+  FsParticipant *participant;
+  FsStream *stream;
+  const gchar *config;
+};
+
+static void
+run_test_rtpcodecs_config_data (gboolean preset_remotes)
 {
-  struct SimpleTestConference *dat = NULL;
+  struct ConfigDataTest cd;
   GList *codecs = NULL, *item = NULL;
   gboolean ready;
   GError *error = NULL;
@@ -564,19 +572,19 @@ GST_START_TEST (test_rtpcodecs_config_data)
 
   loop = g_main_loop_new (NULL, FALSE);
 
-  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+  cd.dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
   codecs = g_list_prepend (NULL, fs_codec_new (FS_CODEC_ID_ANY, "VORBIS",
           FS_MEDIA_TYPE_AUDIO, 44100));
 
-  fail_unless (fs_session_set_local_codecs_config (dat->session, codecs,
+  fail_unless (fs_session_set_local_codecs_config (cd.dat->session, codecs,
           &error),
       "Unable to set local codecs config: %s",
       error ? error->message : "UNKNOWN");
 
   fs_codec_list_destroy (codecs);
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (cd.dat->session, "local-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -593,21 +601,21 @@ GST_START_TEST (test_rtpcodecs_config_data)
     goto out;
   }
 
-  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+  g_object_get (cd.dat->session, "codecs-ready", &ready, NULL);
 
   fail_if (ready, "Codecs are ready before the pipeline is playing, it does not"
       " try to detect vorbis codec data");
 
-  setup_fakesrc (dat);
+  setup_fakesrc (cd.dat);
 
-  bus = gst_pipeline_get_bus (GST_PIPELINE (dat->pipeline));
+  bus = gst_pipeline_get_bus (GST_PIPELINE (cd.dat->pipeline));
 
   gst_bus_add_signal_watch (bus);
 
   g_signal_connect (bus, "message::element", G_CALLBACK (_bus_message_element),
-      dat);
+      cd.dat);
 
-  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
+  fail_if (gst_element_set_state (cd.dat->pipeline, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
 
   g_main_loop_run (loop);
@@ -616,15 +624,19 @@ GST_START_TEST (test_rtpcodecs_config_data)
 
   gst_object_unref (bus);
 
-  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) ==
+  fail_if (gst_element_set_state (cd.dat->pipeline, GST_STATE_NULL) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to null");
 
  out:
   g_main_loop_unref (loop);
-  cleanup_simple_conference (dat);
+  cleanup_simple_conference (cd.dat);
+}
+
+GST_START_TEST (test_rtpcodecs_config_data)
+{
+  run_test_rtpcodecs_config_data (FALSE);
 }
 GST_END_TEST;
-
 
 static Suite *
 fsrtpcodecs_suite (void)
