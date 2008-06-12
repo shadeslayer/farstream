@@ -2640,6 +2640,9 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   GstCaps *sendcaps;
   GstPad *pad = NULL;
 
+  GST_DEBUG ("Trying to add send codecbin for " FS_CODEC_FORMAT,
+      FS_CODEC_ARGS (codec));
+
   name = g_strdup_printf ("send_%d_%d", session->id, codec->id);
   codecbin = _create_codec_bin (blueprint, codec, name, TRUE, error);
   g_free (name);
@@ -3248,6 +3251,9 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
 
   FS_RTP_SESSION_LOCK (session);
 
+  GST_LOG ("Gathering params for codec " FS_CODEC_FORMAT,
+      FS_CODEC_ARGS (ca->codec));
+
   if (session->priv->discovery_codecbin)
   {
     gst_element_set_locked_state (session->priv->discovery_codecbin, TRUE);
@@ -3524,6 +3530,8 @@ fs_rtp_session_start_codec_param_gathering (FsRtpSession *session)
   if (!item)
     goto out;
 
+  GST_DEBUG ("Starting Codec Param discovery for session %d", session->id);
+
   if (!session->priv->discovery_blocking_id)
     session->priv->discovery_blocking_id = gst_pad_add_data_probe (
         session->priv->media_sink_pad,
@@ -3549,6 +3557,8 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
 {
 
   FS_RTP_SESSION_LOCK (session);
+
+  GST_DEBUG ("Stopping Codec Param discovery for session %d", session->id);
 
   if (session->priv->discovery_codec)
   {
