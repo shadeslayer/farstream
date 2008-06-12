@@ -429,17 +429,23 @@ check_vorbis_and_configuration (const gchar *text, GList *codecs,
   fail_if (item == NULL, "%s: The configuration parameter is not there", text);
 }
 
+
+struct ConfigDataTest {
+  struct SimpleTestConference *dat;
+  FsParticipant *participant;
+  FsStream *stream;
+  const gchar *config;
+};
+
 static void
 _bus_message_element (GstBus *bus, GstMessage *message,
-    struct SimpleTestConference *dat)
+    struct ConfigDataTest *cd)
 {
   GList *codecs = NULL;
   FsCodec *codec = NULL;
   gboolean ready;
   const GstStructure *s = gst_message_get_structure (message);
-  FsParticipant *p = NULL;
   FsParticipant *p2 = NULL;
-  FsStream *stream = NULL;
   FsStream *stream2 = NULL;
   const gchar config[] = "asildksahkjewafrefenbwqgiufewaiufhwqiu"
     "enfiuewfkdnwqiucnwiufenciuawndiunfucnweciuqfiucina";
@@ -449,30 +455,21 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   if (!gst_structure_has_name (s, "farsight-codecs-ready"))
     return;
 
-  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
 
   fail_unless (ready, "Got ready bus message, but codecs aren't ready yet");
 
-  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (cd->dat->session, "negotiated-codecs", &codecs, NULL);
   check_vorbis_and_configuration ("codecs before negotiation", codecs, NULL);
   fs_codec_list_destroy (codecs);
 
-  p = fs_conference_new_participant (FS_CONFERENCE (dat->conference), "name",
-      NULL);
-
-  fail_if (p == NULL, "Could not add participant to conference");
-
-  stream = fs_session_new_stream (dat->session, p, FS_DIRECTION_BOTH,
-      "rawudp", 0, NULL, NULL);
-
-  fail_if (stream == NULL, "Could not create new stream");
 
   codec = fs_codec_new (105, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
   fs_codec_add_optional_parameter (codec, "delivery-method", "inline");
   fs_codec_add_optional_parameter (codec, "configuration", config);
   codecs = g_list_prepend (NULL, codec);
 
-  if (!fs_stream_set_remote_codecs (stream, codecs, &error))
+  if (!fs_stream_set_remote_codecs (cd->stream, codecs, &error))
   {
     if (error)
       fail ("Could not set vorbis as remote codec on the stream: %s",
@@ -485,28 +482,28 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   fs_codec_list_destroy (codecs);
 
 
-  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
   fail_unless (ready, "Codecs became unready after setting new remote codecs");
 
-  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (cd->dat->session, "negotiated-codecs", &codecs, NULL);
   check_vorbis_and_configuration ("session codecs after negotiation",
       codecs, NULL);
   fs_codec_list_destroy (codecs);
 
-  g_object_get (stream, "negotiated-codecs", &codecs, NULL);
+  g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
   check_vorbis_and_configuration ("stream codecs after negotiation",
       codecs, config);
   fs_codec_list_destroy (codecs);
 
-  p2 = fs_conference_new_participant (FS_CONFERENCE (dat->conference), "name2",
-      &error);
+  p2 = fs_conference_new_participant (FS_CONFERENCE (cd->dat->conference),
+      "name2", &error);
   if (!p2)
     fail ("Could not add second participant to conference %s", error->message);
 
-  stream2 = fs_session_new_stream (dat->session, p2, FS_DIRECTION_BOTH,
+  stream2 = fs_session_new_stream (cd->dat->session, p2, FS_DIRECTION_BOTH,
       "rawudp", 0, NULL, NULL);
 
-  fail_if (stream == NULL, "Could not second create new stream");
+  fail_if (stream2 == NULL, "Could not second create new stream");
 
 
   codec = fs_codec_new (117, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
@@ -527,15 +524,15 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
 
 
-  g_object_get (dat->session, "codecs-ready", &ready, NULL);
+  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
   fail_unless (ready, "Codecs became unready after setting new remote codecs");
 
-  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (cd->dat->session, "negotiated-codecs", &codecs, NULL);
   check_vorbis_and_configuration ("session codecs after renegotiation",
       codecs, NULL);
   fs_codec_list_destroy (codecs);
 
-  g_object_get (stream, "negotiated-codecs", &codecs, NULL);
+  g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
   check_vorbis_and_configuration ("stream codecs after renegotiation",
       codecs, config);
   fs_codec_list_destroy (codecs);
@@ -546,20 +543,11 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   fs_codec_list_destroy (codecs);
 
 
-  g_object_unref (p);
-  g_object_unref (stream);
   g_object_unref (p2);
   g_object_unref (stream2);
 
   g_main_loop_quit (loop);
 }
-
-struct ConfigDataTest {
-  struct SimpleTestConference *dat;
-  FsParticipant *participant;
-  FsStream *stream;
-  const gchar *config;
-};
 
 static void
 run_test_rtpcodecs_config_data (gboolean preset_remotes)
@@ -570,9 +558,23 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
   GError *error = NULL;
   GstBus *bus = NULL;
 
+  memset (&cd, 0, sizeof(cd));
+
   loop = g_main_loop_new (NULL, FALSE);
 
   cd.dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+
+  cd.participant = fs_conference_new_participant (
+      FS_CONFERENCE (cd.dat->conference), "name", NULL);
+
+  fail_if (cd.participant == NULL, "Could not add participant to conference");
+
+  cd.stream = fs_session_new_stream (cd.dat->session, cd.participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+
+  fail_if (cd.stream == NULL, "Could not create new stream");
+
 
   codecs = g_list_prepend (NULL, fs_codec_new (FS_CODEC_ID_ANY, "VORBIS",
           FS_MEDIA_TYPE_AUDIO, 44100));
@@ -613,7 +615,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
   gst_bus_add_signal_watch (bus);
 
   g_signal_connect (bus, "message::element", G_CALLBACK (_bus_message_element),
-      cd.dat);
+      &cd);
 
   fail_if (gst_element_set_state (cd.dat->pipeline, GST_STATE_PLAYING) ==
       GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
@@ -629,6 +631,10 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 
  out:
   g_main_loop_unref (loop);
+
+  g_object_unref (cd.participant);
+  g_object_unref (cd.stream);
+
   cleanup_simple_conference (cd.dat);
 }
 
