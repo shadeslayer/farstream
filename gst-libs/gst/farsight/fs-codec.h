@@ -126,13 +126,14 @@ struct _FsCodecParameter {
  * Formats the codec in args for FS_CODEC_FORMAT
  */
 
-#define FS_CODEC_FORMAT "%d: %s %s clock:%d channels:%d"
+#define FS_CODEC_FORMAT "%d: %s %s clock:%d channels:%d params:%p"
 #define FS_CODEC_ARGS(codec)                            \
     (codec)->id,                                        \
     fs_media_type_to_string ((codec)->media_type),      \
     (codec)->encoding_name,                             \
     (codec)->clock_rate,                                \
-    (codec)->channels                                   \
+    (codec)->channels,                                  \
+    (codec)->optional_params
 
 GType fs_codec_get_type (void);
 GType fs_codec_list_get_type (void);
