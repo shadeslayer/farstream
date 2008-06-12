@@ -382,20 +382,21 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
 }
 
 /**
- * fs_rtp_special_sources_update:
+ * fs_rtp_special_sources_remove:
  * @current_extra_sources: The #GList returned by previous calls to this function
  * @negotiated_codecs: A #GList of current negotiated #CodecAssociation
+ * @send_codec: The currently selected send codec
+ * @bin: The #GstBin to add the stuff to
+ * @rtpmuxer: The rtpmux element
  * @error: NULL or the local of a #GError
  *
- * This function checks which extra sources are currently being used and
- * which should be used according to currently negotiated codecs. It then
- * creates, destroys or modifies the list accordingly
+ * This function removes any special source that are not compatible with the
+ * currently selected send codec.
  *
  * Returns: A #GList to be passed to other functions in this class
  */
-
 GList *
-fs_rtp_special_sources_update (
+fs_rtp_special_sources_remove (
     GList *current_extra_sources,
     GList *negotiated_codecs,
     FsCodec *send_codec,
@@ -427,49 +428,81 @@ fs_rtp_special_sources_update (
 
     if (obj_item)
     {
-      if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
-              send_codec))
-      {
-        if (!fs_rtp_special_source_update (obj, negotiated_codecs, send_codec))
-        {
-
-          current_extra_sources = g_list_remove (current_extra_sources, obj);
-          g_object_unref (obj);
-          obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-              bin, rtpmuxer, error);
-          if (!obj)
-            goto error;
-
-          current_extra_sources = g_list_insert_sorted (current_extra_sources,
-              obj, _source_order_compare_func);
-        }
-      }
-      else
+      if (!fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
+              send_codec) ||
+          fs_rtp_special_source_update (obj, negotiated_codecs, send_codec))
       {
         current_extra_sources = g_list_remove (current_extra_sources, obj);
         g_object_unref (obj);
       }
     }
-    else
-    {
-      if (fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
-              send_codec))
-      {
-        obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-            bin, rtpmuxer, error);
-        if (!obj)
-          goto error;
-        current_extra_sources = g_list_insert_sorted (current_extra_sources,
-            obj, _source_order_compare_func);
-      }
-    }
   }
-
-  error:
 
   return current_extra_sources;
 }
 
+
+/**
+ * fs_rtp_special_sources_remove:
+ * @current_extra_sources: The #GList returned by previous calls to this function
+ * @negotiated_codecs: A #GList of current negotiated #CodecAssociation
+ * @send_codec: The currently selected send codec
+ * @bin: The #GstBin to add the stuff to
+ * @rtpmuxer: The rtpmux element
+ * @error: NULL or the local of a #GError
+ *
+ * This function add special sources that don't already exist but are needed
+ *
+ * Returns: A #GList to be passed to other functions in this class
+ */
+GList *
+fs_rtp_special_sources_create (
+    GList *current_extra_sources,
+    GList *negotiated_codecs,
+    FsCodec *send_codec,
+    GstElement *bin,
+    GstElement *rtpmuxer,
+    GError **error)
+{
+  GList *klass_item = NULL;
+
+  fs_rtp_special_sources_init ();
+
+  for (klass_item = g_list_first (classes);
+       klass_item;
+       klass_item = g_list_next (klass_item))
+  {
+    FsRtpSpecialSourceClass *klass = klass_item->data;
+    GList *obj_item;
+    FsRtpSpecialSource *obj = NULL;
+
+    /* Check if we already have an object for this type */
+    for (obj_item = g_list_first (current_extra_sources);
+         obj_item;
+         obj_item = g_list_next (obj_item))
+    {
+      obj = obj_item->data;
+      if (G_OBJECT_TYPE(obj) == G_OBJECT_CLASS_TYPE(klass))
+        break;
+    }
+
+    if (!obj_item &&
+        fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
+            send_codec))
+    {
+      obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
+          bin, rtpmuxer, error);
+      if (!obj)
+        goto error;
+      current_extra_sources = g_list_insert_sorted (current_extra_sources,
+          obj, _source_order_compare_func);
+    }
+  }
+
+ error:
+
+  return current_extra_sources;
+}
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,

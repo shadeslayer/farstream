@@ -2801,6 +2801,24 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   self->priv->current_send_codec = NULL;
 
 
+  self->priv->extra_sources = fs_rtp_special_sources_remove (
+      self->priv->extra_sources,
+      self->priv->codec_associations, codec,
+      GST_ELEMENT (self->priv->conference),
+      self->priv->rtpmuxer, &error);
+  if (error)
+  {
+    fs_session_emit_error (FS_SESSION (self), error->code,
+        "Could not remove unused special sources: %s", error->message);
+    goto done;
+  }
+
+  /*
+   * Lets reset the clock-rate (because rtpmuxer saves it.. )
+   */
+  g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
+
+
   codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp,
       &error);
 
@@ -2809,6 +2827,20 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not build a new send codec bin", error->message);
   }
+
+
+  self->priv->extra_sources = fs_rtp_special_sources_create (
+      self->priv->extra_sources,
+      self->priv->codec_associations, codec,
+      GST_ELEMENT (self->priv->conference),
+      self->priv->rtpmuxer, &error);
+  if (error)
+  {
+    fs_session_emit_error (FS_SESSION (self), error->code,
+        "Could not create special sources: %s", error->message);
+    goto done;
+  }
+
 
  done:
   g_clear_error (&error);
@@ -2848,19 +2880,10 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   if (!codec)
     return FALSE;
 
-  self->priv->extra_sources = fs_rtp_special_sources_update (
-      self->priv->extra_sources,
-      self->priv->codec_associations, codec,
-      GST_ELEMENT (self->priv->conference),
-      self->priv->rtpmuxer, error);
-  if (local_gerror)
-  {
-    g_propagate_error (error, local_gerror);
-    goto error;
-  }
-
   if (self->priv->current_send_codec)
   {
+    GstPad *pad;
+
     if (fs_codec_are_equal (codec, self->priv->current_send_codec))
       goto done;
 
@@ -2878,11 +2901,21 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   {
     /* The codec does exist yet, lets just create it */
 
-    codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp, error);
+   codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp, error);
+   if (!codecbin)
+     /* We have an error !! */
+     goto error;
 
-    if (!codecbin)
-      /* We have an error !! */
+    self->priv->extra_sources = fs_rtp_special_sources_create (
+        self->priv->extra_sources,
+        self->priv->codec_associations, codec,
+        GST_ELEMENT (self->priv->conference),
+        self->priv->rtpmuxer, &local_gerror);
+    if (local_gerror)
+    {
+      g_propagate_error (error, local_gerror);
       goto error;
+    }
   }
 
  done:

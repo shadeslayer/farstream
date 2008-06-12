@@ -117,7 +117,16 @@ struct _FsRtpSpecialSource
 GType fs_rtp_special_source_get_type (void);
 
 GList *
-fs_rtp_special_sources_update (
+fs_rtp_special_sources_remove (
+    GList *current_extra_sources,
+    GList *negotiated_codecs,
+    FsCodec *send_codec,
+    GstElement *bin,
+    GstElement *rtpmuxer,
+    GError **error);
+
+GList *
+fs_rtp_special_sources_create (
     GList *current_extra_sources,
     GList *negotiated_codecs,
     FsCodec *send_codec,
