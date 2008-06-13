@@ -463,6 +463,59 @@ _wrap_fs_codec_tp_getattr(PyObject *self, char *attr)
   }
 }
 %%
+override-slot FsCodec.tp_compare
+static int
+_wrap_fs_codec_tp_compare(PyObject *self, PyGObject *v)
+{
+  FsCodec *codec1;
+  FsCodec *codec2;
+  int cmp;
+
+  if (!pyg_boxed_check (v, FS_TYPE_CODEC))
+    return 1;
+
+  codec1 = pyg_boxed_get(self, FsCodec);
+  codec2 = pyg_boxed_get(v, FsCodec);
+
+  /* If they're equal, return them as such */
+  if (fs_codec_are_equal (codec1, codec2))
+    return 0;
+
+  /* If their ids are different, return different ids */
+  if (codec1->id > codec2->id)
+    return -1;
+  else if (codec1->id < codec2->id)
+    return 1;
+
+  /* if one does not have an encoding name.. it goes first */
+  if (!codec1->encoding_name)
+    return -1;
+  if (!codec2->encoding_name)
+    return 1;
+
+  /* If they name are different, order them that way */
+  cmp = strcmp (codec1->encoding_name, codec2->encoding_name);
+  if (cmp)
+    return cmp;
+
+  /* otherwise lets try clock rates */
+  if (codec1->clock_rate != codec2->clock_rate)
+    return codec2->clock_rate - codec2->clock_rate;
+
+  /* maybe channels ? */
+  if (codec1->channels != codec2->channels)
+    return codec2->channels - codec2->channels;
+
+  /* If everything else is identical, lets use use the points to the optional
+   * params
+   */
+  if (codec1->optional_params > codec2->optional_params)
+    return -1;
+  else
+    return 1;
+}
+
+%%
 override fs_candidate_new noargs
 static int
 _wrap_fs_candidate_new(PyGBoxed *self)
