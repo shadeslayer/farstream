@@ -835,6 +835,10 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
         GST_PAD_SRC, &udpsock->udpsrc_requested_pad, error);
     if (!udpsock->udpsrc)
       goto error;
+
+    g_object_set (udpsock->udpsrc,
+        "auto-multicast", FALSE,
+        NULL);
   }
 
   udpsock->udpsink = _create_sinksource ("multiudpsink",

@@ -765,6 +765,10 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
       "sync", FALSE,
       NULL);
 
+  g_object_set (udpport->udpsrc,
+      "auto-multicast", FALSE,
+      NULL);
+
   trans->priv->udpports[component_id] =
     g_list_prepend (trans->priv->udpports[component_id], udpport);
 
