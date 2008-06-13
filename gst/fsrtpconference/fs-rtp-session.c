@@ -3640,7 +3640,7 @@ fs_rtp_session_start_codec_param_gathering (FsRtpSession *session)
 
   if (!session->priv->discovery_blocking_id)
     session->priv->discovery_blocking_id = gst_pad_add_data_probe (
-        session->priv->media_sink_pad,
+        session->priv->send_tee_discovery_pad,
         G_CALLBACK (_send_sink_pad_have_data_callback), session);
 
  out:
@@ -3674,7 +3674,7 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
 
   if (session->priv->discovery_blocking_id)
   {
-    gst_pad_remove_data_probe (session->priv->media_sink_pad,
+    gst_pad_remove_data_probe (session->priv->send_tee_discovery_pad,
         session->priv->discovery_blocking_id);
     session->priv->discovery_blocking_id = 0;
   }
