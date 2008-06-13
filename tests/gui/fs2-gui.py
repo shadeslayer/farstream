@@ -336,7 +336,11 @@ class FsUISession:
             # We know H264 doesn't work for now or anything else
             # that needs to send config data
             self.fssession.set_local_codecs_config( [ \
-                farsight.Codec(farsight.CODEC_ID_DISABLE,
+                farsight.Codec(farsight.CODEC_ID_ANY,
+                               "THEORA",
+                               farsight.MEDIA_TYPE_VIDEO,
+                               90000),
+                 farsight.Codec(farsight.CODEC_ID_DISABLE,
                                "H264",
                                farsight.MEDIA_TYPE_VIDEO,
                                0),
