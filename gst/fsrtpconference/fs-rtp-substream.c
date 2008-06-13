@@ -792,6 +792,8 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 {
   GstCaps *caps = NULL;
   gchar *tmp;
+  gboolean ret = FALSE;
+  GstPad *pad;
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
 
@@ -852,37 +854,50 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   GST_DEBUG ("Setting caps %s on recv substream", tmp);
   g_free (tmp);
   g_object_set (substream->priv->capsfilter, "caps", caps, NULL);
+
+  pad = gst_element_get_static_pad (codecbin, "sink");
+  if (!pad)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL, "Could not get sink pad"
+        " from codecbin");
+    goto error;
+  }
+
+  /* This is a non-error error
+   * Some codecs require config data to start.. so we should just ignore them
+   */
+  if (!gst_pad_set_caps (pad, caps))
+  {
+    ret = TRUE;
+    gst_object_unref (pad);
+    gst_caps_unref (caps);
+    goto error;
+  }
+
+  gst_object_unref (pad);
   gst_caps_unref (caps);
 
   substream->priv->codecbin = codecbin;
   substream->priv->codec = fs_codec_copy (codec);
 
-  if (substream->priv->stream)
-  {
-    gboolean ret = TRUE;
+  if (substream->priv->stream && !substream->priv->output_ghostpad)
+    if (!fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error))
+      goto error;
 
-    if (!substream->priv->output_ghostpad)
-      ret =  fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
-
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
-    return ret;
-  }
-  else
-  {
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
-    return TRUE;
-  }
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
+  return TRUE;
 
  error:
-    gst_element_set_state (codecbin, GST_STATE_NULL);
-    gst_object_ref (codecbin);
-    gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
+
+  gst_element_set_state (codecbin, GST_STATE_NULL);
+  gst_object_ref (codecbin);
+  gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
 
  error_no_remove:
 
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
-    return FALSE;
+  return ret;;
 }
 
 FsRtpSubStream *
@@ -1004,6 +1019,10 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   }
 
   substream->priv->output_ghostpad = ghostpad;
+
+  GST_DEBUG ("Src pad added on substream for ssrc:%X pt:%u " FS_CODEC_FORMAT,
+      substream->priv->ssrc, substream->priv->pt,
+      FS_CODEC_ARGS (substream->priv->codec));
 
   g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
                  ghostpad, substream->priv->codec);
