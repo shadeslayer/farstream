@@ -3504,7 +3504,7 @@ _send_sink_pad_have_data_callback (GstPad *pad, GstMiniObject *obj,
     g_object_notify (G_OBJECT (session), "codecs-ready");
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
-            gst_structure_new ("farsight-codecs-ready",
+            gst_structure_new ("farsight-codecs-changed",
                 "session", FS_TYPE_SESSION, session,
                 NULL)));
 
