@@ -1062,28 +1062,39 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
   gboolean ret = TRUE;
+  gboolean remove = FALSE;
 
   g_signal_emit (self, signals[BLOCKED], 0, self->priv->stream);
 
   FS_RTP_SESSION_LOCK (self->priv->session);
 
-  if (!self->priv->codecbin || !self->priv->codec)
+  if (!self->priv->codecbin || !self->priv->codec || !self->priv->caps)
   {
     ret = FALSE;
   }
   else if (GST_IS_BUFFER (miniobj))
   {
-    GstCaps *caps = fs_codec_to_gst_caps (self->priv->codec);
-    GstCaps *intersection = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
-        caps);
+    if (!gst_caps_is_equal_fixed (GST_BUFFER_CAPS (miniobj), self->priv->caps))
+    {
+      GstCaps *intersect = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
+          self->priv->caps);
 
-    if (gst_caps_is_empty (intersection))
-      ret = FALSE;
-    gst_caps_unref (intersection);
-    gst_caps_unref (caps);
+      if (intersect)
+      {
+        gst_buffer_set_caps (GST_BUFFER (miniobj), self->priv->caps);
+
+        gst_caps_unref (intersect);
+      }
+      else
+        ret = FALSE;
+    }
+    else
+    {
+      remove = TRUE;
+    }
   }
 
-  if (ret && self->priv->blocking_id)
+  if (remove && self->priv->blocking_id)
   {
     gst_pad_remove_data_probe (pad, self->priv->blocking_id);
     self->priv->blocking_id = 0;
