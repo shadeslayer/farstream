@@ -1771,7 +1771,7 @@ fs_rtp_session_distribute_recv_codecs (FsRtpSession *session,
           FsCodec *tmpcodec = NULL;
           remote_codec = item3->data;
 
-          tmpcodec = sdp_is_compat (codec, remote_codec);
+          tmpcodec = sdp_is_compat (codec, remote_codec, TRUE);
           if (tmpcodec)
           {
             fs_codec_destroy (tmpcodec);

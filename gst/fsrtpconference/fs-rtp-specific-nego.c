@@ -45,20 +45,25 @@
 struct SdpCompatCheck {
   FsMediaType media_type;
   const gchar *encoding_name;
-  FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec);
+  FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec,
+      gboolean validate_config);
   gchar *config_param[MAX_CONFIG_PARAMS];
 };
 
 
 static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config);
 
 static FsCodec *
-sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config);
 static FsCodec *
-sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config);
 static FsCodec *
-sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
@@ -162,7 +167,8 @@ codec_copy_without_config (FsCodec *codec)
 
 
 FsCodec *
-sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config)
 {
   gint i;
 
@@ -189,15 +195,17 @@ sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             remote_codec->encoding_name))
     {
-      return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec);
+      return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec,
+          validate_config);
     }
   }
 
-  return sdp_is_compat_default (local_codec, remote_codec);
+  return sdp_is_compat_default (local_codec, remote_codec, validate_config);
 }
 
 static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config)
 {
   FsCodec *negotiated_codec = NULL;
   GList *local_param_list = NULL, *negotiated_param_list = NULL;
@@ -267,7 +275,8 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
 }
 
 static FsCodec *
-sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config)
 {
   FsCodec *negotiated_codec = NULL;
   GList *mylistitem = NULL, *negotiated_param_list = NULL;
@@ -396,7 +405,8 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 
 
 static FsCodec *
-sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config)
 {
   GList *mylistitem = NULL, *remote_param_list = NULL;
   FsCodecParameter *profile = NULL;
@@ -473,10 +483,12 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec)
 
 
 static FsCodec *
-sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
+gboolean validate_config)
 {
-  if (!fs_codec_get_optional_parameter (remote_codec, "configuration", NULL))
+  if (validate_config &&
+      !fs_codec_get_optional_parameter (remote_codec, "configuration", NULL))
     return NULL;
 
-  return sdp_is_compat_default (local_codec, remote_codec);
+  return sdp_is_compat_default (local_codec, remote_codec, validate_config);
 }
