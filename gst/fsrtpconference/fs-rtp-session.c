@@ -698,6 +698,7 @@ fs_rtp_session_constructed (GObject *object)
   GstElement *funnel = NULL;
   GstElement *muxer = NULL;
   GstElement *fakesink = NULL;
+  GstPad *tee_sink_pad = NULL;
   GstPad *valve_sink_pad = NULL;
   GstPad *funnel_src_pad = NULL;
   GstPad *muxer_src_pad = NULL;
@@ -737,6 +738,72 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
+
+
+  tmp = g_strdup_printf ("send_tee_%u", self->id);
+  tee = gst_element_factory_make ("tee", tmp);
+  g_free (tmp);
+
+  if (!tee)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not create the tee element");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), tee))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION,
+      "Could not add the tee element to the FsRtpConference");
+    gst_object_unref (tee);
+    return;
+  }
+
+  self->priv->send_tee = gst_object_ref (tee);
+
+
+  tee_sink_pad = gst_element_get_static_pad (tee, "sink");
+
+  tmp = g_strdup_printf ("sink_%u", self->id);
+  self->priv->media_sink_pad = gst_ghost_pad_new (tmp, tee_sink_pad);
+  g_free (tmp);
+
+  if (!self->priv->media_sink_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not create ghost pad for tee's sink pad");
+    return;
+  }
+
+  gst_pad_set_active (self->priv->media_sink_pad, TRUE);
+  if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
+          self->priv->media_sink_pad))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not add ghost pad to the conference bin");
+    gst_object_unref (self->priv->media_sink_pad);
+    self->priv->media_sink_pad = NULL;
+    return;
+  }
+
+  gst_object_unref (tee_sink_pad);
+
+  self->priv->send_tee_discovery_pad = gst_element_get_request_pad (tee,
+      "src%d");
+  self->priv->send_tee_media_pad = gst_element_get_request_pad (tee,
+      "src%d");
+
+  if (!self->priv->send_tee_discovery_pad || !self->priv->send_tee_media_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not create the send tee request src pads");
+  }
+
   tmp = g_strdup_printf ("valve_send_%u", self->id);
   valve = gst_element_factory_make ("fsvalve", tmp);
   g_free (tmp);
@@ -765,59 +832,21 @@ fs_rtp_session_constructed (GObject *object)
 
   valve_sink_pad = gst_element_get_static_pad (valve, "sink");
 
-  tmp = g_strdup_printf ("sink_%u", self->id);
-  self->priv->media_sink_pad = gst_ghost_pad_new (tmp, valve_sink_pad);
-  g_free (tmp);
+  if (GST_PAD_LINK_FAILED (gst_pad_link (self->priv->send_tee_media_pad,
+              valve_sink_pad)))
+  {
+    gst_object_unref (valve_sink_pad);
 
-  gst_pad_set_active (self->priv->media_sink_pad, TRUE);
-  gst_element_add_pad (GST_ELEMENT (self->priv->conference),
-    self->priv->media_sink_pad);
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link send tee and valve");
+    return;
+  }
 
   gst_object_unref (valve_sink_pad);
 
 
-  tmp = g_strdup_printf ("send_tee_%u", self->id);
-  tee = gst_element_factory_make ("tee", tmp);
-  g_free (tmp);
 
-  if (!tee)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the tee element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), tee))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the tee element to the FsRtpConference");
-    gst_object_unref (tee);
-    return;
-  }
-
-  self->priv->send_tee = gst_object_ref (tee);
-
-  if (!gst_element_link_pads (valve, "src", tee, "sink"))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not link the send valve to the send tee");
-    return;
-  }
-
-  self->priv->send_tee_discovery_pad = gst_element_get_request_pad (tee,
-      "src%d");
-  self->priv->send_tee_media_pad = gst_element_get_request_pad (tee,
-      "src%d");
-
-  if (!self->priv->send_tee_discovery_pad || !self->priv->send_tee_media_pad)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not create the send tee request src pads");
-  }
 
   /* Now create the transmitter RTP funnel */
 
@@ -2649,7 +2678,6 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   GstElement *codecbin = NULL;
   gchar *name;
   GstCaps *sendcaps;
-  GstPad *pad = NULL;
 
   GST_DEBUG ("Trying to add send codecbin for " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (codec));
@@ -2672,28 +2700,15 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
     return NULL;
   }
 
-  pad = gst_element_get_static_pad (codecbin, "sink");
-  if (!pad)
+
+  if (!gst_element_link_pads (session->priv->media_sink_valve, "src",
+          codecbin, "sink"))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not get the sink for the send codec bin");
-    gst_object_unref (codecbin);
+        "Could not get the valve sink for the send codec bin");
+    gst_bin_remove (GST_BIN (session->priv->conference), (codecbin));
     return NULL;
   }
-
-  if (GST_PAD_LINK_FAILED (gst_pad_link (session->priv->send_tee_media_pad,
-              pad)))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link media tee pad ");
-
-    gst_object_unref (codecbin);
-    gst_object_unref (pad);
-
-    return NULL;
-  }
-
-  gst_object_unref (pad);
 
   sendcaps = fs_codec_to_gst_caps (codec);
 
@@ -2899,8 +2914,6 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 
   if (self->priv->current_send_codec)
   {
-    GstPad *pad;
-
     if (fs_codec_are_equal (codec, self->priv->current_send_codec))
       goto done;
 
@@ -2909,10 +2922,8 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
      */
 
 
-    pad = gst_element_get_static_pad (self->priv->media_sink_valve, "src");
-    gst_pad_set_blocked_async (pad, TRUE, _send_src_pad_blocked_callback,
-        self);
-    gst_object_unref (pad);
+    gst_pad_set_blocked_async (self->priv->send_tee_media_pad, TRUE,
+        _send_src_pad_blocked_callback, self);
   }
   else
   {
@@ -3419,8 +3430,6 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
 
   session->priv->discovery_codec = fs_codec_copy (ca->codec);
 
-  g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
-
   FS_RTP_SESSION_UNLOCK (session);
 
   return TRUE;
@@ -3588,9 +3597,6 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
         session->priv->discovery_blocking_id);
     session->priv->discovery_blocking_id = 0;
   }
-
-  if (!session->priv->send_codecbin)
-    g_object_set (session->priv->media_sink_valve, "drop", TRUE, NULL);
 
   if (session->priv->discovery_fakesink)
   {
