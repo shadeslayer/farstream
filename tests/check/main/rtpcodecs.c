@@ -703,6 +703,13 @@ GST_START_TEST (test_rtpcodecs_config_data)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpcodecs_preset_config_data)
+{
+  run_test_rtpcodecs_config_data (TRUE);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -734,6 +741,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_config_data");
   tcase_add_test (tc_chain, test_rtpcodecs_config_data);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_preset_config_data");
+  tcase_add_test (tc_chain, test_rtpcodecs_preset_config_data);
   suite_add_tcase (s, tc_chain);
 
   return s;
