@@ -244,6 +244,9 @@ fs_rtp_session_start_codec_param_gathering (FsRtpSession *session);
 static void
 fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session);
 
+static void
+_send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session);
+
 
 static GObjectClass *parent_class = NULL;
 
@@ -1217,6 +1220,11 @@ fs_rtp_session_constructed (GObject *object)
     gst_object_unref (capsfilter);
     return;
   }
+
+  pad1 = gst_element_get_static_pad (capsfilter, "src");
+  g_signal_connect (pad1, "notify::caps", G_CALLBACK (_send_caps_changed),
+      self);
+  gst_object_unref (pad1);
 
   self->priv->send_capsfilter = gst_object_ref (capsfilter);
 
@@ -3176,42 +3184,15 @@ fs_rtp_session_bye_ssrc (FsRtpSession *session,
    */
 }
 
-static void
-_discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
+
+static gboolean
+gather_caps_parameters (CodecAssociation *ca, GstCaps *caps)
 {
-  GstCaps *caps = NULL;
   GstStructure *s = NULL;
   int i;
-  CodecAssociation *ca = NULL;
-
-  g_object_get (pad, "caps", &caps, NULL);
-
-  if (!caps)
-    return;
-
-  g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
+  gboolean old_need_config = FALSE;
 
   s = gst_caps_get_structure (caps, 0);
-
-  FS_RTP_SESSION_LOCK (session);
-
-  if (!session->priv->discovery_codec)
-  {
-    fs_session_emit_error (FS_SESSION (session), FS_ERROR_INTERNAL,
-        "Internal error while discovering codecs configurations",
-        "Got notify::caps signal on the discovery codecs whith no codecs"
-        " being discovered");
-    goto out;
-  }
-
-  ca = lookup_codec_association_by_codec (session->priv->codec_associations,
-      session->priv->discovery_codec);
-
-  fs_codec_destroy (session->priv->discovery_codec);
-  session->priv->discovery_codec = NULL;
-
-  if (!ca)
-    goto out;
 
   for (i = 0; i < gst_structure_n_fields (s); i++)
   {
@@ -3249,14 +3230,114 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
     }
   }
 
+  old_need_config = ca->need_config;
   ca->need_config = FALSE;
+
+  return old_need_config;
+}
+
+static void
+_send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
+{
+  GstCaps *caps = NULL;
+  CodecAssociation *ca = NULL;
+
+  g_object_get (pad, "caps", &caps, NULL);
+
+  if (!caps)
+    return;
+
+  g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
+
+  FS_RTP_SESSION_LOCK (session);
+
+  if (!session->priv->current_send_codec)
+    goto out;
+
+  ca = lookup_codec_association_by_codec (session->priv->codec_associations,
+      session->priv->current_send_codec);
+
+  if (!ca)
+    goto out;
+
+  /*
+   * Emit farsight-codecs-changed if the sending thread finds the config
+   * for the last codec that needed it
+   */
+  if (gather_caps_parameters (ca, caps))
+  {
+    GList *item = NULL;
+
+    for (item = g_list_first (session->priv->codec_associations);
+         item;
+         item = g_list_next (item))
+    {
+      ca = item->data;
+      if (ca->need_config)
+        break;
+    }
+    if (!item)
+    {
+      g_object_notify (G_OBJECT (session), "codecs-ready");
+      gst_element_post_message (GST_ELEMENT (session->priv->conference),
+          gst_message_new_element (GST_OBJECT (session->priv->conference),
+              gst_structure_new ("farsight-codecs-changed",
+                  "session", FS_TYPE_SESSION, session,
+                  NULL)));
+
+      goto out;
+    }
+
+  }
 
  out:
 
   FS_RTP_SESSION_UNLOCK (session);
 
-  if (caps)
-    gst_caps_unref (caps);
+  gst_caps_unref (caps);
+}
+
+static void
+_discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
+{
+  CodecAssociation *ca = NULL;
+  GstCaps *caps = NULL;
+
+  g_object_get (pad, "caps", &caps, NULL);
+
+  if (!caps)
+    return;
+
+  g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
+
+  FS_RTP_SESSION_LOCK (session);
+
+  if (!session->priv->discovery_codec)
+  {
+    fs_session_emit_error (FS_SESSION (session), FS_ERROR_INTERNAL,
+        "Internal error while discovering codecs configurations",
+        "Got notify::caps signal on the discovery codecs whith no codecs"
+        " being discovered");
+    goto out;
+  }
+
+  ca = lookup_codec_association_by_codec (session->priv->codec_associations,
+      session->priv->discovery_codec);
+
+  fs_codec_destroy (session->priv->discovery_codec);
+  session->priv->discovery_codec = NULL;
+
+  if (!ca)
+    goto out;
+
+
+  gather_caps_parameters (ca, caps);
+
+ out:
+
+  FS_RTP_SESSION_UNLOCK (session);
+
+  gst_caps_unref (caps);
 }
 
 /**
