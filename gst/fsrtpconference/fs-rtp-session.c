@@ -1782,6 +1782,9 @@ fs_rtp_session_distribute_recv_codecs (FsRtpSession *session,
         if (item3 == NULL)
           remote_codec = NULL;
 
+        GST_LOG ("Adding codec to stream %p " FS_CODEC_FORMAT, stream,
+            FS_CODEC_ARGS (codec));
+
         if (remote_codec)
         {
           for (item3 = remote_codec->optional_params; item3;
@@ -1789,11 +1792,14 @@ fs_rtp_session_distribute_recv_codecs (FsRtpSession *session,
           {
             FsCodecParameter *param = item3->data;
             if (codec_has_config_data_named (codec, param->name))
+            {
+              GST_LOG ("Adding parameter to stream %p %s=%s", stream,
+                  param->name, param->value);
               fs_codec_add_optional_parameter (codec, param->name,
                   param->value);
+            }
           }
         }
-
       }
 
       fs_rtp_stream_set_negotiated_codecs (stream, new_codecs);
