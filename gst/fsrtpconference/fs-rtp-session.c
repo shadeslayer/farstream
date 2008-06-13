@@ -2434,15 +2434,26 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     }
 
     if (item)
-      stream_codecs = g_list_remove_all (stream_codecs, item);
+    {
+      GST_DEBUG ("Receiving on stream codec " FS_CODEC_FORMAT,
+          FS_CODEC_ARGS (recv_codec));
+      stream_codecs = g_list_remove_all (stream_codecs, recv_codec);
+    }
     else
+    {
+      GST_DEBUG ("Had stream, but it did not have negotiatied codec");
       recv_codec = NULL;
+    }
 
     fs_codec_list_destroy (stream_codecs);
   }
 
   if (!recv_codec)
+  {
     recv_codec = codec_copy_without_config (ca->codec);
+    GST_DEBUG ("Receiving on session codec " FS_CODEC_FORMAT,
+        FS_CODEC_ARGS (recv_codec));
+  }
 
   if (bp)
     *bp = ca->blueprint;
