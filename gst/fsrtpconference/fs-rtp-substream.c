@@ -879,6 +879,9 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     ret = TRUE;
     gst_object_unref (pad);
     gst_caps_unref (caps);
+
+    /* We call this to drop all buffers until something comes up */
+    fs_rtp_sub_stream_verify_codec_locked (substream, NULL);
     goto error;
   }
 
@@ -1107,8 +1110,7 @@ void
 fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream,
     const FsCodec *codec)
 {
-  if (substream->priv->codec &&
-      !substream->priv->blocking_id &&
+  if (!substream->priv->blocking_id &&
       (!codec || !fs_codec_are_equal (substream->priv->codec, codec)))
     substream->priv->blocking_id = gst_pad_add_data_probe (
         substream->priv->rtpbin_pad,
