@@ -150,7 +150,11 @@ class FsUIPipeline:
                 message.structure["stream"].uistream.new_local_candidate(
                     message.structure["candidate"])
             elif message.structure.has_name("farsight-codecs-changed"):
+                print message.src.get_name(), ": ", message.structure.get_name()
                 message.structure["session"].uisession.codecs_changed()
+            elif message.structure.has_name("farsight-send-codec-changed"):
+                print message.src.get_name(), ": ", message.structure.get_name()
+                print "send codec changed: " + message.structure["codec"].to_string()
             else:
                 print message.src.get_name(), ": ", message.structure.get_name()
         elif message.type != gst.MESSAGE_STATE_CHANGED \
@@ -463,8 +467,10 @@ class FsUIStream:
 
     def check_send_local_codecs(self):
         "Internal function to send codecs when they're ready"
-        if not self.send_codecs or \
-               not self.session.fssession.get_property("codecs-ready"):
+        if not self.send_codecs:
+            return
+        if not self.session.fssession.get_property("codecs-ready"):
+            print "Codecs are not ready"
             return
         self.send_codecs = False
         codecs = self.session.fssession.get_property("negotiated-codecs")
