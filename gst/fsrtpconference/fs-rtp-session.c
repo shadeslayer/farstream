@@ -2887,7 +2887,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   /* If we have a codec bin, the required/preferred caps may have changed,
    * in this case, we need to drop the current buffer and wait for a buffer
-   * with the right caps to come in. Only then can we drop the pad probe
+   * with the right caps to come in. Only then can we drop the pad block
    */
 
   fs_codec_destroy (codec);
