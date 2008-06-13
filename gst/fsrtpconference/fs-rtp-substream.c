@@ -96,6 +96,7 @@ struct _FsRtpSubStreamPrivate {
   /* Protected by the session mutex */
   GstElement *codecbin;
   FsCodec *codec;
+  GstCaps *caps;
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
@@ -655,6 +656,9 @@ fs_rtp_sub_stream_finalize (GObject *object)
   if (self->priv->codec)
     fs_codec_destroy (self->priv->codec);
 
+  if (self->priv->caps)
+    gst_caps_unref (self->priv->caps);
+
   if (self->priv->mutex)
     g_mutex_free (self->priv->mutex);
 
@@ -815,6 +819,10 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
     fs_codec_destroy (substream->priv->codec);
     substream->priv->codec = NULL;
+
+    if (substream->priv->caps)
+      gst_caps_unref (substream->priv->caps);
+    substream->priv->caps = NULL;
   }
 
   if (!gst_bin_add (GST_BIN (substream->priv->conference), codecbin))
@@ -875,8 +883,8 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   }
 
   gst_object_unref (pad);
-  gst_caps_unref (caps);
 
+  substream->priv->caps = caps;
   substream->priv->codecbin = codecbin;
   substream->priv->codec = fs_codec_copy (codec);
 
