@@ -636,6 +636,7 @@ negotiate_stream_codecs (
       CodecAssociation *new_ca = g_slice_new0 (CodecAssociation);
       gchar *tmp;
 
+      new_ca->need_config = old_ca->need_config;
       new_ca->codec = nego_codec;
       new_ca->blueprint = old_ca->blueprint;
       tmp = fs_codec_to_string (nego_codec);
