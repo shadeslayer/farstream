@@ -119,7 +119,6 @@ struct _FsRtpSessionPrivate
   GstElement *discovery_capsfilter;
   GstElement *discovery_codecbin;
   FsCodec *discovery_codec;
-  gulong discovery_blocking_id;
 
   /* Request pad to release on dispose */
   GstPad *rtpbin_send_rtp_sink;
@@ -246,6 +245,9 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session);
 
 static void
 _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session);
+static void
+_send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
+    gpointer user_data);
 
 
 static GObjectClass *parent_class = NULL;
@@ -414,7 +416,6 @@ fs_rtp_session_dispose (GObject *object)
     gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
 
   fs_rtp_session_stop_codec_param_gathering (self);
-
 
   if (self->priv->send_tee_discovery_pad)
   {
@@ -3338,6 +3339,10 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   FS_RTP_SESSION_UNLOCK (session);
 
   gst_caps_unref (caps);
+
+  gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
+      _send_sink_pad_blocked_callback, session);
+
 }
 
 /**
@@ -3550,16 +3555,17 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
 }
 
 /**
- * _send_sink_pad_have_data_callback:
+ * _send_sink_pad_blocked_callback:
  *
  * This is a callback function for the "have-data" signal, it returns always
  * %TRUE, because we never drop buffers at this stage
  */
 
-static gboolean
-_send_sink_pad_have_data_callback (GstPad *pad, GstMiniObject *obj,
-    FsRtpSession *session)
+static void
+_send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
+    gpointer user_data)
 {
+  FsRtpSession *session = user_data;
   GError *error = NULL;
   GList *item = NULL;
   CodecAssociation *ca = NULL;
@@ -3605,7 +3611,8 @@ _send_sink_pad_have_data_callback (GstPad *pad, GstMiniObject *obj,
   g_clear_error (&error);
 
   FS_RTP_SESSION_UNLOCK (session);
-  return TRUE;
+
+  gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
 }
 
 /**
@@ -3613,8 +3620,8 @@ _send_sink_pad_have_data_callback (GstPad *pad, GstMiniObject *obj,
  * @session: a #FsRtpSession
  *
  * Check if there is any codec associations that requires codec discovery and
- * if there is, starts the gathering process by adding a pad probe to the
- * send valve
+ * if there is, starts the gathering process by adding a pad block to the
+ * tee's discovery src pad
  */
 
 static void
@@ -3638,10 +3645,8 @@ fs_rtp_session_start_codec_param_gathering (FsRtpSession *session)
 
   GST_DEBUG ("Starting Codec Param discovery for session %d", session->id);
 
-  if (!session->priv->discovery_blocking_id)
-    session->priv->discovery_blocking_id = gst_pad_add_data_probe (
-        session->priv->send_tee_discovery_pad,
-        G_CALLBACK (_send_sink_pad_have_data_callback), session);
+  gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
+      _send_sink_pad_blocked_callback, session);
 
  out:
 
@@ -3653,9 +3658,7 @@ fs_rtp_session_start_codec_param_gathering (FsRtpSession *session)
  * fs_rtp_session_stop_codec_param_gathering
  * @session: a #FsRtpSession
  *
- * Check if there is any codec associations that requires codec discovery and
- * if there is, starts the gathering process by adding a pad probe to the
- * send valve
+ * Stop the codec config gathering and remove the elements used for that
  */
 
 static void
@@ -3670,13 +3673,6 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
   {
     fs_codec_destroy (session->priv->discovery_codec);
     session->priv->discovery_codec = NULL;
-  }
-
-  if (session->priv->discovery_blocking_id)
-  {
-    gst_pad_remove_data_probe (session->priv->send_tee_discovery_pad,
-        session->priv->discovery_blocking_id);
-    session->priv->discovery_blocking_id = 0;
   }
 
   if (session->priv->discovery_fakesink)
