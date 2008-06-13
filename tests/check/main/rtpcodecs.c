@@ -452,8 +452,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   const gchar config2[] = "sadsajdsakdjlksajdsajldsaldjsalkjdl";
   GError *error = NULL;
 
-  if (!gst_structure_has_name (s, "farsight-codecs-ready") &&
-      !gst_structure_has_name (s, "farsight-codecs-changed"))
+  if (!gst_structure_has_name (s, "farsight-codecs-changed"))
     return;
 
   g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);

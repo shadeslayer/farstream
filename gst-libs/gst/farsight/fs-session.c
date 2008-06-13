@@ -66,19 +66,6 @@
  * next "farsight-codecs-changed" message until reading the codecs.
  * </para>
  * </refsect2>
- * <refsect2><title>The "<literal>farsight-codecs-ready</literal>"
- *  message</title>
- * |[
- * "session"          #FsSession          The session that emits the message
- * ]|
- * <para>
- * This message is emitted when all of the configuration data for the codecs
- * have been discovered, it means that the #FsSession:codecs-ready property
- * should now be %TRUE, if it is not, it means something caused the properties
- * to be re-discovered and one should wait until the next
- * "<literal>farsight-codecs-ready</literal>" message.
- * </para>
- * </refsect2>
  * <para>
  */
 
