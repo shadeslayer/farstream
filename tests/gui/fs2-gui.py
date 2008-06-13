@@ -476,10 +476,9 @@ class FsUIStream:
         if not self.session.fssession.get_property("codecs-ready"):
             print "Codecs are not ready"
             return
-        self.send_codecs = False
         codecs = self.session.fssession.get_property("negotiated-codecs")
         assert(codecs is not None and len(codecs) > 0)
-        if (farsight.fs_codec_list_are_equal(codecs, self.last_codecs)):
+        if (codecs == self.last_codecs):
             return
         self.last_codecs = codecs
         for codec in codecs:
