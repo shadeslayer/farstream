@@ -167,6 +167,9 @@ fs_rtp_dtmf_sound_source_class_want_source (FsRtpSpecialSourceClass *klass,
   if (selected_codec->media_type != FS_MEDIA_TYPE_AUDIO)
     return FALSE;
 
+  if (selected_codec->clock_rate != 8000)
+    return FALSE;
+
   codec = get_pcm_law_sound_codec (negotiated_codecs,
       &encoder_name, &payloader_name);
   if (!codec)
