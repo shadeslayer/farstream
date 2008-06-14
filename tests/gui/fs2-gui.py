@@ -355,6 +355,10 @@ class FsUISession:
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
             self.fssession.set_local_codecs_config( [ \
                 farsight.Codec(farsight.CODEC_ID_ANY,
+                               "SPEEX",
+                               farsight.MEDIA_TYPE_AUDIO,
+                               16000),
+                farsight.Codec(farsight.CODEC_ID_ANY,
                                "PCMA",
                                farsight.MEDIA_TYPE_AUDIO,
                                0),
