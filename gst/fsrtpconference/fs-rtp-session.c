@@ -65,6 +65,7 @@ enum
   PROP_SINK_PAD,
   PROP_LOCAL_CODECS_CONFIG,
   PROP_CODECS,
+  PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY,
   PROP_CONFERENCE,
@@ -284,6 +285,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
     PROP_LOCAL_CODECS_CONFIG, "local-codecs-config");
   g_object_class_override_property (gobject_class,
     PROP_CODECS, "codecs");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS_WITHOUT_CONFIG, "codecs-without-config");
   g_object_class_override_property (gobject_class,
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
   g_object_class_override_property (gobject_class,
@@ -600,6 +603,16 @@ fs_rtp_session_get_property (GObject *object,
         FS_RTP_SESSION_LOCK (self);
         codecs = codec_associations_to_codecs (self->priv->codec_associations,
             TRUE);
+        FS_RTP_SESSION_UNLOCK (self);
+        g_value_take_boxed (value, codecs);
+      }
+      break;
+    case PROP_CODECS_WITHOUT_CONFIG:
+      {
+        GList *codecs = NULL;
+        FS_RTP_SESSION_LOCK (self);
+        codecs = codec_associations_to_codecs (self->priv->codec_associations,
+            FALSE);
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, codecs);
       }
