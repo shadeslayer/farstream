@@ -182,16 +182,16 @@ build_recv_pipeline (GCallback havedata_handler, gpointer data, gint *port)
 static void
 set_codecs (struct SimpleTestConference *dat, FsStream *stream)
 {
-  GList *local_codecs = NULL;
+  GList *codecs = NULL;
   GList *filtered_codecs = NULL;
   GList *item = NULL;
   GError *error = NULL;
 
-  g_object_get (dat->session, "local-codecs", &local_codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
 
-  ts_fail_if (local_codecs == NULL, "Could not get the local codecs");
+  ts_fail_if (codecs == NULL, "Could not get the local codecs");
 
-  for (item = g_list_first (local_codecs); item; item = g_list_next (item))
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
     if (codec->id == 0 || codec->id == 8)
@@ -221,6 +221,9 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
       ts_fail ("Could not set the remote codecs on stream"
           " and we did NOT get a GError!!");
   }
+
+  g_list_free (filtered_codecs);
+  fs_codec_list_destroy (codecs);
 }
 
 static void

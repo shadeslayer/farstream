@@ -47,12 +47,12 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "local-codecs", &orig_codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &orig_codecs, NULL);
 
   fail_unless (fs_session_set_local_codecs_config (dat->session, orig_codecs,
           &error), "Could not set local codecs as codec config");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
 
   fail_unless (fs_codec_list_are_equal (orig_codecs, codecs),
       "Setting local codecs as preferences changes the list of local codecs");
@@ -88,7 +88,7 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
     codecs = g_list_append (codecs, codec);
   }
 
-  g_signal_connect (dat->session, "notify::local-codecs",
+  g_signal_connect (dat->session, "notify::negotiated-codecs",
       G_CALLBACK (_notify_local_codecs), &local_codecs_notified);
 
   fail_unless (
@@ -113,7 +113,7 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
   fs_codec_list_destroy (codecs);
   fs_codec_list_destroy (codecs2);
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
 
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
@@ -141,12 +141,12 @@ GST_START_TEST (test_rtpcodecs_local_codecs_config)
       "Could not set local-codecs-config");
   fail_if (error, "Error set while function succeeded?");
   fail_unless (local_codecs_notified, "We were not notified of the change"
-      " in local-codecs");
+      " in negotiated-codecs");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
 
   fail_unless (fs_codec_list_are_equal (codecs, orig_codecs),
-      "Resetting local-codecs-config failed, codec lists are not equal");
+      "Resetting negotiated-codecs-config failed, codec lists are not equal");
 
   fs_codec_list_destroy (orig_codecs);
 
@@ -292,7 +292,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -314,9 +314,9 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
                                                FS_MEDIA_TYPE_AUDIO, 0));
 
   fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
-          NULL), "Could not set local-codes config");
+          NULL), "Could not set local codecs config");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -340,7 +340,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   fail_if (s == NULL, "Could not add stream");
   g_object_unref (p);
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
 
   fail_unless (fs_stream_set_remote_codecs (s, codecs, NULL),
                "Could not set local codecs as remote codecs");
@@ -360,9 +360,9 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
       "but there was one in the local codecs", id);
 
   fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
-          NULL), "Could not set local-codes config after set_remote_codecs");
+          NULL), "Could not set local-codecs config after set_remote_codecs");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -377,7 +377,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   fail_unless (fs_session_set_local_codecs_config (dat->session, codec_prefs,
           NULL), "Could not re-set local-codes config after set_remote_codecs");
 
-  g_object_get (dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -613,7 +613,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 
   fs_codec_list_destroy (codecs);
 
-  g_object_get (cd.dat->session, "local-codecs", &codecs, NULL);
+  g_object_get (cd.dat->session, "negotiated-codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;

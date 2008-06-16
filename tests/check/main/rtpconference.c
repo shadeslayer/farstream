@@ -55,7 +55,7 @@ GST_START_TEST (test_rtpconference_new)
   struct SimpleTestConference *dat = NULL;
   struct SimpleTestStream *st = NULL;
   guint id = 999;
-  GList *local_codecs = NULL;
+  GList *codecs = NULL;
   FsMediaType *media_type;
   GstPad *sinkpad = NULL;
   gchar *str = NULL;
@@ -78,7 +78,7 @@ GST_START_TEST (test_rtpconference_new)
 
   g_object_get (dat->session,
       "id", &id,
-      "local-codecs", &local_codecs,
+      "negotiated-codecs", &codecs,
       "media-type", &media_type,
       "sink-pad", &sinkpad,
       "conference", &conf,
@@ -86,8 +86,8 @@ GST_START_TEST (test_rtpconference_new)
 
   ts_fail_unless (id == 1, "The id of the first session should be 1 not %d",
       id);
-  ts_fail_if (local_codecs == NULL, "Local codecs should not be NULL");
-  fs_codec_list_destroy (local_codecs);
+  ts_fail_if (codecs == NULL, "Codecs should not be NULL");
+  fs_codec_list_destroy (codecs);
   ts_fail_unless (media_type == FS_MEDIA_TYPE_AUDIO, "Media type isnt audio,"
       " its %d", media_type);
   ts_fail_if (sinkpad == NULL, "Sink pad should not be null");
@@ -643,17 +643,17 @@ set_initial_codecs (
     struct SimpleTestConference *from,
     struct SimpleTestStream *to)
 {
-  GList *local_codecs = NULL;
+  GList *codecs = NULL;
   GList *filtered_codecs = NULL;
   GList *item = NULL;
   GList *rcodecs2 = NULL;
   GError *error = NULL;
 
-  g_object_get (from->session, "local-codecs", &local_codecs, NULL);
+  g_object_get (from->session, "negotiated-codecs", &codecs, NULL);
 
-  ts_fail_if (local_codecs == NULL, "Could not get the local codecs");
+  ts_fail_if (codecs == NULL, "Could not get the codecs");
 
-  for (item = g_list_first (local_codecs); item; item = g_list_next (item))
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
     if (codec->id == 0 || codec->id == 8)
@@ -695,7 +695,7 @@ set_initial_codecs (
   g_clear_error (&error);
 
   g_list_free (filtered_codecs);
-  fs_codec_list_destroy (local_codecs);
+  fs_codec_list_destroy (codecs);
 }
 
 typedef void (*extra_init) (void);
