@@ -63,7 +63,6 @@ enum
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
-  PROP_LOCAL_CODECS,
   PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_SEND_CODEC,
@@ -281,8 +280,6 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
     PROP_ID, "id");
   g_object_class_override_property (gobject_class,
     PROP_SINK_PAD, "sink-pad");
-  g_object_class_override_property (gobject_class,
-    PROP_LOCAL_CODECS, "local-codecs");
   g_object_class_override_property (gobject_class,
     PROP_LOCAL_CODECS_CONFIG, "local-codecs-config");
   g_object_class_override_property (gobject_class,
@@ -593,24 +590,6 @@ fs_rtp_session_get_property (GObject *object,
       break;
     case PROP_SINK_PAD:
       g_value_set_object (value, self->priv->media_sink_pad);
-      break;
-    case PROP_LOCAL_CODECS:
-      {
-        GList *local_codecs = NULL;
-        GList *local_codec_associations = NULL;
-
-        FS_RTP_SESSION_LOCK (self);
-        local_codec_associations = create_local_codec_associations (
-            self->priv->blueprints,
-            self->priv->local_codecs_configuration,
-            self->priv->codec_associations);
-        local_codecs = codec_associations_to_codecs (local_codec_associations,
-            TRUE);
-        codec_association_list_destroy (local_codec_associations);
-        FS_RTP_SESSION_UNLOCK (self);
-
-        g_value_take_boxed (value, local_codecs);
-      }
       break;
     case PROP_LOCAL_CODECS_CONFIG:
       g_value_set_boxed (value, self->priv->local_codecs_configuration);
@@ -1451,7 +1430,6 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
   {
     fs_codec_list_destroy (old_codec_configs);
 
-    g_object_notify ((GObject*) self, "local-codecs");
     g_object_notify ((GObject*) self, "negotiated-codecs");
     g_object_notify ((GObject*) self, "local-codecs-config");
 
