@@ -78,7 +78,7 @@ GST_START_TEST (test_rtpconference_new)
 
   g_object_get (dat->session,
       "id", &id,
-      "negotiated-codecs", &codecs,
+      "codecs", &codecs,
       "media-type", &media_type,
       "sink-pad", &sinkpad,
       "conference", &conf,
@@ -353,18 +353,18 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   struct SimpleTestStream *st = user_data;
   int i;
   gboolean stop = TRUE;
-  GList *negotiated_codecs = NULL;
+  GList *codecs = NULL;
 
   g_object_get (st->dat->session,
-      "negotiated-codecs", &negotiated_codecs,
+      "codecs", &codecs,
       NULL);
 
-  ts_fail_if (negotiated_codecs == NULL, "Could not get negotiated codecs");
+  ts_fail_if (codecs == NULL, "Could not get codecs");
 
   if (st->flags & WAITING_ON_LAST_CODEC)
   {
     if (fs_codec_are_equal (
-        g_list_last (negotiated_codecs)->data,
+        g_list_last (codecs)->data,
         g_object_get_data (G_OBJECT (element), "codec")))
     {
       st->flags &= ~WAITING_ON_LAST_CODEC;
@@ -376,12 +376,12 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     {
       gchar *str = fs_codec_to_string (
           g_object_get_data (G_OBJECT (element), "codec"));
-      gchar *str2 = fs_codec_to_string (g_list_last (negotiated_codecs)->data);
+      gchar *str2 = fs_codec_to_string (g_list_last (codecs)->data);
       g_debug ("not yet the last codec, skipping (we have %s, we want %s)",
           str, str2);
       g_free (str);
       g_free (str2);
-      fs_codec_list_destroy (negotiated_codecs);
+      fs_codec_list_destroy (codecs);
       return;
     }
   }
@@ -390,17 +390,17 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   if (select_last_codec || st->flags & SHOULD_BE_LAST_CODEC)
     ts_fail_unless (
         fs_codec_are_equal (
-            g_list_last (negotiated_codecs)->data,
+            g_list_last (codecs)->data,
             g_object_get_data (G_OBJECT (element), "codec")),
         "The handoff handler got a buffer from the wrong codec (last)");
   else
     ts_fail_unless (
         fs_codec_are_equal (
-            g_list_first (negotiated_codecs)->data,
+            g_list_first (codecs)->data,
             g_object_get_data (G_OBJECT (element), "codec")),
         "The handoff handler got a buffer from the wrong codec");
 
-  fs_codec_list_destroy (negotiated_codecs);
+  fs_codec_list_destroy (codecs);
 
 
   st->buffer_count++;
@@ -440,10 +440,10 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       gchar *str = NULL;
 
       g_object_get (st->target->session,
-          "negotiated-codecs", &nego_codecs,
+          "codecs", &nego_codecs,
           NULL);
 
-      ts_fail_if (nego_codecs == NULL, "No negotiated codecs ??");
+      ts_fail_if (nego_codecs == NULL, "No codecs");
       ts_fail_if (g_list_length (nego_codecs) < 2, "Only one negotiated codec");
 
       str = fs_codec_to_string (g_list_last (nego_codecs)->data);
@@ -592,7 +592,7 @@ _negotiated_codecs_notify (GObject *object, GParamSpec *paramspec,
 
   ts_fail_if (session != dat->session, "Got signal from the wrong object");
 
-  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs", &codecs, NULL);
   ts_fail_if (codecs == NULL, "Could not get the negotiated codecs");
 
 
@@ -649,7 +649,7 @@ set_initial_codecs (
   GList *rcodecs2 = NULL;
   GError *error = NULL;
 
-  g_object_get (from->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (from->session, "codecs", &codecs, NULL);
 
   ts_fail_if (codecs == NULL, "Could not get the codecs");
 
@@ -723,7 +723,7 @@ nway_test (int in_count, extra_init extrainit)
     setup_fakesrc (dats[i]);
 
     if (i != 0)
-      g_signal_connect (dats[i]->session, "notify::negotiated-codecs",
+      g_signal_connect (dats[i]->session, "notify::codecs",
           G_CALLBACK (_negotiated_codecs_notify), dats[i]);
   }
 

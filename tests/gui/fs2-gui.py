@@ -485,7 +485,7 @@ class FsUIStream:
         if not self.session.fssession.get_property("codecs-ready"):
             print "Codecs are not ready"
             return
-        codecs = self.session.fssession.get_property("negotiated-codecs")
+        codecs = self.session.fssession.get_property("codecs")
         assert(codecs is not None and len(codecs) > 0)
         if (codecs == self.last_codecs):
             return

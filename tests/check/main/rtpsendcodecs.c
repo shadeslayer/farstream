@@ -187,7 +187,7 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
   GList *item = NULL;
   GError *error = NULL;
 
-  g_object_get (dat->session, "negotiated-codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs", &codecs, NULL);
 
   ts_fail_if (codecs == NULL, "Could not get the local codecs");
 

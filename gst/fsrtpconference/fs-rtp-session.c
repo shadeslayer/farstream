@@ -64,7 +64,7 @@ enum
   PROP_ID,
   PROP_SINK_PAD,
   PROP_LOCAL_CODECS_CONFIG,
-  PROP_NEGOTIATED_CODECS,
+  PROP_CODECS,
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY,
   PROP_CONFERENCE,
@@ -283,7 +283,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   g_object_class_override_property (gobject_class,
     PROP_LOCAL_CODECS_CONFIG, "local-codecs-config");
   g_object_class_override_property (gobject_class,
-    PROP_NEGOTIATED_CODECS, "negotiated-codecs");
+    PROP_CODECS, "codecs");
   g_object_class_override_property (gobject_class,
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
   g_object_class_override_property (gobject_class,
@@ -594,14 +594,14 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_LOCAL_CODECS_CONFIG:
       g_value_set_boxed (value, self->priv->local_codecs_configuration);
       break;
-    case PROP_NEGOTIATED_CODECS:
+    case PROP_CODECS:
       {
-        GList *negotiated_codecs = NULL;
+        GList *codecs = NULL;
         FS_RTP_SESSION_LOCK (self);
-        negotiated_codecs = codec_associations_to_codecs (
-            self->priv->codec_associations, TRUE);
+        codecs = codec_associations_to_codecs (self->priv->codec_associations,
+            TRUE);
         FS_RTP_SESSION_UNLOCK (self);
-        g_value_take_boxed (value, negotiated_codecs);
+        g_value_take_boxed (value, codecs);
       }
       break;
     case PROP_CODECS_READY:
@@ -1362,8 +1362,8 @@ fs_rtp_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function will set the currently being sent codec for all streams in this
- * session. The given #FsCodec must be taken directly from the #negotiated-codecs
- * property of the session. If the given codec is not in the negotiated codecs
+ * session. The given #FsCodec must be taken directly from the #FsSession:codecs
+ * property of the session. If the given codec is not in the codecs
  * list, @error will be set and %FALSE will be returned. The @send_codec will be
  * copied so it must be free'd using fs_codec_destroy () when done.
  *
@@ -1391,7 +1391,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   else
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "The passed codec is not part of the list of negotiated codecs");
+        "The passed codec is not part of the list of codecs");
   }
 
   FS_RTP_SESSION_UNLOCK (self);
@@ -1430,7 +1430,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
   {
     fs_codec_list_destroy (old_codec_configs);
 
-    g_object_notify ((GObject*) self, "negotiated-codecs");
+    g_object_notify ((GObject*) self, "codecs");
     g_object_notify ((GObject*) self, "local-codecs-config");
 
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
@@ -2022,8 +2022,7 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
   if (is_new)
   {
-    if (has_remotes)
-      g_object_notify (G_OBJECT (session), "negotiated-codecs");
+    g_object_notify (G_OBJECT (session), "codecs");
 
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
@@ -2433,7 +2432,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
   if (!session->priv->codec_associations)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "No negotiated codecs yet");
+        "No codecs yet");
     return NULL;
   }
 

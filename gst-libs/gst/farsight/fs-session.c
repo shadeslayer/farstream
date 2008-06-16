@@ -58,7 +58,7 @@
  * ]|
  * <para>
  * This message is sent on the bus when the value of the
- * #FsSession:negotiated-codecs property changes.
+ * #FsSession:codecs property changes.
  * If one is using codecs that have configuration data that needs to be
  * transmitted reliably, once should check the value of #FsSession:codecs-ready
  * property to make sure all of the codecs configuration are ready and have been
@@ -99,7 +99,7 @@ enum
   PROP_ID,
   PROP_SINK_PAD,
   PROP_LOCAL_CODECS_CONFIG,
-  PROP_NEGOTIATED_CODECS,
+  PROP_CODECS,
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY
 };
@@ -208,25 +208,31 @@ fs_session_class_init (FsSessionClass *klass)
         G_PARAM_READABLE));
 
   /**
-   * FsSession:negotiated-codecs:
+   * FsSession:codecs:
    *
-   * This list indicated what codecs have been successfully negotiated with the
-   * session participants. This list can change based on participants
-   * joining/leaving the session. It is a #GList of #FsCodec. User must free
-   * this codec list using fs_codec_list_destroy() when done.
+   * This is the list of codecs used for this session. It will include the
+   * codecs and payload type used to receive media on this session. It will
+   * also include any configuration parameter that must be transmitted reliably
+   * for the other end to decode the content.
    *
-   * The #GObject::notify signal is emited when the content of this property
-   * changes. This can happen when new remote codecs are added to the session
-   * (i.e. When a session is being initialized or a new participant joins an
-   * existing session).
+   * It may change when the local-codecs-config are set, when codecs are set
+   * on a #FsStream in this session, when a #FsStream is destroyed or
+   * asynchronously when new config data is discovered.
+   *
+   * You can only assume that the configuration parameters are valid when
+   * the #FsSession:codecs-ready property is %TRUE.
+   * The "farsight-codecs-changed" message will be emitted whenever the value
+   * of this property changes.
+   *
+   * It is a #GList of #FsCodec. User must free this codec list using
+   * fs_codec_list_destroy() when done.
    *
    */
   g_object_class_install_property (gobject_class,
-      PROP_NEGOTIATED_CODECS,
-      g_param_spec_boxed ("negotiated-codecs",
-        "List of negotiated codecs",
-        "A GList of FsCodecs indicating the codecs that have been successfully"
-        " negotiated",
+      PROP_CODECS,
+      g_param_spec_boxed ("codecs",
+        "List of codecs",
+        "A GList of FsCodecs indicating the codecs for this session",
         FS_TYPE_CODEC_LIST,
         G_PARAM_READABLE));
 
@@ -254,7 +260,7 @@ fs_session_class_init (FsSessionClass *klass)
    * Some codecs that have configuration data that needs to be sent reliably
    * may need to be initialized from actual data before being ready. If your
    * application uses such codecs, wait until this property is %TRUE before
-   * using the #FsSession:negotiated-codecs
+   * using the #FsSession:codecs
    * property. If the value if not %TRUE, the "farsight-codecs-changed"
    * message will be emitted when it becomes %TRUE. You should re-check
    * the value of this property when you receive the message.
@@ -458,8 +464,8 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function will set the currently being sent codec for all streams in this
- * session. The given #FsCodec must be taken directly from the #negotiated-codecs
- * property of the session. If the given codec is not in the negotiated codecs
+ * session. The given #FsCodec must be taken directly from the #codecs
+ * property of the session. If the given codec is not in the codecs
  * list, @error will be set and %FALSE will be returned. The @send_codec will be
  * copied so it must be free'd using fs_codec_destroy() when done.
  *
@@ -489,7 +495,7 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
  * Set the list of desired codec configuration. The user may
  * change this value during an ongoing session. Note that doing this can cause
  * the codecs to change. Therefore this requires the user to fetch
- * the new negotiated-codecs and renegotiate them with the peers. It is a #GList
+ * the new codecs and renegotiate them with the peers. It is a #GList
  * of #FsCodec. The function does not take ownership of the list.
  *
  * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
