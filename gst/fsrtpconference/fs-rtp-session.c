@@ -3325,14 +3325,14 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   ca = lookup_codec_association_by_codec (session->priv->codec_associations,
       session->priv->discovery_codec);
 
-  fs_codec_destroy (session->priv->discovery_codec);
-  session->priv->discovery_codec = NULL;
-
   if (!ca)
     goto out;
 
-
   gather_caps_parameters (ca, caps);
+
+  fs_codec_destroy (session->priv->discovery_codec);
+  session->priv->discovery_codec = NULL;
+  session->priv->discovery_codec = fs_codec_copy (ca->codec);
 
  out:
 
@@ -3361,6 +3361,7 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
 {
   GstPad *pad = NULL;
   gchar *tmp;
+  GstCaps *caps;
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -3375,6 +3376,9 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
         session->priv->discovery_codecbin);
     session->priv->discovery_codecbin = NULL;
   }
+
+  fs_codec_destroy (session->priv->discovery_codec);
+  session->priv->discovery_codec = NULL;
 
   /* They must both exist or neither exists, anything else is wrong */
   if ((session->priv->discovery_fakesink == NULL ||
@@ -3572,10 +3576,6 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   FS_RTP_SESSION_LOCK (session);
 
-  if (session->priv->discovery_codec)
-    goto out;
-
-
   /* Find out if there is a codec that needs the config to be fetched */
   for (item = g_list_first (session->priv->codec_associations);
        item;
@@ -3597,6 +3597,9 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
     goto out;
   }
+
+  if (fs_codec_are_equal (ca->codec, session->priv->discovery_codec))
+    goto out;
 
   if (!fs_rtp_session_get_codec_params (session, ca, &error))
   {
