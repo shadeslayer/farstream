@@ -155,6 +155,8 @@ class FsUIPipeline:
             elif message.structure.has_name("farsight-send-codec-changed"):
                 print message.src.get_name(), ": ", message.structure.get_name()
                 print "send codec changed: " + message.structure["codec"].to_string()
+            elif message.structure.has_name("farsight-error"):
+                print "Async error ("+ str(message.structure["error-no"]) +"): " + message.structure["error-msg"] +" --- "+ message.structure["debug-msg"]
             else:
                 print message.src.get_name(), ": ", message.structure.get_name()
         elif message.type != gst.MESSAGE_STATE_CHANGED \
