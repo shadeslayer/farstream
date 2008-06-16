@@ -1452,6 +1452,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     fs_codec_list_destroy (old_codec_configs);
 
     g_object_notify ((GObject*) self, "local-codecs");
+    g_object_notify ((GObject*) self, "negotiated-codecs");
     g_object_notify ((GObject*) self, "local-codecs-config");
 
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
