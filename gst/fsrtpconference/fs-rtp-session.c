@@ -3390,7 +3390,6 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
   if (session->priv->discovery_fakesink == NULL &&
       session->priv->discovery_capsfilter == NULL)
   {
-    GstCaps *caps;
 
     tmp = g_strdup_printf ("discovery_fakesink_%d", session->id);
     session->priv->discovery_fakesink =
@@ -3432,12 +3431,6 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
           "Could not make capsfilter element");
       goto error;
     }
-
-    caps = fs_codec_to_gst_caps (ca->codec);
-    g_object_set (session->priv->discovery_capsfilter,
-        "caps", caps,
-        NULL);
-    gst_caps_unref (caps);
 
     if (!gst_bin_add (GST_BIN (session->priv->conference),
             session->priv->discovery_capsfilter))
@@ -3492,6 +3485,13 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
         "Could not sync the discovery codecbin's state with its parent");
     goto error;
   }
+
+  caps = fs_codec_to_gst_caps (ca->codec);
+  g_object_set (session->priv->discovery_capsfilter,
+      "caps", caps,
+      NULL);
+  gst_caps_unref (caps);
+
 
   if (!gst_element_link_pads (session->priv->discovery_codecbin, "src",
             session->priv->discovery_capsfilter, "sink"))
