@@ -215,7 +215,8 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
 
   GST_DEBUG ("Using default codec negotiation function");
 
-  if (remote_codec->clock_rate &&
+  if ((local_codec->clock_rate || validate_config) &&
+      remote_codec->clock_rate &&
       local_codec->clock_rate != remote_codec->clock_rate)
   {
     GST_DEBUG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
