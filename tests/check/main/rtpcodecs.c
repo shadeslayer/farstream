@@ -442,7 +442,9 @@ _bus_message_element (GstBus *bus, GstMessage *message,
     struct ConfigDataTest *cd)
 {
   GList *codecs = NULL;
+  GList *codecs2 = NULL;
   FsCodec *codec = NULL;
+  GList *item1, *item2;
   gboolean ready;
   const GstStructure *s = gst_message_get_structure (message);
   FsParticipant *p2 = NULL;
@@ -462,6 +464,34 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
   check_vorbis_and_configuration ("codecs before negotiation", codecs, NULL);
+
+  g_object_get (cd->dat->session, "codecs-without-config", &codecs2, NULL);
+  fail_if (codecs2 == NULL, "Could not get codecs without config");
+  for (item1 = codecs, item2 = codecs2;
+       item1 && item2;
+       item1 = g_list_next (item1), item2 = g_list_next (item2))
+  {
+    FsCodec *codec1 = item1->data;
+    FsCodec *codec2 = item2->data;
+
+    if (fs_codec_are_equal (codec1, codec2))
+      continue;
+
+    fail_unless (codec1->id == codec2->id &&
+        !strcmp (codec1->encoding_name, codec2->encoding_name) &&
+        codec1->media_type == codec2->media_type &&
+        codec1->clock_rate == codec2->clock_rate &&
+        codec1->channels == codec2->channels, "Codec from codec with and "
+        "without are not equal outside of their optional params");
+
+    fail_if (fs_codec_get_optional_parameter (codec2, "configuration", NULL),
+        "Found the configuration inside a codec without config");
+  }
+
+  fail_unless (item1 == NULL && item2 == NULL, "Codecs with config and without"
+      " config are not the same length");
+
+  fs_codec_list_destroy (codecs2);
   fs_codec_list_destroy (codecs);
 
   if (cd->config)
