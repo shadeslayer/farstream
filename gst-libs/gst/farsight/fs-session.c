@@ -58,7 +58,7 @@
  * ]|
  * <para>
  * This message is sent on the bus when the value of the
- * #FsSession:codecs property changes.
+ * #FsSession:codecs or #FsSession:codecs-without-config properties change.
  * If one is using codecs that have configuration data that needs to be
  * transmitted reliably, once should check the value of #FsSession:codecs-ready
  * property to make sure all of the codecs configuration are ready and have been
@@ -100,6 +100,7 @@ enum
   PROP_SINK_PAD,
   PROP_LOCAL_CODECS_CONFIG,
   PROP_CODECS,
+  PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY
 };
@@ -235,6 +236,36 @@ fs_session_class_init (FsSessionClass *klass)
         "A GList of FsCodecs indicating the codecs for this session",
         FS_TYPE_CODEC_LIST,
         G_PARAM_READABLE));
+
+  /**
+   * FsSession:codecs-without-config:
+   *
+   * This is the same list of codecs as #FsSession:codecs without
+   * the configuration information that describes the data sent. It is suitable
+   * for configurations where a list of codecs is shared by many senders.
+   * If one is using codecs such as Theora, Vorbis or H.264 that require
+   * such information to be transmitted, the configuration data should be
+   * included in the stream and retransmitted regularly.
+   *
+   * It may change when the local-codecs-config are set, when codecs are set
+   * on a #FsStream in this session, when a #FsStream is destroyed or
+   * asynchronously when new config data is discovered.
+   *
+   * The "farsight-codecs-changed" message will be emitted whenever the value
+   * of this property changes.
+   *
+   * It is a #GList of #FsCodec. User must free this codec list using
+   * fs_codec_list_destroy() when done.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_CODECS_WITHOUT_CONFIG,
+      g_param_spec_boxed ("codecs-without-config",
+          "List of codecs without the configuration data",
+          "A GList of FsCodecs indicating the codecs for this session without "
+          "any configuration data",
+          FS_TYPE_CODEC_LIST,
+          G_PARAM_READABLE));
 
   /**
    * FsSession:current-send-codec:
