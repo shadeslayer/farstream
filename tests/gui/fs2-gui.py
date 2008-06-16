@@ -463,6 +463,9 @@ class FsUIStream:
         if len(self.newcodecs) > 0:
             self.codecs = self.newcodecs
             self.newcodecs = []
+        print "Remote codecs"
+        for c in self.codecs:
+            print "Got remote codec " + c.to_string()
         try:
             self.fsstream.set_remote_codecs(self.codecs)
         except AttributeError:
