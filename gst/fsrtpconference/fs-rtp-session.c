@@ -1444,6 +1444,7 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
     fs_codec_list_destroy (old_codec_configs);
 
     g_object_notify ((GObject*) self, "codecs");
+    g_object_notify ((GObject*) self, "codecs-without-config");
     g_object_notify ((GObject*) self, "local-codecs-config");
 
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
@@ -2036,6 +2037,7 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
   if (is_new)
   {
     g_object_notify (G_OBJECT (session), "codecs");
+    g_object_notify (G_OBJECT (session), "codecs-without-config");
 
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
@@ -3271,6 +3273,7 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
     if (!item)
     {
       g_object_notify (G_OBJECT (session), "codecs-ready");
+      g_object_notify (G_OBJECT (session), "codecs");
       gst_element_post_message (GST_ELEMENT (session->priv->conference),
           gst_message_new_element (GST_OBJECT (session->priv->conference),
               gst_structure_new ("farsight-codecs-changed",
