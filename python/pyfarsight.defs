@@ -144,6 +144,25 @@
   )
 )
 
+(define-method remove_optional_parameter
+  (of-object "FsCodec")
+  (c-name "fs_codec_remove_optional_parameter")
+  (return-type "none")
+  (parameters
+    '("FsCodecParameter*" "param")
+  )
+)
+
+(define-method get_optional_parameter
+  (of-object "FsCodec")
+  (c-name "fs_codec_get_optional_parameter")
+  (return-type "FsCodecParameter*")
+  (parameters
+    '("gchar*" "name")
+    '("gchar*" "value")
+  )
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...
