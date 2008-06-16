@@ -63,7 +63,7 @@ enum
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
-  PROP_LOCAL_CODECS_CONFIG,
+  PROP_CODEC_PREFERENCES,
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
@@ -140,7 +140,7 @@ struct _FsRtpSessionPrivate
   /* The static list of all the blueprints */
   GList *blueprints;
 
-  GList *local_codecs_configuration;
+  GList *codec_preferences;
 
   /* These are protected by the session mutex */
   GList *codec_associations;
@@ -190,8 +190,8 @@ static gboolean fs_rtp_session_stop_telephony_event (FsSession *session,
 static gboolean fs_rtp_session_set_send_codec (FsSession *session,
     FsCodec *send_codec,
     GError **error);
-static gboolean fs_rtp_session_set_local_codecs_config (FsSession *session,
-    GList *local_codecs_config,
+static gboolean fs_rtp_session_set_codec_preferences (FsSession *session,
+    GList *codec_preferences,
     GError **error);
 static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     FsRtpSession *self,
@@ -272,8 +272,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->start_telephony_event = fs_rtp_session_start_telephony_event;
   session_class->stop_telephony_event = fs_rtp_session_stop_telephony_event;
   session_class->set_send_codec = fs_rtp_session_set_send_codec;
-  session_class->set_local_codecs_config =
-    fs_rtp_session_set_local_codecs_config;
+  session_class->set_codec_preferences =
+    fs_rtp_session_set_codec_preferences;
 
   g_object_class_override_property (gobject_class,
     PROP_MEDIA_TYPE, "media-type");
@@ -282,7 +282,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   g_object_class_override_property (gobject_class,
     PROP_SINK_PAD, "sink-pad");
   g_object_class_override_property (gobject_class,
-    PROP_LOCAL_CODECS_CONFIG, "local-codecs-config");
+    PROP_CODEC_PREFERENCES, "codec-preferences");
   g_object_class_override_property (gobject_class,
     PROP_CODECS, "codecs");
   g_object_class_override_property (gobject_class,
@@ -560,8 +560,8 @@ fs_rtp_session_finalize (GObject *object)
 
   g_static_rec_mutex_free (&self->mutex);
 
-  if (self->priv->local_codecs_configuration)
-    fs_codec_list_destroy (self->priv->local_codecs_configuration);
+  if (self->priv->codec_preferences)
+    fs_codec_list_destroy (self->priv->codec_preferences);
 
   if (self->priv->codec_associations)
     codec_association_list_destroy (self->priv->codec_associations);
@@ -594,8 +594,8 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_SINK_PAD:
       g_value_set_object (value, self->priv->media_sink_pad);
       break;
-    case PROP_LOCAL_CODECS_CONFIG:
-      g_value_set_boxed (value, self->priv->local_codecs_configuration);
+    case PROP_CODEC_PREFERENCES:
+      g_value_set_boxed (value, self->priv->codec_preferences);
       break;
     case PROP_CODECS:
       {
@@ -1413,39 +1413,38 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 }
 
 static gboolean
-fs_rtp_session_set_local_codecs_config (FsSession *session,
-    GList *local_codecs_config,
+fs_rtp_session_set_codec_preferences (FsSession *session,
+    GList *codec_preferences,
     GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  GList *old_codec_configs = NULL;
-  GList *new_local_codecs_configuration =
-    fs_codec_list_copy (local_codecs_config);
+  GList *old_codec_prefs = NULL;
+  GList *new_codec_prefs = fs_codec_list_copy (codec_preferences);
   gboolean ret;
 
-  new_local_codecs_configuration =
+  new_codec_prefs =
     validate_codecs_configuration (
         self->priv->media_type, self->priv->blueprints,
-        new_local_codecs_configuration);
+        new_codec_prefs);
 
-  if (new_local_codecs_configuration == NULL)
-    GST_DEBUG ("None of the local codecs configuration passed are usable,"
+  if (new_codec_prefs == NULL)
+    GST_DEBUG ("None of the new codec preferences passed are usable,"
         " this will restore the original list of detected codecs");
 
   FS_RTP_SESSION_LOCK (self);
 
-  old_codec_configs = self->priv->local_codecs_configuration;
+  old_codec_prefs = self->priv->codec_preferences;
 
-  self->priv->local_codecs_configuration = new_local_codecs_configuration;
+  self->priv->codec_preferences = new_codec_prefs;
 
   ret = fs_rtp_session_update_codecs (self, NULL, NULL, error);
   if (ret)
   {
-    fs_codec_list_destroy (old_codec_configs);
+    fs_codec_list_destroy (old_codec_prefs);
 
     g_object_notify ((GObject*) self, "codecs");
     g_object_notify ((GObject*) self, "codecs-without-config");
-    g_object_notify ((GObject*) self, "local-codecs-config");
+    g_object_notify ((GObject*) self, "codec-preferences");
 
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
         gst_message_new_element (GST_OBJECT (self->priv->conference),
@@ -1456,9 +1455,9 @@ fs_rtp_session_set_local_codecs_config (FsSession *session,
   }
   else
   {
-    fs_codec_list_destroy (new_local_codecs_configuration);
-    self->priv->local_codecs_configuration = old_codec_configs;
-    GST_WARNING ("Invalid new codec configurations");
+    fs_codec_list_destroy (new_codec_prefs);
+    self->priv->codec_preferences = old_codec_prefs;
+    GST_WARNING ("Invalid new codec preferences");
   }
 
   FS_RTP_SESSION_UNLOCK (self);
@@ -1896,7 +1895,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
     has_many_streams = TRUE;
 
   new_negotiated_codec_associations = create_local_codec_associations (
-      session->priv->blueprints, session->priv->local_codecs_configuration,
+      session->priv->blueprints, session->priv->codec_preferences,
       session->priv->codec_associations);
 
   if (!new_negotiated_codec_associations)

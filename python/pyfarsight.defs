@@ -391,12 +391,12 @@
   )
 )
 
-(define-method set_local_codecs_config
+(define-method set_codec_preferences
   (of-object "FsSession")
-  (c-name "fs_session_set_local_codecs_config")
+  (c-name "fs_session_set_codec_preferences")
   (return-type "gboolean")
   (parameters
-    '("GList*" "local_codecs_config")
+    '("GList*" "codec_preferences")
     '("GError**" "error")
   )
 )

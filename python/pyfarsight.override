@@ -694,9 +694,9 @@ _wrap_fs_stream_set_remote_codecs (PyGObject *self, PyObject *arg)
   return PyBool_FromLong (ret);
 }
 %%
-override fs_session_set_local_codecs_config onearg
+override fs_session_set_codec_preferences onearg
 static PyObject *
-_wrap_fs_session_set_local_codecs_config (PyGObject *self, PyObject *arg)
+_wrap_fs_session_set_codec_preferences (PyGObject *self, PyObject *arg)
 {
   gboolean ret = FALSE;
   GError *error = NULL;
@@ -706,7 +706,7 @@ _wrap_fs_session_set_local_codecs_config (PyGObject *self, PyObject *arg)
     return NULL;
 
   Py_BEGIN_ALLOW_THREADS
-  ret = fs_session_set_local_codecs_config (FS_SESSION(self->obj), codecs,
+  ret = fs_session_set_codec_preferences (FS_SESSION(self->obj), codecs,
       &error);
   Py_END_ALLOW_THREADS
 

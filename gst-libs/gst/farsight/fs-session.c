@@ -98,7 +98,7 @@ enum
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
-  PROP_LOCAL_CODECS_CONFIG,
+  PROP_CODEC_PREFERENCES,
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
@@ -186,13 +186,13 @@ fs_session_class_init (FsSessionClass *klass)
         G_PARAM_READABLE));
 
   /**
-   * FsSession:local-codecs-config:
+   * FsSession:codec-preferences:
    *
-   * This is the current configuration list for the local codecs. It is
+   * This is the current preferences list for the local codecs. It is
    * set by the user to specify the codec options and priorities. The user may
-   * change its value with fs_session_set_local_codecs() at any time during a
-   * session. It is a #GList of #FsCodec. The user must free this codec list
-   * using fs_codec_list_destroy() when done.
+   * change its value with fs_session_set_codec_preferences() at any time
+   * during a session. It is a #GList of #FsCodec.
+   * The user must free this codec list using fs_codec_list_destroy() when done.
    *
    * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
    * or %FS_CODEC_ID_ANY. If the encoding name is "reserve-pt", then the
@@ -200,9 +200,9 @@ fs_session_class_init (FsSessionClass *klass)
    * dynamically assigned payload type.
    */
   g_object_class_install_property (gobject_class,
-      PROP_LOCAL_CODECS_CONFIG,
-      g_param_spec_boxed ("local-codecs-config",
-        "List of user configuration for local codecs",
+      PROP_CODEC_PREFERENCES,
+      g_param_spec_boxed ("codec-preferences",
+        "List of user preferences for the codecs",
         "A GList of FsCodecs that allows user to set his codec options and"
         " priorities",
         FS_TYPE_CODEC_LIST,
@@ -216,7 +216,7 @@ fs_session_class_init (FsSessionClass *klass)
    * also include any configuration parameter that must be transmitted reliably
    * for the other end to decode the content.
    *
-   * It may change when the local-codecs-config are set, when codecs are set
+   * It may change when the codec preferences are set, when codecs are set
    * on a #FsStream in this session, when a #FsStream is destroyed or
    * asynchronously when new config data is discovered.
    *
@@ -518,16 +518,17 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 }
 
 /**
- * fs_session_set_local_codecs_config:
+ * fs_session_set_codec_preferences:
  * @session: a #FsSession
  * @local_codecs_config: a #GList of #FsCodec with the desired configuration
  * @error: location of a #GError, or %NULL if no error occured
  *
- * Set the list of desired codec configuration. The user may
+ * Set the list of desired codec preferences. The user may
  * change this value during an ongoing session. Note that doing this can cause
  * the codecs to change. Therefore this requires the user to fetch
  * the new codecs and renegotiate them with the peers. It is a #GList
- * of #FsCodec. The function does not take ownership of the list.
+ * of #FsCodec. The changes are immediately effective.
+ * The function does not take ownership of the list.
  *
  * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
  * or %FS_CODEC_ID_ANY. If the encoding name is "reserve-pt", then the
@@ -540,17 +541,17 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
  * Returns: %TRUE on success, %FALSE on error.
  */
 gboolean
-fs_session_set_local_codecs_config (FsSession *session,
-    GList *local_codecs_config,
+fs_session_set_codec_preferences (FsSession *session,
+    GList *codec_preferences,
     GError **error)
 {
   FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
 
-  if (klass->set_local_codecs_config) {
-    return klass->set_local_codecs_config (session, local_codecs_config, error);
+  if (klass->set_codec_preferences) {
+    return klass->set_codec_preferences (session, codec_preferences, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-        "set_local_codecs_config not defined in class");
+        "set_codec_preferences not defined in class");
   }
   return FALSE;
 }
