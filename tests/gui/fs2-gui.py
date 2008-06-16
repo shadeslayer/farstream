@@ -342,7 +342,7 @@ class FsUISession:
                                "THEORA",
                                farsight.MEDIA_TYPE_VIDEO,
                                90000),
-                 farsight.Codec(farsight.CODEC_ID_DISABLE,
+                farsight.Codec(farsight.CODEC_ID_ANY,
                                "H264",
                                farsight.MEDIA_TYPE_VIDEO,
                                0),
