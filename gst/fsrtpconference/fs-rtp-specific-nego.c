@@ -40,7 +40,7 @@
 /*
  * This must be kept to the maximum number of config parameters + 1
  */
-#define MAX_CONFIG_PARAMS 3
+#define MAX_CONFIG_PARAMS 6
 
 struct SdpCompatCheck {
   FsMediaType media_type;
@@ -74,6 +74,9 @@ static struct SdpCompatCheck sdp_compat_checks[] = {
    {"configuration", NULL}},
   {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_default,
    {"configuration", NULL}},
+  {FS_MEDIA_TYPE_VIDEO, "H264", sdp_is_compat_default,
+   {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
+    "sprop-init-buf-time", "sprop-max-don-diff", NULL}},
   {0, NULL, NULL}
 };
 
