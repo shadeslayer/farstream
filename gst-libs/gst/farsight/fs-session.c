@@ -58,7 +58,7 @@
  * ]|
  * <para>
  * This message is sent on the bus when the value of the
- * #FsSession:negotiated-codecs or #FsSession:local-codecs properties change.
+ * #FsSession:negotiated-codecs property changes.
  * If one is using codecs that have configuration data that needs to be
  * transmitted reliably, once should check the value of #FsSession:codecs-ready
  * property to make sure all of the codecs configuration are ready and have been
@@ -98,7 +98,6 @@ enum
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
-  PROP_LOCAL_CODECS,
   PROP_LOCAL_CODECS_CONFIG,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_SEND_CODEC,
@@ -186,24 +185,6 @@ fs_session_class_init (FsSessionClass *klass)
         G_PARAM_READABLE));
 
   /**
-   * FsSession:local-codecs:
-   *
-   * This is the list of local codecs that have been auto-detected based on
-   * installed GStreamer plugins. This list is unchanged during the lifecycle of
-   * the session unless local-codecs-config is changed by the user. It is a
-   * #GList of #FsCodec. User must free this codec list using
-   * fs_codec_list_destroy() when done.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_LOCAL_CODECS,
-      g_param_spec_boxed ("local-codecs",
-        "List of local codecs",
-        "A GList of FsCodecs that can be used for sending",
-        FS_TYPE_CODEC_LIST,
-        G_PARAM_READABLE));
-
-  /**
    * FsSession:local-codecs-config:
    *
    * This is the current configuration list for the local codecs. It is
@@ -273,8 +254,8 @@ fs_session_class_init (FsSessionClass *klass)
    * Some codecs that have configuration data that needs to be sent reliably
    * may need to be initialized from actual data before being ready. If your
    * application uses such codecs, wait until this property is %TRUE before
-   * using the #FsSession:local-codecs and #FsSession:negotiated-codecs
-   * properties. If the value if not %TRUE, the "farsight-codecs-changed"
+   * using the #FsSession:negotiated-codecs
+   * property. If the value if not %TRUE, the "farsight-codecs-changed"
    * message will be emitted when it becomes %TRUE. You should re-check
    * the value of this property when you receive the message.
    */
@@ -507,8 +488,8 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
  *
  * Set the list of desired codec configuration. The user may
  * change this value during an ongoing session. Note that doing this can cause
- * the local-codecs to be changed. Therefore this requires the user to fetch
- * the new local-codecs and renegotiate them with the peers. It is a #GList
+ * the codecs to change. Therefore this requires the user to fetch
+ * the new negotiated-codecs and renegotiate them with the peers. It is a #GList
  * of #FsCodec. The function does not take ownership of the list.
  *
  * The payload type may be a valid dynamic PT (96-127), %FS_CODEC_ID_DISABLE
