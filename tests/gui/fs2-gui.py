@@ -737,7 +737,9 @@ class FsMainUI:
         gtk.main_quit()
         
     def hbox_add(self, widget):
-        self.glade.get_widget("user_hbox").pack_start(widget, True, True, 0)
+        table = self.glade.get_widget("users_table")
+        x = table.get_properties("n-columns")[0]
+        table.attach(widget, x, x+1, 0, 1)
 
     def __del__(self):
         self.mainwindow.destroy()
