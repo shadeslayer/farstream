@@ -152,9 +152,18 @@ class FsUIPipeline:
             elif message.structure.has_name("farsight-codecs-changed"):
                 print message.src.get_name(), ": ", message.structure.get_name()
                 message.structure["session"].uisession.codecs_changed()
+                if message.structure["session"] == self.audiosession.fssession:
+                    self.codecs_changed_audio()
+                if message.structure["session"] == self.videosession.fssession:
+                    self.codecs_changed_video()
             elif message.structure.has_name("farsight-send-codec-changed"):
                 print message.src.get_name(), ": ", message.structure.get_name()
                 print "send codec changed: " + message.structure["codec"].to_string()
+                if message.structure["session"] == self.audiosession.fssession:
+                    self.codecs_changed_audio()
+                if message.structure["session"] == self.videosession.fssession:
+                    self.codecs_changed_video()
+
             elif message.structure.has_name("farsight-error"):
                 print "Async error ("+ str(message.structure["error-no"]) +"): " + message.structure["error-msg"] +" --- "+ message.structure["debug-msg"]
             else:
@@ -640,9 +649,26 @@ class FsMainUI:
     def __init__(self, mode, ip, port):
         self.mode = mode
         self.pipeline = FsUIPipeline()
+        self.pipeline.codecs_changed_audio = self.reset_audio_codecs
+        self.pipeline.codecs_changed_video = self.reset_video_codecs
         self.glade = gtk.glade.XML(gladefile, "main_window")
         self.glade.signal_autoconnect(self)
         self.mainwindow = self.glade.get_widget("main_window")
+        self.audio_combobox = self.glade.get_widget("audio_combobox")
+        self.video_combobox = self.glade.get_widget("video_combobox")
+        liststore = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_PYOBJECT)
+        self.audio_combobox.set_model(liststore)
+        cell = gtk.CellRendererText()
+        self.audio_combobox.pack_start(cell, True)
+        self.audio_combobox.add_attribute(cell, 'text', 0)
+        self.reset_audio_codecs()
+        liststore = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_PYOBJECT)
+        self.video_combobox.set_model(liststore)
+        cell = gtk.CellRendererText()
+        self.video_combobox.pack_start(cell, True)
+        self.video_combobox.add_attribute(cell, 'text', 0)
+        self.reset_video_codecs()
+
         if mode == CLIENT:
             self.client = FsUIClient(ip, port, mycname, FsUIParticipant,
                                      self.pipeline, self)
@@ -658,6 +684,28 @@ class FsMainUI:
         
         self.mainwindow.show()
 
+    def reset_codecs(self, combobox, fssession):
+        liststore = combobox.get_model()
+        current = fssession.get_property("current-send-codec")
+        liststore.clear()
+        for c in fssession.get_property("codecs"):
+            str = ("%s: %s/%s %s" % (c.id, 
+                                     c.media_type.value_nick,
+                                     c.encoding_name,
+                                     c.clock_rate))
+            iter = liststore.append([str, c])
+            if current and c and current.id == c.id:
+                combobox.set_active_iter(iter)
+                print "active: "+ c.to_string()
+
+    def reset_audio_codecs(self):
+        self.reset_codecs(self.audio_combobox,
+                          self.pipeline.audiosession.fssession)
+
+    def reset_video_codecs(self):
+        self.reset_codecs(self.video_combobox,
+                          self.pipeline.videosession.fssession)
+        
     def exposed(self, widget, *args):
         "Callback from the exposed event of the widget to make the preview sink"
         if not VIDEO:
@@ -719,6 +767,7 @@ class FsMainUI:
     def dtmf_destroy(self, button):
         self.dtmf.get_widget("dtmf_window").destroy()
         del self.dtmf
+
 
 
 class FsUIStartup:
