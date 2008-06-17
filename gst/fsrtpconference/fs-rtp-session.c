@@ -757,6 +757,8 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
+  gst_element_set_state (tee, GST_STATE_PLAYING);
+
   self->priv->send_tee = gst_object_ref (tee);
 
 
