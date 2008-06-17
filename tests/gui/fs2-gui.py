@@ -163,7 +163,12 @@ class FsUIPipeline:
                     self.codecs_changed_audio()
                 if message.structure["session"] == self.videosession.fssession:
                     self.codecs_changed_video()
-
+            elif message.structure.has_name("farsight-recv-codecs-changed"):
+                print message.src.get_name(), ": ", message.structure.get_name()
+                message.structure["stream"].uistream.recv_codecs_changed( \
+                    message.structure["codecs"])
+                
+                
             elif message.structure.has_name("farsight-error"):
                 print "Async error ("+ str(message.structure["error-no"]) +"): " + message.structure["error-msg"] +" --- "+ message.structure["debug-msg"]
             else:
@@ -504,6 +509,9 @@ class FsUIStream:
             self.connect.send_codec(self.participant.id, self.id, codec)
         self.connect.send_codecs_done(self.participant.id, self.id)
 
+    def recv_codecs_changed(self, codecs):
+        self.participant.recv_codecs_changed()
+
 
 class FsUIParticipant:
     "Wraps one FsParticipant, is one user remote contact"
@@ -552,7 +560,10 @@ class FsUIParticipant:
         self.userframe = self.glade.get_widget("user_frame")
         self.glade.get_widget("frame_label").set_text(self.cname)
         self.glade.signal_autoconnect(self)
-        self.mainui.hbox_add(self.userframe)
+        self.label = gtk.Label()
+        self.label.set_alignment(0,0)
+        self.label.show()
+        self.mainui.hbox_add(self.userframe, self.label)
         gtk.gdk.threads_leave()
 
     def exposed(self, widget, *args):
@@ -641,6 +652,25 @@ class FsUIParticipant:
         else:
             print "ERROR ON %d" % (self.id)
 
+    def recv_codecs_changed(self):
+        codecs = {}
+        for s in self.streams:
+            codec = self.streams[s].fsstream.get_property("current-recv-codecs")
+            mediatype = self.streams[s].session.fssession.get_property("media-type")
+            if len(codec):
+                if mediatype in codecs:
+                    codecs[mediatype] += codec
+                else:
+                    codecs[mediatype] = codec
+        str = ""
+        for mt in codecs:
+            str += "<big>" +mt.value_nick.title() + "</big>:\n"
+            for c in codecs[mt]:
+                str += "  <b>%s</b>: %s %s\n" % (c.id, 
+                                                 c.encoding_name,
+                                                 c.clock_rate)
+        self.label.set_markup(str)
+                
     
 
 class FsMainUI:
@@ -736,10 +766,11 @@ class FsMainUI:
     def shutdown(self, widget=None):
         gtk.main_quit()
         
-    def hbox_add(self, widget):
+    def hbox_add(self, widget, label):
         table = self.glade.get_widget("users_table")
         x = table.get_properties("n-columns")[0]
         table.attach(widget, x, x+1, 0, 1)
+        table.attach(label, x, x+1, 1, 3, xpadding=6)
 
     def __del__(self):
         self.mainwindow.destroy()
