@@ -705,6 +705,20 @@ class FsMainUI:
     def reset_video_codecs(self):
         self.reset_codecs(self.video_combobox,
                           self.pipeline.videosession.fssession)
+
+    def combobox_changed_cb(self, combobox, fssession):
+        liststore = combobox.get_model()
+        iter = combobox.get_active_iter()
+        if iter:
+            codec = liststore.get_value(iter, 1)
+            fssession.set_send_codec(codec)
+
+    def audio_combobox_changed_cb(self, combobox):
+        self.combobox_changed_cb(combobox, self.pipeline.audiosession.fssession)
+    
+    def video_combobox_changed_cb(self, combobox):
+        self.combobox_changed_cb(combobox, self.pipeline.videosession.fssession)
+        
         
     def exposed(self, widget, *args):
         "Callback from the exposed event of the widget to make the preview sink"
