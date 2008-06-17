@@ -147,6 +147,9 @@ static void fs_rtp_sub_stream_set_property (GObject *object, guint prop_id,
   const GValue *value, GParamSpec *pspec);
 
 static void
+fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream);
+
+static void
 fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
     gint error_no,
     gchar *error_msg,
@@ -881,7 +884,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     gst_caps_unref (caps);
 
     /* We call this to drop all buffers until something comes up */
-    fs_rtp_sub_stream_verify_codec_locked (substream, NULL);
+    fs_rtp_sub_stream_add_probe_locked (substream);
     goto error;
   }
 
@@ -1064,8 +1067,6 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   gboolean ret = TRUE;
   gboolean remove = FALSE;
 
-  g_signal_emit (self, signals[BLOCKED], 0, self->priv->stream);
-
   FS_RTP_SESSION_LOCK (self->priv->session);
 
   if (!self->priv->codecbin || !self->priv->codec || !self->priv->caps)
@@ -1105,6 +1106,31 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   return ret;
 }
 
+static void
+do_nothing_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+}
+
+static void
+_rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+  FsRtpSubStream *substream = user_data;
+
+  g_signal_emit (substream, signals[BLOCKED], 0, substream->priv->stream);
+
+  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE,
+      do_nothing_blocked_callback, NULL);
+}
+
+static void
+fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
+{
+  if (!substream->priv->blocking_id)
+    substream->priv->blocking_id = gst_pad_add_data_probe (
+        substream->priv->rtpbin_pad,
+        G_CALLBACK (_rtpbin_pad_have_data_callback), substream);
+}
+
 /**
  * fs_rtp_sub_stream_verify_codec_locked:
  * @substream: A #FsRtpSubStream
@@ -1121,11 +1147,10 @@ void
 fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream,
     const FsCodec *codec)
 {
-  if (!substream->priv->blocking_id &&
-      (!codec || !fs_codec_are_equal (substream->priv->codec, codec)))
-    substream->priv->blocking_id = gst_pad_add_data_probe (
-        substream->priv->rtpbin_pad,
-        G_CALLBACK (_rtpbin_pad_have_data_callback), substream);
+  fs_rtp_sub_stream_add_probe_locked (substream);
+
+  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, TRUE,
+      _rtpbin_pad_blocked_callback, substream);
 }
 
 

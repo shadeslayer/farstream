@@ -3076,7 +3076,9 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
   while (
       g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0);
 
-  if (!fs_rtp_stream_add_substream (stream, substream, &error))
+  if (fs_rtp_stream_add_substream (stream, substream, &error))
+    fs_rtp_session_verify_substream_locked (session, stream, substream);
+  else
     fs_session_emit_error (FS_SESSION (session), error->code,
         "Could not associate a substream with its stream",
         error->message);
@@ -3124,17 +3126,18 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
   while (
       g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0);
 
-  if (!fs_rtp_stream_add_substream (
+  if (fs_rtp_stream_add_substream (
           g_list_first (session->priv->streams)->data,
           substream, &error))
-  {
+    fs_rtp_session_verify_substream_locked (session,
+        g_list_first (session->priv->streams)->data,
+        substream);
+  else
     fs_session_emit_error (FS_SESSION (session),
         error ? error->code : FS_ERROR_INTERNAL,
         "Could not link the substream to a stream",
         error ? error->message : "No error message");
-  }
   g_clear_error (&error);
-
 
  done:
 
