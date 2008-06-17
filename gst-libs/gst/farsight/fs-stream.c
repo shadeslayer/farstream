@@ -68,7 +68,7 @@
  * outside the callback scope.
  * </para>
  * </refsect2>
- * <refsect2><title>The "<literal>farsight-current-recv-codecs-changed</literal>" message</title>
+ * <refsect2><title>The "<literal>farsight-recv-codecs-changed</literal>" message</title>
  * |[
  * "stream"           #FsStream          The stream that emits the message
  * "codecs"           #FsCodecGList      A #GList of #FsCodec
@@ -218,7 +218,7 @@ fs_stream_class_init (FsStreamClass *klass)
    *
    * This is the list of codecs that have been received by this stream.
    * The user must free the list if fs_codec_list_destroy().
-   * The "farsight-current-recv-codecs-changed" message is send on the #GstBus
+   * The "farsight-recv-codecs-changed" message is send on the #GstBus
    * when the value of this property changes.
    * It is normally emitted right after #FsStream::src-pad-added
    * only if that codec was not previously received in this stream, but it can

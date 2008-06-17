@@ -860,7 +860,7 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
     gst_element_post_message (conf,
         gst_message_new_element (GST_OBJECT (conf),
-            gst_structure_new ("farsight-current-recv-codecs-changed",
+            gst_structure_new ("farsight-recv-codecs-changed",
                 "stream", FS_TYPE_STREAM, stream,
                 "codecs", FS_TYPE_CODEC_LIST, codeclist,
                 NULL)));
