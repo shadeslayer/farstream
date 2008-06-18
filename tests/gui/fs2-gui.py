@@ -643,6 +643,7 @@ class FsUIParticipant:
             self.outcv.release()
         gtk.gdk.threads_enter()
         self.userframe.destroy()
+        self.label.destroy()
         gtk.gdk.threads_leave()
 
     def error(self):
