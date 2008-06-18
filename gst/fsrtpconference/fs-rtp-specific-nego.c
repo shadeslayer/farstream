@@ -62,7 +62,7 @@ static FsCodec *
 sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config);
 static FsCodec *
-sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
+sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
@@ -70,9 +70,9 @@ static struct SdpCompatCheck sdp_compat_checks[] = {
    {NULL}},
   {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998,
    {NULL}},
-  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_vorbis,
+  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_theora_vorbis,
    {"configuration", NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_default,
+  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_theora_vorbis,
    {"configuration", NULL}},
   {FS_MEDIA_TYPE_VIDEO, "H264", sdp_is_compat_default,
    {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
@@ -487,7 +487,7 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
 
 
 static FsCodec *
-sdp_is_compat_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
+sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
 gboolean validate_config)
 {
   if (validate_config &&
