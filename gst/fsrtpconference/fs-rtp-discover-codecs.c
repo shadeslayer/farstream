@@ -851,7 +851,7 @@ codec_cap_list_intersect (GList *list1, GList *list2)
         } else {
 
           item = g_slice_new0 (CodecCap);
-          item->caps = intersection;
+          item->caps = gst_caps_ref (intersection);
 
           if (rtp_caps1 && rtp_caps2)
           {
@@ -884,10 +884,10 @@ codec_cap_list_intersect (GList *list1, GList *list2)
             break;
         }
       } else {
-        gst_caps_unref (intersection);
         if (rtp_intersection)
           gst_caps_unref (rtp_intersection);
       }
+      gst_caps_unref (intersection);
     }
   }
 
