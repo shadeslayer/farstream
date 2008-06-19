@@ -367,7 +367,8 @@ class FsUISession:
                 farsight.Codec(farsight.CODEC_ID_ANY,
                                "H263",
                                farsight.MEDIA_TYPE_VIDEO,
-                               0)])
+                               0)
+                ])
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
             self.fssession.set_codec_preferences( [ \
                 farsight.Codec(farsight.CODEC_ID_ANY,
@@ -381,7 +382,13 @@ class FsUISession:
                 farsight.Codec(farsight.CODEC_ID_ANY,
                                "PCMU",
                                farsight.MEDIA_TYPE_AUDIO,
-                               0)])
+                               0),
+                # Sadly, vorbis is not currently compatible with live streaming :-(
+                farsight.Codec(farsight.CODEC_ID_DISABLE,
+                               "VORBIS",
+                               farsight.MEDIA_TYPE_AUDIO,
+                               0),
+                ])
 
         self.sourcepad = self.source.get_src_pad()
         self.sourcepad.link(self.fssession.get_property("sink-pad"))
