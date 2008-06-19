@@ -3213,6 +3213,9 @@ gather_caps_parameters (CodecAssociation *ca, GstCaps *caps)
               if (!g_ascii_strcasecmp (param->value, value))
                 break;
 
+              GST_DEBUG ("%d/%s: replacing param %s=%s with %s",
+                  ca->codec->id, ca->codec->encoding_name, name, param->value, value);
+
               /* replace the value if its different */
               fs_codec_remove_optional_parameter (ca->codec, param);
               fs_codec_add_optional_parameter (ca->codec, name, value);
@@ -3222,7 +3225,12 @@ gather_caps_parameters (CodecAssociation *ca, GstCaps *caps)
 
           /* Add it if it wasn't there */
           if (item == NULL)
+          {
+            GST_DEBUG ("%d/%s: adding param %s=%s",
+                ca->codec->id, ca->codec->encoding_name, name, value);
+
             fs_codec_add_optional_parameter (ca->codec, name, value);
+          }
         }
       }
     }
