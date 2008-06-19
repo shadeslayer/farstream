@@ -247,7 +247,7 @@ fs_session_class_init (FsSessionClass *klass)
    * such information to be transmitted, the configuration data should be
    * included in the stream and retransmitted regularly.
    *
-   * It may change when the local-codecs-config are set, when codecs are set
+   * It may change when the codec preferences are set, when codecs are set
    * on a #FsStream in this session, when a #FsStream is destroyed or
    * asynchronously when new config data is discovered.
    *
@@ -520,7 +520,7 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 /**
  * fs_session_set_codec_preferences:
  * @session: a #FsSession
- * @local_codecs_config: a #GList of #FsCodec with the desired configuration
+ * @codec_preferences: a #GList of #FsCodec with the desired configuration
  * @error: location of a #GError, or %NULL if no error occured
  *
  * Set the list of desired codec preferences. The user may
