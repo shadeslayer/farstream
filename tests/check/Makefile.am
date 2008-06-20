@@ -36,9 +36,9 @@ check_PROGRAMS = \
 	base/fstransmitter \
 	transmitter/rawudp \
 	transmitter/multicast \
-	main/rtpcodecs \
-	main/rtpsendcodecs \
-	main/rtpconference \
+	rtp/codecs \
+	rtp/sendcodecs \
+	rtp/conference \
 	utils/binadded
 
 
@@ -68,25 +68,25 @@ transmitter_multicast_SOURCES = \
 	transmitter/generic.h \
 	transmitter/multicast.c 
 
-main_rtpconference_CFLAGS = $(AM_CFLAGS)
-main_rtpconference_SOURCES = \
+rtp_conference_CFLAGS = $(AM_CFLAGS)
+rtp_conference_SOURCES = \
 	check-threadsafe.h  \
-	main/generic.c \
-	main/generic.h \
-	main/rtpconference.c
+	rtp/generic.c \
+	rtp/generic.h \
+	rtp/conference.c
 
-main_rtpcodecs_CFLAGS = $(AM_CFLAGS)
-main_rtpcodecs_SOURCES = \
-	main/generic.c \
-	main/generic.h \
-	main/rtpcodecs.c
+rtp_codecs_CFLAGS = $(AM_CFLAGS)
+rtp_codecs_SOURCES = \
+	rtp/generic.c \
+	rtp/generic.h \
+	rtp/codecs.c
 
-main_rtpsendcodecs_CFLAGS = $(AM_CFLAGS)
-main_rtpsendcodecs_LDADD = $(LDADD) -lgstrtp-0.10
-main_rtpsendcodecs_SOURCES = \
-	main/generic.c \
-	main/generic.h \
-	main/rtpsendcodecs.c
+rtp_sendcodecs_CFLAGS = $(AM_CFLAGS)
+rtp_sendcodecs_LDADD = $(LDADD) -lgstrtp-0.10
+rtp_sendcodecs_SOURCES = \
+	rtp/generic.c \
+	rtp/generic.h \
+	rtp/sendcodecs.c
 
 utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
