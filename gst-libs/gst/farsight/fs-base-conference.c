@@ -27,7 +27,7 @@
  * SECTION:fs-base-conference
  * @short_description: Base class for Farsight Conference Gstreamer Elements
  *
- * This base class must be used by all Farsight Conference elements. It makes
+ * This base class must be subclassed by all Farsight Conference elements. It makes
  * sure to agreggate the errors and maintain the lifecycles of the instances in
  * the API.
  */
