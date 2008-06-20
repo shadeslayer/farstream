@@ -3331,12 +3331,14 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   ca = lookup_codec_association_by_codec (session->priv->codec_associations,
       session->priv->discovery_codec);
 
-  if (ca && ca->need_config)
-    gather_caps_parameters (ca, caps);
-
   fs_codec_destroy (session->priv->discovery_codec);
   session->priv->discovery_codec = NULL;
-  session->priv->discovery_codec = fs_codec_copy (ca->codec);
+
+  if (ca && ca->need_config)
+  {
+    gather_caps_parameters (ca, caps);
+    session->priv->discovery_codec = fs_codec_copy (ca->codec);
+  }
 
  out:
 
