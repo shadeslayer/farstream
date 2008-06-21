@@ -33,6 +33,7 @@ docs/version.entities
 docs/libs/html
 docs/libs/tmpl
 docs/libs/xml
+docs/diagrams/*.png
 
 python/pyfarsight.c
 python/*.pyo
