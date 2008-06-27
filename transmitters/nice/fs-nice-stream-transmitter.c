@@ -1093,6 +1093,8 @@ agent_state_changed (NiceAgent *agent,
   GST_DEBUG ("Stream: %u Component %u has state %u",
       self->priv->stream_id, component_id, state);
 
+  g_signal_emit_by_name (self, "state-changed", component_id, fs_state);
+
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
 
   self->priv->component_states[component_id - 1] = fs_state;
