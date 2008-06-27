@@ -56,6 +56,7 @@ enum
   NEW_ACTIVE_CANDIDATE_PAIR,
   LOCAL_CANDIDATES_PREPARED,
   KNOWN_SOURCE_PACKET_RECEIVED,
+  STATE_CHANGED,
   LAST_SIGNAL
 };
 
@@ -240,7 +241,6 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
    *
    * This signal is emitted when a buffer coming from a confirmed known source
    * is received.
-   *
    */
   signals[KNOWN_SOURCE_PACKET_RECEIVED] = g_signal_new
     ("known-source-packet-received",
@@ -251,6 +251,27 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       NULL,
       _fs_marshal_VOID__UINT_POINTER,
       G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
+
+
+  /**
+   * FsStreamTransmitter::state-changed
+   * @self: #FsStreamTransmitter that emitted the signal
+   * @component: the id of the component which state has changed
+   * @state: the new state of the component
+   *
+   * This signal is emitted when the ICE state (or equivalent) of the component
+   * changes
+   */
+ signals[STATE_CHANGED] = g_signal_new
+    ("state-changed",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_marshal_VOID__UINT_ENUM,
+      G_TYPE_NONE, 2, G_TYPE_UINT, FS_TYPE_STREAM_STATE);
+
 
   gobject_class->dispose = fs_stream_transmitter_dispose;
   gobject_class->finalize = fs_stream_transmitter_finalize;
