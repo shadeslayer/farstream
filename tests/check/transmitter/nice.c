@@ -161,19 +161,19 @@ _handoff_handler2 (GstElement *element, GstBuffer *buffer, GstPad *pad,
 }
 
 static void
-_stream_state_notify (GObject *obj, GParamSpec *pspec, gpointer user_data)
+_stream_state_changed (FsStreamTransmitter *st, guint component,
+    FsStreamState state, gpointer user_data)
 {
   FsTransmitter *trans = FS_TRANSMITTER (user_data);
-  FsStreamState state;
   GEnumClass *enumclass = NULL;
   GEnumValue *enumvalue = NULL;
-
-  g_object_get (obj, "state", &state, NULL);
+  gchar *prop = NULL;
 
   enumclass = g_type_class_ref (FS_TYPE_STREAM_STATE);
   enumvalue = g_enum_get_value (enumclass, state);
-  g_debug ("Stream state is now %s (%u)", enumvalue->value_nick, state);
-  g_type_class_unref (enumclass);
+
+  g_debug ("%p: Stream state for component %u is now %s (%u)", st,
+      component, enumvalue->value_nick, state);
 
   ts_fail_if (state == FS_STREAM_STATE_FAILED,
       "Failed to establish a connection");
@@ -181,16 +181,23 @@ _stream_state_notify (GObject *obj, GParamSpec *pspec, gpointer user_data)
   if (state < FS_STREAM_STATE_CONNECTED)
     return;
 
-  if (g_object_get_data (G_OBJECT (trans), "src_setup") == NULL)
+  if (component == 1)
+    prop = "src_setup_1";
+  else if (component == 2)
+    prop = "src_setup_2";
+  else
+    ts_fail ("Invalid component %u, component");
+
+  if (g_object_get_data (G_OBJECT (trans), prop) == NULL)
   {
     GstElement *pipeline = GST_ELEMENT (
         g_object_get_data (G_OBJECT (trans), "pipeline"));
-    setup_fakesrc (trans, pipeline, 1);
-    setup_fakesrc (trans, pipeline, 2);
-    g_object_set_data (G_OBJECT (trans), "src_setup", "");
+    g_debug ("%p: Setting up fakesrc for component %u", st, component);
+    setup_fakesrc (trans, pipeline, component);
+    g_object_set_data (G_OBJECT (trans), prop, "");
   }
   else
-    g_debug ("FAKESRC ALREADY SETUP");
+    g_debug ("FAKESRC ALREADY SETUP for component %u", component);
 }
 
 
@@ -297,9 +304,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
-  ts_fail_unless (g_signal_connect (st, "notify::state",
-          G_CALLBACK (_stream_state_notify), trans),
-      "Could not connect to notify::state signal");
+  ts_fail_unless (g_signal_connect (st, "state-changed",
+          G_CALLBACK (_stream_state_changed), trans),
+      "Could not connect to state-changed signal");
 
   ts_fail_unless (g_signal_connect (st2, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), st),
@@ -313,9 +320,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st2, "error",
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
-  ts_fail_unless (g_signal_connect (st2, "notify::state",
-          G_CALLBACK (_stream_state_notify), trans2),
-      "Could not connect to notify::state signal");
+  ts_fail_unless (g_signal_connect (st2, "state-changed",
+          G_CALLBACK (_stream_state_changed), trans2),
+      "Could not connect to state-changed signal");
 
   ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
