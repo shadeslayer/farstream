@@ -101,10 +101,9 @@ static void fs_rtp_stream_set_property (GObject *object,
 static void fs_rtp_stream_constructed (GObject *object);
 
 
-static gboolean fs_rtp_stream_add_remote_candidate (FsStream *stream,
-                                                    FsCandidate *candidate,
-                                                    GError **error);
-static void fs_rtp_stream_remote_candidates_added (FsStream *stream);
+static gboolean fs_rtp_stream_set_remote_candidates (FsStream *stream,
+                                                     GList *candidates,
+                                                     GError **error);
 static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
     const gchar *local_foundation,
     const gchar *remote_foundatihon,
@@ -159,9 +158,8 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   gobject_class->dispose = fs_rtp_stream_dispose;
   gobject_class->finalize = fs_rtp_stream_finalize;
 
-  stream_class->add_remote_candidate = fs_rtp_stream_add_remote_candidate;
+  stream_class->set_remote_candidates = fs_rtp_stream_set_remote_candidates;
   stream_class->set_remote_codecs = fs_rtp_stream_set_remote_codecs;
-  stream_class->remote_candidates_added = fs_rtp_stream_remote_candidates_added;
   stream_class->select_candidate_pair = fs_rtp_stream_select_candidate_pair;
 
 
@@ -447,42 +445,16 @@ fs_rtp_stream_constructed (GObject *object)
 
 
 /**
- * fs_rtp_stream_add_remote_candidate:
- * @stream: an #FsStream
- * @candidate: an #FsCandidate struct representing a remote candidate
- * @error: location of a #GError, or NULL if no error occured
- *
- * This function adds the given candidate into the remote candiate list of the
- * stream. It will be used for establishing a connection with the peer. A copy
- * will be made so the user must free the passed candidate using
- * fs_candidate_destroy() when done.
+ * fs_rtp_stream_set_remote_candidate:
  */
 static gboolean
-fs_rtp_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
-                                    GError **error)
+fs_rtp_stream_set_remote_candidates (FsStream *stream, GList *candidates,
+                                     GError **error)
 {
   FsRtpStream *self = FS_RTP_STREAM (stream);
 
-  return fs_stream_transmitter_add_remote_candidate (
-      self->priv->stream_transmitter, candidate, error);
-}
-
-
-/**
- * fs_rtp_stream_remote_candidates_added:
- * @stream: a #FsStream
- *
- * Call this function when the remotes candidates have been set and the
- * checks can start. More candidates can be added afterwards
- */
-
-static void
-fs_rtp_stream_remote_candidates_added (FsStream *stream)
-{
-  FsRtpStream *self = FS_RTP_STREAM (stream);
-
-  fs_stream_transmitter_remote_candidates_added (
-      self->priv->stream_transmitter);
+  return fs_stream_transmitter_set_remote_candidates (
+      self->priv->stream_transmitter, candidates, error);
 }
 
 /**
