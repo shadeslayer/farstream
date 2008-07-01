@@ -82,6 +82,16 @@
  * The list of new recv-codecs is included in the message
  * </para>
  * </refsect2>
+ * <refsect2><title>The "<literal>farsight-component-state-changed</literal>" message</title>
+ * |[
+ * "stream"           #FsStream          The stream that emits the message
+ * "component"        #guint             The component whose state changed
+ * "state"            #FsStreamState     The new state of the component
+ * ]|
+ * <para>
+ * This message is emitted the state of a component of a stream changes.
+ * </para>
+ * </refsect2>
  * <para>
  */
 
