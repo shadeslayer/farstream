@@ -136,13 +136,16 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   GError *error = NULL;
   struct SimpleTestStream *other_st = find_pointback_stream (st->target,
       st->dat);
+  GList *candidates = NULL;
 
   g_debug ("%d:%d: Setting remote candidate for component %d",
       other_st->dat->id,
       other_st->target->id,
       candidate->component_id);
 
-  ret = fs_stream_add_remote_candidate (other_st->stream, candidate, &error);
+  candidates = g_list_prepend (NULL, candidate);
+  ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
+  g_list_free (candidates);
 
   if (error)
     ts_fail ("Error while adding candidate: (%s:%d) %s",

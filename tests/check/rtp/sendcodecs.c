@@ -234,7 +234,7 @@ one_way (GCallback havedata_handler, gpointer data)
   GError *error = NULL;
   gint port = 0;
   GstElement *recv_pipeline;
-  FsCandidate *candidate = NULL;
+  GList *candidates = NULL;
   GstBus *bus = NULL;
 
   loop = g_main_loop_new (NULL, FALSE);
@@ -266,14 +266,12 @@ one_way (GCallback havedata_handler, gpointer data)
 
   g_debug ("port is %d", port);
 
-  candidate = fs_candidate_new ("1", FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
-      FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", port);
-
-  ts_fail_unless (fs_stream_add_remote_candidate (stream, candidate, &error),
+  candidates = g_list_prepend (NULL,
+      fs_candidate_new ("1", FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
+          FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", port));
+  ts_fail_unless (fs_stream_set_remote_candidates (stream, candidates, &error),
       "Could not set remote candidate");
-  fs_stream_remote_candidates_added (stream);
-
-  fs_candidate_destroy (candidate);
+  fs_candidate_list_destroy (candidates);
 
   set_codecs (dat, stream);
 
