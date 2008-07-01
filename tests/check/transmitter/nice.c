@@ -168,6 +168,7 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
   GEnumClass *enumclass = NULL;
   GEnumValue *enumvalue = NULL;
   gchar *prop = NULL;
+  FsStreamState oldstate = 0;
 
   enumclass = g_type_class_ref (FS_TYPE_STREAM_STATE);
   enumvalue = g_enum_get_value (enumclass, state);
@@ -178,6 +179,21 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
   ts_fail_if (state == FS_STREAM_STATE_FAILED,
       "Failed to establish a connection");
 
+  if (component == 1)
+    prop = "last-state-1";
+  else if (component == 2)
+    prop = "last-state-2";
+  else
+    ts_fail ("Invalid component %u, component");
+
+  oldstate = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (st), prop));
+
+  fail_if (state < FS_STREAM_STATE_CONNECTED && state < oldstate,
+      "State went in wrong direction %d -> %d for component %u",
+      oldstate, state, component);
+
+  g_object_set_data (G_OBJECT (st), prop, GINT_TO_POINTER (state));
+
   if (state < FS_STREAM_STATE_CONNECTED)
     return;
 
@@ -185,8 +201,6 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
     prop = "src_setup_1";
   else if (component == 2)
     prop = "src_setup_2";
-  else
-    ts_fail ("Invalid component %u, component");
 
   if (g_object_get_data (G_OBJECT (trans), prop) == NULL)
   {
