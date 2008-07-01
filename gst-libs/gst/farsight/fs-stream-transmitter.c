@@ -271,56 +271,34 @@ fs_stream_transmitter_set_property (GObject *object,
 
 
 /**
- * fs_stream_transmitter_add_remote_candidate
+ * fs_stream_transmitter_set_remote_candidates
  * @streamtransmitter: a #FsStreamTranmitter
- * @candidate: a remote #FsCandidate to add
+ * @candidates: a #GList of the remote candidates
  * @error: location of a #GError, or NULL if no error occured
  *
- * This function is used to add remote candidates to the transmitter
+ * This function is used to set the remote candidates to the transmitter
  *
  * Returns: TRUE of the candidate could be added, FALSE if it couldnt
  *   (and the #GError will be set)
  */
 
 gboolean
-fs_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+fs_stream_transmitter_set_remote_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GList *candidates,
     GError **error)
 {
   FsStreamTransmitterClass *klass =
     FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
-  if (klass->add_remote_candidate) {
-    return klass->add_remote_candidate (streamtransmitter, candidate, error);
+  if (klass->set_remote_candidates) {
+    return klass->set_remote_candidates (streamtransmitter, candidates, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "add_remote_candidate not defined in stream transmitter class");
   }
 
   return FALSE;
-}
-
-
-/**
- * fs_stream_transmitter_remote_candidates_added:
- * @streamtransmitter: a #FsStreamTransmitter
- *
- * Call this function when the remotes candidates have been set and the
- * checks can start. More candidates can be added afterwards
- */
-
-void
-fs_stream_transmitter_remote_candidates_added (
-    FsStreamTransmitter *streamtransmitter)
-{
-  FsStreamTransmitterClass *klass =
-    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
-
-  if (klass->remote_candidates_added) {
-    klass->remote_candidates_added (streamtransmitter);
-  } else {
-    GST_WARNING ("remote_candidates_added not defined in transmitter class");
-  }
 }
 
 /**

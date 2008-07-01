@@ -57,8 +57,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
 /**
  * FsStreamTransmitterClass:
  * @parent_class: Our parent
- * @add_remote_candidate: Sets the remote candidate
- * @remote_candidates_added: Tell the stream to start the connectivity checks
+ * @set_remote_candidate: Sets the remote candidates
  * @select_candidate_pair: Select the candidate pair
  * @gather_local_candidates: Starts the gathering of local candidates
  *
@@ -70,10 +69,8 @@ struct _FsStreamTransmitterClass
   GObjectClass parent_class;
 
   /*virtual functions */
-  gboolean (*add_remote_candidate) (FsStreamTransmitter *streamtransmitter,
-                                    FsCandidate *candidate, GError **error);
-
-  void (*remote_candidates_added) (FsStreamTransmitter *streamtransmitter);
+  gboolean (*set_remote_candidates) (FsStreamTransmitter *streamtransmitter,
+                                     GList *candidates, GError **error);
 
   gboolean (*select_candidate_pair) (FsStreamTransmitter *streamtransmitter,
       const gchar *local_foundation,
@@ -102,12 +99,10 @@ struct _FsStreamTransmitter
 
 GType fs_stream_transmitter_get_type (void);
 
-gboolean fs_stream_transmitter_add_remote_candidate (
+gboolean fs_stream_transmitter_set_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
-    FsCandidate *candidate, GError **error);
-
-void fs_stream_transmitter_remote_candidates_added (
-    FsStreamTransmitter *streamtransmitter);
+    GList *candidates,
+    GError **error);
 
 gboolean fs_stream_transmitter_select_candidate_pair (
     FsStreamTransmitter *streamtransmitter,
