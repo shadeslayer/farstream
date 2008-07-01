@@ -152,8 +152,8 @@ static void fs_multicast_stream_transmitter_set_property (GObject *object,
                                                 const GValue *value,
                                                 GParamSpec *pspec);
 
-static gboolean fs_multicast_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+static gboolean fs_multicast_stream_transmitter_set_remote_candidates (
+    FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error);
 
 
@@ -201,8 +201,8 @@ fs_multicast_stream_transmitter_class_init (FsMulticastStreamTransmitterClass *k
   gobject_class->set_property = fs_multicast_stream_transmitter_set_property;
   gobject_class->get_property = fs_multicast_stream_transmitter_get_property;
 
-  streamtransmitterclass->add_remote_candidate =
-    fs_multicast_stream_transmitter_add_remote_candidate;
+  streamtransmitterclass->set_remote_candidates =
+    fs_multicast_stream_transmitter_set_remote_candidates;
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
@@ -455,63 +455,14 @@ fs_multicast_stream_transmitter_build (FsMulticastStreamTransmitter *self,
   return TRUE;
 }
 
-/**
- * fs_multicast_stream_transmitter_add_remote_candidate
- * @streamtransmitter: a #FsStreamTransmitter
- * @candidate: a remote #FsCandidate to add
- * @error: location of a #GError, or NULL if no error occured
- *
- * This function is used to add remote candidates to the transmitter
- *
- * Returns: TRUE of the candidate could be added, FALSE if it couldnt
- *   (and the #GError will be set)
- */
 
 static gboolean
 fs_multicast_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+    FsMulticastStreamTransmitter *self, FsCandidate *candidate,
     GError **error)
 {
-  FsMulticastStreamTransmitter *self =
-    FS_MULTICAST_STREAM_TRANSMITTER (streamtransmitter);
   UdpSock *newrecvudpsock = NULL;
   UdpSock *newsendudpsock = NULL;
-
-  if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
-      candidate->proto);
-    return FALSE;
-  }
-
-  if (candidate->type != FS_CANDIDATE_TYPE_MULTICAST)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "The remote candidate is not of the right type, it should be"
-        " FS_ERROR_INVALID_ARGUMENTS, but it is %d", candidate->type);
-    return FALSE;
-  }
-
-  if (!candidate->ip || !candidate->port) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "The candidate passed does not contain a valid ip or port");
-    return FALSE;
-  }
-
-  if (candidate->component_id == 0 ||
-    candidate->component_id > self->priv->transmitter->components) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "The candidate passed has an invalid component id %u (not in [1,%u])",
-      candidate->component_id, self->priv->transmitter->components);
-    return FALSE;
-  }
-
-  if (candidate->ttl == 0)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "The TTL for IPv4 multicast candidates must not be 0");
-    return FALSE;
-  }
 
   if (self->priv->remote_candidate[candidate->component_id])
   {
@@ -591,6 +542,70 @@ fs_multicast_stream_transmitter_add_remote_candidate (
   g_signal_emit_by_name (self, "new-active-candidate-pair",
       self->priv->local_candidate[candidate->component_id],
       self->priv->remote_candidate[candidate->component_id]);
+
+  return TRUE;
+}
+
+/**
+ * fs_multicast_stream_transmitter_set_remote_candidates
+ */
+
+static gboolean
+fs_multicast_stream_transmitter_set_remote_candidates (
+    FsStreamTransmitter *streamtransmitter, GList *candidates,
+    GError **error)
+{
+  GList *item = NULL;
+  FsMulticastStreamTransmitter *self =
+    FS_MULTICAST_STREAM_TRANSMITTER (streamtransmitter);
+
+  for (item = candidates; item; item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+
+    if (candidate->proto != FS_NETWORK_PROTOCOL_UDP) {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "You set a candidate of a type %d that is not"
+          " FS_NETWORK_PROTOCOL_UDP",
+          candidate->proto);
+      return FALSE;
+    }
+
+    if (candidate->type != FS_CANDIDATE_TYPE_MULTICAST)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The remote candidate is not of the right type, it should be"
+          " FS_ERROR_INVALID_ARGUMENTS, but it is %d", candidate->type);
+      return FALSE;
+    }
+
+    if (!candidate->ip || !candidate->port) {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The candidate passed does not contain a valid ip or port");
+      return FALSE;
+    }
+
+    if (candidate->component_id == 0 ||
+        candidate->component_id > self->priv->transmitter->components) {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The candidate passed has an invalid component id %u (not in [1,%u])",
+          candidate->component_id, self->priv->transmitter->components);
+      return FALSE;
+    }
+
+    if (candidate->ttl == 0)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The TTL for IPv4 multicast candidates must not be 0");
+      return FALSE;
+    }
+  }
+
+  for (item = candidates; item; item = g_list_next (item))
+    if (!fs_multicast_stream_transmitter_add_remote_candidate (self,
+            item->data, error))
+      return FALSE;
+
 
   return TRUE;
 }
