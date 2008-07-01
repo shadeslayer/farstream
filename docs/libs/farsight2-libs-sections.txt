@@ -21,8 +21,8 @@ FsParticipantPrivate
 FsStream
 FsStreamClass
 FsStreamDirection
-fs_stream_add_remote_candidate
-fs_stream_remote_candidates_added
+FsStreamState
+fs_stream_set_remote_candidates
 fs_stream_select_candidate_pair
 fs_stream_set_remote_codecs
 fs_stream_emit_error
@@ -174,8 +174,7 @@ fs_transmitter_get_type
 <TITLE>FsStreamTransmitter</TITLE>
 FsStreamTransmitter
 FsStreamTransmitterClass
-fs_stream_transmitter_add_remote_candidate
-fs_stream_transmitter_remote_candidates_added
+fs_stream_transmitter_set_remote_candidates
 fs_stream_transmitter_select_candidate_pair
 fs_stream_transmitter_gather_local_candidates
 fs_stream_transmitter_emit_error

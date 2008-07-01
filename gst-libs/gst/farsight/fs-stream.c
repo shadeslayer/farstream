@@ -366,52 +366,33 @@ fs_stream_set_property (GObject *object,
 }
 
 /**
- * fs_stream_add_remote_candidate:
+ * fs_stream_set_remote_candidate:
  * @stream: an #FsStream
- * @candidate: an #FsCandidate struct representing a remote candidate
+ * @candidates: an #GList of #FsCandidate representing the remote candidates
  * @error: location of a #GError, or %NULL if no error occured
  *
- * This function adds the given candidate into the remote candiate list of the
- * stream. It will be used for establishing a connection with the peer. A copy
- * will be made so the user must free the passed candidate using
- * fs_candidate_destroy() when done.
+ * This function sets the list of remote candidates. Any new candidates are
+ * added to the list. The candidates will be used to establish a connection
+ * with the peer. A copy will be made so the user must free the
+ * passed candidate using fs_candidate_destroy() when done.
  *
  * Return value: TRUE if the candidate was valid, FALSE otherwise
  */
 gboolean
-fs_stream_add_remote_candidate (FsStream *stream, FsCandidate *candidate,
-                                GError **error)
+fs_stream_set_remote_candidates (FsStream *stream,
+    GList *candidates,
+    GError **error)
 {
   FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
 
-  if (klass->add_remote_candidate) {
-    return klass->add_remote_candidate (stream, candidate, error);
+  if (klass->set_remote_candidates) {
+    return klass->set_remote_candidates (stream, candidates, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "add_remote_candidate not defined in class");
+      "set_remote_candidate not defined in class");
   }
 
   return FALSE;
-}
-
-/**
- * fs_stream_remote_candidates_added:
- * @stream: a #FsStream
- *
- * Call this function when the remotes candidates have been set and the
- * checks can start. More candidates can be added afterwards
- */
-
-void
-fs_stream_remote_candidates_added (FsStream *stream)
-{
-  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
-
-  if (klass->remote_candidates_added) {
-    klass->remote_candidates_added (stream);
-  } else {
-    GST_WARNING ("remote_candidates_added not defined in class");
-  }
 }
 
 /**

@@ -74,8 +74,7 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
 /**
  * FsStreamClass:
  * @parent_class: Our parent
- * @add_remote_candidate: Adds a remote candidate
- * @remote_candidates_added: Tell the stream to start the connectivity checks
+ * @set_remote_candidates: Set sthe remote candidates
  * @select_candidate_pair: Select the candidate pair
  * @set_remote_codecs: Sets the list of remote codecs
  *
@@ -88,11 +87,9 @@ struct _FsStreamClass
   GObjectClass parent_class;
 
   /*virtual functions */
-  gboolean (*add_remote_candidate) (FsStream *stream,
-                                    FsCandidate *candidate,
-                                    GError **error);
-
-  void (*remote_candidates_added) (FsStream *stream);
+  gboolean (*set_remote_candidates) (FsStream *stream,
+                                     GList *candidates,
+                                     GError **error);
 
   gboolean (*select_candidate_pair) (FsStream *stream,
       const gchar *local_foundation,
@@ -124,11 +121,9 @@ struct _FsStream
 
 GType fs_stream_get_type (void);
 
-gboolean fs_stream_add_remote_candidate (FsStream *stream,
-                                         FsCandidate *candidate,
-                                         GError **error);
-
-void fs_stream_remote_candidates_added (FsStream *stream);
+gboolean fs_stream_set_remote_candidates (FsStream *stream,
+                                          GList *candidates,
+                                          GError **error);
 
 gboolean fs_stream_select_candidate_pair (FsStream *stream,
     const gchar *local_foundation,
