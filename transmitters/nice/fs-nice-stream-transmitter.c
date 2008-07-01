@@ -103,10 +103,6 @@ struct _FsNiceStreamTransmitterPrivate
 
   gboolean gathered;
 
-  gboolean candidates_added;
-
-  GList *candidates_to_set;
-
   NiceGstStream *gststream;
 };
 
@@ -132,11 +128,9 @@ static void fs_nice_stream_transmitter_set_property (GObject *object,
                                                 const GValue *value,
                                                 GParamSpec *pspec);
 
-static gboolean fs_nice_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+static gboolean fs_nice_stream_transmitter_set_remote_candidates (
+    FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error);
-static void fs_nice_stream_transmitter_remote_candidates_added (
-    FsStreamTransmitter *streamtransmitter);
 static gboolean fs_nice_stream_transmitter_select_candidate_pair (
     FsStreamTransmitter *streamtransmitter,
     const gchar *local_foundation,
@@ -217,10 +211,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
   gobject_class->dispose = fs_nice_stream_transmitter_dispose;
   gobject_class->finalize = fs_nice_stream_transmitter_finalize;
 
-  streamtransmitterclass->add_remote_candidate =
-    fs_nice_stream_transmitter_add_remote_candidate;
-  streamtransmitterclass->remote_candidates_added =
-    fs_nice_stream_transmitter_remote_candidates_added;
+  streamtransmitterclass->set_remote_candidates =
+    fs_nice_stream_transmitter_set_remote_candidates;
   streamtransmitterclass->select_candidate_pair =
     fs_nice_stream_transmitter_select_candidate_pair;
   streamtransmitterclass->gather_local_candidates =
@@ -555,102 +547,25 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
   return NULL;
 }
 
-/**
- * fs_nice_stream_transmitter_add_remote_candidate
- * @streamtransmitter: a #FsStreamTransmitter
- * @candidate: a remote #FsCandidate to add
- * @error: location of a #GError, or NULL if no error occured
- *
- * This function is used to add remote candidates to the transmitter
- *
- * Returns: TRUE of the candidate could be added, FALSE if it couldnt
- *   (and the #GError will be set)
- */
 
 static gboolean
-fs_nice_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+fs_nice_stream_transmitter_set_remote_candidates (
+    FsStreamTransmitter *streamtransmitter,
+    GList *candidates,
     GError **error)
 {
   FsNiceStreamTransmitter *self =
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
-  GSList *list = NULL;
-  NiceCandidate *cand = NULL;
-
-  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-  if (!self->priv->candidates_added)
-  {
-    self->priv->candidates_to_set = g_list_append (
-        self->priv->candidates_to_set,
-        fs_candidate_copy (candidate));
-    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    return TRUE;
-  }
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-
-  cand = fs_candidate_to_nice_candidate (self, candidate);
-
-  if (!cand)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid candidate added");
-    goto error;
-  }
-
-  list = g_slist_prepend (NULL, cand);
-
-  nice_agent_set_remote_candidates (self->priv->agent->agent,
-      self->priv->stream_id, candidate->component_id, list);
-
-  g_slist_foreach (list, (GFunc)nice_candidate_free, NULL);
-  g_slist_free (list);
-
-  return TRUE;
-
- error:
-
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-  return FALSE;
-}
-
-
-static void
-fs_nice_stream_transmitter_remote_candidates_added (
-    FsStreamTransmitter *streamtransmitter)
-{
-  FsNiceStreamTransmitter *self =
-    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
-  GList *candidates = NULL, *item;
+  GList  *item;
   GSList *nice_candidates = NULL;
   gint c;
 
-  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-  if (self->priv->candidates_added)
+  if (!candidates)
   {
-    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    GST_LOG ("remote_candidates_added already called, ignoring");
-    return;
+    GST_DEBUG ("NULL candidates passed, lets do an ICE restart");
+    nice_agent_restart (self->priv->agent->agent);
+    return TRUE;
   }
-
-  self->priv->candidates_added = TRUE;
-  candidates = self->priv->candidates_to_set;
-  self->priv->candidates_to_set = NULL;
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-
-  /*
-  if (candidates)
-  {
-    FsCandidate *cand = candidates->data;
-    nice_agent_set_remote_credentials (self->priv->agent->agent,
-        self->priv->stream_id, cand->username, cand->password);
-  }
-  else
-  {
-    GST_DEBUG ("Candidates added called before any candidate set,"
-        " assuming we're in ice-6 with dribble, so every candidate has"
-        " its own password");
-  }
-  */
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
@@ -679,17 +594,15 @@ fs_nice_stream_transmitter_remote_candidates_added (
     nice_candidates = NULL;
   }
 
-  fs_candidate_list_destroy (candidates);
-
-  return;
+  return TRUE;
  error:
-  fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-      FS_ERROR_INVALID_ARGUMENTS,
-      "Invalid remote candidate passed",
-      "Remote candidate passed in previous add_remote_candidate() call invalid");
+
+  g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "Invalid remote candidates passed");
   g_slist_foreach (nice_candidates, (GFunc) nice_candidate_free, NULL);
   g_slist_free (nice_candidates);
-  fs_candidate_list_destroy (candidates);
+
+  return FALSE;
 }
 
 static gboolean
