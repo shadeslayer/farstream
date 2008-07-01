@@ -141,6 +141,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params)
   FsTransmitter *trans;
   FsStreamTransmitter *st;
   FsCandidate *tmpcand = NULL;
+  GList *candidates = NULL;
   GstBus *bus = NULL;
 
   loop = g_main_loop_new (NULL, FALSE);
@@ -182,23 +183,23 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params)
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP,
       "224.0.0.110", 2322);
   tmpcand->ttl = 1;
-  if (!fs_stream_transmitter_add_remote_candidate (st, tmpcand, &error))
-    ts_fail ("Error setting the remote candidate: %p %s", error,
-        error ? error->message : "NO ERROR SET");
-  ts_fail_unless (error == NULL, "Error is not null after successful candidate"
-      " addition");
-  fs_candidate_destroy (tmpcand);
+
+  candidates = g_list_prepend (candidates, tmpcand);
 
   tmpcand = fs_candidate_new ("L2", FS_COMPONENT_RTCP,
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP,
       "224.0.0.110", 2323);
   tmpcand->ttl = 1;
-  if (!fs_stream_transmitter_add_remote_candidate (st, tmpcand, &error))
-    ts_fail ("Error setting the remote candidate: %p %s", error,
+
+  candidates = g_list_prepend (candidates, tmpcand);
+
+  if (!fs_stream_transmitter_set_remote_candidates (st, candidates, &error))
+    ts_fail ("Error setting the remote candidates: %p %s", error,
         error ? error->message : "NO ERROR SET");
   ts_fail_unless (error == NULL, "Error is not null after successful candidate"
       " addition");
-  fs_candidate_destroy (tmpcand);
+
+  fs_candidate_list_destroy (candidates);
 
   g_main_run (loop);
 
