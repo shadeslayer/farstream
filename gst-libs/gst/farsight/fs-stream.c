@@ -65,7 +65,7 @@
  * been established. This is specially useful for ICE where the active
  * candidate pair can change automatically due to network conditions. The user
  * must not modify the candidates and must copy them if he wants to use them
- * outside the callback scope.
+ * outside the callback scope. This message is emitted once per component.
  * </para>
  * </refsect2>
  * <refsect2><title>The "<literal>farsight-recv-codecs-changed</literal>" message</title>
