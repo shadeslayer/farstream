@@ -275,6 +275,7 @@
     '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
     '("unknown-cname" "FS_ERROR_UNKNOWN_CNAME")
     '("no-codecs" "FS_ERROR_NO_CODECS")
+    '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
   )
 )
 
@@ -488,12 +489,12 @@
   (c-name "FsStreamState")
   (gtype-id "FS_TYPE_STREAM_STATE")
   (values
+    '("failed" "FS_STREAM_STATE_FAILED")
     '("disconnected" "FS_STREAM_STATE_DISCONNECTED")
     '("gathering" "FS_STREAM_STATE_GATHERING")
     '("connecting" "FS_STREAM_STATE_CONNECTING")
     '("connected" "FS_STREAM_STATE_CONNECTED")
     '("ready" "FS_STREAM_STATE_READY")
-    '("failed" "FS_STREAM_STATE_FAILED")
   )
 )
 
