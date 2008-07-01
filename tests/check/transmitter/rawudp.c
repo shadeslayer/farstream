@@ -85,6 +85,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gboolean has_stun = GPOINTER_TO_INT (user_data) & FLAG_HAS_STUN;
   gboolean is_local = GPOINTER_TO_INT (user_data) & FLAG_IS_LOCAL;
   GError *error = NULL;
+  GList *item = NULL;
   gboolean ret;
 
   g_debug ("Has local candidate %s:%u of type %d",
@@ -130,7 +131,11 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   g_debug ("New local candidate %s:%d of type %d for component %d",
     candidate->ip, candidate->port, candidate->type, candidate->component_id);
 
-  ret = fs_stream_transmitter_add_remote_candidate (st, candidate, &error);
+  item = g_list_prepend (NULL, candidate);
+
+  ret = fs_stream_transmitter_set_remote_candidates (st, item, &error);
+
+  g_list_free (item);
 
   if (error)
     ts_fail ("Error while adding candidate: (%s:%d) %s",
