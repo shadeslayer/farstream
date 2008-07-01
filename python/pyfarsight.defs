@@ -483,20 +483,14 @@
   (return-type "GType")
 )
 
-(define-method add_remote_candidate
+(define-method set_remote_candidates
   (of-object "FsStream")
-  (c-name "fs_stream_add_remote_candidate")
+  (c-name "fs_stream_set_remote_candidates")
   (return-type "gboolean")
   (parameters
-    '("FsCandidate*" "candidate")
+    '("GList*" "candidates")
     '("GError**" "error")
   )
-)
-
-(define-method remote_candidates_added
-  (of-object "FsStream")
-  (c-name "fs_stream_remote_candidates_added")
-  (return-type "none")
 )
 
 (define-method select_candidate_pair
