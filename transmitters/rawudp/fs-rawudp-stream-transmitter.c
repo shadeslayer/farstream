@@ -147,9 +147,9 @@ static void fs_rawudp_stream_transmitter_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec);
 
-static gboolean fs_rawudp_stream_transmitter_add_remote_candidate (
+static gboolean fs_rawudp_stream_transmitter_set_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
-    FsCandidate *candidate,
+    GList *candidates,
     GError **error);
 static gboolean fs_rawudp_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
@@ -221,8 +221,8 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
   gobject_class->set_property = fs_rawudp_stream_transmitter_set_property;
   gobject_class->get_property = fs_rawudp_stream_transmitter_get_property;
 
-  streamtransmitterclass->add_remote_candidate =
-    fs_rawudp_stream_transmitter_add_remote_candidate;
+  streamtransmitterclass->set_remote_candidates =
+    fs_rawudp_stream_transmitter_set_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
     fs_rawudp_stream_transmitter_gather_local_candidates;
 
@@ -538,59 +538,61 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 }
 
 /**
- * fs_rawudp_stream_transmitter_add_remote_candidate
- * @streamtransmitter: a #FsStreamTransmitter
- * @candidate: a remote #FsCandidate to add
- * @error: location of a #GError, or NULL if no error occured
- *
- * This function is used to add remote candidates to the transmitter
- *
- * Returns: TRUE of the candidate could be added, FALSE if it couldnt
- *   (and the #GError will be set)
+ * fs_rawudp_stream_transmitter_set_remote_candidates
  */
 
 static gboolean
-fs_rawudp_stream_transmitter_add_remote_candidate (
-    FsStreamTransmitter *streamtransmitter, FsCandidate *candidate,
+fs_rawudp_stream_transmitter_set_remote_candidates (
+    FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error)
 {
   FsRawUdpStreamTransmitter *self =
     FS_RAWUDP_STREAM_TRANSMITTER (streamtransmitter);
+  GList *item = NULL;
 
-  if (candidate->proto != FS_NETWORK_PROTOCOL_UDP)
+  for (item = candidates; item; item = g_list_next (item))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
-        candidate->proto);
-    return FALSE;
+    FsCandidate *candidate = item->data;
+
+    if (candidate->proto != FS_NETWORK_PROTOCOL_UDP)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "You set a candidate of a type %d that is not  FS_NETWORK_PROTOCOL_UDP",
+          candidate->proto);
+      return FALSE;
+    }
+
+    if (!candidate->ip || !candidate->port)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The candidate passed does not contain a valid ip or port");
+      return FALSE;
+    }
+
+    if (candidate->component_id == 0 ||
+        candidate->component_id > self->priv->transmitter->components)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The candidate passed has an invalid component id %u (not in [1,%u])",
+          candidate->component_id, self->priv->transmitter->components);
+      return FALSE;
+    }
+
+    /*
+     * IMPROVE ME: We should probably check that the candidate's IP
+     *  has the format x.x.x.x where x is [0,255] using GRegex, etc
+     */
+
   }
 
-  if (!candidate->ip || !candidate->port)
+  for (item = candidates; item; item = g_list_next (item))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "The candidate passed does not contain a valid ip or port");
-    return FALSE;
+    FsCandidate *candidate = item->data;
+    if (!fs_rawudp_component_add_remote_candidate (
+            self->priv->component[candidate->component_id],
+            candidate, error))
+      return FALSE;
   }
-
-  if (candidate->component_id == 0 ||
-      candidate->component_id > self->priv->transmitter->components)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "The candidate passed has an invalid component id %u (not in [1,%u])",
-        candidate->component_id, self->priv->transmitter->components);
-    return FALSE;
-  }
-
-  /*
-   * IMPROVE ME: We should probably check that the candidate's IP
-   *  has the format x.x.x.x where x is [0,255] using GRegex, etc
-   */
-
-
-  if (!fs_rawudp_component_add_remote_candidate (
-          self->priv->component[candidate->component_id],
-          candidate, error))
-    return FALSE;
 
   return TRUE;
 }
