@@ -44,10 +44,6 @@ static void
 _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
 {
-  GError *error = NULL;
-  gboolean ret;
-  FsStreamTransmitter *st2 = FS_STREAM_TRANSMITTER (user_data);
-
   g_debug ("Has local candidate %s:%u of type %d",
     candidate->ip, candidate->port, candidate->type);
 
@@ -64,16 +60,32 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   ts_fail_if (candidate->username == NULL, "Candidate doenst have a username");
   ts_fail_if (candidate->password == NULL, "Candidate doenst have a password");
 
-  g_object_set_data (G_OBJECT (st), "candidates",
-      GUINT_TO_POINTER (1 +
-          GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (st), "candidates"))));
-
   g_debug ("New local candidate %s:%d of type %d for component %d",
     candidate->ip, candidate->port, candidate->type, candidate->component_id);
   g_debug ("username: %s password: %s", candidate->username,
       candidate->password);
 
-  ret = fs_stream_transmitter_add_remote_candidate (st2, candidate, &error);
+  g_object_set_data (G_OBJECT (st), "candidates",
+      g_list_append (g_object_get_data (G_OBJECT (st), "candidates"),
+          fs_candidate_copy (candidate)));
+}
+
+static void
+_local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
+{
+  FsStreamTransmitter *st2 = FS_STREAM_TRANSMITTER (user_data);
+  GList *candidates = g_object_get_data (G_OBJECT (st), "candidates");
+  gboolean ret;
+  GError *error = NULL;
+
+  g_object_set_data (G_OBJECT (st), "candidates", NULL);
+
+  ts_fail_if (g_list_length (candidates) < 2,
+      "We don't have at least 2 candidates");
+
+  g_debug ("Local Candidates Prepared");
+
+  ret = fs_stream_transmitter_set_remote_candidates (st2, candidates, &error);
 
   if (error)
     ts_fail ("Error while adding candidate: (%s:%d) %s",
@@ -81,20 +93,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 
   ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
 
-}
-
-static void
-_local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
-{
-  FsStreamTransmitter *st2 = FS_STREAM_TRANSMITTER (user_data);
-  ts_fail_if (
-      GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (st), "candidates")) < 2,
-      "We don't have at least 2 candidates");
-
-
-  g_debug ("Local Candidates Prepared");
-
-  fs_stream_transmitter_remote_candidates_added (st2);
+  fs_candidate_list_destroy (candidates);
 }
 
 
