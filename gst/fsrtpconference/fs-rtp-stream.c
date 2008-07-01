@@ -141,7 +141,10 @@ static void _transmitter_error (
     gpointer user_data);
 static void _substream_codec_changed (FsRtpSubStream *substream,
     FsRtpStream *stream);
-
+static void _state_changed (FsStreamTransmitter *stream_transmitter,
+    guint component,
+    FsStreamState state,
+    gpointer user_data);
 
 
 static GObjectClass *parent_class = NULL;
@@ -457,6 +460,10 @@ fs_rtp_stream_constructed (GObject *object)
       "known-source-packet-received",
       G_CALLBACK (_known_source_packet_received),
       self);
+  g_signal_connect (self->priv->stream_transmitter,
+      "state-changed",
+      G_CALLBACK (_state_changed),
+      self);
 
   if (!fs_stream_transmitter_gather_local_candidates (
           self->priv->stream_transmitter,
@@ -716,6 +723,33 @@ _known_source_packet_received (FsStreamTransmitter *st,
 {
   g_signal_emit (self, signals[KNOWN_SOURCE_PACKET_RECEIVED], 0,
       component, buffer);
+}
+
+static void
+_state_changed (FsStreamTransmitter *stream_transmitter,
+    guint component,
+    FsStreamState state,
+    gpointer user_data)
+{
+  FsRtpStream *self = FS_RTP_STREAM (user_data);
+  GstElement *conf = NULL;
+
+  g_object_get (self->priv->session, "conference", &conf, NULL);
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-component-state-changed",
+              "stream", FS_TYPE_STREAM, self,
+              "component", G_TYPE_UINT, component,
+              "state", FS_TYPE_STREAM_STATE, state,
+              NULL)));
+
+  gst_object_unref (conf);
+
+  if (component == 1 && state == FS_STREAM_STATE_FAILED)
+    fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONNECTION_FAILED,
+        "Could not establish connection", "Could not establish connection"
+        " on the RTP component");
 }
 
 static void
