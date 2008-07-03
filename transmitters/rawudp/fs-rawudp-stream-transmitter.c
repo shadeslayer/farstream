@@ -588,7 +588,7 @@ fs_rawudp_stream_transmitter_set_remote_candidates (
   for (item = candidates; item; item = g_list_next (item))
   {
     FsCandidate *candidate = item->data;
-    if (!fs_rawudp_component_add_remote_candidate (
+    if (!fs_rawudp_component_set_remote_candidate (
             self->priv->component[candidate->component_id],
             candidate, error))
       return FALSE;

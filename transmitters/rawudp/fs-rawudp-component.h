@@ -102,7 +102,7 @@ fs_rawudp_component_new (
     GError **error);
 
 gboolean
-fs_rawudp_component_add_remote_candidate (FsRawUdpComponent *self,
+fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
     FsCandidate *candidate,
     GError **error);
 
