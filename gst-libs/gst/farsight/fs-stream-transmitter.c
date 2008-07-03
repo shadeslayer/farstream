@@ -358,34 +358,33 @@ fs_stream_transmitter_set_remote_candidates (
 }
 
 /**
- * fs_stream_transmitter_select_candidate_pair:
+ * fs_stream_transmitter_force_remote_candidates:
  * @streamtransmitter: a #FsStreamTransmitter
- * @local_foundation: The foundation of the local candidates to be selected
- * @remote_foundation: The foundation of the remote candidates to be selected
- * @error: location of a #GErrorh, or NULL if no error occured
+ * @remote_candidates: a #GList of #FsCandidate to force
+ * @error: location of a #GError, or NULL if no error occured
  *
- * This function selects one pair of candidates to be selected to start
- * sending media on.
+ * This function forces data to be sent immediately to the selected remote
+ * candidate, by-passing any connectivity checks. There should be at most
+ * one candidate per component.
  *
- * Returns: TRUE if the candidate pair could be selected, FALSE otherwise
+ * Returns: %TRUE if the candidates could be forced, %FALSE otherwise
  */
 
 gboolean
-fs_stream_transmitter_select_candidate_pair (
+fs_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
-    const gchar *local_foundation,
-    const gchar *remote_foundation,
+    GList *remote_candidates,
     GError **error)
 {
   FsStreamTransmitterClass *klass =
     FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
-  if (klass->select_candidate_pair) {
-    return klass->select_candidate_pair (streamtransmitter,
-        local_foundation, remote_foundation, error);
+  if (klass->force_remote_candidates) {
+    return klass->force_remote_candidates (streamtransmitter,
+        remote_candidates, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "select_candidate_pair not defined in stream transmitter class");
+      "force_remote_candidates not defined in stream transmitter class");
   }
 
   return FALSE;
