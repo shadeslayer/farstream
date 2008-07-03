@@ -158,7 +158,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
 
     /**
    * FsStreamTransmitter::new-active-candidate-pair:
-   * @self: #FsStream that emitted the signal
+   * @self: #FsStreamTransmitter that emitted the signal
    * @local_candidate: #FsCandidate of the local candidate being used
    * @remote_candidate: #FsCandidate of the remote candidate being used
    *
@@ -199,7 +199,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
 
  /**
    * FsStreamTransmitter::local-candidates-prepared:
-   * @self: #FsStream that emitted the signal
+   * @self: #FsStreamTransmitter that emitted the signal
    *
    * This signal is emitted when all local candidates have been
    * prepared, an ICE implementation would send its SDP offer or answer.
