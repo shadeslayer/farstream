@@ -103,9 +103,8 @@ static void fs_rtp_stream_constructed (GObject *object);
 static gboolean fs_rtp_stream_set_remote_candidates (FsStream *stream,
                                                      GList *candidates,
                                                      GError **error);
-static gboolean fs_rtp_stream_select_candidate_pair (FsStream *stream,
-    const gchar *local_foundation,
-    const gchar *remote_foundatihon,
+static gboolean fs_rtp_stream_force_remote_candidates (FsStream *stream,
+    GList *remote_candidates,
     GError **error);
 
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
@@ -167,7 +166,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
 
   stream_class->set_remote_candidates = fs_rtp_stream_set_remote_candidates;
   stream_class->set_remote_codecs = fs_rtp_stream_set_remote_codecs;
-  stream_class->select_candidate_pair = fs_rtp_stream_select_candidate_pair;
+  stream_class->force_remote_candidates = fs_rtp_stream_force_remote_candidates;
 
 
   g_type_class_add_private (klass, sizeof (FsRtpStreamPrivate));
@@ -494,28 +493,21 @@ fs_rtp_stream_set_remote_candidates (FsStream *stream, GList *candidates,
 }
 
 /**
- * fs_rtp_stream_select_candidate_pair:
- * @stream: a #FsStream
- * @local_foundation: The foundation of the local candidates to be selected
- * @remote_foundation: The foundation of the remote candidates to be selected
- * @error: location of a #GError, or NULL if no error occured
+ * fs_rtp_stream_force_remote_candidates
  *
- * This function selects one pair of candidates to be selected to start
- * sending media on.
- *
- * Returns: TRUE if the candidate pair could be selected, FALSE otherwise
+ * Implement FsStream -> force_remote_candidates
+ * by calling the same function in the stream transmittrer
  */
 
 static gboolean
-fs_rtp_stream_select_candidate_pair (FsStream *stream,
-    const gchar *local_foundation,
-    const gchar *remote_foundation,
+fs_rtp_stream_force_remote_candidates (FsStream *stream,
+    GList *remote_candidates,
     GError **error)
 {
   FsRtpStream *self = FS_RTP_STREAM (stream);
 
-  return fs_stream_transmitter_select_candidate_pair (
-      self->priv->stream_transmitter, local_foundation, remote_foundation,
+  return fs_stream_transmitter_force_remote_candidates (
+      self->priv->stream_transmitter, remote_candidates,
       error);
 }
 
