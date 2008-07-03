@@ -36,6 +36,8 @@
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-interfaces.h>
 
+#include <gst/netbuffer/gstnetbuffer.h>
+
 #include <string.h>
 #include <sys/types.h>
 
@@ -106,6 +108,7 @@ struct _FsRawUdpComponentPrivate
   /* This is protected by the mutex */
 
   FsCandidate *remote_candidate;
+  GstNetAddress remote_address;
 
   FsCandidate *local_active_candidate;
   FsCandidate *local_forced_candidate;
@@ -648,6 +651,9 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
 {
   FsCandidate *old_candidate = NULL;
   gboolean sending;
+  struct addrinfo hints = {0};
+  struct addrinfo *res = NULL;
+  int rv;
 
   if (candidate->component_id != self->priv->component)
   {
@@ -658,12 +664,36 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
     return FALSE;
   }
 
+  hints.ai_flags = AI_NUMERICHOST;
+  rv = getaddrinfo (candidate->ip, NULL, &hints, &res);
+  if (rv != 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid address passed: %s", gai_strerror (rv));
+    return FALSE;
+  }
+
   FS_RAWUDP_COMPONENT_LOCK (self);
   old_candidate = self->priv->remote_candidate;
   self->priv->remote_candidate = fs_candidate_copy (candidate);
   sending = self->priv->sending;
+
+  switch (res->ai_family)
+  {
+    case AF_INET:
+      gst_netaddress_set_ip4_address (&self->priv->remote_address,
+          ((struct sockaddr_in *)res->ai_addr)->sin_addr.s_addr,
+          g_htons(candidate->port));
+      break;
+    case AF_INET6:
+      gst_netaddress_set_ip6_address (&self->priv->remote_address,
+          ((struct sockaddr_in6 *)res->ai_addr)->sin6_addr.s6_addr,
+          g_htons(candidate->port));
+      break;
+  }
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
+  freeaddrinfo (res);
 
   if (sending)
     fs_rawudp_transmitter_udpport_add_dest (self->priv->udpport,
