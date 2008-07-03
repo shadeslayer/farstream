@@ -406,34 +406,32 @@ fs_stream_set_remote_candidates (FsStream *stream,
 }
 
 /**
- * fs_stream_select_candidate_pair:
+ * fs_stream_force_remote_candidates:
  * @stream: a #FsStream
- * @local_foundation: The foundation of the local candidates to be selected
- * @remote_foundation: The foundation of the remote candidates to be selected
+ * @remote_candidates: a #GList of #FsCandidate to force
  * @error: location of a #GError, or %NULL if no error occured
  *
- * This function selects one pair of candidates to be selected to start
- * sending media on.
+ * This function forces data to be sent immediately to the selected remote
+ * candidate, by-passing any connectivity checks. There should be at most
+ * one candidate per component.
  *
- * Returns: TRUE if the candidate pair could be selected, FALSE otherwise
+ * Returns: %TRUE if the candidates could be forced, %FALSE otherwise
  */
 
 gboolean
-fs_stream_select_candidate_pair (FsStream *stream,
-    const gchar *local_foundation,
-    const gchar *remote_foundation,
+fs_stream_force_remote_candidates (FsStream *stream,
+    GList *remote_candidates,
     GError **error)
 {
   FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
 
-  if (klass->select_candidate_pair) {
-    return klass->select_candidate_pair (stream,
-        local_foundation,
-        remote_foundation,
+  if (klass->force_remote_candidates) {
+    return klass->force_remote_candidates (stream,
+        remote_candidates,
         error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "select_candidate_pair not defined in class");
+      "force_remote_candidates not defined in class");
   }
 
   return FALSE;

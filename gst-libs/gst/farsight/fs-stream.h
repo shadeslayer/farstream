@@ -100,7 +100,7 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
  * FsStreamClass:
  * @parent_class: Our parent
  * @set_remote_candidates: Set sthe remote candidates
- * @select_candidate_pair: Select the candidate pair
+ * @force_remote_candidates: Forces certain remote candidates
  * @set_remote_codecs: Sets the list of remote codecs
  *
  * You must override add_remote_candidate in a subclass.
@@ -116,9 +116,8 @@ struct _FsStreamClass
                                      GList *candidates,
                                      GError **error);
 
-  gboolean (*select_candidate_pair) (FsStream *stream,
-      const gchar *local_foundation,
-      const gchar *remote_foundation,
+  gboolean (*force_remote_candidates) (FsStream *stream,
+      GList *remote_candidates,
       GError **error);
 
   gboolean (*set_remote_codecs) (FsStream *stream,
@@ -150,9 +149,8 @@ gboolean fs_stream_set_remote_candidates (FsStream *stream,
                                           GList *candidates,
                                           GError **error);
 
-gboolean fs_stream_select_candidate_pair (FsStream *stream,
-    const gchar *local_foundation,
-    const gchar *remote_foundation,
+gboolean fs_stream_force_remote_candidates (FsStream *stream,
+    GList *remote_candidates,
     GError **error);
 
 gboolean fs_stream_set_remote_codecs (FsStream *stream,
