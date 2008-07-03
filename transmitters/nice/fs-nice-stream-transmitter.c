@@ -131,10 +131,9 @@ static void fs_nice_stream_transmitter_set_property (GObject *object,
 static gboolean fs_nice_stream_transmitter_set_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error);
-static gboolean fs_nice_stream_transmitter_select_candidate_pair (
+static gboolean fs_nice_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
-    const gchar *local_foundation,
-    const gchar *remote_foundation,
+    GList *remote_candidates,
     GError **error);
 static gboolean fs_nice_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
@@ -213,8 +212,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
 
   streamtransmitterclass->set_remote_candidates =
     fs_nice_stream_transmitter_set_remote_candidates;
-  streamtransmitterclass->select_candidate_pair =
-    fs_nice_stream_transmitter_select_candidate_pair;
+  streamtransmitterclass->force_remote_candidates =
+    fs_nice_stream_transmitter_force_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
     fs_nice_stream_transmitter_gather_local_candidates;
 
@@ -606,16 +605,18 @@ fs_nice_stream_transmitter_set_remote_candidates (
 }
 
 static gboolean
-fs_nice_stream_transmitter_select_candidate_pair (
+fs_nice_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
-    const gchar *local_foundation,
-    const gchar *remote_foundation,
+    GList *remote_candidates,
     GError **error)
 {
   FsNiceStreamTransmitter *self =
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
-  gint c;
+  GList *item = NULL;
   gboolean res = TRUE;
+  gboolean done[self->priv->transmitter->components];
+
+  memset (done, 0, self->priv->transmitter->components * sizeof (gboolean));
 
   if (self->priv->stream_id == 0)
   {
@@ -624,10 +625,46 @@ fs_nice_stream_transmitter_select_candidate_pair (
     return FALSE;
   }
 
-  for (c = 1; c <= self->priv->transmitter->components; c++)
-    if (!nice_agent_set_selected_pair (self->priv->agent->agent,
-            self->priv->stream_id, c, local_foundation, remote_foundation))
-      res = FALSE;
+  /* First lets check that we have valid candidates */
+
+  for (item = remote_candidates; item; item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+
+    if (candidate->component_id < 1 ||
+        candidate->component_id >= self->priv->transmitter->components)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The component on this candidate is wrong");
+      return FALSE;
+    }
+
+    if (candidate->proto != FS_NETWORK_PROTOCOL_UDP)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Only UDP candidates can be set");
+      return FALSE;
+    }
+
+    if (done[candidate->component_id-1])
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "You can set only one candidate per component");
+      return FALSE;
+    }
+  }
+
+  for (item = remote_candidates;
+       item && res;
+       item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+    NiceCandidate *nc = fs_candidate_to_nice_candidate (self, candidate);
+
+    res &= nice_agent_set_selected_remote_candidate (self->priv->agent->agent,
+        self->priv->stream_id, candidate->component_id, nc);
+    nice_candidate_free (nc);
+  }
 
   if (!res)
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
