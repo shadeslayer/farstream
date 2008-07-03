@@ -55,6 +55,7 @@ enum
   NEW_LOCAL_CANDIDATE,
   NEW_ACTIVE_CANDIDATE_PAIR,
   LOCAL_CANDIDATES_PREPARED,
+  KNOWN_SOURCE_PACKET_RECEIVED,
   LAST_SIGNAL
 };
 
@@ -215,7 +216,25 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
-
+ /**
+   * FsStreamTransmitter::known-source-packet-received:
+   * @self: #FsStreamTransmitter that emitted the signal
+   * @component: The Component on which this buffer was received
+   * @buffer: the #GstBuffer coming from the known source
+   *
+   * This signal is emitted when a buffer coming from a confirmed known source
+   * is received.
+   *
+   */
+  signals[KNOWN_SOURCE_PACKET_RECEIVED] = g_signal_new
+    ("known-source-packet-received",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_marshal_VOID__UINT_POINTER,
+      G_TYPE_NONE, 2, G_TYPE_UINT, GST_TYPE_BUFFER);
 
   gobject_class->dispose = fs_stream_transmitter_dispose;
   gobject_class->finalize = fs_stream_transmitter_finalize;
