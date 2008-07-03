@@ -25,8 +25,8 @@ FsStreamClass
 FsStreamDirection
 FsStreamState
 fs_stream_set_remote_candidates
-fs_stream_select_candidate_pair
 fs_stream_set_remote_codecs
+fs_stream_force_remote_candidates
 fs_stream_emit_error
 fs_stream_emit_src_pad_added
 <SUBSECTION Standard>
@@ -178,8 +178,8 @@ fs_transmitter_get_type
 FsStreamTransmitter
 FsStreamTransmitterClass
 fs_stream_transmitter_set_remote_candidates
-fs_stream_transmitter_select_candidate_pair
 fs_stream_transmitter_gather_local_candidates
+fs_stream_transmitter_force_remote_candidates
 fs_stream_transmitter_stop
 fs_stream_transmitter_emit_error
 <SUBSECTION Standard>

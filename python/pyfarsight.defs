@@ -517,14 +517,13 @@
   )
 )
 
-(define-method select_candidate_pair
+(define-method force_remote_candidates
   (of-object "FsStream")
   (unblock-threads t)
-  (c-name "fs_stream_select_candidate_pair")
+  (c-name "fs_stream_force_remote_candidates")
   (return-type "gboolean")
   (parameters
-    '("const-gchar*" "local_foundation")
-    '("const-gchar*" "remote_foundation")
+    '("GList*" "remote_candidates")
     '("GError**" "error")
   )
 )
@@ -656,11 +655,6 @@
 
 (define-function fs_stream_direction_get_type
   (c-name "fs_stream_direction_get_type")
-  (return-type "GType")
-)
-
-(define-function fs_stream_state_get_type
-  (c-name "fs_stream_state_get_type")
   (return-type "GType")
 )
 
