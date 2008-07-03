@@ -84,7 +84,8 @@ GType fs_conference_get_type (void);
  * @FS_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
  * @FS_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function
  * @FS_ERROR_NETWORK: A network related error
- * @FS_ERROR_INTERNAL: An internal error happened in Farsight
+ * @FS_ERROR_INTERNAL: An internal error happened in Farsight, it may be in
+ * an inconsistent state.
  * @FS_ERROR_NOT_IMPLEMENTED: This functionality is not implemented
  * by this plugins
  * @FS_ERROR_NEGOTIATION_FAILED: The codec negotiation has failed
