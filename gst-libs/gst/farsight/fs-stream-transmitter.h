@@ -57,7 +57,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
 /**
  * FsStreamTransmitterClass:
  * @parent_class: Our parent
- * @set_remote_candidate: Sets the remote candidates
+ * @set_remote_candidates: Sets the remote candidates
  * @select_candidate_pair: Select the candidate pair
  * @gather_local_candidates: Starts the gathering of local candidates
  *
