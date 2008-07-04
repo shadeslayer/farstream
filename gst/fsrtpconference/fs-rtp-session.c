@@ -1248,6 +1248,11 @@ fs_rtp_session_constructed (GObject *object)
 }
 
 
+static gboolean
+_remove_stream_from_ht (gpointer key, gpointer value, gpointer user_data)
+{
+  return (value == user_data);
+}
 
 static void
 _remove_stream (gpointer user_data,
@@ -1258,6 +1263,9 @@ _remove_stream (gpointer user_data,
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams =
     g_list_remove_all (self->priv->streams, where_the_object_was);
+
+  g_hash_table_foreach_remove (self->priv->ssrc_streams, _remove_stream_from_ht,
+      where_the_object_was);
   FS_RTP_SESSION_UNLOCK (self);
 }
 
