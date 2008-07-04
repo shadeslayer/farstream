@@ -1675,27 +1675,23 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
  * @self: The #FsRtpSession
  * @stream_ssrc: The stream ssrc
  *
- * Gets the #FsRtpStream from a list of streams or NULL if it doesnt exist
+ * Gets the #FsRtpStream for the SSRC or %NULL if it doesnt exist
  *
- * Return value: A #FsRtpStream (unref after use) or NULL if it doesn't exist
+ * Return value: A #FsRtpStream (unref after use) or %NULL if it doesn't exist
  */
 static FsRtpStream *
 fs_rtp_session_get_stream_by_ssrc (FsRtpSession *self,
     guint32 ssrc)
 {
-  GList *item = NULL;
   FsRtpStream *stream = NULL;
 
   FS_RTP_SESSION_LOCK (self);
 
-  for (item = g_list_first (self->priv->streams);
-       item;
-       item = g_list_next (item))
-    if (fs_rtp_stream_knows_ssrc_locked (item->data, ssrc))
-      break;
+  stream = g_hash_table_lookup (self->priv->ssrc_streams,
+      GUINT_TO_POINTER (ssrc));
 
-  if (item)
-    stream = FS_RTP_STREAM (gst_object_ref (item->data));
+  if (stream)
+    g_object_ref (stream);
 
   FS_RTP_SESSION_UNLOCK (self);
 
@@ -3064,7 +3060,8 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     return;
   }
 
-  fs_rtp_stream_add_known_ssrc (stream, ssrc);
+  g_hash_table_insert (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
+      stream);
 
   for (item = g_list_first (session->priv->free_substreams);
        item;
@@ -3176,21 +3173,11 @@ void
 fs_rtp_session_bye_ssrc (FsRtpSession *session,
     guint32 ssrc)
 {
-  GList *item;
 
   /* First remove it from the known SSRCs */
 
   FS_RTP_SESSION_LOCK (session);
-
-  for (item = g_list_first (session->priv->streams);
-       item;
-       item = g_list_next (item))
-  {
-    FsRtpStream *stream = FS_RTP_STREAM (item->data);
-
-    fs_rtp_stream_remove_known_ssrc (stream, ssrc);
-  }
-
+  g_hash_table_remove (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc));
   FS_RTP_SESSION_UNLOCK (session);
 
   /*
