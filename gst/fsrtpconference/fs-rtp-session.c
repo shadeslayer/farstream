@@ -150,6 +150,10 @@ struct _FsRtpSessionPrivate
 
   GList *extra_sources;
 
+  /* This is a ht of ssrc->streams
+   * It is protected by the session mutex */
+  GHashTable *ssrc_streams;
+
   GError *construction_error;
 
   gboolean disposed;
@@ -334,6 +338,8 @@ fs_rtp_session_init (FsRtpSession *self)
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
 
   self->priv->no_rtcp_timeout = DEFAULT_NO_RTCP_TIMEOUT;
+
+  self->priv->ssrc_streams = g_hash_table_new (g_direct_hash, g_direct_equal);
 }
 
 static gboolean
@@ -571,6 +577,9 @@ fs_rtp_session_finalize (GObject *object)
 
   if (self->priv->requested_send_codec)
     fs_codec_destroy (self->priv->requested_send_codec);
+
+  if (self->priv->ssrc_streams)
+    g_hash_table_destroy (self->priv->ssrc_streams);
 
   parent_class->finalize (object);
 }
