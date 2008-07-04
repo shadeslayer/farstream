@@ -62,6 +62,7 @@ enum
   NEW_LOCAL_CANDIDATE,
   LOCAL_CANDIDATES_PREPARED,
   NEW_ACTIVE_CANDIDATE_PAIR,
+  KNOWN_SOURCE_PACKET_RECEIVED,
   ERROR_SIGNAL,
   LAST_SIGNAL
 };
@@ -117,6 +118,8 @@ struct _FsRawUdpComponentPrivate
   gboolean gathered;
 
   gulong stun_recv_id;
+
+  gulong buffer_recv_id;
 
   GstClockID stun_timeout_id;
   GstClockTime next_stun_timeout;
@@ -177,6 +180,8 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     gpointer user_data);
 static gpointer
 stun_timeout_func (gpointer user_data);
+static gboolean
+buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data);
 
 
 GType
@@ -349,6 +354,25 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
         _fs_rawudp_marshal_VOID__BOXED_BOXED,
         G_TYPE_NONE, 2, FS_TYPE_CANDIDATE, FS_TYPE_CANDIDATE);
 
+ /**
+   * FsRawUdpComponent::known-source-packet-received:
+   * @self: #FsRawUdpComponent that emitted the signal
+   * @component: The ID of this component
+   * @buffer: the #GstBuffer coming from the known source
+   *
+   * This signal is emitted when a buffer coming from a confirmed known source
+   * is received.
+   *
+   */
+  signals[KNOWN_SOURCE_PACKET_RECEIVED] = g_signal_new
+    ("known-source-packet-received",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_rawudp_marshal_VOID__UINT_POINTER,
+      G_TYPE_NONE, 2, G_TYPE_UINT, GST_TYPE_BUFFER);
 
   /**
    * FsRawUdpComponent::error:
@@ -423,6 +447,11 @@ fs_rawudp_constructed (GObject *object)
     return;
   }
 
+  self->priv->buffer_recv_id =
+    fs_rawudp_transmitter_udpport_connect_recv (
+        self->priv->udpport,
+        G_CALLBACK (buffer_recv_cb), self);
+
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
@@ -451,6 +480,15 @@ fs_rawudp_component_dispose (GObject *object)
   }
 
   FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+
+  if (self->priv->buffer_recv_id)
+  {
+    fs_rawudp_transmitter_udpport_disconnect_recv (
+        self->priv->udpport,
+        self->priv->buffer_recv_id);
+    self->priv->buffer_recv_id = 0;
+  }
 
   if (self->priv->remote_candidate &&
       self->priv->udpport &&
@@ -1101,4 +1139,26 @@ fs_rawudp_component_emit_candidate (FsRawUdpComponent *self,
     g_signal_emit (self, signals[LOCAL_CANDIDATES_PREPARED], 0);
 
     fs_rawudp_component_maybe_new_active_candidate_pair (self);
+}
+
+/*
+ * This is a has "have-data" signal handler, so we return %TRUE to not
+ * drop the buffer
+ */
+static gboolean
+buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data)
+{
+  FsRawUdpComponent *self = FS_RAWUDP_COMPONENT (user_data);
+
+  if (GST_IS_NETBUFFER (buffer))
+  {
+    GstNetBuffer *netbuffer = (GstNetBuffer*) buffer;
+
+    if (gst_netaddress_equal (&self->priv->remote_address,
+            &netbuffer->from))
+      g_signal_emit (self, KNOWN_SOURCE_PACKET_RECEIVED, 0,
+          self->priv->component, buffer);
+  }
+
+  return TRUE;
 }
