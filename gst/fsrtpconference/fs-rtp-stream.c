@@ -76,8 +76,6 @@ struct _FsRtpStreamPrivate
 
   GError *construction_error;
 
-  GList *known_ssrcs;
-
   gboolean disposed;
 };
 
@@ -217,7 +215,6 @@ fs_rtp_stream_init (FsRtpStream *self)
   self->priv->session = NULL;
   self->priv->participant = NULL;
   self->priv->stream_transmitter = NULL;
-  self->priv->known_ssrcs = NULL;
 
   self->priv->direction = FS_DIRECTION_NONE;
 }
@@ -278,9 +275,6 @@ fs_rtp_stream_finalize (GObject *object)
 
   if (self->priv->negotiated_codecs)
     fs_codec_list_destroy (self->priv->negotiated_codecs);
-
-  if (self->priv->known_ssrcs)
-    g_list_free (self->priv->known_ssrcs);
 
   parent_class->finalize (object);
 }
@@ -750,24 +744,6 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
   return ret;
 }
 
-gboolean
-fs_rtp_stream_knows_ssrc_locked (FsRtpStream *stream, guint32 ssrc)
-{
-  GList *elem;
-
-  for (elem = g_list_first (stream->priv->known_ssrcs);
-       elem;
-       elem = g_list_next (elem))
-  {
-    guint32 tmp_ssrc = GPOINTER_TO_UINT (elem->data);
-    if (tmp_ssrc == ssrc)
-      return TRUE;
-  }
-
-  return FALSE;
-}
-
-
 /**
  *  _substream_codec_changed
  * @substream: The #FsRtpSubStream that may have a new receive codec
@@ -846,45 +822,6 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
   fs_codec_list_destroy (codeclist);
 }
-
-/**
- * fs_rtp_stream_add_known_ssrc:
- * @stream: a #FsRtpStream
- * @ssrc: the SSRC to add
- *
- * Adds a SSRC to the list of known SSRCs for this stream
- */
-
-void
-fs_rtp_stream_add_known_ssrc (FsRtpStream *stream,
-    guint32 ssrc)
-{
-  FS_RTP_SESSION_LOCK (stream->priv->session);
-  if (!fs_rtp_stream_knows_ssrc_locked (stream, ssrc))
-  {
-    stream->priv->known_ssrcs = g_list_prepend (stream->priv->known_ssrcs,
-        GUINT_TO_POINTER (ssrc));
-  }
-  FS_RTP_SESSION_UNLOCK (stream->priv->session);
-}
-
-/**
- * fs_rtp_stream_remove_known_ssrc:
- * @stream: a #FsRtpStream
- * @ssrc: the SSRC to remove
- *
- * Removes the ssrc from the list of known ssrcs
- */
-void
-fs_rtp_stream_remove_known_ssrc (FsRtpStream *stream,
-    guint32 ssrc)
-{
-  FS_RTP_SESSION_LOCK (stream->priv->session);
-  stream->priv->known_ssrcs = g_list_remove_all (stream->priv->known_ssrcs,
-      GUINT_TO_POINTER (ssrc));
-  FS_RTP_SESSION_UNLOCK (stream->priv->session);
-}
-
 
 static gboolean
 fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
