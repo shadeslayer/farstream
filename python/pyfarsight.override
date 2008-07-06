@@ -144,11 +144,14 @@ modulename farsight
 ignore-glob
         *_get_type
         fs_*_list_copy
-        fs_*_list_destroy
+        fs_*_destroy
+	fs_*_from_keyfile
+	fs_codec_*_optional_parameter
 %%
 ignore
         fs_error_quark
         fs_candidate_get_by_id
+	fs_codec_list_are_equal
 %%
 import gobject.GObject as PyGObject_Type
 import gst.Pad as PyGstPad_Type
