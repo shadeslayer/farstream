@@ -1850,6 +1850,8 @@ fs_rtp_session_distribute_recv_codecs (FsRtpSession *session,
  * @session: a #FsRtpSession
  * @stream: The #FsRtpStream to which the new remote codecs belong
  * @remote_codecs: The #GList of remote codecs to use for that stream
+ * @has_remotes: Set to %TRUE if at least one stream has remote codecs
+ *  set to %FALSE otherwise
  *
  * Negotiates the codecs using the current (stored) codecs
  * and the remote codecs from each stream.
