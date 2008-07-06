@@ -37,7 +37,7 @@ videosource.get_pad ("src").link(session.get_property ("sink-pad"))
 funnel = False
 def _src_pad_added (stream, pad, codec, pipeline):
     global funnel
-    print "src pad added for stream %s %s" % (stream.get_property("participant").get_property("cname"), codec.to_string())
+    print "src pad %s added for stream %s %s" % (pad.get_name(), stream.get_property("participant").get_property("cname"), codec.to_string())
     if not funnel:
         funnel = gst.element_factory_make("fsfunnel")
         videosink = gst.element_factory_make ("xvimagesink")
