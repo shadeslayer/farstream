@@ -13,8 +13,9 @@ session = conference.new_session (farsight.MEDIA_TYPE_VIDEO)
 participant = conference.new_participant (sys.argv[2]+"@1.2.3.4")
 stream = session.new_stream (participant, farsight.DIRECTION_BOTH, "multicast")
 
-stream.set_remote_codecs(session.get_property("local-codecs"))
-
+stream.set_remote_codecs([farsight.Codec(96, "H263-1998",
+                                         farsight.MEDIA_TYPE_VIDEO,
+                                         90000)])
 candidate = farsight.Candidate()
 candidate.ip = "224.0.0.110"
 candidate.port = 3442
