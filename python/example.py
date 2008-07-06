@@ -1,3 +1,5 @@
+import pygst
+pygst.require('0.10')
 import farsight, gst, gobject, sys
 
 loop = gobject.MainLoop()
