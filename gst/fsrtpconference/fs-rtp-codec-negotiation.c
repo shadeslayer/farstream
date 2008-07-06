@@ -626,7 +626,8 @@ negotiate_stream_codecs (
 
         if (nego_codec)
         {
-          nego_codec->id = old_ca->codec->id;
+          if (use_local_ids)
+            nego_codec->id = old_ca->codec->id;
           break;
         }
       }
