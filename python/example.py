@@ -23,11 +23,11 @@ candidate.component_id = farsight.COMPONENT_RTP
 candidate.proto = farsight.NETWORK_PROTOCOL_UDP
 candidate.type = farsight.CANDIDATE_TYPE_MULTICAST
 candidate.ttl = 1
-stream.add_remote_candidate (candidate)
+stream.set_remote_candidates ([candidate])
 
 candidate.port = 3443
 candidate.component_id = farsight.COMPONENT_RTCP
-stream.add_remote_candidate (candidate)
+stream.set_remote_candidates ([candidate])
 
 videosource = gst.element_factory_make ("videotestsrc")
 videosource.set_property("is-live", True)
