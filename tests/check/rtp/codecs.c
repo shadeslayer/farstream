@@ -243,6 +243,38 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
       " have not changed");
 
   fs_codec_list_destroy (codecs);
+  codecs = NULL;
+
+  codecs = g_list_append (codecs,
+      fs_codec_new (
+          118,
+          "PCMU",
+          FS_MEDIA_TYPE_AUDIO,
+          8000));
+
+  fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
+      "Could not set remote PCMU codec with Pt 118");
+
+  fail_unless (has_negotiated == TRUE,
+      "Did not receive the notify::codecs signal");
+
+  g_object_get (dat->session, "codecs", &codecs2, NULL);
+  fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
+  fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
+      "Negotiated codec does not match remote codec");
+  fs_codec_list_destroy (codecs2);
+
+  has_negotiated = FALSE;
+
+  fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
+      "Could not re-set remote PCMU codec");
+
+  fail_if (has_negotiated == TRUE,
+      "We received the notify::codecs signal even though codecs"
+      " have not changed");
+
+  fs_codec_list_destroy (codecs);
+  codecs = NULL;
 
   cleanup_simple_conference (dat);
 }
@@ -369,8 +401,8 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
     if (codec->id == id)
       break;
   }
-  fail_if (item, "Found codec with payload type %u, even though it should have"
-      " been disabled", id);
+  fail_if (item == NULL, "Codec preference was not overriden by remote codecs,"
+      " could not find codec with id %d", id);
   fs_codec_list_destroy (codecs);
 
 
@@ -384,8 +416,8 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
     if (codec->id == id)
       break;
   }
-  fail_if (item, "Found codec with payload type %u, even though it should have"
-      " been disabled", id);
+  fail_if (item == NULL, "Codec preference was not overriden by remote codecs,"
+     " could not find codec with id %d", id);
   fs_codec_list_destroy (codecs);
 
   fs_codec_list_destroy (codec_prefs);
