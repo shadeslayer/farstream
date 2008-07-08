@@ -655,7 +655,7 @@ _wrap_fs_candidate_tp_getattr(PyObject *self, char *attr)
   else if (!strcmp (attr, "type"))
     return pyg_enum_from_gtype(FS_TYPE_CANDIDATE_TYPE, candidate->type);
   else
-    return Py_FindMethod((PyMethodDef*)_PyFsCodec_methods, self, attr);
+    return Py_FindMethod((PyMethodDef*)_PyFsCandidate_methods, self, attr);
 
 #undef CHECK_NULL
 }
