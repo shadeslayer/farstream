@@ -3,7 +3,7 @@ pygst.require('0.10')
 import farsight, gst, gobject, sys
 
 loop = gobject.MainLoop()
-pipeline = gst.Pipeline ()
+pipeline = gst.Pipeline()
 
 conference = gst.element_factory_make ("fsrtpconference")
 conference.set_property ("sdes-cname", sys.argv[1] + "@1.2.3.4")
@@ -23,14 +23,13 @@ candidate.component_id = farsight.COMPONENT_RTP
 candidate.proto = farsight.NETWORK_PROTOCOL_UDP
 candidate.type = farsight.CANDIDATE_TYPE_MULTICAST
 candidate.ttl = 1
-stream.set_remote_candidates ([candidate])
 
-candidate.port = 3443
-candidate.component_id = farsight.COMPONENT_RTCP
-stream.set_remote_candidates ([candidate])
+candidate2 = candidate.copy()
+candidate2.port = 3443
+candidate2.component_id = farsight.COMPONENT_RTCP
+stream.set_remote_candidates ([candidate, candidate2])
 
-videosource = gst.element_factory_make ("videotestsrc")
-videosource.set_property("is-live", True)
+videosource = gst.parse_bin_from_description (sys.argv[3] + " ! videoscale", True)
 pipeline.add (videosource)
 videosource.get_pad ("src").link(session.get_property ("sink-pad"))
 
@@ -50,9 +49,5 @@ def _src_pad_added (stream, pad, codec, pipeline):
 
 stream.connect ("src-pad-added", _src_pad_added, pipeline)
 
-def startme(p):
-    p.set_state(gst.STATE_PLAYING)
-gobject.idle_add (startme, pipeline)
-
-
+pipeline.set_state(gst.STATE_PLAYING)
 loop.run()
