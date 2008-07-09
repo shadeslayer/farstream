@@ -451,6 +451,7 @@ class FsUIStream:
         self.newcodecs = []
         self.send_codecs = False
         self.last_codecs = []
+        self.candidates = []
 
     def local_candidates_prepared(self):
         "Callback from FsStream"
@@ -467,10 +468,11 @@ class FsUIStream:
 
     def candidate(self, candidate):
         "Callback for the network object."
-        self.fsstream.add_remote_candidate(candidate)
+        self.candidates.append(candidate)
     def candidates_done(self):
         "Callback for the network object."
-        self.fsstream.remote_candidates_added()
+        self.fsstream.set_remote_candidates(self.candidates)
+        self.candidates = []
     def codec(self, codec):
         "Callback for the network object. Stores the codec"
         
