@@ -234,7 +234,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       NULL,
       NULL,
       _fs_marshal_VOID__UINT_POINTER,
-      G_TYPE_NONE, 2, G_TYPE_UINT, GST_TYPE_BUFFER);
+      G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
 
   gobject_class->dispose = fs_stream_transmitter_dispose;
   gobject_class->finalize = fs_stream_transmitter_finalize;

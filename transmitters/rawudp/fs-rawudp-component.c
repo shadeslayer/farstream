@@ -372,7 +372,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       NULL,
       NULL,
       _fs_rawudp_marshal_VOID__UINT_POINTER,
-      G_TYPE_NONE, 2, G_TYPE_UINT, GST_TYPE_BUFFER);
+      G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
 
   /**
    * FsRawUdpComponent::error:
@@ -1156,7 +1156,7 @@ buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data)
 
     if (gst_netaddress_equal (&self->priv->remote_address,
             &netbuffer->from))
-      g_signal_emit (self, KNOWN_SOURCE_PACKET_RECEIVED, 0,
+      g_signal_emit (self, signals[KNOWN_SOURCE_PACKET_RECEIVED], 0,
           self->priv->component, buffer);
   }
 
