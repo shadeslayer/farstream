@@ -35,6 +35,7 @@ gint candidates[2] = {0, 0};
 GstElement *pipeline = NULL;
 gboolean src_setup[2] = {FALSE, FALSE};
 volatile gint running = TRUE;
+guint received_known[2] = {0, 0};
 
 enum {
   FLAG_HAS_STUN = 1 << 0,
@@ -231,9 +232,28 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count[0] == 20 && buffer_count[1] == 20) {
     /* TEST OVER */
+    ts_fail_unless (buffer_count[0] == received_known[0] &&
+        buffer_count[1] == received_known[1], "Some known buffers from known"
+        " sources have not been reported (%d != %u || %d != %u)",
+        buffer_count[0], received_known[0],
+        buffer_count[1], received_known[1]);
+
     g_atomic_int_set(&running, FALSE);
     g_main_loop_quit (loop);
   }
+}
+
+static void
+_known_source_packet_received (FsStreamTransmitter *st, guint component_id,
+    GstBuffer *buffer, gpointer user_data)
+{
+  ts_fail_unless (component_id == 1 || component_id == 2,
+      "Invalid component id %u", component_id);
+
+  ts_fail_unless (GST_IS_BUFFER (buffer), "Invalid buffer received at %p",
+      buffer);
+
+  received_known[component_id - 1]++;
 }
 
 static gboolean
@@ -302,6 +322,9 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
+  ts_fail_unless (g_signal_connect (st, "known-source-packet-received",
+      G_CALLBACK (_known_source_packet_received), NULL),
+    "Could not connect known-source-packet-received signal");
 
   ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
@@ -309,8 +332,10 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   if (!fs_stream_transmitter_gather_local_candidates (st, &error))
   {
     if (error)
-      ts_fail ("Could not start gathering local candidates %s",
-          error->message);
+    {
+      ts_fail ("Could not start gathering local candidates (%s:%d) %s",
+          g_quark_to_string (error->domain), error->code, error->message);
+    }
     else
       ts_fail ("Could not start gathering candidates"
           " (without a specified error)");
