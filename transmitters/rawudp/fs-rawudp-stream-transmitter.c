@@ -173,7 +173,9 @@ _component_new_active_candidate_pair (FsRawUdpComponent *component,
 static void
 _component_error (FsRawUdpComponent *component,
     FsError error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data);
-
+static void
+_component_known_source_packet_received (FsRawUdpComponent *component,
+    guint component_id, GstBuffer *buffer, gpointer user_data);
 
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
@@ -494,6 +496,8 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         G_CALLBACK (_component_new_active_candidate_pair), self);
     g_signal_connect (self->priv->component[c], "error",
         G_CALLBACK (_component_error), self);
+    g_signal_connect (self->priv->component[c], "known-source-packet-received",
+        G_CALLBACK (_component_known_source_packet_received), self);
 
     /* If we dont get the requested port and it wasnt a forced port,
      * then we rewind up to the last forced port and jump to the next
@@ -724,3 +728,12 @@ _component_error (FsRawUdpComponent *component,
       error_msg, debug_msg);
 }
 
+static void
+_component_known_source_packet_received (FsRawUdpComponent *component,
+    guint component_id, GstBuffer *buffer, gpointer user_data)
+{
+  FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
+
+  g_signal_emit_by_name (self, "known-source-packet-received", component_id,
+      buffer);
+}
