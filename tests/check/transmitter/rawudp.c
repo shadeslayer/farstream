@@ -425,6 +425,11 @@ _bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
   return TRUE;
 }
 
+/*
+ * This test checks that starting a stream, getting it to playing
+ * then stopping it works
+ */
+
 GST_START_TEST (test_rawudptransmitter_stop_stream)
 {
   GError *error = NULL;
