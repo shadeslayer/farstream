@@ -360,10 +360,10 @@ fs_interfaces_get_ip_for_interface (gchar *interface_name)
 
 static gboolean started_wsa_engine = FALSE;
 
-/**
+/*
  * private function that initializes the WinSock engine and
  *  returns a prebuilt socket
- **/
+ */
 SOCKET fs_interfaces_get_WSA_socket ()
 {
   WORD wVersionRequested;
@@ -480,7 +480,7 @@ GList * fs_interfaces_get_local_ips (gboolean include_loopback)
   return ret;
 }
 
-/**
+/*
  * returns ip address as an utf8 string
  */
 static gchar *
