@@ -555,7 +555,7 @@ _bind_port (
     retval = getaddrinfo (ip, NULL, &hints, &result);
     if (retval != 0)
     {
-      g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Invalid IP address %s passed: %s", ip, gai_strerror (retval));
       return -1;
     }
