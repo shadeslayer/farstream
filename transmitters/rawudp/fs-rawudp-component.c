@@ -1159,6 +1159,10 @@ buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data)
       g_signal_emit (self, signals[KNOWN_SOURCE_PACKET_RECEIVED], 0,
           self->priv->component, buffer);
   }
+  else
+  {
+    GST_WARNING ("received buffer thats not a NetBuffer");
+  }
 
   return TRUE;
 }
