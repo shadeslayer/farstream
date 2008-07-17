@@ -147,6 +147,9 @@ static void fs_rawudp_stream_transmitter_set_property (GObject *object,
     const GValue *value,
     GParamSpec *pspec);
 
+static void
+fs_rawudp_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter);
+
 static gboolean fs_rawudp_stream_transmitter_set_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
     GList *candidates,
@@ -227,6 +230,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
     fs_rawudp_stream_transmitter_set_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
     fs_rawudp_stream_transmitter_gather_local_candidates;
+  streamtransmitterclass->stop = fs_rawudp_stream_transmitter_stop;
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
@@ -541,6 +545,25 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   return FALSE;
 }
 
+
+static void
+fs_rawudp_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
+{
+  FsRawUdpStreamTransmitter *self =
+    FS_RAWUDP_STREAM_TRANSMITTER (streamtransmitter);
+  gint c;
+
+  if (self->priv->component)
+  {
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      if (self->priv->component[c])
+        fs_rawudp_component_stop (self->priv->component[c]);
+    }
+  }
+}
+
+
 /**
  * fs_rawudp_stream_transmitter_set_remote_candidates
  */
@@ -737,3 +760,4 @@ _component_known_source_packet_received (FsRawUdpComponent *component,
   g_signal_emit_by_name (self, "known-source-packet-received", component_id,
       buffer);
 }
+

@@ -465,11 +465,31 @@ fs_rawudp_component_dispose (GObject *object)
     /* If dispose did already run, return. */
     return;
 
-  FS_RAWUDP_COMPONENT_LOCK (self);
+  if (self->priv->udpport)
+  {
+    GST_ERROR ("You must call fs_stream_transmitter_stop() before dropping"
+        " the last reference to a stream transmitter");
+    fs_rawudp_component_stop (self);
+  }
 
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
+  FS_RAWUDP_COMPONENT_LOCK (self);
+  ts = self->priv->transmitter;
+  self->priv->transmitter = NULL;
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+  g_object_unref (ts);
+
+  parent_class->dispose (object);
+}
+
+void
+fs_rawudp_component_stop (FsRawUdpComponent *self)
+{
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
   if (self->priv->stun_timeout_thread != NULL)
   {
     FS_RAWUDP_COMPONENT_UNLOCK (self);
@@ -478,7 +498,6 @@ fs_rawudp_component_dispose (GObject *object)
 
     self->priv->stun_timeout_thread = NULL;
   }
-
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
 
@@ -503,15 +522,8 @@ fs_rawudp_component_dispose (GObject *object)
 
   FS_RAWUDP_COMPONENT_LOCK (self);
   self->priv->udpport = NULL;
-  ts = self->priv->transmitter;
-  self->priv->transmitter = NULL;
   FS_RAWUDP_COMPONENT_UNLOCK (self);
-
-  g_object_unref (ts);
-
-  parent_class->dispose (object);
 }
-
 
 static void
 fs_rawudp_component_finalize (GObject *object)

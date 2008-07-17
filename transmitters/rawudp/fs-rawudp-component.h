@@ -113,6 +113,9 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error);
 
+void
+fs_rawudp_component_stop (FsRawUdpComponent *self);
+
 G_END_DECLS
 
 #endif /* __FS_RAWUDP_COMPONENT_H__ */
