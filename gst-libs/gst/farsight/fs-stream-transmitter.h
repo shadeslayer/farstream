@@ -60,6 +60,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
  * @set_remote_candidates: Sets the remote candidates
  * @select_candidate_pair: Select the candidate pair
  * @gather_local_candidates: Starts the gathering of local candidates
+ * @stop: Stop the stream transmitter synchronously
  *
  * You must override the add_remote_candidate in a subclass
  */
@@ -78,6 +79,7 @@ struct _FsStreamTransmitterClass
       GError **error);
   gboolean (*gather_local_candidates) (FsStreamTransmitter *streamtransmitter,
                                        GError **error);
+  void (*stop) (FsStreamTransmitter *streamtransmitter);
 
   /*< private >*/
   gpointer _padding[8];
@@ -115,9 +117,10 @@ fs_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
     GError **error);
 
+void fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter);
+
 void fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
   gint error_no, gchar *error_msg, gchar *debug_msg);
-
 
 G_END_DECLS
 

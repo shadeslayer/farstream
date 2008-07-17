@@ -177,6 +177,7 @@ FsStreamTransmitterClass
 fs_stream_transmitter_set_remote_candidates
 fs_stream_transmitter_select_candidate_pair
 fs_stream_transmitter_gather_local_candidates
+fs_stream_transmitter_stop
 fs_stream_transmitter_emit_error
 <SUBSECTION Standard>
 FS_IS_STREAM_TRANSMITTER

@@ -381,6 +381,26 @@ fs_stream_transmitter_gather_local_candidates (
 }
 
 
+
+/**
+ * fs_stream_transmitter_stop:
+ * @streamtransmitter: a #FsStreamTransmitter
+ *
+ * This functions stops the #FsStreamTransmitter, it must be called before
+ * the last reference is dropped.
+ */
+
+void
+fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
+{
+  FsStreamTransmitterClass *klass =
+    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+
+  if (klass->stop)
+    return klass->stop (streamtransmitter);
+}
+
+
 /**
  * fs_stream_transmitter_emit_error:
  * @streamtransmitter: #FsStreamTransmitter on which to emit the error signal
