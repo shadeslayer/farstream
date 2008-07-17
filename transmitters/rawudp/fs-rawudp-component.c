@@ -91,7 +91,6 @@ struct _FsRawUdpComponentPrivate
 
   GError *construction_error;
 
-  UdpPort *udpport;
   FsRawUdpTransmitter *transmitter;
 
   gchar *ip;
@@ -106,7 +105,9 @@ struct _FsRawUdpComponentPrivate
   gchar stun_cookie[16];
 
   /* Above this line, its all set at construction time */
-  /* This is protected by the mutex */
+  /* Below, they are protected by the mutex */
+
+  UdpPort *udpport;
 
   FsCandidate *remote_candidate;
   GstNetAddress remote_address;
@@ -492,6 +493,7 @@ fs_rawudp_component_dispose (GObject *object)
 void
 fs_rawudp_component_stop (FsRawUdpComponent *self)
 {
+  UdpPort *udpport = NULL;
 
   FS_RAWUDP_COMPONENT_LOCK (self);
   if (self->priv->stun_timeout_thread != NULL)
@@ -503,31 +505,29 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
 
     self->priv->stun_timeout_thread = NULL;
   }
+
+  udpport = self->priv->udpport;
+  self->priv->udpport = NULL;
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
-
-  if (self->priv->buffer_recv_id)
+  if (udpport)
   {
-    fs_rawudp_transmitter_udpport_disconnect_recv (
-        self->priv->udpport,
-        self->priv->buffer_recv_id);
-    self->priv->buffer_recv_id = 0;
-  }
+    if (self->priv->buffer_recv_id)
+    {
+      fs_rawudp_transmitter_udpport_disconnect_recv (
+          udpport,
+          self->priv->buffer_recv_id);
+      self->priv->buffer_recv_id = 0;
+    }
 
-  if (self->priv->remote_candidate &&
-      self->priv->udpport &&
-      self->priv->sending)
-      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
+    if (self->priv->remote_candidate &&
+        self->priv->sending)
+      fs_rawudp_transmitter_udpport_remove_dest (udpport,
           self->priv->remote_candidate->ip,
           self->priv->remote_candidate->port);
 
-  if (self->priv->udpport)
-    fs_rawudp_transmitter_put_udpport (self->priv->transmitter,
-        self->priv->udpport);
-
-  FS_RAWUDP_COMPONENT_LOCK (self);
-  self->priv->udpport = NULL;
-  FS_RAWUDP_COMPONENT_UNLOCK (self);
+    fs_rawudp_transmitter_put_udpport (self->priv->transmitter, udpport);
+  }
 }
 
 static void
@@ -599,6 +599,10 @@ fs_rawudp_component_set_property (GObject *object,
       {
         gboolean sending, old_sending;
         FsCandidate *candidate = NULL;
+
+        g_return_if_fail (self->priv->udpport);
+
+
         FS_RAWUDP_COMPONENT_LOCK (self);
         old_sending = self->priv->sending;
         sending = self->priv->sending = g_value_get_boolean (value);
@@ -729,6 +733,15 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
   }
 
   FS_RAWUDP_COMPONENT_LOCK (self);
+
+  if (!self->priv->udpport)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Can't call set_remote_candidate after the thread has been stopped");
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    return FALSE;
+  }
+
   old_candidate = self->priv->remote_candidate;
   self->priv->remote_candidate = fs_candidate_copy (candidate);
   sending = self->priv->sending;
