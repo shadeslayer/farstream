@@ -231,12 +231,12 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count[0] == 20 && buffer_count[1] == 20) {
     /* TEST OVER */
-    ts_fail_unless (buffer_count[0] == received_known[0] &&
-        buffer_count[1] == received_known[1], "Some known buffers from known"
-        " sources have not been reported (%d != %u || %d != %u)",
-        buffer_count[0], received_known[0],
-        buffer_count[1], received_known[1]);
-
+    if (has_stun)
+      ts_fail_unless (buffer_count[0] == received_known[0] &&
+          buffer_count[1] == received_known[1], "Some known buffers from known"
+          " sources have not been reported (%d != %u || %d != %u)",
+          buffer_count[0], received_known[0],
+          buffer_count[1], received_known[1]);
     g_atomic_int_set(&running, FALSE);
     g_main_loop_quit (loop);
   }
