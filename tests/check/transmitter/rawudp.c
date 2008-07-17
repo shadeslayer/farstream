@@ -36,6 +36,8 @@ GstElement *pipeline = NULL;
 gboolean src_setup[2] = {FALSE, FALSE};
 volatile gint running = TRUE;
 guint received_known[2] = {0, 0};
+gboolean has_stun = FALSE;
+
 
 enum {
   FLAG_HAS_STUN = 1 << 0,
@@ -107,7 +109,6 @@ static void
 _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
 {
-  gboolean has_stun = GPOINTER_TO_INT (user_data) & FLAG_HAS_STUN;
   gboolean is_local = GPOINTER_TO_INT (user_data) & FLAG_IS_LOCAL;
   GError *error = NULL;
   GList *item = NULL;
@@ -130,7 +131,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
       candidate->ip, candidate->port, candidate->type, candidate->component_id);
   else {
     ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
-      "Does not have stun, but candidate is not host");
+        "Does not have stun, but candidate is not host");
     if (candidate->component_id == FS_COMPONENT_RTP) {
       ts_fail_unless (candidate->port % 2 == 0, "RTP port should be odd");
     } else if (candidate->component_id == FS_COMPONENT_RTCP) {
@@ -173,8 +174,6 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 static void
 _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
 {
-  gboolean has_stun = GPOINTER_TO_INT (user_data) & FLAG_HAS_STUN;
-
   ts_fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
   ts_fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
 
@@ -275,6 +274,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   FsStreamTransmitter *st;
   GstBus *bus = NULL;
 
+  has_stun = flags & FLAG_HAS_STUN;
+
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("rawudp", 2, &error);
 
@@ -295,7 +296,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
     &error);
 
   if (error) {
-    if (flags & FLAG_HAS_STUN &&
+    if (has_stun &&
         error->domain == FS_ERROR &&
         error->code == FS_ERROR_NETWORK &&
         error->message && strstr (error->message, "unreachable"))
@@ -485,6 +486,8 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
   FsTransmitter *trans;
   FsStreamTransmitter *st;
   GstBus *bus = NULL;
+
+  has_stun = FALSE;
 
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("rawudp", 2, &error);
