@@ -353,7 +353,10 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
   if (st)
+  {
+    fs_stream_transmitter_stop (st);
     g_object_unref (st);
+  }
 
   g_object_unref (trans);
 
@@ -467,6 +470,7 @@ _bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
   if (pending != GST_STATE_VOID_PENDING)
     ts_fail ("New state playing, but pending is %d", pending);
 
+  fs_stream_transmitter_stop (st);
   g_object_unref (st);
 
   g_atomic_int_set(&running, FALSE);
