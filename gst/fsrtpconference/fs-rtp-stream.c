@@ -230,6 +230,7 @@ fs_rtp_stream_dispose (GObject *object)
   }
 
   if (self->priv->stream_transmitter) {
+    fs_stream_transmitter_stop (self->priv->stream_transmitter);
     g_object_unref (self->priv->stream_transmitter);
     self->priv->stream_transmitter = NULL;
   }
