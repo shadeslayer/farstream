@@ -41,6 +41,7 @@
 enum
 {
   NEW_REMOTE_CODECS,
+  KNOWN_SOURCE_PACKET_RECEIVED,
   LAST_SIGNAL
 };
 
@@ -127,6 +128,11 @@ static void _new_local_candidate (
     FsStreamTransmitter *stream_transmitter,
     FsCandidate *candidate,
     gpointer user_data);
+static void
+_known_source_packet_received (FsStreamTransmitter *st,
+    guint component,
+    GstBuffer *buffer,
+    FsRtpStream *self);
 static void _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
@@ -203,6 +209,26 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
       NULL,
       _fs_rtp_marshal_POINTER__BOXED,
       G_TYPE_POINTER, 1, FS_TYPE_CODEC_LIST);
+
+ /**
+   * FsRtpStream::known-source-packet-received:
+   * @self: #FsRtpStream that emitted the signal
+   * @component: The Component on which this buffer was received
+   * @buffer: the #GstBuffer coming from the known source
+   *
+   * This signal is emitted when a buffer coming from a confirmed known source
+   * is received. It is a proxy of the
+   * #FsStreamTransmitter::known-source-packet-received signal.
+   */
+  signals[KNOWN_SOURCE_PACKET_RECEIVED] = g_signal_new
+    ("known-source-packet-received",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__UINT_POINTER,
+      G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
 }
 
 static void
@@ -426,6 +452,10 @@ fs_rtp_stream_constructed (GObject *object)
   g_signal_connect (self->priv->stream_transmitter,
       "error",
       G_CALLBACK (_transmitter_error),
+      self);
+  g_signal_connect (self->priv->stream_transmitter,
+      "known-source-packet-received",
+      G_CALLBACK (_known_source_packet_received),
       self);
 
   if (!fs_stream_transmitter_gather_local_candidates (
@@ -678,6 +708,15 @@ _transmitter_error (
   fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
 }
 
+static void
+_known_source_packet_received (FsStreamTransmitter *st,
+    guint component,
+    GstBuffer *buffer,
+    FsRtpStream *self)
+{
+  g_signal_emit (self, signals[KNOWN_SOURCE_PACKET_RECEIVED], 0,
+      component, buffer);
+}
 
 static void
 _substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
@@ -868,4 +907,3 @@ fs_rtp_stream_set_negotiated_codecs (FsRtpStream *stream,
 
   g_object_notify (G_OBJECT (stream), "negotiated-codecs");
 }
-
