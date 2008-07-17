@@ -132,6 +132,9 @@ struct _FsRawUdpStreamTransmitterPrivate
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAWUDP_STREAM_TRANSMITTER, \
       FsRawUdpStreamTransmitterPrivate))
 
+#define FS_RAWUDP_STREAM_TRANSMITTER_LOCK(o)   g_mutex_lock ((o)->priv->mutex)
+#define FS_RAWUDP_STREAM_TRANSMITTER_UNLOCK(o) g_mutex_unlock ((o)->priv->mutex)
+
 static void fs_rawudp_stream_transmitter_class_init (
     FsRawUdpStreamTransmitterClass *klass);
 static void fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self);
@@ -713,7 +716,7 @@ _component_local_candidates_prepared (FsRawUdpComponent *component,
 
   g_object_get (component, "component", &component_id, NULL);
 
-  g_mutex_lock (self->priv->mutex);
+  FS_RAWUDP_STREAM_TRANSMITTER_LOCK (self);
   self->priv->candidates_prepared[component_id] = TRUE;
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
@@ -724,7 +727,8 @@ _component_local_candidates_prepared (FsRawUdpComponent *component,
       break;
     }
   }
-  g_mutex_unlock (self->priv->mutex);
+
+  FS_RAWUDP_STREAM_TRANSMITTER_UNLOCK (self);
 
   if (emit)
     g_signal_emit_by_name (self, "local-candidates-prepared");
