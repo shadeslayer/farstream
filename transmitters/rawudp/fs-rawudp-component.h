@@ -110,9 +110,6 @@ gboolean
 fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     GError **error);
 
-gboolean
-fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error);
-
 void
 fs_rawudp_component_stop (FsRawUdpComponent *self);
 

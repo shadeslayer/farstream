@@ -183,6 +183,10 @@ stun_timeout_func (gpointer user_data);
 static gboolean
 buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data);
 
+static gboolean
+fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error);
+static void
+fs_rawudp_component_stop_stun_locked (FsRawUdpComponent *self);
 
 GType
 fs_rawudp_component_get_type (void)
@@ -492,6 +496,7 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
   FS_RAWUDP_COMPONENT_LOCK (self);
   if (self->priv->stun_timeout_thread != NULL)
   {
+    fs_rawudp_component_stop_stun_locked (self);
     FS_RAWUDP_COMPONENT_UNLOCK (self);
     g_thread_join (self->priv->stun_timeout_thread);
     FS_RAWUDP_COMPONENT_LOCK (self);
@@ -773,13 +778,20 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     return FALSE;
   }
 
+  if (!self->priv->udpport)
+  {   g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "You can not call gather_local_candidate() after the stream has"
+        " been stopped");
+    return FALSE;
+  }
+
   if (self->priv->stun_ip && self->priv->stun_port)
     return fs_rawudp_component_start_stun (self, error);
   else
     return fs_rawudp_component_emit_local_candidates (self, error);
 }
 
-gboolean
+static gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
 {
   struct addrinfo hints;
