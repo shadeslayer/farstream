@@ -37,6 +37,9 @@
 
 #include <gst/gst.h>
 
+#include <gst/rtp/gstrtpbuffer.h>
+#include <gst/rtp/gstrtcpbuffer.h>
+
 #include <gst/farsight/fs-transmitter.h>
 
 #include "fs-rtp-session.h"
@@ -1248,6 +1251,53 @@ fs_rtp_session_constructed (GObject *object)
 }
 
 
+static void
+_stream_known_source_packet_received (FsRtpStream *stream, guint component,
+    GstBuffer *buffer, FsRtpSession *self)
+{
+  guint32 ssrc;
+
+  if (component == 1)
+  {
+    if (gst_rtp_buffer_validate (buffer))
+    {
+      ssrc = gst_rtp_buffer_get_ssrc (buffer);
+      goto ok;
+    }
+  }
+  else if (component == 2)
+  {
+    GstRTCPPacket rtcppacket;
+
+    if (gst_rtcp_buffer_validate (buffer))
+    {
+      if (gst_rtcp_buffer_get_first_packet (buffer, &rtcppacket))
+      {
+        do {
+          if (gst_rtcp_packet_get_type (&rtcppacket) == GST_RTCP_TYPE_SDES)
+          {
+            ssrc = gst_rtcp_packet_sdes_get_ssrc (&rtcppacket);
+            goto ok;
+          }
+        } while (gst_rtcp_packet_move_to_next (&rtcppacket));
+      }
+    }
+  }
+
+  /* We would have jumped to OK if we had a valid packet */
+  return;
+
+ ok:
+
+  FS_RTP_SESSION_LOCK (self);
+
+  if (!g_hash_table_lookup (self->priv->ssrc_streams,  GUINT_TO_POINTER (ssrc)))
+    g_hash_table_insert (self->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
+        stream);
+
+  FS_RTP_SESSION_UNLOCK (self);
+}
+
 static gboolean
 _remove_stream_from_ht (gpointer key, gpointer value, gpointer user_data)
 {
@@ -1316,6 +1366,8 @@ fs_rtp_session_new_stream (FsSession *session,
 
   g_signal_connect (new_stream, "new-remote-codecs",
       G_CALLBACK (_stream_new_remote_codecs), self);
+  g_signal_connect (new_stream, "known-source-packet-received",
+      G_CALLBACK (_stream_known_source_packet_received), self);
 
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
