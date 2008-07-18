@@ -43,6 +43,7 @@ int count = 0;
 // Options
 gboolean select_last_codec = FALSE;
 gboolean reset_to_last_codec = FALSE;
+gboolean no_rtcp = FALSE;
 
 #define WAITING_ON_LAST_CODEC   (1<<0)
 #define SHOULD_BE_LAST_CODEC    (1<<1)
@@ -137,6 +138,9 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   struct SimpleTestStream *other_st = find_pointback_stream (st->target,
       st->dat);
   GList *candidates = NULL;
+
+  if (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp)
+    return;
 
   g_debug ("%d:%d: Setting remote candidate for component %d",
       other_st->dat->id,
@@ -720,6 +724,8 @@ nway_test (int in_count, extra_init extrainit)
     dats[i] = setup_simple_conference (i, "fsrtpconference", tmp);
     g_free (tmp);
 
+    g_object_set (G_OBJECT (dats[i]->session), "no-rtcp-timeout", -1, NULL);
+
     rtpconference_connect_signals (dats[i]);
     g_idle_add (_start_pipeline, dats[i]);
 
@@ -824,6 +830,7 @@ GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
   nway_test (2, NULL);
+  select_last_codec = FALSE;
 }
 GST_END_TEST;
 
@@ -832,6 +839,7 @@ GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
   nway_test (2, NULL);
+  reset_to_last_codec = FALSE;
 }
 GST_END_TEST;
 
@@ -953,6 +961,19 @@ GST_START_TEST (test_rtpconference_change_to_send_only)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpconference_no_rtcp)
+{
+  no_rtcp = TRUE;
+
+  nway_test (2, NULL);
+
+  no_rtcp = FALSE;
+}
+GST_END_TEST;
+
+
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -963,7 +984,6 @@ fsrtpconference_suite (void)
   fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
-
 
   tc_chain = tcase_create ("fsrtpconfence_base");
   tcase_add_test (tc_chain, test_rtpconference_new);
@@ -1003,6 +1023,14 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconfence_change_to_send_only");
   tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_change_to_send_only");
+  tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_no_rtcp");
+  tcase_add_test (tc_chain, test_rtpconference_no_rtcp);
   suite_add_tcase (s, tc_chain);
 
   return s;
