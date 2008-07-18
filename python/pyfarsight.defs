@@ -293,6 +293,7 @@
 
 (define-method new_session
   (of-object "FsConference")
+  (unblock-threads t)
   (c-name "fs_conference_new_session")
   (return-type "FsSession*")
   (parameters
@@ -303,6 +304,7 @@
 
 (define-method new_participant
   (of-object "FsConference")
+  (unblock-threads t)
   (c-name "fs_conference_new_participant")
   (return-type "FsParticipant*")
   (parameters
@@ -368,6 +370,7 @@
 
 (define-method new_stream
   (of-object "FsSession")
+  (unblock-threads t)
   (c-name "fs_session_new_stream")
   (return-type "FsStream*")
   (parameters
@@ -382,6 +385,7 @@
 
 (define-method start_telephony_event
   (of-object "FsSession")
+  (unblock-threads t)
   (c-name "fs_session_start_telephony_event")
   (return-type "gboolean")
   (parameters
@@ -393,6 +397,7 @@
 
 (define-method stop_telephony_event
   (of-object "FsSession")
+  (unblock-threads t)
   (c-name "fs_session_stop_telephony_event")
   (return-type "gboolean")
   (parameters
@@ -402,6 +407,7 @@
 
 (define-method set_send_codec
   (of-object "FsSession")
+  (unblock-threads t)
   (c-name "fs_session_set_send_codec")
   (return-type "gboolean")
   (parameters
@@ -412,6 +418,7 @@
 
 (define-method set_codec_preferences
   (of-object "FsSession")
+  (unblock-threads t)
   (c-name "fs_session_set_codec_preferences")
   (return-type "gboolean")
   (parameters
@@ -422,6 +429,7 @@
 
 (define-method emit_error
   (of-object "FsSession")
+  (unblock-threads t)
   (c-name "fs_session_emit_error")
   (return-type "none")
   (parameters
@@ -485,6 +493,7 @@
 
 (define-method set_remote_candidates
   (of-object "FsStream")
+  (unblock-threads t)
   (c-name "fs_stream_set_remote_candidates")
   (return-type "gboolean")
   (parameters
@@ -495,6 +504,7 @@
 
 (define-method select_candidate_pair
   (of-object "FsStream")
+  (unblock-threads t)
   (c-name "fs_stream_select_candidate_pair")
   (return-type "gboolean")
   (parameters
@@ -506,6 +516,7 @@
 
 (define-method set_remote_codecs
   (of-object "FsStream")
+  (unblock-threads t)
   (c-name "fs_stream_set_remote_codecs")
   (return-type "gboolean")
   (parameters
@@ -516,6 +527,7 @@
 
 (define-method emit_error
   (of-object "FsStream")
+  (unblock-threads t)
   (c-name "fs_stream_emit_error")
   (return-type "none")
   (parameters
@@ -527,6 +539,7 @@
 
 (define-method emit_src_pad_added
   (of-object "FsStream")
+  (unblock-threads t)
   (c-name "fs_stream_emit_src_pad_added")
   (return-type "none")
   (parameters
