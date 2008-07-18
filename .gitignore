@@ -45,9 +45,9 @@ tests/check/base/fscodec
 tests/check/base/fstransmitter
 tests/check/transmitter/rawudp
 tests/check/transmitter/multicast
-tests/check/main/rtpconference
-tests/check/main/rtpcodecs
-tests/check/main/rtpsendcodecs
+tests/check/rtp/conference
+tests/check/rtp/codecs
+tests/check/rtp/sendcodecs
 tests/check/utils/binadded
 tests/rtp/codec-discovery
 tests/gui/*.pyo
