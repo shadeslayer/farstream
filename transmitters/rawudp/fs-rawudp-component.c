@@ -210,6 +210,10 @@ fs_rawudp_component_register_type (FsPlugin *module)
     (GInstanceInitFunc) fs_rawudp_component_init
   };
 
+  /* Required becaues the GST type registration is not thread safe */
+
+  GST_TYPE_NETBUFFER;
+
   type = g_type_module_register_type (G_TYPE_MODULE (module),
       G_TYPE_OBJECT, "FsRawUdpComponent", &info, 0);
 
