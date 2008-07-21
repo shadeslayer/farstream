@@ -2,6 +2,7 @@
  * Farsight2 - Farsight MSN Session
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk> 
  *
  * fs-msn-session.h - A Farsight Msn Session gobject
  *

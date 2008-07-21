@@ -2,6 +2,7 @@
  * Farsight2 - Farsight MSN Participant
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * fs-msn-participant.h - A Farsight MSN Participant gobject
  *

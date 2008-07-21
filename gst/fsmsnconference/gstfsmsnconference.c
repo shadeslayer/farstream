@@ -2,6 +2,7 @@
  * Farsight2 - Farsight MSN Conference Implementation
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * gstfsmsnconference.c - MSN implementation for Farsight Conference Gstreamer
  *                        Elements

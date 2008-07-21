@@ -2,6 +2,8 @@
  * Farsight2 - Farsight MSN Stream
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *  @Rob Taylor, Philippe Khalaf   ?  
  *
  * fs-msn-stream.c - A Farsight MSN Stream gobject
  *
