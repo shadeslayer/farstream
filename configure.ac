@@ -101,6 +101,7 @@ AC_SUBST(GST_INSTALL_PLUGINS_HELPER)
 dnl these are all the gst plug-ins, compilable without additional libs
 FS2_PLUGINS_ALL=" \
 	fsrtpconference \
+	fsmsnconference \
 	funnel \
 	rtcpfilter \
  	videoanyrate
@@ -382,6 +383,7 @@ common/shave
 common/shave-libtool
 gst/Makefile
 gst/fsrtpconference/Makefile
+gst/fsmsnconference/Makefile
 gst/funnel/Makefile
 gst/rtcpfilter/Makefile
 gst/videoanyrate/Makefile
