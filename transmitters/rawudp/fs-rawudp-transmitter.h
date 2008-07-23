@@ -27,6 +27,8 @@
 
 #include <gst/farsight/fs-transmitter.h>
 
+#include <gst/netbuffer/gstnetbuffer.h>
+
 #include <gst/gst.h>
 
 #ifdef G_OS_WIN32
@@ -89,6 +91,9 @@ struct _FsRawUdpTransmitter
 
 /* Private declaration */
 typedef struct _UdpPort UdpPort;
+
+typedef void (*FsRawUdpAddressUniqueCallbackFunc) (gboolean unique,
+    const GstNetAddress *address, gpointer user_data);
 
 GType fs_rawudp_transmitter_get_type (void);
 

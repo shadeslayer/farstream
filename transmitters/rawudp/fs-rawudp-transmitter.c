@@ -517,6 +517,16 @@ struct _UdpPort {
   GstElement *tee;
 
   guint component_id;
+
+  /* Everything below is protected by the mutex */
+  GMutex *mutex;
+  GArray *known_addresses;
+};
+
+struct KnownAddress {
+  FsRawUdpAddressUniqueCallbackFunc callback;
+  gpointer user_data;
+  GstNetAddress addr;
 };
 
 static gint
@@ -724,6 +734,9 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   udpport->requested_port = requested_port;
   udpport->fd = -1;
   udpport->component_id = component_id;
+  udpport->mutex = g_mutex_new ();
+  udpport->known_addresses = g_array_new (TRUE, FALSE,
+      sizeof (struct KnownAddress));
 
   /* Now lets bind both ports */
 
@@ -824,6 +837,11 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 
   if (udpport->fd >= 0)
     close (udpport->fd);
+
+  if (udpport->mutex)
+    g_mutex_free (udpport->mutex);
+  if (udpport->known_addresses)
+    g_array_free (udpport->known_addresses, TRUE);
 
   g_free (udpport->requested_ip);
   g_slice_free (UdpPort, udpport);
