@@ -801,8 +801,15 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   gchar *tmp;
   gboolean ret = FALSE;
   GstPad *pad;
+  gboolean codec_changed = TRUE;
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
+
+  if (substream->priv->codec)
+  {
+    if (!fs_codec_are_equal (codec, substream->priv->codec))
+      codec_changed = FALSE;
+  }
 
   if (substream->priv->codecbin)
   {
@@ -895,8 +902,15 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   substream->priv->codec = fs_codec_copy (codec);
 
   if (substream->priv->stream && !substream->priv->output_ghostpad)
+  {
     if (!fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error))
       goto error;
+  }
+  else
+  {
+    if (codec_changed)
+      g_signal_emit (substream, signals[CODEC_CHANGED], 0);
+  }
 
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
   return TRUE;
