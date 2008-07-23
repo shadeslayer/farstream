@@ -85,10 +85,10 @@ fs_error_quark
 <SECTION>
 <FILE>fs-candidate</FILE>
 <TITLE>FsCandidate</TITLE>
+FsCandidate
 FsCandidateType
 FsNetworkProtocol
 FsComponentType
-FsCandidate
 fs_candidate_new
 fs_candidate_destroy
 fs_candidate_copy
@@ -104,9 +104,8 @@ fs_candidate_list_get_type
 <SECTION>
 <FILE>fs-codec</FILE>
 <TITLE>FsCodec</TITLE>
-FsMediaType
-fs_media_type_to_string
 FsCodec
+FsMediaType
 FsCodecParameter
 FS_CODEC_ID_ANY
 FS_CODEC_ID_DISABLE
@@ -125,6 +124,7 @@ fs_codec_remove_optional_parameter
 fs_codec_get_optional_parameter
 FS_CODEC_FORMAT
 FS_CODEC_ARGS
+fs_media_type_to_string
 <SUBSECTION Standard>
 FS_TYPE_CODEC
 FS_TYPE_CODEC_LIST
