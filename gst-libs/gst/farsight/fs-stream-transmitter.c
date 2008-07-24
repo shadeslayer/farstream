@@ -64,7 +64,8 @@ enum
 {
   PROP_0,
   PROP_SENDING,
-  PROP_PREFERRED_LOCAL_CANDIDATES
+  PROP_PREFERRED_LOCAL_CANDIDATES,
+  PROP_ASSOCIATE_ON_SOURCE
 };
 
 struct _FsStreamTransmitterPrivate
@@ -137,6 +138,21 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
         FS_TYPE_CANDIDATE_LIST,
         G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
+  /**
+   * FsStreamTransmitter:associate-on-source
+   *
+   * This tells the stream transmitter to associate incoming data with this
+   * based on the source without looking at the content if possible.
+   *
+   */
+
+  g_object_class_install_property (gobject_class,
+      PROP_ASSOCIATE_ON_SOURCE,
+      g_param_spec_boolean ("associate-on-source",
+        "Associate incoming data based on the source address",
+        "Whether to associate incoming data stream based on the source address",
+        TRUE,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   /**
    * FsStreamTransmitter::error:
