@@ -497,6 +497,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
 
     self->priv->component[c] = fs_rawudp_component_new (c,
         self->priv->transmitter,
+        self->priv->associate_on_source,
         ips[c],
         requested_port,
         self->priv->stun_ip,

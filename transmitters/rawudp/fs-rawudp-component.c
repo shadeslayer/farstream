@@ -79,7 +79,8 @@ enum
   PROP_STUN_TIMEOUT,
   PROP_SENDING,
   PROP_TRANSMITTER,
-  PROP_FORCED_CANDIDATE
+  PROP_FORCED_CANDIDATE,
+  PROP_ASSOCIATE_ON_SOURCE
 };
 
 
@@ -103,6 +104,8 @@ struct _FsRawUdpComponentPrivate
   GMutex *mutex;
 
   gchar stun_cookie[16];
+
+  gboolean associate_on_source;
 
   /* Above this line, its all set at construction time */
   /* Below, they are protected by the mutex */
@@ -315,6 +318,15 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           FS_TYPE_CANDIDATE,
           G_PARAM_WRITABLE));
 
+  g_object_class_install_property (gobject_class,
+      PROP_ASSOCIATE_ON_SOURCE,
+      g_param_spec_boolean ("associate-on-source",
+          "Associate incoming data based on the source address",
+          "Whether to associate incoming data stream based on the"
+          " source address",
+          TRUE,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+
    /**
    * FsRawUdpComponent::new-local-candidate:
    * @self: #FsStream that emitted the signal
@@ -427,6 +439,8 @@ fs_rawudp_component_init (FsRawUdpComponent *self)
   self->priv->sending = TRUE;
   self->priv->port = 7078;
 
+  self->priv->associate_on_source = TRUE;
+
   ((guint32*)self->priv->stun_cookie)[0] = g_random_int ();
   ((guint32*)self->priv->stun_cookie)[1] = g_random_int ();
   ((guint32*)self->priv->stun_cookie)[2] = g_random_int ();
@@ -462,10 +476,11 @@ fs_rawudp_constructed (GObject *object)
     return;
   }
 
-  self->priv->buffer_recv_id =
-    fs_rawudp_transmitter_udpport_connect_recv (
-        self->priv->udpport,
-        G_CALLBACK (buffer_recv_cb), self);
+  if (self->priv->associate_on_source)
+    self->priv->buffer_recv_id =
+      fs_rawudp_transmitter_udpport_connect_recv (
+          self->priv->udpport,
+          G_CALLBACK (buffer_recv_cb), self);
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
@@ -666,6 +681,9 @@ fs_rawudp_component_set_property (GObject *object,
         self->priv->local_forced_candidate = g_value_dup_boxed (value);
       FS_RAWUDP_COMPONENT_UNLOCK (self);
       break;
+    case PROP_ASSOCIATE_ON_SOURCE:
+      self->priv->associate_on_source = g_value_get_boolean (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -677,6 +695,7 @@ FsRawUdpComponent *
 fs_rawudp_component_new (
     guint component,
     FsRawUdpTransmitter *trans,
+    gboolean associate_on_source,
     const gchar *ip,
     guint port,
     const gchar *stun_ip,
@@ -690,6 +709,7 @@ fs_rawudp_component_new (
   self = g_object_new (FS_TYPE_RAWUDP_COMPONENT,
       "component", component,
       "transmitter", trans,
+      "associate-on-source", associate_on_source,
       "ip", ip,
       "port", port,
       "stun-ip", stun_ip,

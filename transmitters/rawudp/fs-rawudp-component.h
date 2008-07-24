@@ -93,6 +93,7 @@ FsRawUdpComponent *
 fs_rawudp_component_new (
     guint component,
     FsRawUdpTransmitter *trans,
+    gboolean associate_on_source,
     const gchar *ip,
     guint port,
     const gchar *stun_ip,
