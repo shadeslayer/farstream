@@ -134,6 +134,16 @@ gboolean fs_rawudp_transmitter_udpport_is_pad (UdpPort *udpport,
 gint fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport);
 
 
+gboolean fs_rawudp_transmitter_udpport_add_known_address (UdpPort *udpport,
+    GstNetAddress *address,
+    FsRawUdpAddressUniqueCallbackFunc callback,
+    gpointer user_data);
+
+void fs_rawudp_transmitter_udpport_remove_known_address (UdpPort *udpport,
+    GstNetAddress *address,
+    FsRawUdpAddressUniqueCallbackFunc callback,
+    gpointer user_data);
+
 
 G_END_DECLS
 

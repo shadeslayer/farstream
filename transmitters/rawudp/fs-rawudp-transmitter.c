@@ -942,3 +942,127 @@ fs_rawudp_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
 {
   return FS_TYPE_RAWUDP_STREAM_TRANSMITTER;
 }
+
+/**
+ * fs_rawudp_transmitter_udpport_add_known_address:
+ * @udpport: a #UdpPort
+ * @address: the new #GstNetAddress that we know
+ * @callback: a Callback that will be called if the uniqueness of an address
+ *   changes
+ * @user_data: data passed back to the callback
+ *
+ * This function stores the passed address and tells the caller if it was
+ * unique or not. The callback is called when the uniqueness changes.
+ *
+ * Returns: %TRUE if the new address is unique, %FALSE otherwise
+ */
+
+gboolean
+fs_rawudp_transmitter_udpport_add_known_address (UdpPort *udpport,
+    GstNetAddress *address,
+    FsRawUdpAddressUniqueCallbackFunc callback,
+    gpointer user_data)
+{
+  gint i;
+  gboolean unique = FALSE;
+  struct KnownAddress newka = {0};
+  guint counter = 0;
+  struct KnownAddress *prev_ka = NULL;
+
+  g_mutex_lock (udpport->mutex);
+
+  for (i = 0;
+       g_array_index (udpport->known_addresses, struct KnownAddress, i).callback;
+       i++)
+  {
+    struct KnownAddress *ka = &g_array_index (udpport->known_addresses, struct KnownAddress, i);
+    if (gst_netaddress_equal (address, &ka->addr))
+    {
+      g_assert (!(ka->callback == callback && ka->user_data == user_data));
+
+      prev_ka = ka;
+      counter++;
+    }
+  }
+
+  if (counter == 0)
+  {
+    unique = TRUE;
+  }
+  else if (counter == 1)
+  {
+    if (prev_ka->callback)
+      prev_ka->callback (FALSE, &prev_ka->addr, prev_ka->user_data);
+  }
+
+  memcpy (&newka.addr, address, sizeof (GstNetAddress));
+  newka.callback = callback;
+  newka.user_data = user_data;
+
+  g_array_append_val (udpport->known_addresses, newka);
+
+  g_mutex_unlock (udpport->mutex);
+
+  return unique;
+}
+
+/**
+ * fs_rawudp_transmitter_udpport_remove_known_address:
+ * @udpport: a #UdpPort
+ * @address: the address to remove
+ * @callback: the callback passed to the corresponding
+ *  fs_rawudp_transmitter_udpport_add_known_address() call
+ * @user_data: the user_data passed to the corresponding
+ *  fs_rawudp_transmitter_udpport_add_known_address() call
+ *
+ * Removes a known address from the list and calls the notifiers if another
+ * address becomes unique
+ */
+
+void
+fs_rawudp_transmitter_udpport_remove_known_address (UdpPort *udpport,
+    GstNetAddress *address,
+    FsRawUdpAddressUniqueCallbackFunc callback,
+    gpointer user_data)
+{
+  gint i;
+  gint remove_i = -1;
+  guint counter = 0;
+  struct KnownAddress *prev_ka = NULL;
+
+  g_mutex_lock (udpport->mutex);
+
+  for (i = 0;
+       g_array_index (udpport->known_addresses, struct KnownAddress, i).callback;
+       i++)
+  {
+    struct KnownAddress *ka = &g_array_index (udpport->known_addresses, struct KnownAddress, i);
+    if (gst_netaddress_equal (address, &ka->addr))
+    {
+      if (ka->callback == callback && ka->user_data == user_data)
+      {
+        remove_i = i;
+      }
+      else
+      {
+        counter++;
+        prev_ka = ka;
+      }
+    }
+  }
+
+  if (remove_i == -1)
+  {
+    GST_ERROR ("Tried to remove unknown known address");
+    goto out;
+  }
+
+  if (counter == 1)
+    prev_ka->callback (TRUE, &prev_ka->addr, prev_ka->user_data);
+
+  g_array_remove_index_fast (udpport->known_addresses, remove_i);
+
+ out:
+
+  g_mutex_unlock (udpport->mutex);
+}
