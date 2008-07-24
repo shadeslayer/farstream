@@ -127,6 +127,8 @@ struct _FsRawUdpComponentPrivate
   GThread *stun_timeout_thread;
 
   gboolean sending;
+
+  gboolean remote_is_unique;
 };
 
 
@@ -183,6 +185,10 @@ static gpointer
 stun_timeout_func (gpointer user_data);
 static gboolean
 buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data);
+
+static void
+remote_is_unique_cb (gboolean unique, const GstNetAddress *address,
+    gpointer user_data);
 
 static gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error);
@@ -512,7 +518,6 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
 
   udpport = self->priv->udpport;
   self->priv->udpport = NULL;
-  FS_RAWUDP_COMPONENT_UNLOCK (self);
 
   if (udpport)
   {
@@ -530,8 +535,14 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
           self->priv->remote_candidate->ip,
           self->priv->remote_candidate->port);
 
+    if (self->priv->remote_candidate)
+      fs_rawudp_transmitter_udpport_remove_known_address (udpport,
+          &self->priv->remote_address, remote_is_unique_cb, self);
+
     fs_rawudp_transmitter_put_udpport (self->priv->transmitter, udpport);
   }
+
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
 }
 
 static void
@@ -706,6 +717,26 @@ fs_rawudp_component_new (
   return self;
 }
 
+static void
+remote_is_unique_cb (gboolean unique, const GstNetAddress *address,
+    gpointer user_data)
+{
+  FsRawUdpComponent *self = FS_RAWUDP_COMPONENT (user_data);
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
+
+  if (!gst_netaddress_equal (address, &self->priv->remote_address))
+  {
+    GST_ERROR ("Got callback for an address that is not ours");
+    goto out;
+  }
+
+  self->priv->remote_is_unique = unique;
+
+ out:
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+}
+
 
 gboolean
 fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
@@ -746,6 +777,10 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
     return FALSE;
   }
 
+  if (self->priv->remote_candidate)
+    fs_rawudp_transmitter_udpport_remove_known_address (self->priv->udpport,
+        &self->priv->remote_address, remote_is_unique_cb, self);
+
   old_candidate = self->priv->remote_candidate;
   self->priv->remote_candidate = fs_candidate_copy (candidate);
   sending = self->priv->sending;
@@ -763,6 +798,12 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
           g_htons(candidate->port));
       break;
   }
+
+
+  self->priv->remote_is_unique =
+    fs_rawudp_transmitter_udpport_add_known_address (self->priv->udpport,
+        &self->priv->remote_address, remote_is_unique_cb, self);
+
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
   freeaddrinfo (res);
@@ -1195,10 +1236,18 @@ buffer_recv_cb (GstPad *pad, GstBuffer *buffer, gpointer user_data)
   {
     GstNetBuffer *netbuffer = (GstNetBuffer*) buffer;
 
-    if (gst_netaddress_equal (&self->priv->remote_address,
-            &netbuffer->from))
+    FS_RAWUDP_COMPONENT_LOCK (self);
+    if (self->priv->remote_is_unique &&
+        gst_netaddress_equal (&self->priv->remote_address, &netbuffer->from))
+    {
+      FS_RAWUDP_COMPONENT_UNLOCK (self);
       g_signal_emit (self, signals[KNOWN_SOURCE_PACKET_RECEIVED], 0,
           self->priv->component, buffer);
+    }
+    else
+    {
+      FS_RAWUDP_COMPONENT_UNLOCK (self);
+    }
   }
   else
   {
