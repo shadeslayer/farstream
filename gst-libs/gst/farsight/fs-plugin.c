@@ -221,9 +221,6 @@ fs_plugin_unload (GTypeModule *module)
 
   if (plugin->unload != NULL)
     plugin->unload (plugin);
-
-  if (plugin->priv->handle != NULL)
-    g_module_close (plugin->priv->handle);
 }
 
 static FsPlugin *
@@ -305,17 +302,17 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
     plugin->name = g_strdup_printf ("%s-%s",name,type_suffix);
     g_type_module_set_name (G_TYPE_MODULE (plugin), plugin->name);
     plugins = g_list_append (plugins, plugin);
-  }
 
-  if (!g_type_module_use (G_TYPE_MODULE (plugin))) {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not load the %s-%s transmitter plugin", name, type_suffix);
-    return NULL;
+    /* We do the use once and then we keep it loaded forever because
+     * the gstreamer libraries can't be unloaded
+     */
+    if (!g_type_module_use (G_TYPE_MODULE (plugin))) {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not load the %s-%s transmitter plugin", name, type_suffix);
+      return NULL;
+    }
   }
-
   object = g_object_new_valist (plugin->type, first_property_name, var_args);
-
-  g_type_module_unuse (G_TYPE_MODULE (plugin));
 
   return object;
 }
