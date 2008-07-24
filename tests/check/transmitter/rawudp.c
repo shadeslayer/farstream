@@ -567,9 +567,11 @@ rawudptransmitter_suite (void)
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
-  tc_chain = tcase_create ("rawudptransmitter");
-  tcase_set_timeout (tc_chain, 5);
+  tc_chain = tcase_create ("rawudptransmitter_new");
   tcase_add_test (tc_chain, test_rawudptransmitter_new);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("rawudptransmitter_nostun");
   tcase_add_test (tc_chain, test_rawudptransmitter_run_nostun);
   suite_add_tcase (s, tc_chain);
 
