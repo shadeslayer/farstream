@@ -483,6 +483,13 @@ _bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
   return TRUE;
 }
 
+static void
+_handoff_handler_empty (GstElement *element, GstBuffer *buffer, GstPad *pad,
+  gpointer user_data)
+{
+}
+
+
 /*
  * This test checks that starting a stream, getting it to playing
  * then stopping it works
@@ -507,7 +514,7 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
 
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
-  pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler));
+  pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler_empty));
 
   st = fs_transmitter_new_stream_transmitter (trans, NULL, 0, NULL, &error);
 
