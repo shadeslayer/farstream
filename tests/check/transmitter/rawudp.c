@@ -273,6 +273,11 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   FsStreamTransmitter *st;
   GstBus *bus = NULL;
 
+  buffer_count[0] = 0;
+  buffer_count[1] = 0;
+  received_known[0] = 0;
+  received_known[1] = 0;
+
   has_stun = flags & FLAG_HAS_STUN;
 
   loop = g_main_loop_new (NULL, FALSE);
