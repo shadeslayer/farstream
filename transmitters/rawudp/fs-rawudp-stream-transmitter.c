@@ -96,6 +96,7 @@ enum
   PROP_0,
   PROP_SENDING,
   PROP_PREFERRED_LOCAL_CANDIDATES,
+  PROP_ASSOCIATE_ON_SOURCE,
   PROP_STUN_IP,
   PROP_STUN_PORT,
   PROP_STUN_TIMEOUT
@@ -122,6 +123,8 @@ struct _FsRawUdpStreamTransmitterPrivate
 
   GList *preferred_local_candidates;
   guint next_candidate_id;
+
+  gboolean associate_on_source;
 
   /* Everything below this line is protected by the mutex */
   GMutex *mutex;
@@ -238,6 +241,8 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
       PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
+  g_object_class_override_property (gobject_class,
+      PROP_ASSOCIATE_ON_SOURCE, "associate-on-source");
 
   g_object_class_install_property (gobject_class,
       PROP_STUN_IP,
@@ -277,6 +282,7 @@ fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self)
   self->priv->disposed = FALSE;
 
   self->priv->sending = TRUE;
+  self->priv->associate_on_source = TRUE;
 
   self->priv->mutex = g_mutex_new ();
 }
@@ -348,6 +354,9 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       g_value_set_boxed (value, self->priv->preferred_local_candidates);
       break;
+    case PROP_ASSOCIATE_ON_SOURCE:
+      g_value_set_boolean (value, self->priv->associate_on_source);
+      break;
     case PROP_STUN_IP:
       g_value_set_string (value, self->priv->stun_ip);
       break;
@@ -357,7 +366,7 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_STUN_TIMEOUT:
       g_value_set_uint (value, self->priv->stun_timeout);
       break;
-    default:
+   default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
@@ -387,6 +396,9 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       self->priv->preferred_local_candidates = g_value_dup_boxed (value);
+      break;
+    case PROP_ASSOCIATE_ON_SOURCE:
+      self->priv->associate_on_source = g_value_get_boolean (value);
       break;
     case PROP_STUN_IP:
       g_free (self->priv->stun_ip);
