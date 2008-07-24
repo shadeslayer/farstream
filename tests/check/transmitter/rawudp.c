@@ -37,11 +37,13 @@ gboolean src_setup[2] = {FALSE, FALSE};
 volatile gint running = TRUE;
 guint received_known[2] = {0, 0};
 gboolean has_stun = FALSE;
+gboolean associate_on_source = TRUE;
 
 
 enum {
-  FLAG_HAS_STUN = 1 << 0,
-  FLAG_IS_LOCAL = 1 << 1
+  FLAG_HAS_STUN  = 1 << 0,
+  FLAG_IS_LOCAL  = 1 << 1,
+  FLAG_NO_SOURCE = 1 << 2
 };
 
 #define RTP_PORT 9828
@@ -231,11 +233,15 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count[0] == 20 && buffer_count[1] == 20) {
     /* TEST OVER */
-    ts_fail_unless (buffer_count[0] == received_known[0] &&
-        buffer_count[1] == received_known[1], "Some known buffers from known"
-        " sources have not been reported (%d != %u || %d != %u)",
-        buffer_count[0], received_known[0],
-        buffer_count[1], received_known[1]);
+    if (associate_on_source)
+      ts_fail_unless (buffer_count[0] == received_known[0] &&
+          buffer_count[1] == received_known[1], "Some known buffers from known"
+          " sources have not been reported (%d != %u || %d != %u)",
+          buffer_count[0], received_known[0],
+          buffer_count[1], received_known[1]);
+    else
+      ts_fail_unless (received_known[0] == 0 && received_known[1] == 0,
+          "Got a known-source-packet-received signal when we shouldn't have");
     g_atomic_int_set(&running, FALSE);
     g_main_loop_quit (loop);
   }
@@ -245,6 +251,9 @@ static void
 _known_source_packet_received (FsStreamTransmitter *st, guint component_id,
     GstBuffer *buffer, gpointer user_data)
 {
+  ts_fail_unless (associate_on_source == TRUE,
+      "Got known-source-packet-received when we shouldn't have");
+
   ts_fail_unless (component_id == 1 || component_id == 2,
       "Invalid component id %u", component_id);
 
@@ -279,6 +288,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   received_known[1] = 0;
 
   has_stun = flags & FLAG_HAS_STUN;
+
+  associate_on_source = !(flags & FLAG_NO_SOURCE);
 
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("rawudp", 2, &error);
@@ -373,6 +384,18 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 GST_START_TEST (test_rawudptransmitter_run_nostun)
 {
   run_rawudp_transmitter_test (0, NULL, 0);
+}
+GST_END_TEST;
+
+GST_START_TEST (test_rawudptransmitter_run_nostun_nosource)
+{
+  GParameter param = {NULL, {0}};
+
+  param.name = "associate-on-source";
+  g_value_init (&param.value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&param.value, FALSE);
+
+  run_rawudp_transmitter_test (1, &param, FLAG_NO_SOURCE);
 }
 GST_END_TEST;
 
@@ -585,6 +608,10 @@ rawudptransmitter_suite (void)
 
   tc_chain = tcase_create ("rawudptransmitter_nostun");
   tcase_add_test (tc_chain, test_rawudptransmitter_run_nostun);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("rawudptransmitter_nostun_nosource");
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_nostun_nosource);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("rawudptransmitter-stun-timeout");
