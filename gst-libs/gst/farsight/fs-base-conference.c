@@ -89,9 +89,8 @@ void fs_base_conference_error (GObject *signal_src, GObject *error_src,
 void
 fs_base_conference_init_debug (void)
 {
-  if (!fs_base_conference_debug)
-    GST_DEBUG_CATEGORY_INIT (fs_base_conference_debug, "fsbaseconference", 0,
-        "farsight base conference library");
+  GST_DEBUG_CATEGORY_INIT (fs_base_conference_debug, "fsbaseconference", 0,
+      "farsight base conference library");
 }
 
 static void

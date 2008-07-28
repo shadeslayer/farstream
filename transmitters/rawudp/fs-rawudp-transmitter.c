@@ -154,10 +154,9 @@ fs_rawudp_transmitter_register_type (FsPlugin *module)
     (GInstanceInitFunc) fs_rawudp_transmitter_init
   };
 
-  if (fs_rawudp_transmitter_debug == NULL)
-    GST_DEBUG_CATEGORY_INIT (fs_rawudp_transmitter_debug,
-        "fsrawudptransmitter", 0,
-        "Farsight raw UDP transmitter");
+  GST_DEBUG_CATEGORY_INIT (fs_rawudp_transmitter_debug,
+      "fsrawudptransmitter", 0,
+      "Farsight raw UDP transmitter");
 
   fs_rawudp_stream_transmitter_register_type (module);
 

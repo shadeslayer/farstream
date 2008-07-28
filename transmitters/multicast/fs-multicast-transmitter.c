@@ -151,10 +151,9 @@ fs_multicast_transmitter_register_type (FsPlugin *module)
     (GInstanceInitFunc) fs_multicast_transmitter_init
   };
 
-  if (fs_multicast_transmitter_debug == NULL)
-    GST_DEBUG_CATEGORY_INIT (fs_multicast_transmitter_debug,
-        "fsmulticasttransmitter", 0,
-        "Farsight multicast UDP transmitter");
+  GST_DEBUG_CATEGORY_INIT (fs_multicast_transmitter_debug,
+      "fsmulticasttransmitter", 0,
+      "Farsight multicast UDP transmitter");
 
   fs_multicast_stream_transmitter_register_type (module);
 
