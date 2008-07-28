@@ -138,10 +138,9 @@ fs_nice_transmitter_register_type (FsPlugin *module)
     (GInstanceInitFunc) fs_nice_transmitter_init
   };
 
-  if (fs_nice_transmitter_debug == NULL)
-    GST_DEBUG_CATEGORY_INIT (fs_nice_transmitter_debug,
-        "fsnicetransmitter", 0,
-        "Farsight libnice transmitter");
+  GST_DEBUG_CATEGORY_INIT (fs_nice_transmitter_debug,
+      "fsnicetransmitter", 0,
+      "Farsight libnice transmitter");
 
   fs_nice_stream_transmitter_register_type (module);
   fs_nice_agent_register_type (module);
