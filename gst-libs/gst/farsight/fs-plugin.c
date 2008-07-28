@@ -50,7 +50,6 @@
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PLUGIN, FsPluginPrivate))
 
 static gboolean fs_plugin_load (GTypeModule *module);
-static void fs_plugin_unload (GTypeModule *module);
 
 
 static gchar **search_paths = NULL;
@@ -109,7 +108,6 @@ fs_plugin_class_init (FsPluginClass * klass)
   parent_class = g_type_class_peek_parent (klass);
 
   module_class->load = fs_plugin_load;
-  module_class->unload = fs_plugin_unload;
 
   g_type_class_add_private (klass, sizeof (FsPluginPrivate));
 
@@ -206,21 +204,6 @@ static gboolean fs_plugin_load (GTypeModule *module)
   g_module_close (plugin->priv->handle);
   return FALSE;
 
-}
-
-static void
-fs_plugin_unload (GTypeModule *module)
-{
-  FsPlugin *plugin = NULL;
-
-  g_return_if_fail (module != NULL);
-
-  plugin = FS_PLUGIN (module);
-
-  GST_INFO("Unloading plugin %s", plugin->name);
-
-  if (plugin->unload != NULL)
-    plugin->unload (plugin);
 }
 
 static FsPlugin *
