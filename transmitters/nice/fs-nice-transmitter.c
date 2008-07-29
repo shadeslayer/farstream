@@ -151,18 +151,7 @@ fs_nice_transmitter_register_type (FsPlugin *module)
   return type;
 }
 
-static void
-fs_nice_transmitter_unload (FsPlugin *plugin)
-{
-  if (fs_nice_transmitter_debug)
-  {
-    gst_debug_category_free (fs_nice_transmitter_debug);
-    fs_nice_transmitter_debug = NULL;
-  }
-}
-
-FS_INIT_PLUGIN (fs_nice_transmitter_register_type,
-    fs_nice_transmitter_unload)
+FS_INIT_PLUGIN (fs_nice_transmitter_register_type)
 
 static void
 fs_nice_transmitter_class_init (FsNiceTransmitterClass *klass)
