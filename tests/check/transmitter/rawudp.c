@@ -497,8 +497,12 @@ _bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
   if (pending != GST_STATE_VOID_PENDING)
     ts_fail ("New state playing, but pending is %d", pending);
 
+  g_debug ("Stopping stream transmitter");
+
   fs_stream_transmitter_stop (st);
   g_object_unref (st);
+
+  g_debug ("Stopped stream transmitter");
 
   g_atomic_int_set(&running, FALSE);
   g_main_loop_quit (loop);
@@ -515,7 +519,7 @@ _handoff_handler_empty (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 /*
  * This test checks that starting a stream, getting it to playing
- * then stopping it works
+ * then stopping it, while the pipeline is playing works
  */
 
 GST_START_TEST (test_rawudptransmitter_stop_stream)
