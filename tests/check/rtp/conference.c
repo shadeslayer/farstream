@@ -708,7 +708,8 @@ set_initial_codecs (
 typedef void (*extra_init) (void);
 
 static void
-nway_test (int in_count, extra_init extrainit)
+nway_test (int in_count, extra_init extrainit,
+    guint st_param_count, GParameter *st_params)
 {
   int i, j;
 
@@ -773,21 +774,21 @@ nway_test (int in_count, extra_init extrainit)
 
 GST_START_TEST (test_rtpconference_two_way)
 {
-  nway_test (2, NULL);
+  nway_test (2, NULL, 0, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_three_way)
 {
-  nway_test (3, NULL);
+  nway_test (3, NULL, 0, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_ten_way)
 {
-  nway_test (10, NULL);
+  nway_test (10, NULL, 0, NULL);
 }
 GST_END_TEST;
 
@@ -829,7 +830,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
-  nway_test (2, NULL);
+  nway_test (2, NULL, 0, NULL);
   select_last_codec = FALSE;
 }
 GST_END_TEST;
@@ -838,7 +839,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
-  nway_test (2, NULL);
+  nway_test (2, NULL, 0, NULL);
   reset_to_last_codec = FALSE;
 }
 GST_END_TEST;
@@ -891,8 +892,8 @@ _recv_only_init_2 (void)
 
 GST_START_TEST (test_rtpconference_recv_only)
 {
-  nway_test (2, _recv_only_init_1);
-  nway_test (2, _recv_only_init_2);
+  nway_test (2, _recv_only_init_1, 0, NULL);
+  nway_test (2, _recv_only_init_2, 0, NULL);
 }
 GST_END_TEST;
 
@@ -922,8 +923,8 @@ _send_only_init_2 (void)
 
 GST_START_TEST (test_rtpconference_send_only)
 {
-  nway_test (2, _send_only_init_1);
-  nway_test (2, _send_only_init_2);
+  nway_test (2, _send_only_init_1, 0, NULL);
+  nway_test (2, _send_only_init_2, 0, NULL);
 }
 GST_END_TEST;
 
@@ -957,7 +958,7 @@ _change_to_send_only_init (void)
 
 GST_START_TEST (test_rtpconference_change_to_send_only)
 {
-  nway_test (2, _change_to_send_only_init);
+  nway_test (2, _change_to_send_only_init, 0, NULL);
 }
 GST_END_TEST;
 
@@ -966,7 +967,7 @@ GST_START_TEST (test_rtpconference_no_rtcp)
 {
   no_rtcp = TRUE;
 
-  nway_test (2, NULL);
+  nway_test (2, NULL, 0, NULL);
 
   no_rtcp = FALSE;
 }
