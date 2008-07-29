@@ -975,6 +975,19 @@ GST_END_TEST;
 
 
 
+GST_START_TEST (test_rtpconference_three_way_no_source_assoc)
+{
+  GParameter param = {0};
+
+  param.name = "associate-on-source";
+  g_value_init (&param.value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&param.value, FALSE);
+
+  nway_test (3, NULL, 1, &param);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -1032,6 +1045,10 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconfence_no_rtcp");
   tcase_add_test (tc_chain, test_rtpconference_no_rtcp);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconfence_three_way_no_source_assoc");
+  tcase_add_test (tc_chain, test_rtpconference_three_way_no_source_assoc);
   suite_add_tcase (s, tc_chain);
 
   return s;
