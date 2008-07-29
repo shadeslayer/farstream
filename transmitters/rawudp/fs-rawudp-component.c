@@ -554,10 +554,12 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
       fs_rawudp_transmitter_udpport_remove_known_address (udpport,
           &self->priv->remote_address, remote_is_unique_cb, self);
 
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+
     fs_rawudp_transmitter_put_udpport (self->priv->transmitter, udpport);
   }
-
-  FS_RAWUDP_COMPONENT_UNLOCK (self);
+  else
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
 }
 
 static void
