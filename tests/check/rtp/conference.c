@@ -67,7 +67,7 @@ GST_START_TEST (test_rtpconference_new)
   FsStreamDirection dir;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
-  st = simple_conference_add_stream (dat, dat);
+  st = simple_conference_add_stream (dat, dat, 0, NULL);
 
   g_object_get (dat->conference, "sdes-cname", &str, NULL);
   ts_fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
@@ -742,7 +742,7 @@ nway_test (int in_count, extra_init extrainit)
       {
         struct SimpleTestStream *st = NULL;
 
-        st = simple_conference_add_stream (dats[i], dats[j]);
+        st = simple_conference_add_stream (dats[i], dats[j], 0, NULL);
         st->handoff_handler = G_CALLBACK (_handoff_handler);
         g_signal_connect (st->stream, "src-pad-added",
             G_CALLBACK (_src_pad_added), st);

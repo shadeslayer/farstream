@@ -190,7 +190,7 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   GError *error = NULL;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
-  st = simple_conference_add_stream (dat, dat);
+  st = simple_conference_add_stream (dat, dat, 0, NULL);
 
   g_signal_connect (dat->session, "notify::codecs",
       G_CALLBACK (_negotiated_codecs_notify), dat);
@@ -289,7 +289,7 @@ GST_START_TEST (test_rtpcodecs_invalid_remote_codecs)
   gboolean rv;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
-  st = simple_conference_add_stream (dat, dat);
+  st = simple_conference_add_stream (dat, dat, 0, NULL);
 
   codecs = g_list_prepend (codecs,
       fs_codec_new (1, "INVALID1", FS_MEDIA_TYPE_AUDIO, 1));

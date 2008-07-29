@@ -61,7 +61,9 @@ struct SimpleTestConference *setup_simple_conference (
 
 struct SimpleTestStream *simple_conference_add_stream (
     struct SimpleTestConference *dat,
-    struct SimpleTestConference *target);
+    struct SimpleTestConference *target,
+    guint st_param_count,
+    GParameter *st_params);
 
 void setup_fakesrc (struct SimpleTestConference *dat);
 
