@@ -544,13 +544,21 @@ _create_sinksource (
   if (have_buffer_callback && buffer_probe_id)
   {
     if (direction == GST_PAD_SINK)
+    {
+      g_object_set_data (G_OBJECT (*requested_pad), "component-id",
+          GUINT_TO_POINTER (component_id));
       *buffer_probe_id = gst_pad_add_buffer_probe (*requested_pad,
           have_buffer_callback,
           have_buffer_user_data);
+    }
     else
+    {
+      g_object_set_data (G_OBJECT (elempad), "component-id",
+          GUINT_TO_POINTER (component_id));
       *buffer_probe_id = gst_pad_add_buffer_probe (elempad,
           have_buffer_callback,
           have_buffer_user_data);
+    }
 
     if (*buffer_probe_id == 0)
     {

@@ -162,6 +162,10 @@ static void agent_new_candidate (NiceAgent *agent,
     const gchar *foundation,
     gpointer user_data);
 
+static gboolean known_buffer_have_buffer_handler (GstPad *pad,
+    GstBuffer *buffer,
+    gpointer user_data);
+
 
 static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
@@ -988,7 +992,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       self->priv->transmitter,
       self->priv->agent->agent,
       self->priv->stream_id,
-      NULL, NULL,
+      G_CALLBACK (known_buffer_have_buffer_handler), self,
       error);
   if (self->priv->gststream == NULL)
     return FALSE;
@@ -1241,4 +1245,24 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
   }
 
   return streamtransmitter;
+}
+
+
+static gboolean
+known_buffer_have_buffer_handler (GstPad *pad, GstBuffer *buffer,
+    gpointer user_data)
+{
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
+  guint component_id;
+
+  if (!g_atomic_int_get (&self->priv->associate_on_source))
+    return TRUE;
+
+  component_id = GPOINTER_TO_UINT (g_object_get_data (G_OBJECT (pad),
+          "component-id"));
+
+  g_signal_emit_by_name (self, "known-source-packet-received", component_id,
+      buffer);
+
+  return TRUE;
 }
