@@ -474,6 +474,9 @@ _create_sinksource (
     guint stream_id,
     guint component_id,
     GstPadDirection direction,
+    GCallback have_buffer_callback,
+    gpointer have_buffer_user_data,
+    gulong *buffer_probe_id,
     GstPad **requested_pad,
     GError **error)
 {
@@ -538,6 +541,24 @@ _create_sinksource (
   else
     ret = gst_pad_link (elempad, *requested_pad);
 
+  if (have_buffer_callback && buffer_probe_id)
+  {
+    if (direction == GST_PAD_SINK)
+      *buffer_probe_id = gst_pad_add_buffer_probe (*requested_pad,
+          have_buffer_callback,
+          have_buffer_user_data);
+    else
+      *buffer_probe_id = gst_pad_add_buffer_probe (elempad,
+          have_buffer_callback,
+          have_buffer_user_data);
+
+    if (*buffer_probe_id == 0)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not create buffer probe as requested");
+    }
+  }
+
   gst_object_unref (elempad);
 
   if (GST_PAD_LINK_FAILED(ret))
@@ -579,12 +600,16 @@ struct _NiceGstStream {
 
   GstPad **requested_funnel_pads;
   GstPad **requested_tee_pads;
+
+  gulong *probe_ids;
 };
 
 NiceGstStream *
 fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     NiceAgent *agent,
     guint stream_id,
+    GCallback have_buffer_callback,
+    gpointer have_buffer_user_data,
     GError **error)
 {
   guint c;
@@ -595,6 +620,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
   ns->nicesinks = g_new0 (GstElement *, self->components + 1);
   ns->requested_tee_pads = g_new0 (GstPad *, self->components + 1);
   ns->requested_funnel_pads = g_new0 (GstPad *, self->components + 1);
+  ns->probe_ids = g_new0 (gulong, self->components + 1);
 
   for (c = 1; c <= self->components; c++)
   {
@@ -605,11 +631,15 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
         stream_id,
         c,
         GST_PAD_SRC,
+        have_buffer_callback,
+        have_buffer_user_data,
+        &ns->probe_ids[c],
         &ns->requested_funnel_pads[c],
         error);
 
     if (ns->nicesrcs[c] == NULL)
       goto error;
+
 
     ns->nicesinks[c] = _create_sinksource ("nicesink",
         GST_BIN (self->priv->gst_sink),
@@ -618,6 +648,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
         stream_id,
         c,
         GST_PAD_SINK,
+        NULL, NULL, NULL,
         &ns->requested_tee_pads[c],
         error);
 

@@ -974,6 +974,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       self->priv->transmitter,
       self->priv->agent->agent,
       self->priv->stream_id,
+      NULL, NULL,
       error);
   if (self->priv->gststream == NULL)
     return FALSE;
