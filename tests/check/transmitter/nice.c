@@ -30,9 +30,16 @@
 #include "generic.h"
 
 
+enum {
+  FLAG_NO_SOURCE = 1 << 0
+};
+
+
 gint buffer_count[2][2] = {{0,0}, {0,0}};
+guint received_known[2][2] = {{0,0}, {0,0}};
 GMainLoop *loop = NULL;
 volatile gint running = TRUE;
+gboolean associate_on_source = TRUE;
 
 GST_START_TEST (test_nicetransmitter_new)
 {
@@ -135,6 +142,24 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count[0][0] == 20 && buffer_count[0][1] == 20 &&
       buffer_count[1][0] == 20 && buffer_count[1][1] == 20) {
+    if (associate_on_source)
+      ts_fail_unless (buffer_count[0][0] == received_known[0][0] &&
+          buffer_count[0][1] == received_known[0][1] &&
+          buffer_count[1][0] == received_known[1][0] &&
+          buffer_count[1][1] == received_known[1][1],
+          "Some known buffers from known sources have not been reported"
+          " (%d != %u || %d != %u || %d != %u || %d != %u)",
+          buffer_count[0][0], received_known[0][0],
+          buffer_count[0][1], received_known[0][1],
+          buffer_count[1][0], received_known[1][0],
+          buffer_count[1][1], received_known[1][1]);
+    else
+      ts_fail_unless (received_known[0][0] == 0 &&
+          received_known[0][1] == 0 &&
+          received_known[1][0] == 0 &&
+          received_known[1][1] == 0,
+          "Got a known-source-packet-received signal when we shouldn't have");
+
     /* TEST OVER */
     g_atomic_int_set(&running, FALSE);
     g_main_loop_quit (loop);
@@ -157,6 +182,25 @@ _handoff_handler2 (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gint component_id = GPOINTER_TO_INT (user_data);
 
   _handoff_handler (element, buffer, pad, 1, component_id);
+}
+
+
+static void
+_known_source_packet_received (FsStreamTransmitter *st, guint component_id,
+    GstBuffer *buffer, gpointer user_data)
+{
+  guint stream = GPOINTER_TO_UINT (user_data);
+
+  ts_fail_unless (associate_on_source == TRUE,
+      "Got known-source-packet-received when we shouldn't have");
+
+  ts_fail_unless (component_id == 1 || component_id == 2,
+      "Invalid component id %u", component_id);
+
+  ts_fail_unless (GST_IS_BUFFER (buffer), "Invalid buffer received at %p",
+      buffer);
+
+  received_known[stream - 1][component_id - 1]++;
 }
 
 static void
@@ -252,6 +296,8 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   GstElement *pipeline2 = NULL;
   FsNiceTestParticipant *p1 = NULL, *p2 = NULL;
 
+  associate_on_source = !(flags & FLAG_NO_SOURCE);
+
   loop = g_main_loop_new (NULL, FALSE);
 
   trans = fs_transmitter_new ("nice", 2, &error);
@@ -320,6 +366,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st, "state-changed",
           G_CALLBACK (_stream_state_changed), trans),
       "Could not connect to state-changed signal");
+  ts_fail_unless (g_signal_connect (st, "known-source-packet-received",
+          G_CALLBACK (_known_source_packet_received), GUINT_TO_POINTER (1)),
+      "Could not connect to known-source-packet-received signal");
 
   ts_fail_unless (g_signal_connect (st2, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), st),
@@ -336,6 +385,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   ts_fail_unless (g_signal_connect (st2, "state-changed",
           G_CALLBACK (_stream_state_changed), trans2),
       "Could not connect to state-changed signal");
+  ts_fail_unless (g_signal_connect (st2, "known-source-packet-received",
+          G_CALLBACK (_known_source_packet_received), GUINT_TO_POINTER (2)),
+      "Could not connect to known-source-packet-received signal");
 
   ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
@@ -398,6 +450,20 @@ GST_START_TEST (test_nicetransmitter_basic)
 GST_END_TEST;
 
 
+
+GST_START_TEST (test_nicetransmitter_no_associate_on_source)
+{
+  GParameter param = {NULL, {0}};
+
+  param.name = "associate-on-source";
+  g_value_init (&param.value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&param.value, FALSE);
+
+  run_nice_transmitter_test (1, &param, FLAG_NO_SOURCE);
+}
+GST_END_TEST;
+
+
 static Suite *
 nicetransmitter_suite (void)
 {
@@ -416,6 +482,10 @@ nicetransmitter_suite (void)
 
   tc_chain = tcase_create ("nicetransmitter-basic");
   tcase_add_test (tc_chain, test_nicetransmitter_basic);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("nicetransmitter-no-assoc-on-source");
+  tcase_add_test (tc_chain, test_nicetransmitter_no_associate_on_source);
   suite_add_tcase (s, tc_chain);
 
   return s;
