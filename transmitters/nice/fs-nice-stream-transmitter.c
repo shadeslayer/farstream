@@ -441,6 +441,7 @@ fs_nice_stream_transmitter_get_property (GObject *object,
       break;
     case PROP_COMPATIBILITY_MODE:
       g_value_set_uint (value, self->priv->compatibility_mode);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
