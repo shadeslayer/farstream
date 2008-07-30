@@ -176,7 +176,7 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
   gint direction;
   const gchar *transmitter_name = NULL;
   PyObject *st_params = NULL;
-  int pos = 0, i = 0;
+  ssize_t pos = 0, i = 0;
   PyObject *key, *value;
   FsTransmitter *transmitter = NULL;
   GObjectClass *st_class  = NULL;
