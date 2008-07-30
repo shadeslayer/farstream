@@ -68,7 +68,8 @@ enum
   PROP_TURN_PORT,
   PROP_CONTROLLING_MODE,
   PROP_STREAM_ID,
-  PROP_COMPATIBILITY_MODE
+  PROP_COMPATIBILITY_MODE,
+  PROP_ASSOCIATE_ON_SOURCE
 };
 
 struct _FsNiceStreamTransmitterPrivate
@@ -98,6 +99,8 @@ struct _FsNiceStreamTransmitterPrivate
   gulong gathering_done_handler_id;
   gulong new_selected_pair_handler_id;
   gulong new_candidate_handler_id;
+
+  volatile gint associate_on_source;
 
   /* Everything below is protected by the mutex */
 
@@ -226,6 +229,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
       PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
+  g_object_class_override_property (gobject_class, PROP_ASSOCIATE_ON_SOURCE,
+      "associate-on-source");
 
   g_object_class_install_property (gobject_class, PROP_STUN_IP,
       g_param_spec_string (
@@ -442,6 +447,10 @@ fs_nice_stream_transmitter_get_property (GObject *object,
     case PROP_COMPATIBILITY_MODE:
       g_value_set_uint (value, self->priv->compatibility_mode);
       break;
+    case PROP_ASSOCIATE_ON_SOURCE:
+      g_value_set_boolean (value,
+          g_atomic_int_get (&self->priv->associate_on_source));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -484,6 +493,10 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_COMPATIBILITY_MODE:
       self->priv->compatibility_mode = g_value_get_uint (value);
+      break;
+    case PROP_ASSOCIATE_ON_SOURCE:
+      g_atomic_int_set (&self->priv->associate_on_source,
+          g_value_get_boolean (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
