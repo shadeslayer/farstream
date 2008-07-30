@@ -138,6 +138,8 @@ static gboolean fs_nice_stream_transmitter_force_remote_candidates (
 static gboolean fs_nice_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
     GError **error);
+static void fs_nice_stream_transmitter_stop (
+    FsStreamTransmitter *streamtransmitter);
 
 static void agent_state_changed (NiceAgent *agent,
     guint stream_id,
@@ -216,6 +218,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
     fs_nice_stream_transmitter_force_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
     fs_nice_stream_transmitter_gather_local_candidates;
+  streamtransmitterclass->stop =
+    fs_nice_stream_transmitter_stop;
 
   g_type_class_add_private (klass, sizeof (FsNiceStreamTransmitterPrivate));
 
@@ -304,17 +308,9 @@ fs_nice_stream_transmitter_dispose (GObject *object)
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (object);
 
+  fs_nice_stream_transmitter_stop (FS_STREAM_TRANSMITTER_CAST (object));
+
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-  if (self->priv->gststream)
-    fs_nice_transmitter_free_gst_stream (self->priv->transmitter,
-        self->priv->gststream);
-  self->priv->gststream = NULL;
-
-  if (self->priv->stream_id)
-    nice_agent_remove_stream (self->priv->agent->agent,
-        self->priv->stream_id);
-  self->priv->stream_id = 0;
-
   if (self->priv->state_changed_handler_id)
     g_signal_handler_disconnect (self->priv->agent->agent,
         self->priv->state_changed_handler_id);
@@ -350,6 +346,26 @@ fs_nice_stream_transmitter_dispose (GObject *object)
 
   parent_class->dispose (object);
 }
+
+static void
+fs_nice_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
+{
+  FsNiceStreamTransmitter *self =
+    FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (self->priv->gststream)
+    fs_nice_transmitter_free_gst_stream (self->priv->transmitter,
+        self->priv->gststream);
+  self->priv->gststream = NULL;
+
+  if (self->priv->stream_id)
+    nice_agent_remove_stream (self->priv->agent->agent,
+        self->priv->stream_id);
+  self->priv->stream_id = 0;
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+}
+
 
 static void
 fs_nice_stream_transmitter_finalize (GObject *object)
