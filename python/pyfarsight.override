@@ -176,7 +176,7 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
   gint direction;
   const gchar *transmitter_name = NULL;
   PyObject *st_params = NULL;
-  int pos = 0, i = 0;
+  ssize_t pos = 0, i = 0;
   PyObject *key, *value;
   FsTransmitter *transmitter = NULL;
   GObjectClass *st_class  = NULL;
@@ -185,7 +185,7 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
   guint n_parameters = 0;
   GParameter *parameters = NULL;
 
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!is|O!:FsSession.new_stream",
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!i|zO!:FsSession.new_stream",
           kwlist,
           &PyFsParticipant_Type, &participant,
           &direction,
@@ -193,7 +193,7 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
           &PyDict_Type, &st_params))
     return NULL;
 
-  if (st_params)
+  if (transmitter_name && st_params)
   {
     n_parameters = PyDict_Size (st_params);
 
