@@ -567,6 +567,13 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
     /* Lets add the converters at the beginning of the encoding pipelines */
     if (media_type == FS_MEDIA_TYPE_VIDEO)
     {
+      tmpfact = gst_element_factory_find ("fsvideoanyrate");
+      if (tmpfact)
+      {
+        codec_blueprint->send_pipeline_factory = g_list_append (
+            codec_blueprint->send_pipeline_factory,
+            g_list_append (NULL, tmpfact));
+      }
       tmpfact = gst_element_factory_find ("ffmpegcolorspace");
       if (tmpfact)
       {
