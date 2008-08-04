@@ -101,7 +101,8 @@ AC_SUBST(GST_INSTALL_PLUGINS_HELPER)
 dnl these are all the gst plug-ins, compilable without additional libs
 FS2_PLUGINS_ALL=" \
 	fsrtpconference \
-	funnel
+	funnel \
+ 	videoanyrate
 	"
 AC_SUBST(FS2_PLUGINS_ALL)
 
@@ -373,6 +374,7 @@ farsight2.pc
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/funnel/Makefile
+gst/videoanyrate/Makefile
 gst-libs/Makefile
 gst-libs/gst/Makefile
 gst-libs/gst/farsight/Makefile
