@@ -118,7 +118,7 @@ gst_videoanyrate_transform_caps (GstBaseTransform *trans,
     GstPadDirection direction,
     GstCaps *caps)
 {
-  GstStructure *s;
+  GstStructure *s, *s2;
   GstCaps *mycaps = gst_caps_make_writable (caps);
 
   if (gst_caps_get_size (mycaps) == 0)
@@ -126,7 +126,12 @@ gst_videoanyrate_transform_caps (GstBaseTransform *trans,
 
   s = gst_caps_get_structure (mycaps, 0);
 
-  gst_structure_remove_field (s, "framerate");
+  if (gst_structure_has_field (s, "framerate"))
+  {
+    s2 = gst_structure_copy (s);
+    gst_structure_remove_field (s2, "framerate");
+    gst_caps_append_structure (mycaps, s2);
+  }
 
   return gst_caps_ref (mycaps);
 }
