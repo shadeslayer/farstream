@@ -173,6 +173,7 @@ fs_funnel_chain (GstPad * pad, GstBuffer * buffer)
   FsFunnel *funnel = FS_FUNNEL (gst_pad_get_parent (pad));
   FsFunnelPadPrivate *priv = gst_pad_get_element_private (pad);
   GstEvent *event = NULL;
+  GstClockTime newts;
 
   GST_DEBUG_OBJECT (funnel, "received buffer %p", buffer);
 
@@ -188,9 +189,12 @@ fs_funnel_chain (GstPad * pad, GstBuffer * buffer)
     gst_segment_set_last_stop (&priv->segment, priv->segment.format,
         GST_BUFFER_TIMESTAMP (buffer));
 
-  buffer = gst_buffer_make_metadata_writable (buffer);
-  GST_BUFFER_TIMESTAMP (buffer) = gst_segment_to_running_time (&priv->segment,
+  newts = gst_segment_to_running_time (&priv->segment,
       priv->segment.format, GST_BUFFER_TIMESTAMP (buffer));
+  if (newts != GST_BUFFER_TIMESTAMP (buffer)) {
+    buffer = gst_buffer_make_metadata_writable (buffer);
+    GST_BUFFER_TIMESTAMP (buffer) = newts;
+  }
 
   if (!funnel->has_segment)
   {
