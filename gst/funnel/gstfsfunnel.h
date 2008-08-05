@@ -54,6 +54,8 @@ struct _FsFunnel {
 
   /*< private >*/
   GstPad         *srcpad;
+
+  gboolean has_segment;
 };
 
 struct _FsFunnelClass {

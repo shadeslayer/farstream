@@ -65,9 +65,12 @@ static GstPad *fs_funnel_request_new_pad (GstElement * element,
   GstPadTemplate * templ, const gchar * name);
 static void fs_funnel_release_pad (GstElement * element, GstPad * pad);
 static GstFlowReturn fs_funnel_chain (GstPad * pad, GstBuffer * buffer);
+static gboolean fs_funnel_event (GstPad * pad, GstEvent * event);
 
 
-
+typedef struct {
+  GstSegment segment;
+} FsFunnelPadPrivate;
 
 static void
 fs_funnel_base_init (gpointer g_class)
@@ -123,14 +126,17 @@ fs_funnel_request_new_pad (GstElement * element, GstPadTemplate * templ,
 {
   GstPad *sinkpad;
   FsFunnel *funnel = FS_FUNNEL (element);
+  FsFunnelPadPrivate *priv = g_slice_alloc0 (sizeof(FsFunnelPadPrivate));
 
   GST_DEBUG_OBJECT (funnel, "requesting pad");
 
   sinkpad = gst_pad_new_from_template (templ, name);
 
-  //  gst_pad_set_setcaps_function ()
-
   gst_pad_set_chain_function (sinkpad, GST_DEBUG_FUNCPTR (fs_funnel_chain));
+  gst_pad_set_event_function (sinkpad, GST_DEBUG_FUNCPTR (fs_funnel_event));
+
+  gst_segment_init (&priv->segment, GST_FORMAT_UNDEFINED);
+  gst_pad_set_element_private (sinkpad, priv);
 
   gst_pad_set_active (sinkpad, TRUE);
 
@@ -143,10 +149,14 @@ static void
 fs_funnel_release_pad (GstElement * element, GstPad * pad)
 {
   FsFunnel *funnel = FS_FUNNEL (element);
+  FsFunnelPadPrivate *priv = gst_pad_get_element_private (pad);
 
   GST_DEBUG_OBJECT (funnel, "releasing pad");
 
   gst_pad_set_active (pad, FALSE);
+
+  if (priv)
+    g_slice_free1 (sizeof(FsFunnelPadPrivate), priv);
 
   gst_element_remove_pad (GST_ELEMENT_CAST (funnel), pad);
 }
@@ -156,19 +166,97 @@ fs_funnel_chain (GstPad * pad, GstBuffer * buffer)
 {
   GstFlowReturn res;
   FsFunnel *funnel = FS_FUNNEL (gst_pad_get_parent (pad));
+  FsFunnelPadPrivate *priv = gst_pad_get_element_private (pad);
+  GstEvent *event = NULL;
 
   GST_DEBUG_OBJECT (funnel, "received buffer %p", buffer);
 
+  GST_OBJECT_LOCK (funnel);
+  if (priv->segment.format == GST_FORMAT_UNDEFINED) {
+    GST_WARNING_OBJECT (funnel, "Got buffer without segment,"
+        " setting segment [0,inf[");
+     gst_segment_set_newsegment_full (&priv->segment, FALSE, 1.0, 1.0,
+         GST_FORMAT_TIME, 0, -1, 0);
+  }
+
+  if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_TIMESTAMP (buffer)))
+    gst_segment_set_last_stop (&priv->segment, priv->segment.format,
+        GST_BUFFER_TIMESTAMP (buffer));
+
+  buffer = gst_buffer_make_metadata_writable (buffer);
+  GST_BUFFER_TIMESTAMP (buffer) = gst_segment_to_running_time (&priv->segment,
+      priv->segment.format, GST_BUFFER_TIMESTAMP (buffer));
+
+  if (!funnel->has_segment)
+  {
+    event = gst_event_new_new_segment_full (FALSE, 1.0, 1.0, GST_FORMAT_TIME,
+        0, -1, 0);
+    funnel->has_segment = TRUE;
+  }
+  GST_OBJECT_UNLOCK (funnel);
+
+  if (event) {
+    if (!gst_pad_push_event (funnel->srcpad, event)) {
+      GST_WARNING_OBJECT (funnel, "Could not push out newsegment event");
+      res = GST_FLOW_ERROR;
+      goto out;
+    }
+  }
+
   res = gst_pad_push (funnel->srcpad, buffer);
 
-  GST_DEBUG_OBJECT (funnel, "handled buffer %s", gst_flow_get_name (res));
+  GST_LOG_OBJECT (funnel, "handled buffer %s", gst_flow_get_name (res));
 
+ out:
   gst_object_unref (funnel);
 
   return res;
 }
 
+static gboolean
+fs_funnel_event (GstPad * pad, GstEvent * event)
+{
+  FsFunnel *funnel = FS_FUNNEL (gst_pad_get_parent (pad));
+  FsFunnelPadPrivate *priv = gst_pad_get_element_private (pad);
+  gboolean forward = TRUE;
+  gboolean res = TRUE;
 
+  switch (GST_EVENT_TYPE (event)) {
+    case GST_EVENT_NEWSEGMENT:
+      {
+        gboolean update;
+        gdouble rate, arate;
+        GstFormat format;
+        gint64 start;
+        gint64 stop;
+        gint64 time;
+
+        gst_event_parse_new_segment_full (event, &update, &rate, &arate,
+            &format, &start, &stop, &time);
+
+
+        GST_OBJECT_LOCK (funnel);
+        gst_segment_set_newsegment_full (&priv->segment, update, rate, arate,
+            format, start, stop, time);
+        GST_OBJECT_UNLOCK (funnel);
+
+        forward = FALSE;
+        gst_event_unref (event);
+      }
+      break;
+    default:
+      forward = TRUE;
+      break;
+  }
+
+
+  if (forward)
+    res = gst_pad_push_event (funnel->srcpad, event);
+
+  gst_object_unref (funnel);
+
+  return res;
+}
 
 static gboolean plugin_init (GstPlugin * plugin)
 {
