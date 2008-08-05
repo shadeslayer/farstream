@@ -61,9 +61,13 @@ GST_BOILERPLATE_FULL (FsFunnel, fs_funnel, GstElement, GST_TYPE_ELEMENT,
 
 
 
+static GstStateChangeReturn fs_funnel_change_state (GstElement *element,
+    GstStateChange transition);
+
 static GstPad *fs_funnel_request_new_pad (GstElement * element,
   GstPadTemplate * templ, const gchar * name);
 static void fs_funnel_release_pad (GstElement * element, GstPad * pad);
+
 static GstFlowReturn fs_funnel_chain (GstPad * pad, GstBuffer * buffer);
 static gboolean fs_funnel_event (GstPad * pad, GstEvent * event);
 
@@ -106,6 +110,7 @@ fs_funnel_class_init (FsFunnelClass * klass)
   gstelement_class->request_new_pad =
     GST_DEBUG_FUNCPTR (fs_funnel_request_new_pad);
   gstelement_class->release_pad = GST_DEBUG_FUNCPTR (fs_funnel_release_pad);
+  gstelement_class->change_state = GST_DEBUG_FUNCPTR (fs_funnel_change_state);
 }
 
 
@@ -244,8 +249,14 @@ fs_funnel_event (GstPad * pad, GstEvent * event)
         gst_event_unref (event);
       }
       break;
+    case GST_EVENT_FLUSH_STOP:
+      {
+        GST_OBJECT_LOCK (funnel);
+        gst_segment_init (&priv->segment, GST_FORMAT_UNDEFINED);
+        GST_OBJECT_UNLOCK (funnel);
+      }
+      break;
     default:
-      forward = TRUE;
       break;
   }
 
@@ -257,6 +268,54 @@ fs_funnel_event (GstPad * pad, GstEvent * event)
 
   return res;
 }
+
+
+static void
+reset_pad (gpointer data, gpointer user_data)
+{
+  GstPad *pad = data;
+  FsFunnelPadPrivate *priv = gst_pad_get_element_private (pad);
+
+  GST_OBJECT_LOCK (pad);
+  gst_segment_init (&priv->segment, GST_FORMAT_UNDEFINED);
+  GST_OBJECT_UNLOCK (pad);
+}
+
+static GstStateChangeReturn
+fs_funnel_change_state (GstElement *element, GstStateChange transition)
+{
+  FsFunnel *funnel = FS_FUNNEL (element);
+  GstStateChangeReturn ret;
+
+  switch (transition) {
+    case GST_STATE_CHANGE_READY_TO_PAUSED:
+      {
+        GstIterator *iter = gst_element_iterate_sink_pads (element);
+        GstIteratorResult res;
+
+        do {
+          res = gst_iterator_foreach (iter, reset_pad, NULL);
+        } while (res == GST_ITERATOR_RESYNC);
+
+        gst_iterator_free (iter);
+
+        if (res == GST_ITERATOR_ERROR)
+          return GST_STATE_CHANGE_FAILURE;
+
+        GST_OBJECT_LOCK (funnel);
+        funnel->has_segment = FALSE;
+        GST_OBJECT_UNLOCK (funnel);
+      }
+      break;
+    default:
+      break;
+  }
+
+  ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
+
+  return ret;
+}
+
 
 static gboolean plugin_init (GstPlugin * plugin)
 {
