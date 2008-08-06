@@ -51,16 +51,16 @@ G_BEGIN_DECLS
 #define FS_PLUGIN_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_PLUGIN, FsPluginClass))
 
+/**
+ * FsPlugin:
+ * @parent: the parent object
+ *
+ * This structure represents a plugin, it is opaque.
+ */
+
 typedef struct _FsPlugin FsPlugin;
 typedef struct _FsPluginClass FsPluginClass;
 typedef struct _FsPluginPrivate FsPluginPrivate;
-
-/**
- * FsPlugin:
- * @parent: the parent type
- *
- * This structure represents a plugin, it is opaque
- */
 
 struct _FsPlugin
 {
