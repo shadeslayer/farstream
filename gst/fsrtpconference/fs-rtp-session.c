@@ -1296,6 +1296,8 @@ _stream_known_source_packet_received (FsRtpStream *stream, guint component,
   FS_RTP_SESSION_LOCK (self);
 
   if (!g_hash_table_lookup (self->priv->ssrc_streams,  GUINT_TO_POINTER (ssrc)))
+  {
+    GST_DEBUG ("Associating SSRC %x in session %d", ssrc, self->id);
     g_hash_table_insert (self->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
         stream);
 
@@ -3125,7 +3127,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
     if (fs_rtp_stream_add_substream (stream, substream, &error))
     {
       fs_rtp_session_verify_substream_locked (session, stream, substream);
-      GST_DEBUG ("Associated SSRC %x to session %u", ssrc, session->id);
+      GST_DEBUG ("Associated SSRC %x in session %u", ssrc, session->id);
     }
     else
     {
