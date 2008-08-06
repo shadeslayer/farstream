@@ -583,7 +583,7 @@ class FsUIParticipant:
         if not VIDEO:
             return
         try:
-            self.videosink.get_by_name("uservideosink").expose()
+            self.videosink.get_by_interface(gst.interfaces.XOverlay).expose()
         except AttributeError:
             try:
                 self.outcv.acquire()
@@ -765,7 +765,7 @@ class FsMainUI:
         if not VIDEO:
             return
         try:
-            self.preview.get_by_name("previewvideosink").expose()
+            self.preview.get_by_interface(gst.interfaces.XOverlay).expose()
         except AttributeError:
             self.preview = self.pipeline.make_video_preview(widget.window.xid,
                                                             self.newsize)
