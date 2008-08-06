@@ -807,6 +807,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
   GList *item;
   GList *agents  = NULL;
   FsNiceAgent *agent = NULL;
+  gint i;
 
   /* Before going any further, check that the list of candidates are ok */
 
@@ -843,6 +844,66 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Only UDP preferred candidates can be set");
       return FALSE;
+    }
+  }
+
+  /* Now if we have a relayinfo, lets verify that its ok */
+
+  if (self->priv->relay_info)
+  {
+    if (self->priv->relay_info->n_values != self->priv->transmitter->components)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "You have %u elements in your relayinfo, but you have %d components",
+          self->priv->relay_info->n_values,
+          self->priv->transmitter->components);
+      return FALSE;
+    }
+
+    for (i = 0; i < self->priv->transmitter->components; i++)
+    {
+      GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
+      const GstStructure *s = gst_value_get_structure (val);
+
+      if (!s)
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Element %d of the relay-info GValueArray is not a GstStructure",
+            i);
+        return FALSE;
+      }
+
+      if (!gst_structure_has_field_typed (s, "ip", G_TYPE_STRING))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Element %d of the relay-info does not have an ip as a string", i);
+        return FALSE;
+      }
+
+      if (!gst_structure_has_field_typed (s, "port", G_TYPE_UINT))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Element %d of the relay-info does not have a port as a guint", i);
+        return FALSE;
+      }
+
+      if (gst_structure_has_field (s, "username") &&
+          !gst_structure_has_field_typed (s, "username", G_TYPE_STRING))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Element %d of the relay-info has a username that is not a string",
+            i);
+        return FALSE;
+      }
+
+      if (gst_structure_has_field (s, "password") &&
+          !gst_structure_has_field_typed (s, "password", G_TYPE_STRING))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Element %d of the relay-info has a password that is not a string",
+            i);
+        return FALSE;
+      }
     }
   }
 
@@ -936,6 +997,26 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not create libnice stream");
     return FALSE;
+  }
+
+  /* if we have a relay- info, lets set it */
+  if (self->priv->relay_info)
+  {
+    for (i = 0; i < self->priv->transmitter->components; i++)
+    {
+      GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
+      const GstStructure *s = gst_value_get_structure (val);
+      const gchar *username, *password, *ip;
+      guint port;
+
+      ip = gst_structure_get_string (s, "ip");
+      gst_structure_get_uint (s, "ip",  &port);
+      username = gst_structure_get_string (s, "username");
+      password = gst_structure_get_string (s, "password");
+
+      nice_agent_set_relay_info(self->priv->agent->agent,
+          self->priv->stream_id, i + 1, ip, port, username, password);
+    }
   }
 
   self->priv->state_changed_handler_id = g_signal_connect (agent->agent,
