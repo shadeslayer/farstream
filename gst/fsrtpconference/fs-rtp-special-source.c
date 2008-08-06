@@ -615,7 +615,7 @@ fs_rtp_special_source_send_event (FsRtpSpecialSource *self,
   gboolean ret = FALSE;
   GstPad *pad;
 
-  pad = gst_element_get_pad (self->priv->src, "src");
+  pad = gst_element_get_static_pad (self->priv->src, "src");
 
   if (!pad)
   {
