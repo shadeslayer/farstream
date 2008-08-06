@@ -376,7 +376,7 @@ fs_stream_set_property (GObject *object,
 }
 
 /**
- * fs_stream_set_remote_candidate:
+ * fs_stream_set_remote_candidates:
  * @stream: an #FsStream
  * @candidates: an #GList of #FsCandidate representing the remote candidates
  * @error: location of a #GError, or %NULL if no error occured

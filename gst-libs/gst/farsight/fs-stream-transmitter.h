@@ -58,7 +58,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
  * FsStreamTransmitterClass:
  * @parent_class: Our parent
  * @set_remote_candidates: Sets the remote candidates
- * @force_remote_canidates: Forces certain remote candidates
+ * @force_remote_candidates: Forces certain remote candidates
  * @gather_local_candidates: Starts the gathering of local candidates
  * @stop: Stop the stream transmitter synchronously (does any Gst stopping
  * that needs to be done)
