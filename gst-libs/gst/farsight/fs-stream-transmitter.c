@@ -433,7 +433,7 @@ fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
     FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
   if (klass->stop)
-    return klass->stop (streamtransmitter);
+    klass->stop (streamtransmitter);
 }
 
 
