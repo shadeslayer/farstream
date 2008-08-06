@@ -3066,6 +3066,70 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
   g_clear_error (&error);
 }
 
+static void
+fs_rtp_session_associate_free_substreams (FsRtpSession *session,
+    FsRtpStream *stream, guint32 ssrc)
+{
+  gboolean added = FALSE;
+
+  for (;;)
+  {
+    FsRtpSubStream *substream = NULL;
+    GList *item = NULL;
+    GError *error = NULL;
+
+    FS_RTP_SESSION_LOCK (session);
+
+    for (item = g_list_first (session->priv->free_substreams);
+         item;
+         item = g_list_next (item))
+    {
+      FsRtpSubStream *localsubstream = item->data;
+      guint32 localssrc;
+
+      g_object_get (localsubstream, "ssrc", &localssrc, NULL);
+      GST_LOG ("Have substream with ssrc %x, looking for %x", localssrc, ssrc);
+      if (ssrc == localssrc)
+      {
+        substream = localsubstream;
+        session->priv->free_substreams = g_list_delete_link (
+            session->priv->free_substreams, item);
+        break;
+      }
+    }
+    FS_RTP_SESSION_UNLOCK (session);
+
+    if (!substream)
+      break;
+
+    added = TRUE;
+
+    while (
+        g_signal_handlers_disconnect_by_func (substream, "error", session) > 0);
+    while (
+        g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout",
+            session) > 0);
+
+    if (fs_rtp_stream_add_substream (stream, substream, &error))
+    {
+      fs_rtp_session_verify_substream_locked (session, stream, substream);
+      GST_DEBUG ("Associated SSRC %x to session %u", ssrc, session->id);
+    }
+    else
+    {
+      GST_ERROR ("Could not associate a substream with its stream",
+          error->message);
+      fs_session_emit_error (FS_SESSION (session), error->code,
+          "Could not associate a substream with its stream",
+          error->message);
+    }
+    g_clear_error (&error);
+  }
+
+  if (added == FALSE)
+    GST_DEBUG ("No free substream with SSRC %x in session %u",
+        ssrc, session->id);
+}
 
 void
 fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
@@ -3073,9 +3137,7 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     const gchar *cname)
 {
   FsRtpStream *stream = NULL;
-  FsRtpSubStream *substream = NULL;
-  GList *item;
-  GError *error = NULL;
+  GList *item = NULL;
 
   FS_RTP_SESSION_LOCK (session);
   for (item = g_list_first (session->priv->streams);
@@ -3115,46 +3177,9 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
   g_hash_table_insert (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
       stream);
 
-  for (item = g_list_first (session->priv->free_substreams);
-       item;
-       item = g_list_next (item))
-  {
-    FsRtpSubStream *localsubstream = item->data;
-    guint32 localssrc;
-
-    g_object_get (localsubstream, "ssrc", &localssrc, NULL);
-    GST_LOG ("Have substream with ssrc %x, looking for %x", localssrc, ssrc);
-    if (ssrc == localssrc)
-    {
-      substream = localsubstream;
-      session->priv->free_substreams = g_list_delete_link (
-          session->priv->free_substreams, item);
-      break;
-    }
-  }
   FS_RTP_SESSION_UNLOCK (session);
 
-  if (!substream)
-  {
-    GST_DEBUG ("No free substream with SSRC %x in session %u",
-        ssrc, session->id);
-    return;
-  }
-
-  while (
-      g_signal_handlers_disconnect_by_func (substream, "error", session) > 0);
-  while (
-      g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0);
-
-  if (fs_rtp_stream_add_substream (stream, substream, &error))
-    fs_rtp_session_verify_substream_locked (session, stream, substream);
-  else
-    fs_session_emit_error (FS_SESSION (session), error->code,
-        "Could not associate a substream with its stream",
-        error->message);
-  g_clear_error (&error);
-
-  GST_DEBUG ("Associated SSRC %x to session %u", ssrc, session->id);
+  fs_rtp_session_associate_free_substreams (session, stream, ssrc);
 }
 
 static void
