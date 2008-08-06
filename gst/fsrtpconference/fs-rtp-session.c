@@ -251,6 +251,10 @@ static void
 fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session);
 
 static void
+fs_rtp_session_associate_free_substreams (FsRtpSession *session,
+    FsRtpStream *stream, guint32 ssrc);
+
+static void
 _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session);
 static void
 _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
@@ -1295,7 +1299,15 @@ _stream_known_source_packet_received (FsRtpStream *stream, guint component,
     g_hash_table_insert (self->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
         stream);
 
-  FS_RTP_SESSION_UNLOCK (self);
+    FS_RTP_SESSION_UNLOCK (self);
+
+    fs_rtp_session_associate_free_substreams (self, stream, ssrc);
+  }
+  else
+  {
+    FS_RTP_SESSION_UNLOCK (self);
+  }
+
 }
 
 static gboolean
