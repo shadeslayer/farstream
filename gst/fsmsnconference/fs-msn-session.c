@@ -54,12 +54,7 @@ enum
   PROP_0,
   PROP_MEDIA_TYPE,
   PROP_ID,
-  PROP_SINK_PAD,
   PROP_CODEC_PREFERENCES,
-  PROP_CODECS,
-  PROP_CODECS_WITHOUT_CONFIG,
-  PROP_CURRENT_SEND_CODEC,
-  PROP_CODECS_READY,
   PROP_CONFERENCE
 };
 
@@ -69,36 +64,10 @@ struct _FsMsnSessionPrivate
 {
   FsMediaType media_type;
 
-  /* We dont need a reference to this one per our reference model
-   * This Session object can only exist while its parent conference exists
-   */
   FsMsnConference *conference;
-
-  /* We keep references to these elements
-   */
-
-  GstElement *media_sink_valve;
-  GstElement *send_tee;
- 
-  /* Request pads that are disposed of when the tee is disposed of */
-  GstPad *send_tee_media_pad;
-  GstPad *send_tee_discovery_pad;
-
-  /* We dont keep explicit references to the pads, the Bin does that for us
-   * only this element's methods can add/remove it
-   */
-  GstPad *media_sink_pad;
-
-
-  /* Request pad to release on dispose */
-  GstPad *send_msn_sink;
-  GstPad *recv_msn_sink;
- 
+  
   /* These lists are protected by the session mutex */
   GList *streams;
-  GList *free_substreams;
-
-  GList *extra_sources;
 
   GError *construction_error;
 
@@ -127,10 +96,10 @@ static void fs_msn_session_constructed (GObject *object);
 static FsStream *fs_msn_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
+    const gchar *transmitter,
     guint n_parameters,
     GParameter *parameters,
     GError **error);
-
 
 static void _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
@@ -159,9 +128,7 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
     PROP_MEDIA_TYPE, "media-type");
   g_object_class_override_property (gobject_class,
     PROP_ID, "id");
-  g_object_class_override_property (gobject_class,
-    PROP_SINK_PAD, "sink-pad");
-
+    
   g_object_class_install_property (gobject_class,
     PROP_CONFERENCE,
     g_param_spec_object ("conference",
@@ -215,18 +182,7 @@ fs_msn_session_dispose (GObject *object)
     return;
 
   conferencebin = GST_BIN (self->priv->conference);
-
-  /* Lets stop all of the elements sink to source */
-
-  /* First the send pipeline */
-   //See original
-
-
-  /* Now the recv pipeline */
- 
   
-  /* Now they should all be stopped, we can remove them in peace */
-
   FS_MSN_SESSION_UNLOCK (self);
 
   /* MAKE sure dispose does not run twice. */
@@ -260,9 +216,6 @@ fs_msn_session_get_property (GObject *object,
       break;
     case PROP_ID:
       g_value_set_uint (value, self->id);
-      break;
-    case PROP_SINK_PAD:
-      g_value_set_object (value, self->priv->media_sink_pad);
       break;
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
@@ -302,133 +255,7 @@ static void
 fs_msn_session_constructed (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION_CAST (object);
-  GstElement *valve = NULL;
-  GstElement *capsfilter = NULL;
-  GstElement *tee = NULL;
-
-  GstElement *fakesink = NULL;
-  GstPad *tee_sink_pad = NULL;
-  GstPad *valve_sink_pad = NULL;
   
-  GstPad *pad1, *pad2;
-  GstPadLinkReturn ret;
-  gchar *tmp;
-
-  if (self->id == 0)
-  {
-    g_error ("You can no instantiate this element directly, you MUST"
-      " call fs_msn_session_new ()");
-    return;
-  }
-
-  tmp = g_strdup_printf ("send_tee_%u", self->id);
-  tee = gst_element_factory_make ("tee", tmp);
-  g_free (tmp);
-
-  if (!tee)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the tee element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), tee))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the tee element to the FsMsnConference");
-    gst_object_unref (tee);
-    return;
-  }
-
-  gst_element_set_state (tee, GST_STATE_PLAYING);
-
-  self->priv->send_tee = gst_object_ref (tee);
-
-
-  tee_sink_pad = gst_element_get_static_pad (tee, "sink");
-
-  tmp = g_strdup_printf ("sink_%u", self->id);
-  self->priv->media_sink_pad = gst_ghost_pad_new (tmp, tee_sink_pad);
-  g_free (tmp);
-
-  if (!self->priv->media_sink_pad)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not create ghost pad for tee's sink pad");
-    return;
-  }
-
-  gst_pad_set_active (self->priv->media_sink_pad, TRUE);
-  if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
-          self->priv->media_sink_pad))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not add ghost pad to the conference bin");
-    gst_object_unref (self->priv->media_sink_pad);
-    self->priv->media_sink_pad = NULL;
-    return;
-  }
-
-  gst_object_unref (tee_sink_pad);
-
-  self->priv->send_tee_discovery_pad = gst_element_get_request_pad (tee,
-      "src%d");
-  self->priv->send_tee_media_pad = gst_element_get_request_pad (tee,
-      "src%d");
-
-  if (!self->priv->send_tee_discovery_pad || !self->priv->send_tee_media_pad)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not create the send tee request src pads");
-  }
-
-  tmp = g_strdup_printf ("valve_send_%u", self->id);
-  valve = gst_element_factory_make ("fsvalve", tmp);
-  g_free (tmp);
-
-  if (!valve)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the fsvalve element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), valve))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the valve element to the FsMSNConference");
-    gst_object_unref (valve);
-    return;
-  }
-
-  g_object_set (G_OBJECT (valve), "drop", TRUE, NULL);
-  gst_element_set_state (valve, GST_STATE_PLAYING);
-
-  self->priv->media_sink_valve = gst_object_ref (valve);
-
-  valve_sink_pad = gst_element_get_static_pad (valve, "sink");
-
-  if (GST_PAD_LINK_FAILED (gst_pad_link (self->priv->send_tee_media_pad,
-              valve_sink_pad)))
-  {
-    gst_object_unref (valve_sink_pad);
-
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not link send tee and valve");
-    return;
-  }
-
-  gst_object_unref (valve_sink_pad);
-
-
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
@@ -462,6 +289,7 @@ static FsStream *
 fs_msn_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
+    const gchar *transmitter,
     guint n_parameters,
     GParameter *parameters,
     GError **error)
@@ -480,7 +308,7 @@ fs_msn_session_new_stream (FsSession *session,
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-      direction,error));
+      direction,self->priv->conference,error));
 
   FS_MSN_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);

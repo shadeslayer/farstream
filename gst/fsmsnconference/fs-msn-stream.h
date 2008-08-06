@@ -66,13 +66,7 @@ struct _FsMsnStream
 {
   FsStream parent;
 
-  /* Can only be accessed while holding the FsMsnSession lock */
-  /* Dont modify, call set_remote_codecs() */
-  GList *remote_codecs;
-
-  /* Can only be accessed while holding the FsMsnSession lock */
-  /* Dont modify, call add_substream() */
-  GList *substreams;
+ 
 
   FsMsnStreamPrivate *priv;
 };
@@ -82,6 +76,7 @@ GType fs_msn_stream_get_type (void);
 FsMsnStream *fs_msn_stream_new (FsMsnSession *session,
                                 FsMsnParticipant *participant,
                                 FsStreamDirection direction,
+                                FsMsnConference *conference,
                                 GError **error);
                        
 

@@ -238,30 +238,6 @@ fs_msn_conference_init (FsMsnConference *conf,
 
   conf->priv->disposed = FALSE;
   conf->priv->max_session_id = 1;
-
- /* Put my own stuff here ?  conf->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
-
-  if (!conf->gstrtpbin) {
-    GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (conf), conf->gstrtpbin)) {
-    GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
-    gst_object_unref (conf->gstrtpbin);
-    conf->gstrtpbin = NULL;
-    return;
-  }
-
-  gst_object_ref (conf->gstrtpbin);
- */
-  
-  /* We have to ref the class here because the class initialization
-   * in GLib is not thread safe
-   * http://bugzilla.gnome.org/show_bug.cgi?id=349410
-   * http://bugzilla.gnome.org/show_bug.cgi?id=64764
-   */
-
 }
 
 static void
