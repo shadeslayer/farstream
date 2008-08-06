@@ -66,8 +66,6 @@ struct _FsNiceAgentPrivate
 
   guint compatibility_mode;
 
-  NiceUDPSocketFactory udpfactory;
-
   GList *preferred_local_candidates;
 
   GMutex *mutex;
@@ -178,8 +176,6 @@ fs_nice_agent_init (FsNiceAgent *self)
   /* member init */
   self->priv = FS_NICE_AGENT_GET_PRIVATE (self);
 
-  nice_udp_bsd_socket_factory_init (&self->priv->udpfactory);
-
   self->priv->mutex = g_mutex_new ();
 
   self->priv->main_context = g_main_context_new ();
@@ -220,8 +216,6 @@ fs_nice_agent_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
   self->priv->mutex = NULL;
-
-  nice_udp_socket_factory_close (&self->priv->udpfactory);
 
   parent_class->finalize (object);
 }
@@ -404,8 +398,7 @@ fs_nice_agent_new (guint compatibility_mode,
       "preferred-local-candidates", preferred_local_candidates,
       NULL);
 
-  self->agent = nice_agent_new (&self->priv->udpfactory,
-      self->priv->main_context,
+  self->agent = nice_agent_new (self->priv->main_context,
       self->priv->compatibility_mode);
 
   if (self->agent == NULL)
