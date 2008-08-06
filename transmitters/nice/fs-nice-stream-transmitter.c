@@ -64,8 +64,6 @@ enum
   PROP_PREFERRED_LOCAL_CANDIDATES,
   PROP_STUN_IP,
   PROP_STUN_PORT,
-  PROP_TURN_IP,
-  PROP_TURN_PORT,
   PROP_CONTROLLING_MODE,
   PROP_STREAM_ID,
   PROP_COMPATIBILITY_MODE,
@@ -84,8 +82,6 @@ struct _FsNiceStreamTransmitterPrivate
 
   gchar *stun_ip;
   guint stun_port;
-  gchar *turn_ip;
-  guint turn_port;
 
   gboolean controlling_mode;
 
@@ -253,23 +249,6 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           3478,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
-  g_object_class_install_property (gobject_class, PROP_TURN_IP,
-      g_param_spec_string (
-          "turn-ip",
-          "TURN server",
-          "The TURN server used to obtain relay candidates",
-          NULL,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-
-  g_object_class_install_property (gobject_class, PROP_TURN_PORT,
-      g_param_spec_uint (
-          "turn-port",
-          "TURN server port",
-          "The TURN server used to obtain relay candidates",
-          1, 65536,
-          3478,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-
   g_object_class_install_property (gobject_class, PROP_CONTROLLING_MODE,
       g_param_spec_boolean (
           "controlling-mode",
@@ -384,7 +363,6 @@ fs_nice_stream_transmitter_finalize (GObject *object)
   fs_candidate_list_destroy (self->priv->preferred_local_candidates);
 
   g_free (self->priv->stun_ip);
-  g_free (self->priv->turn_ip);
 
   g_mutex_free (self->priv->mutex);
 
@@ -420,21 +398,6 @@ fs_nice_stream_transmitter_get_property (GObject *object,
             g_param_spec_get_name (pspec), value);
       else
         g_value_set_uint (value, self->priv->stun_port);
-      break;
-    case PROP_TURN_IP:
-      if (self->priv->agent)
-        g_object_get_property (G_OBJECT (self->priv->agent->agent),
-            g_param_spec_get_name (pspec), value);
-      else
-        g_value_set_string (value, self->priv->turn_ip);
-      break;
-    case PROP_TURN_PORT:
-      if (self->priv->agent)
-        g_object_get_property (G_OBJECT (self->priv->agent->agent),
-            g_param_spec_get_name (pspec), value);
-      else
-        g_value_set_uint (value, self->priv->turn_port);
-
       break;
     case PROP_CONTROLLING_MODE:
       if (self->priv->agent)
@@ -482,12 +445,6 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_STUN_PORT:
       self->priv->stun_port = g_value_get_uint (value);
-      break;
-    case PROP_TURN_IP:
-      self->priv->turn_ip = g_value_dup_string (value);
-      break;
-    case PROP_TURN_PORT:
-      self->priv->turn_port = g_value_get_uint (value);
       break;
     case PROP_CONTROLLING_MODE:
       self->priv->controlling_mode = g_value_get_boolean (value);
@@ -885,8 +842,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
        item;
        item = g_list_next (item))
   {
-    guint stun_port, turn_port;
-    gchar *stun_server, *turn_server;
+    guint stun_port;
+    gchar *stun_server;
     guint compatibility;
 
     agent = item->data;
@@ -894,8 +851,6 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     g_object_get (agent->agent,
         "stun-server", &stun_server,
         "stun-server-port", &stun_port,
-        "turn-server", &turn_server,
-        "turn-server-port", &turn_port,
         "compatibility", &compatibility,
         NULL);
 
@@ -904,13 +859,9 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
      */
     if (compatibility == self->priv->compatibility_mode &&
         stun_port == self->priv->stun_port &&
-        turn_port == self->priv->turn_port &&
         (stun_server == self->priv->stun_ip ||
             (stun_server && self->priv->stun_ip &&
-                !strcmp (stun_server, self->priv->stun_ip))) &&
-        (turn_server == self->priv->turn_ip ||
-            (turn_server && self->priv->turn_ip &&
-                !strcmp (turn_server, self->priv->turn_ip))))
+                !strcmp (stun_server, self->priv->stun_ip))))
     {
       GList *prefs = NULL;
 
@@ -943,12 +894,6 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       g_object_set (agent->agent,
           "stun-server", self->priv->stun_ip,
           "stun-server-port", self->priv->stun_port,
-          NULL);
-
-    if (self->priv->turn_ip && self->priv->turn_port)
-      g_object_set (agent->agent,
-          "turn-server", self->priv->turn_ip,
-          "turn-server-port", self->priv->turn_port,
           NULL);
 
     g_object_set (agent->agent,
