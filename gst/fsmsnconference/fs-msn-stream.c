@@ -67,9 +67,9 @@ struct _FsMsnStreamPrivate
   FsMsnConference *conference;
   GstPad *sink_pad,*src_pad;
 
-	
+
   /* Protected by the session mutex */
- 
+
   GError *construction_error;
 
   gboolean disposed;
@@ -92,13 +92,13 @@ static void fs_msn_stream_set_property (GObject *object,
                                     guint prop_id,
                                     const GValue *value,
                                     GParamSpec *pspec);
-                                    
+
 static void fs_msn_stream_constructed (GObject *object);
 
 static gboolean fs_msn_stream_set_remote_candidates (FsStream *stream,
                                                      GList *candidates,
                                                      GError **error);
-    
+
 /* Needed ?   
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
@@ -134,46 +134,46 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
   gobject_class->constructed = fs_msn_stream_constructed;
   gobject_class->dispose = fs_msn_stream_dispose;
   gobject_class->finalize = fs_msn_stream_finalize;
-  
-  
+
+
   stream_class->set_remote_candidates = fs_msn_stream_set_remote_candidates;
 
 
   g_type_class_add_private (klass, sizeof (FsMsnStreamPrivate));
 
   g_object_class_override_property (gobject_class,
-                                    PROP_DIRECTION,
-                                    "direction");
+      PROP_DIRECTION,
+      "direction");
   g_object_class_override_property (gobject_class,
-                                    PROP_PARTICIPANT,
-                                    "participant");
+      PROP_PARTICIPANT,
+      "participant");
   g_object_class_override_property (gobject_class,
-                                    PROP_SESSION,
-                                    "session");
-                                    
+      PROP_SESSION,
+      "session");
+
   g_object_class_install_property (gobject_class,
-																		PROP_SINK_PAD,
-																		g_param_spec_object ("sink-pad",
-																		 "A gstreamer sink pad for this stream",
-																		"A pad used for sending data on this stream",
-																		GST_TYPE_PAD,
-																		G_PARAM_READABLE));
-  
+      PROP_SINK_PAD,
+      g_param_spec_object ("sink-pad",
+          "A gstreamer sink pad for this stream",
+          "A pad used for sending data on this stream",
+          GST_TYPE_PAD,
+          G_PARAM_READABLE));
+
   g_object_class_install_property (gobject_class,
-																		PROP_SRC_PAD,
-																		g_param_spec_object ("src-pad",
-																		 "A gstreamer src pad for this stream",
-																		"A pad used for reading data from this stream",
-																		GST_TYPE_PAD,
-																		G_PARAM_READABLE));					
-                                          
-	g_object_class_install_property (gobject_class,
-    PROP_CONFERENCE,
-    g_param_spec_object ("conference",
-      "The Conference this stream refers to",
-      "This is a conveniance pointer for the Conference",
-      FS_TYPE_MSN_CONFERENCE,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      PROP_SRC_PAD,
+      g_param_spec_object ("src-pad",
+          "A gstreamer src pad for this stream",
+          "A pad used for reading data from this stream",
+          GST_TYPE_PAD,
+          G_PARAM_READABLE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_CONFERENCE,
+      g_param_spec_object ("conference",
+          "The Conference this stream refers to",
+          "This is a conveniance pointer for the Conference",
+          FS_TYPE_MSN_CONFERENCE,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
 }
 
@@ -182,7 +182,7 @@ fs_msn_stream_init (FsMsnStream *self)
 {
   /* member init */
   self->priv = FS_MSN_STREAM_GET_PRIVATE (self);
-	
+
   self->priv->disposed = FALSE;
   self->priv->session = NULL;
   self->priv->participant = NULL;
@@ -293,198 +293,196 @@ fs_msn_stream_constructed (GObject *object)
 {
 
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
-	
-	GstElement *ximagesink;
-	ximagesink = gst_element_factory_make("ximagesink","ximagesink");
-	gst_bin_add (GST_BIN (self->priv->conference), ximagesink);
-	
+
+  GstElement *ximagesink;
+  ximagesink = gst_element_factory_make("ximagesink","ximagesink");
+  gst_bin_add (GST_BIN (self->priv->conference), ximagesink);
+
   if (self->priv->direction = FS_DIRECTION_SEND)
   {
-  GstElement *media_fd_sink;
-  GstElement *mimenc;
-  GstElement *ffmpegcolorspace;
-  
-  ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
-  
-	if (!ffmpegcolorspace)
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not create the ffmpegcolorspace element");
-		  return;
-		}
+    GstElement *media_fd_sink;
+    GstElement *mimenc;
+    GstElement *ffmpegcolorspace;
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), ffmpegcolorspace))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not add the ffmpegcolorspace element to the FsMsnConference");
-		  gst_object_unref (ffmpegcolorspace);
-		  return;
-		}
-		
-		if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not sync state with parent for ffmpegcolorspace element");
-		  return;
-		}
-		
-		
-  
-  media_fd_sink = gst_element_factory_make ("multifdsink", "send_fd_sink");
-  
-	if (!media_fd_sink)
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not create the media_fd_sink element");
-		  return;
-		}
+    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), media_fd_sink))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not add the media_fd_sink element to the FsMsnConference");
-		  gst_object_unref (media_fd_sink);
-		  return;
-		}
-	
-	if (!gst_element_sync_state_with_parent  (media_fd_sink))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not sync state with parent for media_fd_sink element");
-		  return;
-		}
-		
-	mimenc = gst_element_factory_make ("mimenc", "send_mim_enc");
-  
-	if (!mimenc)
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not create the mimenc element");
-		  return;
-		}
+    if (!ffmpegcolorspace)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the ffmpegcolorspace element");
+      return;
+    }
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), mimenc))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not add the mimenc element to the FsMsnConference");
-		  gst_object_unref (mimenc);
-		  return;
-		}
-		
-	if (!gst_element_sync_state_with_parent  (mimenc))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not sync state with parent for mimenc element");
-		  return;
-		}
-		
-		GstPad *tmp_sink_pad = gst_element_get_static_pad (ffmpegcolorspace, "sink");
-  	self->priv->sink_pad = gst_ghost_pad_new ("sink", tmp_sink_pad);
-  	
-  	gst_element_link_pads (mimenc, "src", ximagesink, "sink");
+    if (!gst_bin_add (GST_BIN (self->priv->conference), ffmpegcolorspace))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the ffmpegcolorspace element to the FsMsnConference");
+      gst_object_unref (ffmpegcolorspace);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for ffmpegcolorspace element");
+      return;
+    }
+
+    media_fd_sink = gst_element_factory_make ("multifdsink", "send_fd_sink");
+
+    if (!media_fd_sink)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the media_fd_sink element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), media_fd_sink))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the media_fd_sink element to the FsMsnConference");
+      gst_object_unref (media_fd_sink);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent  (media_fd_sink))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for media_fd_sink element");
+      return;
+    }
+
+    mimenc = gst_element_factory_make ("mimenc", "send_mim_enc");
+
+    if (!mimenc)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the mimenc element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), mimenc))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the mimenc element to the FsMsnConference");
+      gst_object_unref (mimenc);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent  (mimenc))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for mimenc element");
+      return;
+    }
+
+    GstPad *tmp_sink_pad = gst_element_get_static_pad (ffmpegcolorspace, "sink");
+    self->priv->sink_pad = gst_ghost_pad_new ("sink", tmp_sink_pad);
+
+    gst_element_link_pads (mimenc, "src", ximagesink, "sink");
   }
   else if (self->priv->direction = FS_DIRECTION_RECV)
-	{
-		GstElement *media_fd_src;
-		GstElement *mimdec;
-		GstElement *ffmpegcolorspace;
-  
-  	ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
-  
-		if (!ffmpegcolorspace)
-			{
-			  self->priv->construction_error = g_error_new (FS_ERROR,
-			    FS_ERROR_CONSTRUCTION,
-			    "Could not create the ffmpegcolorspace element");
-			  return;
-			}
+  {
+    GstElement *media_fd_src;
+    GstElement *mimdec;
+    GstElement *ffmpegcolorspace;
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), ffmpegcolorspace))
-			{
-			  self->priv->construction_error = g_error_new (FS_ERROR,
-			    FS_ERROR_CONSTRUCTION,
-			    "Could not add the ffmpegcolorspace element to the FsMsnConference");
-			  gst_object_unref (ffmpegcolorspace);
-			  return;
-			}
-			
-	if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not sync state with parent for ffmpegcolorspace element");
-		  return;
-		}
+    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
 
-		
-		media_fd_src = gst_element_factory_make ("fdsrc", "recv_fd_src");
-  
-		if (!media_fd_src)
-			{
-				self->priv->construction_error = g_error_new (FS_ERROR,
-				  FS_ERROR_CONSTRUCTION,
-				  "Could not create the media_fd_src element");
-				return;
-			}
+    if (!ffmpegcolorspace)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the ffmpegcolorspace element");
+      return;
+    }
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), media_fd_src))
-			{
-				self->priv->construction_error = g_error_new (FS_ERROR,
-				  FS_ERROR_CONSTRUCTION,
-				  "Could not add the media_fd_src element to the FsMsnConference");
-				gst_object_unref (media_fd_src);
-				return;
-			}
-			
-		if (!gst_element_sync_state_with_parent  (media_fd_src))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not sync state with parent for media_fd_src element");
-		  return;
-		}
-			
-		mimdec = gst_element_factory_make ("mimdec", "recv_mim_dec");
-  
-		if (!mimdec)
-			{
-				self->priv->construction_error = g_error_new (FS_ERROR,
-				  FS_ERROR_CONSTRUCTION,
-				  "Could not create the mimdec element");
-				return;
-			}
+    if (!gst_bin_add (GST_BIN (self->priv->conference), ffmpegcolorspace))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the ffmpegcolorspace element to the FsMsnConference");
+      gst_object_unref (ffmpegcolorspace);
+      return;
+    }
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), mimdec))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not add the mimdec element to the FsMsnConference");
-		  gst_object_unref (mimdec);
-		  return;
-		}
-			if (!gst_element_sync_state_with_parent  (mimdec))
-		{
-		  self->priv->construction_error = g_error_new (FS_ERROR,
-		    FS_ERROR_CONSTRUCTION,
-		    "Could not sync state with parent for mimdec element");
-		  return;
-		}
+    if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for ffmpegcolorspace element");
+      return;
+    }
 
-		
-		GstPad *tmp_src_pad = gst_element_get_static_pad (mimdec, "src");
-  	self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);  
-	}
-  
-	GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
+
+    media_fd_src = gst_element_factory_make ("fdsrc", "recv_fd_src");
+
+    if (!media_fd_src)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the media_fd_src element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), media_fd_src))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the media_fd_src element to the FsMsnConference");
+      gst_object_unref (media_fd_src);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent  (media_fd_src))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for media_fd_src element");
+      return;
+    }
+
+    mimdec = gst_element_factory_make ("mimdec", "recv_mim_dec");
+
+    if (!mimdec)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the mimdec element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), mimdec))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the mimdec element to the FsMsnConference");
+      gst_object_unref (mimdec);
+      return;
+    }
+    if (!gst_element_sync_state_with_parent  (mimdec))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for mimdec element");
+      return;
+    }
+
+
+    GstPad *tmp_src_pad = gst_element_get_static_pad (mimdec, "src");
+    self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
+  }
+
+  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
 /**
@@ -502,7 +500,7 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
 static void fs_msn_open_listening_port (guint16 port,FsMsnStream *self)
 {
     g_message ("Attempting to listen on port %d.....\n",port);
-  
+
   GIOChannel *chan;
   gint fd = -1;
   struct sockaddr_in theiraddr;
@@ -535,7 +533,7 @@ static void fs_msn_open_listening_port (guint16 port,FsMsnStream *self)
     }
   chan = g_io_channel_unix_new (fd);
   g_io_channel_set_close_on_unref (chan, TRUE);
-  
+
   g_array_append_val (self->priv->fdlist, chan);
   g_message ("Listening on port %d\n",port);
  // FIXME Add a watch to listen out for a connection ?....
@@ -554,7 +552,7 @@ fs_msn_authenticate_incoming (gint fd, gint recipientid, gint sessionid)
         if (recv(fd, str, sizeof(str), 0) != -1)
         {
             g_message ("Got %s, checking if it's auth", str);
-            sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n", 
+            sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
                     recipientid, sessionid);
             if (strcmp (str, check) != 0)
             {
@@ -593,7 +591,7 @@ farsight_msnwebcam_authenticate_outgoing (gint fd, gint recipientid, gint sessio
     {
         g_message ("Authenticating connection on %d...", fd);
         g_message ("sending : recipientid=%d&sessionid=%d\r\n\r\n", recipientid, sessionid);
-        sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n", 
+        sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
                 recipientid, sessionid);
         if (send(fd, str, strlen(str), 0) == -1)
         {

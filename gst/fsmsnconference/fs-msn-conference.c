@@ -247,7 +247,7 @@ fs_msn_conference_get_property (GObject *object,
     GParamSpec *pspec)
 {
   FsMsnConference *self = FS_MSN_CONFERENCE (object);
- 
+
  switch (prop_id)
   {
   	case PROP_LOCAL_MSNADD:
@@ -268,8 +268,8 @@ fs_msn_conference_set_property (GObject *object,
 
  switch (prop_id)
   {
-  	case PROP_LOCAL_MSNADD:
-  		self->priv->local_address = g_value_get_string (value);
+    case PROP_LOCAL_MSNADD:
+      self->priv->local_address = g_value_get_string (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -453,7 +453,7 @@ fs_msn_conference_handle_message (
  switch (GST_MESSAGE_TYPE (message)) {
     case GST_MESSAGE_ELEMENT:
     {
-    
+
     }
     default:
     {

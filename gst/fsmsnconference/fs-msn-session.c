@@ -65,7 +65,7 @@ struct _FsMsnSessionPrivate
   FsMediaType media_type;
 
   FsMsnConference *conference;
-  
+
   /* These lists are protected by the session mutex */
   GList *streams;
 
@@ -128,7 +128,7 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
     PROP_MEDIA_TYPE, "media-type");
   g_object_class_override_property (gobject_class,
     PROP_ID, "id");
-    
+
   g_object_class_install_property (gobject_class,
     PROP_CONFERENCE,
     g_param_spec_object ("conference",
@@ -182,7 +182,7 @@ fs_msn_session_dispose (GObject *object)
     return;
 
   conferencebin = GST_BIN (self->priv->conference);
-  
+
   FS_MSN_SESSION_UNLOCK (self);
 
   /* MAKE sure dispose does not run twice. */
@@ -197,7 +197,7 @@ fs_msn_session_finalize (GObject *object)
   FsMsnSession *self = FS_MSN_SESSION (object);
 
   g_static_rec_mutex_free (&self->mutex);
-  
+
   parent_class->finalize (object);
 }
 
@@ -255,7 +255,7 @@ static void
 fs_msn_session_constructed (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION_CAST (object);
-  
+
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
