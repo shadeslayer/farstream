@@ -67,7 +67,8 @@ enum
   PROP_CONTROLLING_MODE,
   PROP_STREAM_ID,
   PROP_COMPATIBILITY_MODE,
-  PROP_ASSOCIATE_ON_SOURCE
+  PROP_ASSOCIATE_ON_SOURCE,
+  PROP_RELAY_INFO
 };
 
 struct _FsNiceStreamTransmitterPrivate
@@ -95,6 +96,8 @@ struct _FsNiceStreamTransmitterPrivate
   gulong gathering_done_handler_id;
   gulong new_selected_pair_handler_id;
   gulong new_candidate_handler_id;
+
+  GValueArray *relay_info;
 
   volatile gint associate_on_source;
 
@@ -273,6 +276,15 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The id of the stream according to libnice",
           NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
           NICE_COMPATIBILITY_ID19,
+          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+
+  g_object_class_install_property (gobject_class, PROP_RELAY_INFO,
+      g_param_spec_value_array (
+          "relay-info",
+          "Information for the TURN server",
+          "ip/port/username/password of the TURN server in a GValueArray of"
+          " GstStructures ",
+          NULL,
           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   nice_udp_bsd_socket_factory_init (&udpfactory);
@@ -458,6 +470,9 @@ fs_nice_stream_transmitter_set_property (GObject *object,
     case PROP_ASSOCIATE_ON_SOURCE:
       g_atomic_int_set (&self->priv->associate_on_source,
           g_value_get_boolean (value));
+      break;
+    case PROP_RELAY_INFO:
+      self->priv->relay_info = g_value_get_boxed (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
