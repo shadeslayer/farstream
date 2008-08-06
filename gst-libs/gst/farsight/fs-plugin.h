@@ -55,6 +55,13 @@ typedef struct _FsPlugin FsPlugin;
 typedef struct _FsPluginClass FsPluginClass;
 typedef struct _FsPluginPrivate FsPluginPrivate;
 
+/**
+ * FsPlugin:
+ * @parent: the parent type
+ *
+ * This structure represents a plugin, it is opaque
+ */
+
 struct _FsPlugin
 {
   GTypeModule parent;
