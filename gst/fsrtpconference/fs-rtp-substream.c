@@ -484,6 +484,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
   GstPad *capsfilter_sink_pad = NULL;
   GstPadLinkReturn linkret;
+  gchar *tmp;
 
   GST_DEBUG ("New substream in session %u for ssrc %x and pt %u",
       self->priv->session->id, self->priv->ssrc, self->priv->pt);
@@ -494,7 +495,10 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  self->priv->valve = gst_element_factory_make ("fsvalve", NULL);
+  tmp = g_strdup_printf ("recv_valve_%d_%d_%d", self->priv->session->id,
+      self->priv->ssrc, self->priv->pt);
+  self->priv->valve = gst_element_factory_make ("fsvalve", tmp);
+  g_free (tmp);
 
   if (!self->priv->valve) {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -527,7 +531,10 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  self->priv->capsfilter = gst_element_factory_make ("capsfilter", NULL);
+  tmp = g_strdup_printf ("recv_capsfilter_%d_%d_%d", self->priv->session->id,
+      self->priv->ssrc, self->priv->pt);
+  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  g_free (tmp);
 
   if (!self->priv->capsfilter) {
     self->priv->construction_error = g_error_new (FS_ERROR,

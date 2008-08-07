@@ -2629,7 +2629,7 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
     goto out;
   }
 
-  name = g_strdup_printf ("recv%u_%d", ssrc, pt);
+  name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
   codecbin = _create_codec_bin (bp, new_codec, name, FALSE, error);
   g_free (name);
 
