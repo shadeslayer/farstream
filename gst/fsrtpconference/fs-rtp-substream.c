@@ -1158,18 +1158,15 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
 /**
  * fs_rtp_sub_stream_verify_codec_locked:
  * @substream: A #FsRtpSubStream
- * @codec: The new fscodec (the substream is invalidated if it not using this
- *  codec). You can pass NULL to match any codec.
  *
  * This function will start the process that invalidates the codec
- * for this rtpbin, if it doesnt match the passed codec
+ * for this rtpbin.
  *
  * You must hold the session lock to call it.
  */
 
 void
-fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream,
-    const FsCodec *codec)
+fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream)
 {
   fs_rtp_sub_stream_add_probe_locked (substream);
 

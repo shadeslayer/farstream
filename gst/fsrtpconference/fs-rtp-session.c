@@ -1764,34 +1764,6 @@ fs_rtp_session_get_stream_by_ssrc (FsRtpSession *self,
   return stream;
 }
 
-/**
- * fs_rtp_session_verify_substream
- *
- * Verifies that a substream still has the right codec and resets it if its not
- *
- * MUST hold the FsRtpSession lock while calling it
- */
-
-static void
-fs_rtp_session_verify_substream_locked (FsRtpSession *session,
-    FsRtpStream *stream,
-    FsRtpSubStream *substream)
-{
-  FsCodec *codec = NULL;
-  guint pt;
-
-  g_object_get (substream, "pt", &pt, NULL);
-
-  codec = fs_rtp_session_get_recv_codec_locked (session, pt, stream, NULL,
-      NULL);
-
-  if (!codec)
-    return;
-
-  fs_rtp_sub_stream_verify_codec_locked (substream, codec);
-
-  fs_codec_destroy (codec);
-}
 
 /**
  * fs_rtp_session_verify_recv_codecs
@@ -1811,7 +1783,7 @@ fs_rtp_session_verify_recv_codecs (FsRtpSession *session)
   for (item = g_list_first (session->priv->free_substreams);
        item;
        item = g_list_next (item))
-    fs_rtp_session_verify_substream_locked (session, NULL, item->data);
+    fs_rtp_sub_stream_verify_codec_locked (item->data);
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -1822,7 +1794,8 @@ fs_rtp_session_verify_recv_codecs (FsRtpSession *session)
     for (item2 = g_list_first (stream->substreams);
          item2;
          item2 = g_list_next (item2))
-      fs_rtp_session_verify_substream_locked (session, stream, item2->data);
+      fs_rtp_sub_stream_verify_codec_locked (item2->data);
+
   }
 
   FS_RTP_SESSION_UNLOCK (session);
@@ -3129,7 +3102,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
 
     if (fs_rtp_stream_add_substream (stream, substream, &error))
     {
-      fs_rtp_session_verify_substream_locked (session, stream, substream);
+      fs_rtp_sub_stream_verify_codec_locked (substream);
       GST_DEBUG ("Associated SSRC %x in session %u", ssrc, session->id);
     }
     else
@@ -3241,9 +3214,7 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
   if (fs_rtp_stream_add_substream (
           g_list_first (session->priv->streams)->data,
           substream, &error))
-    fs_rtp_session_verify_substream_locked (session,
-        g_list_first (session->priv->streams)->data,
-        substream);
+    fs_rtp_sub_stream_verify_codec_locked (substream);
   else
     fs_session_emit_error (FS_SESSION (session),
         error ? error->code : FS_ERROR_INTERNAL,

@@ -91,8 +91,7 @@ gboolean fs_rtp_sub_stream_add_output_ghostpad_locked (
     FsRtpSubStream *substream,
     GError **error);
 
-void fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream,
-    const FsCodec *codec);
+void fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream);
 
 
 G_END_DECLS
