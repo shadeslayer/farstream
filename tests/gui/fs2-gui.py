@@ -458,7 +458,6 @@ class FsUIStream:
         self.connect = participant.connect
         self.fsstream.uistream = self
         self.fsstream.connect("src-pad-added", self.__src_pad_added)
-        self.newcodecs = []
         self.send_codecs = False
         self.last_codecs = []
         self.candidates = []
@@ -483,19 +482,10 @@ class FsUIStream:
         "Callback for the network object."
         self.fsstream.set_remote_candidates(self.candidates)
         self.candidates = []
-    def codec(self, codec):
-        "Callback for the network object. Stores the codec"
-        
-        self.newcodecs.append(codec)
-        
-    def codecs_done(self):
-        """Callback for the network object.
+    def codecs(self, codecs):
+        "Callback for the network object. Set the codecs"
+        self.codecs = codecs
 
-        When all the codecs have been received, we can set them on the stream.
-        """
-        if len(self.newcodecs) > 0:
-            self.codecs = self.newcodecs
-            self.newcodecs = []
         print "Remote codecs"
         for c in self.codecs:
             print "Got remote codec " + c.to_string()
@@ -523,10 +513,8 @@ class FsUIStream:
         if (codecs == self.last_codecs):
             return
         self.last_codecs = codecs
-        for codec in codecs:
-            print "sending local codec: " + codec.to_string()
-            self.connect.send_codec(self.participant.id, self.id, codec)
-        self.connect.send_codecs_done(self.participant.id, self.id)
+        print "sending local codecs"
+        self.connect.send_codecs(self.participant.id, self.id, codecs)
 
     def recv_codecs_changed(self, codecs):
         self.participant.recv_codecs_changed()
@@ -561,12 +549,9 @@ class FsUIParticipant:
     def candidates_done(self, media):
         "Callback for the network object."
         self.streams[media].candidates_done()
-    def codec(self, media, codec):
+    def codecs(self, media, codecs):
         "Callback for the network object."
-        self.streams[media].codec(codec)
-    def codecs_done(self, media):
-        "Callback for the network object."
-        self.streams[media].codecs_done()
+        self.streams[media].codecs(codecs)
     def send_local_codecs(self):
         "Callback for the network object."
         for id in self.streams:
