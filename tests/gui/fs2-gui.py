@@ -484,13 +484,13 @@ class FsUIStream:
         self.candidates = []
     def codecs(self, codecs):
         "Callback for the network object. Set the codecs"
-        self.codecs = codecs
 
         print "Remote codecs"
-        for c in self.codecs:
-            print "Got remote codec " + c.to_string()
+        for c in codecs:
+            print "Got remote codec from %s/%s %s" % \
+                  (self.participant.id, self.id, c.to_string())
         try:
-            self.fsstream.set_remote_codecs(self.codecs)
+            self.fsstream.set_remote_codecs(codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
         self.send_local_codecs()
@@ -502,7 +502,7 @@ class FsUIStream:
         self.check_send_local_codecs()
 
     def check_send_local_codecs(self):
-        "Internal function to send codecs when they're ready"
+        "Internal function to send our local codecs when they're ready"
         if not self.send_codecs:
             return
         if not self.session.fssession.get_property("codecs-ready"):
@@ -518,6 +518,18 @@ class FsUIStream:
 
     def recv_codecs_changed(self, codecs):
         self.participant.recv_codecs_changed()
+
+
+    def __remove_from_send_codecs_to(self, participant):
+        self.send_codecs_to.remote(participant)
+
+    def send_codecs_to(self, participant):
+        codecs = self.fsstream.get_property("negotiated-codecs")
+        print "sending stream %s codecs from %s to %s" % \
+              (self.id, self.participant.id, participant.id)
+        if codecs:
+            participant.connect.send_codecs(participant.id, self.id, codecs,
+                                            self.participant.id)            
 
 
 class FsUIParticipant:
@@ -675,7 +687,10 @@ class FsUIParticipant:
                                                  c.encoding_name,
                                                  c.clock_rate)
         self.label.set_markup(str)
-                
+
+    def send_codecs_to(self, participant):
+        for sid in self.streams:
+            self.streams[sid].send_codecs_to(participant)
     
 
 class FsMainUI:

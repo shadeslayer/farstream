@@ -428,7 +428,7 @@ if __name__ == "__main__":
                 self.streams[id].send_local_codecs()
         def destroy(self):
             pass
-        def send_codecs(self, participant):
+        def send_codecs_to(self, participant):
             for sid in self.streams:
                 print "to: %s from: %s" % (str(participant.id), (self.id))
                 participant.connect.send_codecs(participant.id,
