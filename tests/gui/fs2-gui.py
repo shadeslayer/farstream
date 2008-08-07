@@ -25,6 +25,8 @@ import socket
 import threading
 import weakref
 
+import signal
+
 try:
     import pygtk
     pygtk.require("2.0")
@@ -94,9 +96,17 @@ def make_video_sink(pipeline, xid, name, async=True):
 
 class FsUIPipeline:
     "Object to wrap the GstPipeline"
+
+    def int_handler(self, sig, frame):
+        try:
+            self.pipeline.to_dot_file(0, "pipelinedump")
+        except:
+            pass
+        sys.exit(2)
     
     def __init__(self, elementname="fsrtpconference"):
         self.pipeline = gst.Pipeline()
+        signal.signal(signal.SIGINT, self.int_handler)
         notifier = farsight.ElementAddedNotifier()
         notifier.connect("element-added", self.element_added_cb)
         notifier.add(self.pipeline)
