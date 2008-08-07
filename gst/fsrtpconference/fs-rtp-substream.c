@@ -1168,6 +1168,10 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
 void
 fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream)
 {
+  GST_LOG ("Starting codec verification process for substream with"
+      " SSRC:%x pt:%d", substream->priv->ssrc, substream->priv->pt);
+
+
   fs_rtp_sub_stream_add_probe_locked (substream);
 
   gst_pad_set_blocked_async (substream->priv->rtpbin_pad, TRUE,

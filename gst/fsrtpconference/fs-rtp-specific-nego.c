@@ -490,6 +490,9 @@ static FsCodec *
 sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
 gboolean validate_config)
 {
+
+  GST_DEBUG ("Using THEORA/VORBIS negotiation function");
+
   if (validate_config &&
       !fs_codec_get_optional_parameter (remote_codec, "configuration", NULL))
     return NULL;

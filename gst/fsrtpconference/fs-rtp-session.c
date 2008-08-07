@@ -2536,7 +2536,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     }
     else
     {
-      GST_DEBUG ("Had stream, but it did not have negotiatied codec");
+      GST_DEBUG ("Have stream, but it does not have negotiatied codec");
       recv_codec = NULL;
     }
 
