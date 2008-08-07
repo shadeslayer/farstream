@@ -116,6 +116,10 @@ class FsUIConnect:
                 if check != 0xDEADBEEF:
                     print "CORRUPTION"
                     sys.exit(1)
+                if self.myid > 1 and self.dest != self.myid:
+                    print "GOT MESSAGE FOR %d, but I am %d" % (self.dest,
+                                                               self.myid)
+                    sys.exit(1)
                 self.data=""
                 if self.size == 0:
                     self.callbacks[self.type](self.src, self.dest,
@@ -147,7 +151,7 @@ class FsUIConnect:
     def send_codecs(self, dest, media, codecs, src=None):
         self.__send_data(dest, self.CODECS,
                          media=media,
-                         data=self.__codecs_to_string(codecs))
+                         data=self.__codecs_to_string(codecs), src=src)
     def send_candidate(self, dest, media, candidate, src=None):
         self.__send_data(dest, self.CANDIDATE, media=media,
                          data=self.__candidate_to_string(candidate), src=src)
@@ -277,13 +281,14 @@ class FsUIClient:
         self.connect.send_intro(1, cname)
 
     def __codecs(self, src, dest, media, data):
+        print "Got codec Src:%d dest:%d data:%s" % (src, dest, data)
         self.participants[src].codecs(media, data)
     def __candidate(self, src, dest, media, data):
         self.participants[src].candidate(media, data)
     def __candidate_done(self, src, dest, media, data):
         self.participants[src].candidates_done(media)
     def __intro(self, src, dest, media, cname):
-        print "Got Intro from %s" % src
+        print "Got Intro from %s, I am %d" % (src, dest)
         if src == 1:
             self.connect.myid = dest
         if not self.participants.has_key(src):
@@ -355,6 +360,8 @@ class FsUIServer:
             FsUIServer.participants[dest].connect.send_intro(dest,
                                                              cname,
                                                              src)
+            FsUIServer.participants[src].send_codecs_to(
+                        FsUIServer.participants[dest])
         else:
             print "ERROR SRC != 0"
             
@@ -381,8 +388,6 @@ if __name__ == "__main__":
         def candidates_done(self):
             print "Got candidate done"
         def codecs(self, codecs):
-            for codec in codecs:
-                print "Got codec src:%d dest:%d media:%d src:%s" % (codec.id, int(codec.media_type), codec.clock_rate, codec.encoding_name)
             if self.connect.myid != 1:
                 self.connect.send_codecs(1, self.id,
                                         [farsight.Codec(self.connect.myid,
@@ -397,6 +402,11 @@ if __name__ == "__main__":
                                                      "local_codec",
                                                      self.pid,
                                                      self.id)])
+        def get_codecs(self):
+            return [farsight.Codec(self.connect.myid,
+                                   "nego-codecs",
+                                   self.pid,
+                                   self.id)]
             
             
     class TestParticipant:
@@ -418,6 +428,18 @@ if __name__ == "__main__":
                 self.streams[id].send_local_codecs()
         def destroy(self):
             pass
+        def send_codecs(self, participant):
+            for sid in self.streams:
+                print "to: %s from: %s" % (str(participant.id), (self.id))
+                participant.connect.send_codecs(participant.id,
+                                                self.streams[sid].id,
+                                                self.streams[sid].get_codecs(),
+                                                self.id)
+        def error(self):
+            print "ERROR"
+            sys.exit(1)
+        def destroy(self):
+            passs
             
 
     mycname = "test"
