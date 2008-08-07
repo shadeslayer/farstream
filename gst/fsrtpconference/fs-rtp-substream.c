@@ -897,6 +897,9 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     gst_object_unref (pad);
     gst_caps_unref (caps);
 
+    GST_DEBUG ("Could not set the caps on the codecbin, waiting on config-data"
+        " for SSRC:%x pt:%d", substream->priv->ssrc, substream->priv->pt);
+
     /* We call this to drop all buffers until something comes up */
     fs_rtp_sub_stream_add_probe_locked (substream);
     goto error;

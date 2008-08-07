@@ -3059,6 +3059,9 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
       "ssrc", &ssrc,
       NULL);
 
+  GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
+      session->id, ssrc, pt);
+
   if (!fs_rtp_session_substream_set_codec_bin (session, substream, stream,
           ssrc, pt, &error))
   {
