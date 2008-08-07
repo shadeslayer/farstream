@@ -421,6 +421,8 @@ if __name__ == "__main__":
         def send_local_codecs(self):
             for id in self.streams:
                 self.streams[id].send_local_codecs()
+        def destroy(self):
+            pass
             
 
     mycname = "test"
