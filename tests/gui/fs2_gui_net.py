@@ -68,6 +68,7 @@ class FsUIConnect:
         self.callbacks = callbacks
         self.myid = myid
         self.partid = 1
+        self.is_server = True
         sock.setblocking(0)
         gobject.io_add_watch(self.sock.fileno(), gobject.IO_IN,
                              self.__data_in)
@@ -235,6 +236,7 @@ class FsUIConnectClient (FsUIConnect):
         sock = socket.socket()
         sock.connect((ip, port))
         FsUIConnect.__init__(self, sock, callbacks)
+        self.is_server = False
 
 class FsUIListener:
     def __init__(self, port, callback, *args):

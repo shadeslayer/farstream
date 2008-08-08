@@ -443,9 +443,18 @@ class FsUISession:
         "Callback from FsSession"
         for s in self.streams:
             try:
-                s().check_send_local_codecs()
+                s().codecs_changed()
             except AttributeError:
                 pass
+
+    def send_stream_codecs(self, codecs, sourcestream):
+        for s in self.streams:
+            stream = s()
+            if stream and stream is not sourcestream:
+                stream.connect.send_codecs(stream.participant.id,
+                                           sourcestream.id,
+                                           codecs,
+                                           sourcestream.participant.id)
 
 class FsUIStream:
     "One participant in one session"
@@ -459,7 +468,8 @@ class FsUIStream:
         self.fsstream.uistream = self
         self.fsstream.connect("src-pad-added", self.__src_pad_added)
         self.send_codecs = False
-        self.last_codecs = []
+        self.last_codecs = None
+        self.last_stream_codecs = None
         self.candidates = []
 
     def local_candidates_prepared(self):
@@ -489,17 +499,25 @@ class FsUIStream:
         for c in codecs:
             print "Got remote codec from %s/%s %s" % \
                   (self.participant.id, self.id, c.to_string())
+        oldcodecs = self.fsstream.get_property("remote-codecs")
+        if oldcodecs == codecs:
+            return
         try:
             self.fsstream.set_remote_codecs(codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
         self.send_local_codecs()
+        self.send_stream_codecs()
 
 
     def send_local_codecs(self):
         "Callback for the network object."
         self.send_codecs = True
         self.check_send_local_codecs()
+
+    def codecs_changed(self):
+        self.check_send_local_codecs()
+        self.send_stream_codecs()
 
     def check_send_local_codecs(self):
         "Internal function to send our local codecs when they're ready"
@@ -516,12 +534,22 @@ class FsUIStream:
         print "sending local codecs"
         self.connect.send_codecs(self.participant.id, self.id, codecs)
 
+    def send_stream_codecs(self):
+        if not self.connect.is_server:
+            return
+        if not self.session.fssession.get_property("codecs-ready"):
+            return
+        codecs = self.fsstream.get_property("negotiated-codecs")
+        if codecs:
+            self.session.send_stream_codecs(codecs, self)
+
     def recv_codecs_changed(self, codecs):
         self.participant.recv_codecs_changed()
 
 
     def __remove_from_send_codecs_to(self, participant):
         self.send_codecs_to.remote(participant)
+
 
     def send_codecs_to(self, participant):
         codecs = self.fsstream.get_property("negotiated-codecs")
