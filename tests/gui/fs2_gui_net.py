@@ -123,7 +123,7 @@ class FsUIConnect:
                 self.data=""
                 if self.size == 0:
                     self.callbacks[self.type](self.src, self.dest,
-                                              self.media, data)
+                                              self.media, None)
                     self.__reset()
         return True
 
