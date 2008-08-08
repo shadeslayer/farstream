@@ -162,16 +162,16 @@ class FsUIPipeline:
             elif message.structure.has_name("farsight-codecs-changed"):
                 print message.src.get_name(), ": ", message.structure.get_name()
                 message.structure["session"].uisession.codecs_changed()
-                if message.structure["session"] == self.audiosession.fssession:
+                if AUDIO and message.structure["session"] == self.audiosession.fssession:
                     self.codecs_changed_audio()
-                if message.structure["session"] == self.videosession.fssession:
+                if VIDEO and  message.structure["session"] == self.videosession.fssession:
                     self.codecs_changed_video()
             elif message.structure.has_name("farsight-send-codec-changed"):
                 print message.src.get_name(), ": ", message.structure.get_name()
                 print "send codec changed: " + message.structure["codec"].to_string()
-                if message.structure["session"] == self.audiosession.fssession:
+                if AUDIO and message.structure["session"] == self.audiosession.fssession:
                     self.codecs_changed_audio()
-                if message.structure["session"] == self.videosession.fssession:
+                if VIDEO and message.structure["session"] == self.videosession.fssession:
                     self.codecs_changed_video()
             elif message.structure.has_name("farsight-recv-codecs-changed"):
                 print message.src.get_name(), ": ", message.structure.get_name()
@@ -777,12 +777,14 @@ class FsMainUI:
                 print "active: "+ c.to_string()
 
     def reset_audio_codecs(self):
-        self.reset_codecs(self.audio_combobox,
-                          self.pipeline.audiosession.fssession)
+        if AUDIO:
+            self.reset_codecs(self.audio_combobox,
+                              self.pipeline.audiosession.fssession)
 
     def reset_video_codecs(self):
-        self.reset_codecs(self.video_combobox,
-                          self.pipeline.videosession.fssession)
+        if VIDEO:
+            self.reset_codecs(self.video_combobox,
+                              self.pipeline.videosession.fssession)
 
     def combobox_changed_cb(self, combobox, fssession):
         liststore = combobox.get_model()
