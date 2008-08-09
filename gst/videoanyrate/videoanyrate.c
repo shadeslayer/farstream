@@ -69,6 +69,9 @@ static GstCaps *
 gst_videoanyrate_transform_caps (GstBaseTransform *trans,
     GstPadDirection direction,
     GstCaps *caps);
+static void
+gst_videoanyrate_fixate_caps (GstBaseTransform * base,
+    GstPadDirection direction, GstCaps * caps, GstCaps * othercaps);
 
 
 static void
@@ -105,6 +108,8 @@ gst_videoanyrate_class_init (GstVideoanyrateClass *klass)
 
   gstbasetransform_class->transform_caps =
     GST_DEBUG_FUNCPTR(gst_videoanyrate_transform_caps);
+  gstbasetransform_class->fixate_caps =
+    GST_DEBUG_FUNCPTR(gst_videoanyrate_fixate_caps);
 }
 
 static void
@@ -118,24 +123,57 @@ gst_videoanyrate_transform_caps (GstBaseTransform *trans,
     GstPadDirection direction,
     GstCaps *caps)
 {
-  GstStructure *s, *s2;
-  GstCaps *mycaps = gst_caps_make_writable (caps);
+  GstCaps *mycaps = gst_caps_copy (caps);
+  GstStructure *s;
 
   if (gst_caps_get_size (mycaps) == 0)
-    return gst_caps_ref (mycaps);
+    return mycaps;
+
+  GST_DEBUG_OBJECT (trans, "Transforming caps");
 
   s = gst_caps_get_structure (mycaps, 0);
 
-  if (gst_structure_has_field (s, "framerate"))
-  {
-    s2 = gst_structure_copy (s);
-    gst_structure_remove_field (s2, "framerate");
-    gst_caps_append_structure (mycaps, s2);
-  }
+  gst_structure_set (s,
+      "framerate", GST_TYPE_FRACTION_RANGE, 0, 1, G_MAXINT, 1, NULL);
 
-  return gst_caps_ref (mycaps);
+  return mycaps;
 }
 
+static void
+gst_videoanyrate_fixate_caps (GstBaseTransform * base,
+    GstPadDirection direction, GstCaps * caps, GstCaps * othercaps)
+{
+  GstStructure *ins, *outs;
+
+  const GValue *from_fr, *to_fr;
+
+  g_return_if_fail (gst_caps_is_fixed (caps));
+
+  GST_DEBUG_OBJECT (base, "trying to fixate othercaps %" GST_PTR_FORMAT
+      " based on caps %" GST_PTR_FORMAT, othercaps, caps);
+
+  ins = gst_caps_get_structure (caps, 0);
+  outs = gst_caps_get_structure (othercaps, 0);
+
+  from_fr = gst_structure_get_value (ins, "framerate");
+  to_fr = gst_structure_get_value (outs, "framerate");
+
+  /* we have both PAR but they might not be fixated */
+  if (from_fr && to_fr && !gst_value_is_fixed (to_fr)) {
+    gint from_fr_n, from_fr_d;
+
+    /* from_fr should be fixed */
+    g_return_if_fail (gst_value_is_fixed (from_fr));
+
+    from_fr_n = gst_value_get_fraction_numerator (from_fr);
+    from_fr_d = gst_value_get_fraction_denominator (from_fr);
+
+    GST_DEBUG_OBJECT (base, "fixating to_fr nearest to %d/%d",
+        from_fr_n, from_fr_d);
+    gst_structure_fixate_field_nearest_fraction (outs, "framerate",
+        from_fr_n, from_fr_d);
+  }
+}
 gboolean
 gst_videoanyrate_plugin_init (GstPlugin *plugin)
 {
