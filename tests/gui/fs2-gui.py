@@ -311,11 +311,16 @@ class FsUIVideoSource(FsUISource):
         if CAMERA:
             source = gst.element_factory_make("v4l2src")
             source.set_property("device", CAMERA)
+            bin.add(source)
         else:
             source = gst.element_factory_make("videotestsrc")
             source.set_property("is-live", 1)
-            
-        bin.add(source)
+            bin.add(source)
+            overlay = gst.element_factory_make("timeoverlay")
+            overlay.set_property("font-desc", "Sans 32")
+            bin.add(overlay)
+            source.link(overlay)
+            source=overlay
 
         filter = gst.element_factory_make("capsfilter")
         filter.set_property("caps", gst.Caps("video/x-raw-yuv , width=[300,500] , height=[200,500], framerate=[20/1,30/1]"))
