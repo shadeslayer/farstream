@@ -387,10 +387,6 @@ class FsUISession:
         elif source.get_type() == farsight.MEDIA_TYPE_AUDIO:
             self.fssession.set_codec_preferences( [ \
                 farsight.Codec(farsight.CODEC_ID_ANY,
-                               "SPEEX",
-                               farsight.MEDIA_TYPE_AUDIO,
-                               16000),
-                farsight.Codec(farsight.CODEC_ID_ANY,
                                "PCMA",
                                farsight.MEDIA_TYPE_AUDIO,
                                0),
@@ -398,6 +394,11 @@ class FsUISession:
                                "PCMU",
                                farsight.MEDIA_TYPE_AUDIO,
                                0),
+                # The gst speexenc element breaks timestamps
+                farsight.Codec(farsight.DISABLE,
+                               "SPEEX",
+                               farsight.MEDIA_TYPE_AUDIO,
+                               16000),
                 # Sadly, vorbis is not currently compatible with live streaming :-(
                 farsight.Codec(farsight.CODEC_ID_DISABLE,
                                "VORBIS",
