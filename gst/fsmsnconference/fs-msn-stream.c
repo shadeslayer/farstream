@@ -55,7 +55,12 @@ enum
   PROP_SESSION,
   PROP_SINK_PAD,
   PROP_SRC_PAD,
-  PROP_CONFERENCE
+  PROP_CONFERENCE,
+  PROP_L_RID,
+  PROP_L_SID,
+  PROP_R_RID,
+  PROP_R_SID,
+  
 };
 
 struct _FsMsnStreamPrivate
@@ -65,7 +70,13 @@ struct _FsMsnStreamPrivate
   FsStreamDirection direction;
   GArray *fdlist;
   FsMsnConference *conference;
+  GstElement *media_fd_src;
   GstPad *sink_pad,*src_pad;
+  guint in_watch, out_watch, main_watch;
+  gint local_recipientid, local_sessionid;
+  gint remote_recipientid, remote_sessionid;  
+  GIOChannel *connection; 
+  
 
 
   /* Protected by the session mutex */
@@ -95,9 +106,32 @@ static void fs_msn_stream_set_property (GObject *object,
 
 static void fs_msn_stream_constructed (GObject *object);
 
-static gboolean fs_msn_stream_set_remote_candidates (FsStream *stream,
+static gboolean fs_msn_stream_set_remote_candidates (FsMsnStream *stream,
                                                      GList *candidates,
                                                      GError **error);
+                                                     
+static gboolean fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
+                                                     FsCandidate *candidate,
+                                                     GError **error);
+
+static gboolean main_fd_closed_cb (GIOChannel *ch,
+                                   GIOCondition cond,
+                                   gpointer data);
+
+static gboolean successfull_connection_cb (GIOChannel *ch,
+                                           GIOCondition cond,
+                                           gpointer data);
+
+static gboolean fs_msn_stream_attempt_connection (FsMsnStream *stream,
+                                                  gchar *ip,
+                                                  guint16 port);
+
+static gboolean fs_msn_authenticate_outgoing (FsMsnStream *stream,
+                                              gint fd);
+
+static void fs_msn_open_listening_port (FsMsnStream *stream,
+                                        guint16 port);                                                                                                                                                                                                                          
+
 
 /* Needed ?   
 static void _local_candidates_prepared (
@@ -174,6 +208,39 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
           "This is a conveniance pointer for the Conference",
           FS_TYPE_MSN_CONFERENCE,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          
+  g_object_class_install_property (gobject_class,
+      PROP_L_RID,
+      g_param_spec_uint ("local-recipientid",
+          "The local recipientid used for this stream",
+          "The session ID used for this stream",
+          0, G_MAXUINT, 0,
+          G_PARAM_READWRITE));
+  
+  g_object_class_install_property (gobject_class,
+      PROP_L_SID,
+      g_param_spec_uint ("local-sessionid",
+          "The local sessionid used for this stream",
+          "The session ID used for this stream",
+          0, G_MAXUINT, 0,
+          G_PARAM_READWRITE));
+          
+  g_object_class_install_property (gobject_class,
+      PROP_R_RID,
+      g_param_spec_uint ("remote-recipientid",
+          "The remote recipientid used for this stream",
+          "The session ID used for this stream",
+          0, G_MAXUINT, 0,
+          G_PARAM_READWRITE));
+  
+  g_object_class_install_property (gobject_class,
+      PROP_R_SID,
+      g_param_spec_uint ("remote-sessionid",
+          "The remote sessionid used for this stream",
+          "The session ID used for this stream",
+          0, G_MAXUINT, 0,
+          G_PARAM_READWRITE));                        
+
 
 }
 
@@ -254,6 +321,18 @@ fs_msn_stream_get_property (GObject *object,
     case PROP_CONFERENCE:
       g_value_set_flags (value, self->priv->conference);
       break;
+    case PROP_L_RID:
+      g_value_set_uint (value, self->priv->local_recipientid);
+      break;
+    case PROP_L_SID:
+      g_value_set_uint (value, self->priv->local_sessionid);
+      break;
+    case PROP_R_RID:
+      g_value_set_uint (value, self->priv->remote_recipientid);
+      break;
+    case PROP_R_SID:
+      g_value_set_uint (value, self->priv->remote_sessionid);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -282,6 +361,18 @@ fs_msn_stream_set_property (GObject *object,
     case PROP_CONFERENCE:
       self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
       break;
+    case PROP_L_RID:
+      self->priv->local_recipientid = g_value_get_uint (value);
+      break;
+    case PROP_L_SID:
+      self->priv->local_sessionid = g_value_get_uint (value);
+      break;
+    case PROP_R_RID:
+      self->priv->remote_recipientid = g_value_get_uint (value);
+      break;
+    case PROP_R_SID:
+      self->priv->remote_sessionid = g_value_get_uint (value);
+      break;      
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -294,15 +385,48 @@ fs_msn_stream_constructed (GObject *object)
 
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
 
-  GstElement *ximagesink;
-  ximagesink = gst_element_factory_make("ximagesink","ximagesink");
-  gst_bin_add (GST_BIN (self->priv->conference), ximagesink);
-
-  if (self->priv->direction = FS_DIRECTION_SEND)
+  //GstElement *ximagesink;
+  
+  //ximagesink = gst_element_factory_make("ximagesink","testximagesink");
+  //gst_bin_add (GST_BIN (self->priv->conference), ximagesink);
+  //gst_element_set_state (ximagesink, GST_STATE_PLAYING);
+  fs_msn_open_listening_port(self,9898);
+  
+  if (self->priv->direction == FS_DIRECTION_SEND)
   {
     GstElement *media_fd_sink;
     GstElement *mimenc;
     GstElement *ffmpegcolorspace;
+    GstElement *valve;
+    
+    valve = gst_element_factory_make ("fsvalve","send_valve");
+
+		if (!valve)
+		{
+		  self->priv->construction_error = g_error_new (FS_ERROR,
+		    FS_ERROR_CONSTRUCTION,
+		    "Could not create the fsvalve element");
+		  return;
+		}
+
+		if (!gst_bin_add (GST_BIN (self->priv->conference), valve))
+		{
+		  self->priv->construction_error = g_error_new (FS_ERROR,
+		    FS_ERROR_CONSTRUCTION,
+		    "Could not add the valve element to the FsRtpConference");
+		  gst_object_unref (valve);
+		  return;
+		}
+
+		g_object_set (G_OBJECT (valve), "drop", FALSE, NULL);
+		
+		if (!gst_element_set_state (valve, GST_STATE_PLAYING))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not set state for valve element");
+      return;
+    }
 
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
 
@@ -323,11 +447,11 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
+    if (!gst_element_set_state (ffmpegcolorspace, GST_STATE_PLAYING))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
-          "Could not sync state with parent for ffmpegcolorspace element");
+          "Could not set state for ffmpegcolorspace element");
       return;
     }
 
@@ -350,11 +474,11 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_element_sync_state_with_parent  (media_fd_sink))
+    if (!gst_element_set_state (media_fd_sink, GST_STATE_PLAYING))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
-          "Could not sync state with parent for media_fd_sink element");
+          "Could not set state for media_fd_sink element");
       return;
     }
 
@@ -377,24 +501,55 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_element_sync_state_with_parent  (mimenc))
+    if (!gst_element_set_state (mimenc, GST_STATE_PLAYING))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
-          "Could not sync state with parent for mimenc element");
+          "Could not set state for mimenc element");
       return;
     }
 
-    GstPad *tmp_sink_pad = gst_element_get_static_pad (ffmpegcolorspace, "sink");
+    GstPad *tmp_sink_pad = gst_element_get_static_pad (valve, "sink");
     self->priv->sink_pad = gst_ghost_pad_new ("sink", tmp_sink_pad);
-
-    gst_element_link_pads (mimenc, "src", ximagesink, "sink");
+		gst_pad_set_active(self->priv->sink_pad, TRUE);
+		    	
+		gst_element_link_many(valve,ffmpegcolorspace,mimenc,media_fd_sink,NULL);
   }
-  else if (self->priv->direction = FS_DIRECTION_RECV)
+  else if (self->priv->direction == FS_DIRECTION_RECV)
   {
-    GstElement *media_fd_src;
+
     GstElement *mimdec;
     GstElement *ffmpegcolorspace;
+    GstElement *valve;
+    
+    valve = gst_element_factory_make ("fsvalve","recv_valve");
+
+		if (!valve)
+		{
+		  self->priv->construction_error = g_error_new (FS_ERROR,
+		    FS_ERROR_CONSTRUCTION,
+		    "Could not create the fsvalve element");
+		  return;
+		}
+
+		if (!gst_bin_add (GST_BIN (self->priv->conference), valve))
+		{
+		  self->priv->construction_error = g_error_new (FS_ERROR,
+		    FS_ERROR_CONSTRUCTION,
+		    "Could not add the valve element to the FsRtpConference");
+		  gst_object_unref (valve);
+		  return;
+		}
+
+		g_object_set (G_OBJECT (valve), "drop", FALSE, NULL);
+		
+		if (!gst_element_sync_state_with_parent  (valve))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for valve element");
+      return;
+    }
 
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
 
@@ -424,26 +579,27 @@ fs_msn_stream_constructed (GObject *object)
     }
 
 
-    media_fd_src = gst_element_factory_make ("fdsrc", "recv_fd_src");
-
-    if (!media_fd_src)
+    self->priv->media_fd_src = gst_element_factory_make ("fdsrc", "recv_fd_src");
+  
+    if (!self->priv->media_fd_src)
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not create the media_fd_src element");
       return;
     }
-
-    if (!gst_bin_add (GST_BIN (self->priv->conference), media_fd_src))
+    
+    g_object_set (G_OBJECT(self->priv->media_fd_src), "blocksize", 512, NULL);
+    if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->media_fd_src))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not add the media_fd_src element to the FsMsnConference");
-      gst_object_unref (media_fd_src);
+      gst_object_unref (self->priv->media_fd_src);
       return;
     }
 
-    if (!gst_element_sync_state_with_parent  (media_fd_src))
+    if (!gst_element_sync_state_with_parent  (self->priv->media_fd_src))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
@@ -478,8 +634,11 @@ fs_msn_stream_constructed (GObject *object)
     }
 
 
-    GstPad *tmp_src_pad = gst_element_get_static_pad (mimdec, "src");
+    GstPad *tmp_src_pad = gst_element_get_static_pad (valve, "src");
     self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
+	  gst_pad_set_active(self->priv->src_pad, TRUE);
+    
+    gst_element_link_many(self->priv->media_fd_src,mimdec,ffmpegcolorspace,valve,NULL);
   }
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
@@ -489,17 +648,337 @@ fs_msn_stream_constructed (GObject *object)
  * fs_msn_stream_set_remote_candidate:
  */
 static gboolean
-fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
+fs_msn_stream_set_remote_candidates (FsMsnStream *stream, GList *candidates,
                                      GError **error)
 {
   FsMsnStream *self = FS_MSN_STREAM (stream);
+	GList *item = NULL;
 
-  return FALSE; // FIXME
+  for (item = candidates; item; item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+
+    if (!candidate->ip || !candidate->port)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The candidate passed does not contain a valid ip or port");
+      return FALSE;
+    }
+  }
+
+  for (item = candidates; item; item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+    if (!fs_msn_stream_set_remote_candidate (self,candidate,error))
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
-static void fs_msn_open_listening_port (guint16 port,FsMsnStream *self)
+static gboolean main_fd_closed_cb (GIOChannel *ch,
+                                   GIOCondition cond,
+                                   gpointer data)
 {
-    g_message ("Attempting to listen on port %d.....\n",port);
+    FsMsnStream *self = FS_MSN_STREAM (data);
+
+    g_message ("disconnection on video feed %p %p", ch, self->priv->connection);
+    g_source_remove (self->priv->main_watch);
+    return FALSE;
+}
+
+static gboolean successfull_connection_cb (GIOChannel *ch,
+                                           GIOCondition cond,
+                                           gpointer data)
+{
+    FsMsnStream *self = FS_MSN_STREAM (data);
+    gint error, len;
+    gint fd = g_io_channel_unix_get_fd (ch);
+
+    g_message ("handler called on fd %d", fd);
+
+    errno = 0;
+    if (!((cond & G_IO_IN) || (cond & G_IO_OUT)))
+    {
+        g_message ("Condition received is %d", cond);
+        goto error;
+    }
+
+    len = sizeof(error);
+
+    /* Get the error option */
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, (void*) &error, &len) < 0)
+    {
+        g_warning ("getsockopt() failed");
+        goto error;
+    }
+
+    /* Check if there is an error */
+    if (error)
+    {
+        g_message ("getsockopt gave an error : %d", error);
+        goto error;
+    }
+
+    /* Remove NON BLOCKING MODE */
+    if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK) != 0)
+    {
+        g_warning ("fcntl() failed");
+        goto error;
+    }
+
+    g_message ("Got connection on fd %d", fd);
+
+    //g_source_remove (msnwebcam->connect_watch);
+    //g_io_channel_unref (ch);
+    // let's try to auth on this connection
+    if (fs_msn_authenticate_outgoing (self,fd))
+    {
+        g_message ("Authenticated outgoing successfully fd %d", fd);
+        self->priv->connection = ch;
+
+        // success! we need to shutdown/close all other channels 
+        gint i;
+        for (i = 0; i < self->priv->fdlist->len; i++)
+        {
+            GIOChannel *chan = g_array_index(self->priv->fdlist, GIOChannel*, i);
+            if (chan != ch)
+            {
+                g_message ("closing fd %d", g_io_channel_unix_get_fd (chan));
+                g_io_channel_shutdown (chan, TRUE, NULL);
+                g_io_channel_unref (chan);
+                g_array_remove_index (self->priv->fdlist, i);
+            }
+        }
+        g_source_remove (self->priv->out_watch);
+        g_message("Setting media_fd_src on fd %d",fd);
+        g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
+        gst_element_set_locked_state(self->priv->media_fd_src,TRUE);
+        GstState *state = NULL;
+        gst_element_get_state(self->priv->media_fd_src,state,NULL,GST_CLOCK_TIME_NONE);
+        if ( state > GST_STATE_READY)
+          { gst_element_set_state(self->priv->media_fd_src,GST_STATE_READY);
+            g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
+            gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
+            gst_element_sync_state_with_parent(self->priv->media_fd_src);
+          }  
+        gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
+        // add a watch on this fd to when it disconnects
+        self->priv->main_watch = g_io_add_watch (ch, 
+                (G_IO_ERR|G_IO_HUP|G_IO_NVAL), 
+                main_fd_closed_cb, self);
+        return FALSE;
+    }
+    else
+    {
+        g_message ("Authentification failed on fd %d", fd);
+    }
+
+    /* Error */
+error:
+    g_message ("Got error from fd %d, closing", fd);
+    // find, shutdown and remove channel from fdlist
+    gint i;
+    for (i = 0; i < self->priv->fdlist->len; i++)
+    {
+        GIOChannel *chan = g_array_index(self->priv->fdlist, GIOChannel*, i);
+        if (ch == chan)
+        {
+            g_io_channel_shutdown (chan, TRUE, NULL);
+            g_io_channel_unref (chan);
+            g_array_remove_index (self->priv->fdlist, i);
+        }
+    }
+
+    return FALSE;
+}
+
+static gboolean
+fs_msn_stream_attempt_connection (FsMsnStream *stream,gchar *ip, guint16 port)
+{
+  FsMsnStream *self = FS_MSN_STREAM (stream);
+  
+  GIOChannel *chan;
+  gint fd = -1;
+  struct sockaddr_in theiraddr;
+  memset(&theiraddr, 0, sizeof(theiraddr));
+
+  if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
+  {
+      // show error
+      g_message ("could not create socket!");
+      return FALSE;
+  }
+
+  chan = g_io_channel_unix_new (fd);
+  g_io_channel_set_close_on_unref (chan, TRUE);
+  g_array_append_val (self->priv->fdlist, chan);
+
+  // set non-blocking mode
+  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
+
+  theiraddr.sin_family = AF_INET;
+  theiraddr.sin_addr.s_addr = inet_addr (ip);
+  theiraddr.sin_port = htons (port);
+
+  g_message ("Attempting connection to %s %d on socket %d", ip, port, fd);
+  // this is non blocking, the return value isn't too usefull
+  gint ret = connect (fd, (struct sockaddr *) &theiraddr, sizeof (theiraddr));
+  if (ret < 0)
+  {
+      if (errno != EINPROGRESS)
+      {
+          g_io_channel_shutdown (chan, TRUE, NULL);
+          g_io_channel_unref (chan);
+          return FALSE;
+      }
+  }
+  g_message("ret %d %d %s", ret, errno, strerror(errno));
+
+  // add a watch on that io for when it connects
+  self->priv->out_watch = g_io_add_watch (chan, 
+          (G_IO_IN|G_IO_OUT|G_IO_PRI|G_IO_ERR|G_IO_HUP|G_IO_NVAL), 
+          successfull_connection_cb, self);			
+  return TRUE;				
+}                
+
+static gboolean 
+fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
+                                     FsCandidate *candidate,
+                                     GError **error)
+{
+FsMsnStream *self = FS_MSN_STREAM (stream);
+fs_msn_stream_attempt_connection(self,candidate->ip,candidate->port);
+}
+
+static gboolean
+fs_msn_authenticate_incoming (FsMsnStream *stream, gint fd)
+{
+  FsMsnStream *self = FS_MSN_STREAM (stream);
+    if (fd != 0)
+    {
+        gchar str[400];
+        gchar check[400];
+
+        memset(str, 0, sizeof(str));
+        if (recv(fd, str, sizeof(str), 0) != -1)
+        {
+            g_message ("Got %s, checking if it's auth", str);
+            sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n", 
+                    self->priv->local_recipientid, self->priv->remote_sessionid);
+            if (strcmp (str, check) != 0)
+            {
+                // send our connected message also
+                memset(str, 0, sizeof(str));
+                sprintf(str, "connected\r\n\r\n");
+                send(fd, str, strlen(str), 0);
+
+                // now we get connected
+                memset(str, 0, sizeof(str));
+                if (recv(fd, str, sizeof(str), 0) != -1)
+                {
+                    if (strcmp (str, "connected\r\n\r\n") == 0)
+                    {
+                        g_message ("Authentication successfull");
+                        return TRUE;
+                    }
+                }
+            }
+        }
+        else
+        {
+            perror("auth");
+        }
+    }
+    return FALSE;
+}
+
+static gboolean
+fd_accept_connection_cb (GIOChannel *ch, GIOCondition cond, gpointer data)
+{
+    FsMsnStream *self = FS_MSN_STREAM (data);
+    struct sockaddr_in in;
+    int fd;
+    GIOChannel *newchan = NULL;
+    socklen_t n = sizeof (in);
+
+    if (!(cond & G_IO_IN))
+    {
+        g_message ("Error in condition not G_IO_IN");
+        return FALSE;
+    }
+
+    if ((fd = accept(g_io_channel_unix_get_fd (ch), (struct sockaddr*) &in, &n)) == -1)
+    {
+        g_message ("Error while running accept() %d", errno);
+        return FALSE;
+    }
+
+    // ok we got a connection, let's set it up
+    newchan = g_io_channel_unix_new (fd);
+    g_io_channel_set_close_on_unref (newchan, TRUE);
+
+    /* Remove NON BLOCKING MODE */
+    if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK) != 0)
+    {
+        g_warning ("fcntl() failed");
+        goto error;
+    }
+
+    // now we try to auth
+    if (fs_msn_authenticate_incoming(self,fd))
+    {
+        g_message ("Authenticated incoming successfully fd %d", fd);
+        self->priv->connection = newchan;
+
+        // success! we need to shutdown/close all other channels 
+        gint i;
+        for (i = 0; i < self->priv->fdlist->len; i++)
+        {
+            GIOChannel *chan = g_array_index(self->priv->fdlist, GIOChannel*, i);
+            if (chan != newchan)
+            {
+                g_message ("closing fd %d", g_io_channel_unix_get_fd (chan));
+                g_io_channel_shutdown (chan, TRUE, NULL);
+                g_io_channel_unref (chan);
+                g_array_remove_index (self->priv->fdlist, i);
+            }
+        }
+        g_source_remove (self->priv->in_watch);
+        g_message("Setting media_fd_src on fd %d",fd);
+        g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
+        // add a watch on this fd to when it disconnects
+        self->priv->main_watch = g_io_add_watch (newchan, 
+                (G_IO_ERR|G_IO_HUP|G_IO_NVAL), 
+                main_fd_closed_cb, self);
+        return FALSE;
+    }
+
+    /* Error */
+error:
+    g_message ("Got error from fd %d, closing", fd);
+    // find, shutdown and remove channel from fdlist
+    gint i;
+    for (i = 0; i < self->priv->fdlist->len; i++)
+    {
+        GIOChannel *chan = g_array_index(self->priv->fdlist, GIOChannel*, i);
+        if (newchan == chan)
+        {
+            g_io_channel_shutdown (chan, TRUE, NULL);
+            g_io_channel_unref (chan);
+            g_array_remove_index (self->priv->fdlist, i);
+        }
+    }
+
+    return FALSE;
+}    
+
+static void 
+fs_msn_open_listening_port (FsMsnStream *stream,
+                            guint16 port)
+{
+  FsMsnStream *self = FS_MSN_STREAM (stream);
+  g_message ("Attempting to listen on port %d.....\n",port);
 
   GIOChannel *chan;
   gint fd = -1;
@@ -536,63 +1015,25 @@ static void fs_msn_open_listening_port (guint16 port,FsMsnStream *self)
 
   g_array_append_val (self->priv->fdlist, chan);
   g_message ("Listening on port %d\n",port);
- // FIXME Add a watch to listen out for a connection ?....
+  self->priv->in_watch = g_io_add_watch(chan,
+                G_IO_IN | G_IO_ERR | G_IO_HUP | G_IO_NVAL,
+                fd_accept_connection_cb, self);
 
-}
-
-static gboolean
-fs_msn_authenticate_incoming (gint fd, gint recipientid, gint sessionid)
-{
-    if (fd != 0)
-    {
-        gchar str[400];
-        gchar check[400];
-
-        memset(str, 0, sizeof(str));
-        if (recv(fd, str, sizeof(str), 0) != -1)
-        {
-            g_message ("Got %s, checking if it's auth", str);
-            sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
-                    recipientid, sessionid);
-            if (strcmp (str, check) != 0)
-            {
-                // send our connected message also
-                memset(str, 0, sizeof(str));
-                sprintf(str, "connected\r\n\r\n");
-                send(fd, str, strlen(str), 0);
-
-                // now we get connected
-                memset(str, 0, sizeof(str));
-                if (recv(fd, str, sizeof(str), 0) != -1)
-                {
-                    if (strcmp (str, "connected\r\n\r\n") == 0)
-                    {
-                        g_message ("Authentication successfull");
-                        return TRUE;
-                    }
-                }
-            }
-        }
-        else
-        {
-            perror("auth");
-        }
-    }
-    return FALSE;
 }
 
 // Authenticate ourselves when connecting out
 static gboolean
-farsight_msnwebcam_authenticate_outgoing (gint fd, gint recipientid, gint sessionid )
+fs_msn_authenticate_outgoing (FsMsnStream *stream, gint fd)
 {
+    FsMsnStream *self = FS_MSN_STREAM (stream);
     gchar str[400];
     memset(str, 0, sizeof(str));
     if (fd != 0)
     {
         g_message ("Authenticating connection on %d...", fd);
-        g_message ("sending : recipientid=%d&sessionid=%d\r\n\r\n", recipientid, sessionid);
+        g_message ("sending : recipientid=%d&sessionid=%d\r\n\r\n",self->priv->remote_recipientid,self->priv->remote_sessionid);
         sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
-                recipientid, sessionid);
+                self->priv->remote_recipientid, self->priv->remote_sessionid);
         if (send(fd, str, strlen(str), 0) == -1)
         {
             g_message("sending failed");
