@@ -70,7 +70,7 @@ struct _FsMsnStreamPrivate
   FsStreamDirection direction;
   GArray *fdlist;
   FsMsnConference *conference;
-  GstElement *media_fd_src;
+  GstElement *media_fd_src,*media_fd_sink,*send_valve;
   GstPad *sink_pad,*src_pad;
   guint in_watch, out_watch, main_watch;
   gint local_recipientid, local_sessionid;
@@ -394,14 +394,13 @@ fs_msn_stream_constructed (GObject *object)
   
   if (self->priv->direction == FS_DIRECTION_SEND)
   {
-    GstElement *media_fd_sink;
     GstElement *mimenc;
     GstElement *ffmpegcolorspace;
-    GstElement *valve;
-    
-    valve = gst_element_factory_make ("fsvalve","send_valve");
 
-		if (!valve)
+    
+    self->priv->send_valve = gst_element_factory_make ("fsvalve","send_valve");
+
+		if (!self->priv->send_valve)
 		{
 		  self->priv->construction_error = g_error_new (FS_ERROR,
 		    FS_ERROR_CONSTRUCTION,
@@ -409,22 +408,22 @@ fs_msn_stream_constructed (GObject *object)
 		  return;
 		}
 
-		if (!gst_bin_add (GST_BIN (self->priv->conference), valve))
+		if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->send_valve))
 		{
 		  self->priv->construction_error = g_error_new (FS_ERROR,
 		    FS_ERROR_CONSTRUCTION,
 		    "Could not add the valve element to the FsRtpConference");
-		  gst_object_unref (valve);
+		  gst_object_unref (self->priv->send_valve);
 		  return;
 		}
 
-		g_object_set (G_OBJECT (valve), "drop", FALSE, NULL);
+		g_object_set (G_OBJECT (self->priv->send_valve), "drop", TRUE, NULL);
 		
-		if (!gst_element_set_state (valve, GST_STATE_PLAYING))
+		if (!gst_element_sync_state_with_parent (self->priv->send_valve))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
-          "Could not set state for valve element");
+          "Could not sync state for valve element");
       return;
     }
 
@@ -447,17 +446,17 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_element_set_state (ffmpegcolorspace, GST_STATE_PLAYING))
+    if (!gst_element_sync_state_with_parent (ffmpegcolorspace))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
-          "Could not set state for ffmpegcolorspace element");
+          "Could not sync state for ffmpegcolorspace element");
       return;
     }
 
-    media_fd_sink = gst_element_factory_make ("multifdsink", "send_fd_sink");
+    self->priv->media_fd_sink = gst_element_factory_make ("fdsink", "send_fd_sink");
 
-    if (!media_fd_sink)
+    if (!self->priv->media_fd_sink)
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
@@ -465,20 +464,28 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_bin_add (GST_BIN (self->priv->conference), media_fd_sink))
+    if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->media_fd_sink))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not add the media_fd_sink element to the FsMsnConference");
-      gst_object_unref (media_fd_sink);
+      gst_object_unref (self->priv->media_fd_sink);
       return;
     }
 
-    if (!gst_element_set_state (media_fd_sink, GST_STATE_PLAYING))
+    /*if (!gst_element_set_state (media_fd_sink, GST_STATE_PLAYING))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not set state for media_fd_sink element");
+      return;
+    }*/
+    
+    if (!gst_element_set_locked_state(self->priv->media_fd_sink,TRUE))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not lock state of media_fd_sink element");
       return;
     }
 
@@ -501,7 +508,7 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_element_set_state (mimenc, GST_STATE_PLAYING))
+    if (!gst_element_sync_state_with_parent (mimenc))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
@@ -509,11 +516,11 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    GstPad *tmp_sink_pad = gst_element_get_static_pad (valve, "sink");
+    GstPad *tmp_sink_pad = gst_element_get_static_pad (self->priv->send_valve, "sink");
     self->priv->sink_pad = gst_ghost_pad_new ("sink", tmp_sink_pad);
 		gst_pad_set_active(self->priv->sink_pad, TRUE);
 		    	
-		gst_element_link_many(valve,ffmpegcolorspace,mimenc,media_fd_sink,NULL);
+		gst_element_link_many(self->priv->send_valve,ffmpegcolorspace,mimenc,self->priv->media_fd_sink,NULL);
   }
   else if (self->priv->direction == FS_DIRECTION_RECV)
   {
@@ -599,13 +606,21 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_element_sync_state_with_parent  (self->priv->media_fd_src))
+    /*if (!gst_element_sync_state_with_parent  (self->priv->media_fd_src))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not sync state with parent for media_fd_src element");
       return;
+    }*/
+    if (!gst_element_set_locked_state(self->priv->media_fd_src,TRUE))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not lock state of media_fd_src element");
+      return;
     }
+    
 
     mimdec = gst_element_factory_make ("mimdec", "recv_mim_dec");
 
@@ -632,7 +647,6 @@ fs_msn_stream_constructed (GObject *object)
           "Could not sync state with parent for mimdec element");
       return;
     }
-
 
     GstPad *tmp_src_pad = gst_element_get_static_pad (valve, "src");
     self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
@@ -750,19 +764,42 @@ static gboolean successfull_connection_cb (GIOChannel *ch,
                 g_array_remove_index (self->priv->fdlist, i);
             }
         }
+
         g_source_remove (self->priv->out_watch);
-        g_message("Setting media_fd_src on fd %d",fd);
-        g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
-        gst_element_set_locked_state(self->priv->media_fd_src,TRUE);
-        GstState *state = NULL;
-        gst_element_get_state(self->priv->media_fd_src,state,NULL,GST_CLOCK_TIME_NONE);
-        if ( state > GST_STATE_READY)
-          { gst_element_set_state(self->priv->media_fd_src,GST_STATE_READY);
-            g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
-            gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
-            gst_element_sync_state_with_parent(self->priv->media_fd_src);
-          }  
-        gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
+        if (self->priv->direction == FS_DIRECTION_RECV)
+        {
+          g_message("Setting media_fd_src on fd %d",fd);
+          
+          GstState state;
+          gst_element_get_state(self->priv->media_fd_src,&state,NULL,GST_CLOCK_TIME_NONE);
+          
+          if ( state > GST_STATE_READY)
+          { 
+              g_message("Error: fdsrc in state above ready");
+              gst_element_set_state(self->priv->media_fd_src,GST_STATE_READY);
+          }
+          g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
+          gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
+          gst_element_sync_state_with_parent(self->priv->media_fd_src);
+        }
+        else if (self->priv->direction == FS_DIRECTION_SEND)
+        {
+          g_message("Setting media_fd_sink on fd %d",fd);
+          
+          GstState state;
+          gst_element_get_state(self->priv->media_fd_sink,&state,NULL,GST_CLOCK_TIME_NONE);
+          
+          if ( state > GST_STATE_READY)
+          { 
+              g_message("Error: fdsrc in state above ready");
+              gst_element_set_state(self->priv->media_fd_sink,GST_STATE_READY);
+          }
+          g_object_set (G_OBJECT(self->priv->media_fd_sink), "fd", fd, NULL);
+          gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
+          gst_element_sync_state_with_parent(self->priv->media_fd_sink);
+          g_object_set (G_OBJECT (self->priv->send_valve), "drop", FALSE, NULL);
+        
+        }
         // add a watch on this fd to when it disconnects
         self->priv->main_watch = g_io_add_watch (ch, 
                 (G_IO_ERR|G_IO_HUP|G_IO_NVAL), 
@@ -904,8 +941,18 @@ fd_accept_connection_cb (GIOChannel *ch, GIOCondition cond, gpointer data)
 
     if (!(cond & G_IO_IN))
     {
-        g_message ("Error in condition not G_IO_IN");
-        return FALSE;
+      g_message ("Error in condition not G_IO_IN on %d see next error",g_io_channel_unix_get_fd (ch));
+      if (cond & G_IO_OUT)
+      g_message("Error: Data can be written (without blocking) in the accept_connection cb");
+      else if (cond & G_IO_PRI)
+      g_message("Error: There is urgent data to read in the accept_connection cb");
+      else if (cond & G_IO_ERR)
+      g_message("Error: There is an error in the accept_connection cb");
+      else if (cond & G_IO_HUP)
+      g_message("Error: Hung up (the connection has been broken, usually for pipes and sockets) in the accept_connection cb");
+      else if (cond & G_IO_NVAL)
+      g_message("Error: Invalid request. The file descriptor is not open in the accept_connection cb");
+      return FALSE;
     }
 
     if ((fd = accept(g_io_channel_unix_get_fd (ch), (struct sockaddr*) &in, &n)) == -1)
@@ -932,6 +979,7 @@ fd_accept_connection_cb (GIOChannel *ch, GIOCondition cond, gpointer data)
         self->priv->connection = newchan;
 
         // success! we need to shutdown/close all other channels 
+        g_source_remove (self->priv->in_watch);
         gint i;
         for (i = 0; i < self->priv->fdlist->len; i++)
         {
@@ -944,9 +992,25 @@ fd_accept_connection_cb (GIOChannel *ch, GIOCondition cond, gpointer data)
                 g_array_remove_index (self->priv->fdlist, i);
             }
         }
-        g_source_remove (self->priv->in_watch);
-        g_message("Setting media_fd_src on fd %d",fd);
-        g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
+        if (self->priv->direction == FS_DIRECTION_RECV)
+        {
+          g_message("Setting media_fd_src on fd %d",fd);
+          
+          GstState state;
+          gst_element_get_state(self->priv->media_fd_src,&state,NULL,GST_CLOCK_TIME_NONE);
+          
+          if ( state > GST_STATE_READY)
+          { 
+              g_message("Error: fdsrc in state above ready");
+              gst_element_set_state(self->priv->media_fd_src,GST_STATE_READY);
+          }
+          g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
+          gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
+          gst_element_sync_state_with_parent(self->priv->media_fd_src);
+        }
+        else if (self->priv->direction == FS_DIRECTION_SEND)
+        {
+        }
         // add a watch on this fd to when it disconnects
         self->priv->main_watch = g_io_add_watch (newchan, 
                 (G_IO_ERR|G_IO_HUP|G_IO_NVAL), 
@@ -1041,7 +1105,7 @@ fs_msn_authenticate_outgoing (FsMsnStream *stream, gint fd)
         }
 
         memset(str, 0, sizeof(str));
-        if (recv(fd, str, sizeof(str), 0) != -1)
+        if (recv(fd, str, 13, 0) != -1)
         {
             g_message ("Got %s, checking if it's auth", str);
             // we should get a connected message now
