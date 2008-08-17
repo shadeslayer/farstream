@@ -2,7 +2,7 @@
  * Farsight2 - Farsight MSN Session
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
- *  @author: Olivier Crete <olivier.crete@collabora.co.uk> 
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * fs-msn-session.h - A Farsight Msn Session gobject
  *
@@ -52,26 +52,26 @@ typedef struct _FsMsnSessionClass FsMsnSessionClass;
 typedef struct _FsMsnSessionPrivate FsMsnSessionPrivate;
 
 struct _FsMsnSessionClass
-{
-  FsSessionClass parent_class;
-};
+  {
+    FsSessionClass parent_class;
+  };
 
 /**
  * FsMsnSession:
  *
  */
 struct _FsMsnSession
-{
-  FsSession parent;
+  {
+    FsSession parent;
 
-  guint id;
+    guint id;
 
-  /*< private >*/
+    /*< private >*/
 
-  GStaticRecMutex mutex; /* Should only be accessed using the macros */
+    GStaticRecMutex mutex; /* Should only be accessed using the macros */
 
-  FsMsnSessionPrivate *priv;
-};
+    FsMsnSessionPrivate *priv;
+  };
 
 #define FS_MSN_SESSION_LOCK(session) \
   g_static_rec_mutex_lock (&FS_MSN_SESSION (session)->mutex)
@@ -86,7 +86,7 @@ FsMsnSession *fs_msn_session_new (FsMediaType media_type,
                                   guint id,GError **error);
 
 void fs_msn_session_new_recv_pad (FsMsnSession *session, GstPad *new_pad,
-  guint32 ssrc, guint pt);
+                                  guint32 ssrc, guint pt);
 
 G_END_DECLS
 

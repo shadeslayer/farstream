@@ -50,27 +50,27 @@ typedef struct _FsMsnParticipantClass FsMsnParticipantClass;
 typedef struct _FsMsnParticipantPrivate FsMsnParticipantPrivate;
 
 struct _FsMsnParticipantClass
-{
-  FsParticipantClass parent_class;
+  {
+    FsParticipantClass parent_class;
 
-  /*virtual functions */
+    /*virtual functions */
 
-  /*< private >*/
-  FsMsnParticipantPrivate *priv;
-};
+    /*< private >*/
+    FsMsnParticipantPrivate *priv;
+  };
 
 /**
  * FsMsnParticipant:
  *
  */
 struct _FsMsnParticipant
-{
-  FsParticipant parent;
-  FsMsnParticipantPrivate *priv;
+  {
+    FsParticipant parent;
+    FsMsnParticipantPrivate *priv;
 
-};
+  };
 
-GType fs_Msn_participant_get_type (void);
+GType fs_msn_participant_get_type (void);
 
 FsMsnParticipant *fs_msn_participant_new (gchar *cname);
 

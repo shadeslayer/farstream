@@ -50,18 +50,15 @@ typedef struct _FsMsnConferenceClass FsMsnConferenceClass;
 typedef struct _FsMsnConferencePrivate FsMsnConferencePrivate;
 
 struct _FsMsnConference
-{
-  FsBaseConference parent;
-  FsMsnConferencePrivate *priv;
-
-  /* Do not modify the pointer */ 
-  // ^?  GstElement *gstrtpbin;
-};
+  {
+    FsBaseConference parent;
+    FsMsnConferencePrivate *priv;
+  };
 
 struct _FsMsnConferenceClass
-{
-  FsBaseConferenceClass parent_class;
-};
+  {
+    FsBaseConferenceClass parent_class;
+  };
 
 GType fs_msn_conference_get_type (void);
 

@@ -3,7 +3,6 @@
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- *  @Rob Taylor, Philippe Khalaf   ?
  *
  * fs-msn-stream.h - A Farsight MSN Stream
  *
@@ -53,23 +52,23 @@ typedef struct _FsMsnStreamPrivate FsMsnStreamPrivate;
 
 
 struct _FsMsnStreamClass
-{
-  FsStreamClass parent_class;
+  {
+    FsStreamClass parent_class;
 
-};
+  };
 
 /**
  * FsMsnStream:
  *
  */
 struct _FsMsnStream
-{
-  FsStream parent;
+  {
+    FsStream parent;
 
- 
 
-  FsMsnStreamPrivate *priv;
-};
+
+    FsMsnStreamPrivate *priv;
+  };
 
 GType fs_msn_stream_get_type (void);
 
@@ -78,7 +77,7 @@ FsMsnStream *fs_msn_stream_new (FsMsnSession *session,
                                 FsStreamDirection direction,
                                 FsMsnConference *conference,
                                 GError **error);
-                       
+
 
 G_END_DECLS
 

@@ -48,18 +48,9 @@ enum
 
 G_DEFINE_TYPE(FsMsnParticipant, fs_msn_participant, FS_TYPE_PARTICIPANT);
 
-/*
-struct _FsMsnParticipantPrivate
-{
-};
-
-#define FS_MSN_PARTICIPANT_GET_PRIVATE(o)  \
-   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
-   FsMsnParticipantPrivate))
-*/
 
 static GObjectClass *parent_class = NULL;
-// static guint signals[LAST_SIGNAL] = { 0 };
+
 
 static void
 fs_msn_participant_class_init (FsMsnParticipantClass *klass)
@@ -69,14 +60,11 @@ fs_msn_participant_class_init (FsMsnParticipantClass *klass)
   gobject_class = (GObjectClass *) klass;
   parent_class = g_type_class_peek_parent (klass);
 
-  // g_type_class_add_private (klass, sizeof (FsMsnParticipantPrivate));
 }
 
 static void
 fs_msn_participant_init (FsMsnParticipant *self)
 {
-  /* member init */
-  // self->priv = FS_MSN_PARTICIPANT_GET_PRIVATE (self);
 }
 
 FsMsnParticipant *fs_msn_participant_new (gchar *cname)
