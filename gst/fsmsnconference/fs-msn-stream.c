@@ -245,7 +245,7 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
                                                       G_PARAM_READWRITE));
   g_object_class_install_property (gobject_class,
                                    PROP_PORT,
-                                   g_param_spec_uint ("port",
+                                   g_param_spec_uint ("local-port",
                                                       "The local port used for this stream",
                                                       "The local port used for this stream",
                                                       0, G_MAXUINT, 0,
@@ -401,8 +401,6 @@ fs_msn_stream_constructed (GObject *object)
 {
 
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
-
-  fs_msn_open_listening_port(self,self->priv->port);
 
   if (self->priv->direction == FS_DIRECTION_SEND)
     {
@@ -883,6 +881,7 @@ fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
                                      GError **error)
 {
   FsMsnStream *self = FS_MSN_STREAM (stream);
+  fs_msn_open_listening_port(self,self->priv->port); // FIXME - Should be done in the constructor, with a message passed onto the bus to give the port to the client program
   if (fs_msn_stream_attempt_connection(self,candidate->ip,candidate->port))
     return TRUE;
   return FALSE;
