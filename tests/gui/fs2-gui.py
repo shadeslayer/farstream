@@ -395,7 +395,7 @@ class FsUISession:
                                farsight.MEDIA_TYPE_AUDIO,
                                0),
                 # The gst speexenc element breaks timestamps
-                farsight.Codec(farsight.DISABLE,
+                farsight.Codec(farsight.CODEC_ID_DISABLE,
                                "SPEEX",
                                farsight.MEDIA_TYPE_AUDIO,
                                16000),
