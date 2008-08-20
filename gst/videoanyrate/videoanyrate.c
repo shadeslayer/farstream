@@ -100,10 +100,8 @@ gst_videoanyrate_base_init (gpointer klass)
 static void
 gst_videoanyrate_class_init (GstVideoanyrateClass *klass)
 {
-  GObjectClass *gobject_class;
   GstBaseTransformClass *gstbasetransform_class;
 
-  gobject_class = (GObjectClass *) klass;
   gstbasetransform_class = (GstBaseTransformClass *) klass;
 
   gstbasetransform_class->transform_caps =
