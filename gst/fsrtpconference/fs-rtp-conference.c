@@ -66,13 +66,12 @@ enum
 };
 
 
-static GstElementDetails fs_rtp_conference_details = {
+static const GstElementDetails fs_rtp_conference_details =
+GST_ELEMENT_DETAILS (
   "Farsight RTP Conference",
   "Generic/Bin/RTP",
   "A Farsight RTP Conference",
-  "Olivier Crete <olivier.crete@collabora.co.uk>"
-};
-
+  "Olivier Crete <olivier.crete@collabora.co.uk>");
 
 
 static GstStaticPadTemplate fs_rtp_conference_sink_template =
