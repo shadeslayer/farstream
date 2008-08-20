@@ -38,6 +38,12 @@
 GST_DEBUG_CATEGORY_STATIC (fs_funnel_debug);
 #define GST_CAT_DEFAULT fs_funnel_debug
 
+static const GstElementDetails gst_fsfunnel_details =
+GST_ELEMENT_DETAILS(
+  "Farsight Funnel pipe fitting",
+  "Generic",
+  "N-to-1 pipe fitting",
+  "Olivier Crete <olivier.crete@collabora.co.uk>");
 
 static GstStaticPadTemplate funnel_sink_template =
   GST_STATIC_PAD_TEMPLATE ("sink%d",
@@ -84,11 +90,8 @@ fs_funnel_base_init (gpointer g_class)
 {
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (g_class);
 
-  gst_element_class_set_details_simple (gstelement_class,
-      "Farsight Funnel pipe fitting",
-      "Generic",
-      "N-to-1 pipe fitting",
-      "Olivier Crete <olivier.crete@collabora.co.uk>");
+  gst_element_class_set_details (gstelement_class, &gst_fsfunnel_details);
+
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&funnel_sink_template));
   gst_element_class_add_pad_template (gstelement_class,
