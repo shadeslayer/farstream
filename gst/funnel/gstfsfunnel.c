@@ -52,9 +52,12 @@ static GstStaticPadTemplate funnel_src_template =
     GST_STATIC_CAPS_ANY);
 
 
-
-#define _do_init(bla) \
-    GST_DEBUG_CATEGORY_INIT (fs_funnel_debug, "fsfunnel", 0, "fsfunnel element");
+static void
+_do_init (GType type)
+{
+  GST_DEBUG_CATEGORY_INIT
+    (fs_funnel_debug, "fsfunnel", 0, "fsfunnel element");
+}
 
 GST_BOILERPLATE_FULL (FsFunnel, fs_funnel, GstElement, GST_TYPE_ELEMENT,
   _do_init);
