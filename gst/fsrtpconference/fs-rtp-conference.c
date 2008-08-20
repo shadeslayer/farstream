@@ -245,13 +245,6 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
   gobject_class->get_property =
     GST_DEBUG_FUNCPTR (fs_rtp_conference_get_property);
 
-  gst_element_class_set_details (gstelement_class, &fs_rtp_conference_details);
-
-  gst_element_class_add_pad_template (gstelement_class,
-            gst_static_pad_template_get (&fs_rtp_conference_sink_template));
-  gst_element_class_add_pad_template (gstelement_class,
-            gst_static_pad_template_get (&fs_rtp_conference_src_template));
-
   g_object_class_install_property (gobject_class, PROP_SDES_CNAME,
       g_param_spec_string ("sdes-cname", "Canonical name",
           "The CNAME for the RTP sessions",
@@ -291,6 +284,14 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 static void
 fs_rtp_conference_base_init (gpointer g_class)
 {
+  GstElementClass *gstelement_class = GST_ELEMENT_CLASS (g_class);
+
+  gst_element_class_add_pad_template (gstelement_class,
+            gst_static_pad_template_get (&fs_rtp_conference_sink_template));
+  gst_element_class_add_pad_template (gstelement_class,
+            gst_static_pad_template_get (&fs_rtp_conference_src_template));
+
+  gst_element_class_set_details (gstelement_class, &fs_rtp_conference_details);
 }
 
 static void
