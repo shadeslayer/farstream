@@ -407,25 +407,24 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
 {
   FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
   FsStream *new_stream = NULL;
+
+  g_return_val_if_fail (session, NULL);
+  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (klass->new_stream, NULL);
   g_return_val_if_fail (g_type_is_a (G_OBJECT_TYPE (session),
               FS_TYPE_SESSION), NULL);
 
-  if (klass->new_stream) {
-    new_stream = klass->new_stream (session, participant, direction,
+  new_stream = klass->new_stream (session, participant, direction,
       transmitter, stream_transmitter_n_parameters,
       stream_transmitter_parameters, error);
 
-    if (!new_stream)
-      return NULL;
+  if (!new_stream)
+    return NULL;
 
-    /* Let's catch all stream errors and forward them */
-    g_signal_connect (new_stream, "error",
+  /* Let's catch all stream errors and forward them */
+  g_signal_connect (new_stream, "error",
         G_CALLBACK (fs_session_error_forward), session);
 
-  } else {
-    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "new_stream not defined for %s", G_OBJECT_TYPE_NAME (session));
-  }
   return new_stream;
 }
 
@@ -511,6 +510,7 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   if (klass->set_send_codec) {
     return klass->set_send_codec (session, send_codec, error);
   } else {
+    GST_WARNING ("set_send_codec not defined in class");
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "set_send_codec not defined in class");
   }
@@ -550,6 +550,7 @@ fs_session_set_codec_preferences (FsSession *session,
   if (klass->set_codec_preferences) {
     return klass->set_codec_preferences (session, codec_preferences, error);
   } else {
+    GST_WARNING ("set_send_preferences not defined in class");
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
         "set_codec_preferences not defined in class");
   }
