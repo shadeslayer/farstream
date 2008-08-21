@@ -17,9 +17,13 @@ filter=pyfarsight-filter.defs
 
 cat ${filter} > ${output}
 
+H2DEF=
+[ -z "${H2DEF}" -a -f /usr/share/pygtk/2.0/codegen/h2def.py ] && H2DEF=/usr/share/pygtk/2.0/codegen/h2def.py
+[ -z "${H2DEF}" -a -f /usr/lib/python2.5/site-packages/gtk-2.0/codegen/h2def.py ] && H2DEF=/usr/lib/python2.5/site-packages/gtk-2.0/codegen/h2def.py
+[ -z "${H2DEF}" -a -f /usr/lib/python2.4/site-packages/gtk-2.0/codegen/h2def.py ] && H2DEF=/usr/lib/python2.4/site-packages/gtk-2.0/codegen/h2def.py
+
 for h in $HEADERS; do
-    python /usr/share/pygtk/2.0/codegen/h2def.py \
-	--defsfilter=${filter} ${srcdir}/$h >> $output
+    python ${H2DEF} --defsfilter=${filter} ${srcdir}/$h >> $output
 done
 
 sed -e "/of-object \"FsSession\"/ a \
