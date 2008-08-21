@@ -462,7 +462,7 @@ GList * fs_interfaces_get_local_ips (gboolean include_loopback)
 		    continue;
         }
 
-        ipstr = g_strdup_printf ("%d.%d.%d.%d", 
+        ipstr = g_strdup_printf ("%d.%d.%d.%d",
             (ipaddr->dwAddr      ) & 0xFF,
             (ipaddr->dwAddr >>  8) & 0xFF,
             (ipaddr->dwAddr >> 16) & 0xFF,
@@ -503,10 +503,10 @@ win32_get_ip_for_interface (IF_INDEX idx)
     for (i = 0; i < ip_table->dwNumEntries; i++)
     {
       PMIB_IPADDRROW ipaddr = &ip_table->table[i];
-      if (ipaddr->dwIndex == idx && 
+      if (ipaddr->dwIndex == idx &&
           !(ipaddr->wType & (MIB_IPADDR_DISCONNECTED | MIB_IPADDR_DELETED)))
       {
-        ret = g_strdup_printf ("%d.%d.%d.%d", 
+        ret = g_strdup_printf ("%d.%d.%d.%d",
             (ipaddr->dwAddr      ) & 0xFF,
             (ipaddr->dwAddr >>  8) & 0xFF,
             (ipaddr->dwAddr >> 16) & 0xFF,
