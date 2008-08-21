@@ -5,7 +5,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * gstfsfunnel.c: Simple Funnel element
+ * fs-funnel.c: Simple Funnel element
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,12 +33,12 @@
 #  include "config.h"
 #endif
 
-#include "gstfsfunnel.h"
+#include "fs-funnel.h"
 
 GST_DEBUG_CATEGORY_STATIC (fs_funnel_debug);
 #define GST_CAT_DEFAULT fs_funnel_debug
 
-static const GstElementDetails gst_fsfunnel_details =
+static const GstElementDetails fs_funnel_details =
 GST_ELEMENT_DETAILS(
   "Farsight Funnel pipe fitting",
   "Generic",
@@ -90,7 +90,7 @@ fs_funnel_base_init (gpointer g_class)
 {
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (g_class);
 
-  gst_element_class_set_details (gstelement_class, &gst_fsfunnel_details);
+  gst_element_class_set_details (gstelement_class, &fs_funnel_details);
 
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&funnel_sink_template));

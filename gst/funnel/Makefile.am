@@ -1,6 +1,6 @@
 plugin_LTLIBRARIES = libfsfunnel.la
 
-libfsfunnel_la_SOURCES = gstfsfunnel.c
+libfsfunnel_la_SOURCES = fs-funnel.c
 libfsfunnel_la_CFLAGS = \
 	$(FS2_CFLAGS) \
 	$(GST_BASE_CFLAGS) \
@@ -11,4 +11,4 @@ libfsfunnel_la_LIBADD = \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS)
 
-noinst_HEADERS = gstfsfunnel.h
+noinst_HEADERS = fs-funnel.h
