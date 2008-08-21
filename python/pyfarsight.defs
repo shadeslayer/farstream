@@ -31,7 +31,6 @@
   (values
     '("audio" "FS_MEDIA_TYPE_AUDIO")
     '("video" "FS_MEDIA_TYPE_VIDEO")
-    '("application" "FS_MEDIA_TYPE_APPLICATION")
     '("last" "FS_MEDIA_TYPE_LAST")
   )
 )
@@ -111,12 +110,6 @@
   (parameters
     '("const-FsCodec*" "codec2")
   )
-)
-
-(define-method to_gst_caps
-  (of-object "FsCodec")
-  (c-name "fs_codec_to_gst_caps")
-  (return-type "GstCaps*")
 )
 
 (define-function fs_codec_list_are_equal
@@ -267,14 +260,15 @@
   (gtype-id "FS_TYPE_ERROR")
   (values
     '("construction" "FS_ERROR_CONSTRUCTION")
-    '("invalid-arguments" "FS_ERROR_INVALID_ARGUMENTS")
     '("internal" "FS_ERROR_INTERNAL")
+    '("invalid-arguments" "FS_ERROR_INVALID_ARGUMENTS")
     '("network" "FS_ERROR_NETWORK")
     '("not-implemented" "FS_ERROR_NOT_IMPLEMENTED")
     '("negotiation-failed" "FS_ERROR_NEGOTIATION_FAILED")
     '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
     '("unknown-cname" "FS_ERROR_UNKNOWN_CNAME")
     '("no-codecs" "FS_ERROR_NO_CODECS")
+    '("no-codecs-left" "FS_ERROR_NO_CODECS_LEFT")
     '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
   )
 )
@@ -655,6 +649,11 @@
 
 (define-function fs_stream_direction_get_type
   (c-name "fs_stream_direction_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_stream_state_get_type
+  (c-name "fs_stream_state_get_type")
   (return-type "GType")
 )
 
