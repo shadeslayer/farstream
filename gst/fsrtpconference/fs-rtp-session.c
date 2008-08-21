@@ -2632,7 +2632,7 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
  *
  * You MUST own the FsRtpSession mutex to call this function
  *
- * Returns: a newly-allocated #FsCodec
+ * Returns: a newly-allocated #FsCodec or %NULL on error
  */
 
 static FsCodec *
@@ -2669,6 +2669,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
       }
       else
       {
+        /* We have a valid codec, lets use it */
         goto out;
       }
     }
@@ -2683,6 +2684,10 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
     }
   }
 
+  /*
+   * We don't have a requested codec, or it was not valid, lets use the first
+   * codec from the list
+   */
   for (ca_e = g_list_first (session->priv->codec_associations);
        ca_e;
        ca_e = g_list_next (ca_e))
