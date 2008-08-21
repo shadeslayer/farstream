@@ -1956,7 +1956,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
   if (!new_negotiated_codec_associations)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS,
+    g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS_LEFT,
         "Codec config would leave no valid local codecs");
     goto error;
   }

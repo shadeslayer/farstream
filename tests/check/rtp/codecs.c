@@ -162,8 +162,10 @@ GST_START_TEST (test_rtpcodecs_codec_preferences)
           &error),
       "Disabling all codecs did not fail");
   fail_unless (error != NULL, "The error is not set");
-  fail_unless (error->code == FS_ERROR_NO_CODECS,
-      "The error code is %d, not FS_ERROR_NO_CODECS");
+  fail_unless (error->domain == FS_ERROR,
+      "Domain is not FS_ERROR");
+  fail_unless (error->code == FS_ERROR_NO_CODECS_LEFT,
+      "The error code is %d, not FS_ERROR_NO_CODECS_LEFT");
 
   g_clear_error (&error);
 
