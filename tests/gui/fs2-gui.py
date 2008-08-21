@@ -680,7 +680,7 @@ class FsUIParticipant:
             except AttributeError:
                 pass
             self.glade.get_widget("user_drawingarea").disconnect_by_func(self.exposed)
-            del self.streams
+            self.streams = {}
             self.outcv.acquire()
             self.videosink.set_locked_state(True)
             self.funnel.set_locked_state(True)
