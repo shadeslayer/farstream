@@ -131,6 +131,18 @@ typedef enum {
 
 #define FS_ERROR (fs_error_quark ())
 
+/**
+ * FS_ERROR_IS_FATAL:
+ * @error: a #FsError
+ *
+ * Tells the programmer if an error if fatal or not, if it returns %TRUE,
+ * the error is fatal, and the object that created it should
+ * be discarded. It returns %FALSE otherwise.
+ */
+
+#define FS_ERROR_IS_FATAL(error) \
+  (error < 100)
+
 GQuark fs_error_quark (void);
 
 /* virtual class function wrappers */
