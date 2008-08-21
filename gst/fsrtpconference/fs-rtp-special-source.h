@@ -57,7 +57,7 @@ typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
 /**
  * FsRtpSpecialSourceClass:
  * @build: The method builds the source #GstElement from the list of negotiated
- *   codecs and selected codecs, it returns %NULL and sets the #GError on error
+ *   codecs and selected codecs, it returns %NULL on error
  * @update: This optional method can update the content of the current source
  *  if its possible. If the source can not be modified, it returns %FALSE (and
  *  a new source will be created)
@@ -81,8 +81,7 @@ struct _FsRtpSpecialSourceClass
 
   GstElement* (*build) (FsRtpSpecialSource *source,
       GList *negotiated_codecs,
-      FsCodec *selected_codec,
-      GError **error);
+      FsCodec *selected_codec);
 
   gboolean (*update) (FsRtpSpecialSource *source,
       GList *negotiated_codecs,
@@ -122,8 +121,7 @@ fs_rtp_special_sources_remove (
     GList *negotiated_codecs,
     FsCodec *send_codec,
     GstElement *bin,
-    GstElement *rtpmuxer,
-    GError **error);
+    GstElement *rtpmuxer);
 
 GList *
 fs_rtp_special_sources_create (
@@ -131,8 +129,7 @@ fs_rtp_special_sources_create (
     GList *negotiated_codecs,
     FsCodec *send_codec,
     GstElement *bin,
-    GstElement *rtpmuxer,
-    GError **error);
+    GstElement *rtpmuxer);
 
 GList *
 fs_rtp_special_sources_destroy (GList *current_extra_sources);

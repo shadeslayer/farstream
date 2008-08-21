@@ -2899,11 +2899,12 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       self->priv->extra_sources,
       self->priv->codec_associations, codec,
       GST_ELEMENT (self->priv->conference),
-      self->priv->rtpmuxer, &error);
+      self->priv->rtpmuxer);
   if (error)
   {
-    fs_session_emit_error (FS_SESSION (self), error->code,
-        "Could not remove unused special sources: %s", error->message);
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
+        "Could not remove unused special sources",
+        "Could not remove unused special sources");
     goto done;
   }
 
@@ -2927,11 +2928,12 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       self->priv->extra_sources,
       self->priv->codec_associations, codec,
       GST_ELEMENT (self->priv->conference),
-      self->priv->rtpmuxer, &error);
+      self->priv->rtpmuxer);
   if (error)
   {
-    fs_session_emit_error (FS_SESSION (self), error->code,
-        "Could not create special sources: %s", error->message);
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
+        "Could not create special sources",
+        "Could not create special sources");
     goto done;
   }
 
@@ -2966,7 +2968,6 @@ static gboolean
 fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 {
   GstElement *codecbin = NULL;
-  GError *local_gerror = NULL;
   FsCodec *codec = NULL;
   CodecBlueprint *bp = NULL;
 
@@ -3000,12 +3001,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
         self->priv->extra_sources,
         self->priv->codec_associations, codec,
         GST_ELEMENT (self->priv->conference),
-        self->priv->rtpmuxer, &local_gerror);
-    if (local_gerror)
-    {
-      g_propagate_error (error, local_gerror);
-      goto error;
-    }
+        self->priv->rtpmuxer);
   }
 
  done:

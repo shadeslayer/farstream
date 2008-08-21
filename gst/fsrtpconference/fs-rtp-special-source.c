@@ -102,8 +102,7 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec,
     GstElement *bin,
-    GstElement *rtpmuxer,
-    GError **error);
+    GstElement *rtpmuxer);
 static gboolean
 fs_rtp_special_source_update (FsRtpSpecialSource *source,
     GList *negotiated_codecs,
@@ -388,7 +387,6 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
  * @send_codec: The currently selected send codec
  * @bin: The #GstBin to add the stuff to
  * @rtpmuxer: The rtpmux element
- * @error: NULL or the local of a #GError
  *
  * This function removes any special source that are not compatible with the
  * currently selected send codec.
@@ -401,8 +399,7 @@ fs_rtp_special_sources_remove (
     GList *negotiated_codecs,
     FsCodec *send_codec,
     GstElement *bin,
-    GstElement *rtpmuxer,
-    GError **error)
+    GstElement *rtpmuxer)
 {
   GList *klass_item = NULL;
 
@@ -449,7 +446,6 @@ fs_rtp_special_sources_remove (
  * @send_codec: The currently selected send codec
  * @bin: The #GstBin to add the stuff to
  * @rtpmuxer: The rtpmux element
- * @error: NULL or the local of a #GError
  *
  * This function add special sources that don't already exist but are needed
  *
@@ -461,8 +457,7 @@ fs_rtp_special_sources_create (
     GList *negotiated_codecs,
     FsCodec *send_codec,
     GstElement *bin,
-    GstElement *rtpmuxer,
-    GError **error)
+    GstElement *rtpmuxer)
 {
   GList *klass_item = NULL;
 
@@ -491,7 +486,7 @@ fs_rtp_special_sources_create (
             send_codec))
     {
       obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-          bin, rtpmuxer, error);
+          bin, rtpmuxer);
       if (!obj)
         goto error;
       current_extra_sources = g_list_insert_sorted (current_extra_sources,
@@ -509,49 +504,29 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec,
     GstElement *bin,
-    GstElement *rtpmuxer,
-    GError **error)
+    GstElement *rtpmuxer)
 {
   FsRtpSpecialSource *source = NULL;
 
-  if (!klass->build)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-        "Could not build new %s source", G_OBJECT_CLASS_NAME (klass));
-    return NULL;
-  }
+  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (klass->build, NULL);
+  g_return_val_if_fail (GST_IS_BIN (bin), NULL);
+  g_return_val_if_fail (GST_IS_ELEMENT (rtpmuxer), NULL);
 
   source = g_object_new (G_OBJECT_CLASS_TYPE (klass),
       "bin", bin,
       "rtpmuxer", rtpmuxer,
       NULL);
-  g_assert (source);
+  g_return_val_if_fail (source, NULL);
 
-
-  if (!source->priv->outer_bin)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid bin set");
-    goto error;
-  }
-
-  if (!source->priv->rtpmuxer)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid rtpmuxer set");
-    goto error;
-  }
-
-  source->priv->src = klass->build (source, negotiated_codecs, selected_codec,
-      error);
+  source->priv->src = klass->build (source, negotiated_codecs, selected_codec);
 
   if (!source->priv->src)
     goto error;
 
   if (!gst_bin_add (GST_BIN (source->priv->outer_bin), source->priv->src))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add bin to outer bin");
+    GST_ERROR ("Could not add bin to outer bin");
     gst_object_unref (source->priv->src);
     source->priv->src = NULL;
     goto error;
@@ -560,16 +535,14 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
   if (!gst_element_link_pads (source->priv->src, "src",
           rtpmuxer, NULL))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link rtpdtmfsrc src to muxer sink");
+    GST_ERROR ("Could not link rtpdtmfsrc src to muxer sink");
     goto error_added;
 
   }
 
   if (!gst_element_sync_state_with_parent (source->priv->src))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not sync capsfilter state with its parent");
+    GST_ERROR ("Could not sync capsfilter state with its parent");
     goto error_added;
   }
 

@@ -64,8 +64,7 @@ G_DEFINE_TYPE (FsRtpDtmfEventSource, fs_rtp_dtmf_event_source,
 static GstElement *
 fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
     GList *negotiated_codecs,
-    FsCodec *selected_codec,
-    GError **error);
+    FsCodec *selected_codec);
 
 
 static gboolean fs_rtp_dtmf_event_source_class_want_source (
@@ -245,8 +244,7 @@ fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
 static GstElement *
 fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
     GList *negotiated_codecs,
-    FsCodec *selected_codec,
-    GError **error)
+    FsCodec *selected_codec)
 {
   FsCodec *telephony_codec = NULL;
   GstCaps *caps = NULL;
@@ -259,26 +257,19 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   telephony_codec = get_telephone_event_codec (negotiated_codecs,
       selected_codec->clock_rate);
 
-  if (!telephony_codec)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Could not find a telephone-event for the current codec's clock-rate");
-    return NULL;
-  }
+  g_return_val_if_fail (telephony_codec, NULL);
 
   bin = gst_bin_new (NULL);
 
   dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
   if (!dtmfsrc)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not make rtpdtmfsrc");
+    GST_ERROR ("Could not make rtpdtmfsrc");
     goto error;
   }
   if (!gst_bin_add (GST_BIN (bin), dtmfsrc))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add rtpdtmfsrc to bin");
+    GST_ERROR ("Could not add rtpdtmfsrc to bin");
     gst_object_unref (dtmfsrc);
     goto error;
   }
@@ -286,14 +277,12 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   capsfilter = gst_element_factory_make ("capsfilter", NULL);
   if (!capsfilter)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not make capsfilter");
+    GST_ERROR ("Could not make capsfilter");
     goto error;
   }
   if (!gst_bin_add (GST_BIN (bin), capsfilter))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add capsfilter to bin");
+    GST_ERROR ("Could not add capsfilter to bin");
     gst_object_unref (capsfilter);
     goto error;
   }
@@ -309,29 +298,26 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
 
   if (!gst_element_link_pads (dtmfsrc, "src", capsfilter, "sink"))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the rtpdtmfsrc and its capsfilter");
+    GST_ERROR ("Could not link the rtpdtmfsrc and its capsfilter");
     goto error;
   }
 
   pad = gst_element_get_static_pad (capsfilter, "src");
   if (!pad)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not get \"src\" pad from capsfilter");
+    GST_ERROR ("Could not get \"src\" pad from capsfilter");
     goto error;
   }
   ghostpad = gst_ghost_pad_new ("src", pad);
   if (!ghostpad)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not create a ghostpad for capsfilter src pad for rtpdtmfsrc");
+    GST_ERROR ("Could not create a ghostpad for capsfilter src pad for"
+        " rtpdtmfsrc");
     goto error;
   }
   if (!gst_element_add_pad (bin, ghostpad))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not get \"src\" ghostpad to dtmf source bin");
+    GST_ERROR ("Could not get \"src\" ghostpad to dtmf source bin");
     gst_object_unref (pad);
     goto error;
   }
