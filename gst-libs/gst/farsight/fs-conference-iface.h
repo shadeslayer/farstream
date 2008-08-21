@@ -81,33 +81,45 @@ GType fs_conference_get_type (void);
 
 /**
  * FsError:
- * @FS_ERROR_CONSTRUCTION: Error constructing some of the sub-elements
- * @FS_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function
- * @FS_ERROR_NETWORK: A network related error
+ * @FS_ERROR_CONSTRUCTION: Error constructing some of the sub-elements, this
+ * probably denotes an error in the installation of the gstreamer elements.
+ * It is a fatal error.
+ * @FS_ERROR_INVALID_ARGUMENTS: Invalid arguments to the function, this
+ * is a programming error and should not be reported to the user
  * @FS_ERROR_INTERNAL: An internal error happened in Farsight, it may be in
- * an inconsistent state.
- * @FS_ERROR_NOT_IMPLEMENTED: This functionality is not implemented
- * by this plugins
- * @FS_ERROR_NEGOTIATION_FAILED: The codec negotiation has failed
- * @FS_ERROR_UNKNOWN_CODEC: The codec is unknown
- * @FS_ERROR_UNKNOWN_CNAME: Data was received for an unknown cname
- * @FS_ERROR_NO_CODECS: There are no valid codecs left.
- * @FS_ERROR_CONNECTION_FAILED: Could not connect to the to remote party
+ * an inconsistent state. The object from which this error comes should be
+ * discarded.
+ * @FS_ERROR_NETWORK: A network related error, this should probably be
+ *  reported to the user.
+ * @FS_ERROR_NOT_IMPLEMENTED: The optional functionality is not implemented by
+ * this plugin.
+ * @FS_ERROR_NEGOTIATION_FAILED: The codec negotiation has failed, this means
+ * that there are no common codecs between the local and remote codecs.
+ * @FS_ERROR_UNKNOWN_CODEC: Data is received on an unknown codec, this most
+ * likely denotes an error on the remote side, the buffers will be ignored.
+ * It can safely be ignored in most cases (but may result in a call with no
+ * media received).
+ * @FS_ERROR_UNKNOWN_CNAME: Data was received for an unknown cname.
+ * @FS_ERROR_NO_CODECS: There are no codecs detected for that media type.
+ * @FS_ERROR_NO_CODECS_LEFT: All of the codecs have been disabled by the
+ * codec preferences, one should try less strict codec preferences.
+ * @FS_ERROR_CONNECTION_FAILED: Could not connect to the to remote party.
  *
  * This is the enum of error numbers that will come either on the "error"
- * signal or from the Gst Bus.
+ * signal, from the Gst Bus or for error in the FS_ERROR domain in GErrors
  */
 
 typedef enum {
-  FS_ERROR_CONSTRUCTION,
-  FS_ERROR_INVALID_ARGUMENTS,
+  FS_ERROR_CONSTRUCTION = 1,
   FS_ERROR_INTERNAL,
+  FS_ERROR_INVALID_ARGUMENTS = 100,
   FS_ERROR_NETWORK,
   FS_ERROR_NOT_IMPLEMENTED,
   FS_ERROR_NEGOTIATION_FAILED,
   FS_ERROR_UNKNOWN_CODEC,
   FS_ERROR_UNKNOWN_CNAME,
   FS_ERROR_NO_CODECS,
+  FS_ERROR_NO_CODECS_LEFT,
   FS_ERROR_CONNECTION_FAILED,
 } FsError;
 
