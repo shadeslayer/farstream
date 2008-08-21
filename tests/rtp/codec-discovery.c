@@ -23,11 +23,7 @@
 #include <gst/farsight/fs-codec.h>
 
 #include "fs-rtp-discover-codecs.h"
-
-
-GST_DEBUG_CATEGORY (fsrtpconference_debug);
-GST_DEBUG_CATEGORY (fsrtpconference_disco);
-GST_DEBUG_CATEGORY (fsrtpconference_nego);
+#include "fs-rtp-conference.h"
 
 
 static void

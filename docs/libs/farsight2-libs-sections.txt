@@ -121,7 +121,6 @@ fs_codec_list_destroy
 fs_codec_list_copy
 fs_codec_list_are_equal
 fs_codec_to_string
-fs_codec_to_gst_caps
 fs_codec_add_optional_parameter
 fs_codec_remove_optional_parameter
 fs_codec_get_optional_parameter
