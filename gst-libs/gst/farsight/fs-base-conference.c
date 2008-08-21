@@ -151,6 +151,8 @@ fs_base_conference_new_session (FsConference *conf,
 
   FsSession *new_session = NULL;
 
+  g_return_val_if_fail (base_conf, NULL);
+  g_return_val_if_fail (klass, NULL);
   g_return_val_if_fail (klass->new_session, NULL);
 
   new_session = klass->new_session (base_conf, media_type, error);
@@ -213,6 +215,8 @@ fs_base_conference_new_participant (FsConference *conf,
   FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);
   FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
 
+  g_return_val_if_fail (baseconf, NULL);
+  g_return_val_if_fail (klass, NULL);
   g_return_val_if_fail (klass->new_participant, NULL);
 
   return klass->new_participant (baseconf, cname, error);

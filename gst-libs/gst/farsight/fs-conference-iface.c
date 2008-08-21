@@ -121,6 +121,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
   FsConferenceClass *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
+  g_return_val_if_fail (iface, NULL);
   g_return_val_if_fail (iface->new_session, NULL);
 
   return iface->new_session (conference, media_type, error);
@@ -145,6 +146,7 @@ fs_conference_new_participant (FsConference *conference, gchar *cname,
   FsConferenceClass *iface =
       FS_CONFERENCE_GET_IFACE (conference);
 
+  g_return_val_if_fail (iface, NULL);
   g_return_val_if_fail (iface->new_participant, NULL);
 
   return iface->new_participant (conference, cname, error);
