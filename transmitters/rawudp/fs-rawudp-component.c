@@ -920,7 +920,7 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
       self->priv->stun_cookie, 0);
   if (!msg)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Could not create a new STUN binding request");
     return FALSE;
   }
