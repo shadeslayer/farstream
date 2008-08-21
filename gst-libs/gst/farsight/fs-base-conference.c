@@ -151,20 +151,16 @@ fs_base_conference_new_session (FsConference *conf,
 
   FsSession *new_session = NULL;
 
-  if (klass->new_session) {
-    new_session = klass->new_session (base_conf, media_type, error);
+  g_return_val_if_fail (klass->new_session, NULL);
 
-    if (!new_session)
-      return NULL;
+  new_session = klass->new_session (base_conf, media_type, error);
 
-    /* Let's catch all session errors and send them over the GstBus */
-    g_signal_connect (new_session, "error",
-        G_CALLBACK (fs_base_conference_error), base_conf);
-  } else {
-    GST_WARNING_OBJECT (conf, "new_session not defined in element");
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "new_session not defined in element");
-  }
+  if (!new_session)
+    return NULL;
+
+  /* Let's catch all session errors and send them over the GstBus */
+  g_signal_connect (new_session, "error",
+      G_CALLBACK (fs_base_conference_error), base_conf);
 
   return new_session;
 }
@@ -217,11 +213,7 @@ fs_base_conference_new_participant (FsConference *conf,
   FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);
   FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
 
-  if (klass->new_participant) {
-    return klass->new_participant (baseconf, cname, error);
-  } else {
-    GST_WARNING_OBJECT (conf, "new_session not defined in element");
-  }
+  g_return_val_if_fail (klass->new_participant, NULL);
 
-  return NULL;
+  return klass->new_participant (baseconf, cname, error);
 }
