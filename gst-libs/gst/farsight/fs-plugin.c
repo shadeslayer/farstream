@@ -260,18 +260,10 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   GObject *object;
   FsPlugin *plugin;
 
-  fs_base_conference_init_debug ();
+  g_return_val_if_fail (name, NULL);
+  g_return_val_if_fail (type_suffix, NULL);
 
-  if (name == NULL) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "You need to pass a name");
-    return NULL;
-  }
-  if (type_suffix == NULL) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "You need to pass a type suffix");
-    return NULL;
-  }
+  fs_base_conference_init_debug ();
 
   plugin = fs_plugin_get_by_name (name, type_suffix);
 
