@@ -69,12 +69,6 @@ GST_BOILERPLATE_WITH_INTERFACE (
     GstBin, GST_TYPE_BIN,
     FsConference, FS_TYPE_CONFERENCE, fs_conference);
 
-static void fs_base_conference_set_property (GObject *object, guint prop_id,
-                                             const GValue *value,
-                                             GParamSpec *pspec);
-static void fs_base_conference_get_property (GObject *object, guint prop_id,
-                                             GValue *value, GParamSpec *pspec);
-
 static FsSession *fs_base_conference_new_session (FsConference *conf,
                                                   FsMediaType media_type,
                                                   GError **error);
@@ -109,11 +103,6 @@ fs_base_conference_class_init (FsBaseConferenceClass * klass)
   // g_type_class_add_private (klass, sizeof (FsBaseConferencePrivate));
 
   parent_class = g_type_class_peek_parent (klass);
-
-  gobject_class->set_property =
-      GST_DEBUG_FUNCPTR (fs_base_conference_set_property);
-  gobject_class->get_property =
-      GST_DEBUG_FUNCPTR (fs_base_conference_get_property);
 }
 
 static void
@@ -191,19 +180,6 @@ fs_base_conference_error (GObject *signal_src, GObject *error_src,
   {
     GST_WARNING_OBJECT (conf, "Could not post error on bus");
   }
-}
-
-static void
-fs_base_conference_set_property (GObject *object, guint prop_id,
-                                 const GValue *value,
-                                 GParamSpec *pspec)
-{
-}
-
-static void
-fs_base_conference_get_property (GObject *object, guint prop_id,
-                                 GValue *value, GParamSpec *pspec)
-{
 }
 
 
