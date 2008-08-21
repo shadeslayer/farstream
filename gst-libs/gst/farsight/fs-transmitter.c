@@ -253,13 +253,12 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 {
   FsTransmitterClass *klass = FS_TRANSMITTER_GET_CLASS (transmitter);
 
-  if (klass->new_stream_transmitter) {
-    return klass->new_stream_transmitter (transmitter, participant,
+  g_return_val_if_fail (transmitter, NULL);
+  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (klass->new_stream_transmitter, NULL);
+
+  return klass->new_stream_transmitter (transmitter, participant,
       n_parameters, parameters, error);
-  } else {
-    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "new_stream_transmitter not defined in class");
-  }
 
   return NULL;
 }
@@ -317,14 +316,10 @@ fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
 {
   FsTransmitterClass *klass = FS_TRANSMITTER_GET_CLASS (transmitter);
 
-  if (klass->get_stream_transmitter_type) {
-    return klass->get_stream_transmitter_type (transmitter, error);
-  } else {
-    g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "get_stream_transmitter_type not defined in class");
-  }
+  g_return_val_if_fail (klass, 0);
+  g_return_val_if_fail (klass->get_stream_transmitter_type, 0);
 
-  return 0;
+  return klass->get_stream_transmitter_type (transmitter, error);
 }
 
 
