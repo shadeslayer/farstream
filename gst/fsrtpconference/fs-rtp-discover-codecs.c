@@ -227,7 +227,7 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
   if (codecs_lists_ref[media_type] > 1)
     return list_codec_blueprints[media_type];
 
-  list_codec_blueprints[media_type] = load_codecs_cache (media_type, NULL);
+  list_codec_blueprints[media_type] = load_codecs_cache (media_type);
   if (list_codec_blueprints[media_type]) {
     GST_DEBUG ("Loaded codec blueprints from cache file");
     return list_codec_blueprints[media_type];

@@ -93,7 +93,7 @@ static gboolean codecs_cache_valid (gchar *cache_path) {
 }
 
 static gchar *
-get_codecs_cache_path (FsMediaType media_type, GError **error) {
+get_codecs_cache_path (FsMediaType media_type) {
   gchar *cache_path;
 
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
@@ -109,8 +109,7 @@ get_codecs_cache_path (FsMediaType media_type, GError **error) {
           "codecs.video." HOST_CPU ".cache", NULL);
     }
   } else {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "Unknown media type %d for cache loading", media_type);
+    GST_ERROR ("Unknown media type %d for cache loading", media_type);
     return NULL;
   }
 
@@ -257,7 +256,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
  *
  */
 GList *
-load_codecs_cache (FsMediaType media_type, GError **error)
+load_codecs_cache (FsMediaType media_type)
 {
   GMappedFile *mapped = NULL;
   gchar *contents = NULL;
@@ -278,12 +277,11 @@ load_codecs_cache (FsMediaType media_type, GError **error)
   } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     magic_media = 'V';
   } else {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "Invalid media type %d", media_type);
+    GST_ERROR ("Invalid media type %d", media_type);
     return NULL;
   }
 
-  cache_path = get_codecs_cache_path (media_type, error);
+  cache_path = get_codecs_cache_path (media_type);
 
   if (!cache_path)
     return NULL;
@@ -302,12 +300,11 @@ load_codecs_cache (FsMediaType media_type, GError **error)
       err ? err->message: "unknown error");
     g_clear_error (&err);
 
-    if (!g_file_get_contents (cache_path, &contents, &size, error))
+    if (!g_file_get_contents (cache_path, &contents, &size, NULL))
       goto error;
   } else {
     if ((contents = g_mapped_file_get_contents (mapped)) == NULL) {
-      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Can't load file %s : %s", cache_path, g_strerror (errno));
+      GST_WARNING ("Can't load file %s : %s", cache_path, g_strerror (errno));
       goto error;
     }
     /* check length for header */
@@ -319,7 +316,7 @@ load_codecs_cache (FsMediaType media_type, GError **error)
   in = contents;
 
   if (size < sizeof (magic)) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL, "Cache file corrupt");
+    GST_WARNING ("Cache file corrupt");
     goto error;
   }
 
@@ -333,14 +330,13 @@ load_codecs_cache (FsMediaType media_type, GError **error)
       magic[3] != 'C' ||
       magic[4] != '1' ||   /* This is the version number */
       magic[5] != '1') {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-      "Cache file has incorrect magic header. File corrupted");
+    GST_WARNING ("Cache file has incorrect magic header. File corrupted");
     goto error;
   }
 
   if (size < sizeof (gint)) {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-      "Cache file corrupt (size: %"G_GSIZE_FORMAT" < sizeof (int))", size);
+    GST_WARNING ("Cache file corrupt (size: %"G_GSIZE_FORMAT" < sizeof (int))",
+        size);
     goto error;
   }
 
@@ -351,8 +347,7 @@ load_codecs_cache (FsMediaType media_type, GError **error)
   for (i = 0; i < num_blueprints; i++) {
     CodecBlueprint *blueprint = load_codec_blueprint (media_type, &in, &size);
     if (!blueprint) {
-      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Can not load all of the blueprints, cache corrupted");
+      GST_WARNING ("Can not load all of the blueprints, cache corrupted");
 
       if (blueprints) {
         g_list_foreach (blueprints, (GFunc) codec_blueprint_destroy, NULL);
@@ -472,7 +467,7 @@ save_codecs_cache (FsMediaType media_type, GList *blueprints)
   int size;
   gchar magic[8] = {0};
 
-  cache_path = get_codecs_cache_path (media_type, NULL);
+  cache_path = get_codecs_cache_path (media_type);
   if (!cache_path)
     return FALSE;
 
