@@ -26,6 +26,9 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+#include <arpa/inet.h>
+#include <netdb.h>
+
 #include "check-threadsafe.h"
 #include "generic.h"
 
@@ -429,12 +432,34 @@ GST_END_TEST;
 GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
 {
   GParameter params[3];
+  char buf[INET_ADDRSTRLEN];
+  struct addrinfo hints = {0};
+  struct addrinfo *res = NULL;
+
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_DGRAM;
+  hints.ai_flags = AI_ADDRCONFIG;
+
+  if (getaddrinfo ("stunserver.org", NULL, &hints, &res))
+  {
+    g_debug ("Could not resolve stunserver.org, skipping");
+    return;
+  }
+
+  if (inet_ntop (AF_INET, &((struct sockaddr_in*)res->ai_addr)->sin_addr,
+          buf, INET_ADDRSTRLEN) == NULL)
+  {
+    g_debug ("Could not stringify address, skipping test");
+    return;
+  }
+
+  freeaddrinfo (res);
 
   memset (params, 0, sizeof (GParameter) * 3);
 
   params[0].name = "stun-ip";
   g_value_init (&params[0].value, G_TYPE_STRING);
-  g_value_set_static_string (&params[0].value, "192.245.12.229");
+  g_value_set_string (&params[0].value, buf);
 
   params[1].name = "stun-port";
   g_value_init (&params[1].value, G_TYPE_UINT);
