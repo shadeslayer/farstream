@@ -991,7 +991,7 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
 
 
 /**
- * fs_rtp_sub_stream_get_output_ghostpad:
+ * fs_rtp_sub_stream_add_output_ghostpad:
  *
  * Creates and adds an output ghostpad for this substreams
  *
