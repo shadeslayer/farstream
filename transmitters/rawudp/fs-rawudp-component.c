@@ -1130,7 +1130,7 @@ stun_timeout_func (gpointer user_data)
             error->message, error->message);
       else
         fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
-            "Error emitting local errors", NULL);
+            "Error emitting local candidates", NULL);
     }
     g_clear_error (&error);
   }
