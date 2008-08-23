@@ -1098,8 +1098,6 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       "candidate-gathering-done", G_CALLBACK (agent_gathering_done), self);
   self->priv->new_selected_pair_handler_id = g_signal_connect (agent->agent,
       "new-selected-pair", G_CALLBACK (agent_new_selected_pair), self);
-  self->priv->new_candidate_handler_id = g_signal_connect (agent->agent,
-      "new-candidate", G_CALLBACK (agent_new_candidate), self);
 
 
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
@@ -1331,6 +1329,10 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
     g_slist_free (candidates);
   }
   g_signal_emit_by_name (self, "local-candidates-prepared");
+
+  if (!self->priv->new_candidate_handler_id)
+    self->priv->new_candidate_handler_id = g_signal_connect (agent->agent,
+        "new-candidate", G_CALLBACK (agent_new_candidate), self);
 }
 
 
