@@ -19,13 +19,11 @@ Build time:
  - gst-plugins-base 0.10.18
  - glib 2.16
 
-Run time:
+Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.7
  - gst-plugins-bad 0.10.7
  - gst-plugins-farsight 0.12.9
-
-Usable video requires H.263 (encoder + decoder) from gst-ffmpeg
 
 For the python module and examples you also need:
  - Python 2.1
