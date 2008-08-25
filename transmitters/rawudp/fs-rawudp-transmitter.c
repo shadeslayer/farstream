@@ -765,9 +765,6 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   g_object_set (udpport->udpsink,
       "async", FALSE,
       "sync", FALSE,
-      NULL);
-
-  g_object_set (udpport->udpsrc,
       "auto-multicast", FALSE,
       NULL);
 

@@ -673,7 +673,9 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     "sockfd", fd,
     NULL);
 
-  if (direction == GST_PAD_SINK)
+
+  if (g_object_class_find_property (G_OBJECT_GET_CLASS (elem),
+          "auto-multicast"))
     g_object_set (elem, "auto-multicast", FALSE, NULL);
 
   if (!gst_bin_add (bin, elem)) {
@@ -823,10 +825,6 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
         GST_PAD_SRC, &udpsock->udpsrc_requested_pad, error);
     if (!udpsock->udpsrc)
       goto error;
-
-    g_object_set (udpsock->udpsrc,
-        "auto-multicast", FALSE,
-        NULL);
   }
 
   udpsock->udpsink = _create_sinksource ("multiudpsink",
