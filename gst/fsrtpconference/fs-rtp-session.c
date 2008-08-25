@@ -3639,8 +3639,7 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
 /**
  * _send_sink_pad_blocked_callback:
  *
- * This is a callback function for the "have-data" signal, it returns always
- * %TRUE, because we never drop buffers at this stage
+ * This is the callback to change the discovery codecbin
  */
 
 static void
