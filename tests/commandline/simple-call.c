@@ -3,14 +3,73 @@
 #include <gst/gst.h>
 #include <gst/farsight/fs-conference-iface.h>
 
-#define DEFAULT_AUDIO_SRC       "alsasrc"
-#define DEFAULT_AUDIO_SINK      "alsasink"
+#define DEFAULT_AUDIOSRC       "alsasrc"
+#define DEFAULT_AUDIOSINK      "audioconvert ! audioresample ! audioconvert ! alsasink"
 
 typedef enum {
   NONE,
   CLIENT,
-  SERVER }
-  ClientServer;
+  SERVER
+} ClientServer;
+
+typedef struct _TestSession
+{
+  FsSession *session;
+  GstElement *src;
+  FsStream *stream;
+} TestSession;
+
+
+static void
+print_error (GError *error)
+{
+  if (error)
+  {
+    g_error ("Error: %s:%d : %s", g_quark_to_string (error->domain),
+        error->code, error->message);
+  }
+}
+
+static TestSession*
+add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
+    FsParticipant *part)
+{
+  TestSession *ses = g_slice_new0 (TestSession);
+  GError *error = NULL;
+  GstPad *pad = NULL, *pad2 = NULL;;
+
+  ses->session = fs_conference_new_session (conf, FS_MEDIA_TYPE_AUDIO, &error);
+  g_assert (ses->session);
+  print_error (error);
+
+  g_object_get (ses->session, "sink-pad", &pad, NULL);
+
+  if (g_getenv ("AUDIOSRC"))
+    ses->src = gst_parse_bin_from_description (g_getenv ("AUDIOSRC"), TRUE,
+        &error);
+  else
+    ses->src = gst_parse_bin_from_description (DEFAULT_AUDIOSRC, TRUE,
+        &error);
+  g_assert (ses->src);
+  print_error (error);
+
+  g_assert (gst_bin_add (GST_BIN (pipeline), ses->src));
+
+  pad2 = gst_element_get_static_pad (ses->src, "src");
+  g_assert (pad2);
+
+  g_assert (GST_PAD_LINK_SUCCESSFUL (gst_pad_link (pad2, pad)));
+
+  gst_object_unref (pad2);
+  gst_object_unref (pad);
+
+  ses->stream = fs_session_new_stream (ses->session, part, FS_DIRECTION_BOTH,
+      "rawudp", 0, NULL, &error);
+  g_assert (ses->stream);
+  print_error (error);
+
+  return ses;
+}
 
 static gboolean
 async_bus_cb (GstBus *bus, GstMessage *message, gpointer user_data)
@@ -27,6 +86,8 @@ int main (int argc, char **argv)
   gchar *ip;
   guint port = 0;
   GstElement *conf = NULL;
+  FsParticipant *part = NULL;
+  GError *error = NULL;
 
   gst_init (&argc, &argv);
 
@@ -59,18 +120,28 @@ int main (int argc, char **argv)
 
   conf = gst_element_factory_make ("fsrtpconference", NULL);
 
+  part = fs_conference_new_participant (FS_CONFERENCE (conf), "test@ignore",
+      &error);
+  print_error (error);
+
   g_assert (gst_bin_add (GST_BIN (pipeline), conf));
 
-  g_assert (gst_element_set_state (pipeline, GST_STATE_PLAYING)
-      != GST_STATE_CHANGE_FAILURE);
+
+  add_audio_session (pipeline, FS_CONFERENCE (conf), 1, part);
+
+
+  g_assert (gst_element_set_state (pipeline, GST_STATE_PLAYING) !=
+      GST_STATE_CHANGE_FAILURE);
 
   g_main_loop_run (loop);
 
-  g_assert (gst_element_set_state (pipeline, GST_STATE_NULL)
-      != GST_STATE_CHANGE_FAILURE);
+  g_assert (gst_element_set_state (pipeline, GST_STATE_NULL) !=
+      GST_STATE_CHANGE_FAILURE);
 
-  g_main_loop_unref (loop);
+  g_object_unref (part);
+
   gst_object_unref (pipeline);
+  g_main_loop_unref (loop);
 
   return 0;
 }
