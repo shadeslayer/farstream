@@ -1190,8 +1190,7 @@ agent_new_selected_pair (NiceAgent *agent,
   if (stream_id != self->priv->stream_id)
     return;
 
-  candidates = nice_agent_get_local_candidates (
-      self->priv->agent->agent,
+  candidates = nice_agent_get_local_candidates (agent,
       self->priv->stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
@@ -1200,16 +1199,14 @@ agent_new_selected_pair (NiceAgent *agent,
 
     if (!strcmp (candidate->foundation, lfoundation))
     {
-      local = nice_candidate_to_fs_candidate (self->priv->agent->agent,
-          candidate, TRUE);
+      local = nice_candidate_to_fs_candidate (agent, candidate, TRUE);
       break;
     }
   }
   g_slist_foreach (candidates, (GFunc)nice_candidate_free, NULL);
   g_slist_free (candidates);
 
-  candidates = nice_agent_get_remote_candidates (
-      self->priv->agent->agent,
+  candidates = nice_agent_get_remote_candidates (agent,
       self->priv->stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
@@ -1218,8 +1215,7 @@ agent_new_selected_pair (NiceAgent *agent,
 
     if (!strcmp (candidate->foundation, rfoundation))
     {
-      remote = nice_candidate_to_fs_candidate (self->priv->agent->agent,
-          candidate, FALSE);
+      remote = nice_candidate_to_fs_candidate (agent, candidate, FALSE);
       break;
     }
   }
@@ -1262,8 +1258,7 @@ agent_new_candidate (NiceAgent *agent,
   GST_DEBUG ("New candidate found for stream %u component %u",
       stream_id, component_id);
 
-  candidates = nice_agent_get_local_candidates (
-      self->priv->agent->agent,
+  candidates = nice_agent_get_local_candidates (agent,
       self->priv->stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
@@ -1272,8 +1267,7 @@ agent_new_candidate (NiceAgent *agent,
 
     if (!strcmp (item->data, foundation))
     {
-      fscandidate = nice_candidate_to_fs_candidate (
-          self->priv->agent->agent, candidate, TRUE);
+      fscandidate = nice_candidate_to_fs_candidate (agent, candidate, TRUE);
       break;
     }
   }
@@ -1309,8 +1303,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
-    candidates = nice_agent_get_local_candidates (
-        self->priv->agent->agent,
+    candidates = nice_agent_get_local_candidates (agent,
         self->priv->stream_id, c);
 
     for (item = candidates; item; item = g_slist_next (item))
@@ -1318,8 +1311,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
       NiceCandidate *candidate = item->data;
       FsCandidate *fscandidate;
 
-      fscandidate = nice_candidate_to_fs_candidate (
-          self->priv->agent->agent, candidate, TRUE);
+      fscandidate = nice_candidate_to_fs_candidate (agent, candidate, TRUE);
       g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
       fs_candidate_destroy (fscandidate);
     }
@@ -1331,7 +1323,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
   g_signal_emit_by_name (self, "local-candidates-prepared");
 
   if (!self->priv->new_candidate_handler_id)
-    self->priv->new_candidate_handler_id = g_signal_connect (agent->agent,
+    self->priv->new_candidate_handler_id = g_signal_connect (agent,
         "new-candidate", G_CALLBACK (agent_new_candidate), self);
 }
 
