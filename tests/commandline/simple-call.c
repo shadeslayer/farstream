@@ -15,7 +15,6 @@ typedef enum {
 typedef struct _TestSession
 {
   FsSession *session;
-  GstElement *src;
   FsStream *stream;
 } TestSession;
 
@@ -66,6 +65,7 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   TestSession *ses = g_slice_new0 (TestSession);
   GError *error = NULL;
   GstPad *pad = NULL, *pad2 = NULL;;
+  GstElement *src = NULL;
 
   ses->session = fs_conference_new_session (conf, FS_MEDIA_TYPE_AUDIO, &error);
   g_assert (ses->session);
@@ -74,17 +74,17 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   g_object_get (ses->session, "sink-pad", &pad, NULL);
 
   if (g_getenv ("AUDIOSRC"))
-    ses->src = gst_parse_bin_from_description (g_getenv ("AUDIOSRC"), TRUE,
+    src = gst_parse_bin_from_description (g_getenv ("AUDIOSRC"), TRUE,
         &error);
   else
-    ses->src = gst_parse_bin_from_description (DEFAULT_AUDIOSRC, TRUE,
+    src = gst_parse_bin_from_description (DEFAULT_AUDIOSRC, TRUE,
         &error);
-  g_assert (ses->src);
+  g_assert (src);
   print_error (error);
 
-  g_assert (gst_bin_add (GST_BIN (pipeline), ses->src));
+  g_assert (gst_bin_add (GST_BIN (pipeline), src));
 
-  pad2 = gst_element_get_static_pad (ses->src, "src");
+  pad2 = gst_element_get_static_pad (src, "src");
   g_assert (pad2);
 
   g_assert (GST_PAD_LINK_SUCCESSFUL (gst_pad_link (pad2, pad)));
