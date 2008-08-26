@@ -30,6 +30,35 @@ print_error (GError *error)
   }
 }
 
+static void
+src_pad_added_cb (FsStream *stream, GstPad *pad, FsCodec *codec,
+    gpointer user_data)
+{
+  GstElement *pipeline = GST_ELEMENT_CAST (user_data);
+  GstElement *sink = NULL;
+  GError *error = NULL;
+  GstPad *pad2;
+
+  if (g_getenv ("AUDIOSRC"))
+    sink = gst_parse_bin_from_description (g_getenv ("AUDIOSINK"), TRUE,
+        &error);
+  else
+    sink = gst_parse_bin_from_description (DEFAULT_AUDIOSINK, TRUE,
+        &error);
+  g_assert (sink);
+  print_error (error);
+
+  g_assert (gst_bin_add (GST_BIN (pipeline), sink));
+
+
+  pad2 = gst_element_get_static_pad (sink, "sink");
+  g_assert (pad2);
+
+  g_assert (GST_PAD_LINK_SUCCESSFUL (gst_pad_link (pad, pad2)));
+
+  gst_object_unref (pad2);
+}
+
 static TestSession*
 add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
     FsParticipant *part)
@@ -67,6 +96,9 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
       "rawudp", 0, NULL, &error);
   g_assert (ses->stream);
   print_error (error);
+
+  g_signal_connect (ses->stream, "src-pad-added",
+      G_CALLBACK (src_pad_added_cb), pipeline);
 
   return ses;
 }
