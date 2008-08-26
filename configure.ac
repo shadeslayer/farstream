@@ -388,6 +388,7 @@ tests/Makefile
 tests/check/Makefile
 tests/rtp/Makefile
 tests/gui/Makefile
+tests/commandline/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/version.entities
