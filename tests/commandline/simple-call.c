@@ -106,6 +106,52 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
 static gboolean
 async_bus_cb (GstBus *bus, GstMessage *message, gpointer user_data)
 {
+  switch (GST_MESSAGE_TYPE(message))
+  {
+    case GST_MESSAGE_ERROR:
+      {
+        GError *error = NULL;
+        gchar *debug_str = NULL;
+
+        gst_message_parse_error (message, &error, &debug_str);
+        g_error ("Got gst message: %s %s", error->message, debug_str);
+      }
+      break;
+    case GST_MESSAGE_WARNING:
+      {
+        GError *error = NULL;
+        gchar *debug_str = NULL;
+
+        gst_message_parse_warning (message, &error, &debug_str);
+        g_warning ("Got gst message: %s %s", error->message, debug_str);
+      }
+      break;
+    case GST_MESSAGE_ELEMENT:
+      {
+        const GstStructure *s = gst_message_get_structure (message);
+
+        if (gst_structure_has_name (s, "farsight-error"))
+        {
+          gint error;
+          const gchar *error_msg = gst_structure_get_string (s, "error-msg");
+          const gchar *debug_msg = gst_structure_get_string (s, "debug-msg");
+
+          g_assert (gst_structure_get_enum (s, "error-no", FS_TYPE_ERROR,
+                  &error));
+
+          if (FS_ERROR_IS_FATAL (error))
+            g_error ("Farsight fatal error: %d %s %s", error, error_msg,
+                debug_msg);
+          else
+            g_warning ("Farsight non-fatal error: %d %s %s", error, error_msg,
+                debug_msg);
+        }
+      }
+      break;
+    default:
+      break;
+  }
+
   return TRUE;
 }
 
