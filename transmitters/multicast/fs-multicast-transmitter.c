@@ -673,7 +673,6 @@ _create_sinksource (gchar *elementname, GstBin *bin,
     "sockfd", fd,
     NULL);
 
-
   if (g_object_class_find_property (G_OBJECT_GET_CLASS (elem),
           "auto-multicast"))
     g_object_set (elem, "auto-multicast", FALSE, NULL);

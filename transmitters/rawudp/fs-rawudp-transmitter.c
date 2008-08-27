@@ -621,6 +621,11 @@ _create_sinksource (
       "sockfd", fd,
       NULL);
 
+  if (g_object_class_find_property (G_OBJECT_GET_CLASS (elem),
+          "auto-multicast"))
+    g_object_set (elem, "auto-multicast", FALSE, NULL);
+
+
   if (!gst_bin_add (bin, elem))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -765,7 +770,6 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   g_object_set (udpport->udpsink,
       "async", FALSE,
       "sync", FALSE,
-      "auto-multicast", FALSE,
       NULL);
 
   trans->priv->udpports[component_id] =
