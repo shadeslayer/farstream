@@ -150,6 +150,16 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
 
   fs_candidate_list_destroy (cands);
 
+  codecs = g_list_prepend (NULL,
+      fs_codec_new (FS_CODEC_ID_ANY, "PCMA", FS_MEDIA_TYPE_AUDIO, 0));
+  codecs = g_list_prepend (codecs,
+      fs_codec_new (FS_CODEC_ID_ANY, "PCMU", FS_MEDIA_TYPE_AUDIO, 0));
+
+  res = fs_session_set_codec_preferences (ses->session, codecs, &error);
+  print_error (error);
+  fs_codec_list_destroy (codecs);
+
+
   g_object_get (ses->session, "codecs", &codecs, NULL);
   res = fs_stream_set_remote_codecs (ses->stream, codecs, &error);
   print_error (error);
