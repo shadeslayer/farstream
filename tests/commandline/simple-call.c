@@ -131,14 +131,16 @@ int main (int argc, char **argv)
     port = atoi (argv[2]);
     if (!port)
     {
-      g_print ("Usage: %s [ip] [port]\n", argv[0]);
+      g_print ("Usage as client : %s [ip] [port]\n", argv[0]);
+      g_print ("Usage as server : %s\n", argv[0]);
       return 1;
     }
     ip = argv[1];
   }
   else
   {
-    g_print ("Usage: %s [ip] [port]\n", argv[0]);
+    g_print ("Usage as client : %s [ip] [port]\n", argv[0]);
+    g_print ("Usage as server : %s\n", argv[0]);
     return 1;
   }
 
