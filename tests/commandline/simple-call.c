@@ -32,7 +32,9 @@ src_pad_added_cb (FsStream *stream, GstPad *pad, FsCodec *codec,
   GError *error = NULL;
   GstPad *pad2;
 
-  if (g_getenv ("AUDIOSRC"))
+  g_print ("Adding receive pipeline\n");
+
+  if (g_getenv ("AUDIOSINK"))
     sink = gst_parse_bin_from_description (g_getenv ("AUDIOSINK"), TRUE,
         &error);
   else
@@ -169,6 +171,50 @@ async_bus_cb (GstBus *bus, GstMessage *message, gpointer user_data)
           else
             g_warning ("Farsight non-fatal error: %d %s %s", error, error_msg,
                 debug_msg);
+        }
+        else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
+        {
+          const GValue *val = gst_structure_get_value (s, "candidate");
+          FsCandidate *cand = NULL;
+
+          g_assert (val);
+          cand = g_value_get_boxed (val);
+
+          g_print ("New candidate: %s %d\n", cand->ip, cand->port);
+        }
+        else if (gst_structure_has_name (s,
+                "farsight-local-candidates-prepared"))
+        {
+          g_print ("Local candidates prepared\n");
+        }
+        else if (gst_structure_has_name (s, "farsight-recv-codecs-changed"))
+        {
+          const GValue *val = gst_structure_get_value (s, "codecs");
+          GList *codecs = NULL;
+
+          g_assert (val);
+          codecs = g_value_get_boxed (val);
+
+          g_print ("Recv codecs changed:\n");
+          for (; codecs; codecs = g_list_next (codecs))
+          {
+            FsCodec *codec = codecs->data;
+            gchar *tmp = fs_codec_to_string (codec);
+            g_print ("%s\n", tmp);
+            g_free (tmp);
+          }
+        }
+        else if (gst_structure_has_name (s, "farsight-send-codec-changed"))
+        {
+          const GValue *val = gst_structure_get_value (s, "codec");
+          FsCodec *codec = NULL;
+          gchar *tmp;
+          g_assert (val);
+          codec = g_value_get_boxed (val);
+          tmp = fs_codec_to_string (codec);
+
+          g_print ("Send codec changed: %s\n", tmp);
+          g_free (tmp);
         }
       }
       break;
