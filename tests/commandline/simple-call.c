@@ -1,3 +1,29 @@
+/* Farsight 2 ad-hoc test for simple calls.
+ *
+ * Copyright (C) 2008 Collabora, Nokia
+ * @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ */
+
+/*
+ * WARNING:
+ *
+ * Do not use this as an example of a proper use of farsight, it assumes that
+ * both ends have the EXACT same list of codec installed in the EXACT same order
+ */
 
 #include <glib.h>
 #include <gst/gst.h>
