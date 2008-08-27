@@ -104,6 +104,8 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   print_error (error);
   g_assert (ses->stream);
 
+  g_value_unset (&param.value);
+
   g_signal_connect (ses->stream, "src-pad-added",
       G_CALLBACK (src_pad_added_cb), pipeline);
 
