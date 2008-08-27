@@ -77,6 +77,9 @@ src_pad_added_cb (FsStream *stream, GstPad *pad, FsCodec *codec,
 
   g_assert (GST_PAD_LINK_SUCCESSFUL (gst_pad_link (pad, pad2)));
 
+  g_assert (gst_element_set_state (sink, GST_STATE_PLAYING) !=
+      GST_STATE_CHANGE_FAILURE);
+
   gst_object_unref (pad2);
 }
 
