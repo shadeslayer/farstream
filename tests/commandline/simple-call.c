@@ -6,12 +6,6 @@
 #define DEFAULT_AUDIOSRC       "alsasrc"
 #define DEFAULT_AUDIOSINK      "audioconvert ! audioresample ! audioconvert ! alsasink"
 
-typedef enum {
-  NONE,
-  CLIENT,
-  SERVER
-} ClientServer;
-
 typedef struct _TestSession
 {
   FsSession *session;
@@ -44,8 +38,8 @@ src_pad_added_cb (FsStream *stream, GstPad *pad, FsCodec *codec,
   else
     sink = gst_parse_bin_from_description (DEFAULT_AUDIOSINK, TRUE,
         &error);
-  g_assert (sink);
   print_error (error);
+  g_assert (sink);
 
   g_assert (gst_bin_add (GST_BIN (pipeline), sink));
 
@@ -60,16 +54,21 @@ src_pad_added_cb (FsStream *stream, GstPad *pad, FsCodec *codec,
 
 static TestSession*
 add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
-    FsParticipant *part)
+    FsParticipant *part, guint localport, const gchar *remoteip,
+    guint remoteport)
 {
   TestSession *ses = g_slice_new0 (TestSession);
   GError *error = NULL;
   GstPad *pad = NULL, *pad2 = NULL;;
   GstElement *src = NULL;
+  GList *cands = NULL;
+  GList *codecs = NULL;
+  GParameter param = {0};
+  gboolean res;
 
   ses->session = fs_conference_new_session (conf, FS_MEDIA_TYPE_AUDIO, &error);
-  g_assert (ses->session);
   print_error (error);
+  g_assert (ses->session);
 
   g_object_get (ses->session, "sink-pad", &pad, NULL);
 
@@ -79,8 +78,8 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   else
     src = gst_parse_bin_from_description (DEFAULT_AUDIOSRC, TRUE,
         &error);
-  g_assert (src);
   print_error (error);
+  g_assert (src);
 
   g_assert (gst_bin_add (GST_BIN (pipeline), src));
 
@@ -92,13 +91,36 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   gst_object_unref (pad2);
   gst_object_unref (pad);
 
+
+  cands = g_list_prepend (NULL, fs_candidate_new ("", FS_COMPONENT_RTP,
+          FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, NULL, localport));
+
+  param.name = "preferred-local-candidates";
+  g_value_init (&param.value, FS_TYPE_CANDIDATE_LIST);
+  g_value_take_boxed (&param.value, cands);
+
   ses->stream = fs_session_new_stream (ses->session, part, FS_DIRECTION_BOTH,
-      "rawudp", 0, NULL, &error);
-  g_assert (ses->stream);
+      "rawudp", 1, &param, &error);
   print_error (error);
+  g_assert (ses->stream);
 
   g_signal_connect (ses->stream, "src-pad-added",
       G_CALLBACK (src_pad_added_cb), pipeline);
+
+  cands = g_list_prepend (NULL, fs_candidate_new ("", FS_COMPONENT_RTP,
+          FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, remoteip,
+          remoteport));
+
+  res = fs_stream_set_remote_candidates (ses->stream, cands, &error);
+  print_error (error);
+  g_assert (res);
+
+  fs_candidate_list_destroy (cands);
+
+  g_object_get (ses->session, "codecs", &codecs, NULL);
+  res = fs_stream_set_remote_codecs (ses->stream, codecs, &error);
+  print_error (error);
+  g_assert (res);
 
   return ses;
 }
@@ -160,34 +182,31 @@ int main (int argc, char **argv)
   GMainLoop *loop = NULL;
   GstElement *pipeline = NULL;
   GstBus *bus = NULL;
-  ClientServer mode = NONE;
-  gchar *ip;
-  guint port = 0;
+  const gchar *remoteip;
+  guint localport = 0;
+  guint remoteport = 0;
   GstElement *conf = NULL;
   FsParticipant *part = NULL;
   GError *error = NULL;
 
   gst_init (&argc, &argv);
 
-  if (argc == 0)
-    mode = SERVER;
-  else if (argc == 2)
+  if (argc != 4)
   {
-    mode = CLIENT;
-    port = atoi (argv[2]);
-    if (!port)
-    {
-      g_print ("Usage as client : %s [ip] [port]\n", argv[0]);
-      g_print ("Usage as server : %s\n", argv[0]);
-      return 1;
-    }
-    ip = argv[1];
-  }
-  else
-  {
-    g_print ("Usage as client : %s [ip] [port]\n", argv[0]);
-    g_print ("Usage as server : %s\n", argv[0]);
+    g_print ("Usage: %s <local port> <remoteip> <remoteport>\n",
+        argv[0]);
     return 1;
+  }
+
+  localport = atoi (argv[1]);
+  remoteip = argv[2];
+  remoteport = atoi (argv[3]);
+
+  if (!localport || !remoteip || !remoteport)
+  {
+    g_print ("Usage: %s <local port> <remoteip> <remoteport>\n",
+        argv[0]);
+    return 2;
   }
 
   loop = g_main_loop_new (NULL, FALSE);
@@ -199,15 +218,18 @@ int main (int argc, char **argv)
   gst_object_unref (bus);
 
   conf = gst_element_factory_make ("fsrtpconference", NULL);
+  g_assert (conf);
 
   part = fs_conference_new_participant (FS_CONFERENCE (conf), "test@ignore",
       &error);
   print_error (error);
+  g_assert (part);
 
   g_assert (gst_bin_add (GST_BIN (pipeline), conf));
 
 
-  add_audio_session (pipeline, FS_CONFERENCE (conf), 1, part);
+  add_audio_session (pipeline, FS_CONFERENCE (conf), 1, part, localport,
+      remoteip, remoteport);
 
 
   g_assert (gst_element_set_state (pipeline, GST_STATE_PLAYING) !=
