@@ -84,9 +84,6 @@ GType fs_upnp_simple_igd_get_type (void);
 FsUpnpSimpleIgd *
 fs_upnp_simple_igd_new (GMainContext *context);
 
-FsUpnpSimpleIgd *
-fs_upnp_simple_igd_new_with_thread (void);
-
 void
 fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self);
 
