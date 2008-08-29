@@ -39,6 +39,8 @@ struct _FsUpnpSimpleIgdPrivate
   gulong unavail_handler;
 
   guint request_timeout;
+
+  gboolean gathering;
 };
 
 /* signals */
@@ -72,6 +74,9 @@ static void fs_upnp_simple_igd_get_property (GObject *object, guint prop_id,
     GValue *value, GParamSpec *pspec);
 static void fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
     const GValue *value, GParamSpec *pspec);
+
+static void fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
+    GUPnPServiceProxy *proxy);
 
 static void
 fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
@@ -182,6 +187,9 @@ _cp_service_avail (GUPnPControlPoint *cp,
     FsUpnpSimpleIgd *self)
 {
   g_ptr_array_add (self->priv->service_proxies, g_object_ref (proxy));
+
+  if (self->priv->gathering)
+    fs_upnp_simple_igd_gather_proxy (self, proxy);
 }
 
 
@@ -230,4 +238,51 @@ fs_upnp_simple_igd_new (GMainContext *main_context)
   fs_upnp_simple_igd_build (self, NULL);
 
   return self;
+}
+
+void
+fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather)
+{
+  if (self->priv->gathering == gather)
+    return;
+
+  self->priv->gathering = gather;
+
+  if (gather)
+  {
+    gint i;
+
+    for (i = 0; g_ptr_array_index(self->priv->service_proxies, i); i++)
+    {
+      GUPnPServiceProxy *proxy =
+        g_ptr_array_index(self->priv->service_proxies, i);
+      fs_upnp_simple_igd_gather_proxy (self, proxy);
+    }
+  }
+}
+
+
+static void
+_service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
+    GUPnPServiceProxyAction *action,
+    gpointer user_data)
+{
+  GError *error = NULL;
+  gchar *ip = NULL;
+
+  gupnp_service_proxy_end_action (proxy, action, &error,
+      "NewExternalIPAddress", G_TYPE_STRING, &ip,
+      NULL);
+}
+
+static void
+fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
+    GUPnPServiceProxy *proxy)
+{
+  GUPnPServiceProxyAction *action;
+
+  action = gupnp_service_proxy_begin_action (proxy, "GetExternalIPAddress",
+      _service_proxy_got_external_ip_address,
+      self,
+      NULL);
 }
