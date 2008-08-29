@@ -304,12 +304,27 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
     gpointer user_data)
 {
+  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (user_data);
   GError *error = NULL;
   gchar *ip = NULL;
 
-  gupnp_service_proxy_end_action (proxy, action, &error,
-      "NewExternalIPAddress", G_TYPE_STRING, &ip,
-      NULL);
+  if (gupnp_service_proxy_end_action (proxy, action, &error,
+          "NewExternalIPAddress", G_TYPE_STRING, &ip,
+          NULL))
+  {
+    g_signal_emit (self, signals[SIGNAL_NEW_EXTERNAL_IP], 0,
+        ip);
+  }
+  else
+  {
+    GQuark detail = 0;
+    if (error)
+      detail = error->domain;
+
+    g_signal_emit (self, signals[SIGNAL_ERROR], detail,
+        error);
+  }
+  g_clear_error (&error);
 }
 
 static void
