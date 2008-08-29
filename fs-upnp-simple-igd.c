@@ -83,7 +83,9 @@ static void fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
 static void
 fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
 {
- GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+
+  g_type_class_add_private (klass, sizeof (FsUpnpSimpleIgdPrivate));
 
   gobject_class->dispose = fs_upnp_simple_igd_dispose;
   gobject_class->finalize = fs_upnp_simple_igd_finalize;
