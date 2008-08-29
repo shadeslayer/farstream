@@ -6,7 +6,7 @@ LDFLAGS =  `pkg-config --libs gupnp-1.0`
 
 test-bare: test-bare.o
 
-test: fs-upnp-simple-igd.o
+test: fs-upnp-simple-igd.o test.o
 
 clean:
 	rm -f *.o test test-bare
