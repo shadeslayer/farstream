@@ -29,7 +29,7 @@
 struct _FsUpnpSimpleIgdPrivate
 {
   GMainLoop *loop;
-  GMainContext *context;
+  GMainContext *main_context;
 
   /* These are to be used only for the main thread */
 
@@ -127,7 +127,7 @@ fs_upnp_simple_igd_finalize (GObject *object)
 {
   FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
 
-  g_main_context_unref (self->priv->context);
+  g_main_context_unref (self->priv->main_context);
 
   g_ptr_array_free (self->priv->service_proxies, TRUE);
 
@@ -175,11 +175,11 @@ fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
 
 
 FsUpnpSimpleIgd *
-fs_upnp_simple_igd_new (GMainContext *context)
+fs_upnp_simple_igd_new (GMainContext *main_context)
 {
   FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
 
-  self->priv->context = g_main_context_ref (context);
+  self->priv->main_context = g_main_context_ref (main_context);
 
   return self;
 }
@@ -190,7 +190,7 @@ fs_upnp_simple_igd_loop_func (gpointer data)
   FsUpnpSimpleIgd *self = data;
 
   FS_UPNP_SIMPLE_IGD_LOCK (self);
-  self->priv->loop = g_main_loop_new (self->priv->context, FALSE);
+  self->priv->loop = g_main_loop_new (self->priv->main_context, FALSE);
   FS_UPNP_SIMPLE_IGD_UNLOCK (self);
 
   g_main_loop_run (self->priv->loop);
@@ -208,7 +208,7 @@ fs_upnp_simple_igd_new_with_thread ()
 {
   FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
 
-  self->priv->context = g_main_context_new ();
+  self->priv->main_context = g_main_context_new ();
 
   self->priv->thread = g_thread_create (fs_upnp_simple_igd_loop_func,
       self, TRUE, NULL);
@@ -244,7 +244,7 @@ fs_upnp_simple_igd_stop (FsUpnpSimpleIgd *self)
       loop,
       NULL);
 
-  g_source_attach (source, self->priv->context);
+  g_source_attach (source, self->priv->main_context);
 
   g_thread_join (self->priv->thread);
 
