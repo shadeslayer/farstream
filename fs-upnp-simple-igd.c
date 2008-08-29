@@ -272,6 +272,9 @@ fs_upnp_simple_igd_new (GMainContext *main_context)
 {
   FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
 
+  if (!main_context)
+    main_context = g_main_context_default ();
+
   self->priv->main_context = g_main_context_ref (main_context);
 
   fs_upnp_simple_igd_build (self, NULL);
