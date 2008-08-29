@@ -38,6 +38,9 @@ struct _FsUpnpSimpleIgdPrivate
 
   GPtrArray *service_proxies;
 
+  gulong avail_handler;
+  gulong unavail_handler;
+
   /* Everything below is protected by the mutex */
 
   GMutex *mutex;
@@ -121,6 +124,14 @@ fs_upnp_simple_igd_dispose (GObject *object)
   FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
 
   g_return_if_fail (self->priv->thread == NULL);
+
+  if (self->priv->avail_handler)
+    g_signal_handler_disconnect (self->priv->cp, self->priv->avail_handler);
+  self->priv->avail_handler = 0;
+
+  if (self->priv->unavail_handler)
+    g_signal_handler_disconnect (self->priv->cp, self->priv->unavail_handler);
+  self->priv->unavail_handler = 0;
 
   while (g_ptr_array_index(self->priv->service_proxies, 0))
     g_object_unref ( G_OBJECT (
@@ -216,9 +227,11 @@ fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self, GError **error)
       "urn:schemas-upnp-org:service:WANIPConnection:1");
   g_return_val_if_fail (self->priv->cp, FALSE);
 
-  g_signal_connect (self->priv->cp, "service-proxy-available",
+  self->priv->avail_handler = g_signal_connect (self->priv->cp,
+      "service-proxy-available",
       G_CALLBACK (_cp_service_avail), self);
-  g_signal_connect (self->priv->cp, "service-proxy-unavailable",
+  self->priv->unavail_handler = g_signal_connect (self->priv->cp,
+      "service-proxy-unavailable",
       G_CALLBACK (_cp_service_unavail), self);
 
   gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (self->priv->cp),
