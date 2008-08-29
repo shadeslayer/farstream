@@ -28,7 +28,7 @@
 
 struct _FsUpnpSimpleIgdPrivate
 {
-  gpointer something;
+  GMainContext *context;
 };
 
 /* signals */
@@ -98,6 +98,10 @@ fs_upnp_simple_igd_dispose (GObject *object)
 static void
 fs_upnp_simple_igd_finalize (GObject *object)
 {
+  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
+
+  g_main_context_unref (self->priv->context);
+
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->finalize (object);
 }
 
