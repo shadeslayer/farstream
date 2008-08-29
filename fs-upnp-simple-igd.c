@@ -319,11 +319,8 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   }
   else
   {
-    GQuark detail = 0;
-    if (error)
-      detail = error->domain;
-
-    g_signal_emit (self, signals[SIGNAL_ERROR], detail,
+    g_return_if_fail (error);
+    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
         error);
   }
   g_clear_error (&error);
