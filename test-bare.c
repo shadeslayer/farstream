@@ -35,7 +35,6 @@ main (int argc, char **argv)
   GUPnPContext *context;
   GUPnPControlPoint *cp;
   GMainLoop *loop;
-  const GList *item;
 
   g_type_init ();
   g_thread_init (NULL);

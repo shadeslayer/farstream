@@ -1,9 +1,9 @@
 
-all: test obj-test
+all: test-bare test
 
 CFLAGS = -Wextra -Wall -Wno-unused-parameter -Wno-missing-field-initializers `pkg-config --cflags gupnp-1.0`
 LDFLAGS =  `pkg-config --libs gupnp-1.0`
 
-test: test.o
+test-bare: test-bare.o
 
-obj-test: fs-upnp-simple-igd.o
+test: fs-upnp-simple-igd.o
