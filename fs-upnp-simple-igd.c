@@ -28,12 +28,17 @@
 
 struct _FsUpnpSimpleIgdPrivate
 {
-  GMutex *mutex;
-
   GMainLoop *loop;
   GMainContext *context;
-  GThread *thread;
 
+  /* These are to be used only for the main thread */
+
+  GPtrArray *service_proxies;
+
+  /* Everything below is protected by the mutex */
+
+  GMutex *mutex;
+  GThread *thread;
   guint request_timeout;
 };
 
@@ -103,11 +108,17 @@ fs_upnp_simple_igd_init (FsUpnpSimpleIgd *self)
 
   self->priv->mutex = g_mutex_new ();
   self->priv->request_timeout = 5;
+
+  self->priv->service_proxies = g_ptr_array_new ();
 }
 
 static void
 fs_upnp_simple_igd_dispose (GObject *object)
 {
+  while (g_ptr_array_index(self->priv->service_proxies, 0))
+    g_object_unref ( G_OBJECT (
+            g_ptr_array_remove_index_fast (self->priv->service_proxies, 0)));
+
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->dispose (object);
 }
 
@@ -117,6 +128,8 @@ fs_upnp_simple_igd_finalize (GObject *object)
   FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
 
   g_main_context_unref (self->priv->context);
+
+  g_ptr_array_free (self->priv->service_proxies, TRUE);
 
   g_mutex_free (self->priv->mutex);
 
