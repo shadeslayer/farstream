@@ -243,10 +243,10 @@ _cp_service_unavail (GUPnPControlPoint *cp,
 
 
 static gboolean
-fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self, GError **error)
+fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self)
 {
   self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
-      NULL, 0, error);
+      NULL, 0, NULL);
   if (!self->priv->gupnp_context)
     return FALSE;
 
@@ -277,7 +277,7 @@ fs_upnp_simple_igd_new (GMainContext *main_context)
 
   self->priv->main_context = g_main_context_ref (main_context);
 
-  fs_upnp_simple_igd_build (self, NULL);
+  fs_upnp_simple_igd_build (self);
 
   return self;
 }
