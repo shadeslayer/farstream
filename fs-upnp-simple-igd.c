@@ -94,7 +94,7 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
 
   g_object_class_install_property (gobject_class,
       PROP_REQUEST_TIMEOUT,
-      g_param_spec_int ("request-timeout",
+      g_param_spec_uint ("request-timeout",
           "The timeout after which a request is considered to have failed",
           "After this timeout, the request is considered to have failed and"
           "is dropped.",
