@@ -237,7 +237,7 @@ _cp_service_unavail (GUPnPControlPoint *cp,
     GUPnPServiceProxy *proxy,
     FsUpnpSimpleIgd *self)
 {
-  if (g_ptr_array_remove(self->priv->service_proxies, proxy))
+  if (g_ptr_array_remove_fast(self->priv->service_proxies, proxy))
     g_object_unref (proxy);
 }
 
