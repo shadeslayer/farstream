@@ -33,6 +33,8 @@ struct _FsUpnpSimpleIgdPrivate
   GMainLoop *loop;
   GMainContext *context;
   GThread *thread;
+
+  guint request_timeout;
 };
 
 /* signals */
@@ -45,6 +47,7 @@ enum
 enum
 {
   PROP_0,
+  PROP_REQUEST_TIMEOUT
 };
 
 
@@ -83,6 +86,14 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
   gobject_class->set_property = fs_upnp_simple_igd_set_property;
   gobject_class->get_property = fs_upnp_simple_igd_get_property;
 
+  g_object_class_install_property (gobject_class,
+      PROP_REQUEST_TIMEOUT,
+      g_param_spec_int ("request-timeout",
+          "The timeout after which a request is considered to have failed",
+          "After this timeout, the request is considered to have failed and"
+          "is dropped.",
+          0, G_MAXUINT, 5,
+          G_PARAM_READWRITE));
 }
 
 static void
@@ -91,6 +102,7 @@ fs_upnp_simple_igd_init (FsUpnpSimpleIgd *self)
   self->priv = FS_UPNP_SIMPLE_IGD_GET_PRIVATE (self);
 
   self->priv->mutex = g_mutex_new ();
+  self->priv->request_timeout = 5;
 }
 
 static void
@@ -115,12 +127,37 @@ static void
 fs_upnp_simple_igd_get_property (GObject *object, guint prop_id,
     GValue *value, GParamSpec *pspec)
 {
+  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
+
+  switch (prop_id) {
+    case PROP_REQUEST_TIMEOUT:
+      FS_UPNP_SIMPLE_IGD_LOCK (self);
+      g_value_set_uint (value, self->priv->request_timeout);
+      FS_UPNP_SIMPLE_IGD_UNLOCK (self);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+
 }
 
 static void
 fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
     const GValue *value, GParamSpec *pspec)
 {
+  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
+
+  switch (prop_id) {
+    case PROP_REQUEST_TIMEOUT:
+      FS_UPNP_SIMPLE_IGD_LOCK (self);
+      self->priv->request_timeout = g_value_get_uint (value);
+      FS_UPNP_SIMPLE_IGD_UNLOCK (self);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 

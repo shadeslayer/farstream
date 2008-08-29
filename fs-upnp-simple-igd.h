@@ -97,7 +97,7 @@ fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
     guint16 external_port,
     const gchar *local_ip,
     guint16 local_port,
-    guint32 lease,
+    guint32 lease_duration,
     const gchar *description);
 
 void
