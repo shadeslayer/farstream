@@ -46,6 +46,8 @@ struct _FsUpnpSimpleIgdPrivate
 /* signals */
 enum
 {
+  SIGNAL_NEW_EXTERNAL_IP,
+  SIGNAL_ERROR,
   LAST_SIGNAL
 };
 
@@ -57,7 +59,7 @@ enum
 };
 
 
-// static guint signals[LAST_SIGNAL] = { 0 };
+static guint signals[LAST_SIGNAL] = { 0 };
 
 
 #define FS_UPNP_SIMPLE_IGD_GET_PRIVATE(o)                                 \
@@ -96,6 +98,41 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
           "is dropped.",
           0, G_MAXUINT, 5,
           G_PARAM_READWRITE));
+
+  /**
+   * FsUpnpSimpleIgd::new-external-ip
+   * @self: #FsUpnpSimpleIgd that emitted the signal
+   * @ip: The string representing the new external IP
+   *
+   * This signal means that a new external IP has been found on an IGD.
+   * It is only emitted if fs_upnp_simple_igd_gather() has been set to %TRUE.
+   *
+   */
+  signals[SIGNAL_NEW_EXTERNAL_IP] = g_signal_new ("new-external-ip",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__STRING,
+      G_TYPE_NONE, 1, G_TYPE_STRING);
+
+  /**
+   * FsUpnpSimpleIgd::error
+   * @self: #FsUpnpSimpleIgd that emitted the signal
+   * @error: a #GError
+   *
+   * This means that an asynchronous error has happened.
+   *
+   */
+  signals[SIGNAL_ERROR] = g_signal_new ("error",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__POINTER,
+      G_TYPE_NONE, 1, G_TYPE_POINTER);
 }
 
 static void
