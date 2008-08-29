@@ -89,7 +89,7 @@ static void fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
     const GValue *value, GParamSpec *pspec);
 
 static void fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
-    GUPnPServiceProxy *proxy);
+    struct Proxy *prox);
 
 static void cleanup_proxy (struct Proxy *prox);
 
@@ -266,10 +266,10 @@ _cp_service_avail (GUPnPControlPoint *cp,
   prox.proxy = g_object_ref (proxy);
   prox.actions = g_array_new (TRUE, TRUE, sizeof (struct Action));
 
-  g_array_append_val(self->priv->service_proxies, prox);
-
   if (self->priv->gathering)
-    fs_upnp_simple_igd_gather_proxy (self, proxy);
+    fs_upnp_simple_igd_gather_proxy (self, &prox);
+
+  g_array_append_val(self->priv->service_proxies, prox);
 }
 
 
@@ -351,7 +351,7 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather)
     {
       struct Proxy *prox =
         &g_array_index(self->priv->service_proxies, struct Proxy, i);
-      fs_upnp_simple_igd_gather_proxy (self, prox->proxy);
+      fs_upnp_simple_igd_gather_proxy (self, prox);
     }
   }
 }
@@ -384,12 +384,12 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
 
 static void
 fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
-    GUPnPServiceProxy *proxy)
+    struct Proxy *prox)
 {
   GUPnPServiceProxyAction *action;
 
-  action = gupnp_service_proxy_begin_action (proxy, "GetExternalIPAddress",
-      _service_proxy_got_external_ip_address,
-      self,
+  action = gupnp_service_proxy_begin_action (prox->proxy,
+      "GetExternalIPAddress",
+      _service_proxy_got_external_ip_address, self,
       NULL);
 }
