@@ -33,6 +33,9 @@ struct _FsUpnpSimpleIgdPrivate
 
   /* These are to be used only for the main thread */
 
+  GUPnPContext *gupnp_context;
+  GUPnPControlPoint *cp;
+
   GPtrArray *service_proxies;
 
   /* Everything below is protected by the mutex */
@@ -115,9 +118,21 @@ fs_upnp_simple_igd_init (FsUpnpSimpleIgd *self)
 static void
 fs_upnp_simple_igd_dispose (GObject *object)
 {
+  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
+
+  g_return_if_fail (self->priv->thread == NULL);
+
   while (g_ptr_array_index(self->priv->service_proxies, 0))
     g_object_unref ( G_OBJECT (
             g_ptr_array_remove_index_fast (self->priv->service_proxies, 0)));
+
+  if (self->priv->cp)
+    g_object_unref (self->priv->cp);
+  self->priv->cp = NULL;
+
+  if (self->priv->gupnp_context)
+    g_object_unref (self->priv->gupnp_context);
+  self->priv->gupnp_context = NULL;
 
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->dispose (object);
 }
@@ -173,6 +188,44 @@ fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
   }
 }
 
+static void
+_cp_service_avail (GUPnPControlPoint *cp,
+    GUPnPServiceProxy *proxy,
+    FsUpnpSimpleIgd *self)
+{
+}
+
+
+static void
+_cp_service_unavail (GUPnPControlPoint *cp,
+    GUPnPServiceProxy *proxy,
+    FsUpnpSimpleIgd *self)
+{
+}
+
+
+static gboolean
+fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self, GError **error)
+{
+  self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
+      NULL, 0, error);
+  if (!self->priv->gupnp_context)
+    return FALSE;
+
+  self->priv->cp = gupnp_control_point_new (self->priv->gupnp_context,
+      "urn:schemas-upnp-org:service:WANIPConnection:1");
+  g_return_val_if_fail (self->priv->cp, FALSE);
+
+  g_signal_connect (self->priv->cp, "service-proxy-available",
+      G_CALLBACK (_cp_service_avail), self);
+  g_signal_connect (self->priv->cp, "service-proxy-unavailable",
+      G_CALLBACK (_cp_service_unavail), self);
+
+  gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (self->priv->cp),
+      TRUE);
+
+  return TRUE;
+}
 
 FsUpnpSimpleIgd *
 fs_upnp_simple_igd_new (GMainContext *main_context)
@@ -180,6 +233,8 @@ fs_upnp_simple_igd_new (GMainContext *main_context)
   FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
 
   self->priv->main_context = g_main_context_ref (main_context);
+
+  fs_upnp_simple_igd_build (self, NULL);
 
   return self;
 }
@@ -209,6 +264,8 @@ fs_upnp_simple_igd_new_with_thread ()
   FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
 
   self->priv->main_context = g_main_context_new ();
+
+  fs_upnp_simple_igd_build (self, NULL);
 
   self->priv->thread = g_thread_create (fs_upnp_simple_igd_loop_func,
       self, TRUE, NULL);
