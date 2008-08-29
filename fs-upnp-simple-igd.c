@@ -204,6 +204,7 @@ _cp_service_avail (GUPnPControlPoint *cp,
     GUPnPServiceProxy *proxy,
     FsUpnpSimpleIgd *self)
 {
+  g_ptr_array_add (self->priv->service_proxies, g_object_ref (proxy));
 }
 
 
@@ -212,6 +213,8 @@ _cp_service_unavail (GUPnPControlPoint *cp,
     GUPnPServiceProxy *proxy,
     FsUpnpSimpleIgd *self)
 {
+  if (g_ptr_array_remove(self->priv->service_proxies, proxy))
+    g_object_unref (proxy);
 }
 
 
