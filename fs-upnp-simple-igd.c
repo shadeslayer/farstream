@@ -160,7 +160,7 @@ fs_upnp_simple_igd_dispose (GObject *object)
     g_signal_handler_disconnect (self->priv->cp, self->priv->unavail_handler);
   self->priv->unavail_handler = 0;
 
-  while (g_ptr_array_index(self->priv->service_proxies, 0))
+  while (self->priv->service_proxies->len)
     g_object_unref ( G_OBJECT (
             g_ptr_array_remove_index_fast (self->priv->service_proxies, 0)));
 
@@ -292,9 +292,9 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather)
 
   if (gather)
   {
-    gint i;
+    guint i;
 
-    for (i = 0; g_ptr_array_index(self->priv->service_proxies, i); i++)
+    for (i = 0; i < self->priv->service_proxies->len; i++)
     {
       GUPnPServiceProxy *proxy =
         g_ptr_array_index(self->priv->service_proxies, i);
