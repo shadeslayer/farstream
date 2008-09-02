@@ -33,7 +33,7 @@ struct _FsUpnpSimpleIgdPrivate
   GUPnPContext *gupnp_context;
   GUPnPControlPoint *cp;
 
-  GArray *service_proxies;
+  GPtrArray *service_proxies;
 
   gulong avail_handler;
   gulong unavail_handler;
@@ -44,11 +44,13 @@ struct _FsUpnpSimpleIgdPrivate
 };
 
 struct Proxy {
+  FsUpnpSimpleIgd *parent;
   GUPnPServiceProxy *proxy;
-  GArray *actions;
+  GPtrArray *actions;
 };
 
 struct Action {
+  struct Proxy *parent;
   GUPnPServiceProxyAction *action;
   GSource *timeout_source;
 };
@@ -157,7 +159,7 @@ fs_upnp_simple_igd_init (FsUpnpSimpleIgd *self)
 
   self->priv->request_timeout = 5;
 
-  self->priv->service_proxies = g_array_new (TRUE, TRUE, sizeof(struct Proxy));
+  self->priv->service_proxies = g_ptr_array_new ();
 }
 
 static void
@@ -173,11 +175,11 @@ fs_upnp_simple_igd_dispose (GObject *object)
     g_signal_handler_disconnect (self->priv->cp, self->priv->unavail_handler);
   self->priv->unavail_handler = 0;
 
-  while(self->priv->service_proxies->len)
+  while (self->priv->service_proxies->len)
   {
     cleanup_proxy (
-        &g_array_index (self->priv->service_proxies, struct Proxy, 0));
-    g_array_remove_index_fast (self->priv->service_proxies, 0);
+        g_ptr_array_index (self->priv->service_proxies, 0));
+    g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
   }
 
   if (self->priv->cp)
@@ -198,17 +200,19 @@ cleanup_proxy (struct Proxy *prox)
 
   for (i=0; i < prox->actions->len; i++)
   {
-    struct Action *action = &g_array_index (prox->actions, struct Action, i);
+    struct Action *action = g_ptr_array_index (prox->actions, i);
 
     if (action->timeout_source)
       g_source_destroy (action->timeout_source);
 
     gupnp_service_proxy_cancel_action (prox->proxy, action->action);
+    g_slice_free (struct Action, action);
   }
 
-  g_array_free (prox->actions, TRUE);
+  g_ptr_array_free (prox->actions, TRUE);
 
   g_object_unref (prox->proxy);
+  g_slice_free (struct Proxy, prox);
 }
 
 static void
@@ -218,7 +222,8 @@ fs_upnp_simple_igd_finalize (GObject *object)
 
   g_main_context_unref (self->priv->main_context);
 
-  g_array_free (self->priv->service_proxies, TRUE);
+  g_warn_if_fail (self->priv->service_proxies->len == 0);
+  g_ptr_array_free (self->priv->service_proxies, TRUE);
 
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->finalize (object);
 }
@@ -261,15 +266,16 @@ _cp_service_avail (GUPnPControlPoint *cp,
     GUPnPServiceProxy *proxy,
     FsUpnpSimpleIgd *self)
 {
-  struct Proxy prox;
+  struct Proxy *prox = g_slice_new0 (struct Proxy);
 
-  prox.proxy = g_object_ref (proxy);
-  prox.actions = g_array_new (TRUE, TRUE, sizeof (struct Action));
+  prox->parent = self;
+  prox->proxy = g_object_ref (proxy);
+  prox->actions = g_ptr_array_new ();
 
   if (self->priv->gathering)
-    fs_upnp_simple_igd_gather_proxy (self, &prox);
+    fs_upnp_simple_igd_gather_proxy (self, prox);
 
-  g_array_append_val(self->priv->service_proxies, prox);
+  g_ptr_array_add(self->priv->service_proxies, prox);
 }
 
 
@@ -283,12 +289,12 @@ _cp_service_unavail (GUPnPControlPoint *cp,
   for (i=0; i < self->priv->service_proxies->len; i++)
   {
     struct Proxy *prox =
-      &g_array_index (self->priv->service_proxies, struct Proxy, i);
+      g_ptr_array_index (self->priv->service_proxies, i);
 
     if (prox->proxy == proxy)
     {
-      g_array_remove_index_fast (self->priv->service_proxies, i);
-      g_object_unref (proxy);
+      cleanup_proxy (prox);
+      g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
     }
   }
@@ -350,7 +356,7 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather)
     for (i = 0; i < self->priv->service_proxies->len; i++)
     {
       struct Proxy *prox =
-        &g_array_index(self->priv->service_proxies, struct Proxy, i);
+          g_ptr_array_index(self->priv->service_proxies, i);
       fs_upnp_simple_igd_gather_proxy (self, prox);
     }
   }
