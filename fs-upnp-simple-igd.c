@@ -388,14 +388,37 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   g_clear_error (&error);
 }
 
+static gboolean
+_service_proxy_action_timeout (gpointer user_data)
+{
+  struct Action *action = user_data;
+
+  gupnp_service_proxy_cancel_action (action->parent->proxy, action->action);
+
+  g_ptr_array_remove_fast (action->parent->actions, action);
+
+  g_slice_free (struct Action, action);
+
+  return FALSE;
+}
+
 static void
 fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
     struct Proxy *prox)
 {
-  GUPnPServiceProxyAction *action;
+  struct Action *action = g_slice_new0 (struct Action);
 
-  action = gupnp_service_proxy_begin_action (prox->proxy,
+  action->parent = prox;
+  action->action = gupnp_service_proxy_begin_action (prox->proxy,
       "GetExternalIPAddress",
       _service_proxy_got_external_ip_address, self,
       NULL);
+
+  action->timeout_source =
+    g_timeout_source_new_seconds (self->priv->request_timeout);
+  g_source_set_callback (action->timeout_source,
+      _service_proxy_action_timeout, action, NULL);
+  g_source_attach (action->timeout_source, self->priv->main_context);
+
+  g_ptr_array_add(prox->actions, action);
 }
