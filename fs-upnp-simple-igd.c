@@ -51,8 +51,6 @@ struct Proxy {
 
   gchar *external_ip;
   GUPnPServiceProxyAction *external_ip_action;
-  GSource *external_ip_timeout_src;
-
 };
 
 struct Mapping {
@@ -64,6 +62,13 @@ struct Mapping {
   gchar *description;
 };
 
+struct ProxyMapping {
+  struct Proxy *proxy;
+  struct Mapping *mapping;
+
+  GUPnPServiceProxyAction *action;
+  GSource *timeout_src;
+};
 
 /* signals */
 enum
@@ -204,8 +209,6 @@ fs_upnp_simple_igd_dispose (GObject *object)
 static void
 cleanup_proxy (struct Proxy *prox)
 {
-  if (prox->external_ip_timeout_src)
-    g_source_destroy (prox->external_ip_timeout_src);
   if (prox->external_ip_action)
     gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
 
@@ -384,7 +387,6 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   }
   g_clear_error (&error);
 
-  g_source_destroy (prox->external_ip_timeout_src);
   prox->external_ip_timeout_src = NULL;
 }
 
@@ -415,6 +417,78 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
   g_source_attach (prox->external_ip_timeout_src, self->priv->main_context);
 }
 
+static void
+_service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
+    GUPnPServiceProxyAction *action,
+    gpointer user_data)
+{
+  struct ProxyMapping *pm = user_data;
+  FsUpnpSimpleIgd *self = pm->proxy->parent;
+  GError *error = NULL;
+
+  g_return_if_fail (pm->proxy->proxy == proxy);
+  g_return_if_fail (pm->action == action);
+
+  pm->action = NULL;
+
+  if (gupnp_service_proxy_end_action (proxy, action, &error,
+          NULL))
+  {
+    // EMIT SUCCESS..
+  }
+  else
+  {
+    // EMIT PROPER ERROR SIGNAL
+    g_return_if_fail (error);
+    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
+        error);
+  }
+  g_clear_error (&error);
+
+  g_source_destroy (pm->timeout_src);
+  pm->timeout_src = NULL;
+}
+
+static gboolean
+_service_proxy_add_mapping_timeout (gpointer user_data)
+{
+  struct ProxyMapping *pm = user_data;
+
+  gupnp_service_proxy_cancel_action (pm->proxy->proxy,
+      pm->action);
+  pm->action = NULL;
+  pm->timeout_src = NULL;
+
+  return FALSE;
+}
+
+static void
+fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self, struct Proxy *prox,
+    struct Mapping *mapping)
+{
+  struct ProxyMapping *pm = g_slice_new0 (struct ProxyMapping);
+
+  pm->proxy = prox;
+  pm->mapping = mapping;
+
+  pm->action = gupnp_service_proxy_begin_action (prox->proxy,
+      "AddPortMapping",
+      _service_proxy_added_port_mapping, pm,
+      "NewExternalPort", G_TYPE_UINT, mapping->external_port,
+      "NewProtocol", G_TYPE_STRING, mapping->protocol,
+      "NewInternalPort", G_TYPE_UINT, mapping->local_port,
+      "NewInternalClient", G_TYPE_STRING, mapping->local_ip,
+      "NewEnabled", G_TYPE_BOOLEAN, TRUE,
+      "NewPortMappingDescription", G_TYPE_STRING, mapping->description,
+      "NewLeaseDuration", G_TYPE_UINT, mapping->lease_duration,
+      NULL);
+
+  pm->timeout_src =
+    g_timeout_source_new_seconds (self->priv->request_timeout);
+  g_source_set_callback (pm->timeout_src,
+      _service_proxy_add_mapping_timeout, pm, NULL);
+  g_source_attach (pm->timeout_src, self->priv->main_context);
+}
 
 void
 fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
@@ -426,8 +500,10 @@ fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
     const gchar *description)
 {
   struct Mapping *mapping = g_slice_new0 (struct Mapping);
+  guint i;
 
   g_return_if_fail (protocol && local_ip);
+  g_return_if_fail (!strcmp (protocol, "UDP") || !strcmp (protocol, "TCP"));
 
   mapping->protocol = g_strdup (protocol);
   mapping->external_port = external_port;
@@ -436,7 +512,14 @@ fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
   mapping->lease_duration = lease_duration;
   mapping->description = g_strdup (description);
 
+  if (!mapping->description)
+    mapping->description = g_strdup ("");
+
   g_ptr_array_add (self->priv->mappings, mapping);
+
+  for (i=0; i < self->priv->service_proxies->len; i++)
+    fs_upnp_simple_igd_add_proxy_mapping (self,
+        g_ptr_array_index (self->priv->service_proxies, i), mapping);
 }
 
 
