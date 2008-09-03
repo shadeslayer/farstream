@@ -112,6 +112,8 @@ static void fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self,
 
 static void free_proxy (struct Proxy *prox);
 
+static void stop_proxymapping (struct ProxyMapping *pm);
+
 static void
 fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
 {
@@ -433,8 +435,7 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   }
   g_clear_error (&error);
 
-  g_source_destroy (pm->timeout_src);
-  pm->timeout_src = NULL;
+  stop_proxymapping (pm);
 }
 
 static gboolean
@@ -442,10 +443,7 @@ _service_proxy_add_mapping_timeout (gpointer user_data)
 {
   struct ProxyMapping *pm = user_data;
 
-  gupnp_service_proxy_cancel_action (pm->proxy->proxy,
-      pm->action);
-  pm->action = NULL;
-  pm->timeout_src = NULL;
+  stop_proxymapping (pm);
 
   return FALSE;
 }
@@ -534,4 +532,17 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
   g_return_if_fail (mapping);
 
   free_mapping (mapping);
+}
+
+static void
+stop_proxymapping (struct ProxyMapping *pm)
+{
+  if (pm->action)
+    gupnp_service_proxy_cancel_action (pm->proxy->proxy,
+        pm->action);
+  pm->action = NULL;
+
+  if (pm->timeout_src)
+    g_source_destroy (pm->timeout_src);
+  pm->timeout_src = NULL;
 }
