@@ -394,6 +394,10 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
         error);
   }
   g_clear_error (&error);
+
+  g_source_destroy (act->timeout_source);
+  g_ptr_array_remove_fast (prox->actions, act);
+  g_slice_free (struct Action, act);
 }
 
 static gboolean
