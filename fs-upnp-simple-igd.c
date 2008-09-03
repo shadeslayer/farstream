@@ -51,6 +51,8 @@ struct Proxy {
 
   gchar *external_ip;
   GUPnPServiceProxyAction *external_ip_action;
+
+  GPtrArray *proxymappings;
 };
 
 struct Mapping {
@@ -178,6 +180,7 @@ fs_upnp_simple_igd_init (FsUpnpSimpleIgd *self)
   self->priv->request_timeout = 5;
 
   self->priv->service_proxies = g_ptr_array_new ();
+  self->priv->mappings = g_ptr_array_new ();
 }
 
 static void
@@ -218,6 +221,8 @@ free_proxy (struct Proxy *prox)
     gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
 
   g_object_unref (prox->proxy);
+  g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping, NULL);
+  g_ptr_array_free (prox->proxymappings, TRUE);
   g_slice_free (struct Proxy, prox);
 }
 
@@ -240,8 +245,7 @@ fs_upnp_simple_igd_finalize (GObject *object)
   g_warn_if_fail (self->priv->service_proxies->len == 0);
   g_ptr_array_free (self->priv->service_proxies, TRUE);
 
-
-  g_ptr_array_foreach (self->priv->mappings, (GFunc) free_mapping, NULL);
+  g_warn_if_fail (self->priv->mappings == 0);
   g_ptr_array_free (self->priv->mappings, TRUE);
 
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->finalize (object);
@@ -290,6 +294,7 @@ _cp_service_avail (GUPnPControlPoint *cp,
 
   prox->parent = self;
   prox->proxy = g_object_ref (proxy);
+  prox->proxymappings = g_ptr_array_new ();
 
   fs_upnp_simple_igd_gather (self, prox);
 
@@ -315,6 +320,8 @@ _cp_service_unavail (GUPnPControlPoint *cp,
 
     if (prox->proxy == proxy)
     {
+      g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
+          NULL);
       free_proxy (prox);
       g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
@@ -474,6 +481,8 @@ fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self, struct Proxy *prox,
   g_source_set_callback (pm->timeout_src,
       _service_proxy_add_mapping_timeout, pm, NULL);
   g_source_attach (pm->timeout_src, self->priv->main_context);
+
+  g_ptr_array_add (prox->proxymappings, pm);
 }
 
 void
@@ -514,7 +523,7 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint external_port)
 {
-  guint i;
+  guint i, j;
   struct Mapping *mapping;
 
   g_return_if_fail (protocol);
@@ -530,6 +539,24 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
     }
   }
   g_return_if_fail (mapping);
+
+
+  for (i=0; i < self->priv->service_proxies->len; i++)
+  {
+    struct Proxy *prox = g_ptr_array_index (self->priv->service_proxies, i);
+
+    for (j=0; j < prox->proxymappings->len; j++)
+    {
+      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, j);
+      if (pm->mapping == mapping)
+      {
+        stop_proxymapping (pm);
+        g_slice_free (struct ProxyMapping, pm);
+        g_ptr_array_remove_index_fast (prox->proxymappings, j);
+        j--;
+      }
+    }
+  }
 
   free_mapping (mapping);
 }
