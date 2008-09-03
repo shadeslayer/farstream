@@ -113,6 +113,7 @@ static void fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self,
     struct Mapping *mapping);
 
 static void free_proxy (struct Proxy *prox);
+static void free_mapping (struct Mapping *mapping);
 
 static void stop_proxymapping (struct ProxyMapping *pm);
 
@@ -195,6 +196,13 @@ fs_upnp_simple_igd_dispose (GObject *object)
   if (self->priv->unavail_handler)
     g_signal_handler_disconnect (self->priv->cp, self->priv->unavail_handler);
   self->priv->unavail_handler = 0;
+
+  while (self->priv->mappings)
+  {
+    free_mapping (
+        g_ptr_array_index (self->priv->mappings, 0));
+    g_ptr_array_remove_index_fast (self->priv->mappings, 0);
+  }
 
   while (self->priv->service_proxies->len)
   {
@@ -540,6 +548,7 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
   }
   g_return_if_fail (mapping);
 
+  g_ptr_array_remove_index_fast (self->priv->mappings, i);
 
   for (i=0; i < self->priv->service_proxies->len; i++)
   {
