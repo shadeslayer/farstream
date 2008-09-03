@@ -62,6 +62,7 @@ struct Mapping {
   guint external_port;
   gchar *local_ip;
   guint16 local_port;
+  guint32 lease_duration;
   gchar *description;
 };
 
@@ -444,4 +445,28 @@ fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
   g_source_attach (action->timeout_source, self->priv->main_context);
 
   g_ptr_array_add(prox->actions, action);
+}
+
+
+void
+fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint16 external_port,
+    const gchar *local_ip,
+    guint16 local_port,
+    guint32 lease_duration,
+    const gchar *description)
+{
+  struct Mapping *mapping = g_slice_new0 (struct Mapping);
+
+  g_return_if_fail (protocol && local_ip);
+
+  mapping->protocol = g_strdup (protocol);
+  mapping->external_port = external_port;
+  mapping->local_ip = g_strdup (local_ip);
+  mapping->local_port = local_port;
+  mapping->lease_duration = lease_duration;
+  mapping->description = g_strdup (description);
+
+  g_ptr_array_add (self->priv->mappings, mapping);
 }

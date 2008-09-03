@@ -90,7 +90,6 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather);
 void
 fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
     const gchar *protocol,
-    const gchar *remote_host,
     guint16 external_port,
     const gchar *local_ip,
     guint16 local_port,
