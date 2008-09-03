@@ -386,20 +386,6 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
         error);
   }
   g_clear_error (&error);
-
-  prox->external_ip_timeout_src = NULL;
-}
-
-static gboolean
-_service_proxy_external_ip_timeout (gpointer user_data)
-{
-  struct Proxy *prox = user_data;
-
-  gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
-  prox->external_ip_action = NULL;
-  prox->external_ip_timeout_src = NULL;
-
-  return FALSE;
 }
 
 static void
@@ -409,12 +395,6 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
   prox->external_ip_action = gupnp_service_proxy_begin_action (prox->proxy,
       "GetExternalIPAddress",
       _service_proxy_got_external_ip_address, prox, NULL);
-
-  prox->external_ip_timeout_src =
-    g_timeout_source_new_seconds (self->priv->request_timeout);
-  g_source_set_callback (prox->external_ip_timeout_src,
-      _service_proxy_external_ip_timeout, prox, NULL);
-  g_source_attach (prox->external_ip_timeout_src, self->priv->main_context);
 }
 
 static void
