@@ -51,6 +51,8 @@ struct Proxy {
   FsUpnpSimpleIgd *parent;
   GUPnPServiceProxy *proxy;
   GPtrArray *actions;
+
+  gchar *external_ip;
 };
 
 struct Action {
@@ -394,7 +396,8 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
     gpointer user_data)
 {
-  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (user_data);
+  struct Proxy *prox = user_data;
+  FsUpnpSimpleIgd *self = prox->parent;
   GError *error = NULL;
   gchar *ip = NULL;
 
@@ -402,6 +405,9 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
           "NewExternalIPAddress", G_TYPE_STRING, &ip,
           NULL))
   {
+    g_free (prox->external_ip);
+    prox->external_ip = g_strdup (ip);
+
     g_signal_emit (self, signals[SIGNAL_NEW_EXTERNAL_IP], 0,
         ip);
   }
