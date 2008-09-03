@@ -85,9 +85,6 @@ FsUpnpSimpleIgd *
 fs_upnp_simple_igd_new (GMainContext *context);
 
 void
-fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather);
-
-void
 fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint16 external_port,

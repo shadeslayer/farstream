@@ -36,8 +36,6 @@ main (int argc, char **argv)
   g_signal_connect (igd, "error", G_CALLBACK (_error),
       NULL);
 
-  fs_upnp_simple_igd_gather (igd, TRUE);
-
   g_main_loop_run (loop);
 
   g_main_loop_unref (loop);

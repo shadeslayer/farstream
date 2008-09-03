@@ -43,8 +43,6 @@ struct _FsUpnpSimpleIgdPrivate
   gulong unavail_handler;
 
   guint request_timeout;
-
-  gboolean gathering;
 };
 
 struct Proxy {
@@ -105,7 +103,7 @@ static void fs_upnp_simple_igd_get_property (GObject *object, guint prop_id,
 static void fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
     const GValue *value, GParamSpec *pspec);
 
-static void fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
+static void fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
     struct Proxy *prox);
 
 static void cleanup_proxy (struct Proxy *prox);
@@ -137,7 +135,6 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
    * @ip: The string representing the new external IP
    *
    * This signal means that a new external IP has been found on an IGD.
-   * It is only emitted if fs_upnp_simple_igd_gather() has been set to %TRUE.
    *
    */
   signals[SIGNAL_NEW_EXTERNAL_IP] = g_signal_new ("new-external-ip",
@@ -300,8 +297,7 @@ _cp_service_avail (GUPnPControlPoint *cp,
   prox->proxy = g_object_ref (proxy);
   prox->actions = g_ptr_array_new ();
 
-  if (self->priv->gathering)
-    fs_upnp_simple_igd_gather_proxy (self, prox);
+  fs_upnp_simple_igd_gather (self, prox);
 
   g_ptr_array_add(self->priv->service_proxies, prox);
 }
@@ -369,34 +365,14 @@ fs_upnp_simple_igd_new (GMainContext *main_context)
   return self;
 }
 
-void
-fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self, gboolean gather)
-{
-  if (self->priv->gathering == gather)
-    return;
-
-  self->priv->gathering = gather;
-
-  if (gather)
-  {
-    guint i;
-
-    for (i = 0; i < self->priv->service_proxies->len; i++)
-    {
-      struct Proxy *prox =
-          g_ptr_array_index(self->priv->service_proxies, i);
-      fs_upnp_simple_igd_gather_proxy (self, prox);
-    }
-  }
-}
-
 
 static void
 _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
     gpointer user_data)
 {
-  struct Proxy *prox = user_data;
+  struct Action *act = user_data;
+  struct Proxy *prox = act->parent;
   FsUpnpSimpleIgd *self = prox->parent;
   GError *error = NULL;
   gchar *ip = NULL;
@@ -435,7 +411,7 @@ _service_proxy_action_timeout (gpointer user_data)
 }
 
 static void
-fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
+fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
     struct Proxy *prox)
 {
   struct Action *action = g_slice_new0 (struct Action);
@@ -443,8 +419,7 @@ fs_upnp_simple_igd_gather_proxy (FsUpnpSimpleIgd *self,
   action->parent = prox;
   action->action = gupnp_service_proxy_begin_action (prox->proxy,
       "GetExternalIPAddress",
-      _service_proxy_got_external_ip_address, self,
-      NULL);
+      _service_proxy_got_external_ip_address, action, NULL);
 
   action->timeout_source =
     g_timeout_source_new_seconds (self->priv->request_timeout);
