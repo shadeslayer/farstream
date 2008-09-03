@@ -35,6 +35,8 @@ struct _FsUpnpSimpleIgdPrivate
 
   GPtrArray *service_proxies;
 
+  GPtrArray *mappings;
+
   gulong avail_handler;
   gulong unavail_handler;
 
@@ -53,6 +55,14 @@ struct Action {
   struct Proxy *parent;
   GUPnPServiceProxyAction *action;
   GSource *timeout_source;
+};
+
+struct Mapping {
+  gchar *protocol;
+  guint external_port;
+  gchar *local_ip;
+  guint16 local_port;
+  gchar *description;
 };
 
 
@@ -216,6 +226,15 @@ cleanup_proxy (struct Proxy *prox)
 }
 
 static void
+cleanup_mapping (struct Mapping *mapping)
+{
+  g_free (mapping->protocol);
+  g_free (mapping->local_ip);
+  g_free (mapping->description);
+  g_slice_free (struct Mapping, mapping);
+}
+
+static void
 fs_upnp_simple_igd_finalize (GObject *object)
 {
   FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
@@ -224,6 +243,10 @@ fs_upnp_simple_igd_finalize (GObject *object)
 
   g_warn_if_fail (self->priv->service_proxies->len == 0);
   g_ptr_array_free (self->priv->service_proxies, TRUE);
+
+
+  g_ptr_array_foreach (self->priv->mappings, (GFunc) cleanup_mapping, NULL);
+  g_ptr_array_free (self->priv->mappings, TRUE);
 
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->finalize (object);
 }
