@@ -48,15 +48,11 @@ struct _FsUpnpSimpleIgdPrivate
 struct Proxy {
   FsUpnpSimpleIgd *parent;
   GUPnPServiceProxy *proxy;
-  GPtrArray *actions;
 
   gchar *external_ip;
-};
+  GUPnPServiceProxyAction *external_ip_action;
+  GSource *external_ip_timeout_src;
 
-struct Action {
-  struct Proxy *parent;
-  GUPnPServiceProxyAction *action;
-  GSource *timeout_source;
 };
 
 struct Mapping {
@@ -208,20 +204,10 @@ fs_upnp_simple_igd_dispose (GObject *object)
 static void
 cleanup_proxy (struct Proxy *prox)
 {
-  guint i;
-
-  for (i=0; i < prox->actions->len; i++)
-  {
-    struct Action *action = g_ptr_array_index (prox->actions, i);
-
-    if (action->timeout_source)
-      g_source_destroy (action->timeout_source);
-
-    gupnp_service_proxy_cancel_action (prox->proxy, action->action);
-    g_slice_free (struct Action, action);
-  }
-
-  g_ptr_array_free (prox->actions, TRUE);
+  if (prox->external_ip_timeout_src)
+    g_source_destroy (prox->external_ip_timeout_src);
+  if (prox->external_ip_action)
+    gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
 
   g_object_unref (prox->proxy);
   g_slice_free (struct Proxy, prox);
@@ -295,7 +281,6 @@ _cp_service_avail (GUPnPControlPoint *cp,
 
   prox->parent = self;
   prox->proxy = g_object_ref (proxy);
-  prox->actions = g_ptr_array_new ();
 
   fs_upnp_simple_igd_gather (self, prox);
 
@@ -371,11 +356,15 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
     gpointer user_data)
 {
-  struct Action *act = user_data;
-  struct Proxy *prox = act->parent;
+  struct Proxy *prox = user_data;
   FsUpnpSimpleIgd *self = prox->parent;
   GError *error = NULL;
   gchar *ip = NULL;
+
+  g_return_if_fail (prox->proxy == proxy);
+  g_return_if_fail (prox->external_ip_action == action);
+
+  prox->external_ip_action = NULL;
 
   if (gupnp_service_proxy_end_action (proxy, action, &error,
           "NewExternalIPAddress", G_TYPE_STRING, &ip,
@@ -395,21 +384,18 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   }
   g_clear_error (&error);
 
-  g_source_destroy (act->timeout_source);
-  g_ptr_array_remove_fast (prox->actions, act);
-  g_slice_free (struct Action, act);
+  g_source_destroy (prox->external_ip_timeout_src);
+  prox->external_ip_timeout_src = NULL;
 }
 
 static gboolean
-_service_proxy_action_timeout (gpointer user_data)
+_service_proxy_external_ip_timeout (gpointer user_data)
 {
-  struct Action *action = user_data;
+  struct Proxy *prox = user_data;
 
-  gupnp_service_proxy_cancel_action (action->parent->proxy, action->action);
-
-  g_ptr_array_remove_fast (action->parent->actions, action);
-
-  g_slice_free (struct Action, action);
+  gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
+  prox->external_ip_action = NULL;
+  prox->external_ip_timeout_src = NULL;
 
   return FALSE;
 }
@@ -418,20 +404,15 @@ static void
 fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
     struct Proxy *prox)
 {
-  struct Action *action = g_slice_new0 (struct Action);
-
-  action->parent = prox;
-  action->action = gupnp_service_proxy_begin_action (prox->proxy,
+  prox->external_ip_action = gupnp_service_proxy_begin_action (prox->proxy,
       "GetExternalIPAddress",
-      _service_proxy_got_external_ip_address, action, NULL);
+      _service_proxy_got_external_ip_address, prox, NULL);
 
-  action->timeout_source =
+  prox->external_ip_timeout_src =
     g_timeout_source_new_seconds (self->priv->request_timeout);
-  g_source_set_callback (action->timeout_source,
-      _service_proxy_action_timeout, action, NULL);
-  g_source_attach (action->timeout_source, self->priv->main_context);
-
-  g_ptr_array_add(prox->actions, action);
+  g_source_set_callback (prox->external_ip_timeout_src,
+      _service_proxy_external_ip_timeout, prox, NULL);
+  g_source_attach (prox->external_ip_timeout_src, self->priv->main_context);
 }
 
 
