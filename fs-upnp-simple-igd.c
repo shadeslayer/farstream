@@ -106,6 +106,9 @@ static void fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
 
 static void fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
     struct Proxy *prox);
+static void fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self,
+    struct Proxy *prox,
+    struct Mapping *mapping);
 
 static void cleanup_proxy (struct Proxy *prox);
 
@@ -281,11 +284,16 @@ _cp_service_avail (GUPnPControlPoint *cp,
     FsUpnpSimpleIgd *self)
 {
   struct Proxy *prox = g_slice_new0 (struct Proxy);
+  guint i;
 
   prox->parent = self;
   prox->proxy = g_object_ref (proxy);
 
   fs_upnp_simple_igd_gather (self, prox);
+
+  for (i = 0; i < self->priv->mappings->len; i++)
+    fs_upnp_simple_igd_add_proxy_mapping (self, prox,
+        g_ptr_array_index (self->priv->mappings, i));
 
   g_ptr_array_add(self->priv->service_proxies, prox);
 }
