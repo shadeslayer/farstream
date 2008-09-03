@@ -110,7 +110,7 @@ static void fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self,
     struct Proxy *prox,
     struct Mapping *mapping);
 
-static void cleanup_proxy (struct Proxy *prox);
+static void free_proxy (struct Proxy *prox);
 
 static void
 fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
@@ -193,7 +193,7 @@ fs_upnp_simple_igd_dispose (GObject *object)
 
   while (self->priv->service_proxies->len)
   {
-    cleanup_proxy (
+    free_proxy (
         g_ptr_array_index (self->priv->service_proxies, 0));
     g_ptr_array_remove_index_fast (self->priv->service_proxies, 0);
   }
@@ -210,7 +210,7 @@ fs_upnp_simple_igd_dispose (GObject *object)
 }
 
 static void
-cleanup_proxy (struct Proxy *prox)
+free_proxy (struct Proxy *prox)
 {
   if (prox->external_ip_action)
     gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
@@ -220,7 +220,7 @@ cleanup_proxy (struct Proxy *prox)
 }
 
 static void
-cleanup_mapping (struct Mapping *mapping)
+free_mapping (struct Mapping *mapping)
 {
   g_free (mapping->protocol);
   g_free (mapping->local_ip);
@@ -239,7 +239,7 @@ fs_upnp_simple_igd_finalize (GObject *object)
   g_ptr_array_free (self->priv->service_proxies, TRUE);
 
 
-  g_ptr_array_foreach (self->priv->mappings, (GFunc) cleanup_mapping, NULL);
+  g_ptr_array_foreach (self->priv->mappings, (GFunc) free_mapping, NULL);
   g_ptr_array_free (self->priv->mappings, TRUE);
 
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->finalize (object);
@@ -313,7 +313,7 @@ _cp_service_unavail (GUPnPControlPoint *cp,
 
     if (prox->proxy == proxy)
     {
-      cleanup_proxy (prox);
+      free_proxy (prox);
       g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
     }
@@ -533,5 +533,5 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
   }
   g_return_if_fail (mapping);
 
-  cleanup_mapping (mapping);
+  free_mapping (mapping);
 }
