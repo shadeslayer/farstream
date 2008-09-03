@@ -23,6 +23,8 @@
 
 #include "fs-upnp-simple-igd.h"
 
+#include <string.h>
+
 #include <libgupnp/gupnp-control-point.h>
 
 
@@ -469,4 +471,30 @@ fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
   mapping->description = g_strdup (description);
 
   g_ptr_array_add (self->priv->mappings, mapping);
+}
+
+
+void
+fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint external_port)
+{
+  guint i;
+  struct Mapping *mapping;
+
+  g_return_if_fail (protocol);
+
+  for (i = 0; i < self->priv->mappings->len; i++)
+  {
+    struct Mapping *tmpmapping = g_ptr_array_index (self->priv->mappings, i);
+    if (tmpmapping->external_port == external_port &&
+        !strcmp (tmpmapping->protocol, protocol))
+    {
+      mapping = tmpmapping;
+      break;
+    }
+  }
+  g_return_if_fail (mapping);
+
+  cleanup_mapping (mapping);
 }
