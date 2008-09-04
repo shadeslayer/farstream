@@ -98,10 +98,6 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint external_port);
 
-void
-fs_upnp_simple_igd_stop (FsUpnpSimpleIgd *self);
-
-
 G_END_DECLS
 
 #endif /* __FS_UPNP_SIMPLE_IGD_H__ */
