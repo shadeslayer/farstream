@@ -28,7 +28,7 @@ _mapped_external_port (FsUpnpSimpleIgd *igd, gchar *proto,
       proto, external_ip, replaces_external_ip, external_port, local_ip,
       local_port, description);
 
-  g_timeout_add (3000, _remove_port, user_data);
+  g_timeout_add_seconds (30, _remove_port, user_data);
 }
 
 
@@ -66,7 +66,7 @@ main (int argc, char **argv)
       NULL);
 
   fs_upnp_simple_igd_add_port (igd, "TCP", external_port, argv[2],
-      internal_port, 600, argv[4]);
+      internal_port, 20, argv[4]);
 
   g_main_loop_run (loop);
 

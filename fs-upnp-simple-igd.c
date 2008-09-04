@@ -73,6 +73,8 @@ struct ProxyMapping {
   GSource *timeout_src;
 
   gboolean mapped;
+
+  GSource *renew_src;
 };
 
 /* signals */
@@ -138,7 +140,7 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
       g_param_spec_uint ("request-timeout",
           "The timeout after which a request is considered to have failed",
           "After this timeout, the request is considered to have failed and"
-          "is dropped.",
+          "is dropped (in seconds).",
           0, G_MAXUINT, 5,
           G_PARAM_READWRITE));
 
@@ -468,6 +470,47 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
 }
 
 static void
+_service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
+    GUPnPServiceProxyAction *action,
+    gpointer user_data)
+{
+  struct ProxyMapping *pm = user_data;
+  FsUpnpSimpleIgd *self = pm->proxy->parent;
+  GError *error = NULL;
+
+  if (!gupnp_service_proxy_end_action (proxy, action, &error,
+          NULL))
+  {
+    // EMIT PROPER ERROR SIGNAL
+    g_return_if_fail (error);
+    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
+        error);
+  }
+  g_clear_error (&error);
+}
+
+static gboolean
+_renew_mapping_timeout (gpointer user_data)
+{
+  struct ProxyMapping *pm = user_data;
+
+  gupnp_service_proxy_begin_action (pm->proxy->proxy,
+      "AddPortMapping",
+      _service_proxy_renewed_port_mapping, pm,
+      "NewRemoteHost", G_TYPE_STRING, "",
+      "NewExternalPort", G_TYPE_UINT, pm->mapping->external_port,
+      "NewProtocol", G_TYPE_STRING, pm->mapping->protocol,
+      "NewInternalPort", G_TYPE_UINT, pm->mapping->local_port,
+      "NewInternalClient", G_TYPE_STRING, pm->mapping->local_ip,
+      "NewEnabled", G_TYPE_BOOLEAN, TRUE,
+      "NewPortMappingDescription", G_TYPE_STRING, pm->mapping->description,
+      "NewLeaseDuration", G_TYPE_UINT, pm->mapping->lease_duration,
+      NULL);
+
+  return TRUE;
+}
+
+static void
 _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
     gpointer user_data)
@@ -490,6 +533,15 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
           pm->mapping->protocol, pm->proxy->external_ip, NULL,
           pm->mapping->external_port, pm->mapping->local_ip,
           pm->mapping->local_port, pm->mapping->description);
+
+
+
+    pm->renew_src =
+      g_timeout_source_new_seconds (pm->mapping->lease_duration / 2);
+    g_source_set_callback (pm->renew_src,
+        _renew_mapping_timeout, pm, NULL);
+    g_source_attach (pm->renew_src, self->priv->main_context);
+
   }
   else
   {
@@ -630,6 +682,10 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
       if (pm->mapping == mapping)
       {
         stop_proxymapping (pm);
+
+        if (pm->renew_src)
+          g_source_destroy (pm->renew_src);
+        pm->renew_src = NULL;
 
         if (pm->mapped)
           gupnp_service_proxy_begin_action (prox->proxy,
