@@ -398,6 +398,9 @@ _cp_service_unavail (GUPnPControlPoint *cp,
 static gboolean
 fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self)
 {
+  if (!self->priv->main_context)
+    self->priv->main_context = g_main_context_default ();
+
   self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
       NULL, 0, NULL);
   if (!self->priv->gupnp_context)
@@ -425,10 +428,7 @@ fs_upnp_simple_igd_new (GMainContext *main_context)
 {
   FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
 
-  if (!main_context)
-    main_context = g_main_context_default ();
-
-  self->priv->main_context = g_main_context_ref (main_context);
+  self->priv->main_context = main_context;
 
   fs_upnp_simple_igd_build (self);
 
