@@ -660,7 +660,6 @@ _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
     gpointer user_data)
 {
-  FsUpnpSimpleIgd *self = user_data;
   GError *error = NULL;
 
 
@@ -668,7 +667,7 @@ _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
           NULL))
   {
     g_return_if_fail (error);
-    g_warning ("Error deleting port mapping: %d", error->message);
+    g_warning ("Error deleting port mapping: %s", error->message);
   }
   g_clear_error (&error);
 }
