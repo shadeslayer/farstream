@@ -91,7 +91,8 @@ enum
 enum
 {
   PROP_0,
-  PROP_REQUEST_TIMEOUT
+  PROP_REQUEST_TIMEOUT,
+  PROP_MAIN_CONTEXT
 };
 
 
@@ -145,7 +146,14 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
           0, G_MAXUINT, 5,
           G_PARAM_READWRITE));
 
-  /**
+  g_object_class_install_property (gobject_class,
+      PROP_MAIN_CONTEXT,
+      g_param_spec_pointer ("main-context",
+          "The GMainContext to use",
+          "This GMainContext will be used for all async activities",
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+
+   /**
    * FsUpnpSimpleIgd::new-external-ip
    * @self: #FsUpnpSimpleIgd that emitted the signal
    * @ip: The string representing the new external IP
@@ -325,6 +333,9 @@ fs_upnp_simple_igd_get_property (GObject *object, guint prop_id,
     case PROP_REQUEST_TIMEOUT:
       g_value_set_uint (value, self->priv->request_timeout);
       break;
+    case PROP_MAIN_CONTEXT:
+      g_value_set_pointer (value, self->priv->main_context);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -341,6 +352,11 @@ fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
   switch (prop_id) {
     case PROP_REQUEST_TIMEOUT:
       self->priv->request_timeout = g_value_get_uint (value);
+      break;
+    case PROP_MAIN_CONTEXT:
+      self->priv->main_context = g_value_get_pointer (value);
+      if (self->priv->main_context)
+        g_main_context_ref (self->priv->main_context);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -399,7 +415,7 @@ static gboolean
 fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self)
 {
   if (!self->priv->main_context)
-    self->priv->main_context = g_main_context_default ();
+    self->priv->main_context = g_main_context_ref (g_main_context_default ());
 
   self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
       NULL, 0, NULL);
@@ -426,9 +442,8 @@ fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self)
 FsUpnpSimpleIgd *
 fs_upnp_simple_igd_new (GMainContext *main_context)
 {
-  FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD, NULL);
-
-  self->priv->main_context = main_context;
+  FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD,
+      "main-context", main_context, NULL);
 
   fs_upnp_simple_igd_build (self);
 
