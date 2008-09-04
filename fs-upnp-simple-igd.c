@@ -107,6 +107,7 @@ static guint signals[LAST_SIGNAL] = { 0 };
 G_DEFINE_TYPE (FsUpnpSimpleIgd, fs_upnp_simple_igd, G_TYPE_OBJECT);
 
 
+static void fs_upnp_simple_igd_constructed (GObject *object);
 static void fs_upnp_simple_igd_dispose (GObject *object);
 static void fs_upnp_simple_igd_finalize (GObject *object);
 static void fs_upnp_simple_igd_get_property (GObject *object, guint prop_id,
@@ -132,6 +133,7 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
 
   g_type_class_add_private (klass, sizeof (FsUpnpSimpleIgdPrivate));
 
+  gobject_class->constructed = fs_upnp_simple_igd_constructed;
   gobject_class->dispose = fs_upnp_simple_igd_dispose;
   gobject_class->finalize = fs_upnp_simple_igd_finalize;
   gobject_class->set_property = fs_upnp_simple_igd_set_property;
@@ -411,20 +413,21 @@ _cp_service_unavail (GUPnPControlPoint *cp,
 }
 
 
-static gboolean
-fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self)
+static void
+fs_upnp_simple_igd_constructed (GObject *object)
 {
+  FsUpnpSimpleIgd *self = FS_UPNP_SIMPLE_IGD_CAST (object);
+
   if (!self->priv->main_context)
     self->priv->main_context = g_main_context_ref (g_main_context_default ());
 
   self->priv->gupnp_context = gupnp_context_new (self->priv->main_context,
       NULL, 0, NULL);
-  if (!self->priv->gupnp_context)
-    return FALSE;
+  g_return_if_fail (self->priv->gupnp_context);
 
   self->priv->cp = gupnp_control_point_new (self->priv->gupnp_context,
       "urn:schemas-upnp-org:service:WANIPConnection:1");
-  g_return_val_if_fail (self->priv->cp, FALSE);
+  g_return_if_fail (self->priv->cp);
 
   self->priv->avail_handler = g_signal_connect (self->priv->cp,
       "service-proxy-available",
@@ -436,18 +439,15 @@ fs_upnp_simple_igd_build (FsUpnpSimpleIgd *self)
   gssdp_resource_browser_set_active (GSSDP_RESOURCE_BROWSER (self->priv->cp),
       TRUE);
 
-  return TRUE;
+  if (G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->constructed (object);
 }
 
 FsUpnpSimpleIgd *
 fs_upnp_simple_igd_new (GMainContext *main_context)
 {
-  FsUpnpSimpleIgd *self = g_object_new (FS_TYPE_UPNP_SIMPLE_IGD,
+  return g_object_new (FS_TYPE_UPNP_SIMPLE_IGD,
       "main-context", main_context, NULL);
-
-  fs_upnp_simple_igd_build (self);
-
-  return self;
 }
 
 
