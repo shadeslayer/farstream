@@ -576,6 +576,25 @@ fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
         g_ptr_array_index (self->priv->service_proxies, i), mapping);
 }
 
+static void
+_service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
+    GUPnPServiceProxyAction *action,
+    gpointer user_data)
+{
+  FsUpnpSimpleIgd *self = user_data;
+  GError *error = NULL;
+
+
+  if (!gupnp_service_proxy_end_action (proxy, action, &error,
+          NULL))
+  {
+    // EMIT PROPER ERROR SIGNAL
+    g_return_if_fail (error);
+    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
+        error);
+  }
+  g_clear_error (&error);
+}
 
 void
 fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
@@ -611,6 +630,16 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
       if (pm->mapping == mapping)
       {
         stop_proxymapping (pm);
+
+        if (pm->mapped)
+          gupnp_service_proxy_begin_action (prox->proxy,
+              "DeletePortMapping",
+              _service_proxy_delete_port_mapping, self,
+              "NewRemoteHost", G_TYPE_STRING, "",
+              "NewExternalPort", G_TYPE_UINT, mapping->external_port,
+              "NewProtocol", G_TYPE_STRING, mapping->protocol,
+              NULL);
+
         g_slice_free (struct ProxyMapping, pm);
         g_ptr_array_remove_index_fast (prox->proxymappings, j);
         j--;
