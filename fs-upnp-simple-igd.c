@@ -197,7 +197,7 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
    */
   signals[SIGNAL_ERROR] = g_signal_new ("error",
       G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
+      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
       0,
       NULL,
       NULL,
