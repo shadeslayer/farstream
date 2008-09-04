@@ -63,6 +63,19 @@ struct _FsUpnpSimpleIgdClass
   GObjectClass parent_class;
 
   /*virtual functions */
+
+  void (*add_port) (FsUpnpSimpleIgd *self,
+      const gchar *protocol,
+      guint16 external_port,
+      const gchar *local_ip,
+      guint16 local_port,
+      guint32 lease_duration,
+      const gchar *description);
+
+  void (*remove_port) (FsUpnpSimpleIgd *self,
+      const gchar *protocol,
+      guint external_port);
+
   /*< private >*/
 };
 

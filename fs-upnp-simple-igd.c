@@ -126,6 +126,18 @@ static void free_mapping (struct Mapping *mapping);
 
 static void stop_proxymapping (struct ProxyMapping *pm);
 
+static void fs_upnp_simple_igd_add_port_real (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint16 external_port,
+    const gchar *local_ip,
+    guint16 local_port,
+    guint32 lease_duration,
+    const gchar *description);
+static void fs_upnp_simple_igd_remove_port_real (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint external_port);
+
+
 static void
 fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
 {
@@ -138,6 +150,9 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
   gobject_class->finalize = fs_upnp_simple_igd_finalize;
   gobject_class->set_property = fs_upnp_simple_igd_set_property;
   gobject_class->get_property = fs_upnp_simple_igd_get_property;
+
+  klass->add_port = fs_upnp_simple_igd_add_port_real;
+  klass->remove_port = fs_upnp_simple_igd_remove_port_real;
 
   g_object_class_install_property (gobject_class,
       PROP_REQUEST_TIMEOUT,
@@ -638,8 +653,8 @@ fs_upnp_simple_igd_add_proxy_mapping (FsUpnpSimpleIgd *self, struct Proxy *prox,
   g_ptr_array_add (prox->proxymappings, pm);
 }
 
-void
-fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
+static void
+fs_upnp_simple_igd_add_port_real (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint16 external_port,
     const gchar *local_ip,
@@ -670,6 +685,24 @@ fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
         g_ptr_array_index (self->priv->service_proxies, i), mapping);
 }
 
+void
+fs_upnp_simple_igd_add_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint16 external_port,
+    const gchar *local_ip,
+    guint16 local_port,
+    guint32 lease_duration,
+    const gchar *description)
+{
+  FsUpnpSimpleIgdClass *klass = FS_UPNP_SIMPLE_IGD_GET_CLASS (self);
+
+  g_return_if_fail (klass->add_port);
+
+  klass->add_port (self, protocol, external_port, local_ip, local_port,
+      lease_duration, description);
+}
+
+
 static void
 _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
     GUPnPServiceProxyAction *action,
@@ -687,8 +720,8 @@ _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
   g_clear_error (&error);
 }
 
-void
-fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
+static void
+fs_upnp_simple_igd_remove_port_real (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint external_port)
 {
@@ -743,6 +776,18 @@ fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
   }
 
   free_mapping (mapping);
+}
+
+void
+fs_upnp_simple_igd_remove_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint external_port)
+{
+  FsUpnpSimpleIgdClass *klass = FS_UPNP_SIMPLE_IGD_GET_CLASS (self);
+
+  g_return_if_fail (klass->remove_port);
+
+  klass->remove_port (self, protocol, external_port);
 }
 
 static void
