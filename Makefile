@@ -9,7 +9,7 @@ fs-upnp-simple-igd.o: fs-upnp-simple-igd-marshal.h fs-upnp-simple-igd.c fs-upnp-
 test: fs-upnp-simple-igd-marshal.o fs-upnp-simple-igd.o test.o 
 
 clean:
-	rm -f *.o test *.list
+	rm -f *.o test
 
 SOURCES = fs-upnp-simple-igd.c
 srcdir = .
