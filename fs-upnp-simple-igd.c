@@ -358,7 +358,8 @@ _cp_service_unavail (GUPnPControlPoint *cp,
     struct Proxy *prox =
       g_ptr_array_index (self->priv->service_proxies, i);
 
-    if (prox->proxy == proxy)
+    if (!strcmp (gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy)),
+            gupnp_service_info_get_udn (GUPNP_SERVICE_INFO (prox->proxy))))
     {
       g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
           NULL);
@@ -421,7 +422,6 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   GError *error = NULL;
   gchar *ip = NULL;
 
-  g_return_if_fail (prox->proxy == proxy);
   g_return_if_fail (prox->external_ip_action == action);
 
   prox->external_ip_action = NULL;
@@ -476,7 +476,6 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   FsUpnpSimpleIgd *self = pm->proxy->parent;
   GError *error = NULL;
 
-  g_return_if_fail (pm->proxy->proxy == proxy);
   g_return_if_fail (pm->action == action);
 
   pm->action = NULL;
