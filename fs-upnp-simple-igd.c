@@ -82,6 +82,7 @@ enum
 {
   SIGNAL_NEW_EXTERNAL_IP,
   SIGNAL_MAPPED_EXTERNAL_PORT,
+  SIGNAL_ERROR_MAPPING_PORT,
   SIGNAL_ERROR,
   LAST_SIGNAL
 };
@@ -188,6 +189,27 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
       _fs_upnp_simple_igd_marshal_VOID__STRING_STRING_STRING_UINT_STRING_UINT_STRING,
       G_TYPE_NONE, 7, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT,
       G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
+
+  /**
+   * FsUpnpSimpleIgd::error-mapping-port
+   * @self: #FsUpnpSimpleIgd that emitted the signal
+   * @error: a #GError or %NULL if its a timeout
+   * @proto: The requested protocol
+   * @external_port: the requested external port
+   * @description: the passed description
+   *
+   * This means that mapping a port on a specific IGD has failed (it may still
+   * succeed on other IGDs on the network).
+   */
+  signals[SIGNAL_ERROR_MAPPING_PORT] = g_signal_new ("error-mapping-port",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
+      0,
+      NULL,
+      NULL,
+      _fs_upnp_simple_igd_marshal_VOID__POINTER_STRING_UINT_STRING,
+      G_TYPE_NONE, 4, G_TYPE_POINTER, G_TYPE_STRING, G_TYPE_UINT,
+      G_TYPE_STRING);
 
   /**
    * FsUpnpSimpleIgd::error
@@ -481,10 +503,10 @@ _service_proxy_renewed_port_mapping (GUPnPServiceProxy *proxy,
   if (!gupnp_service_proxy_end_action (proxy, action, &error,
           NULL))
   {
-    // EMIT PROPER ERROR SIGNAL
     g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
-        error);
+    g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
+        error, pm->mapping->protocol, pm->mapping->external_port,
+        pm->mapping->description);
   }
   g_clear_error (&error);
 }
@@ -545,10 +567,10 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   }
   else
   {
-    // EMIT PROPER ERROR SIGNAL
     g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
-        error);
+    g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
+        error, pm->mapping->protocol, pm->mapping->external_port,
+        pm->mapping->description);
   }
   g_clear_error (&error);
 
@@ -559,8 +581,13 @@ static gboolean
 _service_proxy_add_mapping_timeout (gpointer user_data)
 {
   struct ProxyMapping *pm = user_data;
+  FsUpnpSimpleIgd *self = pm->proxy->parent;
 
   stop_proxymapping (pm);
+
+  g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], 0,
+      NULL, pm->mapping->protocol, pm->mapping->external_port,
+      pm->mapping->description);
 
   return FALSE;
 }
@@ -640,10 +667,8 @@ _service_proxy_delete_port_mapping (GUPnPServiceProxy *proxy,
   if (!gupnp_service_proxy_end_action (proxy, action, &error,
           NULL))
   {
-    // EMIT PROPER ERROR SIGNAL
     g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
-        error);
+    g_warning ("Error deleting port mapping: %d", error->message);
   }
   g_clear_error (&error);
 }

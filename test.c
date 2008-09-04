@@ -32,6 +32,17 @@ _mapped_external_port (FsUpnpSimpleIgd *igd, gchar *proto,
 }
 
 
+
+static void
+_error_mapping_external_port (FsUpnpSimpleIgd *igd, GError *error,
+    gchar *proto, guint external_port,
+    gchar *description, gpointer user_data)
+{
+  g_error ("proto:%s port:%u desc:%s error: %s", proto, external_port,
+      description, error->message);
+}
+
+
 static void
 _error (FsUpnpSimpleIgd *igd, GError *error, gpointer user_data)
 {
@@ -63,6 +74,9 @@ main (int argc, char **argv)
       G_CALLBACK (_mapped_external_port),
       NULL);
   g_signal_connect (igd, "error", G_CALLBACK (_error),
+      NULL);
+  g_signal_connect (igd, "error-mapping-port",
+      G_CALLBACK (_error_mapping_external_port),
       NULL);
 
   fs_upnp_simple_igd_add_port (igd, "TCP", external_port, argv[2],
