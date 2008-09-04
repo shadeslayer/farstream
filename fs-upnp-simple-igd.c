@@ -22,6 +22,7 @@
 
 
 #include "fs-upnp-simple-igd.h"
+#include "fs-upnp-simple-igd-marshal.h"
 
 #include <string.h>
 
@@ -70,12 +71,15 @@ struct ProxyMapping {
 
   GUPnPServiceProxyAction *action;
   GSource *timeout_src;
+
+  gboolean mapped;
 };
 
 /* signals */
 enum
 {
   SIGNAL_NEW_EXTERNAL_IP,
+  SIGNAL_MAPPED_EXTERNAL_PORT,
   SIGNAL_ERROR,
   LAST_SIGNAL
 };
@@ -154,6 +158,34 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
       NULL,
       g_cclosure_marshal_VOID__STRING,
       G_TYPE_NONE, 1, G_TYPE_STRING);
+
+
+  /**
+   * FsUpnpSimpleIgd::mapped-external-port
+   * @self: #FsUpnpSimpleIgd that emitted the signal
+   * @proto: the requested protocol ("UDP" or "TCP")
+   * @external_ip: the external IP
+   * @replaces_external_ip: if this mapping replaces another mapping,
+   *  this is the old external IP
+   * @external_port: the external port
+   * @local_ip: internal ip this is forwarded to
+   * @local_port: the local port
+   * @description: the user's selected description
+   * @ip: The string representing the new external IP
+   *
+   * This signal means that an IGD has been found that that adding a port
+   * mapping has succeeded.
+   *
+   */
+  signals[SIGNAL_MAPPED_EXTERNAL_PORT] = g_signal_new ("mapped-external-port",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_upnp_simple_igd_marshal_VOID__STRING_STRING_STRING_UINT_STRING_UINT_STRING,
+      G_TYPE_NONE, 7, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT,
+      G_TYPE_STRING, G_TYPE_UINT, G_TYPE_STRING);
 
   /**
    * FsUpnpSimpleIgd::error
@@ -398,6 +430,19 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
           "NewExternalIPAddress", G_TYPE_STRING, &ip,
           NULL))
   {
+    guint i;
+
+    for (i=0; i < prox->proxymappings->len; i++)
+    {
+      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+
+      if (pm->mapped)
+        g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
+            pm->mapping->protocol, ip, prox->external_ip,
+            pm->mapping->external_port, pm->mapping->local_ip,
+            pm->mapping->local_port, pm->mapping->description);
+    }
+
     g_free (prox->external_ip);
     prox->external_ip = g_strdup (ip);
 
@@ -439,7 +484,13 @@ _service_proxy_added_port_mapping (GUPnPServiceProxy *proxy,
   if (gupnp_service_proxy_end_action (proxy, action, &error,
           NULL))
   {
-    // EMIT SUCCESS..
+    pm->mapped = TRUE;
+
+    if (pm->proxy->external_ip)
+      g_signal_emit (self, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
+          pm->mapping->protocol, pm->proxy->external_ip, NULL,
+          pm->mapping->external_port, pm->mapping->local_ip,
+          pm->mapping->local_port, pm->mapping->description);
   }
   else
   {
