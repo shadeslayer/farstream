@@ -145,7 +145,7 @@ fs_upnp_simple_igd_thread_constructed (GObject *object)
     G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed (object);
 }
 
-struct AddPortData {
+struct AddRemovePortData {
   FsUpnpSimpleIgd *self;
   gchar *protocol;
   guint16 external_port;
@@ -158,10 +158,9 @@ struct AddPortData {
 static gboolean
 add_port_idle_func (gpointer user_data)
 {
-  struct AddPortData *data = user_data;
+  struct AddRemovePortData *data = user_data;
   FsUpnpSimpleIgdClass *klass =
       FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
-
 
   if (klass->add_port)
     klass->add_port (data->self, data->protocol, data->external_port,
@@ -172,16 +171,16 @@ add_port_idle_func (gpointer user_data)
 }
 
 static void
-free_add_port_data (gpointer user_data)
+free_add_remove_port_data (gpointer user_data)
 {
-  struct AddPortData *data = user_data;
+  struct AddRemovePortData *data = user_data;
 
   g_object_unref (data->self);
   g_free (data->protocol);
   g_free (data->local_ip);
   g_free (data->description);
 
-  g_slice_free (struct AddPortData, data);
+  g_slice_free (struct AddRemovePortData, data);
 }
 
 
@@ -195,7 +194,7 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
     const gchar *description)
 {
   FsUpnpSimpleIgdThread *realself = FS_UPNP_SIMPLE_IGD_THREAD (self);
-  struct AddPortData *data = g_slice_new0 (struct AddPortData);
+  struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
   data->self = g_object_ref (self);
@@ -207,7 +206,8 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
   data->description = g_strdup (description);
 
   source = g_idle_source_new ();
-  g_source_set_callback (source, add_port_idle_func, data, free_add_port_data);
+  g_source_set_callback (source, add_port_idle_func, data,
+      free_add_remove_port_data);
   g_source_attach (source, realself->priv->context);
 }
 
