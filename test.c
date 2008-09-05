@@ -5,9 +5,10 @@
 
 #include "fs-upnp-simple-igd.h"
 
+GMainContext *ctx = NULL;
 GMainLoop *loop = NULL;
-  FsUpnpSimpleIgd *igd = NULL;
-  guint external_port, internal_port;
+FsUpnpSimpleIgd *igd = NULL;
+guint external_port, internal_port;
 
 static gboolean
 _remove_port (gpointer user_data)
@@ -24,11 +25,15 @@ _mapped_external_port (FsUpnpSimpleIgd *igd, gchar *proto,
     gchar *local_ip, guint local_port,
     gchar *description, gpointer user_data)
 {
+  GSource *src;
+
   g_debug ("proto:%s ex:%s oldex:%s exp:%u local:%s localp:%u desc:%s",
       proto, external_ip, replaces_external_ip, external_port, local_ip,
       local_port, description);
 
-  g_timeout_add_seconds (30, _remove_port, user_data);
+  src = g_timeout_source_new_seconds (30);
+  g_source_set_callback (src, _remove_port, user_data, NULL);
+  g_source_attach (src, ctx);
 }
 
 
@@ -66,9 +71,10 @@ main (int argc, char **argv)
   g_type_init ();
   g_thread_init (NULL);
 
-  loop = g_main_loop_new (NULL, FALSE);
+  ctx = g_main_context_new ();
+  loop = g_main_loop_new (ctx, FALSE);
 
-  igd = fs_upnp_simple_igd_new (NULL);
+  igd = fs_upnp_simple_igd_new (ctx);
 
   g_signal_connect (igd, "mapped-external-port",
       G_CALLBACK (_mapped_external_port),
@@ -84,8 +90,9 @@ main (int argc, char **argv)
 
   g_main_loop_run (loop);
 
-  g_main_loop_unref (loop);
   g_object_unref (igd);
+  g_main_loop_unref (loop);
+  g_main_context_unref (ctx);
 
   return 0;
 }
