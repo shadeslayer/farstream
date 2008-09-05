@@ -145,6 +145,45 @@ fs_upnp_simple_igd_thread_constructed (GObject *object)
     G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed (object);
 }
 
+struct AddPortData {
+  FsUpnpSimpleIgd *self;
+  gchar *protocol;
+  guint16 external_port;
+  gchar *local_ip;
+  guint16 local_port;
+  guint32 lease_duration;
+  gchar *description;
+};
+
+static gboolean
+add_port_idle_func (gpointer user_data)
+{
+  struct AddPortData *data = user_data;
+  FsUpnpSimpleIgdClass *klass =
+      FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
+
+
+  if (klass->add_port)
+    klass->add_port (data->self, data->protocol, data->external_port,
+        data->local_ip, data->local_port, data->lease_duration,
+        data->description);
+
+  return FALSE;
+}
+
+static void
+free_add_port_data (gpointer user_data)
+{
+  struct AddPortData *data = user_data;
+
+  g_object_unref (data->self);
+  g_free (data->protocol);
+  g_free (data->local_ip);
+  g_free (data->description);
+
+  g_slice_free (struct AddPortData, data);
+}
+
 
 static void
 fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
@@ -155,13 +194,21 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
     guint32 lease_duration,
     const gchar *description)
 {
-  FsUpnpSimpleIgdClass *klass =
-      FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
+  FsUpnpSimpleIgdThread *realself = FS_UPNP_SIMPLE_IGD_THREAD (self);
+  struct AddPortData *data = g_slice_new0 (struct AddPortData);
+  GSource *source;
 
+  data->self = g_object_ref (self);
+  data->protocol = g_strdup (protocol);
+  data->external_port = external_port;
+  data->local_ip = g_strdup (local_ip);
+  data->local_port = local_port;
+  data->lease_duration = lease_duration;
+  data->description = g_strdup (description);
 
-  if (klass->add_port)
-    klass->add_port (self, protocol, external_port, local_ip, local_port,
-      lease_duration, description);
+  source = g_idle_source_new ();
+  g_source_set_callback (source, add_port_idle_func, data, free_add_port_data);
+  g_source_attach (source, realself->priv->context);
 }
 
 static void
