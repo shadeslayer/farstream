@@ -371,9 +371,11 @@ fs_upnp_simple_igd_set_property (GObject *object, guint prop_id,
       self->priv->request_timeout = g_value_get_uint (value);
       break;
     case PROP_MAIN_CONTEXT:
-      self->priv->main_context = g_value_get_pointer (value);
-      if (self->priv->main_context)
+      if (!self->priv->main_context && g_value_get_pointer (value))
+      {
+        self->priv->main_context = g_value_get_pointer (value);
         g_main_context_ref (self->priv->main_context);
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
