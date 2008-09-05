@@ -29,6 +29,7 @@ struct _FsUpnpSimpleIgdThreadPrivate
   GThread *thread;
   GMainLoop *loop;
   GMainContext *context;
+  GMutex *mutex;
 };
 
 
@@ -62,16 +63,27 @@ static void
 fs_upnp_simple_igd_thread_init (FsUpnpSimpleIgdThread *self)
 {
   self->priv = FS_UPNP_SIMPLE_IGD_THREAD_GET_PRIVATE (self);
+
+  self->priv->mutex = g_mutex_new ();
+  self->priv->context = g_main_context_new ();
 }
 
 static void
 fs_upnp_simple_igd_thread_finalize (GObject *object)
 {
-  //FsUpnpSimpleIgdThread *self = FS_UPNP_SIMPLE_IGD_THREAD_CAST (object);
+  FsUpnpSimpleIgdThread *self = FS_UPNP_SIMPLE_IGD_THREAD_CAST (object);
+
+  g_main_context_unref (self->priv->context);
+  g_mutex_free (self->priv->mutex);
+
+  G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->finalize (object);
 }
 
 static void
 fs_upnp_simple_igd_thread_constructed (GObject *object)
 {
   //FsUpnpSimpleIgdThread *self = FS_UPNP_SIMPLE_IGD_THREAD_CAST (object);
+
+  if (G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed (object);
 }
