@@ -278,7 +278,7 @@ fs_upnp_simple_igd_dispose (GObject *object)
     g_signal_handler_disconnect (self->priv->cp, self->priv->unavail_handler);
   self->priv->unavail_handler = 0;
 
-  while (self->priv->mappings)
+  while (self->priv->mappings->len)
   {
     free_mapping (
         g_ptr_array_index (self->priv->mappings, 0));
@@ -334,7 +334,7 @@ fs_upnp_simple_igd_finalize (GObject *object)
   g_warn_if_fail (self->priv->service_proxies->len == 0);
   g_ptr_array_free (self->priv->service_proxies, TRUE);
 
-  g_warn_if_fail (self->priv->mappings == 0);
+  g_warn_if_fail (self->priv->mappings->len == 0);
   g_ptr_array_free (self->priv->mappings, TRUE);
 
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->finalize (object);
