@@ -48,17 +48,31 @@ static void fs_upnp_simple_igd_thread_constructed (GObject *object);
 static void fs_upnp_simple_igd_thread_dispose (GObject *object);
 static void fs_upnp_simple_igd_thread_finalize (GObject *object);
 
+static void fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint16 external_port,
+    const gchar *local_ip,
+    guint16 local_port,
+    guint32 lease_duration,
+    const gchar *description);
+static void fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint external_port);
 
 static void
 fs_upnp_simple_igd_thread_class_init (FsUpnpSimpleIgdThreadClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  FsUpnpSimpleIgdClass *simple_igd_class = FS_UPNP_SIMPLE_IGD_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (FsUpnpSimpleIgdThreadPrivate));
 
   gobject_class->constructed = fs_upnp_simple_igd_thread_constructed;
   gobject_class->dispose = fs_upnp_simple_igd_thread_dispose;
   gobject_class->finalize = fs_upnp_simple_igd_thread_finalize;
+
+  simple_igd_class->add_port = fs_upnp_simple_igd_thread_add_port;
+  simple_igd_class->remove_port = fs_upnp_simple_igd_thread_remove_port;
 }
 
 
@@ -129,4 +143,36 @@ fs_upnp_simple_igd_thread_constructed (GObject *object)
 
   if (G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed)
     G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed (object);
+}
+
+
+static void
+fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint16 external_port,
+    const gchar *local_ip,
+    guint16 local_port,
+    guint32 lease_duration,
+    const gchar *description)
+{
+  FsUpnpSimpleIgdClass *klass =
+      FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
+
+
+  if (klass->add_port)
+    klass->add_port (self, protocol, external_port, local_ip, local_port,
+      lease_duration, description);
+}
+
+static void
+fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
+    const gchar *protocol,
+    guint external_port)
+{
+  FsUpnpSimpleIgdClass *klass =
+      FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
+
+
+  if (klass->remove_port)
+    klass->remove_port (self, protocol, external_port);
 }
