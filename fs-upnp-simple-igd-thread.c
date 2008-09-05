@@ -170,6 +170,20 @@ add_port_idle_func (gpointer user_data)
   return FALSE;
 }
 
+
+static gboolean
+remove_port_idle_func (gpointer user_data)
+{
+  struct AddRemovePortData *data = user_data;
+  FsUpnpSimpleIgdClass *klass =
+      FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
+
+  if (klass->remove_port)
+    klass->remove_port (data->self, data->protocol, data->external_port);
+
+  return FALSE;
+}
+
 static void
 free_add_remove_port_data (gpointer user_data)
 {
@@ -182,7 +196,6 @@ free_add_remove_port_data (gpointer user_data)
 
   g_slice_free (struct AddRemovePortData, data);
 }
-
 
 static void
 fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
@@ -216,10 +229,16 @@ fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint external_port)
 {
-  FsUpnpSimpleIgdClass *klass =
-      FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
+  FsUpnpSimpleIgdThread *realself = FS_UPNP_SIMPLE_IGD_THREAD (self);
+  struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
+  GSource *source;
 
+  data->self = g_object_ref (self);
+  data->protocol = g_strdup (protocol);
+  data->external_port = external_port;
 
-  if (klass->remove_port)
-    klass->remove_port (self, protocol, external_port);
+  source = g_idle_source_new ();
+  g_source_set_callback (source, remove_port_idle_func, data,
+      free_add_remove_port_data);
+  g_source_attach (source, realself->priv->context);
 }
