@@ -6,14 +6,6 @@
 
 #include "fs-upnp-simple-igd-thread.h"
 
-static gboolean
-_remove_port (gpointer user_data)
-{
-  g_debug ("removing port");
-
-  return FALSE;
-}
-
 static void
 _mapped_external_port (FsUpnpSimpleIgd *igd, gchar *proto,
     gchar *external_ip, gchar *replaces_external_ip, guint external_port,
