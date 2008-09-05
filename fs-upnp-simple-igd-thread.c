@@ -224,6 +224,7 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
   g_source_set_callback (source, add_port_idle_func, data,
       free_add_remove_port_data);
   g_source_attach (source, realself->priv->context);
+  g_main_context_wakeup (realself->priv->context);
 }
 
 static void
@@ -243,6 +244,7 @@ fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
   g_source_set_callback (source, remove_port_idle_func, data,
       free_add_remove_port_data);
   g_source_attach (source, realself->priv->context);
+  g_main_context_wakeup (realself->priv->context);
 }
 
 
