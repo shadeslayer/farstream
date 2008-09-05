@@ -85,7 +85,7 @@ main (int argc, char **argv)
   g_main_loop_run (loop);
 
   g_main_loop_unref (loop);
-  g_free (igd);
+  g_object_unref (igd);
 
   return 0;
 }
