@@ -83,6 +83,8 @@ fs_upnp_simple_igd_thread_init (FsUpnpSimpleIgdThread *self)
 
   self->priv->mutex = g_mutex_new ();
   self->priv->context = g_main_context_new ();
+
+  g_object_set (self, "main-context", self->priv->context, NULL);
 }
 
 
@@ -138,11 +140,11 @@ fs_upnp_simple_igd_thread_constructed (GObject *object)
 {
   FsUpnpSimpleIgdThread *self = FS_UPNP_SIMPLE_IGD_THREAD_CAST (object);
 
-  self->priv->thread = g_thread_create (thread_func, self, TRUE, NULL);
-  g_return_if_fail (self->priv->thread);
-
   if (G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed)
     G_OBJECT_CLASS (fs_upnp_simple_igd_thread_parent_class)->constructed (object);
+
+  self->priv->thread = g_thread_create (thread_func, self, TRUE, NULL);
+  g_return_if_fail (self->priv->thread);
 }
 
 struct AddRemovePortData {
@@ -241,4 +243,11 @@ fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
   g_source_set_callback (source, remove_port_idle_func, data,
       free_add_remove_port_data);
   g_source_attach (source, realself->priv->context);
+}
+
+
+FsUpnpSimpleIgdThread *
+fs_upnp_simple_igd_thread_new ()
+{
+  return g_object_new (FS_TYPE_UPNP_SIMPLE_IGD_THREAD, NULL);
 }
