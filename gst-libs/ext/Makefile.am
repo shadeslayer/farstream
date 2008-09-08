@@ -1,4 +1,4 @@
-if WANT_GUPNP
+if HAVE_GUPNP
 SUBDIRS = fsupnp
 else
 SUBDIRS =

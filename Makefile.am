@@ -44,7 +44,7 @@ endif
 pcverfiles = farsight2-@GST_MAJORMINOR@.pc
 pcinfiles = farsight2.pc.in farsight2-upnp.pc.in
 
-if WANT_GUPNP
+if HAVE_GUPNP
 pcverfiles += farsight2-upnp.pc
 endif
 
