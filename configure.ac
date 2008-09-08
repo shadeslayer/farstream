@@ -353,7 +353,7 @@ AC_ARG_ENABLE([python],
 	[case "${enableval}" in
 	    yes) WANT_PYTHON=yes ;;
 	    no)  WANT_PYTHON=no ;;
-	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-python) ;;
         esac],
 	WANT_PYTHON=yes)
 if test "x$WANT_PYTHON" = "xyes"; then
