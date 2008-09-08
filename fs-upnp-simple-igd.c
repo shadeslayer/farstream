@@ -308,6 +308,27 @@ static void
 _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
     GValue *value, gpointer user_data)
 {
+  struct Proxy *prox = user_data;
+  gchar *new_ip;
+  guint i;
+
+  g_return_if_fail (G_VALUE_HOLDS_STRING(value));
+
+  new_ip = g_value_dup_string (value);
+
+  for (i=0; i < prox->proxymappings->len; i++)
+  {
+    struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+
+    if (pm->mapped)
+      g_signal_emit (prox->parent, signals[SIGNAL_MAPPED_EXTERNAL_PORT], 0,
+          pm->mapping->protocol, new_ip, prox->external_ip,
+          pm->mapping->external_port, pm->mapping->local_ip,
+          pm->mapping->local_port, pm->mapping->description);
+  }
+
+  g_free (prox->external_ip);
+  prox->external_ip = new_ip;
 }
 
 static void
