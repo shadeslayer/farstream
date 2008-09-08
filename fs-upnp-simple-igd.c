@@ -303,11 +303,21 @@ fs_upnp_simple_igd_dispose (GObject *object)
   G_OBJECT_CLASS (fs_upnp_simple_igd_parent_class)->dispose (object);
 }
 
+
+static void
+_external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
+    GValue *value, gpointer user_data)
+{
+}
+
 static void
 free_proxy (struct Proxy *prox)
 {
   if (prox->external_ip_action)
     gupnp_service_proxy_cancel_action (prox->proxy, prox->external_ip_action);
+
+  gupnp_service_proxy_remove_notify (prox->proxy, "ExternalIPAddress",
+      _external_ip_address_changed, prox);
 
   g_object_unref (prox->proxy);
   g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping, NULL);
@@ -521,6 +531,11 @@ fs_upnp_simple_igd_gather (FsUpnpSimpleIgd *self,
   prox->external_ip_action = gupnp_service_proxy_begin_action (prox->proxy,
       "GetExternalIPAddress",
       _service_proxy_got_external_ip_address, prox, NULL);
+
+  gupnp_service_proxy_add_notify (prox->proxy, "ExternalIPAddress",
+      G_TYPE_STRING, _external_ip_address_changed, prox);
+
+  gupnp_service_proxy_set_subscribed (prox->proxy, TRUE);
 }
 
 static void
