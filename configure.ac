@@ -395,7 +395,7 @@ gst-libs/Makefile
 gst-libs/gst/Makefile
 gst-libs/gst/farsight/Makefile
 gst-libs/ext/Makefile
-gst-libs/ext/fssimpleupnp/Makefile
+gst-libs/ext/fsupnp/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile

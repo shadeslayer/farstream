@@ -1,7 +1,7 @@
 if WANT_GUPNP
-SUBDIRS = fssimpleupnp
+SUBDIRS = fsupnp
 else
 SUBDIRS =
 endif
 
-DIST_SUBDIRS = fssimpleupnp
+DIST_SUBDIRS = fsupnp
