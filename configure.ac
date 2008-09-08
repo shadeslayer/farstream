@@ -365,6 +365,22 @@ if test "x$WANT_PYTHON" = "xyes"; then
 fi
 AM_CONDITIONAL(WANT_PYTHON, test "x$WANT_PYTHON" = "xyes")
 
+AC_ARG_ENABLE([gupnp],
+	AC_HELP_STRING([--disable-gupnp], [Disable GUPnP support]),
+	[case "${enableval}" in
+	    yes) WANT_GUPNP=test ;;
+	    no)  WANT_GUPNP=no ;;
+	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-gupnp) ;;
+        esac],
+	WANT_GUPNP=test)
+
+if test "x$WANT_GUPNP" = "xtest"; then
+   PKG_CHECK_MODULES(GUPNP, [ gupnp-1.0 ],
+    [ WANT_GUPNP=yes ],
+    [ WANT_GUPNP=no ])
+fi
+AM_CONDITIONAL(WANT_GUPNP, test "x$WANT_GUPNP" = "xyes")
+
 
 dnl *** output files ***
 
@@ -378,6 +394,8 @@ gst/videoanyrate/Makefile
 gst-libs/Makefile
 gst-libs/gst/Makefile
 gst-libs/gst/farsight/Makefile
+gst-libs/ext/Makefile
+gst-libs/ext/fssimpleupnp/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile
