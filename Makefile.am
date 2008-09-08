@@ -42,7 +42,11 @@ check-torture:
 endif
 
 pcverfiles = farsight2-@GST_MAJORMINOR@.pc
-pcinfiles = farsight2.pc.in
+pcinfiles = farsight2.pc.in farsight2-upnp.pc.in
+
+if WANT_GUPNP
+pcverfiles += farsight2-upnp.pc
+endif
 
 %-@GST_MAJORMINOR@.pc: %.pc
 	cp $< $@
@@ -50,7 +54,7 @@ pcinfiles = farsight2.pc.in
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = $(pcverfiles)
 
-CLEANFILES = $(pcverfiles)
+CLEANFILES = $(pcverfiles) farsight2-upnp.pc
 
 DISTCLEANFILES = $(pcinfiles:.in=)
 

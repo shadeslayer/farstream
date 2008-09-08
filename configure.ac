@@ -387,6 +387,7 @@ dnl *** output files ***
 AC_CONFIG_FILES(
 Makefile
 farsight2.pc
+farsight2-upnp.pc
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/funnel/Makefile
