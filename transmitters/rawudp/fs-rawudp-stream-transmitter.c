@@ -99,7 +99,14 @@ enum
   PROP_ASSOCIATE_ON_SOURCE,
   PROP_STUN_IP,
   PROP_STUN_PORT,
-  PROP_STUN_TIMEOUT
+  PROP_STUN_TIMEOUT,
+#ifdef HAVE_GUPNP
+  PROP_UPNP_MAPPING,
+  PROP_UPNP_DISCOVERY,
+  PROP_UPNP_MAPPING_TIMEOUT,
+  PROP_UPNP_DISCOVERY_TIMEOUT,
+  PROP_UPNP_REQUEST_TIMEOUT
+#endif
 };
 
 struct _FsRawUdpStreamTransmitterPrivate
@@ -125,6 +132,14 @@ struct _FsRawUdpStreamTransmitterPrivate
   guint next_candidate_id;
 
   gboolean associate_on_source;
+
+#ifdef HAVE_GUPNP
+  gboolean upnp_discovery;
+  gboolean upnp_mapping;
+  guint upnp_mapping_timeout;
+  guint upnp_discovery_timeout;
+  guint upnp_request_timeout;
+#endif
 
   /* Everything below this line is protected by the mutex */
   GMutex *mutex;
@@ -268,6 +283,50 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           1, G_MAXUINT, 30,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
+#ifdef HAVE_GUPNP
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_MAPPING,
+      g_param_spec_boolean ("upnp-mapping",
+          "Try to map ports using UPnP",
+          "Tries to map ports using UPnP if enabled",
+          TRUE,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_DISCOVERY,
+      g_param_spec_boolean ("upnp-discovery",
+          "Try to use UPnP to find the external IP address",
+          "Tries to discovery the external IP with UPnP if stun fails",
+          TRUE,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_MAPPING_TIMEOUT,
+      g_param_spec_uint ("upnp-mapping-timeout",
+          "Timeout after which UPnP mappings expire",
+          "The UPnP port mappings expire after this period if the app has"
+          " crashed (in seconds)",
+          0, G_MAXUINT32, 600,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_DISCOVERY_TIMEOUT,
+      g_param_spec_uint ("upnp-discovery-timeout",
+          "Timeout after which UPnP discovery fails",
+          "After this period, UPnP discovery is considered to have failed"
+          " and the local IP is returned",
+          0, G_MAXUINT32, 10,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_REQUEST_TIMEOUT,
+      g_param_spec_uint ("upnp-request-timeout",
+          "Timeout after which UPnP requests timeout",
+          "After this delay, UPnP requests fails",
+          1, 600, 5,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+#endif
+
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_stream_transmitter_finalize;
 
@@ -366,6 +425,23 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_STUN_TIMEOUT:
       g_value_set_uint (value, self->priv->stun_timeout);
       break;
+#ifdef HAVE_GUPNP
+    case PROP_UPNP_MAPPING:
+      g_value_set_boolean (value, self->priv->upnp_mapping);
+      break;
+    case PROP_UPNP_DISCOVERY:
+      g_value_set_boolean (value, self->priv->upnp_discovery);
+      break;
+    case PROP_UPNP_MAPPING_TIMEOUT:
+      g_value_set_uint (value, self->priv->upnp_mapping_timeout);
+      break;
+    case PROP_UPNP_DISCOVERY_TIMEOUT:
+      g_value_set_uint (value, self->priv->upnp_discovery_timeout);
+      break;
+    case PROP_UPNP_REQUEST_TIMEOUT:
+      g_value_set_uint (value, self->priv->upnp_request_timeout);
+      break;
+#endif
    default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -410,6 +486,23 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
     case PROP_STUN_TIMEOUT:
       self->priv->stun_timeout = g_value_get_uint (value);
       break;
+#ifdef HAVE_GUPNP
+    case PROP_UPNP_MAPPING:
+      self->priv->upnp_mapping = g_value_get_boolean (value);
+      break;
+    case PROP_UPNP_DISCOVERY:
+      self->priv->upnp_discovery = g_value_get_boolean (value);
+      break;
+    case PROP_UPNP_MAPPING_TIMEOUT:
+      self->priv->upnp_mapping_timeout = g_value_get_uint (value);
+      break;
+    case PROP_UPNP_DISCOVERY_TIMEOUT:
+      self->priv->upnp_discovery_timeout = g_value_get_uint (value);
+      break;
+    case PROP_UPNP_REQUEST_TIMEOUT:
+      self->priv->upnp_request_timeout = g_value_get_uint (value);
+      break;
+#endif
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
