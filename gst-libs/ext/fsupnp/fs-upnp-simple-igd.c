@@ -137,6 +137,12 @@ static void fs_upnp_simple_igd_remove_port_real (FsUpnpSimpleIgd *self,
     const gchar *protocol,
     guint external_port);
 
+GQuark
+fs_upnp_simple_igd_get_error_domain (void)
+{
+  return g_quark_from_static_string ("fs-upnp-simple-igd-error");
+}
+
 
 static void
 fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)

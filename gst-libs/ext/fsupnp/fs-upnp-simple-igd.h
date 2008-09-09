@@ -92,6 +92,15 @@ struct _FsUpnpSimpleIgd
   FsUpnpSimpleIgdPrivate *priv;
 };
 
+#define FS_UPNP_SIMPLE_IGD_ERROR (fs_upnp_simple_igd_get_error_domain ())
+
+typedef enum {
+  FS_UPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
+  FS_UPNP_SIMPLE_IGD_ERROR_TIMEOUT
+} FsUpnpSimpleIgdError;
+
+GQuark fs_upnp_simple_igd_get_error_domain (void);
+
 GType fs_upnp_simple_igd_get_type (void);
 
 FsUpnpSimpleIgd *
