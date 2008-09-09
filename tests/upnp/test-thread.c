@@ -1,23 +1,10 @@
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <glib.h>
 
-#include "fs-upnp-simple-igd.h"
-
-GMainContext *ctx = NULL;
-GMainLoop *loop = NULL;
-FsUpnpSimpleIgd *igd = NULL;
-guint external_port, internal_port;
-
-static gboolean
-_remove_port (gpointer user_data)
-{
-  g_debug ("removing port");
-  fs_upnp_simple_igd_remove_port (igd, "TCP", external_port);
-
-  return FALSE;
-}
+#include <ext/fsupnp/fs-upnp-simple-igd-thread.h>
 
 static void
 _mapped_external_port (FsUpnpSimpleIgd *igd, gchar *proto,
@@ -25,15 +12,10 @@ _mapped_external_port (FsUpnpSimpleIgd *igd, gchar *proto,
     gchar *local_ip, guint local_port,
     gchar *description, gpointer user_data)
 {
-  GSource *src;
-
   g_debug ("proto:%s ex:%s oldex:%s exp:%u local:%s localp:%u desc:%s",
       proto, external_ip, replaces_external_ip, external_port, local_ip,
       local_port, description);
 
-  src = g_timeout_source_new_seconds (30);
-  g_source_set_callback (src, _remove_port, user_data, NULL);
-  g_source_attach (src, ctx);
 }
 
 
@@ -53,9 +35,13 @@ _error (FsUpnpSimpleIgd *igd, GError *error, gpointer user_data)
 {
   g_error ("error: %s", error->message);
 }
+
 int
 main (int argc, char **argv)
 {
+  FsUpnpSimpleIgdThread *igd = NULL;
+  guint external_port, internal_port;
+
 
   if (argc != 5)
   {
@@ -71,10 +57,7 @@ main (int argc, char **argv)
   g_type_init ();
   g_thread_init (NULL);
 
-  ctx = g_main_context_new ();
-  loop = g_main_loop_new (ctx, FALSE);
-
-  igd = fs_upnp_simple_igd_new (ctx);
+  igd = fs_upnp_simple_igd_thread_new ();
 
   g_signal_connect (igd, "mapped-external-port",
       G_CALLBACK (_mapped_external_port),
@@ -85,14 +68,18 @@ main (int argc, char **argv)
       G_CALLBACK (_error_mapping_external_port),
       NULL);
 
-  fs_upnp_simple_igd_add_port (igd, "TCP", external_port, argv[2],
+  fs_upnp_simple_igd_add_port (FS_UPNP_SIMPLE_IGD (igd),
+      "TCP", external_port, argv[2],
       internal_port, 20, argv[4]);
 
-  g_main_loop_run (loop);
+  sleep (30);
+
+  fs_upnp_simple_igd_remove_port (FS_UPNP_SIMPLE_IGD (igd), "TCP",
+      external_port);
+
+  sleep (5);
 
   g_object_unref (igd);
-  g_main_loop_unref (loop);
-  g_main_context_unref (ctx);
 
   return 0;
 }

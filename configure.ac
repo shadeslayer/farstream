@@ -416,6 +416,7 @@ tests/check/Makefile
 tests/rtp/Makefile
 tests/gui/Makefile
 tests/commandline/Makefile
+tests/upnp/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/version.entities

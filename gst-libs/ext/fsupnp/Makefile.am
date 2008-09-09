@@ -1,6 +1,6 @@
 lib_LTLIBRARIES = libfsupnp.la
 
-fsupnpincludedir = $(includedir)/gstreamer-@GST_MAJORMINOR@/gst/fsupnp
+fsupnpincludedir = $(includedir)/gstreamer-@GST_MAJORMINOR@/ext/fsupnp
 
 fsupnpinclude_HEADERS = \
 	fs-upnp-simple-igd.h \

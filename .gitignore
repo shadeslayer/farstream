@@ -53,6 +53,8 @@ tests/check/rtp/sendcodecs
 tests/check/utils/binadded
 tests/rtp/codec-discovery
 tests/commandline/simple-call
+tests/upnp/test
+tests/upnp/test-thread
 tests/gui/*.pyo
 tests/gui/*.pyc
 
