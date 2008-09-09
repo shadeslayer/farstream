@@ -77,6 +77,10 @@
 #include <gst/farsight/fs-candidate.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+#ifdef HAVE_GUPNP
+#include <ext/fsupnp/fs-upnp-simple-igd-thread.h>
+#endif
+
 #include <gst/gst.h>
 
 #include <string.h>
@@ -139,6 +143,8 @@ struct _FsRawUdpStreamTransmitterPrivate
   guint upnp_mapping_timeout;
   guint upnp_discovery_timeout;
   guint upnp_request_timeout;
+
+  FsUpnpSimpleIgdThread *upnp_igd;
 #endif
 
   /* Everything below this line is protected by the mutex */
@@ -368,6 +374,12 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
     }
   }
 
+  if (self->priv->upnp_igd)
+  {
+    g_object_unref (self->priv->upnp_igd);
+    self->priv->upnp_igd = NULL;
+  }
+
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
@@ -520,6 +532,16 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   GList *item;
   gint c;
   guint16 next_port;
+
+  if (self->priv->upnp_mapping ||
+      (self->priv->upnp_discovery &&
+          (!self->priv->stun_ip || !self->priv->stun_port)))
+  {
+    self->priv->upnp_igd = fs_upnp_simple_igd_thread_new ();
+    g_object_set (self->priv->upnp_igd,
+        "request-timeout", self->priv->upnp_request_timeout,
+        NULL);
+  }
 
   self->priv->component = g_new0 (FsRawUdpComponent *,
       self->priv->transmitter->components + 1);
