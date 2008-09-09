@@ -48,11 +48,6 @@ _error_mapping_external_port (FsUpnpSimpleIgd *igd, GError *error,
 }
 
 
-static void
-_error (FsUpnpSimpleIgd *igd, GError *error, gpointer user_data)
-{
-  g_error ("error: %s", error->message);
-}
 int
 main (int argc, char **argv)
 {
@@ -78,8 +73,6 @@ main (int argc, char **argv)
 
   g_signal_connect (igd, "mapped-external-port",
       G_CALLBACK (_mapped_external_port),
-      NULL);
-  g_signal_connect (igd, "error", G_CALLBACK (_error),
       NULL);
   g_signal_connect (igd, "error-mapping-port",
       G_CALLBACK (_error_mapping_external_port),
