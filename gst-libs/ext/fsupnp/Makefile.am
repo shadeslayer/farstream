@@ -32,7 +32,8 @@ fs-upnp-simple-igd-marshal.c: fs-upnp-simple-igd-marshal.list Makefile
 	mv $@.tmp $@
 
 libfsupnp_la_CFLAGS = \
-	$(GUPNP_CFLAGS)
+	$(GUPNP_CFLAGS) \
+	-I$(top_srcdir)/gst-libs
 
 libfsupnp_la_LIBADD = \
 	$(GUPNP_LIBS)

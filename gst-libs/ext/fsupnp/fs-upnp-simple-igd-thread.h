@@ -23,7 +23,7 @@
 #ifndef __FS_UPNP_SIMPLE_IGD_THREAD_H__
 #define __FS_UPNP_SIMPLE_IGD_THREAD_H__
 
-#include "fs-upnp-simple-igd.h"
+#include <ext/fsupnp/fs-upnp-simple-igd.h>
 
 G_BEGIN_DECLS
 
