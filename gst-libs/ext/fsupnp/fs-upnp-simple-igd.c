@@ -52,6 +52,7 @@ struct Proxy {
 
   gchar *external_ip;
   GUPnPServiceProxyAction *external_ip_action;
+  gboolean external_ip_failed;
 
   GPtrArray *proxymappings;
 };
@@ -506,6 +507,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   {
     guint i;
 
+    prox->external_ip_failed = TRUE;
     g_return_if_fail (error);
 
     for (i=0; i < prox->proxymappings->len; i++)
@@ -698,8 +700,24 @@ fs_upnp_simple_igd_add_port_real (FsUpnpSimpleIgd *self,
   g_ptr_array_add (self->priv->mappings, mapping);
 
   for (i=0; i < self->priv->service_proxies->len; i++)
-    fs_upnp_simple_igd_add_proxy_mapping (self,
-        g_ptr_array_index (self->priv->service_proxies, i), mapping);
+  {
+    struct Proxy *prox = g_ptr_array_index (self->priv->service_proxies, i);
+
+    if (prox->external_ip_failed)
+    {
+      GError error = {FS_UPNP_SIMPLE_IGD_ERROR,
+                      FS_UPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
+                      "Could not get external address, so can not get mapping"};
+      g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
+          FS_UPNP_SIMPLE_IGD_ERROR,
+          &error, mapping->protocol, mapping->external_port,
+          mapping->description);
+    }
+    else
+    {
+      fs_upnp_simple_igd_add_proxy_mapping (self, prox, mapping);
+    }
+  }
 }
 
 void
