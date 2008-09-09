@@ -80,7 +80,6 @@ struct ProxyMapping {
 /* signals */
 enum
 {
-  SIGNAL_NEW_EXTERNAL_IP,
   SIGNAL_MAPPED_EXTERNAL_PORT,
   SIGNAL_ERROR_MAPPING_PORT,
   LAST_SIGNAL
@@ -174,24 +173,6 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
           "The GMainContext to use",
           "This GMainContext will be used for all async activities",
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
-
-   /**
-   * FsUpnpSimpleIgd::new-external-ip
-   * @self: #FsUpnpSimpleIgd that emitted the signal
-   * @ip: The string representing the new external IP
-   *
-   * This signal means that a new external IP has been found on an IGD.
-   *
-   */
-  signals[SIGNAL_NEW_EXTERNAL_IP] = g_signal_new ("new-external-ip",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__STRING,
-      G_TYPE_NONE, 1, G_TYPE_STRING);
-
 
   /**
    * FsUpnpSimpleIgd::mapped-external-port
@@ -520,9 +501,6 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
 
     g_free (prox->external_ip);
     prox->external_ip = g_strdup (ip);
-
-    g_signal_emit (self, signals[SIGNAL_NEW_EXTERNAL_IP], 0,
-        ip);
   }
   else
   {
