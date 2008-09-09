@@ -88,6 +88,10 @@
 
 #define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 
+#define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
+#define DEFAULT_UPNP_DISCOVERY_TIMEOUT (10)
+#define DEFAULT_UPNP_REQUEST_TIMEOUT (10)
+
 /* Signals */
 enum
 {
@@ -312,7 +316,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "Timeout after which UPnP mappings expire",
           "The UPnP port mappings expire after this period if the app has"
           " crashed (in seconds)",
-          0, G_MAXUINT32, 600,
+          0, G_MAXUINT32, DEFAULT_UPNP_MAPPING_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
@@ -321,7 +325,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "Timeout after which UPnP discovery fails",
           "After this period, UPnP discovery is considered to have failed"
           " and the local IP is returned",
-          0, G_MAXUINT32, 10,
+          0, G_MAXUINT32, DEFAULT_UPNP_DISCOVERY_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
@@ -329,7 +333,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
       g_param_spec_uint ("upnp-request-timeout",
           "Timeout after which UPnP requests timeout",
           "After this delay, UPnP requests fails",
-          1, 600, 5,
+          1, 600, DEFAULT_UPNP_REQUEST_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 #endif
 
@@ -348,6 +352,12 @@ fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self)
 
   self->priv->sending = TRUE;
   self->priv->associate_on_source = TRUE;
+
+  self->priv->upnp_mapping = TRUE;
+  self->priv->upnp_request_timeout = DEFAULT_UPNP_REQUEST_TIMEOUT;
+  self->priv->upnp_discovery_timeout = DEFAULT_UPNP_DISCOVERY_TIMEOUT;
+  self->priv->upnp_mapping_timeout = DEFAULT_UPNP_MAPPING_TIMEOUT;
+  self->priv->upnp_discovery = TRUE;
 
   self->priv->mutex = g_mutex_new ();
 }
