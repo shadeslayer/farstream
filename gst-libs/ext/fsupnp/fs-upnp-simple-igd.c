@@ -224,7 +224,7 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
   /**
    * FsUpnpSimpleIgd::error-mapping-port
    * @self: #FsUpnpSimpleIgd that emitted the signal
-   * @error: a #GError or %NULL if its a timeout
+   * @error: a #GError
    * @proto: The requested protocol
    * @external_port: the requested external port
    * @description: the passed description
@@ -545,8 +545,9 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   else
   {
     g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR], error->domain,
-        error);
+    g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
+        error, pm->mapping->protocol, pm->mapping->external_port,
+        pm->mapping->description);
   }
   g_clear_error (&error);
 }
@@ -656,11 +657,15 @@ _service_proxy_add_mapping_timeout (gpointer user_data)
 {
   struct ProxyMapping *pm = user_data;
   FsUpnpSimpleIgd *self = pm->proxy->parent;
+  const GError error = {FS_UPNP_SIMPLE_IGD_ERROR,
+                        FS_UPNP_SIMPLE_IGD_ERROR_TIMEOUT,
+                        "Timeout while mapping port"};
 
   stop_proxymapping (pm);
 
-  g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], 0,
-      NULL, pm->mapping->protocol, pm->mapping->external_port,
+  g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
+      FS_UPNP_SIMPLE_IGD_ERROR, &error,
+      pm->mapping->protocol, pm->mapping->external_port,
       pm->mapping->description);
 
   return FALSE;
