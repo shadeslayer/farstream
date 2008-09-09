@@ -83,7 +83,6 @@ enum
   SIGNAL_NEW_EXTERNAL_IP,
   SIGNAL_MAPPED_EXTERNAL_PORT,
   SIGNAL_ERROR_MAPPING_PORT,
-  SIGNAL_ERROR,
   LAST_SIGNAL
 };
 
@@ -241,23 +240,6 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
       _fs_upnp_simple_igd_marshal_VOID__POINTER_STRING_UINT_STRING,
       G_TYPE_NONE, 4, G_TYPE_POINTER, G_TYPE_STRING, G_TYPE_UINT,
       G_TYPE_STRING);
-
-  /**
-   * FsUpnpSimpleIgd::error
-   * @self: #FsUpnpSimpleIgd that emitted the signal
-   * @error: a #GError
-   *
-   * This means that an asynchronous error has happened.
-   *
-   */
-  signals[SIGNAL_ERROR] = g_signal_new ("error",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST | G_SIGNAL_DETAILED,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__POINTER,
-      G_TYPE_NONE, 1, G_TYPE_POINTER);
 }
 
 static void
@@ -544,10 +526,18 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   }
   else
   {
+    guint i;
+
     g_return_if_fail (error);
-    g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
-        error, pm->mapping->protocol, pm->mapping->external_port,
-        pm->mapping->description);
+
+    for (i=0; i < prox->proxymappings->len; i++)
+    {
+      struct ProxyMapping *pm = g_ptr_array_index (prox->proxymappings, i);
+
+      g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT], error->domain,
+          error, pm->mapping->protocol, pm->mapping->external_port,
+          pm->mapping->description);
+    }
   }
   g_clear_error (&error);
 }
