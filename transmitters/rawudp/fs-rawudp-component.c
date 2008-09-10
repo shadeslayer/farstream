@@ -140,7 +140,6 @@ struct _FsRawUdpComponentPrivate
 
   FsCandidate *local_active_candidate;
   FsCandidate *local_forced_candidate;
-  FsCandidate *local_stun_candidate;
 
   gboolean gathered;
 
@@ -659,8 +658,6 @@ fs_rawudp_component_finalize (GObject *object)
     fs_candidate_destroy (self->priv->remote_candidate);
   if (self->priv->local_active_candidate)
     fs_candidate_destroy (self->priv->local_active_candidate);
-  if (self->priv->local_stun_candidate)
-    fs_candidate_destroy (self->priv->local_stun_candidate);
   if (self->priv->local_forced_candidate)
     fs_candidate_destroy (self->priv->local_forced_candidate);
 
