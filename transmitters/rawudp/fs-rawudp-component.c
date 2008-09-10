@@ -614,6 +614,16 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
 
   if (udpport)
   {
+#ifdef HAVE_GUPNP
+
+    if (self->priv->upnp_igd  &&
+        (self->priv->upnp_mapping || self->priv->upnp_discovery))
+    {
+      fs_upnp_simple_igd_remove_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
+          "UDP", fs_rawudp_transmitter_udpport_get_port (self->priv->udpport));
+    }
+#endif
+
     if (self->priv->buffer_recv_id)
     {
       fs_rawudp_transmitter_udpport_disconnect_recv (
@@ -985,6 +995,34 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
         " been stopped");
     return FALSE;
   }
+
+#ifdef HAVE_GUPNP
+
+  if (self->priv->upnp_igd  &&
+      (self->priv->upnp_mapping || self->priv->upnp_discovery))
+  {
+    guint port;
+    GList *ips;
+
+    port = fs_rawudp_transmitter_udpport_get_port (self->priv->udpport);
+
+    ips = fs_interfaces_get_local_ips (FALSE);
+
+    if (ips)
+    {
+      gchar *ip = g_list_first (ips)->data;
+
+      fs_upnp_simple_igd_add_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
+          "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
+          "Farsight Raw UDP transmitter");
+    }
+
+    /* free list of ips */
+    g_list_foreach (ips, (GFunc) g_free, NULL);
+    g_list_free (ips);
+
+  }
+#endif
 
   if (self->priv->stun_ip && self->priv->stun_port)
     return fs_rawudp_component_start_stun (self, error);
