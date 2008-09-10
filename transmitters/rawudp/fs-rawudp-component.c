@@ -812,6 +812,11 @@ fs_rawudp_component_new (
     const gchar *stun_ip,
     guint stun_port,
     guint stun_timeout,
+    gboolean upnp_mapping,
+    gboolean upnp_discovery,
+    guint upnp_mapping_timeout,
+    guint upnp_discovery_timeout,
+    gpointer upnp_igd,
     guint *used_port,
     GError **error)
 {
@@ -826,6 +831,13 @@ fs_rawudp_component_new (
       "stun-ip", stun_ip,
       "stun-port", stun_port,
       "stun-timeout", stun_timeout,
+#ifdef HAVE_GUPNP
+      "upnp-mapping", upnp_mapping,
+      "upnp-discovery", upnp_discovery,
+      "upnp-mapping-timeout", upnp_mapping_timeout,
+      "upnp-discovery-timeout", upnp_discovery_timeout,
+      "upnp-igd", upnp_igd,
+#endif
       NULL);
 
   if (!self)

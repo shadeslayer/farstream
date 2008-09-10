@@ -628,6 +628,15 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         self->priv->stun_ip,
         self->priv->stun_port,
         self->priv->stun_timeout,
+#ifdef HAVE_GUPNP
+        self->priv->upnp_mapping,
+        self->priv->upnp_discovery,
+        self->priv->upnp_mapping_timeout,
+        self->priv->upnp_discovery_timeout,
+        self->priv->upnp_igd,
+#else
+        FALSE, FALSE, 0, 0, NULL,
+#endif
         &used_port,
         error);
     if (self->priv->component[c] == NULL)
