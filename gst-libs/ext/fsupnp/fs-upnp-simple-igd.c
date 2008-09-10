@@ -186,7 +186,6 @@ fs_upnp_simple_igd_class_init (FsUpnpSimpleIgdClass *klass)
    * @local_ip: internal ip this is forwarded to
    * @local_port: the local port
    * @description: the user's selected description
-   * @ip: The string representing the new external IP
    *
    * This signal means that an IGD has been found that that adding a port
    * mapping has succeeded.
