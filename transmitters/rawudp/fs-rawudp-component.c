@@ -38,6 +38,10 @@
 
 #include <gst/netbuffer/gstnetbuffer.h>
 
+#ifdef HAVE_GUPNP
+#include <ext/fsupnp/fs-upnp-simple-igd-thread.h>
+#endif
+
 #include <string.h>
 #include <sys/types.h>
 
@@ -88,7 +92,8 @@ enum
   PROP_UPNP_MAPPING,
   PROP_UPNP_DISCOVERY,
   PROP_UPNP_MAPPING_TIMEOUT,
-  PROP_UPNP_DISCOVERY_TIMEOUT
+  PROP_UPNP_DISCOVERY_TIMEOUT,
+  PROP_UPNP_IGD
 #endif
 };
 
@@ -121,6 +126,8 @@ struct _FsRawUdpComponentPrivate
   gboolean upnp_mapping;
   guint upnp_mapping_timeout;
   guint upnp_discovery_timeout;
+
+  FsUpnpSimpleIgdThread *upnp_igd;
 #endif
 
   /* Above this line, its all set at construction time */
@@ -377,6 +384,14 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           " and the local IP is returned",
           0, G_MAXUINT32, DEFAULT_UPNP_DISCOVERY_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_IGD,
+      g_param_spec_object ("upnp-igd",
+          "The FsUpnpSimpleIgd object",
+          "This is the upnp igd abstraction object",
+          FS_TYPE_UPNP_SIMPLE_IGD_THREAD,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 #endif
 
    /**
@@ -557,6 +572,12 @@ fs_rawudp_component_dispose (GObject *object)
     GST_ERROR ("You must call fs_stream_transmitter_stop() before dropping"
         " the last reference to a stream transmitter");
     fs_rawudp_component_stop (self);
+  }
+
+  if (self->priv->upnp_igd)
+  {
+    g_object_unref (self->priv->upnp_igd);
+    self->priv->upnp_igd = NULL;
   }
 
   /* Make sure dispose does not run twice. */
@@ -769,6 +790,9 @@ fs_rawudp_component_set_property (GObject *object,
       break;
     case PROP_UPNP_DISCOVERY_TIMEOUT:
       self->priv->upnp_discovery_timeout = g_value_get_uint (value);
+      break;
+    case PROP_UPNP_IGD:
+      self->priv->upnp_igd = g_value_dup_object (value);
       break;
 #endif
     default:
