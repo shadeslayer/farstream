@@ -975,6 +975,33 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
   return TRUE;
 }
 
+#ifdef HAVE_GUPNP
+static void
+_upnp_mapped_external_port (FsUpnpSimpleIgdThread *igd, gchar *proto,
+    gchar *external_ip, gchar *replaces_external_ip, guint external_port,
+    gchar *local_ip, guint local_port, gchar *description, gpointer user_data)
+{
+  FsRawUdpComponent *self = user_data;
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
+  if (self->priv->local_active_candidate)
+  {
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    return;
+  }
+
+  self->priv->local_active_candidate = fs_candidate_new ("L1",
+      self->priv->component,
+      FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP,
+      external_ip,
+      external_port);
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+  fs_rawudp_component_emit_candidate (self, self->priv->local_active_candidate);
+}
+#endif
+
 gboolean
 fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     GError **error)
@@ -1009,6 +1036,12 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     {
       gchar *ip = g_list_first (ips)->data;
 
+      if (self->priv->upnp_discovery)
+      {
+        g_signal_connect (self->priv->upnp_igd, "mapped-external-port",
+            G_CALLBACK (_upnp_mapped_external_port), self);
+      }
+
       fs_upnp_simple_igd_add_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
           "Farsight Raw UDP transmitter");
@@ -1023,8 +1056,10 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 
   if (self->priv->stun_ip && self->priv->stun_port)
     return fs_rawudp_component_start_stun (self, error);
-  else
+  else if (!self->priv->upnp_igd || !self->priv->upnp_discovery)
     return fs_rawudp_component_emit_local_candidates (self, error);
+  else
+    return TRUE;
 }
 
 static gboolean
