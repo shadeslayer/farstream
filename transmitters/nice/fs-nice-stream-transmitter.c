@@ -1010,7 +1010,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       guint port;
 
       ip = gst_structure_get_string (s, "ip");
-      gst_structure_get_uint (s, "ip",  &port);
+      gst_structure_get_uint (s, "port",  &port);
       username = gst_structure_get_string (s, "username");
       password = gst_structure_get_string (s, "password");
 
