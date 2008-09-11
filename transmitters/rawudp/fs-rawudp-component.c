@@ -154,6 +154,10 @@ struct _FsRawUdpComponentPrivate
   gboolean sending;
 
   gboolean remote_is_unique;
+
+#ifdef HAVE_GUPNP
+  GSource *upnp_discovery_timeout_src;
+#endif
 };
 
 
@@ -615,11 +619,15 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
   {
 #ifdef HAVE_GUPNP
 
+    if (self->priv->upnp_discovery_timeout_src)
+      g_source_destroy (self->priv->upnp_discovery_timeout_src);
+    self->priv->upnp_discovery_timeout_src = NULL;
+
     if (self->priv->upnp_igd  &&
         (self->priv->upnp_mapping || self->priv->upnp_discovery))
     {
       fs_upnp_simple_igd_remove_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
-          "UDP", fs_rawudp_transmitter_udpport_get_port (self->priv->udpport));
+          "UDP", fs_rawudp_transmitter_udpport_get_port (udpport));
     }
 #endif
 
@@ -981,9 +989,21 @@ _upnp_mapped_external_port (FsUpnpSimpleIgdThread *igd, gchar *proto,
     gchar *external_ip, gchar *replaces_external_ip, guint external_port,
     gchar *local_ip, guint local_port, gchar *description, gpointer user_data)
 {
-  FsRawUdpComponent *self = user_data;
+  FsRawUdpComponent *self = FS_RAWUDP_COMPONENT (user_data);
 
   FS_RAWUDP_COMPONENT_LOCK (self);
+  /* Skip it if its not our port */
+  if (fs_rawudp_transmitter_udpport_get_port (self->priv->udpport) !=
+      external_port)
+  {
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    return;
+  }
+
+  if (self->priv->upnp_discovery_timeout_src)
+    g_source_destroy (self->priv->upnp_discovery_timeout_src);
+  self->priv->upnp_discovery_timeout_src = NULL;
+
   if (self->priv->local_active_candidate)
   {
     FS_RAWUDP_COMPONENT_UNLOCK (self);
@@ -1000,6 +1020,31 @@ _upnp_mapped_external_port (FsUpnpSimpleIgdThread *igd, gchar *proto,
 
   fs_rawudp_component_emit_candidate (self, self->priv->local_active_candidate);
 }
+
+static gboolean
+_upnp_discovery_timeout (gpointer user_data)
+{
+  FsRawUdpComponent *self = user_data;
+  GError *error = NULL;
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
+  self->priv->upnp_discovery_timeout_src = NULL;
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+  if (!fs_rawudp_component_emit_local_candidates (self, &error))
+  {
+    if (error->domain == FS_ERROR)
+      fs_rawudp_component_emit_error (self, error->code,
+          error->message, error->message);
+    else
+      fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
+          "Error emitting local candidates", NULL);
+  }
+  g_clear_error (&error);
+
+  return FALSE;
+}
+
 #endif
 
 gboolean
@@ -1035,6 +1080,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     if (ips)
     {
       gchar *ip = g_list_first (ips)->data;
+      GMainContext *ctx;
 
       if (self->priv->upnp_discovery)
       {
@@ -1045,6 +1091,16 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
       fs_upnp_simple_igd_add_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
           "Farsight Raw UDP transmitter");
+
+
+      FS_RAWUDP_COMPONENT_LOCK (self);
+      self->priv->upnp_discovery_timeout_src = g_timeout_source_new_seconds (
+          self->priv->upnp_discovery_timeout);
+      g_source_set_callback (self->priv->upnp_discovery_timeout_src,
+          _upnp_discovery_timeout, self, NULL);
+      g_object_get (self->priv->upnp_igd, "main-context", &ctx, NULL);
+      g_source_attach (self->priv->upnp_discovery_timeout_src, ctx);
+      FS_RAWUDP_COMPONENT_UNLOCK (self);
     }
 
     /* free list of ips */
