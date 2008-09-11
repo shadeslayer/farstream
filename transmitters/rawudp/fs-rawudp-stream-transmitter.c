@@ -353,11 +353,13 @@ fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self)
   self->priv->sending = TRUE;
   self->priv->associate_on_source = TRUE;
 
+#ifdef HAVE_GUPNP
   self->priv->upnp_mapping = TRUE;
   self->priv->upnp_request_timeout = DEFAULT_UPNP_REQUEST_TIMEOUT;
   self->priv->upnp_discovery_timeout = DEFAULT_UPNP_DISCOVERY_TIMEOUT;
   self->priv->upnp_mapping_timeout = DEFAULT_UPNP_MAPPING_TIMEOUT;
   self->priv->upnp_discovery = TRUE;
+#endif
 
   self->priv->mutex = g_mutex_new ();
 }
@@ -384,11 +386,13 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
     }
   }
 
+#ifdef HAVE_GUPNP
   if (self->priv->upnp_igd)
   {
     g_object_unref (self->priv->upnp_igd);
     self->priv->upnp_igd = NULL;
   }
+#endif
 
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -543,6 +547,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   gint c;
   guint16 next_port;
 
+#ifdef HAVE_GUPNP
   if (self->priv->upnp_mapping ||
       (self->priv->upnp_discovery &&
           (!self->priv->stun_ip || !self->priv->stun_port)))
@@ -552,6 +557,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         "request-timeout", self->priv->upnp_request_timeout,
         NULL);
   }
+#endif
 
   self->priv->component = g_new0 (FsRawUdpComponent *,
       self->priv->transmitter->components + 1);

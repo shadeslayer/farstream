@@ -516,10 +516,12 @@ fs_rawudp_component_init (FsRawUdpComponent *self)
   ((guint32*)self->priv->stun_cookie)[2] = g_random_int ();
   ((guint32*)self->priv->stun_cookie)[3] = g_random_int ();
 
+#ifdef HAVE_GUPNP
   self->priv->upnp_mapping = TRUE;
   self->priv->upnp_discovery = TRUE;
   self->priv->upnp_discovery_timeout = DEFAULT_UPNP_DISCOVERY_TIMEOUT;
   self->priv->upnp_mapping_timeout = DEFAULT_UPNP_MAPPING_TIMEOUT;
+#endif
 
   self->priv->mutex = g_mutex_new ();
 }
@@ -577,11 +579,13 @@ fs_rawudp_component_dispose (GObject *object)
     fs_rawudp_component_stop (self);
   }
 
+#ifdef HAVE_GUPNP
   if (self->priv->upnp_igd)
   {
     g_object_unref (self->priv->upnp_igd);
     self->priv->upnp_igd = NULL;
   }
+#endif
 
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -1112,10 +1116,15 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 
   if (self->priv->stun_ip && self->priv->stun_port)
     return fs_rawudp_component_start_stun (self, error);
+#ifdef HAVE_GUPNP
   else if (!self->priv->upnp_igd || !self->priv->upnp_discovery)
     return fs_rawudp_component_emit_local_candidates (self, error);
   else
     return TRUE;
+#else
+  else
+    return fs_rawudp_component_emit_local_candidates (self, error);
+#endif
 }
 
 static gboolean
