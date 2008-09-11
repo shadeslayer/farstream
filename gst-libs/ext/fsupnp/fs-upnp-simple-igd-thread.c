@@ -164,6 +164,9 @@ add_port_idle_func (gpointer user_data)
   FsUpnpSimpleIgdClass *klass =
       FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
 
+  if (!data->self)
+    return FALSE;
+
   if (klass->add_port)
     klass->add_port (data->self, data->protocol, data->external_port,
         data->local_ip, data->local_port, data->lease_duration,
@@ -180,6 +183,9 @@ remove_port_idle_func (gpointer user_data)
   FsUpnpSimpleIgdClass *klass =
       FS_UPNP_SIMPLE_IGD_CLASS (fs_upnp_simple_igd_thread_parent_class);
 
+  if (!data->self)
+    return FALSE;
+
   if (klass->remove_port)
     klass->remove_port (data->self, data->protocol, data->external_port);
 
@@ -191,7 +197,9 @@ free_add_remove_port_data (gpointer user_data)
 {
   struct AddRemovePortData *data = user_data;
 
-  g_object_unref (data->self);
+  if (data->self)
+    g_object_remove_weak_pointer (G_OBJECT (data->self),
+        (gpointer*) &data->self);
   g_free (data->protocol);
   g_free (data->local_ip);
   g_free (data->description);
@@ -212,7 +220,7 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  data->self = g_object_ref (self);
+  data->self = self;
   data->protocol = g_strdup (protocol);
   data->external_port = external_port;
   data->local_ip = g_strdup (local_ip);
@@ -221,6 +229,7 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
   data->description = g_strdup (description);
 
   source = g_idle_source_new ();
+  g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
   g_source_set_callback (source, add_port_idle_func, data,
       free_add_remove_port_data);
   g_source_attach (source, realself->priv->context);
@@ -236,13 +245,14 @@ fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
   struct AddRemovePortData *data = g_slice_new0 (struct AddRemovePortData);
   GSource *source;
 
-  data->self = g_object_ref (self);
+  data->self = self;
   data->protocol = g_strdup (protocol);
   data->external_port = external_port;
 
   source = g_idle_source_new ();
   g_source_set_callback (source, remove_port_idle_func, data,
       free_add_remove_port_data);
+  g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
   g_source_attach (source, realself->priv->context);
   g_main_context_wakeup (realself->priv->context);
 }
