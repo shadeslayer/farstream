@@ -1,0 +1,169 @@
+Various use cases for codec negotiation
+=======================================
+
+One-to-one
+----------
+
+Starting with an offer
+ - Create session
+ - Possibly set the codec-preferences
+ - While codecs-ready property is false
+  - wait until the codecs-changed message is emitted
+ - Get list of codecs
+ - Get codecs from FsSession and send them
+ - Wait for reply
+ - Set remote codecs on FsStream
+
+
+Replying to an offer
+
+ - Create session
+ - Possibly set codec-preferences
+ - Set remote codecs
+ - While codecs-ready property is false
+  - wait until the codecs-changed message is emitted
+ - Get list of codecs
+ - Send reply
+
+
+Creating a new offer
+
+ - Possibly set codec-preferences
+ - While codecs-ready property is false
+  - wait until the codecs-changed message is emitted
+ - Get codecs from FsSession and send them
+ - Wait for reply
+ - Set remote codecs on FsStream
+
+Replying to a re-offer
+
+ - Set remote codecs
+ - While codecs-ready property is false
+  - wait until the codecs-changed message is emitted
+ - Get list of codecs from FsSession
+ - Send reply
+
+
+Multi-party
+-----------
+
+First, it starts with a single party call
+
+
+The conference master invites someone in a call
+
+ - Possibly set codec-preferences
+ - While codecs-ready property is false
+  - wait until the codecs-changed message is emitted
+ - Get codecs from FsSession and send them
+ - Wait for reply
+ - Set remote codecs on FsStream
+
+
+Someone asks the master to join a call
+
+ - Set remote codecs
+ - While codecs-ready property is false
+  - wait until the codecs-changed message is emitted
+ - Get list of codecs from FsSession
+ - Get list of codecs from every other stream
+ - Send reply with master codecs and codecs from every other stream
+ - .. Or just get list of codecs from everyone (if using a presence based system)
+
+
+Goals
+=====
+
+- Negotiated codecs should never change ids (or become incompatible)
+- In one-to-one, we should always prefer the remote codec id & params
+- In one-to-many, we should prefer our codec id and param
+- We have to keep a copy of the local and remote config-data
+- We have to produce list of codecs with the local and remote config-data
+- We must be able to extract config-data-less codecs for multicast/sip,
+   but we must also be able to produce them with the config data for cooler ones
+
+
+How negotiation works now
+=========================
+
+(I'M NOT CERTAIN THIS IS ACCURATE...)
+
+
+validate shall remove all config-data from preferred codecs
+
+the whole thing is ran whenever one of the parameters change (remote codecs, local codecs, local codecs config)
+
+out: codecs_with_config, codecs_without_config, new codecs in streams
+in: codec_preferences, blueprints, remote_streams with each its codecs,
+    codecs_with_config
+
+FsCodec gets a list of config_data that is filled from optional_params by
+the codec specific negotiation function from the optional params of the local codec or the remote codec.
+
+CodecAssociation gets a two new markers.. one is "need-config" and the other is "recv-only".. Need-config means that we have to try to fetch config-data, "recv-only" means it should only be used by the list in the stream, not in the public list. There should also be a marker for "empty" associations
+
+
+create empty list of codec assocs
+foreach codec_preference:
+  if its a disable-codec entry:
+    ignore it
+  else if its a "reserve-pt":
+    add a "reserve-pt" marker to the the list
+  else if there is a matching codec in the old codecs (is a sdp negotiable
+  codec) with the same id:
+    add it to the list with the id from the old codecs
+  else if there is a matching blueprint:
+    add the codec to the list with new id (not in already in existing list or
+    preferred list or new list)
+
+foreach codec:
+  if there is no pt number:
+    attribute an allocated pt number to it
+
+foreach codec blueprint:
+  if there is no matching codec already in the list
+    if its not marked as disabled
+      add a codec to the list with id from already existing codecs or find new
+      id (not in already existing list or new list)
+
+Now we have a list of "local codecs"
+
+foreach stream that has remote codecs:
+  create empty new_list
+  foreach remote_codec:
+    check if there is an existing assoc (in the list of "local codecs") in the
+    list with the same id that matches or if there is a codec in the list that 
+    matches:
+      add this code_assoc to the new_list with remote id if there is only one
+      stream with codecs, otherwise take the local id
+    else
+      add id to list of known ids and process next codec
+    
+ replace list with new_list
+ if the new list is empty:
+   return failure
+
+Now we have the general codec intersection
+
+
+# for Tandberg and such that don't do SDP Offer-Answer properly
+foreach codec in the incoming list:
+  if there is no codec with the same id in the new list:
+    add the codec from the original list to the new list with a marker (and without config data)
+
+foreach id in the list of known ids:
+  if there is nothing in the codec list:
+    add a marker to the codec list
+
+# Distribute the codecs to each stream
+foreach stream that has remote codecs:
+  create an empty list
+  foreach negotiated codec (includes the one with a marker):
+    check if there is a codec with the same id in the remote codecs
+    if none found:
+      check if there is a remote codec that matches
+    add the codec with the remote codec config data to the list (possibly copying the marker)
+  replace the list of remote codecs in the stream with the newly created list
+
+      
+
