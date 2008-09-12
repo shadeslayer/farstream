@@ -232,6 +232,7 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
   g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
   g_source_set_callback (source, add_port_idle_func, data,
       free_add_remove_port_data);
+  g_source_set_priority (source, G_PRIORITY_DEFAULT);
   g_source_attach (source, realself->priv->context);
   g_main_context_wakeup (realself->priv->context);
 }
@@ -250,9 +251,10 @@ fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
   data->external_port = external_port;
 
   source = g_idle_source_new ();
+  g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
   g_source_set_callback (source, remove_port_idle_func, data,
       free_add_remove_port_data);
-  g_object_add_weak_pointer (G_OBJECT (self), (gpointer*) &data->self);
+  g_source_set_priority (source, G_PRIORITY_DEFAULT);
   g_source_attach (source, realself->priv->context);
   g_main_context_wakeup (realself->priv->context);
 }
