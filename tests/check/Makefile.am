@@ -39,7 +39,8 @@ check_PROGRAMS = \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
-	utils/binadded
+	utils/binadded \
+	upnp/fsupnp
 
 
 AM_CFLAGS = \
@@ -92,3 +93,14 @@ utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
 	utils/binadded.c
 
+if HAVE_GUPNP
+
+upnp_fsupnp_CFLAGS = $(AM_CFLAGS)
+upnp_fsupnp_LDADD = $(LDADD) \
+	$(top_builddir)/gst-libs/ext/fsupnp/libfsupnp.la
+
+endif
+
+
+upnp_fsupnp_SOURCES = \
+	upnp/fsupnp.c
