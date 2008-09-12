@@ -95,8 +95,9 @@ utils_binadded_SOURCES = \
 
 if HAVE_GUPNP
 
-upnp_fsupnp_CFLAGS = $(AM_CFLAGS)
+upnp_fsupnp_CFLAGS = $(AM_CFLAGS) $(GUPNP_CFLAGS)
 upnp_fsupnp_LDADD = $(LDADD) \
+	$(GUPNP_LIBS) \
 	$(top_builddir)/gst-libs/ext/fsupnp/libfsupnp.la
 
 endif
