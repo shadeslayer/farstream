@@ -39,8 +39,11 @@ check_PROGRAMS = \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
-	utils/binadded \
-	upnp/fsupnp
+	utils/binadded
+
+if HAVE_GUPNP
+check_PROGRAMS += upnp/fsupnp
+endif
 
 
 AM_CFLAGS = \
