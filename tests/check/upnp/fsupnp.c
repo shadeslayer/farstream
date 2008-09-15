@@ -157,7 +157,7 @@ error_mapping_port_cb (FsUpnpSimpleIgd *igd, GError *error, gchar *proto,
 
 
 
-GST_START_TEST (test_fsupnp_full)
+GST_START_TEST (test_fsupnp_default_ctx)
 {
   FsUpnpSimpleIgd *igd = fs_upnp_simple_igd_new (NULL);
   GUPnPContext *context;
@@ -223,7 +223,7 @@ fsupnp_suite (void)
   suite_add_tcase (s, tc_chain);
 
   tcase_add_test (tc_chain, test_fsupnp_new);
-  tcase_add_test (tc_chain, test_fsupnp_full);
+  tcase_add_test (tc_chain, test_fsupnp_default_ctx);
 
   return s;
 }
