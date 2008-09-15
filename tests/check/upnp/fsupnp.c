@@ -156,17 +156,16 @@ error_mapping_port_cb (FsUpnpSimpleIgd *igd, GError *error, gchar *proto,
 }
 
 
-
-GST_START_TEST (test_fsupnp_default_ctx)
+static void
+run_fsupnp_test (GMainContext *mainctx, FsUpnpSimpleIgd *igd)
 {
-  FsUpnpSimpleIgd *igd = fs_upnp_simple_igd_new (NULL);
   GUPnPContext *context;
   GUPnPRootDevice *dev;
   GUPnPServiceInfo *service;
   GUPnPDeviceInfo *subdev1;
   GUPnPDeviceInfo *subdev2;
 
-  context = gupnp_context_new (NULL, NULL, 0, NULL);
+  context = gupnp_context_new (mainctx, NULL, 0, NULL);
   fail_if (context == NULL, "Can't get gupnp context");
 
   gupnp_context_host_path (context, "upnp/InternetGatewayDevice.xml", "/InternetGatewayDevice.xml");
@@ -203,15 +202,44 @@ GST_START_TEST (test_fsupnp_default_ctx)
   fs_upnp_simple_igd_add_port (igd, "UDP", 6543, "192.168.4.22",
       6543, 10, "Farsight test");
 
-  loop = g_main_loop_new (NULL, FALSE);
+  loop = g_main_loop_new (mainctx, FALSE);
 
   g_main_loop_run (loop);
 
   g_object_unref (context);
+}
+
+GST_START_TEST (test_fsupnp_default_ctx)
+{
+  FsUpnpSimpleIgd *igd = fs_upnp_simple_igd_new (NULL);
+
+  run_fsupnp_test (NULL, igd);
   g_object_unref (igd);
 }
 GST_END_TEST;
 
+GST_START_TEST (test_fsupnp_custom_ctx)
+{
+  GMainContext *mainctx = g_main_context_new ();
+  FsUpnpSimpleIgd *igd = fs_upnp_simple_igd_new (mainctx);
+
+  run_fsupnp_test (mainctx, igd);
+  g_object_unref (igd);
+  g_main_context_unref (mainctx);
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_fsupnp_thread)
+{
+  FsUpnpSimpleIgdThread *igd = fs_upnp_simple_igd_thread_new ();
+  GMainContext *mainctx = g_main_context_new ();
+
+  run_fsupnp_test (mainctx, FS_UPNP_SIMPLE_IGD (igd));
+  g_object_unref (igd);
+  g_main_context_unref (mainctx);
+}
+GST_END_TEST;
 
 
 static Suite *
@@ -224,6 +252,8 @@ fsupnp_suite (void)
 
   tcase_add_test (tc_chain, test_fsupnp_new);
   tcase_add_test (tc_chain, test_fsupnp_default_ctx);
+  tcase_add_test (tc_chain, test_fsupnp_custom_ctx);
+  tcase_add_test (tc_chain, test_fsupnp_thread);
 
   return s;
 }
