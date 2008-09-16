@@ -31,6 +31,7 @@
 
 #include "check-threadsafe.h"
 #include "generic.h"
+#include "transmitter/rawudp-upnp.h"
 
 gint buffer_count[2] = {0, 0};
 GMainLoop *loop = NULL;
@@ -645,6 +646,35 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
 }
 GST_END_TEST;
 
+#ifdef HAVE_GUPNP
+
+
+
+GST_START_TEST (test_rawudptransmitter_run_upnp_discovery)
+{
+  GParameter params[2];
+  GObject *context;
+
+  memset (params, 0, sizeof (GParameter) * 2);
+
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, TRUE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, TRUE);
+
+  context = start_upnp_server ();
+
+  run_rawudp_transmitter_test (2, params, 0);
+
+  g_object_unref (context);
+}
+GST_END_TEST;
+
+
+#endif
 
 static Suite *
 rawudptransmitter_suite (void)
@@ -686,6 +716,12 @@ rawudptransmitter_suite (void)
   tc_chain = tcase_create ("rawudptransmitter-stop-stream");
   tcase_add_test (tc_chain, test_rawudptransmitter_stop_stream);
   suite_add_tcase (s, tc_chain);
+
+#ifdef HAVE_GUPNP
+  tc_chain = tcase_create ("rawudptransmitter-upnp-discovery");
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_discovery);
+  suite_add_tcase (s, tc_chain);
+#endif
 
   return s;
 }
