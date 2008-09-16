@@ -706,7 +706,7 @@ fs_upnp_simple_igd_add_port_real (FsUpnpSimpleIgd *self,
     {
       GError error = {FS_UPNP_SIMPLE_IGD_ERROR,
                       FS_UPNP_SIMPLE_IGD_ERROR_EXTERNAL_ADDRESS,
-                      "Could not get external address, so can not get mapping"};
+                      "Could not get external address"};
       g_signal_emit (self, signals[SIGNAL_ERROR_MAPPING_PORT],
           FS_UPNP_SIMPLE_IGD_ERROR,
           &error, mapping->protocol, mapping->external_port,
