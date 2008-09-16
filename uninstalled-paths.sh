@@ -4,7 +4,7 @@
 
 realpath_ ()
 {
-    ( cd $0 2>/dev/null; pwd )
+    ( cd $1 2>/dev/null; pwd )
 }
 
 pjoin ()
