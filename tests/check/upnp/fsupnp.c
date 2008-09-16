@@ -173,7 +173,6 @@ run_fsupnp_test (GMainContext *mainctx, FsUpnpSimpleIgd *igd)
 
   dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
   fail_if (dev == NULL, "could not get root dev");
-  gupnp_root_device_set_available (dev, TRUE);
 
   subdev1 = gupnp_device_info_get_device (GUPNP_DEVICE_INFO (dev),
       "urn:schemas-upnp-org:device:WANDevice:1");
@@ -193,6 +192,8 @@ run_fsupnp_test (GMainContext *mainctx, FsUpnpSimpleIgd *igd)
       G_CALLBACK (add_port_mapping_cb), NULL);
   g_signal_connect (service, "action-invoked::DeletePortMapping",
       G_CALLBACK (delete_port_mapping_cb), NULL);
+
+  gupnp_root_device_set_available (dev, TRUE);
 
   g_signal_connect (igd, "mapped-external-port",
       G_CALLBACK (mapping_external_port_cb), service);
