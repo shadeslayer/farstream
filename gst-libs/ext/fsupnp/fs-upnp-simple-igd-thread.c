@@ -30,6 +30,8 @@ struct _FsUpnpSimpleIgdThreadPrivate
   GMainLoop *loop;
   GMainContext *context;
   GMutex *mutex;
+
+  gboolean quit_loop;
 };
 
 
@@ -96,6 +98,7 @@ fs_upnp_simple_igd_thread_dispose (GObject *object)
   FS_UPNP_SIMPLE_IGD_THREAD_LOCK (self);
   if (self->priv->loop)
     g_main_loop_quit (self->priv->loop);
+  self->priv->quit_loop = TRUE;
   FS_UPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
   g_thread_join (self->priv->thread);
@@ -120,11 +123,15 @@ thread_func (gpointer data)
 {
   FsUpnpSimpleIgdThread *self = data;
   GMainLoop *loop = g_main_loop_new (self->priv->context, FALSE);
+  gboolean quit_loop;
+
   FS_UPNP_SIMPLE_IGD_THREAD_LOCK (self);
   self->priv->loop = loop;
+  quit_loop = self->priv->quit_loop;
   FS_UPNP_SIMPLE_IGD_THREAD_UNLOCK (self);
 
-  g_main_loop_run (loop);
+  if (!quit_loop)
+    g_main_loop_run (loop);
 
   FS_UPNP_SIMPLE_IGD_THREAD_LOCK (self);
   self->priv->loop = NULL;
