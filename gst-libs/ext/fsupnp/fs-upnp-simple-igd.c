@@ -301,6 +301,12 @@ _external_ip_address_changed (GUPnPServiceProxy *proxy, const gchar *variable,
 }
 
 static void
+free_proxymapping (struct ProxyMapping *pm)
+{
+  g_slice_free (struct ProxyMapping, pm);
+}
+
+static void
 free_proxy (struct Proxy *prox)
 {
   if (prox->external_ip_action)
@@ -311,7 +317,9 @@ free_proxy (struct Proxy *prox)
 
   g_object_unref (prox->proxy);
   g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping, NULL);
+  g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping, NULL);
   g_ptr_array_free (prox->proxymappings, TRUE);
+  g_free (prox->external_ip);
   g_slice_free (struct Proxy, prox);
 }
 
@@ -422,6 +430,8 @@ _cp_service_unavail (GUPnPControlPoint *cp,
     {
       g_ptr_array_foreach (prox->proxymappings, (GFunc) stop_proxymapping,
           NULL);
+      g_ptr_array_foreach (prox->proxymappings, (GFunc) free_proxymapping,
+          NULL);
       free_proxy (prox);
       g_ptr_array_remove_index_fast (self->priv->service_proxies, i);
       break;
@@ -481,7 +491,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
   g_return_if_fail (prox->external_ip_action == action);
 
   prox->external_ip_action = NULL;
-
+  
   if (gupnp_service_proxy_end_action (proxy, action, &error,
           "NewExternalIPAddress", G_TYPE_STRING, &ip,
           NULL))
@@ -500,7 +510,7 @@ _service_proxy_got_external_ip_address (GUPnPServiceProxy *proxy,
     }
 
     g_free (prox->external_ip);
-    prox->external_ip = g_strdup (ip);
+    prox->external_ip = ip;
   }
   else
   {
@@ -790,7 +800,10 @@ fs_upnp_simple_igd_remove_port_real (FsUpnpSimpleIgd *self,
         stop_proxymapping (pm);
 
         if (pm->renew_src)
+        {
           g_source_destroy (pm->renew_src);
+          g_source_unref (pm->renew_src);
+        }
         pm->renew_src = NULL;
 
         if (pm->mapped)
@@ -802,7 +815,7 @@ fs_upnp_simple_igd_remove_port_real (FsUpnpSimpleIgd *self,
               "NewProtocol", G_TYPE_STRING, mapping->protocol,
               NULL);
 
-        g_slice_free (struct ProxyMapping, pm);
+        free_proxymapping (pm);
         g_ptr_array_remove_index_fast (prox->proxymappings, j);
         j--;
       }
@@ -833,6 +846,9 @@ stop_proxymapping (struct ProxyMapping *pm)
   pm->action = NULL;
 
   if (pm->timeout_src)
+  {
     g_source_destroy (pm->timeout_src);
+    g_source_unref (pm->timeout_src);
+  }
   pm->timeout_src = NULL;
 }

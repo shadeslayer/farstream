@@ -115,6 +115,7 @@ fs_upnp_simple_igd_thread_dispose (GObject *object)
     g_source_set_callback (stop_src, main_loop_quit, self->priv->loop,
         g_main_loop_unref);
     g_source_attach (stop_src, self->priv->context);
+    g_source_unref (stop_src);
     g_main_loop_quit (self->priv->loop);
   }
   self->priv->quit_loop = TRUE;
@@ -260,6 +261,7 @@ fs_upnp_simple_igd_thread_add_port (FsUpnpSimpleIgd *self,
       free_add_remove_port_data);
   g_source_set_priority (source, G_PRIORITY_DEFAULT);
   g_source_attach (source, realself->priv->context);
+  g_source_unref (source);
   g_main_context_wakeup (realself->priv->context);
 }
 
@@ -282,6 +284,7 @@ fs_upnp_simple_igd_thread_remove_port (FsUpnpSimpleIgd *self,
       free_add_remove_port_data);
   g_source_set_priority (source, G_PRIORITY_DEFAULT);
   g_source_attach (source, realself->priv->context);
+  g_source_unref (source);
   g_main_context_wakeup (realself->priv->context);
 }
 

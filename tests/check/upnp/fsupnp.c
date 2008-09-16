@@ -93,6 +93,11 @@ add_port_mapping_cb (GUPnPService *service,
   fail_unless (desc != NULL, "no desc");
   fail_unless (lease == 10, "no lease");
 
+  g_free (remote_host);
+  g_free (proto);
+  g_free (internal_client);
+  g_free (desc);
+
   gupnp_service_action_return (action);
 }
 
@@ -117,6 +122,9 @@ delete_port_mapping_cb (GUPnPService *service,
   fail_unless (proto && !strcmp (proto, "UDP"), "proto wrong on remove");
 
   gupnp_service_action_return (action);
+
+  g_free (remote_host);
+  g_free (proto);
 
   g_main_loop_quit (loop);
 }
@@ -181,10 +189,12 @@ run_fsupnp_test (GMainContext *mainctx, FsUpnpSimpleIgd *igd)
   subdev2 = gupnp_device_info_get_device (subdev1,
       "urn:schemas-upnp-org:device:WANConnectionDevice:1");
   fail_if (subdev2 == NULL, "Could not get WANConnectionDevice");
+  g_object_unref (subdev1);
 
   service = gupnp_device_info_get_service (subdev2,
       "urn:schemas-upnp-org:service:WANIPConnection:1");
   fail_if (service == NULL, "Could not get WANIPConnection");
+  g_object_unref (subdev2);
 
   g_signal_connect (service, "action-invoked::GetExternalIPAddress",
       G_CALLBACK (get_external_ip_address_cb), NULL);
@@ -194,6 +204,7 @@ run_fsupnp_test (GMainContext *mainctx, FsUpnpSimpleIgd *igd)
       G_CALLBACK (delete_port_mapping_cb), NULL);
 
   gupnp_root_device_set_available (dev, TRUE);
+
 
   g_signal_connect (igd, "mapped-external-port",
       G_CALLBACK (mapping_external_port_cb), service);

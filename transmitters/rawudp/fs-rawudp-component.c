@@ -624,7 +624,10 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
 #ifdef HAVE_GUPNP
 
     if (self->priv->upnp_discovery_timeout_src)
+    {
       g_source_destroy (self->priv->upnp_discovery_timeout_src);
+      g_source_unref (self->priv->upnp_discovery_timeout_src);
+    }
     self->priv->upnp_discovery_timeout_src = NULL;
 
     if (self->priv->upnp_igd  &&
@@ -1005,7 +1008,10 @@ _upnp_mapped_external_port (FsUpnpSimpleIgdThread *igd, gchar *proto,
   }
 
   if (self->priv->upnp_discovery_timeout_src)
+  {
     g_source_destroy (self->priv->upnp_discovery_timeout_src);
+    g_source_unref (self->priv->upnp_discovery_timeout_src);
+  }
   self->priv->upnp_discovery_timeout_src = NULL;
 
   if (self->priv->local_active_candidate)

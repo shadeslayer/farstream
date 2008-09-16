@@ -137,10 +137,12 @@ start_upnp_server (void)
   subdev2 = gupnp_device_info_get_device (subdev1,
       "urn:schemas-upnp-org:device:WANConnectionDevice:1");
   ts_fail_if (subdev2 == NULL, "Could not get WANConnectionDevice");
+  g_object_unref (subdev1);
 
   service = gupnp_device_info_get_service (subdev2,
       "urn:schemas-upnp-org:service:WANIPConnection:1");
   ts_fail_if (service == NULL, "Could not get WANIPConnection");
+  g_object_unref (subdev2);
 
   g_signal_connect (service, "action-invoked::GetExternalIPAddress",
       G_CALLBACK (get_external_ip_address_cb), NULL);
