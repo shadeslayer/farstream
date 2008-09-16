@@ -24,4 +24,7 @@
 
 GObject *start_upnp_server (void);
 
+void get_vars (gboolean *out_got_address,
+    gboolean *out_added_mapping);
+
 #endif /* __RAWUDP_UPNP_H__ */

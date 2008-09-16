@@ -654,6 +654,8 @@ GST_START_TEST (test_rawudptransmitter_run_upnp_discovery)
 {
   GParameter params[2];
   GObject *context;
+  gboolean got_address = FALSE;
+  gboolean added_mapping = FALSE;
 
   memset (params, 0, sizeof (GParameter) * 2);
 
@@ -669,6 +671,10 @@ GST_START_TEST (test_rawudptransmitter_run_upnp_discovery)
 
   run_rawudp_transmitter_test (2, params, 0);
 
+
+  get_vars (&got_address, &added_mapping);
+  ts_fail_unless (got_address, "did not get address");
+  ts_fail_unless (added_mapping, "did not add mapping");
   g_object_unref (context);
 }
 GST_END_TEST;

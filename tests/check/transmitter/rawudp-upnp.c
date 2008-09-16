@@ -24,10 +24,22 @@
 
 #include "check-threadsafe.h"
 
+
+gboolean got_address = FALSE;
+gboolean added_mapping = FALSE;
+
+void
+get_vars (gboolean *out_got_address,
+    gboolean *out_added_mapping)
+{
+  *out_got_address = got_address;
+  *out_added_mapping = added_mapping;
+}
+
+
 #ifdef HAVE_GUPNP
 
 #include <libgupnp/gupnp.h>
-
 
 static void
 get_external_ip_address_cb (GUPnPService *service,
@@ -38,7 +50,7 @@ get_external_ip_address_cb (GUPnPService *service,
       "NewExternalIPAddress", G_TYPE_STRING, "127.0.0.1",
       NULL);
   gupnp_service_action_return (action);
-
+  got_address = TRUE;
 }
 
 static void
@@ -73,6 +85,7 @@ add_port_mapping_cb (GUPnPService *service,
   ts_fail_unless (desc != NULL, "no desc");
 
   gupnp_service_action_return (action);
+  added_mapping = TRUE;
 }
 
 
