@@ -472,7 +472,7 @@ fs_nice_stream_transmitter_set_property (GObject *object,
           g_value_get_boolean (value));
       break;
     case PROP_RELAY_INFO:
-      self->priv->relay_info = g_value_get_boxed (value);
+      self->priv->relay_info = g_value_dup_boxed (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
