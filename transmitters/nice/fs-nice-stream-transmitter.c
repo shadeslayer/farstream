@@ -274,8 +274,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "compatibility-mode",
           "The compability-mode",
           "The id of the stream according to libnice",
-          NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
-          NICE_COMPATIBILITY_ID19,
+          NICE_COMPATIBILITY_DRAFT19, NICE_COMPATIBILITY_LAST,
+          NICE_COMPATIBILITY_DRAFT19,
           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class, PROP_RELAY_INFO,

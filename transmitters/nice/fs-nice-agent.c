@@ -156,8 +156,8 @@ fs_nice_agent_class_init (FsNiceAgentClass *klass)
           "compatibility-mode",
           "The compability-mode",
           "The id of the stream according to libnice",
-          NICE_COMPATIBILITY_ID19, NICE_COMPATIBILITY_LAST,
-          NICE_COMPATIBILITY_ID19,
+          NICE_COMPATIBILITY_DRAFT19, NICE_COMPATIBILITY_LAST,
+          NICE_COMPATIBILITY_DRAFT19,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
   g_object_class_install_property (gobject_class,
@@ -181,7 +181,7 @@ fs_nice_agent_init (FsNiceAgent *self)
   self->priv->main_context = g_main_context_new ();
   self->priv->main_loop = g_main_loop_new (self->priv->main_context, FALSE);
 
-  self->priv->compatibility_mode = NICE_COMPATIBILITY_ID19;
+  self->priv->compatibility_mode = NICE_COMPATIBILITY_DRAFT19;
 }
 
 
