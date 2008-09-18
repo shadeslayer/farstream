@@ -68,7 +68,8 @@ enum
   PROP_STREAM_ID,
   PROP_COMPATIBILITY_MODE,
   PROP_ASSOCIATE_ON_SOURCE,
-  PROP_RELAY_INFO
+  PROP_RELAY_INFO,
+  PROP_DEBUG
 };
 
 struct _FsNiceStreamTransmitterPrivate
@@ -287,6 +288,14 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           NULL,
           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
+  g_object_class_install_property (gobject_class, PROP_DEBUG,
+      g_param_spec_boolean (
+          "debug",
+          "Enable debug messages",
+          "Whether the agent should enable libnice and stun debug messages",
+          FALSE,
+          G_PARAM_WRITABLE));
+
   nice_udp_bsd_socket_factory_init (&udpfactory);
 
 }
@@ -473,6 +482,13 @@ fs_nice_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_RELAY_INFO:
       self->priv->relay_info = g_value_dup_boxed (value);
+      break;
+    case PROP_DEBUG:
+      if (g_value_get_boolean (value)) {
+        nice_debug_enable (TRUE);
+      } else {
+        nice_debug_disable (TRUE);
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
