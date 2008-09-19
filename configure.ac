@@ -391,6 +391,7 @@ tests/gui/Makefile
 tests/commandline/Makefile
 docs/Makefile
 docs/libs/Makefile
+docs/plugins/Makefile
 docs/version.entities
 python/Makefile
 dnl docs/plugins/Makefile

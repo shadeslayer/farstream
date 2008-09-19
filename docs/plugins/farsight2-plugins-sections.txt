@@ -1,0 +1,47 @@
+<SECTION>
+<FILE>fs-funnel</FILE>
+<TITLE>FsFunnel</TITLE>
+FsFunnel
+FsFunnelClass
+<SUBSECTION Standard>
+FS_FUNNEL
+FS_IS_FUNNEL
+FS_TYPE_FUNNEL
+fs_funnel_get_type
+FS_FUNNEL_CLASS
+FS_IS_FUNNEL_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>videoanyrate</FILE>
+GstVideoanyratePrivate
+FsRtpConferenceClass
+<TITLE>GstVideoanyrate</TITLE>
+GstVideoanyrate
+<SUBSECTION Standard>
+GST_VIDEOANYRATE
+GST_IS_VIDEOANYRATE
+GST_TYPE_VIDEOANYRATE
+gst_videoanyrate_get_type
+GST_VIDEOANYRATE_CLASS
+GST_IS_VIDEOANYRATE_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>fs-rtp-conference</FILE>
+FS_RTP_CONFERENCE_CAST
+FsRtpConferencePrivate
+GstVideoanyrateClass
+<TITLE>FsRtpConference</TITLE>
+FsRtpConference
+<SUBSECTION Standard>
+fs_codec_to_gst_caps
+FS_RTP_CONFERENCE
+FS_IS_RTP_CONFERENCE
+FS_TYPE_RTP_CONFERENCE
+fs_rtp_conference_get_type
+FS_RTP_CONFERENCE_CLASS
+FS_IS_RTP_CONFERENCE_CLASS
+FS_RTP_CONFERENCE_GET_CLASS
+</SECTION>
+
