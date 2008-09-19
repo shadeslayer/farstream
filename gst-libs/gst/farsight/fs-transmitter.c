@@ -298,7 +298,7 @@ fs_transmitter_new (const gchar *type, guint components, GError **error)
     return NULL;
 
   if (self->construction_error) {
-    *error = self->construction_error;
+    g_propagate_error(error, self->construction_error);
     g_object_unref (self);
     self = NULL;
   }
