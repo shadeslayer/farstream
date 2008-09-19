@@ -1,0 +1,3 @@
+#include <gst/farsight/fs-transmitter.h>
+rawudp
+multicast
