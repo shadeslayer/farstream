@@ -47,11 +47,10 @@ FS_RTP_CONFERENCE_GET_CLASS
 
 <SECTION>
 <FILE>fs-rawudp-transmitter</FILE>
-FS_RAWUDP_TRANSMITTER_CAST
-FsRawUdpTransmitterPrivate
 <TITLE>FsRawUdpTransmitter</TITLE>
 FsRawUdpTransmitter
-<SUBSECTION Standard>
+<SUBSECTION Private>
+FsRawUdpTransmitterPrivate
 FsRawUdpTransmitterClass
 UdpPort
 FsRawUdpAddressUniqueCallbackFunc
@@ -66,6 +65,8 @@ fs_rawudp_transmitter_udpport_is_pad
 fs_rawudp_transmitter_udpport_get_port
 fs_rawudp_transmitter_udpport_add_known_address
 fs_rawudp_transmitter_udpport_remove_known_address
+<SUBSECTION Standard>
+FS_RAWUDP_TRANSMITTER_CAST
 FS_RAWUDP_TRANSMITTER
 FS_IS_RAWUDP_TRANSMITTER
 FS_TYPE_RAWUDP_TRANSMITTER
@@ -77,13 +78,14 @@ FS_RAWUDP_TRANSMITTER_GET_CLASS
 
 <SECTION>
 <FILE>fs-rawudp-stream-transmitter</FILE>
-FS_RAWUDP_STREAM_TRANSMITTER_CAST
-FsRawUdpStreamTransmitterPrivate
 <TITLE>FsRawUdpStreamTransmitter</TITLE>
 FsRawUdpStreamTransmitter
+<SUBSECTION Private>
+FsRawUdpStreamTransmitterPrivate
 fs_rawudp_stream_transmitter_register_type
 fs_rawudp_stream_transmitter_newv
 <SUBSECTION Standard>
+FS_RAWUDP_STREAM_TRANSMITTER_CAST
 FsRawUdpStreamTransmitterClass
 FS_RAWUDP_STREAM_TRANSMITTER
 FS_IS_RAWUDP_STREAM_TRANSMITTER
