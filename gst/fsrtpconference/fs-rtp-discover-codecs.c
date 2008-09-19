@@ -1298,7 +1298,7 @@ next:
   return list;
 }
 
-/**
+/*
  *  fill FarsightCodec fields based on payloader capabilities
  *  TODO: optimise using quarks
  */
