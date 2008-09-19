@@ -309,7 +309,6 @@ fs_transmitter_new (const gchar *type, guint components, GError **error)
 /**
  * fs_transmitter_get_stream_transmitter_type:
  * @transmitter: A #FsTransmitter object
- * @error: location of a #GError, or NULL if no error occured
  *
  * This function returns the GObject type for the stream transmitter.
  * This is meant for bindings that need to introspect the type of arguments
@@ -319,15 +318,14 @@ fs_transmitter_new (const gchar *type, guint components, GError **error)
  */
 
 GType
-fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
-    GError **error)
+fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter)
 {
   FsTransmitterClass *klass = FS_TRANSMITTER_GET_CLASS (transmitter);
 
   g_return_val_if_fail (klass, 0);
   g_return_val_if_fail (klass->get_stream_transmitter_type, 0);
 
-  return klass->get_stream_transmitter_type (transmitter, error);
+  return klass->get_stream_transmitter_type (transmitter);
 }
 
 

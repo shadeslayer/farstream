@@ -118,8 +118,7 @@ static FsStreamTransmitter *fs_rawudp_transmitter_new_stream_transmitter (
     GParameter *parameters,
     GError **error);
 static GType fs_rawudp_transmitter_get_stream_transmitter_type (
-    FsTransmitter *transmitter,
-    GError **error);
+    FsTransmitter *transmitter);
 
 
 static GObjectClass *parent_class = NULL;
@@ -938,8 +937,7 @@ fs_rawudp_transmitter_udpport_get_port (UdpPort *udpport)
 
 
 static GType
-fs_rawudp_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
-    GError **error)
+fs_rawudp_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter)
 {
   return FS_TYPE_RAWUDP_STREAM_TRANSMITTER;
 }

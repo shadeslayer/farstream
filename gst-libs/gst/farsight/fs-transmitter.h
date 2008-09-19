@@ -72,8 +72,7 @@ struct _FsTransmitterClass
                                                   guint n_parameters,
                                                   GParameter *parameters,
                                                   GError **error);
-  GType (*get_stream_transmitter_type) (FsTransmitter *transmitter,
-      GError **error);
+  GType (*get_stream_transmitter_type) (FsTransmitter *transmitter);
 
   /*< private >*/
   gpointer _padding[8];
@@ -108,8 +107,7 @@ FsStreamTransmitter *fs_transmitter_new_stream_transmitter (
 FsTransmitter *fs_transmitter_new (const gchar *type, guint components,
   GError **error);
 
-GType fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter,
-    GError **error);
+GType fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter);
 
 void fs_transmitter_emit_error (FsTransmitter *transmitter,
     gint error_no,

@@ -207,11 +207,8 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
 
     Py_BEGIN_ALLOW_THREADS
     st_class = g_type_class_ref (
-        fs_transmitter_get_stream_transmitter_type (
-            transmitter, &error));
+        fs_transmitter_get_stream_transmitter_type (transmitter));
     Py_END_ALLOW_THREADS
-    if (!st_class)
-      goto error;
 
     if (!FS_IS_STREAM_TRANSMITTER_CLASS (st_class))
     {

@@ -116,8 +116,7 @@ static FsStreamTransmitter *fs_multicast_transmitter_new_stream_transmitter (
     FsTransmitter *transmitter, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
 static GType fs_multicast_transmitter_get_stream_transmitter_type (
-    FsTransmitter *transmitter,
-    GError **error);
+    FsTransmitter *transmitter);
 
 static GObjectClass *parent_class = NULL;
 //static guint signals[LAST_SIGNAL] = { 0 };
@@ -930,8 +929,7 @@ fs_multicast_transmitter_udpsock_dec_sending (UdpSock *udpsock)
 
 static GType
 fs_multicast_transmitter_get_stream_transmitter_type (
-    FsTransmitter *transmitter,
-    GError **error)
+    FsTransmitter *transmitter)
 {
   return FS_TYPE_MULTICAST_STREAM_TRANSMITTER;
 }
