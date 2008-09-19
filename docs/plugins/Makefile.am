@@ -54,7 +54,12 @@ CFILE_GLOB=$(DOC_SOURCE_DIR)/*/*/*.c
 # thomasvs: another nice wingo addition would be an explanation on why
 # this is useful ;)
 
-SCANOBJ_DEPS =
+SCANOBJ_DEPS = \
+	$(top_builddir)/transmitters/multicast/libmulticast-transmitter.la \
+	$(top_builddir)/transmitters/rawudp/librawudp-transmitter.la \
+	$(top_builddir)/gst/fsrtpconference/libfsrtpconference.la \
+	$(top_builddir)/gst/funnel/libfsfunnel.la \
+	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la
 
 # Header files to ignore when scanning.
 IGNORE_HFILES = 
@@ -71,7 +76,11 @@ IGNORE_CFILES =
 EXTRA_HFILES = \
 	$(top_srcdir)/gst/funnel/fs-funnel.h \
 	$(top_srcdir)/gst/videoanyrate/videoanyrate.h \
-	$(top_srcdir)/gst/fsrtpconference/fs-rtp-conference.h
+	$(top_srcdir)/gst/fsrtpconference/fs-rtp-conference.h \
+	$(top_srcdir)/transmitters/rawudp/fs-rawudp-transmitter.h \
+	$(top_srcdir)/transmitters/rawudp/fs-rawudp-stream-transmitter.h \
+	$(top_srcdir)/transmitters/multicast/fs-multicast-transmitter.h \
+	$(top_srcdir)/transmitters/multicast/fs-multicast-stream-transmitter.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES =
@@ -85,7 +94,9 @@ extra_files =
 # CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
 # contains GtkObjects/GObjects and you want to document signals and properties.
 GTKDOC_CFLAGS = $(GST_BASE_CFLAGS) -I$(top_builddir) -I$(top_builddir)/gst-libs
-GTKDOC_LIBS = $(SCANOBJ_DEPS) $(GST_BASE_LIBS)
+GTKDOC_LIBS = \
+	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
+	$(GST_BASE_LIBS) 
 
 GTKDOC_CC=$(LIBTOOL) --mode=compile $(CC)
 GTKDOC_LD=$(LIBTOOL) --mode=link $(CC)
@@ -94,5 +105,10 @@ GTKDOC_LD=$(LIBTOOL) --mode=link $(CC)
 # and uncomment this line.
 #DOC_OVERRIDES = $(DOC_MODULE)-overrides.txt
 DOC_OVERRIDES =
+
+FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs
+
+update-all: scanobj-trans-build.stamp update
+
 
 include $(top_srcdir)/common/gtk-doc-plugins.mak

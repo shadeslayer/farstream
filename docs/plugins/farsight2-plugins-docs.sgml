@@ -16,5 +16,9 @@
     <xi:include href="xml/fs-funnel.xml"/>
     <xi:include href="xml/videoanyrate.xml"/>
     <xi:include href="xml/fs-rtp-conference.xml"/>
+    <xi:include href="xml/fs-rawudp-transmitter.xml"/>
+    <xi:include href="xml/fs-rawudp-stream-transmitter.xml"/>
+    <xi:include href="xml/fs-multicast-transmitter.xml"/>
+    <xi:include href="xml/fs-multicast-stream-transmitter.xml"/>
   </chapter>
 </book>

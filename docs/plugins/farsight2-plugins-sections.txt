@@ -2,7 +2,6 @@
 <FILE>fs-funnel</FILE>
 <TITLE>FsFunnel</TITLE>
 FsFunnel
-FsFunnelClass
 <SUBSECTION Standard>
 FS_FUNNEL
 FS_IS_FUNNEL
@@ -15,7 +14,6 @@ FS_IS_FUNNEL_CLASS
 <SECTION>
 <FILE>videoanyrate</FILE>
 GstVideoanyratePrivate
-FsRtpConferenceClass
 <TITLE>GstVideoanyrate</TITLE>
 GstVideoanyrate
 <SUBSECTION Standard>
@@ -31,11 +29,10 @@ GST_IS_VIDEOANYRATE_CLASS
 <FILE>fs-rtp-conference</FILE>
 FS_RTP_CONFERENCE_CAST
 FsRtpConferencePrivate
-GstVideoanyrateClass
 <TITLE>FsRtpConference</TITLE>
 FsRtpConference
-<SUBSECTION Standard>
 fs_codec_to_gst_caps
+<SUBSECTION Standard>
 FS_RTP_CONFERENCE
 FS_IS_RTP_CONFERENCE
 FS_TYPE_RTP_CONFERENCE
@@ -43,5 +40,91 @@ fs_rtp_conference_get_type
 FS_RTP_CONFERENCE_CLASS
 FS_IS_RTP_CONFERENCE_CLASS
 FS_RTP_CONFERENCE_GET_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>fs-rawudp-transmitter</FILE>
+FS_RAWUDP_TRANSMITTER_CAST
+FsRawUdpTransmitterPrivate
+<TITLE>FsRawUdpTransmitter</TITLE>
+FsRawUdpTransmitter
+UdpPort
+FsRawUdpAddressUniqueCallbackFunc
+fs_rawudp_transmitter_get_udpport
+fs_rawudp_transmitter_put_udpport
+fs_rawudp_transmitter_udpport_add_dest
+fs_rawudp_transmitter_udpport_remove_dest
+fs_rawudp_transmitter_udpport_sendto
+fs_rawudp_transmitter_udpport_connect_recv
+fs_rawudp_transmitter_udpport_disconnect_recv
+fs_rawudp_transmitter_udpport_is_pad
+fs_rawudp_transmitter_udpport_get_port
+fs_rawudp_transmitter_udpport_add_known_address
+fs_rawudp_transmitter_udpport_remove_known_address
+<SUBSECTION Standard>
+FS_RAWUDP_TRANSMITTER
+FS_IS_RAWUDP_TRANSMITTER
+FS_TYPE_RAWUDP_TRANSMITTER
+fs_rawudp_transmitter_get_type
+FS_RAWUDP_TRANSMITTER_CLASS
+FS_IS_RAWUDP_TRANSMITTER_CLASS
+FS_RAWUDP_TRANSMITTER_GET_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>fs-rawudp-stream-transmitter</FILE>
+FS_RAWUDP_STREAM_TRANSMITTER_CAST
+FsRawUdpStreamTransmitterPrivate
+<TITLE>FsRawUdpStreamTransmitter</TITLE>
+FsRawUdpStreamTransmitter
+fs_rawudp_stream_transmitter_register_type
+fs_rawudp_stream_transmitter_newv
+<SUBSECTION Standard>
+FS_RAWUDP_STREAM_TRANSMITTER
+FS_IS_RAWUDP_STREAM_TRANSMITTER
+FS_TYPE_RAWUDP_STREAM_TRANSMITTER
+fs_rawudp_stream_transmitter_get_type
+FS_RAWUDP_STREAM_TRANSMITTER_CLASS
+FS_IS_RAWUDP_STREAM_TRANSMITTER_CLASS
+FS_RAWUDP_STREAM_TRANSMITTER_GET_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>fs-multicast-transmitter</FILE>
+FS_MULTICAST_TRANSMITTER_CAST
+FsMulticastTransmitterPrivate
+<TITLE>FsMulticastTransmitter</TITLE>
+FsMulticastTransmitter
+UdpSock
+fs_multicast_transmitter_get_udpsock
+fs_multicast_transmitter_put_udpsock
+fs_multicast_transmitter_udpsock_inc_sending
+fs_multicast_transmitter_udpsock_dec_sending
+<SUBSECTION Standard>
+FS_MULTICAST_TRANSMITTER
+FS_IS_MULTICAST_TRANSMITTER
+FS_TYPE_MULTICAST_TRANSMITTER
+fs_multicast_transmitter_get_type
+FS_MULTICAST_TRANSMITTER_CLASS
+FS_IS_MULTICAST_TRANSMITTER_CLASS
+FS_MULTICAST_TRANSMITTER_GET_CLASS
+</SECTION>
+
+<SECTION>
+<FILE>fs-multicast-stream-transmitter</FILE>
+FS_MULTICAST_STREAM_TRANSMITTER_CAST
+FsMulticastStreamTransmitterPrivate
+<TITLE>FsMulticastStreamTransmitter</TITLE>
+FsMulticastStreamTransmitter
+fs_multicast_stream_transmitter_register_type
+fs_multicast_stream_transmitter_newv
+<SUBSECTION Standard>
+FS_MULTICAST_STREAM_TRANSMITTER
+FS_IS_MULTICAST_STREAM_TRANSMITTER
+FS_TYPE_MULTICAST_STREAM_TRANSMITTER
+fs_multicast_stream_transmitter_get_type
+FS_MULTICAST_STREAM_TRANSMITTER_CLASS
+FS_IS_MULTICAST_STREAM_TRANSMITTER_CLASS
+FS_MULTICAST_STREAM_TRANSMITTER_GET_CLASS
 </SECTION>
 

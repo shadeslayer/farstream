@@ -42,6 +42,7 @@ EXTRA_DIST = 				\
 
 MAINTAINER_DOC_STAMPS =			\
 	scanobj-build.stamp		\
+	scanobj-trans-build.stamp		\
 	inspect-build.stamp		\
 	inspect.stamp
 
@@ -127,7 +128,7 @@ scanobj-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
 	fi
 	touch scanobj-build.stamp
 
-$(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(SCANOBJ_FILES_O): scan-build.stamp
+$(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(SCANOBJ_FILES_O): scan-build.stamp scanobj-trans-build.stamp
 	@true
 
 ### inspect GStreamer plug-ins; done by documentation maintainer ###
@@ -162,7 +163,7 @@ inspect-build.stamp:
         fi
 
 ### scan headers; done on every build ###
-scan-build.stamp: $(HFILE_GLOB) $(EXTRA_HFILES) $(basefiles) scanobj-build.stamp inspect-build.stamp
+scan-build.stamp: $(HFILE_GLOB) $(EXTRA_HFILES) $(basefiles) scanobj-build.stamp inspect-build.stamp scanobj-trans-build.stamp
 	if test "x$(top_srcdir)" != "x$(top_builddir)" &&		\
 	   test -d "$(top_builddir)/gst";				\
         then								\
@@ -295,7 +296,7 @@ install-data-local:
 	  $(INSTALL_DATA) $(srcdir)/html/$(DOC_MODULE).devhelp \
 	    $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp; \
 	  if test -e $(srcdir)/html/$(DOC_MODULE).devhelp2; then \
-        	    $(INSTALL_DATA) $(srcdir)/html/$(DOC_MODULE).devhelp2 \
+	    $(INSTALL_DATA) $(srcdir)/html/$(DOC_MODULE).devhelp2 \
 	           $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp2; \
 	  fi; \
 	  (which gtkdoc-rebase >/dev/null && \
@@ -359,6 +360,33 @@ check-inspected-versions:
 	  fi ; \
 	done ; \
 	exit $$fail
+
+scanobj-trans-update:
+	-rm scanobj-trans-build.stamp
+	$(MAKE) scanobj-trans-build.stamp
+
+scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
+	@echo '*** Scanning GObjects ***'
+	if test x"$(srcdir)" != x. ; then				\
+	    for f in $(SCANOBJ_FILES);					\
+	    do								\
+	        cp $(srcdir)/$$f . ;					\
+	    done;							\
+	else								\
+	    GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/ext	\
+	    GST_REGISTRY=$(INSPECT_REGISTRY)				\
+	    FS_PLUGIN_PATH="$(FS_PLUGIN_PATH)"				\
+	    CC="$(GTKDOC_CC)" LD="$(GTKDOC_LD)"				\
+	    CFLAGS="$(GTKDOC_CFLAGS) $(CFLAGS)"				\
+	    LDFLAGS="$(GTKDOC_LIBS) $(LDFLAGS)"				\
+	    $(srcdir)/gtkdoc-scangobj-transmitters			\
+		 --type-init-func="gst_init(NULL,NULL)"			\
+		 --types=farsight2-transmitters.types			\
+	        --module=$(DOC_MODULE) &&				\
+		$(PYTHON)						\
+		$(top_srcdir)/common/scangobj-merge.py $(DOC_MODULE);	\
+	fi
+	touch scanobj-trans-build.stamp
 
 #
 # Require gtk-doc when making dist
