@@ -20,5 +20,8 @@
     <xi:include href="xml/fs-rawudp-stream-transmitter.xml"/>
     <xi:include href="xml/fs-multicast-transmitter.xml"/>
     <xi:include href="xml/fs-multicast-stream-transmitter.xml"/>
+    <xi:include href="xml/fs-rtp-session.xml"/>
+    <xi:include href="xml/fs-rtp-stream.xml"/>
+    <xi:include href="xml/fs-rtp-participant.xml"/>
   </chapter>
 </book>

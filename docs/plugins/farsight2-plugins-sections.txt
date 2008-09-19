@@ -3,6 +3,7 @@
 <TITLE>FsFunnel</TITLE>
 FsFunnel
 <SUBSECTION Standard>
+FsFunnelClass
 FS_FUNNEL
 FS_IS_FUNNEL
 FS_TYPE_FUNNEL
@@ -13,26 +14,28 @@ FS_IS_FUNNEL_CLASS
 
 <SECTION>
 <FILE>videoanyrate</FILE>
-GstVideoanyratePrivate
 <TITLE>GstVideoanyrate</TITLE>
 GstVideoanyrate
 <SUBSECTION Standard>
+GstVideoanyratePrivate
 GST_VIDEOANYRATE
 GST_IS_VIDEOANYRATE
 GST_TYPE_VIDEOANYRATE
 gst_videoanyrate_get_type
 GST_VIDEOANYRATE_CLASS
+GstVideoanyrateClass
 GST_IS_VIDEOANYRATE_CLASS
 </SECTION>
 
 <SECTION>
 <FILE>fs-rtp-conference</FILE>
-FS_RTP_CONFERENCE_CAST
-FsRtpConferencePrivate
 <TITLE>FsRtpConference</TITLE>
 FsRtpConference
-fs_codec_to_gst_caps
 <SUBSECTION Standard>
+FS_RTP_CONFERENCE_CAST
+FsRtpConferencePrivate
+FsRtpConferenceClass
+fs_codec_to_gst_caps
 FS_RTP_CONFERENCE
 FS_IS_RTP_CONFERENCE
 FS_TYPE_RTP_CONFERENCE
@@ -48,6 +51,8 @@ FS_RAWUDP_TRANSMITTER_CAST
 FsRawUdpTransmitterPrivate
 <TITLE>FsRawUdpTransmitter</TITLE>
 FsRawUdpTransmitter
+<SUBSECTION Standard>
+FsRawUdpTransmitterClass
 UdpPort
 FsRawUdpAddressUniqueCallbackFunc
 fs_rawudp_transmitter_get_udpport
@@ -61,7 +66,6 @@ fs_rawudp_transmitter_udpport_is_pad
 fs_rawudp_transmitter_udpport_get_port
 fs_rawudp_transmitter_udpport_add_known_address
 fs_rawudp_transmitter_udpport_remove_known_address
-<SUBSECTION Standard>
 FS_RAWUDP_TRANSMITTER
 FS_IS_RAWUDP_TRANSMITTER
 FS_TYPE_RAWUDP_TRANSMITTER
@@ -80,6 +84,7 @@ FsRawUdpStreamTransmitter
 fs_rawudp_stream_transmitter_register_type
 fs_rawudp_stream_transmitter_newv
 <SUBSECTION Standard>
+FsRawUdpStreamTransmitterClass
 FS_RAWUDP_STREAM_TRANSMITTER
 FS_IS_RAWUDP_STREAM_TRANSMITTER
 FS_TYPE_RAWUDP_STREAM_TRANSMITTER
@@ -91,16 +96,11 @@ FS_RAWUDP_STREAM_TRANSMITTER_GET_CLASS
 
 <SECTION>
 <FILE>fs-multicast-transmitter</FILE>
-FS_MULTICAST_TRANSMITTER_CAST
-FsMulticastTransmitterPrivate
 <TITLE>FsMulticastTransmitter</TITLE>
 FsMulticastTransmitter
-UdpSock
-fs_multicast_transmitter_get_udpsock
-fs_multicast_transmitter_put_udpsock
-fs_multicast_transmitter_udpsock_inc_sending
-fs_multicast_transmitter_udpsock_dec_sending
 <SUBSECTION Standard>
+FsMulticastTransmitterClass
+FS_MULTICAST_TRANSMITTER_CAST
 FS_MULTICAST_TRANSMITTER
 FS_IS_MULTICAST_TRANSMITTER
 FS_TYPE_MULTICAST_TRANSMITTER
@@ -108,17 +108,25 @@ fs_multicast_transmitter_get_type
 FS_MULTICAST_TRANSMITTER_CLASS
 FS_IS_MULTICAST_TRANSMITTER_CLASS
 FS_MULTICAST_TRANSMITTER_GET_CLASS
+<SUBSECTION Private>
+FsMulticastTransmitterPrivate
+UdpSock
+fs_multicast_transmitter_get_udpsock
+fs_multicast_transmitter_put_udpsock
+fs_multicast_transmitter_udpsock_inc_sending
+fs_multicast_transmitter_udpsock_dec_sending
 </SECTION>
 
 <SECTION>
 <FILE>fs-multicast-stream-transmitter</FILE>
-FS_MULTICAST_STREAM_TRANSMITTER_CAST
-FsMulticastStreamTransmitterPrivate
 <TITLE>FsMulticastStreamTransmitter</TITLE>
 FsMulticastStreamTransmitter
+<SUBSECTION Standard>
+FS_MULTICAST_STREAM_TRANSMITTER_CAST
+FsMulticastStreamTransmitterPrivate
 fs_multicast_stream_transmitter_register_type
 fs_multicast_stream_transmitter_newv
-<SUBSECTION Standard>
+FsMulticastStreamTransmitterClass
 FS_MULTICAST_STREAM_TRANSMITTER
 FS_IS_MULTICAST_STREAM_TRANSMITTER
 FS_TYPE_MULTICAST_STREAM_TRANSMITTER
@@ -128,3 +136,69 @@ FS_IS_MULTICAST_STREAM_TRANSMITTER_CLASS
 FS_MULTICAST_STREAM_TRANSMITTER_GET_CLASS
 </SECTION>
 
+
+<SECTION>
+<FILE>fs-rtp-session</FILE>
+<TITLE>FsRtpSession</TITLE>
+FsRtpSession
+<SUBSECTION Standard>
+FsRtpSessionClass
+FS_IS_RTP_SESSION
+FS_IS_RTP_SESSION_CLASS
+FS_RTP_SESSION
+FS_RTP_SESSION_CAST
+FS_RTP_SESSION_CLASS
+FS_RTP_SESSION_GET_CLASS
+FS_RTP_SESSION_LOCK
+FS_RTP_SESSION_UNLOCK
+FS_TYPE_RTP_SESSION
+fs_rtp_session_get_type
+<SUBSECTION Private>
+FsRtpSessionPrivate
+fs_rtp_session_associate_ssrc_cname
+fs_rtp_session_bye_ssrc
+fs_rtp_session_new
+fs_rtp_session_new_recv_pad
+fs_rtp_session_request_pt_map
+</SECTION>
+
+<SECTION>
+<FILE>fs-rtp-stream</FILE>
+<TITLE>FsRtpStream</TITLE>
+FsRtpStream
+<SUBSECTION Standard>
+FsRtpStreamClass
+fs_rtp_stream_get_type
+FS_IS_RTP_STREAM
+FS_IS_RTP_STREAM_CLASS
+FS_RTP_STREAM
+FS_RTP_STREAM_CAST
+FS_RTP_STREAM_CLASS
+FS_RTP_STREAM_GET_CLASS
+FS_TYPE_RTP_STREAM
+<SUBSECTION Private>
+FsRtpStreamPrivate
+fs_rtp_stream_add_substream
+fs_rtp_stream_new
+fs_rtp_stream_set_negotiated_codecs
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-rtp-participant</FILE>
+<TITLE>FsRtpParticipant</TITLE>
+FsRtpParticipant
+<SUBSECTION Standard>
+FsRtpParticipantClass
+fs_rtp_participant_get_type
+FS_IS_RTP_PARTICIPANT
+FS_IS_RTP_PARTICIPANT_CLASS
+FS_RTP_PARTICIPANT
+FS_RTP_PARTICIPANT_CAST
+FS_RTP_PARTICIPANT_CLASS
+FS_RTP_PARTICIPANT_GET_CLASS
+FS_TYPE_RTP_PARTICIPANT
+<SUBSECTION Private>
+FsRtpParticipantPrivate
+fs_rtp_participant_new
+</SECTION>

@@ -1,6 +1,6 @@
 plugin_LTLIBRARIES = libfsrtpconference.la
 
-libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
+common_SOURCES = \
 	fs-rtp-conference.c \
 	fs-rtp-participant.c \
 	fs-rtp-session.c \
@@ -14,10 +14,12 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c \
 	fs-rtp-dtmf-event-source.c \
 	fs-rtp-dtmf-sound-source.c \
 	fs-rtp-marshal.c
+libfsrtpconference_la_SOURCES = gstfsrtpconference.c $(common_SOURCES)
 
 BUILT_SOURCES = \
 		fs-rtp-marshal.c \
-		fs-rtp-marshal.h
+		fs-rtp-marshal.h \
+		gstfsrtpconference_doc.c
 
 noinst_HEADERS = \
 	fs-rtp-conference.h \
@@ -50,6 +52,19 @@ libfsrtpconference_la_LIBADD = \
 	-lgstrtp-@GST_MAJORMINOR@ \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS)
+
+
+if ENABLE_GTK_DOC
+noinst_LTLIBRARIES = libfsrtpconference_doc.la
+
+libfsrtpconference_doc_la_SOURCES = gstfsrtpconference_doc.c $(common_SOURCES)
+libfsrtpconference_doc_la_CFLAGS = $(libfsrtpconference_la_CFLAGS)
+libfsrtpconference_doc_la_LIBADD = $(libfsrtpconference_la_LIBADD)
+
+gstfsrtpconference_doc.c: gstfsrtpconference.c
+	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' \
+		gstfsrtpconference.c > gstfsrtpconference_doc.c
+endif
 
 fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
 		glib-genmarshal --header --prefix=_fs_rtp_marshal $(srcdir)/$< > $@.tmp

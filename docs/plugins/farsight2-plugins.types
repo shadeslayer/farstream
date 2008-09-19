@@ -1,1 +1,4 @@
 #include <gst/gst.h>
+fs_rtp_participant_get_type
+fs_rtp_session_get_type
+fs_rtp_stream_get_type
