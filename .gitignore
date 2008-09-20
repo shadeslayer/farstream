@@ -12,6 +12,7 @@ Makefile.in
 *.stamp
 
 gst/fsrtpconference/fs-rtp-marshal.[ch]
+gst/fsrtpconference/gstfsrtpconference_doc.c
 
 transmitters/rawudp/fs-rawudp-marshal.[ch]
 
@@ -29,11 +30,31 @@ docs/libs/farsight2-libs.hierarchy
 docs/libs/farsight2-libs.interfaces
 docs/libs/farsight2-libs.prerequisites
 docs/libs/farsight2-libs.signals
-docs/version.entities
+docs/libs/farsight2-libs-undeclared.txt
 docs/libs/html
 docs/libs/tmpl
 docs/libs/xml
+docs/plugins/farsight2-plugins-decl-list.txt
+docs/plugins/farsight2-plugins-decl.txt
+docs/plugins/farsight2-plugins-overrides.txt
+docs/plugins/farsight2-plugins-undeclared.txt
+docs/plugins/farsight2-plugins-undocumented.txt
+docs/plugins/farsight2-plugins-unused.txt
+docs/plugins/farsight2-plugins.args
+docs/plugins/farsight2-plugins.args.new
+docs/plugins/farsight2-plugins.hierarchy
+docs/plugins/farsight2-plugins.interfaces
+docs/plugins/farsight2-plugins.prerequisites
+docs/plugins/farsight2-plugins.signals
+docs/plugins/farsight2-plugins.signals.new
+docs/plugins/html/
+docs/plugins/inspect-registry.xml
+docs/plugins/inspect/
+docs/plugins/script
+docs/plugins/tmpl/
+docs/plugins/xml/
 docs/diagrams/*.png
+docs/version.entities
 
 python/pyfarsight.c
 python/*.pyo
@@ -76,3 +97,6 @@ stamp-h1
 
 farsight2-0.10.pc
 farsight2.pc
+farsight2-upnp.pc
+
+
