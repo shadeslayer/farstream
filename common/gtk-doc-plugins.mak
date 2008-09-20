@@ -259,6 +259,7 @@ clean-local-gtkdoc:
 # clean files copied for nonsrcdir templates build
 	if test x"$(srcdir)" != x. ; then \
 	    rm -rf $(SCANOBJ_FILES) $(SCAN_FILES); \
+	    rm -f *.stamp; \
 	fi
 else
 all-local:
@@ -368,13 +369,7 @@ scanobj-trans-update:
 
 scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
 	@echo '*** Scanning GObjects ***'
-	if test x"$(srcdir)" != x. ; then				\
-	    for f in $(SCANOBJ_FILES);					\
-	    do								\
-	    	pwd \
-	        cp $(srcdir)/$$f . ;					\
-	    done;							\
-	else								\
+	if test x"$(srcdir)" = x. ; then				\
 	    GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/ext	\
 	    GST_REGISTRY=$(INSPECT_REGISTRY)				\
 	    FS_PLUGIN_PATH="$(FS_PLUGIN_PATH)"				\
