@@ -12,7 +12,8 @@ SUBDIRS = 			\
 	transmitters		\
 	$(PYTHON_SUBDIR)	\
 	tests 			\
-	docs
+	docs			\
+	common
 #	pkgconfig
 
 DIST_SUBDIRS = 			\
@@ -21,7 +22,8 @@ DIST_SUBDIRS = 			\
 	transmitters		\
 	python			\
 	tests 			\
-	docs
+	docs			\
+	common
 #	pkgconfig
 
 EXTRA_DIST = \

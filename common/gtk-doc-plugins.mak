@@ -29,6 +29,7 @@ TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@
 
 EXTRA_DIST = 				\
 	scanobj-build.stamp		\
+	scanobj-trans-build.stamp	\
 	$(srcdir)/inspect/*.xml		\
 	inspect.stamp			\
 	inspect-build.stamp		\
@@ -370,6 +371,7 @@ scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
 	if test x"$(srcdir)" != x. ; then				\
 	    for f in $(SCANOBJ_FILES);					\
 	    do								\
+	    	pwd \
 	        cp $(srcdir)/$$f . ;					\
 	    done;							\
 	else								\
@@ -382,7 +384,7 @@ scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
 	    $(srcdir)/gtkdoc-scangobj-transmitters			\
 		 --type-init-func="gst_init(NULL,NULL)"			\
 		 --types=farsight2-transmitters.types			\
-	        --module=$(DOC_MODULE) &&				\
+	         --module=$(DOC_MODULE) &&				\
 		$(PYTHON)						\
 		$(top_srcdir)/common/scangobj-merge.py $(DOC_MODULE);	\
 	fi
