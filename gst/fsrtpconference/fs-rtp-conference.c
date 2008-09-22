@@ -27,6 +27,12 @@
  * SECTION:element-fsrtpconference
  * @short_description: Farsight RTP Conference Gstreamer Elements
  *
+ * This is the core gstreamer element for a RTP conference. It must be added
+ * to your pipeline before anything else is done. Then you create the session,
+ * participants and streams according to the #FsConference interface.
+ *
+ * The various sdes-* properties allow you to set the content of the SDES packet
+ * in the sent RTCP reports.
  */
 
 #ifdef HAVE_CONFIG_H
