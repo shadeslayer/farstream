@@ -144,6 +144,7 @@ inspect-update: inspect
 # IF the output changed; see gtkdoc-mktmpl
 inspect-build.stamp:
 	@echo '*** Rebuilding plugin inspection files ***'
+	if test -d inspect; then rm -rf inspect; fi
 	mkdir inspect
 	if test x"$(srcdir)" != x. ; then \
 	    cp $(srcdir)/inspect.stamp . ; \
