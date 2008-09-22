@@ -213,8 +213,8 @@ static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 static void _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session);
 
-static GError* _stream_new_remote_codecs (FsRtpStream *stream, GList *codecs,
-    FsRtpSession *session);
+static gboolean _stream_new_remote_codecs (FsRtpStream *stream, GList *codecs,
+    GError **error, gpointer user_data);
 
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
@@ -1260,9 +1260,10 @@ fs_rtp_session_constructed (GObject *object)
 
 static void
 _stream_known_source_packet_received (FsRtpStream *stream, guint component,
-    GstBuffer *buffer, FsRtpSession *self)
+    GstBuffer *buffer, gpointer user_data)
 {
   guint32 ssrc;
+  FsRtpSession *self = FS_RTP_SESSION_CAST (user_data);
 
   if (component == 1)
   {
@@ -1379,12 +1380,8 @@ fs_rtp_session_new_stream (FsSession *session,
     return NULL;
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
-      direction, st, error));
-
-  g_signal_connect (new_stream, "new-remote-codecs",
-      G_CALLBACK (_stream_new_remote_codecs), self);
-  g_signal_connect (new_stream, "known-source-packet-received",
-      G_CALLBACK (_stream_known_source_packet_received), self);
+          direction, st, _stream_new_remote_codecs,
+          _stream_known_source_packet_received, self, error));
 
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
@@ -2107,21 +2104,13 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
   return TRUE;
 }
 
-static GError *
+static gboolean
 _stream_new_remote_codecs (FsRtpStream *stream,
-    GList *codecs,
-    FsRtpSession *session)
+    GList *codecs, GError **error, gpointer user_data)
 {
-  GError *error = NULL;
-  gboolean rv;
+  FsRtpSession *session = FS_RTP_SESSION_CAST (user_data);
 
-  rv = fs_rtp_session_update_codecs (session, stream, codecs, &error);
-
-  if (!rv && !error)
-    error = g_error_new (FS_ERROR, FS_ERROR_INTERNAL,
-        "Unknown error while negotiating codecs");
-
-  return error;
+  return fs_rtp_session_update_codecs (session, stream, codecs, error);
 }
 
 

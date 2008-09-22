@@ -42,8 +42,6 @@
 /* Signals */
 enum
 {
-  NEW_REMOTE_CODECS,
-  KNOWN_SOURCE_PACKET_RECEIVED,
   LAST_SIGNAL
 };
 
@@ -79,6 +77,10 @@ struct _FsRtpStreamPrivate
 
   GError *construction_error;
 
+  stream_new_remote_codecs_cb new_remote_codecs_cb;
+  stream_known_source_packet_receive_cb known_source_packet_received_cb;
+  gpointer user_data_for_cb;
+
   gboolean disposed;
 };
 
@@ -112,10 +114,6 @@ static gboolean fs_rtp_stream_force_remote_candidates (FsStream *stream,
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
-static gboolean
-fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
-    GList *codecs,
-    GError **error);
 
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
@@ -149,7 +147,7 @@ static void _state_changed (FsStreamTransmitter *stream_transmitter,
 
 
 static GObjectClass *parent_class = NULL;
-static guint signals[LAST_SIGNAL] = { 0 };
+// static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
 fs_rtp_stream_class_init (FsRtpStreamClass *klass)
@@ -194,55 +192,6 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   g_object_class_override_property (gobject_class,
                                     PROP_STREAM_TRANSMITTER,
                                    "stream-transmitter");
-
-  /*
-   * FsRtpStream::new-remote-codecs
-   * @self: #FsRtpStream that emitted the signal
-   * @codecs: #GList of new remote #FsCodec
-   *
-   * This signal is emitted after a user does fs_stream_set_remote_codecs(),
-   * with the new codecs.
-   *
-   * Returns: %NULL on success, or a #GError if an error occured
-   */
-  /**
-   * FsRtpStream::new-remote-codecs:
-   *
-   * ENTIRELY INTERNAL
-   */
-  signals[NEW_REMOTE_CODECS] = g_signal_new ("new-remote-codecs",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      _fs_rtp_marshal_POINTER__BOXED,
-      G_TYPE_POINTER, 1, FS_TYPE_CODEC_LIST);
-
-  /*
-   * FsRtpStream::known-source-packet-received:
-   * @self: #FsRtpStream that emitted the signal
-   * @component: The Component on which this buffer was received
-   * @buffer: the #GstBuffer coming from the known source
-   *
-   * This signal is emitted when a buffer coming from a confirmed known source
-   * is received. It is a proxy of the
-   * #FsStreamTransmitter::known-source-packet-received signal.
-   */
-  /**
-   * FsRtpStream::known-source-packet-received:
-   *
-   * ENTIRELY INTERNAL
-   */
-  signals[KNOWN_SOURCE_PACKET_RECEIVED] = g_signal_new
-    ("known-source-packet-received",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      g_cclosure_marshal_VOID__UINT_POINTER,
-      G_TYPE_NONE, 2, G_TYPE_UINT, G_TYPE_POINTER);
 }
 
 static void
@@ -588,7 +537,8 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     }
   }
 
-  if (fs_rtp_stream_emit_new_remote_codecs (self, remote_codecs, error))
+  if (self->priv->new_remote_codecs_cb (self, remote_codecs, error,
+          self->priv->user_data_for_cb))
   {
     if (self->remote_codecs)
       fs_codec_list_destroy (self->remote_codecs);
@@ -612,7 +562,11 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
  * @direction: the initial #FsDirection for this stream
  * @stream_transmitter: the #FsStreamTransmitter for this stream, one
  *   reference to it will be eaten
- *
+ * @new_remote_codecs: Callback called when the remote codecs change
+ * (ie when fs_rtp_stream_set_remote_codecs() is called).
+ * @known_source_packet_received: Callback called when a packet from a
+ * known source is receive.
+ * @user_data: User data for the callbacks.
  * This function create a new stream
  *
  * Returns: the newly created string or NULL on error
@@ -620,17 +574,32 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
 
 FsRtpStream *
 fs_rtp_stream_new (FsRtpSession *session,
-                   FsRtpParticipant *participant,
-                   FsStreamDirection direction,
-                   FsStreamTransmitter *stream_transmitter,
-                   GError **error)
+    FsRtpParticipant *participant,
+    FsStreamDirection direction,
+    FsStreamTransmitter *stream_transmitter,
+    stream_new_remote_codecs_cb new_remote_codecs_cb,
+    stream_known_source_packet_receive_cb known_source_packet_received_cb,
+    gpointer user_data_for_cb,
+    GError **error)
 {
-  FsRtpStream *self = g_object_new (FS_TYPE_RTP_STREAM,
+  FsRtpStream *self;
+
+  g_return_val_if_fail (session, NULL);
+  g_return_val_if_fail (participant, NULL);
+  g_return_val_if_fail (stream_transmitter, NULL);
+  g_return_val_if_fail (new_remote_codecs_cb, NULL);
+  g_return_val_if_fail (known_source_packet_received_cb, NULL);
+
+  self = g_object_new (FS_TYPE_RTP_STREAM,
     "session", session,
     "participant", participant,
     "direction", direction,
     "stream-transmitter", stream_transmitter,
     NULL);
+
+  self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
+  self->priv->known_source_packet_received_cb = known_source_packet_received_cb;
+  self->priv->user_data_for_cb = user_data_for_cb;
 
   if (self->priv->construction_error) {
     g_propagate_error (error, self->priv->construction_error);
@@ -725,8 +694,8 @@ _known_source_packet_received (FsStreamTransmitter *st,
     GstBuffer *buffer,
     FsRtpStream *self)
 {
-  g_signal_emit (self, signals[KNOWN_SOURCE_PACKET_RECEIVED], 0,
-      component, buffer);
+  self->priv->known_source_packet_received_cb (self, component, buffer,
+      self->priv->user_data_for_cb);
 }
 
 static void
@@ -899,20 +868,6 @@ _substream_codec_changed (FsRtpSubStream *substream,
   }
 
   fs_codec_list_destroy (codeclist);
-}
-
-static gboolean
-fs_rtp_stream_emit_new_remote_codecs (FsRtpStream *stream,
-    GList *codecs, GError **error)
-{
-  GError *myerror = NULL;
-
-  g_signal_emit (stream, signals[NEW_REMOTE_CODECS], 0, codecs, &myerror);
-
-  if (myerror)
-    g_propagate_error (error, myerror);
-
-  return !myerror;
 }
 
 /**

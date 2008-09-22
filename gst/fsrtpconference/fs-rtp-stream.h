@@ -84,11 +84,19 @@ struct _FsRtpStream
 
 GType fs_rtp_stream_get_type (void);
 
+typedef gboolean (*stream_new_remote_codecs_cb) (FsRtpStream *stream,
+    GList *codecs, GError **error, gpointer user_data);
+typedef void (*stream_known_source_packet_receive_cb) (FsRtpStream *stream,
+    guint component, GstBuffer *buffer, gpointer user_data);
+
 FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
-                                FsRtpParticipant *participant,
-                                FsStreamDirection direction,
-                                FsStreamTransmitter *stream_transmitter,
-                                GError **error);
+    FsRtpParticipant *participant,
+    FsStreamDirection direction,
+    FsStreamTransmitter *stream_transmitter,
+    stream_new_remote_codecs_cb new_remote_codecs_cb,
+    stream_known_source_packet_receive_cb known_source_packet_received_cb,
+    gpointer user_data_for_cb,
+    GError **error);
 
 gboolean fs_rtp_stream_add_substream (FsRtpStream *stream,
     FsRtpSubStream *substream,
