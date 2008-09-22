@@ -22,6 +22,14 @@
  *
  */
 
+/**
+ * SECTION:element-fsvideoanyrate
+ * @short_description: Removes the framerate from video caps
+ *
+ * This element will remove the framerate from video caps, it is a poor man's
+ * videorate for live pipelines.
+ */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif

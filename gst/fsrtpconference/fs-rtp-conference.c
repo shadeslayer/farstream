@@ -24,8 +24,8 @@
  */
 
 /**
- * SECTION:fs-rtp-conference
- * @short_description: FarsightRTP Conference Gstreamer Elements
+ * SECTION:element-fsrtpconference
+ * @short_description: Farsight RTP Conference Gstreamer Elements
  *
  */
 
