@@ -26,7 +26,9 @@
  * SECTION:fs-rtp-stream
  * @short_description: A RTP stream in a #FsRtpSession in a #FsRtpConference
  *
-
+ * This is the conjunction of a #FsRtpParticipant and a #FsRtpSession,
+ * it is created by calling fs_session_new_stream() on a
+ * #FsRtpSession.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -193,7 +195,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
                                     PROP_STREAM_TRANSMITTER,
                                    "stream-transmitter");
 
-   /**
+  /*
    * FsRtpStream::new-remote-codecs
    * @self: #FsRtpStream that emitted the signal
    * @codecs: #GList of new remote #FsCodec
@@ -202,6 +204,11 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
    * with the new codecs.
    *
    * Returns: %NULL on success, or a #GError if an error occured
+   */
+  /**
+   * FsRtpStream::new-remote-codecs:
+   *
+   * ENTIRELY INTERNAL
    */
   signals[NEW_REMOTE_CODECS] = g_signal_new ("new-remote-codecs",
       G_TYPE_FROM_CLASS (klass),
@@ -212,7 +219,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
       _fs_rtp_marshal_POINTER__BOXED,
       G_TYPE_POINTER, 1, FS_TYPE_CODEC_LIST);
 
- /**
+  /*
    * FsRtpStream::known-source-packet-received:
    * @self: #FsRtpStream that emitted the signal
    * @component: The Component on which this buffer was received
@@ -221,6 +228,11 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
    * This signal is emitted when a buffer coming from a confirmed known source
    * is received. It is a proxy of the
    * #FsStreamTransmitter::known-source-packet-received signal.
+   */
+  /**
+   * FsRtpStream::known-source-packet-received:
+   *
+   * ENTIRELY INTERNAL
    */
   signals[KNOWN_SOURCE_PACKET_RECEIVED] = g_signal_new
     ("known-source-packet-received",

@@ -26,7 +26,7 @@
  * SECTION:fs-rtp-participant
  * @short_description: A RTP participant in a #FsRtpConference
  *
- * This object represents one participant or person in a conference
+ * This object represents one participant or person in a RTP conference
  */
 
 #ifdef HAVE_CONFIG_H

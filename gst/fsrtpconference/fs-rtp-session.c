@@ -26,7 +26,10 @@
  * SECTION:fs-rtp-session
  * @short_description: A  RTP session in a #FsRtpConference
  *
- *
+ * This object represents one session, it is created by called
+ * fs_conference_new_session() on a #FsRtpConference. It can be either
+ * Audio or Video. It also represents data send with one and only one
+ * SSRC (although if there is a SSRC collision, that SSRC may change).
  */
 
 #ifdef HAVE_CONFIG_H

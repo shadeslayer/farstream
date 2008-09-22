@@ -65,9 +65,10 @@ struct _FsRtpSession
 {
   FsSession parent;
 
-  guint id;
-
   /*< private >*/
+
+  /* This ID can be accessed by the stream/substreams for this session */
+  guint id;
 
   GStaticRecMutex mutex; /* Should only be accessed using the macros */
 

@@ -53,6 +53,8 @@ typedef struct _FsRtpConferencePrivate FsRtpConferencePrivate;
 struct _FsRtpConference
 {
   FsBaseConference parent;
+
+  /*< private >*/
   FsRtpConferencePrivate *priv;
 
   /* Do not modify the pointer */

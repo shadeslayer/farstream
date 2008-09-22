@@ -69,6 +69,8 @@ struct _FsRtpStream
 {
   FsStream parent;
 
+  /*< private >*/
+
   /* Can only be accessed while holding the FsRtpSession lock */
   /* Dont modify, call set_remote_codecs() */
   GList *remote_codecs;
