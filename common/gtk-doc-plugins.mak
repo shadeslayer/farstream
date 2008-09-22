@@ -1,5 +1,6 @@
 # This is an include file specifically tuned for building documentation
 # for GStreamer plug-ins
+# It has been further specialized to farsight2 plugins stuff
 
 help:
 	@echo
@@ -28,8 +29,6 @@ GPATH = $(srcdir)
 TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@
 
 EXTRA_DIST = 				\
-	scanobj-build.stamp		\
-	scanobj-trans-build.stamp	\
 	$(srcdir)/inspect/*.xml		\
 	inspect.stamp			\
 	inspect-build.stamp		\
@@ -41,14 +40,6 @@ EXTRA_DIST = 				\
 	$(DOC_OVERRIDES)		\
 	$(DOC_MODULE)-sections.txt
 
-MAINTAINER_DOC_STAMPS =			\
-	scanobj-build.stamp		\
-	scanobj-trans-build.stamp		\
-	inspect-build.stamp		\
-	inspect.stamp
-
-# we don't add inspect-build.stamp and scanobj-build.stamp here since they are
-# built manually by docs maintainers and result is commited to CVS
 DOC_STAMPS =				\
 	scan-build.stamp		\
 	tmpl-build.stamp		\
@@ -57,16 +48,20 @@ DOC_STAMPS =				\
 	scan.stamp			\
 	tmpl.stamp			\
 	sgml.stamp			\
-	html.stamp
+	html.stamp			\
+	scanobj-build.stamp		\
+	scanobj-trans-build.stamp	\
+	inspect-build.stamp		\
+	inspect.stamp
 
 # files generated/updated by gtkdoc-scangobj
 SCANOBJ_FILES =				\
-	$(DOC_MODULE).signals           \
-        $(DOC_MODULE).hierarchy         \
-        $(DOC_MODULE).interfaces        \
-        $(DOC_MODULE).prerequisites     \
+	$(DOC_MODULE).signals		\
+	$(DOC_MODULE).hierarchy		\
+	$(DOC_MODULE).interfaces	\
+	$(DOC_MODULE).prerequisites	\
 	$(DOC_MODULE).types		\
-        $(DOC_MODULE).args
+	$(DOC_MODULE).args
 
 SCANOBJ_FILES_O =			\
 	.libs/$(DOC_MODULE)-scan.o
