@@ -8,7 +8,7 @@
 
   <part>
     <title>RTP Plugin</title>
-    <xi:include href="xml/fs-rtp-conference.xml"/>
+    <xi:include href="xml/element-fsrtpconference.xml"/>
     <xi:include href="xml/fs-rtp-participant.xml"/>
     <xi:include href="xml/fs-rtp-session.xml"/>
     <xi:include href="xml/fs-rtp-stream.xml"/>
@@ -21,7 +21,7 @@
 
   <part>
     <title>Utility elements</title>
-    <xi:include href="xml/fs-funnel.xml"/>
-    <xi:include href="xml/videoanyrate.xml"/>
+    <xi:include href="xml/element-fsfunnel.xml"/>
+    <xi:include href="xml/element-fsvideoanyrate.xml"/>
   </part>
 </book>

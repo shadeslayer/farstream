@@ -1,5 +1,5 @@
 <SECTION>
-<FILE>fs-funnel</FILE>
+<FILE>element-fsfunnel</FILE>
 <TITLE>FsFunnel</TITLE>
 FsFunnel
 <SUBSECTION Standard>
@@ -13,7 +13,7 @@ FS_IS_FUNNEL_CLASS
 </SECTION>
 
 <SECTION>
-<FILE>videoanyrate</FILE>
+<FILE>element-fsvideoanyrate</FILE>
 <TITLE>GstVideoanyrate</TITLE>
 GstVideoanyrate
 <SUBSECTION Standard>
@@ -28,7 +28,7 @@ GST_IS_VIDEOANYRATE_CLASS
 </SECTION>
 
 <SECTION>
-<FILE>fs-rtp-conference</FILE>
+<FILE>element-fsrtpconference</FILE>
 <TITLE>FsRtpConference</TITLE>
 FsRtpConference
 <SUBSECTION Standard>
