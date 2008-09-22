@@ -141,10 +141,6 @@ INSPECT_ENVIRONMENT=\
         GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/sys:$(top_builddir)/ext:$(top_builddir)/plugins:$(top_builddir)/src:$(top_builddir)/gnl \
         GST_REGISTRY=$(INSPECT_REGISTRY)
 
-# update the element and plugin XML descriptions; store in inspect/
-inspect:
-	mkdir inspect
-
 inspect-update: inspect
 	-rm -f $(INSPECT_REGISTRY) inspect-build.stamp
 	$(MAKE) inspect-build.stamp
@@ -153,6 +149,7 @@ inspect-update: inspect
 # IF the output changed; see gtkdoc-mktmpl
 inspect-build.stamp:
 	@echo '*** Rebuilding plugin inspection files ***'
+	mkdir inspect
 	if test x"$(srcdir)" != x. ; then \
 	    cp $(srcdir)/inspect.stamp . ; \
 	    cp $(srcdir)/inspect-build.stamp . ; \
