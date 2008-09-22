@@ -49,6 +49,8 @@
  *
  * Packets sent will be looped back (so that other clients on the same session
  * can be on the same machine.
+ *
+ * The name of this transmitter is "multicast".
  */
 
 #ifdef HAVE_CONFIG_H

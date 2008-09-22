@@ -54,6 +54,8 @@
  * if this one is not available
  * ({component_id=RTP, ip=IP, port=9080},{component_id=RTCP, ip=IP, port=9081}).
  * The default port starts at 7078 for the first component.
+ *
+ * The name of this transmitter is "rawudp".
  */
 
 #ifdef HAVE_CONFIG_H
