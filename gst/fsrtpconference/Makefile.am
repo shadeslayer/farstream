@@ -18,8 +18,7 @@ libfsrtpconference_la_SOURCES = gstfsrtpconference.c $(common_SOURCES)
 
 BUILT_SOURCES = \
 		fs-rtp-marshal.c \
-		fs-rtp-marshal.h \
-		gstfsrtpconference_doc.c
+		fs-rtp-marshal.h
 
 noinst_HEADERS = \
 	fs-rtp-conference.h \
@@ -64,6 +63,8 @@ libfsrtpconference_doc_la_LIBADD = $(libfsrtpconference_la_LIBADD)
 gstfsrtpconference_doc.c: gstfsrtpconference.c
 	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' \
 		gstfsrtpconference.c > gstfsrtpconference_doc.c
+
+BUILT_SOURCES += gstfsrtpconference_doc.c
 endif
 
 fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
