@@ -140,6 +140,8 @@ inspect-update: inspect
 	-rm -f $(INSPECT_REGISTRY) inspect-build.stamp
 	$(MAKE) inspect-build.stamp
 
+if ENABLE_PLUGIN_DOCS
+
 # FIXME: inspect.stamp should be written to by gst-xmlinspect.py
 # IF the output changed; see gtkdoc-mktmpl
 inspect-build.stamp:
@@ -155,6 +157,11 @@ inspect-build.stamp:
 	    echo -n "timestamp" > inspect.stamp && \
 	    touch inspect-build.stamp; \
         fi
+
+else
+inspect-build.stamp:
+	@true:
+endif
 
 ### scan headers; done on every build ###
 scan-build.stamp: $(HFILE_GLOB) $(EXTRA_HFILES) $(basefiles) scanobj-build.stamp inspect-build.stamp scanobj-trans-build.stamp

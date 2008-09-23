@@ -17,7 +17,7 @@ AC_DEFUN([AG_GST_PLUGIN_DOCS],
     build_plugin_docs=yes
     AC_MSG_RESULT([yes])
   else
-    AC_MSG_RESULT([no (gtk-doc disabled or not available)])
+    AC_MSG_RESULT([no (gtk-doc/pygst disabled or not available)])
   fi
 
   AM_CONDITIONAL(ENABLE_PLUGIN_DOCS, test x$build_plugin_docs = xyes)
