@@ -9,8 +9,11 @@ AC_DEFUN([AG_GST_PLUGIN_DOCS],
   AC_BEFORE([AS_PATH_PYTHON],[$1])dnl find python first
 
   build_plugin_docs=no
+  have_pygst=no
+  PKG_CHECK_MODULES(PYDOCSTUFF, [ gst-python-0.10 ], [have_pygst=yes],
+  				 [have_pygst=no])
   AC_MSG_CHECKING([whether to build plugin documentation])
-  if test x$enable_gtk_doc = xyes -a x$have_gtk_doc = xyes; then
+  if test x$enable_gtk_doc = xyes -a x$have_pygst = xyes; then
     build_plugin_docs=yes
     AC_MSG_RESULT([yes])
   else
