@@ -78,7 +78,7 @@
 #include <gst/farsight/fs-conference-iface.h>
 
 #ifdef HAVE_GUPNP
-#include <ext/fsupnp/fs-upnp-simple-igd-thread.h>
+#include <libgupnp-igd/gupnp-simple-igd-thread.h>
 #endif
 
 #include <gst/gst.h>
@@ -146,7 +146,7 @@ struct _FsRawUdpStreamTransmitterPrivate
   guint upnp_discovery_timeout;
   guint upnp_request_timeout;
 
-  FsUpnpSimpleIgdThread *upnp_igd;
+  GUPnPSimpleIgdThread *upnp_igd;
 #endif
 
   /* Everything below this line is protected by the mutex */
@@ -578,7 +578,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
       (self->priv->upnp_discovery &&
           (!self->priv->stun_ip || !self->priv->stun_port)))
   {
-    self->priv->upnp_igd = fs_upnp_simple_igd_thread_new ();
+    self->priv->upnp_igd = gupnp_simple_igd_thread_new ();
     g_object_set (self->priv->upnp_igd,
         "request-timeout", self->priv->upnp_request_timeout,
         NULL);

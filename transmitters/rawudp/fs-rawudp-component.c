@@ -39,7 +39,7 @@
 #include <gst/netbuffer/gstnetbuffer.h>
 
 #ifdef HAVE_GUPNP
-#include <ext/fsupnp/fs-upnp-simple-igd-thread.h>
+#include <libgupnp-igd/gupnp-simple-igd-thread.h>
 #endif
 
 #include <string.h>
@@ -127,7 +127,7 @@ struct _FsRawUdpComponentPrivate
   guint upnp_mapping_timeout;
   guint upnp_discovery_timeout;
 
-  FsUpnpSimpleIgdThread *upnp_igd;
+  GUPnPSimpleIgdThread *upnp_igd;
 #endif
 
   /* Above this line, its all set at construction time */
@@ -391,9 +391,9 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
   g_object_class_install_property (gobject_class,
       PROP_UPNP_IGD,
       g_param_spec_object ("upnp-igd",
-          "The FsUpnpSimpleIgd object",
-          "This is the upnp igd abstraction object",
-          FS_TYPE_UPNP_SIMPLE_IGD_THREAD,
+          "The GUPnPSimpleIgdThread object",
+          "This is the GUPnP IGD abstraction object",
+          GUPNP_TYPE_SIMPLE_IGD_THREAD,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 #endif
 
@@ -633,7 +633,7 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
     if (self->priv->upnp_igd  &&
         (self->priv->upnp_mapping || self->priv->upnp_discovery))
     {
-      fs_upnp_simple_igd_remove_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
+      gupnp_simple_igd_remove_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", fs_rawudp_transmitter_udpport_get_port (udpport));
     }
 #endif
@@ -992,7 +992,7 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
 
 #ifdef HAVE_GUPNP
 static void
-_upnp_mapped_external_port (FsUpnpSimpleIgdThread *igd, gchar *proto,
+_upnp_mapped_external_port (GUPnPSimpleIgdThread *igd, gchar *proto,
     gchar *external_ip, gchar *replaces_external_ip, guint external_port,
     gchar *local_ip, guint local_port, gchar *description, gpointer user_data)
 {
@@ -1098,7 +1098,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
             G_CALLBACK (_upnp_mapped_external_port), self);
       }
 
-      fs_upnp_simple_igd_add_port (FS_UPNP_SIMPLE_IGD (self->priv->upnp_igd),
+      gupnp_simple_igd_add_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
           "Farsight Raw UDP transmitter");
 

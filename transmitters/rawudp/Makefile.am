@@ -11,18 +11,13 @@ librawudp_transmitter_la_SOURCES = \
 	fs-rawudp-marshal.c \
 	stun.c
 
-if HAVE_GUPNP
-UPNP_LIBS = $(top_builddir)/gst-libs/ext/fsupnp/libfsupnp.la
-else
-UPNP_LIBS =
-endif
-
 # flags used to compile this plugin
 librawudp_transmitter_la_CFLAGS = \
 	$(FS2_INTERNAL_CFLAGS) \
 	$(FS2_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
-	$(GST_CFLAGS)
+	$(GST_CFLAGS) \
+	$(GUPNP_CFLAGS)
 librawudp_transmitter_la_LDFLAGS = $(FS2_PLUGIN_LDFLAGS)
 librawudp_transmitter_la_LIBADD = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
@@ -30,7 +25,7 @@ librawudp_transmitter_la_LIBADD = \
 	-lgstnetbuffer-@GST_MAJORMINOR@ \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS) \
-	$(UPNP_LIBS)
+	$(GUPNP_LIBS)
 
 EXTRA_librawudp_transmitter_la_SOURCES = fs-rawudp-marshal.list
 

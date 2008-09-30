@@ -366,7 +366,7 @@ fi
 AM_CONDITIONAL(WANT_PYTHON, test "x$WANT_PYTHON" = "xyes")
 
 AC_ARG_ENABLE([gupnp],
-	AC_HELP_STRING([--disable-gupnp], [Disable GUPnP support]),
+	AC_HELP_STRING([--disable-gupnp], [Disable GUPnP IGD support]),
 	[case "${enableval}" in
 	    yes) WANT_GUPNP=yes ;;
 	    no)  WANT_GUPNP=no ;;
@@ -376,17 +376,17 @@ AC_ARG_ENABLE([gupnp],
 
 HAVE_GUPNP=no
 if test "x$WANT_GUPNP" != "xno"; then
-   PKG_CHECK_MODULES(GUPNP, [ gupnp-1.0 ],
+   PKG_CHECK_MODULES(GUPNP, [ gupnp-igd-1.0 ],
     [ HAVE_GUPNP=yes ],
     [ HAVE_GUPNP=no ])
 fi
 if test "x$WANT_GUPNP" = "xyes" && test "x$HAVE_GUPNP" = "xno"; then
-   AC_ERROR([Requested GUPnP, but it is not available])
+   AC_ERROR([Requested GUPnP IGD, but it is not available])
 fi
 
 AM_CONDITIONAL(HAVE_GUPNP, test "x$HAVE_GUPNP" = "xyes")
 if test "x$HAVE_GUPNP" = "xyes"; then
-   AC_DEFINE(HAVE_GUPNP,,[Have the GUPnP library])
+   AC_DEFINE(HAVE_GUPNP,,[Have the GUPnP IGD library])
 fi
 
 
