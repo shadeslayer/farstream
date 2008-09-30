@@ -18,8 +18,6 @@ transmitters/rawudp/fs-rawudp-marshal.[ch]
 gst-libs/gst/farsight/fs-marshal.[ch]
 gst-libs/gst/farsight/fs-enum-types.[ch]
 
-gst-libs/ext/fsupnp/fs-upnp-simple-igd-marshal.[ch]
-
 docs/libs/farsight2-libs-decl-list.txt
 docs/libs/farsight2-libs-decl-list.txt.bak
 docs/libs/farsight2-libs-decl.txt
@@ -51,11 +49,8 @@ tests/check/rtp/conference
 tests/check/rtp/codecs
 tests/check/rtp/sendcodecs
 tests/check/utils/binadded
-tests/check/upnp/fsupnp
 tests/rtp/codec-discovery
 tests/commandline/simple-call
-tests/upnp/test
-tests/upnp/test-thread
 tests/gui/*.pyo
 tests/gui/*.pyc
 
@@ -81,4 +76,3 @@ stamp-h1
 
 farsight2-0.10.pc
 farsight2.pc
-farsgiht2-upnp.pc
