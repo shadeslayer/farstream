@@ -41,11 +41,6 @@ check_PROGRAMS = \
 	rtp/conference \
 	utils/binadded
 
-if HAVE_GUPNP
-check_PROGRAMS += upnp/fsupnp
-endif
-
-
 AM_CFLAGS = \
 	$(CFLAGS) \
 	$(FS2_INTERNAL_CFLAGS) \
@@ -100,16 +95,3 @@ rtp_sendcodecs_SOURCES = \
 utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
 	utils/binadded.c
-
-if HAVE_GUPNP
-
-upnp_fsupnp_CFLAGS = $(AM_CFLAGS) $(GUPNP_CFLAGS)
-upnp_fsupnp_LDADD = $(LDADD) \
-	$(GUPNP_LIBS) \
-	$(top_builddir)/gst-libs/ext/fsupnp/libfsupnp.la
-
-endif
-
-
-upnp_fsupnp_SOURCES = \
-	upnp/fsupnp.c

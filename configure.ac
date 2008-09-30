@@ -384,7 +384,6 @@ if test "x$WANT_GUPNP" = "xyes" && test "x$HAVE_GUPNP" = "xno"; then
    AC_ERROR([Requested GUPnP IGD, but it is not available])
 fi
 
-AM_CONDITIONAL(HAVE_GUPNP, test "x$HAVE_GUPNP" = "xyes")
 if test "x$HAVE_GUPNP" = "xyes"; then
    AC_DEFINE(HAVE_GUPNP,,[Have the GUPnP IGD library])
 fi
@@ -395,7 +394,6 @@ dnl *** output files ***
 AC_CONFIG_FILES(
 Makefile
 farsight2.pc
-farsight2-upnp.pc
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/funnel/Makefile
@@ -403,8 +401,6 @@ gst/videoanyrate/Makefile
 gst-libs/Makefile
 gst-libs/gst/Makefile
 gst-libs/gst/farsight/Makefile
-gst-libs/ext/Makefile
-gst-libs/ext/fsupnp/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile
@@ -416,7 +412,6 @@ tests/check/Makefile
 tests/rtp/Makefile
 tests/gui/Makefile
 tests/commandline/Makefile
-tests/upnp/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/version.entities
