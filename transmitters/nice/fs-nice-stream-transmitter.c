@@ -1042,8 +1042,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       gst_structure_get_boolean (s, "long-term-credentials", &long_term_creds);
 
       nice_agent_set_relay_info(self->priv->agent->agent,
-          self->priv->stream_id, i + 1, ip, port, username, password,
-          long_term_creds);
+          self->priv->stream_id, i + 1, ip, port, username, password);
     }
   }
 
