@@ -172,11 +172,6 @@ static GObjectClass *parent_class = NULL;
 
 static GType type = 0;
 
-/*
- * This is global because its not a ref-counted object
- */
-static NiceUDPSocketFactory udpfactory;
-
 
 GType
 fs_nice_stream_transmitter_get_type (void)
@@ -295,8 +290,6 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "Whether the agent should enable libnice and stun debug messages",
           FALSE,
           G_PARAM_WRITABLE));
-
-  nice_udp_bsd_socket_factory_init (&udpfactory);
 
 }
 
