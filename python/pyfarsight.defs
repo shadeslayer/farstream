@@ -422,6 +422,13 @@
   )
 )
 
+(define-method list_transmitters
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_list_transmitters")
+  (return-type "gchar**")
+)
+
 (define-method emit_error
   (of-object "FsSession")
   (unblock-threads t)
