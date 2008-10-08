@@ -230,6 +230,8 @@ static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     GError **error);
 static void fs_rtp_session_send_codec_changed (FsRtpSession *self);
 
+static gchar **fs_rtp_session_list_transmitters (FsSession *session);
+
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
 static void _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
@@ -309,6 +311,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->set_send_codec = fs_rtp_session_set_send_codec;
   session_class->set_codec_preferences =
     fs_rtp_session_set_codec_preferences;
+  session_class->list_transmitters = fs_rtp_session_list_transmitters;
 
   g_object_class_override_property (gobject_class,
     PROP_MEDIA_TYPE, "media-type");
@@ -4182,4 +4185,18 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
   }
 
   FS_RTP_SESSION_UNLOCK (session);
+}
+
+static gchar **
+fs_rtp_session_list_transmitters (FsSession *session)
+{
+  g_return_val_if_fail (FS_IS_RTP_SESSION (session), NULL);
+  gchar **rv;
+
+  rv = fs_transmitter_list_available ();
+
+  if (!rv)
+    rv = g_malloc0 (1);
+
+  return rv;
 }
