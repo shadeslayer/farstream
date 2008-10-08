@@ -135,6 +135,9 @@ struct _FsSessionClass
       GList *codec_preferences,
       GError **error);
 
+  gchar** (* list_transmitters) (FsSession *session);
+
+
   /*< private >*/
   gpointer _padding[8];
 };
@@ -177,6 +180,8 @@ gboolean fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 gboolean fs_session_set_codec_preferences (FsSession *session,
     GList *codec_preferences,
     GError **error);
+
+gchar **fs_session_list_transmitters (FsSession *session);
 
 void fs_session_emit_error (FsSession *session, gint error_no,
                             gchar *error_msg, gchar *debug_msg);

@@ -353,7 +353,8 @@ fs_transmitter_emit_error (FsTransmitter *transmitter,
  * Get the list of all available transmitters
  *
  * Returns: a newly allocated array of strings containing the list of all
- *  available transmitters or %NULL if there are none
+ *  available transmitters or %NULL if there are none. It should
+ *  be freed with g_strfreev().
  */
 
 char **

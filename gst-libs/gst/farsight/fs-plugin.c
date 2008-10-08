@@ -330,7 +330,7 @@ fs_plugin_create (const gchar *name, const gchar *type_suffix,
  * Gets the list of all available plugins of a certain type
  *
  * Returns: a newly allocated NULL terminated array of strings or %NULL if no
- * strings were found
+ * strings were found. It should be freed with g_strfreev().
  */
 
 gchar **
