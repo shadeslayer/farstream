@@ -102,6 +102,8 @@ GObject *fs_plugin_create (const gchar *name,
                            GError **error,
                            const gchar *first_property_name, ...);
 
+gchar **fs_plugin_list_available (const gchar *type_suffix);
+
 /**
  * FS_INIT_PLUGIN:
  * @type_register_func: A function that register a #GType and returns it

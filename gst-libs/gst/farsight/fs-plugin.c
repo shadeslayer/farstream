@@ -322,3 +322,93 @@ fs_plugin_create (const gchar *name, const gchar *type_suffix,
 
   return obj;
 }
+
+/**
+ * fs_plugin_list_available:
+ * @type_suffix: Get list of plugins with this type suffix
+ *
+ * Gets the list of all available plugins of a certain type
+ *
+ * Returns: a newly allocated NULL terminated array of strings or %NULL if no
+ * strings were found
+ */
+
+gchar **
+fs_plugin_list_available (const gchar *type_suffix)
+{
+  GPtrArray *list = g_ptr_array_new ();
+  gchar **retval = NULL;
+  gchar **search_path = NULL;
+  GRegex *matcher;
+  GError *error = NULL;
+  gchar *tmp1, *tmp2, *tmp3;
+
+  fs_plugin_search_path_init ();
+
+  tmp1 = g_strdup_printf ("(.+)-%s", type_suffix);
+  tmp2 = g_module_build_path ("", tmp1);
+  tmp3 = g_strconcat ("^", tmp2, NULL);
+  matcher = g_regex_new (tmp3, 0, 0, NULL);
+  g_free (tmp1);
+  g_free (tmp2);
+  g_free (tmp3);
+
+
+  for (search_path = search_paths; *search_path; search_path++)
+  {
+    GDir *dir = NULL;
+    const gchar *entry;
+
+    dir = g_dir_open (*search_path, 0, &error);
+    if (!dir)
+    {
+      GST_WARNING ("Could not open path %s to look for plugins: %s",
+          search_path, error ? error->message : "Unknown error");
+      g_clear_error (&error);
+      continue;
+    }
+
+    while ((entry = g_dir_read_name (dir)))
+    {
+      gchar **matches = NULL;
+
+      matches = g_regex_split (matcher, entry, 0);
+
+      if (matches && g_strv_length (matches) == 3)
+      {
+        gint i;
+        gboolean found = FALSE;
+
+        for (i = 0; i < list->len; i++)
+        {
+          if (!strcmp (matches[1], g_ptr_array_index (list, i)))
+          {
+            found = TRUE;
+            break;
+          }
+        }
+        if (!found)
+          g_ptr_array_add (list, g_strdup (matches[1]));
+      }
+
+      g_strfreev (matches);
+    }
+
+    g_dir_close (dir);
+  }
+
+  g_regex_unref (matcher);
+
+  if (list->len)
+  {
+    g_ptr_array_add (list, NULL);
+    retval = (gchar**) list->pdata;
+    g_ptr_array_free (list, FALSE);
+  }
+  else
+  {
+    g_ptr_array_free (list, TRUE);
+  }
+
+  return retval;
+}

@@ -201,6 +201,7 @@ FsPlugin
 fs_plugin_create_valist
 fs_plugin_create
 FS_INIT_PLUGIN
+fs_plugin_list_available
 <SUBSECTION Standard>
 FsPluginClass
 FS_IS_PLUGIN

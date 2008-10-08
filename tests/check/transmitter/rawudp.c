@@ -26,6 +26,8 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+#include <gst/farsight/fs-plugin.h>
+
 #include <arpa/inet.h>
 #include <netdb.h>
 
@@ -62,6 +64,22 @@ GST_START_TEST (test_rawudptransmitter_new)
   FsTransmitter *trans;
   GstElement *pipeline;
   GstElement *trans_sink, *trans_src;
+  gchar **transmitters;
+  gint i;
+  gboolean found_it = FALSE;
+
+  transmitters = fs_plugin_list_available ("transmitter");
+  for (i=0; transmitters[i]; i++)
+  {
+    if (!strcmp ("rawudp", transmitters[i]))
+    {
+      found_it = TRUE;
+      break;
+    }
+  }
+  g_strfreev (transmitters);
+
+  ts_fail_unless (found_it, "Did not find rawudp transmitter");
 
   trans = fs_transmitter_new ("rawudp", 2, &error);
 
