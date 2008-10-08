@@ -26,8 +26,6 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-conference-iface.h>
 
-#include <gst/farsight/fs-plugin.h>
-
 #include <arpa/inet.h>
 #include <netdb.h>
 
@@ -68,7 +66,7 @@ GST_START_TEST (test_rawudptransmitter_new)
   gint i;
   gboolean found_it = FALSE;
 
-  transmitters = fs_plugin_list_available ("transmitter");
+  transmitters = fs_transmitter_list_available ();
   for (i=0; transmitters[i]; i++)
   {
     if (!strcmp ("rawudp", transmitters[i]))

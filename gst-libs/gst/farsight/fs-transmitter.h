@@ -114,6 +114,8 @@ void fs_transmitter_emit_error (FsTransmitter *transmitter,
     gchar *error_msg,
     gchar *debug_msg);
 
+char **fs_transmitter_list_available (void);
+
 
 G_END_DECLS
 

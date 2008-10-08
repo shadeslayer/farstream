@@ -346,3 +346,18 @@ fs_transmitter_emit_error (FsTransmitter *transmitter,
   g_signal_emit (transmitter, signals[ERROR_SIGNAL], 0, error_no,
       error_msg, debug_msg);
 }
+
+/**
+ * fs_transmitter_list_available:
+ *
+ * Get the list of all available transmitters
+ *
+ * Returns: a newly allocated array of strings containing the list of all
+ *  available transmitters or %NULL if there are none
+ */
+
+char **
+fs_transmitter_list_available (void)
+{
+  return fs_plugin_list_available ("transmitter");
+}
