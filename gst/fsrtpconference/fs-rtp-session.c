@@ -2328,7 +2328,7 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
  */
 
 static GstElement *
-_create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
+_create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
     const gchar *name, gboolean is_send, GError **error)
 {
   GList *pipeline_factory = NULL;
@@ -2339,9 +2339,9 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
   gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
 
   if (is_send)
-    pipeline_factory = blueprint->send_pipeline_factory;
+    pipeline_factory = ca->blueprint->send_pipeline_factory;
   else
-    pipeline_factory = blueprint->receive_pipeline_factory;
+    pipeline_factory = ca->blueprint->receive_pipeline_factory;
 
   if (!pipeline_factory)
   {
@@ -2485,9 +2485,8 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
  * @session: a #FsRtpSession
  * @pt: The payload type to find the codec for
  * @stream: an optional #FsRtpStream for which this data is received
- * @bp: Then returned CodecBlueprint to create a codecbin
  *
- * This function returns the codec and blueprint that will be used to receive
+ * This function returns the #CodecAssociation that will be used to receive
  * data on a specific payload type, optionally from a specific stream.
  *
  * MUST be called with the FsRtpSession lock held
@@ -2604,7 +2603,7 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
   }
 
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
-  codecbin = _create_codec_bin (ca->blueprint, ca->codec, name, FALSE, error);
+  codecbin = _create_codec_bin (ca, ca->codec, name, FALSE, error);
   g_free (name);
 
   if (!codecbin)
@@ -2625,7 +2624,6 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
 /**
  * fs_rtp_session_select_send_codec_locked:
  * @session: the #FsRtpSession
- * @blueprint: a pointer where the current #CodecBlueprint can be stored
  *
  * This function selects the codec to send using either the user preference
  * or the remote preference (from the negotiation).
@@ -2736,7 +2734,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
       FS_CODEC_ARGS (codec));
 
   name = g_strdup_printf ("send_%d_%d", session->id, codec->id);
-  codecbin = _create_codec_bin (ca->blueprint, codec, name, TRUE, error);
+  codecbin = _create_codec_bin (ca, codec, name, TRUE, error);
   g_free (name);
 
   if (!codecbin)
@@ -3543,8 +3541,8 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
   }
 
   tmp = g_strdup_printf ("discover_%d_%d", session->id, ca->codec->id);
-  session->priv->discovery_codecbin = _create_codec_bin (ca->blueprint,
-      ca->codec, tmp, TRUE, error);
+  session->priv->discovery_codecbin = _create_codec_bin (ca, ca->codec,
+      tmp, TRUE, error);
   g_free (tmp);
 
   if (!session->priv->discovery_codecbin)
