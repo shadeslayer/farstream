@@ -241,11 +241,10 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     GList *remote_codecs,
     GError **error);
 
-static FsCodec *
+static CodecAssociation *
 fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     guint pt,
     FsRtpStream *stream,
-    CodecBlueprint **bp,
     GError **error);
 
 static void
@@ -2493,14 +2492,13 @@ _create_codec_bin (CodecBlueprint *blueprint, const FsCodec *codec,
  *
  * MUST be called with the FsRtpSession lock held
  *
- * Returns: A new #FsCodec or %NULL on error
+ * Returns: a #CodecAssociation, the caller doesn't own it
  */
 
-static FsCodec *
+static CodecAssociation *
 fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     guint pt,
     FsRtpStream *stream,
-    CodecBlueprint **bp,
     GError **error)
 {
   FsCodec *recv_codec = NULL;
@@ -2558,10 +2556,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
         FS_CODEC_ARGS (recv_codec));
   }
 
-  if (bp)
-    *bp = ca->blueprint;
-
-  return recv_codec;
+  return ca;
 }
 
 /**
@@ -2589,39 +2584,36 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
   GstElement *codecbin = NULL;
   gchar *name;
   FsCodec *current_codec = NULL;
-  FsCodec *new_codec = NULL;
-  CodecBlueprint *bp = NULL;
+  CodecAssociation *ca = NULL;
 
   FS_RTP_SESSION_LOCK (session);
 
-  new_codec = fs_rtp_session_get_recv_codec_locked (session, pt, stream, &bp,
-      error);
+  ca = fs_rtp_session_get_recv_codec_locked (session, pt, stream, error);
 
-  if (!new_codec)
+  if (!ca)
     goto out;
 
   g_object_get (substream,
       "codec", &current_codec,
       NULL);
 
-  if (fs_codec_are_equal (new_codec, current_codec))
+  if (fs_codec_are_equal (ca->codec, current_codec))
   {
     ret = TRUE;
     goto out;
   }
 
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
-  codecbin = _create_codec_bin (bp, new_codec, name, FALSE, error);
+  codecbin = _create_codec_bin (ca->blueprint, ca->codec, name, FALSE, error);
   g_free (name);
 
   if (!codecbin)
     goto out;
 
-  ret = fs_rtp_sub_stream_set_codecbin (substream, new_codec, codecbin, error);
+  ret = fs_rtp_sub_stream_set_codecbin (substream, ca->codec, codecbin, error);
 
  out:
 
-  fs_codec_destroy (new_codec);
   fs_codec_destroy (current_codec);
 
   FS_RTP_SESSION_UNLOCK (session);
