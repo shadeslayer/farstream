@@ -2712,7 +2712,7 @@ out:
  * fs_rtp_session_add_send_codec_bin:
  * @session: a #FsRtpSession
  * @codec: a #FsCodec
- * @blueprint: the #CodecBlueprint to use
+ * @ca: the #CodecAssociation to use
  *
  * This function creates, adds and links a codec bin for the current send remote
  * codec
@@ -2725,7 +2725,7 @@ out:
 static GstElement *
 fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
     const FsCodec *codec,
-    CodecBlueprint *blueprint,
+    const CodecAssociation *ca,
     GError **error)
 {
   GstElement *codecbin = NULL;
@@ -2736,7 +2736,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
       FS_CODEC_ARGS (codec));
 
   name = g_strdup_printf ("send_%d_%d", session->id, codec->id);
-  codecbin = _create_codec_bin (blueprint, codec, name, TRUE, error);
+  codecbin = _create_codec_bin (ca->blueprint, codec, name, TRUE, error);
   g_free (name);
 
   if (!codecbin)
@@ -2908,7 +2908,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
 
   codecbin = fs_rtp_session_add_send_codec_bin (self, codec_without_config,
-      ca->blueprint, &error);
+      ca, &error);
 
   if (!codecbin)
   {
@@ -2989,7 +2989,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
     /* The codec does exist yet, lets just create it */
 
    codecbin = fs_rtp_session_add_send_codec_bin (self, codec_without_config,
-       ca->blueprint, error);
+       ca, error);
    if (!codecbin)
      /* We have an error !! */
      goto error;
