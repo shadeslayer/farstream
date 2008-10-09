@@ -2632,12 +2632,11 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
  *
  * You MUST own the FsRtpSession mutex to call this function
  *
- * Returns: a newly-allocated #FsCodec or %NULL on error
+ * Returns: a #CodecAssociation, the caller doesn't own it
  */
 
-static FsCodec *
+static CodecAssociation *
 fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
-    CodecBlueprint **blueprint,
     GError **error)
 {
   CodecAssociation *ca = NULL;
@@ -2705,15 +2704,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
 
 out:
 
-  if (ca)
-  {
-    *blueprint = ca->blueprint;
-    return codec_copy_without_config (ca->codec);
-  }
-  else
-  {
-    return NULL;
-  }
+  return ca;
 }
 
 
@@ -2857,24 +2848,26 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     gpointer user_data)
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
-  FsCodec *codec = NULL;
-  CodecBlueprint *bp = NULL;
+  CodecAssociation *ca = NULL;
+  FsCodec *codec_without_config = NULL;
   GError *error = NULL;
   GstElement *codecbin = NULL;
 
   FS_RTP_SESSION_LOCK (self);
-  codec = fs_rtp_session_select_send_codec_locked (self, &bp, &error);
+  ca = fs_rtp_session_select_send_codec_locked (self, &error);
 
-  if (!codec)
+  if (!ca)
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not select a new send codec", error->message);
     goto done;
   }
 
+  codec_without_config = codec_copy_without_config (ca->codec);
+
   g_clear_error (&error);
 
-  if (fs_codec_are_equal (codec, self->priv->current_send_codec))
+  if (fs_codec_are_equal (codec_without_config, self->priv->current_send_codec))
     goto done;
 
 
@@ -2897,7 +2890,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   self->priv->extra_sources = fs_rtp_special_sources_remove (
       self->priv->extra_sources,
-      self->priv->codec_associations, codec,
+      self->priv->codec_associations, codec_without_config,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
   if (error)
@@ -2914,8 +2907,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
 
 
-  codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp,
-      &error);
+  codecbin = fs_rtp_session_add_send_codec_bin (self, codec_without_config,
+      ca->blueprint, &error);
 
   if (!codecbin)
   {
@@ -2926,7 +2919,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   self->priv->extra_sources = fs_rtp_special_sources_create (
       self->priv->extra_sources,
-      self->priv->codec_associations, codec,
+      self->priv->codec_associations, codec_without_config,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
   if (error)
@@ -2946,7 +2939,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
    * with the right caps to come in. Only then can we drop the pad block
    */
 
-  fs_codec_destroy (codec);
+  fs_codec_destroy (codec_without_config);
 
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
 
@@ -2968,16 +2961,19 @@ static gboolean
 fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 {
   GstElement *codecbin = NULL;
-  FsCodec *codec = NULL;
-  CodecBlueprint *bp = NULL;
+  CodecAssociation *ca = NULL;
+  FsCodec *codec_without_config = NULL;
 
-  codec = fs_rtp_session_select_send_codec_locked (self, &bp, error);
-  if (!codec)
+  ca = fs_rtp_session_select_send_codec_locked (self, error);
+  if (!ca)
     return FALSE;
+
+  codec_without_config = codec_copy_without_config (ca->codec);
 
   if (self->priv->current_send_codec)
   {
-    if (fs_codec_are_equal (codec, self->priv->current_send_codec))
+    if (fs_codec_are_equal (codec_without_config,
+            self->priv->current_send_codec))
       goto done;
 
     /* If we have to change an already made pipeline,
@@ -2992,25 +2988,26 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   {
     /* The codec does exist yet, lets just create it */
 
-   codecbin = fs_rtp_session_add_send_codec_bin (self, codec, bp, error);
+   codecbin = fs_rtp_session_add_send_codec_bin (self, codec_without_config,
+       ca->blueprint, error);
    if (!codecbin)
      /* We have an error !! */
      goto error;
 
     self->priv->extra_sources = fs_rtp_special_sources_create (
         self->priv->extra_sources,
-        self->priv->codec_associations, codec,
+        self->priv->codec_associations, codec_without_config,
         GST_ELEMENT (self->priv->conference),
         self->priv->rtpmuxer);
   }
 
  done:
 
-  fs_codec_destroy (codec);
+  fs_codec_destroy (codec_without_config);
   return TRUE;
 
  error:
-  fs_codec_destroy (codec);
+  fs_codec_destroy (codec_without_config);
   return FALSE;
 }
 
