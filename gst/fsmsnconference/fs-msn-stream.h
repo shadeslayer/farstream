@@ -52,31 +52,30 @@ typedef struct _FsMsnStreamPrivate FsMsnStreamPrivate;
 
 
 struct _FsMsnStreamClass
-  {
-    FsStreamClass parent_class;
+{
+  FsStreamClass parent_class;
 
-  };
+};
 
 /**
  * FsMsnStream:
  *
  */
 struct _FsMsnStream
-  {
-    FsStream parent;
+{
+  FsStream parent;
 
-
-
-    FsMsnStreamPrivate *priv;
-  };
+  /*< private >*/
+  FsMsnStreamPrivate *priv;
+};
 
 GType fs_msn_stream_get_type (void);
 
 FsMsnStream *fs_msn_stream_new (FsMsnSession *session,
-                                FsMsnParticipant *participant,
-                                FsStreamDirection direction,
-                                FsMsnConference *conference,
-                                GError **error);
+    FsMsnParticipant *participant,
+    FsStreamDirection direction,
+    FsMsnConference *conference,
+    GError **error);
 
 
 G_END_DECLS
