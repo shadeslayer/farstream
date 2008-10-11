@@ -61,17 +61,17 @@ struct _FsMsnSessionClass
  *
  */
 struct _FsMsnSession
-  {
-    FsSession parent;
+{
+  FsSession parent;
 
-    guint id;
+  guint id;
 
-    /*< private >*/
+  /*< private >*/
 
-    GStaticRecMutex mutex; /* Should only be accessed using the macros */
+  GStaticRecMutex mutex; /* Should only be accessed using the macros */
 
-    FsMsnSessionPrivate *priv;
-  };
+  FsMsnSessionPrivate *priv;
+};
 
 #define FS_MSN_SESSION_LOCK(session) \
   g_static_rec_mutex_lock (&FS_MSN_SESSION (session)->mutex)
@@ -82,11 +82,13 @@ struct _FsMsnSession
 GType fs_msn_session_get_type (void);
 
 FsMsnSession *fs_msn_session_new (FsMediaType media_type,
-                                  FsMsnConference *conference,
-                                  guint id,GError **error);
+    FsMsnConference *conference,
+    guint id,
+    GError **error);
 
-void fs_msn_session_new_recv_pad (FsMsnSession *session, GstPad *new_pad,
-                                  guint32 ssrc, guint pt);
+void fs_msn_session_new_recv_pad (FsMsnSession *session,
+    GstPad *new_pad,
+    guint32 ssrc, guint pt);
 
 G_END_DECLS
 

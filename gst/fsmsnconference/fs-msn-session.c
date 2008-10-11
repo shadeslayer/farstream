@@ -61,18 +61,18 @@ enum
 
 
 struct _FsMsnSessionPrivate
-  {
-    FsMediaType media_type;
+{
+  FsMediaType media_type;
 
-    FsMsnConference *conference;
+  FsMsnConference *conference;
 
-    /* These lists are protected by the session mutex */
-    GList *streams;
+  /* These lists are protected by the session mutex */
+  GList *streams;
 
-    GError *construction_error;
+  GError *construction_error;
 
-    gboolean disposed;
-  };
+  gboolean disposed;
+};
 
 G_DEFINE_TYPE (FsMsnSession, fs_msn_session, FS_TYPE_SESSION);
 
@@ -123,17 +123,17 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
   session_class->new_stream = fs_msn_session_new_stream;
 
   g_object_class_override_property (gobject_class,
-                                    PROP_MEDIA_TYPE, "media-type");
+      PROP_MEDIA_TYPE, "media-type");
   g_object_class_override_property (gobject_class,
-                                    PROP_ID, "id");
+      PROP_ID, "id");
 
   g_object_class_install_property (gobject_class,
-                                   PROP_CONFERENCE,
-                                   g_param_spec_object ("conference",
-                                                        "The Conference this stream refers to",
-                                                        "This is a convience pointer for the Conference",
-                                                        FS_TYPE_MSN_CONFERENCE,
-                                                        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      PROP_CONFERENCE,
+      g_param_spec_object ("conference",
+          "The Conference this stream refers to",
+          "This is a convience pointer for the Conference",
+          FS_TYPE_MSN_CONFERENCE,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_msn_session_dispose;
   gobject_class->finalize = fs_msn_session_finalize;
@@ -153,20 +153,6 @@ fs_msn_session_init (FsMsnSession *self)
 
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
 }
-
-/*static void
-stop_and_remove (GstBin *conf, GstElement **element, gboolean unref)
-{
-  if (*element == NULL)
-    return;
-
-  gst_element_set_locked_state (*element, TRUE);
-  gst_element_set_state (*element, GST_STATE_NULL);
-  gst_bin_remove (conf, *element);
-  if (unref)
-    gst_object_unref (*element);
-  *element = NULL;
-}*/
 
 static void
 fs_msn_session_dispose (GObject *object)
@@ -207,20 +193,20 @@ fs_msn_session_get_property (GObject *object,
   FsMsnSession *self = FS_MSN_SESSION (object);
 
   switch (prop_id)
-    {
-      case PROP_MEDIA_TYPE:
-        g_value_set_enum (value, self->priv->media_type);
-        break;
-      case PROP_ID:
-        g_value_set_uint (value, self->id);
-        break;
-      case PROP_CONFERENCE:
-        g_value_set_object (value, self->priv->conference);
-        break;
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
+  {
+    case PROP_MEDIA_TYPE:
+      g_value_set_enum (value, self->priv->media_type);
+      break;
+    case PROP_ID:
+      g_value_set_uint (value, self->id);
+      break;
+    case PROP_CONFERENCE:
+      g_value_set_object (value, self->priv->conference);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
@@ -232,20 +218,20 @@ fs_msn_session_set_property (GObject *object,
   FsMsnSession *self = FS_MSN_SESSION (object);
 
   switch (prop_id)
-    {
-      case PROP_MEDIA_TYPE:
-        self->priv->media_type = g_value_get_enum (value);
-        break;
-      case PROP_ID:
-        self->id = g_value_get_uint (value);
-        break;
-      case PROP_CONFERENCE:
-        self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
-        break;
-      default:
-        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-        break;
-    }
+  {
+    case PROP_MEDIA_TYPE:
+      self->priv->media_type = g_value_get_enum (value);
+      break;
+    case PROP_ID:
+      self->id = g_value_get_uint (value);
+      break;
+    case PROP_CONFERENCE:
+      self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 static void
@@ -271,11 +257,12 @@ _remove_stream (gpointer user_data,
  * fs_msn_session_new_stream:
  * @session: an #FsMsnSession
  * @participant: #FsParticipant of a participant for the new stream
- * @direction: #FsStreamDirection describing the direction of the new stream that will
- * be created for this participant
+ * @direction: #FsStreamDirection describing the direction of the new stream
+ * that will be created for this participant
  * @error: location of a #GError, or NULL if no error occured
  *
- * This function creates a stream for the given participant into the active session.
+ * This function creates a stream for the given participant into the active
+ * session.
  *
  * Returns: the new #FsStream that has been created. User must unref the
  * #FsStream when the stream is ended. If an error occured, returns NULL.
@@ -295,15 +282,15 @@ fs_msn_session_new_stream (FsSession *session,
 
 
   if (!FS_IS_MSN_PARTICIPANT (participant))
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-                   "You have to provide a participant of type MSN");
-      return NULL;
-    }
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "You have to provide a participant of type MSN");
+    return NULL;
+  }
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-                               direction,self->priv->conference,error));
+          direction,self->priv->conference,error));
 
   FS_MSN_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
