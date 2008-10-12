@@ -67,9 +67,7 @@ struct _FsMsnSessionPrivate
   FsMediaType media_type;
 
   FsMsnConference *conference;
-
-  /* These lists are protected by the session mutex */
-  GList *streams;
+  FsMsnStream *stream;
 
   GError *construction_error;
 
@@ -250,8 +248,8 @@ _remove_stream (gpointer user_data,
   FsMsnSession *self = FS_MSN_SESSION (user_data);
 
   FS_MSN_SESSION_LOCK (self);
-  self->priv->streams =
-    g_list_remove_all (self->priv->streams, where_the_object_was);
+  if (self->priv->stream == (FsMsnStream *) where_the_object_was)
+    self->priv->stream = NULL;
   FS_MSN_SESSION_UNLOCK (self);
 }
 
@@ -289,36 +287,49 @@ fs_msn_session_new_stream (FsSession *session,
         "You have to provide a participant of type MSN");
     return NULL;
   }
+
+  FS_MSN_SESSION_LOCK (self);
+  if (self->priv->stream)
+  {
+    FS_MSN_SESSION_UNLOCK (self);
+    g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
+        "There already is a stream in this session");
+    return NULL;
+  }
+  FS_MSN_SESSION_UNLOCK (self);
+
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
           direction,self->priv->conference,error));
 
-  FS_MSN_SESSION_LOCK (self);
-  self->priv->streams = g_list_append (self->priv->streams, new_stream);
-  FS_MSN_SESSION_UNLOCK (self);
-
   g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+
+  FS_MSN_SESSION_LOCK (self);
+  self->priv->stream = (FsMsnStream *) new_stream;
+  FS_MSN_SESSION_UNLOCK (self);
 
   return new_stream;
 }
 
 FsMsnSession *
-fs_msn_session_new (FsMediaType media_type, FsMsnConference *conference,
-                    guint id, GError **error)
+fs_msn_session_new (FsMediaType media_type,
+    FsMsnConference *conference,
+    guint id,
+    GError **error)
 {
   FsMsnSession *session = g_object_new (FS_TYPE_MSN_SESSION,
-                                        "media-type", media_type,
-                                        "conference", conference,
-                                        "id", id,
-                                        NULL);
+      "media-type", media_type,
+      "conference", conference,
+      "id", id,
+      NULL);
 
   if (session->priv->construction_error)
-    {
-      g_propagate_error (error, session->priv->construction_error);
-      g_object_unref (session);
-      return NULL;
-    }
+  {
+    g_propagate_error (error, session->priv->construction_error);
+    g_object_unref (session);
+    return NULL;
+  }
 
   return session;
 }
