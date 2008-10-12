@@ -1,9 +1,10 @@
 /*
  * Farsight2 - Farsight MSN Stream
  *
- *  @author: Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2007 Nokia Corp.
+ * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- *  Based on work done by Rob Taylor, Philippe Khalaf
  *
  * fs-msn-stream.c - A Farsight MSN Stream gobject
  *
@@ -415,7 +416,7 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
+    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
 
     if (!ffmpegcolorspace)
     {
@@ -442,7 +443,8 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    self->priv->media_fd_sink = gst_element_factory_make ("fdsink", "send_fd_sink");
+    self->priv->media_fd_sink = gst_element_factory_make ("fdsink",
+        "send_fd_sink");
 
     if (!self->priv->media_fd_sink)
     {
@@ -452,7 +454,8 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->media_fd_sink))
+    if (!gst_bin_add (GST_BIN (self->priv->conference),
+            self->priv->media_fd_sink))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
@@ -496,11 +499,13 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    GstPad *tmp_sink_pad = gst_element_get_static_pad (self->priv->send_valve, "sink");
+    GstPad *tmp_sink_pad = gst_element_get_static_pad (self->priv->send_valve,
+        "sink");
     self->priv->sink_pad = gst_ghost_pad_new ("sink", tmp_sink_pad);
     gst_pad_set_active(self->priv->sink_pad, TRUE);
 
-    gst_element_link_many(self->priv->send_valve,ffmpegcolorspace,mimenc,self->priv->media_fd_sink,NULL);
+    gst_element_link_many(self->priv->send_valve, ffmpegcolorspace, mimenc,
+        self->priv->media_fd_sink, NULL);
   }
   else if (self->priv->direction == FS_DIRECTION_RECV)
   {
@@ -538,7 +543,7 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", "ffmpegcolorspace");
+    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
 
     if (!ffmpegcolorspace)
     {
@@ -566,7 +571,8 @@ fs_msn_stream_constructed (GObject *object)
     }
 
 
-    self->priv->media_fd_src = gst_element_factory_make ("fdsrc", "recv_fd_src");
+    self->priv->media_fd_src = gst_element_factory_make ("fdsrc",
+        "recv_fd_src");
 
     if (!self->priv->media_fd_src)
     {
@@ -577,7 +583,8 @@ fs_msn_stream_constructed (GObject *object)
     }
 
     g_object_set (G_OBJECT(self->priv->media_fd_src), "blocksize", 512, NULL);
-    if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->media_fd_src))
+    if (!gst_bin_add (GST_BIN (self->priv->conference),
+            self->priv->media_fd_src))
     {
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
@@ -624,7 +631,8 @@ fs_msn_stream_constructed (GObject *object)
     GstPad *tmp_src_pad = gst_element_get_static_pad (valve, "src");
     self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
     gst_pad_set_active(self->priv->src_pad, TRUE);
-    gst_element_link_many(self->priv->media_fd_src,mimdec,ffmpegcolorspace,valve,NULL);
+    gst_element_link_many(self->priv->media_fd_src, mimdec, ffmpegcolorspace,
+        valve, NULL);
   }
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
@@ -745,7 +753,8 @@ static gboolean successfull_connection_cb (GIOChannel *ch,
       g_message("Setting media_fd_src on fd %d",fd);
 
       GstState state;
-      gst_element_get_state(self->priv->media_fd_src,&state,NULL,GST_CLOCK_TIME_NONE);
+      gst_element_get_state(self->priv->media_fd_src, &state, NULL,
+          GST_CLOCK_TIME_NONE);
 
       if ( state > GST_STATE_READY)
       {
@@ -761,7 +770,8 @@ static gboolean successfull_connection_cb (GIOChannel *ch,
       g_message("Setting media_fd_sink on fd %d",fd);
 
       GstState state;
-      gst_element_get_state(self->priv->media_fd_sink,&state,NULL,GST_CLOCK_TIME_NONE);
+      gst_element_get_state(self->priv->media_fd_sink, &state, NULL,
+          GST_CLOCK_TIME_NONE);
 
       if ( state > GST_STATE_READY)
       {
@@ -1081,7 +1091,8 @@ fs_msn_authenticate_outgoing (FsMsnStream *stream, gint fd)
   if (fd != 0)
   {
     g_message ("Authenticating connection on %d...", fd);
-    g_message ("sending : recipientid=%d&sessionid=%d\r\n\r\n",self->priv->remote_recipientid,self->priv->remote_sessionid);
+    g_message ("sending : recipientid=%d&sessionid=%d\r\n\r\n",
+        self->priv->remote_recipientid, self->priv->remote_sessionid);
     sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
         self->priv->remote_recipientid, self->priv->remote_sessionid);
     if (send(fd, str, strlen(str), 0) == -1)

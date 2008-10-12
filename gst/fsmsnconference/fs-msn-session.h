@@ -1,7 +1,9 @@
 /*
  * Farsight2 - Farsight MSN Session
  *
- *  @author: Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2007 Nokia Corp.
+ * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * fs-msn-session.h - A Farsight Msn Session gobject

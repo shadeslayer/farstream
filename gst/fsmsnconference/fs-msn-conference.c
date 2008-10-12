@@ -1,6 +1,9 @@
 /*
  * Farsight2 - Farsight MSN Conference Implementation
  *
+ * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2007 Nokia Corp.
+ * Copyright 2007 Collabora Ltd.
  *  @author: Richard Spiers <richard.spiers@gmail.com>
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
