@@ -1,6 +1,6 @@
 plugin_LTLIBRARIES = libfsmsnconference.la
 
-libfsmsnconference_la_SOURCES = gstfsmsnconference.c \
+libfsmsnconference_la_SOURCES = \
 	fs-msn-conference.c \
 	fs-msn-participant.c \
 	fs-msn-session.c \

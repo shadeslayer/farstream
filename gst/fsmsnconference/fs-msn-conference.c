@@ -414,3 +414,22 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
 
   return new_participant;
 }
+
+
+static gboolean plugin_init (GstPlugin * plugin)
+{
+  return gst_element_register (plugin, "fsmsnconference",
+                               GST_RANK_NONE, FS_TYPE_MSN_CONFERENCE);
+}
+
+GST_PLUGIN_DEFINE (
+  GST_VERSION_MAJOR,
+  GST_VERSION_MINOR,
+  "fsmsnconference",
+  "Farsight MSN Conference plugin",
+  plugin_init,
+  VERSION,
+  "LGPL",
+  "Farsight",
+  "http://farsight.freedesktop.org/"
+)
