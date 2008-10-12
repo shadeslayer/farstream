@@ -43,7 +43,6 @@ G_BEGIN_DECLS
   (G_TYPE_CHECK_INSTANCE_TYPE((obj),FS_TYPE_MSN_CONFERENCE))
 #define FS_IS_MSN_CONFERENCE_CLASS(klass) \
   (G_TYPE_CHECK_CLASS_TYPE((klass),FS_TYPE_MSN_CONFERENCE))
-/* since 0.10.4 */
 #define FS_MSN_CONFERENCE_CAST(obj) \
   ((FsMsnConference *)(obj))
 
