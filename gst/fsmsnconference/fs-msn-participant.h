@@ -43,32 +43,31 @@ G_BEGIN_DECLS
 #define FS_MSN_PARTICIPANT_GET_CLASS(obj) \
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_MSN_PARTICIPANT, \
                               FsMsnParticipantClass))
-#define FS_Msn_PARTICIPANT_CAST(obj) ((FsMsnParticipant *) (obj))
+#define FS_MSN_PARTICIPANT_CAST(obj) ((FsMsnParticipant *) (obj))
 
 typedef struct _FsMsnParticipant FsMsnParticipant;
 typedef struct _FsMsnParticipantClass FsMsnParticipantClass;
 typedef struct _FsMsnParticipantPrivate FsMsnParticipantPrivate;
 
 struct _FsMsnParticipantClass
-  {
-    FsParticipantClass parent_class;
+{
+  FsParticipantClass parent_class;
 
-    /*virtual functions */
+  /*virtual functions */
 
-    /*< private >*/
-    FsMsnParticipantPrivate *priv;
-  };
+  /*< private >*/
+  FsMsnParticipantPrivate *priv;
+};
 
 /**
  * FsMsnParticipant:
  *
  */
 struct _FsMsnParticipant
-  {
-    FsParticipant parent;
-    FsMsnParticipantPrivate *priv;
-
-  };
+{
+  FsParticipant parent;
+  FsMsnParticipantPrivate *priv;
+};
 
 GType fs_msn_participant_get_type (void);
 
@@ -76,4 +75,4 @@ FsMsnParticipant *fs_msn_participant_new (gchar *cname);
 
 G_END_DECLS
 
-#endif /* __FS_Msn_PARTICIPANT_H__ */
+#endif /* __FS_MSN_PARTICIPANT_H__ */
