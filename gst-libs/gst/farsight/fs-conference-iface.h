@@ -105,6 +105,7 @@ GType fs_conference_get_type (void);
  * codec preferences, one should try less strict codec preferences.
  * @FS_ERROR_CONNECTION_FAILED: Could not connect to the to remote party.
  * @FS_ERROR_DISPOSED: The object has been disposed.
+ * @FS_ERROR_ALREADY_EXISTS: The object already exists
  *
  * This is the enum of error numbers that will come either on the "error"
  * signal, from the Gst Bus or for error in the FS_ERROR domain in GErrors
@@ -123,6 +124,7 @@ typedef enum {
   FS_ERROR_NO_CODECS_LEFT,
   FS_ERROR_CONNECTION_FAILED,
   FS_ERROR_DISPOSED,
+  FS_ERROR_ALREADY_EXISTS
 } FsError;
 
 /**
