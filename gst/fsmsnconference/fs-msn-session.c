@@ -71,6 +71,9 @@ struct _FsMsnSessionPrivate
 
   GError *construction_error;
 
+  GstPad *media_sink_pad;
+  GstElement *valve;
+
   gboolean disposed;
 };
 
@@ -155,6 +158,20 @@ fs_msn_session_init (FsMsnSession *self)
 }
 
 static void
+stop_and_remove (GstBin *conf, GstElement **element, gboolean unref)
+{
+  if (*element == NULL)
+    return;
+
+  gst_element_set_locked_state (*element, TRUE);
+  gst_element_set_state (*element, GST_STATE_NULL);
+  gst_bin_remove (conf, *element);
+  if (unref)
+    gst_object_unref (*element);
+  *element = NULL;
+}
+
+static void
 fs_msn_session_dispose (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
@@ -166,7 +183,10 @@ fs_msn_session_dispose (GObject *object)
 
   conferencebin = GST_BIN (self->priv->conference);
 
-  FS_MSN_SESSION_UNLOCK (self);
+  stop_and_remove (conferencebin, &self->priv->valve, TRUE);
+
+  if (self->priv->media_sink_pad)
+    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -237,6 +257,49 @@ fs_msn_session_set_property (GObject *object,
 static void
 fs_msn_session_constructed (GObject *object)
 {
+  FsMsnSession *self = FS_MSN_SESSION (object);
+  GstPad *pad;
+
+  self->priv->valve = gst_element_factory_make ("fsvalve", NULL);
+
+  if (!self->priv->valve)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not make sink valve");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
+    return;
+  }
+
+  pad = gst_element_get_static_pad (self->priv->valve, "sink");
+  self->priv->media_sink_pad = gst_ghost_pad_new ("sink1", pad);
+  gst_object_unref (pad);
+
+  if (!pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not create sink ghost pad");
+    return;
+  }
+
+  gst_pad_set_active (self->priv->media_sink_pad, TRUE);
+  if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
+          self->priv->media_sink_pad))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add sink pad to conference");
+    gst_object_unref (self->priv->media_sink_pad);
+    self->priv->media_sink_pad = NULL;
+    return;
+  }
+
+  gst_element_sync_state_with_parent (self->priv->valve);
+
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
