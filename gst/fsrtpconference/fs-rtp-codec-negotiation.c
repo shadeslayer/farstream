@@ -78,6 +78,12 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
         !g_ascii_strcasecmp (codec->encoding_name, "reserve-pt"))
       goto accept_codec;
 
+    /* Accept codecs that have hardcoded profiles */
+    /* TODO: We should test if the profiles are buildable */
+    if (fs_codec_get_optional_parameter (codec, "recv_profile", NULL) &&
+        fs_codec_get_optional_parameter (codec, "send_profile", NULL))
+      goto accept_codec;
+
 
     for (blueprint_e = g_list_first (blueprints);
          blueprint_e;
