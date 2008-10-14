@@ -623,7 +623,8 @@ fs_codec_remove_optional_parameter (FsCodec *codec,
  */
 
 FsCodecParameter *
-fs_codec_get_optional_parameter (FsCodec *codec, gchar *name, gchar *value)
+fs_codec_get_optional_parameter (FsCodec *codec, const gchar *name,
+    const gchar *value)
 {
   GList *item = NULL;
 
