@@ -49,12 +49,16 @@ typedef struct _CodecAssociation {
   CodecBlueprint *blueprint;
   FsCodec *codec;
 
+  gchar *send_profile;
+  gchar *recv_profile;
+
   /*< private >*/
 
   gboolean reserved;
   gboolean disable;
   gboolean need_config;
   gboolean recv_only;
+
 } CodecAssociation;
 
 

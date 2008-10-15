@@ -34,6 +34,10 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_nego
 
+#define SEND_PROFILE_ARG "send_profile"
+#define RECV_PROFILE_ARG "recv_profile"
+
+
 static CodecAssociation *
 lookup_codec_association_by_pt_list (GList *codec_associations, gint pt,
     gboolean want_empty);
@@ -80,8 +84,8 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
 
     /* Accept codecs that have hardcoded profiles */
     /* TODO: We should test if the profiles are buildable */
-    if (fs_codec_get_optional_parameter (codec, "recv_profile", NULL) &&
-        fs_codec_get_optional_parameter (codec, "send_profile", NULL))
+    if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
+        fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL))
       goto accept_codec;
 
 
@@ -166,6 +170,8 @@ _codec_association_destroy (CodecAssociation *ca)
     return;
 
   fs_codec_destroy (ca->codec);
+  g_free (ca->send_profile);
+  g_free (ca->recv_profile);
   g_slice_free (CodecAssociation, ca);
 }
 
@@ -284,6 +290,30 @@ match_original_codec_and_codec_pref (CodecAssociation *ca, gpointer user_data)
   return (tmpcodec != NULL);
 }
 
+static void
+codec_remove_parameter (FsCodec *codec, const gchar *param_name)
+{
+  FsCodecParameter *param;
+
+  param = fs_codec_get_optional_parameter (codec, param_name, NULL);
+
+  if (param)
+    fs_codec_remove_optional_parameter (codec, param);
+}
+
+static gchar *
+get_param_value (FsCodec *codec, const gchar *param_name)
+{
+  FsCodecParameter *param;
+
+  param = fs_codec_get_optional_parameter (codec, param_name, NULL);
+
+  if (param)
+    return g_strdup (param->value);
+  else
+    return NULL;
+}
+
 /**
  * create_local_codec_associations:
  * @blueprints: The #GList of CodecBlueprint
@@ -340,7 +370,11 @@ create_local_codec_associations (
     }
 
     /* No matching blueprint, can't use this codec */
-    if (!bp)
+    if (!bp &&
+        !(fs_codec_get_optional_parameter (codec_pref, SEND_PROFILE_ARG,
+                NULL) &&
+            fs_codec_get_optional_parameter (codec_pref, RECV_PROFILE_ARG,
+                NULL)))
     {
       GST_LOG ("Could not find matching blueprint for preferred codec %s/%s",
           fs_media_type_to_string (codec_pref->media_type),
@@ -375,13 +409,14 @@ create_local_codec_associations (
         if (codec)
         {
           GList *item = NULL;
+          FsCodecParameter *param;
 
           /* Keep the local configuration */
           for (item = oldca->codec->optional_params;
                item;
                item = g_list_next (item))
           {
-            FsCodecParameter *param = item->data;
+            param = item->data;
             if (codec_has_config_data_named (codec, param->name))
               fs_codec_add_optional_parameter (codec, param->name,
                   param->value);
@@ -389,7 +424,13 @@ create_local_codec_associations (
 
           ca = g_slice_new (CodecAssociation);
           memcpy (ca, oldca, sizeof (CodecAssociation));
+          codec_remove_parameter (codec, SEND_PROFILE_ARG);
+          codec_remove_parameter (codec, RECV_PROFILE_ARG);
           ca->codec = codec;
+
+          ca->send_profile = get_param_value (codec_pref, SEND_PROFILE_ARG);
+          ca->recv_profile = get_param_value (codec_pref, RECV_PROFILE_ARG);
+
           codec_associations = g_list_append (codec_associations, ca);
           continue;
         }
@@ -399,6 +440,12 @@ create_local_codec_associations (
     ca = g_slice_new0 (CodecAssociation);
     ca->blueprint = bp;
     ca->codec = fs_codec_copy (codec_pref);
+
+    codec_remove_parameter (ca->codec, SEND_PROFILE_ARG);
+    codec_remove_parameter (ca->codec, RECV_PROFILE_ARG);
+
+    ca->send_profile = get_param_value (codec_pref, SEND_PROFILE_ARG);
+    ca->recv_profile = get_param_value (codec_pref, RECV_PROFILE_ARG);
 
     /* Codec pref does not come with a number, but
      * The blueprint has its own id, lets use it */
@@ -646,6 +693,8 @@ negotiate_stream_codecs (
       new_ca->need_config = old_ca->need_config;
       new_ca->codec = nego_codec;
       new_ca->blueprint = old_ca->blueprint;
+      new_ca->send_profile = g_strdup (old_ca->send_profile);
+      new_ca->recv_profile = g_strdup (old_ca->recv_profile);
       tmp = fs_codec_to_string (nego_codec);
       GST_DEBUG ("Negotiated codec %s", tmp);
       g_free (tmp);
@@ -824,6 +873,8 @@ codec_association_copy (CodecAssociation *ca)
 
   memcpy (newca, ca, sizeof(CodecAssociation));
   newca->codec = fs_codec_copy (ca->codec);
+  newca->send_profile = g_strdup (ca->send_profile);
+  newca->recv_profile = g_strdup (ca->recv_profile);
 
   return newca;
 }
