@@ -289,6 +289,7 @@ reset_pad (gpointer data, gpointer user_data)
   GST_OBJECT_LOCK (pad);
   gst_segment_init (&priv->segment, GST_FORMAT_UNDEFINED);
   GST_OBJECT_UNLOCK (pad);
+  gst_object_unref (pad);
 }
 
 static GstStateChangeReturn
