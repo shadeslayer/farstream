@@ -450,35 +450,38 @@ create_local_codec_associations (
     ca->send_profile = get_param_value (codec_pref, SEND_PROFILE_ARG);
     ca->recv_profile = get_param_value (codec_pref, RECV_PROFILE_ARG);
 
-    /* Codec pref does not come with a number, but
-     * The blueprint has its own id, lets use it */
-    if (ca->codec->id == FS_CODEC_ID_ANY &&
-        (bp->codec->id >= 0 || bp->codec->id < 128))
-      ca->codec->id = bp->codec->id;
-
-    if (ca->codec->clock_rate == 0)
-      ca->codec->clock_rate = bp->codec->clock_rate;
-
-    if (ca->codec->channels == 0)
-      ca->codec->channels = bp->codec->channels;
-
-    for (bp_param_e = bp->codec->optional_params;
-         bp_param_e;
-         bp_param_e = g_list_next (bp_param_e))
+    if (bp)
     {
-      GList *pref_param_e = NULL;
-      FsCodecParameter *bp_param = bp_param_e->data;
-      for (pref_param_e = ca->codec->optional_params;
-           pref_param_e;
-           pref_param_e = g_list_next (pref_param_e))
+      /* Codec pref does not come with a number, but
+       * The blueprint has its own id, lets use it */
+      if (ca->codec->id == FS_CODEC_ID_ANY &&
+          (bp->codec->id >= 0 || bp->codec->id < 128))
+        ca->codec->id = bp->codec->id;
+
+      if (ca->codec->clock_rate == 0)
+        ca->codec->clock_rate = bp->codec->clock_rate;
+
+      if (ca->codec->channels == 0)
+        ca->codec->channels = bp->codec->channels;
+
+      for (bp_param_e = bp->codec->optional_params;
+           bp_param_e;
+           bp_param_e = g_list_next (bp_param_e))
       {
-        FsCodecParameter *pref_param = pref_param_e->data;
-        if (!g_ascii_strcasecmp (bp_param->name, pref_param->name))
-          break;
+        GList *pref_param_e = NULL;
+        FsCodecParameter *bp_param = bp_param_e->data;
+        for (pref_param_e = ca->codec->optional_params;
+             pref_param_e;
+             pref_param_e = g_list_next (pref_param_e))
+        {
+          FsCodecParameter *pref_param = pref_param_e->data;
+          if (!g_ascii_strcasecmp (bp_param->name, pref_param->name))
+            break;
+        }
+        if (!pref_param_e)
+          fs_codec_add_optional_parameter (ca->codec, bp_param->name,
+              bp_param->value);
       }
-      if (!pref_param_e)
-        fs_codec_add_optional_parameter (ca->codec, bp_param->name,
-            bp_param->value);
     }
 
     {
@@ -488,7 +491,6 @@ create_local_codec_associations (
     }
 
     codec_associations = g_list_append (codec_associations, ca);
-  }
 
   /* Now, only codecs with specified ids are here,
    * the rest are dynamic
@@ -523,6 +525,7 @@ create_local_codec_associations (
     }
   }
 
+  }
   /* Now, lets add all other codecs from the blueprints */
   for (bp_e = g_list_first (blueprints); bp_e; bp_e = g_list_next (bp_e)) {
     CodecBlueprint *bp = bp_e->data;
@@ -926,7 +929,8 @@ codec_association_is_valid_for_sending (CodecAssociation *ca)
   if (!ca->disable &&
       !ca->reserved &&
       !ca->recv_only &&
-      ca->blueprint && ca->blueprint->send_pipeline_factory)
+      ((ca->blueprint && ca->blueprint->send_pipeline_factory) ||
+          ca->send_profile))
     return TRUE;
   else
     return FALSE;
