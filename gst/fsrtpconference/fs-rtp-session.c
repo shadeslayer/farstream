@@ -2344,10 +2344,13 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
   else
     profile = ca->recv_profile;
 
-  if (is_send)
-    pipeline_factory = ca->blueprint->send_pipeline_factory;
-  else
-    pipeline_factory = ca->blueprint->receive_pipeline_factory;
+  if (ca->blueprint)
+  {
+    if (is_send)
+      pipeline_factory = ca->blueprint->send_pipeline_factory;
+    else
+      pipeline_factory = ca->blueprint->receive_pipeline_factory;
+  }
 
   if (profile)
   {
