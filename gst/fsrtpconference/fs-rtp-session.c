@@ -2337,11 +2337,38 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
   GstElement *current_element = NULL;
   GstElement *previous_element = NULL;
   gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
+  gchar *profile = NULL;
+
+  if (is_send)
+    profile = ca->send_profile;
+  else
+    profile = ca->recv_profile;
 
   if (is_send)
     pipeline_factory = ca->blueprint->send_pipeline_factory;
   else
     pipeline_factory = ca->blueprint->receive_pipeline_factory;
+
+  if (profile)
+  {
+    GError *tmperror = NULL;
+
+    codec_bin = gst_parse_bin_from_description (profile, TRUE, &tmperror);
+
+    if (codec_bin)
+    {
+      GST_DEBUG ("creating %s codec bin for id %d, profile: %s",
+          direction_str, codec->id, profile);
+      gst_element_set_name (codec_bin, name);
+      return codec_bin;
+    }
+
+    if (!pipeline_factory)
+    {
+      g_propagate_error (error, tmperror);
+      return NULL;
+    }
+  }
 
   if (!pipeline_factory)
   {
