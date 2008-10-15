@@ -29,6 +29,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
+#include <unistd.h>
+
 #include "check-threadsafe.h"
 #include "generic.h"
 
@@ -429,37 +431,29 @@ GST_START_TEST (test_rawudptransmitter_run_invalid_stun)
 }
 GST_END_TEST;
 
-GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
+GST_START_TEST (test_rawudptransmitter_run_stund)
 {
   GParameter params[3];
-  char buf[INET_ADDRSTRLEN];
-  struct addrinfo hints = {0};
-  struct addrinfo *res = NULL;
+  GError *error = NULL;
+  gint myout, myin;
+  GPid pid;
+  gchar *argv[] = {"stund", NULL};
 
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags = AI_ADDRCONFIG;
-
-  if (getaddrinfo ("stunserver.org", NULL, &hints, &res))
+  if (!g_spawn_async_with_pipes (NULL, argv, NULL,
+          G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, &myin, &myout, NULL,
+          &error))
   {
-    g_debug ("Could not resolve stunserver.org, skipping");
+    g_debug ("Could not spawn stund, skipping stun testing: %s",
+        error->message);
+    g_clear_error (&error);
     return;
   }
-
-  if (inet_ntop (AF_INET, &((struct sockaddr_in*)res->ai_addr)->sin_addr,
-          buf, INET_ADDRSTRLEN) == NULL)
-  {
-    g_debug ("Could not stringify address, skipping test");
-    return;
-  }
-
-  freeaddrinfo (res);
 
   memset (params, 0, sizeof (GParameter) * 3);
 
   params[0].name = "stun-ip";
   g_value_init (&params[0].value, G_TYPE_STRING);
-  g_value_set_string (&params[0].value, buf);
+  g_value_set_static_string (&params[0].value, "127.0.0.1");
 
   params[1].name = "stun-port";
   g_value_init (&params[1].value, G_TYPE_UINT);
@@ -470,6 +464,10 @@ GST_START_TEST (test_rawudptransmitter_run_stunserver_dot_org)
   g_value_set_uint (&params[2].value, 5);
 
   run_rawudp_transmitter_test (3, params, FLAG_HAS_STUN);
+
+  close (myout);
+  close (myin);
+  g_spawn_close_pid (pid);
 }
 GST_END_TEST;
 
@@ -648,9 +646,9 @@ rawudptransmitter_suite (void)
   tcase_add_test (tc_chain, test_rawudptransmitter_run_invalid_stun);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("rawudptransmitter-stunserver-org");
+  tc_chain = tcase_create ("rawudptransmitter-stund");
   tcase_set_timeout (tc_chain, 15);
-  tcase_add_test (tc_chain, test_rawudptransmitter_run_stunserver_dot_org);
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_stund);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("rawudptransmitter-local-candidates");
