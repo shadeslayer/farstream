@@ -2849,7 +2849,6 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   CodecAssociation *ca = NULL;
   FsCodec *codec_without_config = NULL;
   GError *error = NULL;
-  GstElement *codecbin = NULL;
 
   FS_RTP_SESSION_LOCK (self);
   ca = fs_rtp_session_select_send_codec_locked (self, &error);
@@ -2905,10 +2904,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
 
 
-  codecbin = fs_rtp_session_add_send_codec_bin (self, codec_without_config,
-      ca, &error);
-
-  if (!codecbin)
+  if (!fs_rtp_session_add_send_codec_bin (self, codec_without_config,
+          ca, &error))
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not build a new send codec bin", error->message);
@@ -2958,7 +2955,6 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 static gboolean
 fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 {
-  GstElement *codecbin = NULL;
   CodecAssociation *ca = NULL;
   FsCodec *codec_without_config = NULL;
 
@@ -2986,11 +2982,10 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   {
     /* The codec does exist yet, lets just create it */
 
-   codecbin = fs_rtp_session_add_send_codec_bin (self, codec_without_config,
-       ca, error);
-   if (!codecbin)
-     /* We have an error !! */
-     goto error;
+    if (!fs_rtp_session_add_send_codec_bin (self, codec_without_config,
+            ca, error))
+      /* We have an error !! */
+      goto error;
 
     self->priv->extra_sources = fs_rtp_special_sources_create (
         self->priv->extra_sources,
