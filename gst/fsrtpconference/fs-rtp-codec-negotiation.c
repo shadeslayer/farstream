@@ -82,13 +82,6 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
         !g_ascii_strcasecmp (codec->encoding_name, "reserve-pt"))
       goto accept_codec;
 
-    /* Accept codecs that have hardcoded profiles */
-    /* TODO: We should test if the profiles are buildable */
-    if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
-        fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL))
-      goto accept_codec;
-
-
     for (blueprint_e = g_list_first (blueprints);
          blueprint_e;
          blueprint_e = g_list_next (blueprint_e))
@@ -140,13 +133,23 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
 
     /* If no blueprint was found */
     if (blueprint_e == NULL)
+    {
+      /* Accept codecs that have hardcoded profiles */
+      /* TODO: We should test if the profiles are buildable */
+      if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
+          fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL) &&
+          codec->id >= 0 && codec->id < 128 &&
+          codec->encoding_name && codec->clock_rate)
+        goto accept_codec;
+
       goto remove_this_codec;
+    }
 
   accept_codec:
     codec_e = g_list_next (codec_e);
 
     continue;
- remove_this_codec:
+  remove_this_codec:
     {
       GList *nextcodec_e = g_list_next (codec_e);
       gchar *tmp = fs_codec_to_string (codec);
