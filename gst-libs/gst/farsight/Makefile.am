@@ -24,7 +24,7 @@ BUILT_SOURCES = \
 		fs-enum-types.c \
 		fs-enum-types.h
 
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) fs-marshal.list
 
 libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-base-conference.c \
@@ -46,7 +46,17 @@ noinst_HEADERS = \
 	fs-marshal.h \
 	fs-private.h
 
-EXTRA_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = fs-marshal.list
+fs-marshal.list: $(libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) Makefile.am
+	( cd $(srcdir) && \
+	sed -n -e 's/.*_fs_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
+	$(libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) ) \
+	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
+	if cmp -s $@.tmp $@; then \
+		rm $@.tmp; \
+		touch $@; \
+	else \
+		mv $@.tmp $@; \
+	fi
 
 fs-marshal.h: Makefile fs-marshal.list
 		glib-genmarshal --header --prefix=_fs_marshal $(srcdir)/fs-marshal.list > fs-marshal.h.tmp

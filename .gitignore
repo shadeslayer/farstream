@@ -17,6 +17,7 @@ gst/fsrtpconference/gstfsrtpconference_doc.c
 transmitters/rawudp/fs-rawudp-marshal.[ch]
 
 gst-libs/gst/farsight/fs-marshal.[ch]
+gst-libs/gst/farsight/fs-marshal.list
 gst-libs/gst/farsight/fs-enum-types.[ch]
 
 docs/libs/farsight2-libs-decl-list.txt
