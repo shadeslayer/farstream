@@ -2322,6 +2322,49 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
   return ret;
 }
 
+static gboolean
+validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
+{
+  GstPad *pad = item;
+  GList *codecs = user_data;
+  GstCaps *caps;
+  GList *listitem = NULL;
+
+  caps = gst_pad_get_caps (pad);
+
+  if (gst_caps_is_empty (caps))
+  {
+    GST_WARNING_OBJECT (pad, "Caps on pad are empty");
+    goto error;
+  }
+
+  for (listitem = codecs; listitem; listitem = g_list_next (listitem))
+  {
+    FsCodec *codec = listitem->data;
+    GstCaps *tmpcaps = fs_codec_to_gst_caps (codec);
+    GstCaps *intersect = gst_caps_intersect (tmpcaps, caps);
+    gst_caps_unref (tmpcaps);
+
+    if (!gst_caps_is_empty (intersect))
+    {
+      GST_LOG_OBJECT (pad, "Pad matches " FS_CODEC_FORMAT,
+          FS_CODEC_ARGS (codec));
+      gst_object_unref (pad);
+      gst_caps_unref (caps);
+      gst_caps_unref (intersect);
+      return TRUE;
+    }
+    gst_caps_unref (intersect);
+  }
+
+ error:
+
+  gst_object_unref (pad);
+  gst_caps_unref (caps);
+  g_value_set_boolean (ret, FALSE);
+  return FALSE;
+}
+
 /*
  * Builds a codec bin in the specified direction for the specified codec
  * using the specified blueprint
@@ -2329,7 +2372,8 @@ _create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
 
 static GstElement *
 _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
-    const gchar *name, gboolean is_send, GError **error)
+    const gchar *name, gboolean is_send, GList *codecs,
+    GError **error)
 {
   GList *pipeline_factory = NULL;
   GList *walk = NULL;
@@ -2360,18 +2404,42 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
 
     if (codec_bin)
     {
+      if (codecs)
+      {
+        GstIterator *iter;
+        GValue valid = {0};
+        GstIteratorResult res;
+
+        iter = gst_element_iterate_src_pads (codec_bin);
+        g_value_init (&valid, G_TYPE_BOOLEAN);
+        do {
+          g_value_set_boolean (&valid, TRUE);
+          res = gst_iterator_fold (iter, validate_src_pads, &valid,
+              codecs);
+        } while ( res == GST_ITERATOR_RESYNC);
+        gst_iterator_free (iter);
+
+        if (!g_value_get_boolean (&valid))
+        {
+          gst_object_unref (codec_bin);
+          codec_bin = NULL;
+          goto try_factory;
+        }
+      }
+
       GST_DEBUG ("creating %s codec bin for id %d, profile: %s",
           direction_str, codec->id, profile);
       gst_element_set_name (codec_bin, name);
       return codec_bin;
     }
-
-    if (!pipeline_factory)
+    else if (!pipeline_factory)
     {
       g_propagate_error (error, tmperror);
       return NULL;
     }
   }
+
+ try_factory:
 
   if (!pipeline_factory)
   {
@@ -2633,7 +2701,7 @@ fs_rtp_session_substream_set_codec_bin (FsRtpSession *session,
   }
 
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
-  codecbin = _create_codec_bin (ca, ca->codec, name, FALSE, error);
+  codecbin = _create_codec_bin (ca, ca->codec, name, FALSE, NULL, error);
   g_free (name);
 
   if (!codecbin)
@@ -2745,7 +2813,7 @@ out:
  * This function creates, adds and links a codec bin for the current send remote
  * codec
  *
- * MT safe.
+ * Needs the Session lock to be held.
  *
  * Returns: The new codec bin (or NULL if there is an error)
  */
@@ -2759,12 +2827,16 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   GstElement *codecbin = NULL;
   gchar *name;
   GstCaps *sendcaps;
+  GList *codecs;
 
   GST_DEBUG ("Trying to add send codecbin for " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (codec));
 
   name = g_strdup_printf ("send_%d_%d", session->id, codec->id);
-  codecbin = _create_codec_bin (ca, codec, name, TRUE, error);
+  codecs = codec_associations_to_codecs (session->priv->codec_associations,
+      FALSE);
+  codecbin = _create_codec_bin (ca, codec, name, TRUE, codecs, error);
+  fs_codec_list_destroy (codecs);
   g_free (name);
 
   if (!codecbin)
@@ -3567,7 +3639,7 @@ fs_rtp_session_get_codec_params (FsRtpSession *session, CodecAssociation *ca,
 
   tmp = g_strdup_printf ("discover_%d_%d", session->id, ca->codec->id);
   session->priv->discovery_codecbin = _create_codec_bin (ca, ca->codec,
-      tmp, TRUE, error);
+      tmp, TRUE, NULL, error);
   g_free (tmp);
 
   if (!session->priv->discovery_codecbin)
