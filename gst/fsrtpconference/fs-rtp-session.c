@@ -2412,14 +2412,12 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
 
         iter = gst_element_iterate_src_pads (codec_bin);
         g_value_init (&valid, G_TYPE_BOOLEAN);
-        do {
-          g_value_set_boolean (&valid, TRUE);
-          res = gst_iterator_fold (iter, validate_src_pads, &valid,
-              codecs);
-        } while ( res == GST_ITERATOR_RESYNC);
+        g_value_set_boolean (&valid, TRUE);
+        res = gst_iterator_fold (iter, validate_src_pads, &valid,
+            codecs);
         gst_iterator_free (iter);
 
-        if (!g_value_get_boolean (&valid))
+        if (!g_value_get_boolean (&valid) || res == GST_ITERATOR_ERROR)
         {
           gst_object_unref (codec_bin);
           codec_bin = NULL;
