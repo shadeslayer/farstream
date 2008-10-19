@@ -49,6 +49,84 @@ static CodecAssociation *
 lookup_codec_association_custom_intern (GList *codec_associations,
     gboolean want_disabled, CAFindFunc func, gpointer user_data);
 
+
+static gboolean
+count_pads (gpointer item, GValue *ret, gpointer user_data)
+{
+  GstPad *pad = item;
+
+  g_value_set_uint (ret, g_value_get_uint (ret) + 1);
+
+  gst_object_unref (pad);
+  return TRUE;
+}
+
+static gboolean
+validate_codec_profile (const gchar *bin_description, gboolean is_send)
+{
+  GError *error = NULL;
+  GstElement *bin = NULL;
+  GstIterator *iter;
+  GValue counter = {0};
+  GstIteratorResult res;
+
+  bin = gst_parse_bin_from_description (bin_description, TRUE, &error);
+
+  /* if could not build bin, fail */
+  if (!bin)
+  {
+    GST_WARNING ("Could not build profile (%s): %s", bin_description,
+        error->message);
+    g_clear_error (&error);
+    return FALSE;
+  }
+
+  iter = gst_element_iterate_src_pads (bin);
+  g_value_init (&counter, G_TYPE_UINT);
+  g_value_set_uint (&counter, 0);
+  res = gst_iterator_fold (iter, count_pads, &counter, NULL);
+  gst_iterator_free (iter);
+
+  if (is_send)
+  {
+    if (g_value_get_uint (&counter) == 0)
+    {
+      GST_WARNING ("Invalid profile (%s), has 0 src pad", bin_description);
+      goto reject;
+    }
+  }
+  else
+  {
+    if (g_value_get_uint (&counter) != 1)
+    {
+      GST_WARNING ("Invalid profile (%s), has %u src pads, should have one",
+          bin_description, g_value_get_uint (&counter));
+      goto reject;
+    }
+  }
+
+  iter = gst_element_iterate_sink_pads (bin);
+  g_value_reset (&counter);
+  g_value_set_uint (&counter, 0);
+  res = gst_iterator_fold (iter, count_pads, &counter, NULL);
+  gst_iterator_free (iter);
+
+  if (g_value_get_uint (&counter) != 1)
+  {
+    GST_WARNING ("Invalid profile (%s), has %u sink pads, should have one",
+        bin_description, g_value_get_uint (&counter));
+    goto reject;
+  }
+
+  gst_object_unref (bin);
+
+  return TRUE;
+
+ reject:
+  gst_object_unref (error);
+  return FALSE;
+}
+
 /**
  * validate_codecs_configuration:
  * @media_type: The #FsMediaType these codecs should be for
@@ -134,13 +212,27 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
     /* If no blueprint was found */
     if (blueprint_e == NULL)
     {
-      /* Accept codecs that have hardcoded profiles */
-      /* TODO: We should test if the profiles are buildable */
+
+      /* If there are send and recv profiles, lets test them */
       if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
           fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL) &&
           codec->id >= 0 && codec->id < 128 &&
           codec->encoding_name && codec->clock_rate)
+      {
+        FsCodecParameter *param;
+
+        /* Test if the profiles are buildable and correct */
+
+        param = fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL);
+        if (!validate_codec_profile (param->value, FALSE))
+          goto remove_this_codec;
+
+        param = fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL);
+        if (!validate_codec_profile (param->value, TRUE))
+          goto remove_this_codec;
+
         goto accept_codec;
+      }
 
       goto remove_this_codec;
     }
