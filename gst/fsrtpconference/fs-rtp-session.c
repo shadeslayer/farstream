@@ -2399,12 +2399,24 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
   if (profile)
   {
     GError *tmperror = NULL;
+    guint src_pad_count = 0, sink_pad_count = 0;
 
     codec_bin = gst_parse_bin_from_description (profile, TRUE, &tmperror);
+    codec_bin = parse_bin_from_description_all_linked (profile,
+        &src_pad_count, &sink_pad_count, &tmperror);
 
     if (codec_bin)
     {
-      if (codecs)
+      if (src_pad_count != 1 || sink_pad_count == 0)
+      {
+        GST_ERROR ("Invalid pad count (src:%u sink:%u)"
+            " from codec profile: %s", src_pad_count, sink_pad_count, profile);
+        gst_object_unref (codec_bin);
+        codec_bin = NULL;
+        goto try_factory;
+      }
+
+      if (codecs && sink_pad_count > 1)
       {
         GstIterator *iter;
         GValue valid = {0};

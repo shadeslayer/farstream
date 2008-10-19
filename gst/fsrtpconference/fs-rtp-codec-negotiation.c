@@ -50,15 +50,90 @@ lookup_codec_association_custom_intern (GList *codec_associations,
     gboolean want_disabled, CAFindFunc func, gpointer user_data);
 
 
-static gboolean
-count_pads (gpointer item, GValue *ret, gpointer user_data)
+GstElement *
+parse_bin_from_description_all_linked (const gchar *bin_description,
+    guint *src_pad_count, guint *sink_pad_count, GError **error)
 {
-  GstPad *pad = item;
+  GstElement *bin =
+    gst_parse_bin_from_description (bin_description, FALSE, error);
+  GstPad *pad = NULL;
+  guint i = 0;
 
-  g_value_set_uint (ret, g_value_get_uint (ret) + 1);
+  if (!bin)
+    return NULL;
 
-  gst_object_unref (pad);
-  return TRUE;
+  while ((pad = gst_bin_find_unlinked_pad (GST_BIN (bin), GST_PAD_SRC)))
+  {
+    GstPad *ghostpad;
+    gchar *tmp;
+
+    if (i)
+      tmp = g_strdup_printf ("src%u", i);
+    else
+      tmp = g_strdup_printf ("src");
+    i++;
+
+    ghostpad = gst_ghost_pad_new (tmp, pad);
+    gst_object_unref (pad);
+    g_free (tmp);
+
+    if (!ghostpad)
+    {
+      GST_ERROR ("Could not create ghostpad for pad %s:%s",
+          GST_DEBUG_PAD_NAME (pad));
+      goto error;
+    }
+
+    if (!gst_element_add_pad (bin, ghostpad))
+    {
+      GST_ERROR ("Could not add pad %s to bin", GST_OBJECT_NAME (ghostpad));
+      goto error;
+    }
+  }
+
+  if (src_pad_count)
+    *src_pad_count = i;
+
+
+  i = 0;
+
+  while ((pad = gst_bin_find_unlinked_pad (GST_BIN (bin), GST_PAD_SINK)))
+  {
+    GstPad *ghostpad;
+    gchar *tmp;
+
+    if (i)
+      tmp = g_strdup_printf ("sink%u", i);
+    else
+      tmp = g_strdup_printf ("sink");
+    i++;
+
+    ghostpad = gst_ghost_pad_new (tmp, pad);
+    gst_object_unref (pad);
+    g_free (tmp);
+
+    if (!ghostpad)
+    {
+      GST_ERROR ("Could not create ghostpad for pad %s:%s",
+          GST_DEBUG_PAD_NAME (pad));
+      goto error;
+    }
+
+    if (!gst_element_add_pad (bin, ghostpad))
+    {
+      GST_ERROR ("Could not add pad %s to bin", GST_OBJECT_NAME (ghostpad));
+      goto error;
+    }
+  }
+
+  if (sink_pad_count)
+    *sink_pad_count = i;
+
+
+  return bin;
+ error:
+  gst_object_unref (bin);
+  return NULL;
 }
 
 static gboolean
@@ -66,11 +141,11 @@ validate_codec_profile (const gchar *bin_description, gboolean is_send)
 {
   GError *error = NULL;
   GstElement *bin = NULL;
-  GstIterator *iter;
-  GValue counter = {0};
-  GstIteratorResult res;
+  guint src_pad_count = 0, sink_pad_count = 0;
 
-  bin = gst_parse_bin_from_description (bin_description, TRUE, &error);
+
+  bin = parse_bin_from_description_all_linked (bin_description,
+      &src_pad_count, &sink_pad_count, &error);
 
   /* if could not build bin, fail */
   if (!bin)
@@ -80,51 +155,36 @@ validate_codec_profile (const gchar *bin_description, gboolean is_send)
     g_clear_error (&error);
     return FALSE;
   }
+  g_clear_error (&error);
 
-  iter = gst_element_iterate_src_pads (bin);
-  g_value_init (&counter, G_TYPE_UINT);
-  g_value_set_uint (&counter, 0);
-  res = gst_iterator_fold (iter, count_pads, &counter, NULL);
-  gst_iterator_free (iter);
+  gst_object_unref (bin);
 
   if (is_send)
   {
-    if (g_value_get_uint (&counter) == 0)
+    if (src_pad_count == 0)
     {
       GST_WARNING ("Invalid profile (%s), has 0 src pad", bin_description);
-      goto reject;
+      return FALSE;
     }
   }
   else
   {
-    if (g_value_get_uint (&counter) != 1)
+    if (src_pad_count != 1)
     {
       GST_WARNING ("Invalid profile (%s), has %u src pads, should have one",
-          bin_description, g_value_get_uint (&counter));
-      goto reject;
+          bin_description, sink_pad_count);
+      return FALSE;
     }
   }
 
-  iter = gst_element_iterate_sink_pads (bin);
-  g_value_reset (&counter);
-  g_value_set_uint (&counter, 0);
-  res = gst_iterator_fold (iter, count_pads, &counter, NULL);
-  gst_iterator_free (iter);
-
-  if (g_value_get_uint (&counter) != 1)
+  if (sink_pad_count != 1)
   {
     GST_WARNING ("Invalid profile (%s), has %u sink pads, should have one",
-        bin_description, g_value_get_uint (&counter));
-    goto reject;
+        bin_description, sink_pad_count);
+    return FALSE;
   }
 
-  gst_object_unref (bin);
-
   return TRUE;
-
- reject:
-  gst_object_unref (error);
-  return FALSE;
 }
 
 /**
