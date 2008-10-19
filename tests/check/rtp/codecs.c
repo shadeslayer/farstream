@@ -824,15 +824,47 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
 
 GST_START_TEST (test_rtpcodecs_profile)
 {
+  /* basic */
   profile_test (
       "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
       "rtppcmadepay ! alawdec",
       TRUE);
 
+  /* double send src */
   profile_test (
       "audioconvert ! audioresample ! audioconvert ! tee name=t ! alawenc ! rtppcmapay t. ! alawenc ! rtppcmapay",
       "rtppcmadepay ! alawdec",
       TRUE);
+
+  /* double recv src */
+  profile_test (
+      "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
+      "rtppcmadepay ! alawdec ! tee name=t ! identity t. ! identity ",
+      FALSE);
+
+  /* no sink */
+  profile_test (
+      "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
+      "rtppcmadepay ! alawdec ! fakesink",
+      FALSE);
+
+  /* no src */
+  profile_test (
+      "audiotestsrc ! audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
+      "rtppcmadepay ! alawdec",
+      FALSE);
+
+  /* double send sink */
+  profile_test (
+      "adder name=a ! audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay identity ! a. identity !a.",
+      "rtppcmadepay ! alawdec",
+      FALSE);
+
+  /* double recv pipeline */
+  profile_test (
+      "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
+      "rtppcmadepay ! alawdec rtppcmadepay ! identity",
+      FALSE);
 }
 GST_END_TEST;
 
