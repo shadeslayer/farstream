@@ -766,10 +766,73 @@ GST_START_TEST (test_rtpcodecs_config_data)
 }
 GST_END_TEST;
 
-
 GST_START_TEST (test_rtpcodecs_preset_config_data)
 {
   run_test_rtpcodecs_config_data (TRUE);
+}
+GST_END_TEST;
+
+
+static void
+profile_test (const gchar *send_profile, const gchar *recv_profile,
+    gboolean is_valid)
+{
+  GstElement *conf;
+  FsSession *session;
+  GList *codecs;
+  FsCodec *base_codec = fs_codec_new (120, "test-codec", FS_MEDIA_TYPE_AUDIO,
+      8000);
+  FsCodec *pref_codec = fs_codec_copy (base_codec);
+  GList *prefs = g_list_append (NULL, pref_codec);
+
+  fs_codec_add_optional_parameter (pref_codec, "farsight_send_profile",
+      send_profile);
+  fs_codec_add_optional_parameter (pref_codec, "farsight_recv_profile",
+      recv_profile);
+
+  conf = gst_element_factory_make ("fsrtpconference", NULL);
+  fail_if (conf == NULL, "Could not make fsrtpconference");
+
+  session = fs_conference_new_session (FS_CONFERENCE (conf),
+      FS_MEDIA_TYPE_AUDIO, NULL);
+  fail_if (session == NULL, "Could not make new session");
+
+  fail_unless (fs_session_set_codec_preferences (session, prefs, NULL),
+      "Could not set codec preferences");
+
+  g_object_get (session, "codecs", &codecs, NULL);
+
+  if (is_valid)
+    fail_unless (
+        fs_codec_are_equal ((FsCodec *)g_list_first (codecs)->data, base_codec),
+        "Codec profile should be valid, but fails (%s) (%s)",
+        send_profile, recv_profile);
+  else
+    fail_if (
+        fs_codec_are_equal ((FsCodec *)g_list_first (codecs)->data, base_codec),
+        "Codec profile should be invalid, but succeeds (%s) (%s)",
+        send_profile, recv_profile);
+
+  fs_codec_list_destroy (codecs);
+
+  g_object_unref (session);
+  gst_object_unref (conf);
+
+  fs_codec_list_destroy (prefs);
+  fs_codec_destroy (base_codec);
+}
+
+GST_START_TEST (test_rtpcodecs_profile)
+{
+  profile_test (
+      "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
+      "rtppcmadepay ! alawdec",
+      TRUE);
+
+  profile_test (
+      "audioconvert ! audioresample ! audioconvert ! tee name=t ! alawenc ! rtppcmapay t. ! alawenc ! rtppcmapay",
+      "rtppcmadepay ! alawdec",
+      TRUE);
 }
 GST_END_TEST;
 
@@ -781,8 +844,7 @@ fsrtpcodecs_suite (void)
   GLogLevelFlags fatal_mask;
 
 
-  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
-  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
+  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
 
@@ -808,6 +870,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_preset_config_data");
   tcase_add_test (tc_chain, test_rtpcodecs_preset_config_data);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_test_codec_profile");
+  tcase_add_test (tc_chain, test_rtpcodecs_profile);
   suite_add_tcase (s, tc_chain);
 
   return s;
