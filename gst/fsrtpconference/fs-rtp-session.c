@@ -2844,6 +2844,185 @@ out:
   return ca;
 }
 
+struct link_data {
+  FsRtpSession *session;
+  GstCaps *caps;
+  GstElement *codecbin;
+  FsCodec *codec;
+
+  GList *all_codecs;
+
+  GError **error;
+};
+
+/*
+ * This is a  GstIteratorFoldFunction
+ * It returns FALSE when it wants to stop the iteration
+ */
+
+static gboolean
+link_main_pad (gpointer item, GValue *ret, gpointer user_data)
+{
+  GstPad *pad = item;
+  struct link_data *data = user_data;
+  GstCaps *caps, *intersect;
+  GstPad *other_pad;
+
+  caps = gst_pad_get_caps (pad);
+  intersect = gst_caps_intersect (caps, data->caps);
+  gst_caps_unref (caps);
+
+  if (gst_caps_is_empty (intersect))
+  {
+    gst_caps_unref (intersect);
+    gst_object_unref (pad);
+    return TRUE;
+  }
+  gst_caps_unref (intersect);
+
+  other_pad = gst_element_get_static_pad (data->session->priv->send_capsfilter,
+      "sink");
+
+  if (!other_pad)
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not get the sink pad of the send capsfilter");
+    goto error;
+  }
+
+  if (GST_PAD_LINK_SUCCESSFUL(gst_pad_link (pad, other_pad)))
+    g_value_set_boolean (ret, TRUE);
+  else
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the send codec bin for pt %d to the send capsfilter",
+        data->codec->id);
+
+ error:
+
+  gst_object_unref (other_pad);
+  gst_object_unref (pad);
+
+  return FALSE;
+}
+
+
+/*
+ * This is a  GstIteratorFoldFunction
+ * It returns FALSE when it wants to stop the iteration
+ */
+
+static gboolean
+link_other_pads (gpointer item, GValue *ret, gpointer user_data)
+{
+  GstPad *pad = item;
+  struct link_data *data = user_data;
+  GstCaps *caps;
+  GstCaps *filter_caps;
+  GList *listitem;
+  GstElement *capsfilter;
+  GstPad *otherpad;
+
+  if (gst_pad_is_linked (pad))
+  {
+    gst_object_unref (pad);
+    return TRUE;
+  }
+
+  caps = gst_pad_get_caps (pad);
+
+  if (gst_caps_is_empty (caps))
+  {
+    GST_WARNING_OBJECT (pad, "Caps on pad are empty");
+    return TRUE;
+  }
+
+  for (listitem = data->all_codecs; listitem; listitem = g_list_next (listitem))
+  {
+    FsCodec *codec = listitem->data;
+    GstCaps *intersect;
+
+    filter_caps = fs_codec_to_gst_caps (codec);
+    intersect = gst_caps_intersect (filter_caps, caps);
+
+    if (!gst_caps_is_empty (intersect))
+    {
+      GST_LOG_OBJECT (pad, "Pad matches " FS_CODEC_FORMAT,
+          FS_CODEC_ARGS (codec));
+      gst_caps_unref (intersect);
+      break;
+    }
+    gst_caps_unref (filter_caps);
+    gst_caps_unref (intersect);
+  }
+
+  gst_caps_unref (caps);
+
+  if (!listitem)
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Could not find codec that matches the src pad");
+    g_value_set_boolean (ret, FALSE);
+    gst_object_unref (pad);
+    return FALSE;
+  }
+
+  capsfilter = gst_element_factory_make ("capsfilter", NULL);
+  g_object_set (capsfilter, "caps", filter_caps, NULL);
+  gst_caps_unref (filter_caps);
+
+  if (!gst_bin_add (GST_BIN (data->session->priv->conference), capsfilter))
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add send capsfilter to the conference");
+    gst_object_unref (capsfilter);
+    goto error;
+  }
+
+  data->session->priv->extra_send_capsfilters =
+    g_list_append (data->session->priv->extra_send_capsfilters,
+        capsfilter);
+
+  otherpad = gst_element_get_static_pad (capsfilter, "sink");
+
+  if (!otherpad)
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not get sink pad on capsfilter");
+    goto error;
+  }
+
+  if (GST_PAD_LINK_FAILED (gst_pad_link (pad, otherpad)))
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not get sink pad on capsfilter");
+    gst_object_unref (otherpad);
+    goto error;
+  }
+  gst_object_unref (otherpad);
+  gst_object_unref (pad);
+  pad = NULL;
+
+  if (!gst_element_link (capsfilter, data->session->priv->rtpmuxer))
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not an extra capsfilter to the muxer");
+    g_value_set_boolean (ret, FALSE);
+    return FALSE;
+  }
+
+  return TRUE;
+
+ error:
+
+  g_value_set_boolean (ret, FALSE);
+  gst_bin_remove (GST_BIN (data->session->priv->conference), capsfilter);
+  data->session->priv->extra_send_capsfilters =
+    g_list_remove (data->session->priv->extra_send_capsfilters,
+        capsfilter);
+  gst_object_unref (pad);
+
+  return FALSE;
+}
 
 /**
  * fs_rtp_session_add_send_codec_bin:
@@ -2869,6 +3048,9 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   gchar *name;
   GstCaps *sendcaps;
   GList *codecs;
+  GstIterator *iter;
+  GValue link_rv = {0};
+  struct link_data data;
 
   GST_DEBUG ("Trying to add send codecbin for " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (codec));
@@ -2877,11 +3059,11 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   codecs = codec_associations_to_codecs (session->priv->codec_associations,
       FALSE);
   codecbin = _create_codec_bin (ca, codec, name, TRUE, codecs, error);
-  fs_codec_list_destroy (codecs);
   g_free (name);
 
   if (!codecbin)
   {
+    fs_codec_list_destroy (codecs);
     return NULL;
   }
 
@@ -2891,9 +3073,9 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
         "Could not add the send codec bin for pt %d to the pipeline",
         codec->id);
     gst_object_unref (codecbin);
+    fs_codec_list_destroy (codecs);
     return NULL;
   }
-
 
   if (!gst_element_link_pads (session->priv->media_sink_valve, "src",
           codecbin, "sink"))
@@ -2901,6 +3083,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not get the valve sink for the send codec bin");
     gst_bin_remove (GST_BIN (session->priv->conference), (codecbin));
+    fs_codec_list_destroy (codecs);
     return NULL;
   }
 
@@ -2909,16 +3092,51 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   g_object_set (G_OBJECT (session->priv->send_capsfilter),
       "caps", sendcaps, NULL);
 
-  gst_caps_unref (sendcaps);
+  iter = gst_element_iterate_src_pads (codecbin);
 
-  if (!gst_element_link_pads (codecbin, "src",
-          session->priv->send_capsfilter, "sink"))
+  g_value_init (&link_rv, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&link_rv, FALSE);
+
+  data.session = session;
+  data.codecbin = codecbin;
+  data.caps = sendcaps;
+  data.error = NULL;
+  data.all_codecs = codecs;
+
+  if (gst_iterator_fold (iter, link_main_pad, &link_rv, &data) ==
+      GST_ITERATOR_ERROR)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the send codec bin for pt %d to the send capsfilter",
-        codec->id);
+        "Could not iterate over the src pads of the send codec bin to link"
+        " the main pad for pt %d", codec->id);
     goto error;
   }
+
+  gst_caps_unref (sendcaps);
+
+  if (!g_value_get_boolean (&link_rv))
+  {
+    gst_iterator_free (iter);
+    goto error;
+  }
+
+  gst_iterator_resync (iter);
+
+  if (gst_iterator_fold (iter, link_other_pads, &link_rv, &data) ==
+      GST_ITERATOR_ERROR)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not iterate over the src pads of the send codec bin to link"
+        " the main pad for pt %d", codec->id);
+    gst_iterator_free (iter);
+    goto error;
+  }
+
+  gst_iterator_free (iter);
+
+  if (!g_value_get_boolean (&link_rv))
+    goto error;
+
 
   if (!gst_element_sync_state_with_parent (codecbin))
   {
@@ -2935,11 +3153,14 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
 
   fs_rtp_session_send_codec_changed (session);
 
+  fs_codec_list_destroy (codecs);
+
   return codecbin;
 
  error:
   gst_element_set_state (codecbin, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (session->priv->conference), codecbin);
+  fs_codec_list_destroy (codecs);
   return NULL;
 }
 
