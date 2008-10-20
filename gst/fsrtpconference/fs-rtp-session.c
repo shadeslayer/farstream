@@ -3027,6 +3027,32 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   fs_codec_destroy (self->priv->current_send_codec);
   self->priv->current_send_codec = NULL;
 
+  while (self->priv->extra_send_capsfilters)
+  {
+    GstElement *cf = self->priv->extra_send_capsfilters->data;
+    GstPad *ourpad = gst_element_get_static_pad (cf, "src");
+    GstPad *pad = NULL;
+
+    if (ourpad)
+    {
+      pad = gst_pad_get_peer (ourpad);
+      if (pad)
+      {
+        gst_pad_set_active (pad, FALSE);
+        gst_element_release_request_pad (self->priv->rtpmuxer, pad);
+        gst_object_unref (pad);
+      }
+      gst_object_unref (ourpad);
+    }
+
+    gst_element_set_state (cf, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), cf);
+
+    self->priv->extra_send_capsfilters = g_list_delete_link (
+        self->priv->extra_send_capsfilters,
+        self->priv->extra_send_capsfilters);
+  }
+
 
   self->priv->extra_sources = fs_rtp_special_sources_remove (
       self->priv->extra_sources,
