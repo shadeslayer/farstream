@@ -115,6 +115,7 @@ struct _FsRtpSessionPrivate
    */
   GstPad *media_sink_pad;
 
+  GList *extra_send_capsfilters;
 
   /* The discovery elements are only created when codec parameter discovery is
    * under progress.
@@ -460,11 +461,41 @@ fs_rtp_session_dispose (GObject *object)
     }
   }
 
+  for (item = self->priv->extra_send_capsfilters;
+       item;
+       item = g_list_next (item))
+  {
+    GstElement *cf = item->data;
+    GstPad *ourpad = gst_element_get_static_pad (cf, "src");
+    GstPad *pad = NULL;
+
+    if (ourpad)
+    {
+      pad = gst_pad_get_peer (ourpad);
+      if (pad)
+      {
+        gst_element_release_request_pad (self->priv->rtpmuxer, pad);
+        gst_object_unref (pad);
+      }
+      gst_object_unref (ourpad);
+    }
+  }
+
   stop_and_remove (conferencebin, &self->priv->rtpmuxer, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_capsfilter, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
   stop_and_remove (conferencebin, &self->priv->send_tee, TRUE);
   stop_and_remove (conferencebin, &self->priv->media_sink_valve, TRUE);
+
+  while (self->priv->extra_send_capsfilters)
+  {
+    GstElement *cf = self->priv->extra_send_capsfilters->data;
+
+    stop_and_remove (conferencebin, &cf, FALSE);
+    self->priv->extra_send_capsfilters = g_list_delete_link (
+        self->priv->extra_send_capsfilters,
+        self->priv->extra_send_capsfilters);
+  }
 
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
