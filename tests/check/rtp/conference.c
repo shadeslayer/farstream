@@ -999,55 +999,55 @@ fsrtpconference_suite (void)
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
-  tc_chain = tcase_create ("fsrtpconfence_base");
+  tc_chain = tcase_create ("fsrtpconference_base");
   tcase_add_test (tc_chain, test_rtpconference_new);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_two_way");
+  tc_chain = tcase_create ("fsrtpconference_two_way");
   tcase_add_test (tc_chain, test_rtpconference_two_way);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_three_way");
+  tc_chain = tcase_create ("fsrtpconference_three_way");
   tcase_add_test (tc_chain, test_rtpconference_three_way);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_ten_way");
+  tc_chain = tcase_create ("fsrtpconference_ten_way");
   tcase_add_test (tc_chain, test_rtpconference_ten_way);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_errors");
+  tc_chain = tcase_create ("fsrtpconference_errors");
   tcase_add_test (tc_chain, test_rtpconference_errors);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_select_send_codec");
+  tc_chain = tcase_create ("fsrtpconference_select_send_codec");
   tcase_add_test (tc_chain, test_rtpconference_select_send_codec);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_select_send_codec_while_running");
+  tc_chain = tcase_create ("fsrtpconference_select_send_codec_while_running");
   tcase_add_test (tc_chain, test_rtpconference_select_send_codec_while_running);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_recv_only");
+  tc_chain = tcase_create ("fsrtpconference_recv_only");
   tcase_add_test (tc_chain, test_rtpconference_recv_only);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_send_only");
+  tc_chain = tcase_create ("fsrtpconference_send_only");
   tcase_add_test (tc_chain, test_rtpconference_send_only);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_change_to_send_only");
+  tc_chain = tcase_create ("fsrtpconference_change_to_send_only");
   tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_change_to_send_only");
+  tc_chain = tcase_create ("fsrtpconference_change_to_send_only");
   tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_no_rtcp");
+  tc_chain = tcase_create ("fsrtpconference_no_rtcp");
   tcase_add_test (tc_chain, test_rtpconference_no_rtcp);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconfence_three_way_no_source_assoc");
+  tc_chain = tcase_create ("fsrtpconference_three_way_no_source_assoc");
   tcase_add_test (tc_chain, test_rtpconference_three_way_no_source_assoc);
   suite_add_tcase (s, tc_chain);
 
