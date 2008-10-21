@@ -411,9 +411,11 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 
   st->buffer_count++;
-
+  /*
+    Disabled because it outputs too much stuff
   if (st->buffer_count % 10 == 0)
     g_debug ("%d:%d: Buffer %d", st->dat->id, st->target->id, st->buffer_count);
+  */
 
   /*
   ts_fail_if (dat->buffer_count > max_buffer_count,
