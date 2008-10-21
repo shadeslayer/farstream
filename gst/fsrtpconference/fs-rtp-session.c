@@ -445,6 +445,22 @@ fs_rtp_session_dispose (GObject *object)
     self->priv->send_tee_media_pad = NULL;
   }
 
+  if (self->priv->send_capsfilter && self->priv->rtpmuxer)
+  {
+    GstPad *srcpad = gst_element_get_static_pad (self->priv->send_capsfilter,
+        "src");
+    if (srcpad)
+    {
+      GstPad *otherpad = gst_pad_get_peer (srcpad);
+      if (otherpad)
+      {
+        gst_element_release_request_pad (self->priv->rtpmuxer, otherpad);
+        gst_object_unref (otherpad);
+      }
+      gst_object_unref (srcpad);
+    }
+  }
+
   stop_and_remove (conferencebin, &self->priv->rtpmuxer, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_capsfilter, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
