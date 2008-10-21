@@ -84,6 +84,8 @@ FsRawUdpStreamTransmitter
 FsRawUdpStreamTransmitterPrivate
 fs_rawudp_stream_transmitter_register_type
 fs_rawudp_stream_transmitter_newv
+stream_known_source_packet_receive_cb
+stream_new_remote_codecs_cb
 <SUBSECTION Standard>
 FS_RAWUDP_STREAM_TRANSMITTER_CAST
 FsRawUdpStreamTransmitterClass
