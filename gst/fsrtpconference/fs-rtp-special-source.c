@@ -62,6 +62,7 @@ struct _FsRtpSpecialSourcePrivate {
   GstElement *outer_bin;
   GstElement *rtpmuxer;
 
+  GstPad *muxer_request_pad;
   GstElement *src;
 
   GThread *stop_thread;
@@ -188,6 +189,19 @@ stop_source_thread (gpointer data)
   gst_element_set_state (self->priv->src, GST_STATE_NULL);
 
   FS_RTP_SPECIAL_SOURCE_LOCK (self);
+  if (self->priv->muxer_request_pad)
+  {
+    GstElement *parent =
+      gst_pad_get_parent_element (self->priv->muxer_request_pad);
+
+    if (parent)
+    {
+      gst_element_release_request_pad (parent, self->priv->muxer_request_pad);
+      gst_object_unref (parent);
+    }
+  }
+  self->priv->muxer_request_pad = NULL;
+
   gst_bin_remove (GST_BIN (self->priv->outer_bin), self->priv->src);
   self->priv->src = NULL;
   FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
@@ -507,6 +521,7 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GstElement *rtpmuxer)
 {
   FsRtpSpecialSource *source = NULL;
+  GstPad *pad = NULL;
 
   g_return_val_if_fail (klass, NULL);
   g_return_val_if_fail (klass->build, NULL);
@@ -532,13 +547,24 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     goto error;
   }
 
-  if (!gst_element_link_pads (source->priv->src, "src",
-          rtpmuxer, NULL))
+  source->priv->muxer_request_pad = gst_element_get_request_pad (rtpmuxer,
+      "sink_%d");
+
+  if (!source->priv->muxer_request_pad)
+  {
+    GST_ERROR ("Could not get request pad from muxer");
+    goto error_added;
+  }
+
+  pad = gst_element_get_static_pad (source->priv->src, "src");
+
+  if (GST_PAD_LINK_FAILED (gst_pad_link (pad, source->priv->muxer_request_pad)))
   {
     GST_ERROR ("Could not link rtpdtmfsrc src to muxer sink");
+    gst_object_unref (pad);
     goto error_added;
-
   }
+  gst_object_unref (pad);
 
   if (!gst_element_sync_state_with_parent (source->priv->src))
   {
