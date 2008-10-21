@@ -749,14 +749,14 @@ nway_test (int in_count, extra_init extrainit,
             G_CALLBACK (_src_pad_added), st);
       }
 
+  if (extrainit)
+    extrainit ();
+
   for (i = 1; i < count; i++)
   {
     struct SimpleTestStream *st = find_pointback_stream (dats[i], dats[0]);
     set_initial_codecs (dats[0], st);
   }
-
-  if (extrainit)
-    extrainit ();
 
   g_main_loop_run (loop);
 
