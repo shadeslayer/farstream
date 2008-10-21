@@ -210,6 +210,7 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
   {
     FsCodec *codec = codec_e->data;
     GList *blueprint_e = NULL;
+    FsCodecParameter *param;
 
     /* Check if codec is for the wrong media_type.. this would be wrong
      */
@@ -269,30 +270,24 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
       continue;
     }
 
+    /* If there are send and/or recv profiles, lets test them */
+    param = fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL);
+    if (param && !validate_codec_profile (param->value, FALSE))
+        goto remove_this_codec;
+
+    param = fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL);
+    if (param && !validate_codec_profile (param->value, TRUE))
+      goto remove_this_codec;
+
     /* If no blueprint was found */
     if (blueprint_e == NULL)
     {
-
-      /* If there are send and recv profiles, lets test them */
+      /* Accept codecs with no blueprints if they have a valid profile */
       if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
           fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL) &&
           codec->id >= 0 && codec->id < 128 &&
           codec->encoding_name && codec->clock_rate)
-      {
-        FsCodecParameter *param;
-
-        /* Test if the profiles are buildable and correct */
-
-        param = fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL);
-        if (!validate_codec_profile (param->value, FALSE))
-          goto remove_this_codec;
-
-        param = fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL);
-        if (!validate_codec_profile (param->value, TRUE))
-          goto remove_this_codec;
-
         goto accept_codec;
-      }
 
       goto remove_this_codec;
     }
