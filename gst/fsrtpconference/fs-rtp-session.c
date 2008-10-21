@@ -2438,7 +2438,7 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
 
     if (codec_bin)
     {
-      if (src_pad_count != 1 || sink_pad_count == 0)
+      if (sink_pad_count != 1 || src_pad_count == 0)
       {
         GST_ERROR ("Invalid pad count (src:%u sink:%u)"
             " from codec profile: %s", src_pad_count, sink_pad_count, profile);
@@ -2447,7 +2447,7 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
         goto try_factory;
       }
 
-      if (codecs && sink_pad_count > 1)
+      if (codecs && src_pad_count > 1)
       {
         GstIterator *iter;
         GValue valid = {0};
