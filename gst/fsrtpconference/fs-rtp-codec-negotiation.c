@@ -34,8 +34,8 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_nego
 
-#define SEND_PROFILE_ARG "farsight_send_profile"
-#define RECV_PROFILE_ARG "farsight_recv_profile"
+#define SEND_PROFILE_ARG "farsight-send-profile"
+#define RECV_PROFILE_ARG "farsight-recv-profile"
 
 
 static CodecAssociation *

@@ -785,9 +785,9 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
   FsCodec *pref_codec = fs_codec_copy (base_codec);
   GList *prefs = g_list_append (NULL, pref_codec);
 
-  fs_codec_add_optional_parameter (pref_codec, "farsight_send_profile",
+  fs_codec_add_optional_parameter (pref_codec, "farsight-send-profile",
       send_profile);
-  fs_codec_add_optional_parameter (pref_codec, "farsight_recv_profile",
+  fs_codec_add_optional_parameter (pref_codec, "farsight-recv-profile",
       recv_profile);
 
   conf = gst_element_factory_make ("fsrtpconference", NULL);

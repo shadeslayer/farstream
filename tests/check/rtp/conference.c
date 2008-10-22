@@ -998,7 +998,7 @@ _simple_profile_init (void)
   gboolean ret;
 
   codec = fs_codec_new (0, "PCMU", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (codec, "farsight_send_profile",
+  fs_codec_add_optional_parameter (codec, "farsight-send-profile",
       "audioconvert ! audioresample ! audioconvert ! mulawenc ! rtppcmupay");
   prefs = g_list_append (NULL, codec);
 
@@ -1086,7 +1086,7 @@ _double_profile_init (void)
   st2->handoff_handler = G_CALLBACK (_double_codec_handoff_handler);
 
   codec = fs_codec_new (0, "PCMU", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (codec, "farsight_send_profile",
+  fs_codec_add_optional_parameter (codec, "farsight-send-profile",
       "tee name=t "
       "t. ! audioconvert ! audioresample ! audioconvert ! mulawenc ! rtppcmupay "
       "t. ! audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay");
