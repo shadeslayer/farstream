@@ -257,8 +257,8 @@ _find_multicast_capable_address (void)
   freeifaddrs (results);
 
   if (retval == NULL)
-    g_message ("Skipping test of prefered-local-candidates, no multicast"
-        " capable interface found");
+    g_message ("Skipping multicast transmitter tests, "
+        "no multicast capable interface found");
   return retval;
 
 #else
@@ -309,6 +309,15 @@ multicasttransmitter_suite (void)
   Suite *s = suite_create ("multicasttransmitter");
   TCase *tc_chain;
   GLogLevelFlags fatal_mask;
+  gchar *tmp_addr;
+
+
+  tmp_addr = _find_multicast_capable_address ();
+
+  if (!tmp_addr)
+    return s;
+  else
+    g_free (tmp_addr);
 
   fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
