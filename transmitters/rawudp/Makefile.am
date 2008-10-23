@@ -25,8 +25,6 @@ librawudp_transmitter_la_LIBADD = \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS)
 
-EXTRA_librawudp_transmitter_la_SOURCES = fs-rawudp-marshal.list
-
 noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
@@ -38,8 +36,20 @@ BUILT_SOURCES = \
 		fs-rawudp-marshal.c \
 		fs-rawudp-marshal.h
 
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) fs-rawudp-marshal.list
 
+
+fs-rawudp-marshal.list: $(librawudp_transmitter_la_SOURCES) Makefile.am
+	( cd $(srcdir) && \
+	sed -n -e 's/.*_fs_rawudp_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
+	$(librawudp_transmitter_la_SOURCES) ) \
+	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
+	if cmp -s $@.tmp $@; then \
+		rm $@.tmp; \
+		touch $@; \
+	else \
+		mv $@.tmp $@; \
+	fi
 
 fs-rawudp-marshal.h: fs-rawudp-marshal.list Makefile
 		glib-genmarshal --header --prefix=_fs_rawudp_marshal $(srcdir)/$< > $@.tmp
