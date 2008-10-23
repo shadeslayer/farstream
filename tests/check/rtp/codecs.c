@@ -784,11 +784,14 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
       8000);
   FsCodec *pref_codec = fs_codec_copy (base_codec);
   GList *prefs = g_list_append (NULL, pref_codec);
+  GList *item;
 
-  fs_codec_add_optional_parameter (pref_codec, "farsight-send-profile",
-      send_profile);
-  fs_codec_add_optional_parameter (pref_codec, "farsight-recv-profile",
-      recv_profile);
+  if (send_profile)
+    fs_codec_add_optional_parameter (pref_codec, "farsight-send-profile",
+        send_profile);
+  if (recv_profile)
+    fs_codec_add_optional_parameter (pref_codec, "farsight-recv-profile",
+        recv_profile);
 
   conf = gst_element_factory_make ("fsrtpconference", NULL);
   fail_if (conf == NULL, "Could not make fsrtpconference");
@@ -802,14 +805,16 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
 
   g_object_get (session, "codecs", &codecs, NULL);
 
+  for (item = codecs; item; item = g_list_next (item))
+    if (fs_codec_are_equal ((FsCodec *)item->data, base_codec))
+      break;
+
   if (is_valid)
-    fail_unless (
-        fs_codec_are_equal ((FsCodec *)g_list_first (codecs)->data, base_codec),
+    fail_if (item == NULL,
         "Codec profile should be valid, but fails (%s) (%s)",
         send_profile, recv_profile);
   else
-    fail_if (
-        fs_codec_are_equal ((FsCodec *)g_list_first (codecs)->data, base_codec),
+    fail_if (item != NULL,
         "Codec profile should be invalid, but succeeds (%s) (%s)",
         send_profile, recv_profile);
 
@@ -865,6 +870,18 @@ GST_START_TEST (test_rtpcodecs_profile)
       "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
       "rtppcmadepay ! alawdec rtppcmadepay ! identity",
       FALSE);
+
+  /* sendonly profile */
+  profile_test (
+      "audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay",
+      NULL,
+      FALSE);
+
+  /* recvonly profile */
+  profile_test (
+      NULL,
+      "rtppcmadepay ! alawdec",
+      TRUE);
 }
 GST_END_TEST;
 
