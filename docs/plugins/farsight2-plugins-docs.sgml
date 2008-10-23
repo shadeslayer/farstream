@@ -8,10 +8,13 @@
 
   <part>
     <title>RTP Plugin</title>
-    <xi:include href="xml/element-fsrtpconference.xml"/>
-    <xi:include href="xml/fs-rtp-participant.xml"/>
-    <xi:include href="xml/fs-rtp-session.xml"/>
-    <xi:include href="xml/fs-rtp-stream.xml"/>
+    <chapter>
+      <title>Core interface classes</title>
+      <xi:include href="xml/element-fsrtpconference.xml"/>
+      <xi:include href="xml/fs-rtp-participant.xml"/>
+      <xi:include href="xml/fs-rtp-session.xml"/>
+      <xi:include href="xml/fs-rtp-stream.xml"/>
+    </chapter>
     <chapter>
       <title>Transmitters</title>
       <xi:include href="xml/fs-rawudp-stream-transmitter.xml"/>
