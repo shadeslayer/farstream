@@ -284,7 +284,6 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
     {
       /* Accept codecs with no blueprints if they have a valid profile */
       if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
-          fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL) &&
           codec->id >= 0 && codec->id < 128 &&
           codec->encoding_name && codec->clock_rate)
         goto accept_codec;
@@ -521,10 +520,8 @@ create_local_codec_associations (
 
     /* No matching blueprint, can't use this codec */
     if (!bp &&
-        !(fs_codec_get_optional_parameter (codec_pref, SEND_PROFILE_ARG,
-                NULL) &&
-            fs_codec_get_optional_parameter (codec_pref, RECV_PROFILE_ARG,
-                NULL)))
+        !fs_codec_get_optional_parameter (codec_pref, RECV_PROFILE_ARG,
+                NULL))
     {
       GST_LOG ("Could not find matching blueprint for preferred codec %s/%s",
           fs_media_type_to_string (codec_pref->media_type),
