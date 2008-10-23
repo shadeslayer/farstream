@@ -481,7 +481,7 @@ codec_remove_parameter (FsCodec *codec, const gchar *param_name)
 }
 
 static gchar *
-get_param_value (FsCodec *codec, const gchar *param_name)
+dup_param_value (FsCodec *codec, const gchar *param_name)
 {
   FsCodecParameter *param;
 
@@ -629,8 +629,8 @@ create_local_codec_associations (
           codec_remove_parameter (codec, RECV_PROFILE_ARG);
           ca->codec = codec;
 
-          ca->send_profile = get_param_value (codec_pref, SEND_PROFILE_ARG);
-          ca->recv_profile = get_param_value (codec_pref, RECV_PROFILE_ARG);
+          ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
+          ca->recv_profile = dup_param_value (codec_pref, RECV_PROFILE_ARG);
 
           codec_associations = list_insert_local_ca (codec_associations, ca);
           continue;
@@ -645,8 +645,8 @@ create_local_codec_associations (
     codec_remove_parameter (ca->codec, SEND_PROFILE_ARG);
     codec_remove_parameter (ca->codec, RECV_PROFILE_ARG);
 
-    ca->send_profile = get_param_value (codec_pref, SEND_PROFILE_ARG);
-    ca->recv_profile = get_param_value (codec_pref, RECV_PROFILE_ARG);
+    ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
+    ca->recv_profile = dup_param_value (codec_pref, RECV_PROFILE_ARG);
 
     if (bp)
     {
