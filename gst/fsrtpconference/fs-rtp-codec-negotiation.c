@@ -49,6 +49,53 @@ static CodecAssociation *
 lookup_codec_association_custom_intern (GList *codec_associations,
     gboolean want_disabled, CAFindFunc func, gpointer user_data);
 
+static gboolean
+link_unlinked_pads (GstElement *bin,
+    GstPadDirection dir,
+    const gchar *first_pad_name,
+    const gchar *extra_pad_format,
+    guint *pad_count,
+    GError **error)
+{
+  GstPad *pad = NULL;
+  guint i = 0;
+
+  while ((pad = gst_bin_find_unlinked_pad (GST_BIN (bin), dir)))
+  {
+    GstPad *ghostpad;
+    gchar *tmp;
+
+    if (i)
+      tmp = g_strdup_printf (extra_pad_format, i);
+    else
+      tmp = g_strdup_printf (first_pad_name);
+    i++;
+
+    ghostpad = gst_ghost_pad_new (tmp, pad);
+    gst_object_unref (pad);
+    g_free (tmp);
+
+    if (!ghostpad)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not create ghostpad for pad %s:%s",
+          GST_DEBUG_PAD_NAME (pad));
+      return FALSE;
+    }
+
+    if (!gst_element_add_pad (bin, ghostpad))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not add pad %s to bin", GST_OBJECT_NAME (ghostpad));
+      return FALSE;
+    }
+  }
+
+  if (pad_count)
+    *pad_count = i;
+
+  return TRUE;
+}
 
 GstElement *
 parse_bin_from_description_all_linked (const gchar *bin_description,
@@ -56,79 +103,17 @@ parse_bin_from_description_all_linked (const gchar *bin_description,
 {
   GstElement *bin =
     gst_parse_bin_from_description (bin_description, FALSE, error);
-  GstPad *pad = NULL;
-  guint i = 0;
 
   if (!bin)
     return NULL;
 
-  while ((pad = gst_bin_find_unlinked_pad (GST_BIN (bin), GST_PAD_SRC)))
-  {
-    GstPad *ghostpad;
-    gchar *tmp;
+  if (!link_unlinked_pads (bin, GST_PAD_SRC, "src", "src%d", src_pad_count,
+          error))
+    goto error;
 
-    if (i)
-      tmp = g_strdup_printf ("src%u", i);
-    else
-      tmp = g_strdup_printf ("src");
-    i++;
-
-    ghostpad = gst_ghost_pad_new (tmp, pad);
-    gst_object_unref (pad);
-    g_free (tmp);
-
-    if (!ghostpad)
-    {
-      GST_ERROR ("Could not create ghostpad for pad %s:%s",
-          GST_DEBUG_PAD_NAME (pad));
-      goto error;
-    }
-
-    if (!gst_element_add_pad (bin, ghostpad))
-    {
-      GST_ERROR ("Could not add pad %s to bin", GST_OBJECT_NAME (ghostpad));
-      goto error;
-    }
-  }
-
-  if (src_pad_count)
-    *src_pad_count = i;
-
-
-  i = 0;
-
-  while ((pad = gst_bin_find_unlinked_pad (GST_BIN (bin), GST_PAD_SINK)))
-  {
-    GstPad *ghostpad;
-    gchar *tmp;
-
-    if (i)
-      tmp = g_strdup_printf ("sink%u", i);
-    else
-      tmp = g_strdup_printf ("sink");
-    i++;
-
-    ghostpad = gst_ghost_pad_new (tmp, pad);
-    gst_object_unref (pad);
-    g_free (tmp);
-
-    if (!ghostpad)
-    {
-      GST_ERROR ("Could not create ghostpad for pad %s:%s",
-          GST_DEBUG_PAD_NAME (pad));
-      goto error;
-    }
-
-    if (!gst_element_add_pad (bin, ghostpad))
-    {
-      GST_ERROR ("Could not add pad %s to bin", GST_OBJECT_NAME (ghostpad));
-      goto error;
-    }
-  }
-
-  if (sink_pad_count)
-    *sink_pad_count = i;
-
+  if (!link_unlinked_pads (bin, GST_PAD_SINK, "sink", "sink%d", sink_pad_count,
+          error))
+    goto error;
 
   return bin;
  error:
