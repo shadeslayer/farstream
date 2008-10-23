@@ -869,7 +869,8 @@ negotiate_stream_codecs (
   }
 
   /*
-   * Check if there is a non-disabled codec left
+   * Check if there is a non-disabled codec left that we can use
+   * for sending
    */
   for (item = new_codec_associations;
        item;
@@ -877,7 +878,7 @@ negotiate_stream_codecs (
   {
     CodecAssociation *ca = item->data;
 
-    if (!ca->disable && !ca->reserved && !ca->recv_only)
+    if (codec_association_is_valid_for_sending (ca))
       return new_codec_associations;
   }
 
