@@ -463,6 +463,30 @@ get_param_value (FsCodec *codec, const gchar *param_name)
     return NULL;
 }
 
+/*
+ * Put the recv-only codecs after all of the codecs that are
+ * valid for sending.
+ * This should have the effect of putting stranges "codecs"
+ * like telephone-event and CN at the end
+ */
+
+static GList *
+list_insert_local_ca (GList *list, CodecAssociation *ca)
+{
+  if (codec_association_is_valid_for_sending (ca))
+  {
+    GList *item;
+
+    for (item = list; item; item = item->next)
+      if (!codec_association_is_valid_for_sending (item->data))
+        break;
+    if (item)
+      return g_list_insert_before (list, item, ca);
+  }
+
+  return g_list_append (list, ca);
+}
+
 /**
  * create_local_codec_associations:
  * @blueprints: The #GList of CodecBlueprint
@@ -578,7 +602,7 @@ create_local_codec_associations (
           ca->send_profile = get_param_value (codec_pref, SEND_PROFILE_ARG);
           ca->recv_profile = get_param_value (codec_pref, RECV_PROFILE_ARG);
 
-          codec_associations = g_list_append (codec_associations, ca);
+          codec_associations = list_insert_local_ca (codec_associations, ca);
           continue;
         }
       }
@@ -634,7 +658,7 @@ create_local_codec_associations (
       g_free (tmp);
     }
 
-    codec_associations = g_list_append (codec_associations, ca);
+    codec_associations = list_insert_local_ca (codec_associations, ca);
 
     /* Now, only codecs with specified ids are here,
      * the rest are dynamic
@@ -728,7 +752,7 @@ create_local_codec_associations (
         ca->codec = fs_codec_copy (bp->codec);
         ca->codec->id = tmpca->codec->id;
 
-        codec_associations = g_list_append (codec_associations, ca);
+        codec_associations = list_insert_local_ca (codec_associations, ca);
         next = TRUE;
       }
     }
@@ -750,7 +774,7 @@ create_local_codec_associations (
       }
     }
 
-    codec_associations = g_list_append (codec_associations, ca);
+    codec_associations = list_insert_local_ca (codec_associations, ca);
   }
 
   for (lca_e = codec_associations;
