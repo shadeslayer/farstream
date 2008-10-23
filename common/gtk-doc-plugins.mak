@@ -367,8 +367,11 @@ scanobj-trans-update:
 	-rm scanobj-trans-build.stamp
 	$(MAKE) scanobj-trans-build.stamp
 
-scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
-	@echo '*** Scanning GObjects ***'
+# We have a scanobj-build.stamp just to prevent both from running at the same
+# time as they use temp files with the same name
+
+scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles) scanobj-build.stamp
+	@echo '*** Scanning Transmitters ***'
 	if test x"$(srcdir)" = x. ; then				\
 	    GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/ext	\
 	    GST_REGISTRY=$(INSPECT_REGISTRY)				\
