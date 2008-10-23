@@ -636,40 +636,41 @@ create_local_codec_associations (
 
     codec_associations = g_list_append (codec_associations, ca);
 
-  /* Now, only codecs with specified ids are here,
-   * the rest are dynamic
-   * Lets attribute them here */
-  for (lca_e = codec_associations;
-       lca_e;
-       lca_e = g_list_next (lca_e))
-  {
-    CodecAssociation *lca = lca_e->data;
-    CodecAssociation *tmpca = NULL;
-
-    if (lca->reserved)
-      continue;
-
-    tmpca = lookup_codec_association_by_pt_list (current_codec_associations,
-        lca->codec->id, TRUE);
-
-    /* Same blueprint, we've copied the ID voluntarily, continue */
-    if (tmpca && tmpca->blueprint == lca->blueprint)
-      continue;
-
-    /* If we have a different blueprint or a ANY id, we have to get a new id */
-    if (tmpca || lca->codec->id < 0)
+    /* Now, only codecs with specified ids are here,
+     * the rest are dynamic
+     * Lets attribute them here */
+    for (lca_e = codec_associations;
+         lca_e;
+         lca_e = g_list_next (lca_e))
     {
-      lca->codec->id = _find_first_empty_dynamic_entry (
-          current_codec_associations, codec_associations);
-      if (lca->codec->id < 0)
+      CodecAssociation *lca = lca_e->data;
+      CodecAssociation *tmpca = NULL;
+
+      if (lca->reserved)
+        continue;
+
+      tmpca = lookup_codec_association_by_pt_list (current_codec_associations,
+          lca->codec->id, TRUE);
+
+      /* Same blueprint, we've copied the ID voluntarily, continue */
+      if (tmpca && tmpca->blueprint == lca->blueprint)
+        continue;
+
+      /* If we have a different blueprint or a ANY id, we have to get a new id
+       */
+      if (tmpca || lca->codec->id < 0)
       {
-        GST_ERROR ("We've run out of dynamic payload types");
-        goto error;
+        lca->codec->id = _find_first_empty_dynamic_entry (
+            current_codec_associations, codec_associations);
+        if (lca->codec->id < 0)
+        {
+          GST_ERROR ("We've run out of dynamic payload types");
+          goto error;
+        }
       }
     }
   }
 
-  }
   /* Now, lets add all other codecs from the blueprints */
   for (bp_e = g_list_first (blueprints); bp_e; bp_e = g_list_next (bp_e)) {
     CodecBlueprint *bp = bp_e->data;
