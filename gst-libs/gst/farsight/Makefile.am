@@ -59,13 +59,13 @@ fs-marshal.list: $(libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) Makefile.am
 	fi
 
 fs-marshal.h: Makefile fs-marshal.list
-		glib-genmarshal --header --prefix=_fs_marshal $(srcdir)/fs-marshal.list > fs-marshal.h.tmp
+		glib-genmarshal --header --prefix=_fs_marshal $(builddir)/fs-marshal.list > fs-marshal.h.tmp
 		mv fs-marshal.h.tmp fs-marshal.h
 
 fs-marshal.c: Makefile fs-marshal.list
 		echo "#include \"glib-object.h\"" >> fs-marshal.c.tmp
 		echo "#include \"fs-marshal.h\"" >> fs-marshal.c.tmp
-		glib-genmarshal --body --prefix=_fs_marshal $(srcdir)/fs-marshal.list >> fs-marshal.c.tmp
+		glib-genmarshal --body --prefix=_fs_marshal $(builddir)/fs-marshal.list >> fs-marshal.c.tmp
 		mv fs-marshal.c.tmp fs-marshal.c
 
 libgstfarsight_@GST_MAJORMINOR@_la_CFLAGS = \
