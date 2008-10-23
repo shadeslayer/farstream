@@ -35,9 +35,7 @@ noinst_HEADERS = \
 	fs-rtp-dtmf-sound-source.h \
 	fs-rtp-marshal.h
 
-EXTRA_libfsrtpconference_la_SOURCES = fs-rtp-marshal.list
-
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = $(BUILT_SOURCES) fs-rtp-marshal.list
 
 libfsrtpconference_la_CFLAGS = \
 	$(FS2_INTERNAL_CFLAGS) \
@@ -66,6 +64,18 @@ gstfsrtpconference_doc.c: gstfsrtpconference.c
 
 BUILT_SOURCES += gstfsrtpconference_doc.c
 endif
+
+fs-rtp-marshal.list: $(libfsrtpconference_la_SOURCES) Makefile.am
+	( cd $(srcdir) && \
+	sed -n -e 's/.*fs_rtp_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
+	$(libfsrtpconference_la_SOURCES) ) \
+	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
+	if cmp -s $@.tmp $@; then \
+		rm $@.tmp; \
+		touch $@; \
+	else \
+		mv $@.tmp $@; \
+	fi
 
 fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
 		glib-genmarshal --header --prefix=_fs_rtp_marshal $(srcdir)/$< > $@.tmp
