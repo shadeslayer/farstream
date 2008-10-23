@@ -2847,7 +2847,6 @@ out:
 struct link_data {
   FsRtpSession *session;
   GstCaps *caps;
-  GstElement *codecbin;
   FsCodec *codec;
 
   GList *all_codecs;
@@ -3098,7 +3097,6 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   g_value_set_boolean (&link_rv, FALSE);
 
   data.session = session;
-  data.codecbin = codecbin;
   data.caps = sendcaps;
   data.error = NULL;
   data.all_codecs = codecs;
