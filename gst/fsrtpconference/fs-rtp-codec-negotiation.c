@@ -610,14 +610,13 @@ create_local_codec_associations (
         if (codec)
         {
           GList *item = NULL;
-          FsCodecParameter *param;
 
           /* Keep the local configuration */
           for (item = oldca->codec->optional_params;
                item;
                item = g_list_next (item))
           {
-            param = item->data;
+            FsCodecParameter *param = item->data;
             if (codec_has_config_data_named (codec, param->name))
               fs_codec_add_optional_parameter (codec, param->name,
                   param->value);
