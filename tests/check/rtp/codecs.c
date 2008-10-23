@@ -780,7 +780,7 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
   GstElement *conf;
   FsSession *session;
   GList *codecs;
-  FsCodec *base_codec = fs_codec_new (120, "test-codec", FS_MEDIA_TYPE_AUDIO,
+  FsCodec *base_codec = fs_codec_new (120, "PCMA", FS_MEDIA_TYPE_AUDIO,
       8000);
   FsCodec *pref_codec = fs_codec_copy (base_codec);
   GList *prefs = g_list_append (NULL, pref_codec);

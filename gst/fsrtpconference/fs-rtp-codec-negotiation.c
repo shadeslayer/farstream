@@ -121,13 +121,38 @@ parse_bin_from_description_all_linked (const gchar *bin_description,
   return NULL;
 }
 
+static gint
+find_matching_pad (gconstpointer a, gconstpointer b)
+{
+  GstPad *pad = GST_PAD (a);
+  GstCaps *caps = GST_CAPS (b);
+  GstCaps *padcaps = NULL;
+  GstCaps *intersect = NULL;
+  gint ret = 1;
+
+  padcaps = gst_pad_get_caps (pad);
+  intersect = gst_caps_intersect (caps, padcaps);
+
+  if (intersect && !gst_caps_is_empty (intersect))
+    ret = 0;
+
+  gst_caps_unref (intersect);
+  gst_caps_unref (padcaps);
+  gst_object_unref (pad);
+
+  return ret;
+}
+
 static gboolean
-validate_codec_profile (const gchar *bin_description, gboolean is_send)
+validate_codec_profile (FsCodec *codec,const gchar *bin_description,
+    gboolean is_send)
 {
   GError *error = NULL;
   GstElement *bin = NULL;
   guint src_pad_count = 0, sink_pad_count = 0;
-
+  GstCaps *caps;
+  gpointer matching_pad = NULL;;
+  GstIterator *iter;
 
   bin = parse_bin_from_description_all_linked (bin_description,
       &src_pad_count, &sink_pad_count, &error);
@@ -142,6 +167,26 @@ validate_codec_profile (const gchar *bin_description, gboolean is_send)
   }
   g_clear_error (&error);
 
+  caps = fs_codec_to_gst_caps (codec);
+
+  if (is_send)
+    iter = gst_element_iterate_src_pads (bin);
+  else
+    iter = gst_element_iterate_sink_pads (bin);
+
+  matching_pad = gst_iterator_find_custom (iter, find_matching_pad, caps);
+  gst_iterator_free (iter);
+
+  if (!matching_pad)
+  {
+    GST_WARNING ("Invalid profile (%s), has no %s pad that matches the codec"
+        " details", is_send ? "src" : "sink", bin_description);
+    gst_caps_unref (caps);
+    gst_object_unref (bin);
+    return FALSE;
+  }
+
+  gst_caps_unref (caps);
   gst_object_unref (bin);
 
   if (is_send)
@@ -257,11 +302,11 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
 
     /* If there are send and/or recv profiles, lets test them */
     param = fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL);
-    if (param && !validate_codec_profile (param->value, FALSE))
+    if (param && !validate_codec_profile (codec, param->value, FALSE))
         goto remove_this_codec;
 
     param = fs_codec_get_optional_parameter (codec, SEND_PROFILE_ARG, NULL);
-    if (param && !validate_codec_profile (param->value, TRUE))
+    if (param && !validate_codec_profile (codec, param->value, TRUE))
       goto remove_this_codec;
 
     /* If no blueprint was found */
