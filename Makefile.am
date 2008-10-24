@@ -59,3 +59,5 @@ DISTCLEANFILES = $(pcinfiles:.in=)
 dist-hook:
 	chmod u+w ${distdir}/ChangeLog
 	if test -d .git; then git log >${distdir}/ChangeLog; fi
+
+include $(top_srcdir)/common/coverage/lcov.mak
