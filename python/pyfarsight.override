@@ -36,7 +36,7 @@ static int
 _fs_boxed_list_to_value (GValue *value, PyObject *obj, GType type,
     StructCopyFunc copy_func)
 {
-  int i;
+  Py_ssize_t i;
   GList *boxed = NULL;
 
   if (!PySequence_Check (obj)) {
@@ -106,7 +106,7 @@ static gboolean
 _fs_codec_list_from_pysequence (PyObject *obj, GList **list)
 {
   GList *codecs = NULL;
-  gint i;
+  Py_ssize_t i;
 
   if (!PySequence_Check (obj))
   {
@@ -664,7 +664,7 @@ _wrap_fs_stream_set_remote_candidates (PyGObject *self, PyObject *arg)
   gboolean ret = FALSE;
   GError *error = NULL;
   GList *candidates = NULL;
-  int i;
+  Py_ssize_t i;
 
   if (!PySequence_Check (arg))
   {
