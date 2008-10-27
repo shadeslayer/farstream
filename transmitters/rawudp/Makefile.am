@@ -8,8 +8,12 @@ librawudp_transmitter_la_SOURCES = \
 	fs-rawudp-transmitter.c \
 	fs-rawudp-stream-transmitter.c \
 	fs-rawudp-component.c \
-	fs-rawudp-marshal.c \
 	stun.c
+
+nodist_librawudp_transmitter_la_SOURCES = \
+	fs-rawudp-marshal.c \
+	fs-rawudp-marshal.h
+
 
 # flags used to compile this plugin
 librawudp_transmitter_la_CFLAGS = \
@@ -29,12 +33,9 @@ noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
 	fs-rawudp-component.h \
-	fs-rawudp-marshal.h \
 	stun.h
 
-BUILT_SOURCES = \
-		fs-rawudp-marshal.c \
-		fs-rawudp-marshal.h
+BUILT_SOURCES = $(nodist_librawudp_transmitter_la_SOURCES)
 
 CLEANFILES = $(BUILT_SOURCES) fs-rawudp-marshal.list
 

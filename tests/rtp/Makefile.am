@@ -13,11 +13,14 @@ codec_discovery_SOURCES = codec-discovery.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-session.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-stream.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-substream.c \
-		$(top_srcdir)/gst/fsrtpconference/fs-rtp-participant.c \
-		$(top_srcdir)/gst/fsrtpconference/fs-rtp-marshal.c
+		$(top_srcdir)/gst/fsrtpconference/fs-rtp-participant.c
+
+nodist_codec_discovery_SOURCES = \
+		$(top_builddir)/gst/fsrtpconference/fs-rtp-marshal.c
 
 codec_discovery_CFLAGS = \
 	-I$(top_srcdir)/gst/fsrtpconference/ \
+	-I$(top_builddir)/gst/fsrtpconference/ \
 	$(FS2_INTERNAL_CFLAGS) \
 	$(FS2_CFLAGS) \
 	$(GST_CFLAGS) \

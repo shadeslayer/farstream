@@ -12,13 +12,16 @@ common_SOURCES = \
 	fs-rtp-specific-nego.c \
 	fs-rtp-special-source.c \
 	fs-rtp-dtmf-event-source.c \
-	fs-rtp-dtmf-sound-source.c \
-	fs-rtp-marshal.c
+	fs-rtp-dtmf-sound-source.c
+
 libfsrtpconference_la_SOURCES = gstfsrtpconference.c $(common_SOURCES)
 
-BUILT_SOURCES = \
-		fs-rtp-marshal.c \
-		fs-rtp-marshal.h
+nodist_libfsrtpconference_la_SOURCES = \
+	fs-rtp-marshal.c \
+	fs-rtp-marshal.h
+
+
+BUILT_SOURCES = $(nodist_libfsrtpconference_la_SOURCES)
 
 noinst_HEADERS = \
 	fs-rtp-conference.h \
@@ -32,8 +35,7 @@ noinst_HEADERS = \
 	fs-rtp-specific-nego.h \
 	fs-rtp-special-source.h \
 	fs-rtp-dtmf-event-source.h \
-	fs-rtp-dtmf-sound-source.h \
-	fs-rtp-marshal.h
+	fs-rtp-dtmf-sound-source.h
 
 CLEANFILES = $(BUILT_SOURCES) fs-rtp-marshal.list
 
@@ -55,6 +57,7 @@ if ENABLE_GTK_DOC
 noinst_LTLIBRARIES = libfsrtpconference_doc.la
 
 libfsrtpconference_doc_la_SOURCES = gstfsrtpconference_doc.c $(common_SOURCES)
+nodist_libfsrtpconference_doc_la_SOURCES = $(nodist_libfsrtpconference_la_SOURCES)
 libfsrtpconference_doc_la_CFLAGS = $(libfsrtpconference_la_CFLAGS)
 libfsrtpconference_doc_la_LIBADD = $(libfsrtpconference_la_LIBADD)
 

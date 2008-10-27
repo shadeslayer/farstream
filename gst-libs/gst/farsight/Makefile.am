@@ -11,18 +11,18 @@ libgstfarsightinclude_HEADERS = \
 		fs-transmitter.h \
 		fs-stream-transmitter.h \
 		fs-plugin.h \
-		fs-marshal.h \
-		fs-enum-types.h \
 		fs-element-added-notifier.h \
 		fs-interfaces.h
+
+nodist_libgstfarsightinclude_HEADERS = \
+		fs-enum-types.h
+
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
 
 BUILT_SOURCES = \
-		fs-marshal.c \
-		fs-marshal.h \
-		fs-enum-types.c \
-		fs-enum-types.h
+	$(nodist_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) \
+	$(nodist_libgstfarsightinclude_HEADERS)
 
 CLEANFILES = $(BUILT_SOURCES) fs-marshal.list
 
@@ -37,14 +37,15 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-transmitter.c \
 		fs-stream-transmitter.c \
 		fs-plugin.c \
-		fs-marshal.c \
-		fs-enum-types.c \
 		fs-element-added-notifier.c \
-		fs-interfaces.c
+		fs-interfaces.c \
+		fs-private.h
 
-noinst_HEADERS = \
-	fs-marshal.h \
-	fs-private.h
+nodist_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
+		fs-marshal.c \
+		fs-marshal.h \
+		fs-enum-types.c
+
 
 fs-marshal.list: $(libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) Makefile.am
 	( cd $(srcdir) && \
