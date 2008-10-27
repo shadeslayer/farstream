@@ -51,12 +51,8 @@ fs-rawudp-marshal.list: $(librawudp_transmitter_la_SOURCES) Makefile.am
 		mv $@.tmp $@; \
 	fi
 
-fs-rawudp-marshal.h: fs-rawudp-marshal.list Makefile
-		glib-genmarshal --header --prefix=_fs_rawudp_marshal $(srcdir)/$< > $@.tmp
-		mv $@.tmp $@
+glib_enum_define=FS_RAWUDP
+glib_enum_prefix=_fs_rawudp
 
-fs-rawudp-marshal.c: fs-rawudp-marshal.list Makefile
-		echo "#include \"glib-object.h\"" >> $@.tmp
-		echo "#include \"fs-rawudp-marshal.h\"" >> $@.tmp
-		glib-genmarshal --body --prefix=_fs_rawudp_marshal $(srcdir)/$< >> $@.tmp
-		mv $@.tmp $@
+include $(top_srcdir)/common/glib-gen.mak
+
