@@ -12,9 +12,11 @@ Makefile.in
 *.stamp
 
 gst/fsrtpconference/fs-rtp-marshal.[ch]
+gst/fsrtpconference/fs-rtp-marshal.list
 gst/fsrtpconference/gstfsrtpconference_doc.c
 
 transmitters/rawudp/fs-rawudp-marshal.[ch]
+transmitters/rawudp/fs-rawudp-marshal.list
 
 gst-libs/gst/farsight/fs-marshal.[ch]
 gst-libs/gst/farsight/fs-marshal.list
