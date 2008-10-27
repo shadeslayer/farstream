@@ -17,7 +17,7 @@ enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
 	glib-genmarshal --body --prefix=$(glib_enum_prefix)_marshal $^ >> $*-marshal.c.tmp
 	mv $*-marshal.c.tmp $*-marshal.c
 
-%-enumtypes.h: $(glib_enum_headers)
+%-enum-types.h: $(glib_enum_headers)
 	glib-mkenums \
 	--fhead "#ifndef __$(glib_enum_define)_ENUM_TYPES_H__\n#define __$(glib_enum_define)_ENUM_TYPES_H__\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 	--fprod "\n/* enumerations from \"@filename@\" */\n" \
@@ -25,10 +25,10 @@ enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
 	--ftail "G_END_DECLS\n\n#endif /* __$(glib_enum_define)_ENUM_TYPES_H__ */" \
 	$^ > $@
 
-%-enumtypes.c: $(glib_enum_headers)
+%-enum-types.c: $(glib_enum_headers)
 	@if test "x$(glib_enum_headers)" == "x"; then echo "ERROR: glib_enum_headers is empty, please fix Makefile"; exit 1; fi
 	glib-mkenums \
-	--fhead "#include \"$*-enumtypes.h\"\n$(enum_headers)" \
+	--fhead "#include \"$*-enum-types.h\"\n$(enum_headers)" \
 	--fprod "\n/* enumerations from \"@filename@\" */" \
 	--vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {"     \
 	--vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
@@ -40,5 +40,5 @@ enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
 .deps/%-marshal.Plo:
 	touch $@
 
-.deps/%-enumtypes.Plo:
+.deps/%-enum-types.Plo:
 	touch $@
