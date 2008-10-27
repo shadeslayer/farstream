@@ -77,12 +77,7 @@ fs-rtp-marshal.list: $(libfsrtpconference_la_SOURCES) Makefile.am
 		mv $@.tmp $@; \
 	fi
 
-fs-rtp-marshal.h: fs-rtp-marshal.list Makefile
-		glib-genmarshal --header --prefix=_fs_rtp_marshal $(srcdir)/$< > $@.tmp
-		mv $@.tmp $@
+glib_enum_define=FS_RTP
+glib_enum_prefix=_fs_rtp
 
-fs-rtp-marshal.c: fs-rtp-marshal.list Makefile
-		echo "#include \"glib-object.h\"" >> $@.tmp
-		echo "#include \"fs-rtp-marshal.h\"" >> $@.tmp
-		glib-genmarshal --body --prefix=_fs_rtp_marshal $(srcdir)/$< >> $@.tmp
-		mv $@.tmp $@
+include $(top_srcdir)/common/glib-gen.mak
