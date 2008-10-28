@@ -714,6 +714,19 @@ nway_test (int in_count, extra_init extrainit,
     guint st_param_count, GParameter *st_params)
 {
   int i, j;
+  GParameter *params;
+
+  params = g_new0 (GParameter, st_param_count+2);
+
+  memcpy (params, st_params, st_param_count * sizeof (GParameter));
+
+  params[st_param_count].name = "upnp-discovery";
+  g_value_init (&params[st_param_count].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[st_param_count].value, FALSE);
+
+  params[st_param_count+1].name = "upnp-mapping";
+  g_value_init (&params[st_param_count+1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[st_param_count+1].value, FALSE);
 
   count = in_count;
 
@@ -745,7 +758,8 @@ nway_test (int in_count, extra_init extrainit,
       {
         struct SimpleTestStream *st = NULL;
 
-        st = simple_conference_add_stream (dats[i], dats[j], 0, NULL);
+        st = simple_conference_add_stream (dats[i], dats[j], st_param_count+2,
+            params);
         st->handoff_handler = G_CALLBACK (_handoff_handler);
         g_signal_connect (st->stream, "src-pad-added",
             G_CALLBACK (_src_pad_added), st);
@@ -771,6 +785,8 @@ nway_test (int in_count, extra_init extrainit,
   g_free (dats);
 
   g_main_loop_unref (loop);
+
+  g_free (params);
 }
 
 
