@@ -50,9 +50,7 @@ DOC_STAMPS =				\
 	sgml.stamp			\
 	html.stamp			\
 	scanobj-build.stamp		\
-	scanobj-trans-build.stamp	\
-	inspect-build.stamp		\
-	inspect.stamp
+	scanobj-trans-build.stamp
 
 # files generated/updated by gtkdoc-scangobj
 SCANOBJ_FILES =				\
