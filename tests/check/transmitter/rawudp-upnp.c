@@ -124,8 +124,22 @@ start_upnp_server (void)
   context = gupnp_context_new (NULL, NULL, 0, NULL);
   ts_fail_if (context == NULL, "Can't get gupnp context");
 
-  gupnp_context_host_path (context, "upnp/InternetGatewayDevice.xml", "/InternetGatewayDevice.xml");
-  gupnp_context_host_path (context, "upnp/WANIPConnection.xml", "/WANIPConnection.xml");
+  if (g_getenv ("UPNP_XML_PATH"))
+  {
+    gchar **paths = g_strsplit (g_getenv ("UPNP_XML_PATH"), ":", 0);
+    gint i;
+
+    for (i=0; paths[i]; i++)
+    {
+      gupnp_context_host_path (context, paths[i], "");
+    }
+    g_strfreev (paths);
+  }
+  else
+  {
+    gupnp_context_host_path (context, "upnp/InternetGatewayDevice.xml", "/InternetGatewayDevice.xml");
+    gupnp_context_host_path (context, "upnp/WANIPConnection.xml", "/WANIPConnection.xml");
+  }
 
   dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
   ts_fail_if (dev == NULL, "could not get root dev");
