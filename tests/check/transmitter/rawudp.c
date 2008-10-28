@@ -33,6 +33,7 @@
 
 #include "check-threadsafe.h"
 #include "generic.h"
+#include "transmitter/rawudp-upnp.h"
 
 gint buffer_count[2] = {0, 0};
 GMainLoop *loop = NULL;
@@ -388,19 +389,33 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
 GST_START_TEST (test_rawudptransmitter_run_nostun)
 {
-  run_rawudp_transmitter_test (0, NULL, 0);
+  GParameter params[1];
+
+  memset (params, 0, sizeof (GParameter));
+
+  params[0].name = "upnp-discovery";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, FALSE);
+
+  run_rawudp_transmitter_test (1, params, 0);
 }
 GST_END_TEST;
 
 GST_START_TEST (test_rawudptransmitter_run_nostun_nosource)
 {
-  GParameter param = {NULL, {0}};
+  GParameter params[2];
 
-  param.name = "associate-on-source";
-  g_value_init (&param.value, G_TYPE_BOOLEAN);
-  g_value_set_boolean (&param.value, FALSE);
+  memset (params, 0, sizeof (GParameter) * 2);
 
-  run_rawudp_transmitter_test (1, &param, FLAG_NO_SOURCE);
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, FALSE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, FALSE);
+
+  run_rawudp_transmitter_test (2, params, FLAG_NO_SOURCE);
 }
 GST_END_TEST;
 
@@ -474,11 +489,11 @@ GST_END_TEST;
 
 GST_START_TEST (test_rawudptransmitter_run_local_candidates)
 {
-  GParameter params[1];
+  GParameter params[2];
   GList *list = NULL;
   FsCandidate *candidate;
 
-  memset (params, 0, sizeof (GParameter) * 1);
+  memset (params, 0, sizeof (GParameter) * 2);
 
   candidate = fs_candidate_new ("L1",
       FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
@@ -494,7 +509,12 @@ GST_START_TEST (test_rawudptransmitter_run_local_candidates)
   g_value_init (&params[0].value, FS_TYPE_CANDIDATE_LIST);
   g_value_set_boxed (&params[0].value, list);
 
-  run_rawudp_transmitter_test (1, params, FLAG_IS_LOCAL);
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, FALSE);
+
+
+  run_rawudp_transmitter_test (2, params, FLAG_IS_LOCAL);
 
   g_value_reset (&params[0].value);
 
@@ -551,6 +571,13 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
   FsTransmitter *trans;
   FsStreamTransmitter *st;
   GstBus *bus = NULL;
+  GParameter params[1];
+
+  memset (params, 0, sizeof (GParameter));
+
+  params[0].name = "upnp-discovery";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, FALSE);
 
   has_stun = FALSE;
 
@@ -566,7 +593,7 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
 
   pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler_empty));
 
-  st = fs_transmitter_new_stream_transmitter (trans, NULL, 0, NULL, &error);
+  st = fs_transmitter_new_stream_transmitter (trans, NULL, 1, params, &error);
 
   if (error)
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
@@ -617,6 +644,41 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
 }
 GST_END_TEST;
 
+#ifdef HAVE_GUPNP
+
+
+
+GST_START_TEST (test_rawudptransmitter_run_upnp_discovery)
+{
+  GParameter params[2];
+  GObject *context;
+  gboolean got_address = FALSE;
+  gboolean added_mapping = FALSE;
+
+  memset (params, 0, sizeof (GParameter) * 2);
+
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, TRUE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, TRUE);
+
+  context = start_upnp_server ();
+
+  run_rawudp_transmitter_test (2, params, 0);
+
+
+  get_vars (&got_address, &added_mapping);
+  ts_fail_unless (got_address, "did not get address");
+  ts_fail_unless (added_mapping, "did not add mapping");
+  g_object_unref (context);
+}
+GST_END_TEST;
+
+
+#endif
 
 static Suite *
 rawudptransmitter_suite (void)
@@ -658,6 +720,12 @@ rawudptransmitter_suite (void)
   tc_chain = tcase_create ("rawudptransmitter-stop-stream");
   tcase_add_test (tc_chain, test_rawudptransmitter_stop_stream);
   suite_add_tcase (s, tc_chain);
+
+#ifdef HAVE_GUPNP
+  tc_chain = tcase_create ("rawudptransmitter-upnp-discovery");
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_discovery);
+  suite_add_tcase (s, tc_chain);
+#endif
 
   return s;
 }

@@ -41,7 +41,6 @@ check_PROGRAMS = \
 	rtp/conference \
 	utils/binadded
 
-
 AM_CFLAGS = \
 	$(CFLAGS) \
 	$(FS2_INTERNAL_CFLAGS) \
@@ -54,12 +53,17 @@ LDADD = \
 	$(GST_CHECK_LIBS) \
 	$(GST_LIBS)
 
-transmitter_rawudp_CFLAGS = $(AM_CFLAGS)
+transmitter_rawudp_CFLAGS = $(AM_CFLAGS) $(GUPNP_CFLAGS)
+transmitter_rawudp_LDADD = $(LDADD) \
+	$(GUPNP_LIBS)
 transmitter_rawudp_SOURCES = \
 	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
-	transmitter/rawudp.c 
+	transmitter/rawudp.c \
+	transmitter/rawudp-upnp.c \
+	transmitter/rawudp-upnp.h
+
 
 transmitter_multicast_CFLAGS = $(AM_CFLAGS)
 transmitter_multicast_SOURCES = \
@@ -91,4 +95,3 @@ rtp_sendcodecs_SOURCES = \
 utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
 	utils/binadded.c
-

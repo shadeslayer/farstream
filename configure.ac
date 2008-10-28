@@ -354,7 +354,7 @@ AC_ARG_ENABLE([python],
 	[case "${enableval}" in
 	    yes) WANT_PYTHON=yes ;;
 	    no)  WANT_PYTHON=no ;;
-	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-debug) ;;
+	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-python) ;;
         esac],
 	WANT_PYTHON=yes)
 if test "x$WANT_PYTHON" = "xyes"; then
@@ -365,6 +365,29 @@ if test "x$WANT_PYTHON" = "xyes"; then
 					pygtk-2.0 >= 2.10 ] )
 fi
 AM_CONDITIONAL(WANT_PYTHON, test "x$WANT_PYTHON" = "xyes")
+
+AC_ARG_ENABLE([gupnp],
+	AC_HELP_STRING([--disable-gupnp], [Disable GUPnP IGD support]),
+	[case "${enableval}" in
+	    yes) WANT_GUPNP=yes ;;
+	    no)  WANT_GUPNP=no ;;
+	    *) AC_MSG_ERROR(bad value ${enableval} for --enable-gupnp) ;;
+        esac],
+	WANT_GUPNP=test)
+
+HAVE_GUPNP=no
+if test "x$WANT_GUPNP" != "xno"; then
+   PKG_CHECK_MODULES(GUPNP, [ gupnp-igd-1.0 ],
+    [ HAVE_GUPNP=yes ],
+    [ HAVE_GUPNP=no ])
+fi
+if test "x$WANT_GUPNP" = "xyes" && test "x$HAVE_GUPNP" = "xno"; then
+   AC_ERROR([Requested GUPnP IGD, but it is not available])
+fi
+
+if test "x$HAVE_GUPNP" = "xyes"; then
+   AC_DEFINE(HAVE_GUPNP,,[Have the GUPnP IGD library])
+fi
 
 
 dnl *** output files ***

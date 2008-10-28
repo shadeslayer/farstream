@@ -99,6 +99,11 @@ fs_rawudp_component_new (
     const gchar *stun_ip,
     guint stun_port,
     guint stun_timeout,
+    gboolean upnp_mapping,
+    gboolean upnp_discovery,
+    guint upnp_mapping_timeout,
+    guint upnp_discovery_timeout,
+    gpointer upnp_igd,
     guint *used_port,
     GError **error);
 

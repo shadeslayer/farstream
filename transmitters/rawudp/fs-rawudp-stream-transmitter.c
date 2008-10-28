@@ -69,12 +69,20 @@
 #include <gst/farsight/fs-candidate.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+#ifdef HAVE_GUPNP
+#include <libgupnp-igd/gupnp-simple-igd-thread.h>
+#endif
+
 #include <gst/gst.h>
 
 #include <string.h>
 
 
 #define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
+
+#define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
+#define DEFAULT_UPNP_DISCOVERY_TIMEOUT (10)
+#define DEFAULT_UPNP_REQUEST_TIMEOUT (10)
 
 /* Signals */
 enum
@@ -91,7 +99,12 @@ enum
   PROP_ASSOCIATE_ON_SOURCE,
   PROP_STUN_IP,
   PROP_STUN_PORT,
-  PROP_STUN_TIMEOUT
+  PROP_STUN_TIMEOUT,
+  PROP_UPNP_MAPPING,
+  PROP_UPNP_DISCOVERY,
+  PROP_UPNP_MAPPING_TIMEOUT,
+  PROP_UPNP_DISCOVERY_TIMEOUT,
+  PROP_UPNP_REQUEST_TIMEOUT
 };
 
 struct _FsRawUdpStreamTransmitterPrivate
@@ -117,6 +130,16 @@ struct _FsRawUdpStreamTransmitterPrivate
   guint next_candidate_id;
 
   gboolean associate_on_source;
+
+#ifdef HAVE_GUPNP
+  gboolean upnp_discovery;
+  gboolean upnp_mapping;
+  guint upnp_mapping_timeout;
+  guint upnp_discovery_timeout;
+  guint upnp_request_timeout;
+
+  GUPnPSimpleIgdThread *upnp_igd;
+#endif
 
   /* Everything below this line is protected by the mutex */
   GMutex *mutex;
@@ -260,6 +283,61 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           1, G_MAXUINT, 30,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_MAPPING,
+      g_param_spec_boolean ("upnp-mapping",
+#ifdef HAVE_GUPNP
+          "Try to map ports using UPnP",
+          "Tries to map ports using UPnP if enabled",
+          TRUE,
+#else
+          "Try to map ports using UPnP (NOT COMPILED IN)",
+          "Tries to map ports using UPnP if enabled",
+          FALSE,
+#endif
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_DISCOVERY,
+      g_param_spec_boolean ("upnp-discovery",
+#ifdef HAVE_GUPNP
+          "Try to use UPnP to find the external IP address",
+          "Tries to discovery the external IP with UPnP if stun fails",
+          TRUE,
+#else
+          "Try to use UPnP to find the external IP address (NOT COMPILED IN)",
+          "Tries to discovery the external IP with UPnP if stun fails",
+          FALSE,
+#endif
+
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_MAPPING_TIMEOUT,
+      g_param_spec_uint ("upnp-mapping-timeout",
+          "Timeout after which UPnP mappings expire",
+          "The UPnP port mappings expire after this period if the app has"
+          " crashed (in seconds)",
+          0, G_MAXUINT32, DEFAULT_UPNP_MAPPING_TIMEOUT,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_DISCOVERY_TIMEOUT,
+      g_param_spec_uint ("upnp-discovery-timeout",
+          "Timeout after which UPnP discovery fails",
+          "After this period, UPnP discovery is considered to have failed"
+          " and the local IP is returned",
+          0, G_MAXUINT32, DEFAULT_UPNP_DISCOVERY_TIMEOUT,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_UPNP_REQUEST_TIMEOUT,
+      g_param_spec_uint ("upnp-request-timeout",
+          "Timeout after which UPnP requests timeout",
+          "After this delay, UPnP requests fails",
+          1, 600, DEFAULT_UPNP_REQUEST_TIMEOUT,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_stream_transmitter_finalize;
 
@@ -275,6 +353,14 @@ fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self)
 
   self->priv->sending = TRUE;
   self->priv->associate_on_source = TRUE;
+
+#ifdef HAVE_GUPNP
+  self->priv->upnp_mapping = TRUE;
+  self->priv->upnp_request_timeout = DEFAULT_UPNP_REQUEST_TIMEOUT;
+  self->priv->upnp_discovery_timeout = DEFAULT_UPNP_DISCOVERY_TIMEOUT;
+  self->priv->upnp_mapping_timeout = DEFAULT_UPNP_MAPPING_TIMEOUT;
+  self->priv->upnp_discovery = TRUE;
+#endif
 
   self->priv->mutex = g_mutex_new ();
 }
@@ -300,6 +386,14 @@ fs_rawudp_stream_transmitter_dispose (GObject *object)
       }
     }
   }
+
+#ifdef HAVE_GUPNP
+  if (self->priv->upnp_igd)
+  {
+    g_object_unref (self->priv->upnp_igd);
+    self->priv->upnp_igd = NULL;
+  }
+#endif
 
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -358,6 +452,33 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_STUN_TIMEOUT:
       g_value_set_uint (value, self->priv->stun_timeout);
       break;
+#ifdef HAVE_GUPNP
+    case PROP_UPNP_MAPPING:
+      g_value_set_boolean (value, self->priv->upnp_mapping);
+      break;
+    case PROP_UPNP_DISCOVERY:
+      g_value_set_boolean (value, self->priv->upnp_discovery);
+      break;
+    case PROP_UPNP_MAPPING_TIMEOUT:
+      g_value_set_uint (value, self->priv->upnp_mapping_timeout);
+      break;
+    case PROP_UPNP_DISCOVERY_TIMEOUT:
+      g_value_set_uint (value, self->priv->upnp_discovery_timeout);
+      break;
+    case PROP_UPNP_REQUEST_TIMEOUT:
+      g_value_set_uint (value, self->priv->upnp_request_timeout);
+      break;
+#else
+    case PROP_UPNP_MAPPING:
+    case PROP_UPNP_DISCOVERY:
+      g_value_set_boolean (value, FALSE);
+      break;
+    case PROP_UPNP_MAPPING_TIMEOUT:
+    case PROP_UPNP_DISCOVERY_TIMEOUT:
+    case PROP_UPNP_REQUEST_TIMEOUT:
+      g_value_set_uint (value, 0);
+      break;
+#endif
    default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -402,6 +523,30 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
     case PROP_STUN_TIMEOUT:
       self->priv->stun_timeout = g_value_get_uint (value);
       break;
+#ifdef HAVE_GUPNP
+    case PROP_UPNP_MAPPING:
+      self->priv->upnp_mapping = g_value_get_boolean (value);
+      break;
+    case PROP_UPNP_DISCOVERY:
+      self->priv->upnp_discovery = g_value_get_boolean (value);
+      break;
+    case PROP_UPNP_MAPPING_TIMEOUT:
+      self->priv->upnp_mapping_timeout = g_value_get_uint (value);
+      break;
+    case PROP_UPNP_DISCOVERY_TIMEOUT:
+      self->priv->upnp_discovery_timeout = g_value_get_uint (value);
+      break;
+    case PROP_UPNP_REQUEST_TIMEOUT:
+      self->priv->upnp_request_timeout = g_value_get_uint (value);
+      break;
+#else
+    case PROP_UPNP_MAPPING:
+    case PROP_UPNP_DISCOVERY:
+    case PROP_UPNP_MAPPING_TIMEOUT:
+    case PROP_UPNP_DISCOVERY_TIMEOUT:
+    case PROP_UPNP_REQUEST_TIMEOUT:
+      break;
+#endif
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -419,6 +564,18 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   GList *item;
   gint c;
   guint16 next_port;
+
+#ifdef HAVE_GUPNP
+  if (self->priv->upnp_mapping ||
+      (self->priv->upnp_discovery &&
+          (!self->priv->stun_ip || !self->priv->stun_port)))
+  {
+    self->priv->upnp_igd = gupnp_simple_igd_thread_new ();
+    g_object_set (self->priv->upnp_igd,
+        "request-timeout", self->priv->upnp_request_timeout,
+        NULL);
+  }
+#endif
 
   self->priv->component = g_new0 (FsRawUdpComponent *,
       self->priv->transmitter->components + 1);
@@ -495,6 +652,15 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
         self->priv->stun_ip,
         self->priv->stun_port,
         self->priv->stun_timeout,
+#ifdef HAVE_GUPNP
+        self->priv->upnp_mapping,
+        self->priv->upnp_discovery,
+        self->priv->upnp_mapping_timeout,
+        self->priv->upnp_discovery_timeout,
+        self->priv->upnp_igd,
+#else
+        FALSE, FALSE, 0, 0, NULL,
+#endif
         &used_port,
         error);
     if (self->priv->component[c] == NULL)
