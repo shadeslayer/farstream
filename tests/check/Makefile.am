@@ -25,8 +25,11 @@ $(CHECK_REGISTRY):
 
 TESTS = $(check_PROGRAMS)
 
-
 SUPPRESSIONS = $(top_srcdir)/common/gst.supp
+
+EXTRA_DIST = \
+	upnp/InternetGatewayDevice.xml \
+	upnp/WANIPConnection.xml
 
 #######
 # From here.. Its a list of our tests and their sub stuff
