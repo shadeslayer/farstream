@@ -148,6 +148,8 @@ AC_SUBST(FS2_TRANSMITTER_PLUGINS_ALL)
 
 FS2_TRANSMITTER_PLUGINS_SELECTED=""
 
+TRANSMITTERS_DEFAULT=yes
+
 AC_ARG_WITH(transmitter-plugins,
     AC_HELP_STRING([--with-transmitter-plugins],
       [comma-separated list of plug-ins to compile]),
@@ -158,9 +160,9 @@ AC_ARG_WITH(transmitter-plugins,
         else
             echo "plug-in $i not recognized, ignoring..."
         fi
-    done],
+    done
+    TRANSMITTERS_DEFAULT=no],
     [FS2_TRANSMITTER_PLUGINS_SELECTED=$FS2_TRANSMITTER_PLUGINS_ALL])
-
 
 
 dnl check for libnice
@@ -170,8 +172,20 @@ if echo $FS2_TRANSMITTER_PLUGINS_SELECTED | grep -qi nice; then
 
   PKG_CHECK_MODULES(NICE, \
        nice >= $NICE_REQUIRED,
-       USE_NICE=yes,
-       AC_MSG_ERROR([Could not build libnice plugin because libnice is not installed]) )
+       HAVE_NICE=yes,
+       HAVE_NICE=no)
+
+  if test "x$HAVE_NICE" = "xno"; then
+    if test "x$TRANSMITTERS_DEFAULT" = "xyes"; then
+      FS2_TRANSMITTER_PLUGINS_SELECTED="${FS2_TRANSMITTER_PLUGINS_SELECTED/ nice/}"
+      AC_MSG_WARN([Will not build libnice transmitter because libnice is not available])
+    else
+      AC_MSG_ERROR([Can not build requested libnice transmitter because libnice is not installed])
+    fi
+  else
+    USE_NICE=yes
+  fi
+
   AC_SUBST(NICE_CFLAGS)
   AC_SUBST(NICE_LIBS)
 else
