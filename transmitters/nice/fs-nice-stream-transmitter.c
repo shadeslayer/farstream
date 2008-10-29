@@ -278,8 +278,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
       g_param_spec_value_array (
           "relay-info",
           "Information for the TURN server",
-          "ip/port/username/password of the TURN server in a GValueArray of"
-          " GstStructures ",
+          "ip/port/username/password/component of the TURN servers in a"
+          " GValueArray of GstStructures ",
           NULL,
           G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
 
@@ -808,6 +808,34 @@ weak_agent_removed (gpointer user_data, GObject *where_the_object_was)
   g_object_unref (participant);
 }
 
+static void
+fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
+    const GstStructure *s, guint component_id)
+{
+  const gchar *username, *password, *ip;
+  const gchar *relay_type_string;
+  NiceRelayType relay_type = NICE_RELAY_TYPE_UDP;
+  guint port;
+
+  ip = gst_structure_get_string (s, "ip");
+  gst_structure_get_uint (s, "port",  &port);
+  username = gst_structure_get_string (s, "username");
+  password = gst_structure_get_string (s, "password");
+  relay_type_string = gst_structure_get_string (s, "relay-type");
+
+  if (relay_type_string)
+  {
+    if (!g_ascii_strcasecmp(relay_type_string, "tcp"))
+      relay_type = NICE_RELAY_TYPE_TCP;
+    else if (!g_ascii_strcasecmp(relay_type_string, "tls"))
+      relay_type = NICE_RELAY_TYPE_TLS;
+  }
+
+  nice_agent_set_relay_info(self->priv->agent->agent,
+      self->priv->stream_id, component_id, ip, port, username, password,
+      relay_type);
+}
+
 static gboolean
 fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     FsParticipant *participant,
@@ -869,7 +897,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       return FALSE;
     }
 
-    for (i = 0; i < self->priv->transmitter->components; i++)
+    for (i = 0; i < self->priv->relay_info->n_values; i++)
     {
       GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
       const GstStructure *s = gst_value_get_structure (val);
@@ -913,6 +941,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
             i);
         return FALSE;
       }
+
       if (gst_structure_has_field (s, "relay-type") &&
           !gst_structure_has_field_typed (s, "relay-type",
               G_TYPE_STRING))
@@ -920,6 +949,16 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
             "Element %d of the relay-info a relay-type"
             " that is not a string", i);
+        return FALSE;
+      }
+
+      if (gst_structure_has_field (s, "component") &&
+          !gst_structure_has_field_typed (s, "component",
+              G_TYPE_UINT))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Element %d of the relay-info has a component that is not a uint",
+            i);
         return FALSE;
       }
     }
@@ -1020,32 +1059,35 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
   /* if we have a relay- info, lets set it */
   if (self->priv->relay_info)
   {
-    for (i = 0; i < self->priv->transmitter->components; i++)
+    gint c;
+    for (c = 0; c < self->priv->transmitter->components; c++)
     {
-      GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
-      const GstStructure *s = gst_value_get_structure (val);
-      const gchar *username, *password, *ip;
-      const gchar *relay_type_string;
-      NiceRelayType relay_type = NICE_RELAY_TYPE_UDP;
-      guint port;
+      gboolean relay_info_set = FALSE;
 
-      ip = gst_structure_get_string (s, "ip");
-      gst_structure_get_uint (s, "port",  &port);
-      username = gst_structure_get_string (s, "username");
-      password = gst_structure_get_string (s, "password");
-      relay_type_string = gst_structure_get_string (s, "relay-type");
-
-      if (relay_type_string)
+      for (i = 0; i < self->priv->relay_info->n_values; i++)
       {
-        if (!g_ascii_strcasecmp(relay_type_string, "tcp"))
-          relay_type = NICE_RELAY_TYPE_TCP;
-        else if (!g_ascii_strcasecmp(relay_type_string, "tls"))
-          relay_type = NICE_RELAY_TYPE_TLS;
+        GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
+        const GstStructure *s = gst_value_get_structure (val);
+        guint component_id;
+
+        if (gst_structure_get_uint (s, "component", &component_id))
+        {
+          fs_nice_stream_transmitter_set_relay_info (self, s, c);
+          relay_info_set = TRUE;
+        }
       }
 
-      nice_agent_set_relay_info(self->priv->agent->agent,
-          self->priv->stream_id, i + 1, ip, port, username, password,
-          relay_type);
+      if (!relay_info_set)
+      {
+        for (i = 0; i < self->priv->relay_info->n_values; i++)
+        {
+          GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
+          const GstStructure *s = gst_value_get_structure (val);
+
+          if (!gst_structure_has_field (s, "component"))
+            fs_nice_stream_transmitter_set_relay_info (self, s, c);
+        }
+      }
     }
   }
 
