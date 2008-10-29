@@ -913,13 +913,13 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
             i);
         return FALSE;
       }
-      if (gst_structure_has_field (s, "long-term-credentials") &&
-          !gst_structure_has_field_typed (s, "long-term-credentials",
-              G_TYPE_BOOLEAN))
+      if (gst_structure_has_field (s, "relay-type") &&
+          !gst_structure_has_field_typed (s, "relay-type",
+              G_TYPE_STRING))
       {
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "Element %d of the relay-info a long-term-creditials"
-            " that is not a boolean", i);
+            "Element %d of the relay-info a relay-type"
+            " that is not a string", i);
         return FALSE;
       }
     }
@@ -1025,17 +1025,27 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
       const GstStructure *s = gst_value_get_structure (val);
       const gchar *username, *password, *ip;
-      gboolean long_term_creds = FALSE;
+      const gchar *relay_type_string;
+      NiceRelayType relay_type = NICE_RELAY_TYPE_UDP;
       guint port;
 
       ip = gst_structure_get_string (s, "ip");
       gst_structure_get_uint (s, "port",  &port);
       username = gst_structure_get_string (s, "username");
       password = gst_structure_get_string (s, "password");
-      gst_structure_get_boolean (s, "long-term-credentials", &long_term_creds);
+      relay_type_string = gst_structure_get_string (s, "relay-type");
+
+      if (relay_type_string)
+      {
+        if (!g_ascii_strcasecmp(relay_type_string, "tcp"))
+          relay_type = NICE_RELAY_TYPE_TCP;
+        else if (!g_ascii_strcasecmp(relay_type_string, "tls"))
+          relay_type = NICE_RELAY_TYPE_TLS;
+      }
 
       nice_agent_set_relay_info(self->priv->agent->agent,
-          self->priv->stream_id, i + 1, ip, port, username, password);
+          self->priv->stream_id, i + 1, ip, port, username, password,
+          relay_type);
     }
   }
 
