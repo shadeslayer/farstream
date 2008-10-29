@@ -103,8 +103,7 @@ static FsStreamTransmitter *fs_nice_transmitter_new_stream_transmitter (
     FsTransmitter *transmitter, FsParticipant *participant,
     guint n_parameters, GParameter *parameters, GError **error);
 static GType fs_nice_transmitter_get_stream_transmitter_type (
-    FsTransmitter *transmitter,
-    GError **error);
+    FsTransmitter *transmitter);
 
 static GObjectClass *parent_class = NULL;
 //static guint signals[LAST_SIGNAL] = { 0 };
@@ -457,8 +456,7 @@ fs_nice_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 
 static GType
 fs_nice_transmitter_get_stream_transmitter_type (
-    FsTransmitter *transmitter,
-    GError **error)
+    FsTransmitter *transmitter)
 {
   return FS_TYPE_NICE_STREAM_TRANSMITTER;
 }
