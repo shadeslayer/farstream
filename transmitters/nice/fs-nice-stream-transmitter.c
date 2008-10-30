@@ -26,7 +26,7 @@
 /**
  * SECTION:fs-nice-stream-transmitter
  * @short_description: A stream transmitter object for ICE using libnice
- * @see_also: fs-rawudp-stream-transmitter
+ * @see_also: #FsRawUdpStreamTransmitter
  *
  */
 
