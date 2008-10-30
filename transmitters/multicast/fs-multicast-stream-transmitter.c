@@ -26,7 +26,7 @@
 /**
  * SECTION:fs-multicast-stream-transmitter
  * @short_description: A stream transmitter object for Multicast UDP
- * @see_also: fs-rawudp-stream-transmitter
+ * @see_also: #FsRawUdpStreamTransmitter
  *
  * The multicast transmitter allows data to be sent over and received from
  * multicasted UDP on IPv4.

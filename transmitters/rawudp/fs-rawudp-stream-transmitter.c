@@ -26,7 +26,7 @@
 /**
  * SECTION:fs-rawudp-stream-transmitter
  * @short_description: A stream transmitter object for UDP with STUN
- * @see_also: fs-multicast-stream-transmitter
+ * @see_also: #FsMulticastStreamTransmitter
  *
  * This transmitter sends and receives unicast UDP packets.
  *
