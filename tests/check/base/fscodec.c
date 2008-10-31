@@ -189,7 +189,7 @@ GST_START_TEST (test_fscodec_null)
   fail_unless (fs_codec_copy (NULL) == NULL, "Failed to copy NULL codec");
   fs_codec_list_destroy (NULL);
   fail_unless (fs_codec_list_copy (NULL) == NULL,
-      "Failed to copu NULL codec list");
+      "Failed to copy NULL codec list");
   str = fs_codec_to_string (NULL);
   fail_unless (str && !strcmp (str, "(NULL)"),
       "Failed to print NULL codec");
