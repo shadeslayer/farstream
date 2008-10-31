@@ -198,6 +198,74 @@ GST_START_TEST (test_fscodec_null)
 }
 GST_END_TEST;
 
+static gchar *
+get_fullpath (const gchar *filename)
+{
+  if (g_getenv ("SRCDIR"))
+    return g_strdup_printf ("%s/%s", g_getenv ("SRCDIR"), filename);
+  else
+    return g_strdup (filename);
+}
+
+GST_START_TEST (test_fscodec_keyfile)
+{
+  GList *codecs = NULL;
+  GError *error = NULL;
+  gchar *filename = NULL;
+  GList *comparison = NULL;
+  FsCodec *codec = NULL;
+
+  fail_if (fs_codec_list_from_keyfile ("invalid-filename", &error));
+  fail_if (error == NULL);
+  fail_unless (error->domain == G_FILE_ERROR);
+  g_clear_error (&error);
+
+  filename = get_fullpath ("base/test1.conf");
+  codecs = fs_codec_list_from_keyfile (filename, &error);
+  g_free (filename);
+  fail_unless (error == NULL);
+  fail_if (codecs == NULL);
+
+#if 0
+  {
+    GList *item;
+    for(item = codecs; item ; item= item->next)
+    {
+      g_debug ("%s", fs_codec_to_string (item->data));
+    }
+  }
+#endif
+
+  codec = fs_codec_new (122, "TEST1", FS_MEDIA_TYPE_AUDIO, 8001);
+  codec->channels = 5;
+  fs_codec_add_optional_parameter (codec, "test3", "test4");
+  comparison = g_list_append (comparison, codec);
+
+  codec = fs_codec_new (123, "TEST2", FS_MEDIA_TYPE_VIDEO, 8002);
+  codec->channels = 6;
+  fs_codec_add_optional_parameter (codec, "test5", "test6");
+  comparison = g_list_append (comparison, codec);
+
+  codec = fs_codec_new (FS_CODEC_ID_ANY, "TEST3", FS_MEDIA_TYPE_AUDIO, 0);
+  comparison = g_list_append (comparison, codec);
+
+  codec = fs_codec_new (FS_CODEC_ID_DISABLE, "TEST4", FS_MEDIA_TYPE_AUDIO, 0);
+  comparison = g_list_append (comparison, codec);
+
+  codec = fs_codec_new (FS_CODEC_ID_ANY, "TEST5", FS_MEDIA_TYPE_AUDIO, 0);
+  comparison = g_list_append (comparison, codec);
+
+  codec = fs_codec_new (124, "TEST5", FS_MEDIA_TYPE_AUDIO, 0);
+  comparison = g_list_append (comparison, codec);
+
+  fail_unless (fs_codec_list_are_equal (codecs, comparison));
+
+  fs_codec_list_destroy (comparison);
+  fs_codec_list_destroy (codecs);
+
+}
+GST_END_TEST;
+
 static Suite *
 fscodec_suite (void)
 {
@@ -211,6 +279,7 @@ fscodec_suite (void)
   tcase_add_test (tc_chain, test_fscodec_are_equal_opt_params);
   tcase_add_test (tc_chain, test_fscodec_copy);
   tcase_add_test (tc_chain, test_fscodec_null);
+  tcase_add_test (tc_chain, test_fscodec_keyfile);
 
   return s;
 }

@@ -12,7 +12,8 @@ TESTS_ENVIRONMENT = \
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
 	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs \
 	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH} \
-	UPNP_XML_PATH=$(srcdir)/upnp
+	UPNP_XML_PATH=$(srcdir)/upnp \
+	SRCDIR=$(srcdir)
 
 
 # ths core dumps of some machines have PIDs appended
@@ -30,7 +31,8 @@ SUPPRESSIONS = $(top_srcdir)/common/gst.supp
 
 EXTRA_DIST = \
 	upnp/InternetGatewayDevice.xml \
-	upnp/WANIPConnection.xml
+	upnp/WANIPConnection.xml \
+	base/tests1.conf
 
 #######
 # From here.. Its a list of our tests and their sub stuff
