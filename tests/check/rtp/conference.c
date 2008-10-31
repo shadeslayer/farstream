@@ -1177,10 +1177,6 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconference_change_to_send_only");
-  tcase_add_test (tc_chain, test_rtpconference_change_to_send_only);
-  suite_add_tcase (s, tc_chain);
-
   tc_chain = tcase_create ("fsrtpconference_no_rtcp");
   tcase_add_test (tc_chain, test_rtpconference_no_rtcp);
   suite_add_tcase (s, tc_chain);
