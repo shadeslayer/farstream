@@ -25,6 +25,9 @@
  * both ends have the EXACT same list of codec installed in the EXACT same order
  */
 
+
+#include <stdlib.h>
+
 #include <glib.h>
 #include <gst/gst.h>
 #include <gst/farsight/fs-conference-iface.h>
