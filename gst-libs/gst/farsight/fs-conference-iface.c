@@ -140,7 +140,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * is owned by the user and he must unref it when he is done with it.
  */
 FsParticipant *
-fs_conference_new_participant (FsConference *conference, gchar *cname,
+fs_conference_new_participant (FsConference *conference, const gchar *cname,
     GError **error)
 {
   FsConferenceClass *iface =

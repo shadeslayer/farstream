@@ -73,7 +73,7 @@ static FsSession *fs_base_conference_new_session (FsConference *conf,
                                                   FsMediaType media_type,
                                                   GError **error);
 static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
-    gchar *cname,
+    const gchar *cname,
     GError **error);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
@@ -185,7 +185,7 @@ fs_base_conference_error (GObject *signal_src, GObject *error_src,
 
 static FsParticipant *
 fs_base_conference_new_participant (FsConference *conf,
-    gchar *cname,
+    const gchar *cname,
     GError **error)
 {
   FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);

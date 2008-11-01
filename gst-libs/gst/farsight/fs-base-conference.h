@@ -92,7 +92,7 @@ struct _FsBaseConferenceClass
                              FsMediaType media_type,
                              GError **error);
   FsParticipant *(*new_participant) (FsBaseConference *conference,
-      gchar *cname,
+      const gchar *cname,
       GError **error);
 
   /*< private >*/

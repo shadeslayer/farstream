@@ -68,7 +68,7 @@ struct _FsConferenceClass {
                               GError **error);
 
   FsParticipant *(* new_participant) (FsConference *conference,
-      gchar *cname,
+      const gchar *cname,
       GError **error);
 
   /*< private > */
@@ -151,7 +151,7 @@ FsSession *fs_conference_new_session (FsConference *conference,
                                       GError **error);
 
 FsParticipant *fs_conference_new_participant (FsConference *conference,
-    gchar *cname,
+    const gchar *cname,
     GError **error);
 
 
