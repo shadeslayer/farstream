@@ -503,7 +503,7 @@ fs_stream_emit_error (FsStream *stream,
  * @pad: the #GstPad that this #FsStream has created
  * @codec: The #FsCodec for this pad
  *
- * This functin emits the #FsStream::src-pad-added" signal, it should only be
+ * Emits the #FsStream::src-pad-added" signal, it should only be
  * called by subclasses.
  */
 
