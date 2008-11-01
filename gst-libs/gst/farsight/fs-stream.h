@@ -156,8 +156,10 @@ gboolean fs_stream_force_remote_candidates (FsStream *stream,
 gboolean fs_stream_set_remote_codecs (FsStream *stream,
                                       GList *remote_codecs, GError **error);
 
-void fs_stream_emit_error (FsStream *stream, gint error_no,
-                           gchar *error_msg, gchar *debug_msg);
+void fs_stream_emit_error (FsStream *stream,
+    gint error_no,
+    const gchar *error_msg,
+    const gchar *debug_msg);
 
 void fs_stream_emit_src_pad_added (FsStream *stream,
     GstPad *pad,

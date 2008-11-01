@@ -119,7 +119,9 @@ fs_stream_transmitter_gather_local_candidates (
 void fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter);
 
 void fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
-  gint error_no, gchar *error_msg, gchar *debug_msg);
+    gint error_no,
+    const gchar *error_msg,
+    const gchar *debug_msg);
 
 G_END_DECLS
 

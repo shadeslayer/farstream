@@ -183,8 +183,10 @@ gboolean fs_session_set_codec_preferences (FsSession *session,
 
 gchar **fs_session_list_transmitters (FsSession *session);
 
-void fs_session_emit_error (FsSession *session, gint error_no,
-                            gchar *error_msg, gchar *debug_msg);
+void fs_session_emit_error (FsSession *session,
+    gint error_no,
+    const gchar *error_msg,
+    const gchar *debug_msg);
 
 G_END_DECLS
 

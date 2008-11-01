@@ -457,7 +457,9 @@ fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
  */
 void
 fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
-  gint error_no, gchar *error_msg, gchar *debug_msg)
+    gint error_no,
+    const gchar *error_msg,
+    const gchar *debug_msg)
 {
   g_signal_emit (streamtransmitter, signals[ERROR_SIGNAL], 0, error_no,
       error_msg, debug_msg);

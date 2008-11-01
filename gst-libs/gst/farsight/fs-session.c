@@ -568,8 +568,10 @@ fs_session_set_codec_preferences (FsSession *session,
  * called by subclasses.
  */
 void
-fs_session_emit_error (FsSession *session, gint error_no,
-                       gchar *error_msg, gchar *debug_msg)
+fs_session_emit_error (FsSession *session,
+    gint error_no,
+    const gchar *error_msg,
+    const gchar *debug_msg)
 {
   g_signal_emit (session, signals[ERROR_SIGNAL], 0, session, error_no,
       error_msg, debug_msg);
