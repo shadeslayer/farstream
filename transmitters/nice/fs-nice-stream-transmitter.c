@@ -815,7 +815,7 @@ fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
 {
   const gchar *username, *password, *ip;
   const gchar *relay_type_string;
-  NiceRelayType relay_type = NICE_RELAY_TYPE_UDP;
+  NiceRelayType relay_type = NICE_RELAY_TYPE_TURN_UDP;
   guint port;
 
   ip = gst_structure_get_string (s, "ip");
@@ -827,9 +827,9 @@ fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
   if (relay_type_string)
   {
     if (!g_ascii_strcasecmp(relay_type_string, "tcp"))
-      relay_type = NICE_RELAY_TYPE_TCP;
+      relay_type = NICE_RELAY_TYPE_TURN_TCP;
     else if (!g_ascii_strcasecmp(relay_type_string, "tls"))
-      relay_type = NICE_RELAY_TYPE_TLS;
+      relay_type = NICE_RELAY_TYPE_TURN_TLS;
   }
 
   nice_agent_set_relay_info(self->priv->agent->agent,
