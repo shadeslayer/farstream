@@ -149,7 +149,8 @@ static void agent_state_changed (NiceAgent *agent,
     guint component_id,
     guint state,
     gpointer user_data);
-static void agent_gathering_done (NiceAgent *agent, gpointer user_data);
+static void agent_gathering_done (NiceAgent *agent, guint stream_id,
+    gpointer user_data);
 static void agent_new_selected_pair (NiceAgent *agent,
     guint stream_id,
     guint component_id,
@@ -1288,11 +1289,14 @@ agent_new_candidate (NiceAgent *agent,
 }
 
 static void
-agent_gathering_done (NiceAgent *agent, gpointer user_data)
+agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   GSList *candidates, *item;
   gint c;
+
+  if (stream_id != self->priv->stream_id)
+    return;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   if (self->priv->gathered)
