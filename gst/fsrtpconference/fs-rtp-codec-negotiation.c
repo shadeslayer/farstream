@@ -151,7 +151,7 @@ validate_codec_profile (FsCodec *codec,const gchar *bin_description,
   GstElement *bin = NULL;
   guint src_pad_count = 0, sink_pad_count = 0;
   GstCaps *caps;
-  gpointer matching_pad = NULL;;
+  gpointer matching_pad = NULL;
   GstIterator *iter;
 
   bin = parse_bin_from_description_all_linked (bin_description,

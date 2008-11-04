@@ -4190,8 +4190,9 @@ fs_rtp_session_stop_codec_param_gathering (FsRtpSession *session)
 static gchar **
 fs_rtp_session_list_transmitters (FsSession *session)
 {
-  g_return_val_if_fail (FS_IS_RTP_SESSION (session), NULL);
   gchar **rv;
+
+  g_return_val_if_fail (FS_IS_RTP_SESSION (session), NULL);
 
   rv = fs_transmitter_list_available ();
 
