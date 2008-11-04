@@ -769,8 +769,8 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate,
     const gchar *username = NULL, *password = NULL;
     nice_agent_get_local_credentials (agent, nicecandidate->stream_id,
         &username, &password);
-    fscandidate->username = g_strdup (username);
-    fscandidate->password = g_strdup (password);
+    fscandidate->username = username;
+    fscandidate->password = password;
 
     if (username == NULL || password == NULL)
     {
