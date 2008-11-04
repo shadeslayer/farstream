@@ -630,7 +630,9 @@ fs_nice_stream_transmitter_force_remote_candidates (
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
   GList *item = NULL;
   gboolean res = TRUE;
-  gboolean done[self->priv->transmitter->components];
+  gboolean *done;
+
+  done = g_new0(gboolean, self->priv->transmitter->components);
 
   memset (done, 0, self->priv->transmitter->components * sizeof (gboolean));
 
@@ -638,7 +640,8 @@ fs_nice_stream_transmitter_force_remote_candidates (
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Can not call this function before gathering local candidates");
-    return FALSE;
+    res = FALSE;
+    goto out;
   }
 
   /* First lets check that we have valid candidates */
@@ -652,21 +655,24 @@ fs_nice_stream_transmitter_force_remote_candidates (
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The component on this candidate is wrong");
-      return FALSE;
+      res = FALSE;
+      goto out;
     }
 
     if (candidate->proto != FS_NETWORK_PROTOCOL_UDP)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Only UDP candidates can be set");
-      return FALSE;
+      res = FALSE;
+      goto out;
     }
 
     if (done[candidate->component_id-1])
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "You can set only one candidate per component");
-      return FALSE;
+      res = FALSE;
+      goto out;
     }
     done[candidate->component_id-1] = TRUE;
   }
@@ -687,6 +693,8 @@ fs_nice_stream_transmitter_force_remote_candidates (
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
         "Unknown error while selecting pairs");
 
+out:
+  g_free(done);
   return res;
 }
 
