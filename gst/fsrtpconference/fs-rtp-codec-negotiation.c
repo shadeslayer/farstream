@@ -52,8 +52,7 @@ lookup_codec_association_custom_intern (GList *codec_associations,
 static gboolean
 link_unlinked_pads (GstElement *bin,
     GstPadDirection dir,
-    const gchar *first_pad_name,
-    const gchar *extra_pad_format,
+    const gchar *pad_name,
     guint *pad_count,
     GError **error)
 {
@@ -66,9 +65,9 @@ link_unlinked_pads (GstElement *bin,
     gchar *tmp;
 
     if (i)
-      tmp = g_strdup_printf (extra_pad_format, i);
+      tmp = g_strdup_printf ("%s%d", pad_name, i);
     else
-      tmp = g_strdup_printf (first_pad_name);
+      tmp = g_strdup (pad_name);
     i++;
 
     ghostpad = gst_ghost_pad_new (tmp, pad);
@@ -107,11 +106,11 @@ parse_bin_from_description_all_linked (const gchar *bin_description,
   if (!bin)
     return NULL;
 
-  if (!link_unlinked_pads (bin, GST_PAD_SRC, "src", "src%d", src_pad_count,
+  if (!link_unlinked_pads (bin, GST_PAD_SRC, "src", src_pad_count,
           error))
     goto error;
 
-  if (!link_unlinked_pads (bin, GST_PAD_SINK, "sink", "sink%d", sink_pad_count,
+  if (!link_unlinked_pads (bin, GST_PAD_SINK, "sink", sink_pad_count,
           error))
     goto error;
 
