@@ -668,6 +668,7 @@ fs_nice_stream_transmitter_force_remote_candidates (
           "You can set only one candidate per component");
       return FALSE;
     }
+    done[candidate->component_id-1] = TRUE;
   }
 
   for (item = remote_candidates;
