@@ -26,7 +26,7 @@
 #define __FS_NICE_AGENT_H__
 
 #include <glib-object.h>
-#include <gst-libs/gst/farsight/fs-plugin.h>
+#include <gst/farsight/fs-plugin.h>
 
 
 G_BEGIN_DECLS
