@@ -898,15 +898,6 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
   if (self->priv->relay_info)
   {
-    if (self->priv->relay_info->n_values != self->priv->transmitter->components)
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "You have %u elements in your relayinfo, but you have %d components",
-          self->priv->relay_info->n_values,
-          self->priv->transmitter->components);
-      return FALSE;
-    }
-
     for (i = 0; i < self->priv->relay_info->n_values; i++)
     {
       GValue *val = g_value_array_get_nth (self->priv->relay_info, i);
