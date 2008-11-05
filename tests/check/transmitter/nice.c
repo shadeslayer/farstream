@@ -34,7 +34,8 @@
 
 enum {
   FLAG_NO_SOURCE = 1 << 0,
-  FLAG_IS_LOCAL = 1 << 1
+  FLAG_IS_LOCAL = 1 << 1,
+  FLAG_FORCE_CANDIDATES = 1 << 2
 };
 
 
@@ -44,6 +45,7 @@ GMainLoop *loop = NULL;
 volatile gint running = TRUE;
 gboolean associate_on_source = TRUE;
 gboolean is_address_local = FALSE;
+gboolean force_candidates = FALSE;
 
 GST_START_TEST (test_nicetransmitter_new)
 {
@@ -99,13 +101,42 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
 
   g_debug ("Local Candidates Prepared");
 
-  ret = fs_stream_transmitter_set_remote_candidates (st2, candidates, &error);
+  if (force_candidates)
+  {
+    GList *item = NULL;;
+    GList *new_list = NULL;
+    for (item = candidates; item; item = g_list_next (item))
+    {
+      FsCandidate *cand = item->data;
+      GList *item2 = NULL;
+
+      for (item2 = new_list; item2; item2 = g_list_next (item2))
+      {
+        FsCandidate *cand2 = item2->data;
+        if (cand2->component_id == cand->component_id)
+          break;
+      }
+      if (!item2)
+      {
+        candidates = g_list_remove (candidates, cand);
+        new_list = g_list_append (new_list, cand);
+      }
+    }
+
+    ret = fs_stream_transmitter_force_remote_candidates (st2, new_list, &error);
+
+    fs_candidate_list_destroy (new_list);
+  }
+  else
+  {
+    ret = fs_stream_transmitter_set_remote_candidates (st2, candidates, &error);
+  }
 
   if (error)
     ts_fail ("Error while adding candidate: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
+        g_quark_to_string (error->domain), error->code, error->message);
 
-  ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
+  ts_fail_unless (ret == TRUE, "No detailed error setting remote_candidate");
 
   fs_candidate_list_destroy (candidates);
 }
@@ -305,6 +336,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
 
   associate_on_source = !(flags & FLAG_NO_SOURCE);
   is_address_local = (flags & FLAG_IS_LOCAL);
+  force_candidates = (flags & FLAG_FORCE_CANDIDATES);
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -457,8 +489,6 @@ GST_START_TEST (test_nicetransmitter_basic)
 }
 GST_END_TEST;
 
-
-
 GST_START_TEST (test_nicetransmitter_no_associate_on_source)
 {
   GParameter param = {NULL, {0}};
@@ -497,8 +527,6 @@ GST_START_TEST (test_nicetransmitter_preferred_candidates)
 }
 GST_END_TEST;
 
-
-
 GST_START_TEST (test_nicetransmitter_stund)
 {
   GError *error = NULL;
@@ -536,6 +564,12 @@ GST_START_TEST (test_nicetransmitter_stund)
 GST_END_TEST;
 
 
+GST_START_TEST (test_nicetransmitter_force_candidates)
+{
+  run_nice_transmitter_test (0, NULL, FLAG_FORCE_CANDIDATES);
+}
+GST_END_TEST;
+
 static Suite *
 nicetransmitter_suite (void)
 {
@@ -565,6 +599,10 @@ nicetransmitter_suite (void)
 
   tc_chain = tcase_create ("nicetransmitter-stund");
   tcase_add_test (tc_chain, test_nicetransmitter_stund);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("nicetransmitter-force-candidates");
+  tcase_add_test (tc_chain, test_nicetransmitter_force_candidates);
   suite_add_tcase (s, tc_chain);
 
   return s;
