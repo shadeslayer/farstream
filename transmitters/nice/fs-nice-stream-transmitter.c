@@ -746,7 +746,7 @@ fs_nice_stream_transmitter_force_remote_candidates (
 
   if (!res)
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Unknown error while selecting pairs");
+        "Unknown error while selecting remote candidates");
 
 out:
   g_free(done);
