@@ -478,12 +478,12 @@ GST_START_TEST (test_nicetransmitter_preferred_candidates)
   GList *list = NULL;
 
   candidate = fs_candidate_new ("L1",
-      0, FS_CANDIDATE_TYPE_HOST,
+      FS_COMPONENT_NONE, FS_CANDIDATE_TYPE_HOST,
       FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0);
   list = g_list_prepend (list, candidate);
 
   candidate = fs_candidate_new ("L1",
-      0, FS_CANDIDATE_TYPE_HOST,
+      FS_COMPONENT_NONE, FS_CANDIDATE_TYPE_HOST,
       FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0);
   list = g_list_prepend (list, candidate);
 
