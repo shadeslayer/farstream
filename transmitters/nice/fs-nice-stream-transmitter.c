@@ -1061,7 +1061,7 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
   if (self->priv->relay_info)
   {
     gint c;
-    for (c = 0; c < self->priv->transmitter->components; c++)
+    for (c = 1; c <= self->priv->transmitter->components; c++)
     {
       gboolean relay_info_set = FALSE;
 
