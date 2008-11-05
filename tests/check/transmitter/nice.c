@@ -31,7 +31,8 @@
 
 
 enum {
-  FLAG_NO_SOURCE = 1 << 0
+  FLAG_NO_SOURCE = 1 << 0,
+  FLAG_IS_LOCAL = 1 << 1
 };
 
 
@@ -40,6 +41,7 @@ guint received_known[2][2] = {{0,0}, {0,0}};
 GMainLoop *loop = NULL;
 volatile gint running = TRUE;
 gboolean associate_on_source = TRUE;
+gboolean is_address_local = FALSE;
 
 GST_START_TEST (test_nicetransmitter_new)
 {
@@ -71,6 +73,9 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
     candidate->ip, candidate->port, candidate->type, candidate->component_id);
   g_debug ("username: %s password: %s", candidate->username,
       candidate->password);
+
+  if (is_address_local)
+    ts_fail_unless (!strcmp (candidate->ip, "127.0.0.1"));
 
   g_object_set_data (G_OBJECT (st), "candidates",
       g_list_append (g_object_get_data (G_OBJECT (st), "candidates"),
@@ -297,6 +302,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   FsNiceTestParticipant *p1 = NULL, *p2 = NULL;
 
   associate_on_source = !(flags & FLAG_NO_SOURCE);
+  is_address_local = (flags & FLAG_IS_LOCAL);
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -464,6 +470,34 @@ GST_START_TEST (test_nicetransmitter_no_associate_on_source)
 GST_END_TEST;
 
 
+
+GST_START_TEST (test_nicetransmitter_preferred_candidates)
+{
+  GParameter param = {NULL, {0}};
+  FsCandidate *candidate;
+  GList *list = NULL;
+
+  candidate = fs_candidate_new ("L1",
+      0, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0);
+  list = g_list_prepend (list, candidate);
+
+  candidate = fs_candidate_new ("L1",
+      0, FS_CANDIDATE_TYPE_HOST,
+      FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0);
+  list = g_list_prepend (list, candidate);
+
+  param.name = "preferred-local-candidates";
+  g_value_init (&param.value, FS_TYPE_CANDIDATE_LIST);
+  g_value_set_boxed (&param.value, list);
+
+  run_nice_transmitter_test (1, &param, FLAG_IS_LOCAL);
+
+  fs_candidate_list_destroy (list);
+}
+GST_END_TEST;
+
+
 static Suite *
 nicetransmitter_suite (void)
 {
@@ -479,13 +513,16 @@ nicetransmitter_suite (void)
   tcase_add_test (tc_chain, test_nicetransmitter_new);
   suite_add_tcase (s, tc_chain);
 
-
   tc_chain = tcase_create ("nicetransmitter-basic");
   tcase_add_test (tc_chain, test_nicetransmitter_basic);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("nicetransmitter-no-assoc-on-source");
   tcase_add_test (tc_chain, test_nicetransmitter_no_associate_on_source);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("nicetransmitter-preferred-candidates");
+  tcase_add_test (tc_chain, test_nicetransmitter_preferred_candidates);
   suite_add_tcase (s, tc_chain);
 
   return s;
