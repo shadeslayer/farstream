@@ -702,7 +702,7 @@ fs_nice_stream_transmitter_force_remote_candidates (
     FsCandidate *candidate = item->data;
 
     if (candidate->component_id < 1 ||
-        candidate->component_id >= self->priv->transmitter->components)
+        candidate->component_id > self->priv->transmitter->components)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The component on this candidate is wrong");
