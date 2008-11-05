@@ -71,6 +71,7 @@ typedef enum
 
 /**
  * FsComponentType:
+ * @FS_COMPONENT_NONE: Use this when specifying a component is innapropriate
  * @FS_COMPONENT_RTP: This component is for RTP data
  * @FS_COMPONENT_RTCP: This component is for RTCP control
  *
@@ -79,6 +80,7 @@ typedef enum
 
 typedef enum
 {
+  FS_COMPONENT_NONE = 0,
   FS_COMPONENT_RTP = 1,
   FS_COMPONENT_RTCP = 2
 } FsComponentType;
