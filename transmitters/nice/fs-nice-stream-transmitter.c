@@ -1071,7 +1071,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
         const GstStructure *s = gst_value_get_structure (val);
         guint component_id;
 
-        if (gst_structure_get_uint (s, "component", &component_id))
+        if (gst_structure_get_uint (s, "component", &component_id) &&
+            component_id == c)
         {
           fs_nice_stream_transmitter_set_relay_info (self, s, c);
           relay_info_set = TRUE;
