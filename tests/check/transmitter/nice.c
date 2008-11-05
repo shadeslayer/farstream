@@ -103,12 +103,14 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
 
   if (force_candidates)
   {
-    GList *item = NULL;;
+    GList *item = NULL;
+    GList *next = NULL;
     GList *new_list = NULL;
-    for (item = candidates; item; item = g_list_next (item))
+    for (item = candidates; item; item = next)
     {
       FsCandidate *cand = item->data;
       GList *item2 = NULL;
+      next = g_list_next (item);
 
       for (item2 = new_list; item2; item2 = g_list_next (item2))
       {
