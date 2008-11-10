@@ -104,6 +104,7 @@ struct _FsNiceStreamTransmitterPrivate
 
   /* Everything below is protected by the mutex */
 
+  gboolean forced_candidates;
   GList *remote_candidates;
 
   gboolean gathered;
@@ -584,12 +585,21 @@ fs_nice_stream_transmitter_set_remote_candidates (
     if (self->priv->remote_candidates)
       fs_candidate_list_destroy (self->priv->remote_candidates);
     self->priv->remote_candidates = NULL;
+    self->priv->forced_candidates = FALSE;
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     nice_agent_restart (self->priv->agent->agent);
     return TRUE;
   }
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (self->priv->forced_candidates)
+  {
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Candidates have been forced, can't set remote candidates");
+    return FALSE;
+  }
+
   if (!self->priv->gathered)
   {
     self->priv->remote_candidates = g_list_concat (
@@ -718,8 +728,21 @@ fs_nice_stream_transmitter_force_remote_candidates (
     done[candidate->component_id-1] = TRUE;
   }
 
-  res = fs_nice_stream_transmitter_force_remote_candidates_act (self,
-      remote_candidates);
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  self->priv->forced_candidates = TRUE;
+  if (self->priv->gathered)
+  {
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    res = fs_nice_stream_transmitter_force_remote_candidates_act (self,
+        remote_candidates);
+  }
+  else
+  {
+    if (self->priv->remote_candidates)
+      fs_candidate_list_destroy (self->priv->remote_candidates);
+    self->priv->remote_candidates = fs_candidate_list_copy (remote_candidates);
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+  }
 
   if (!res)
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
@@ -1320,6 +1343,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
   GSList *candidates, *item;
   gint c;
   GList *remote_candidates = NULL;
+  gboolean forced_candidates;
 
   if (stream_id != self->priv->stream_id)
     return;
@@ -1333,6 +1357,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
   self->priv->gathered = TRUE;
   remote_candidates = self->priv->remote_candidates;
   self->priv->remote_candidates = NULL;
+  forced_candidates = self->priv->forced_candidates;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
@@ -1364,16 +1389,30 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 
   if (remote_candidates)
   {
-    GError *error = NULL;
-    if (!fs_nice_stream_transmitter_set_remote_candidates (
-            FS_STREAM_TRANSMITTER_CAST (self),
-            remote_candidates, &error))
+    if (forced_candidates)
     {
-      fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-          error->code, error->message, "Error setting delayed remote"
-          " candidates");
+      if (!fs_nice_stream_transmitter_force_remote_candidates_act (self,
+              remote_candidates))
+      {
+        fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+            FS_ERROR_INTERNAL, "Could not set forced candidates",
+            "Error setting delayed forced remote candidates");
+      }
     }
-    g_clear_error (&error);
+    else
+    {
+      GError *error = NULL;
+      if (!fs_nice_stream_transmitter_set_remote_candidates (
+              FS_STREAM_TRANSMITTER_CAST (self),
+              remote_candidates, &error))
+      {
+        fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+            error->code, error->message, "Error setting delayed remote"
+            " candidates");
+      }
+      g_clear_error (&error);
+    }
+
     fs_candidate_list_destroy (remote_candidates);
   }
 }
