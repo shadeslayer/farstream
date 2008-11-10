@@ -580,6 +580,11 @@ fs_nice_stream_transmitter_set_remote_candidates (
   if (!candidates)
   {
     GST_DEBUG ("NULL candidates passed, lets do an ICE restart");
+    FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+    if (self->priv->remote_candidates)
+      fs_candidate_list_destroy (self->priv->remote_candidates);
+    self->priv->remote_candidates = NULL;
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     nice_agent_restart (self->priv->agent->agent);
     return TRUE;
   }
