@@ -104,6 +104,8 @@ struct _FsNiceStreamTransmitterPrivate
 
   /* Everything below is protected by the mutex */
 
+  GList *remote_candidates;
+
   gboolean gathered;
 
   NiceGstStream *gststream;
@@ -581,6 +583,17 @@ fs_nice_stream_transmitter_set_remote_candidates (
     nice_agent_restart (self->priv->agent->agent);
     return TRUE;
   }
+
+  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+  if (!self->priv->gathered)
+  {
+    self->priv->remote_candidates = g_list_concat (
+        self->priv->remote_candidates,
+        fs_candidate_list_copy (candidates));
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    return TRUE;
+  }
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
@@ -1287,6 +1300,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   GSList *candidates, *item;
   gint c;
+  GList *remote_candidates = NULL;
 
   if (stream_id != self->priv->stream_id)
     return;
@@ -1298,6 +1312,8 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
     return;
   }
   self->priv->gathered = TRUE;
+  remote_candidates = self->priv->remote_candidates;
+  self->priv->remote_candidates = NULL;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
@@ -1326,6 +1342,21 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
   if (!self->priv->new_candidate_handler_id)
     self->priv->new_candidate_handler_id = g_signal_connect (agent,
         "new-candidate", G_CALLBACK (agent_new_candidate), self);
+
+  if (remote_candidates)
+  {
+    GError *error = NULL;
+    if (!fs_nice_stream_transmitter_set_remote_candidates (
+            FS_STREAM_TRANSMITTER_CAST (self),
+            remote_candidates, &error))
+    {
+      fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+          error->code, error->message, "Error setting delayed remote"
+          " candidates");
+    }
+    g_clear_error (&error);
+    fs_candidate_list_destroy (remote_candidates);
+  }
 }
 
 
