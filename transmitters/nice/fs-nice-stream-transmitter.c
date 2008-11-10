@@ -639,6 +639,29 @@ fs_nice_stream_transmitter_set_remote_candidates (
 }
 
 static gboolean
+fs_nice_stream_transmitter_force_remote_candidates_act (
+    FsNiceStreamTransmitter *self,
+    GList *remote_candidates)
+{
+  gboolean res = TRUE;
+  GList *item = NULL;
+
+  for (item = remote_candidates;
+       item && res;
+       item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+    NiceCandidate *nc = fs_candidate_to_nice_candidate (self, candidate);
+
+    res &= nice_agent_set_selected_remote_candidate (self->priv->agent->agent,
+        self->priv->stream_id, candidate->component_id, nc);
+    nice_candidate_free (nc);
+  }
+
+  return res;
+}
+
+static gboolean
 fs_nice_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
     GList *remote_candidates,
@@ -695,17 +718,8 @@ fs_nice_stream_transmitter_force_remote_candidates (
     done[candidate->component_id-1] = TRUE;
   }
 
-  for (item = remote_candidates;
-       item && res;
-       item = g_list_next (item))
-  {
-    FsCandidate *candidate = item->data;
-    NiceCandidate *nc = fs_candidate_to_nice_candidate (self, candidate);
-
-    res &= nice_agent_set_selected_remote_candidate (self->priv->agent->agent,
-        self->priv->stream_id, candidate->component_id, nc);
-    nice_candidate_free (nc);
-  }
+  res = fs_nice_stream_transmitter_force_remote_candidates_act (self,
+      remote_candidates);
 
   if (!res)
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
