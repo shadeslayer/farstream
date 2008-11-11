@@ -621,7 +621,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
   guint c;
   NiceGstStream *ns = NULL;
 
-  ns = g_new0 (NiceGstStream, 1);
+  ns = g_slice_new0 (NiceGstStream);
   ns->nicesrcs = g_new0 (GstElement *, self->components + 1);
   ns->nicesinks = g_new0 (GstElement *, self->components + 1);
   ns->requested_tee_pads = g_new0 (GstPad *, self->components + 1);
@@ -721,5 +721,5 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
   g_free (ns->requested_tee_pads);
   g_free (ns->requested_funnel_pads);
   g_free (ns->probe_ids);
-  g_free (ns);
+  g_slice_free (NiceGstStream, ns);
 }
