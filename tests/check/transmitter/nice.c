@@ -581,6 +581,9 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   GError *error = NULL;
   guint comps = 0;
   GParameter params[1];
+  GValueArray *va;
+  GstStructure *s;
+  GValue val = {0};
 
   memset (params, 0, sizeof(GParameter) * 1);
 
@@ -663,6 +666,56 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
       error->domain == FS_ERROR &&
       error->code == FS_ERROR_INVALID_ARGUMENTS);
   g_clear_error (&error);
+  g_value_unset (&params[0].value);
+
+  params[0].name = "relay-info";
+  g_value_init (&params[0].value, G_TYPE_VALUE_ARRAY);
+
+  /* no IP */
+  va = g_value_array_new (1);
+  s = gst_structure_new ("aa", NULL);
+  g_value_init (&val, GST_TYPE_STRUCTURE);
+  g_value_take_boxed (&val, s);
+  g_value_array_append (va, &val);
+  g_value_take_boxed (&params[0].value, va);
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* no port */
+  va = g_value_array_new (1);
+  s = gst_structure_new ("aa",
+      "ip", G_TYPE_STRING, "127.0.0.1",
+      NULL);
+  g_value_take_boxed (&val, s);
+  g_value_array_append (va, &val);
+  g_value_take_boxed (&params[0].value, va);
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* valid */
+  va = g_value_array_new (1);
+  s = gst_structure_new ("aa",
+      "ip", G_TYPE_STRING, "127.0.0.1",
+      "port", G_TYPE_UINT, 7654,
+      NULL);
+  g_value_take_boxed (&val, s);
+  g_value_array_append (va, &val);
+  g_value_take_boxed (&params[0].value, va);
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_if (st == NULL);
+  ts_fail_unless (error == NULL);
+
+  g_object_unref (st);
+
+  g_value_unset (&val);
   g_value_unset (&params[0].value);
 
   g_object_unref (p);
