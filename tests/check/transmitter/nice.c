@@ -572,6 +572,105 @@ GST_START_TEST (test_nicetransmitter_force_candidates)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_nicetransmitter_invalid_arguments)
+{
+  FsTransmitter *trans = NULL;
+  FsStreamTransmitter *st = NULL;
+  FsNiceTestParticipant *p = NULL;
+  GError *error = NULL;
+  guint comps = 0;
+  GParameter params[1];
+
+  memset (params, 0, sizeof(GParameter) * 1);
+
+  trans = fs_transmitter_new ("nice", 3, &error);
+  ts_fail_if (trans == NULL);
+  ts_fail_unless (error == NULL);
+
+  g_object_get (trans, "components", &comps, NULL);
+  ts_fail_unless (comps == 3);
+
+  st = fs_transmitter_new_stream_transmitter (trans, NULL, 0, NULL, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  p = g_object_new (fs_nice_test_participant_get_type (), NULL);
+
+  params[0].name = "preferred-local-candidates";
+  g_value_init (&params[0].value, FS_TYPE_CANDIDATE_LIST);
+
+
+  /* invalid port */
+  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+          fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_HOST,
+              FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 7777)));
+
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+
+  /* invalid componnent */
+  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+          fs_candidate_new (NULL, 1, FS_CANDIDATE_TYPE_HOST,
+              FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0)));
+
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* invalid IP */
+  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+          fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_HOST,
+              FS_NETWORK_PROTOCOL_UDP, NULL, 0)));
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* invalid type */
+  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+          fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_MULTICAST,
+              FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0)));
+
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* invalid proto */
+  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+          fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_HOST,
+              FS_NETWORK_PROTOCOL_TCP, "127.0.0.1", 0)));
+
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+  g_value_unset (&params[0].value);
+
+  g_object_unref (p);
+  g_object_unref (trans);
+}
+GST_END_TEST;
+
+
 static Suite *
 nicetransmitter_suite (void)
 {
@@ -605,6 +704,10 @@ nicetransmitter_suite (void)
 
   tc_chain = tcase_create ("nicetransmitter-force-candidates");
   tcase_add_test (tc_chain, test_nicetransmitter_force_candidates);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("nicetransmitter-invalid-arguments");
+  tcase_add_test (tc_chain, test_nicetransmitter_invalid_arguments);
   suite_add_tcase (s, tc_chain);
 
   return s;
