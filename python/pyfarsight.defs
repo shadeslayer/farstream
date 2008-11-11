@@ -151,8 +151,8 @@
   (c-name "fs_codec_get_optional_parameter")
   (return-type "FsCodecParameter*")
   (parameters
-    '("gchar*" "name")
-    '("gchar*" "value")
+    '("const-gchar*" "name")
+    '("const-gchar*" "value")
   )
 )
 
@@ -287,6 +287,7 @@
 )
 
 (define-method new_session
+  (caller-owns-return t)
   (of-object "FsConference")
   (unblock-threads t)
   (c-name "fs_conference_new_session")
@@ -298,12 +299,13 @@
 )
 
 (define-method new_participant
+  (caller-owns-return t)
   (of-object "FsConference")
   (unblock-threads t)
   (c-name "fs_conference_new_participant")
   (return-type "FsParticipant*")
   (parameters
-    '("gchar*" "cname")
+    '("const-gchar*" "cname")
     '("GError**" "error")
   )
 )
@@ -364,6 +366,7 @@
 )
 
 (define-method new_stream
+  (caller-owns-return t)
   (of-object "FsSession")
   (unblock-threads t)
   (c-name "fs_session_new_stream")
@@ -436,8 +439,8 @@
   (return-type "none")
   (parameters
     '("gint" "error_no")
-    '("gchar*" "error_msg")
-    '("gchar*" "debug_msg")
+    '("const-gchar*" "error_msg")
+    '("const-gchar*" "debug_msg")
   )
 )
 
@@ -547,8 +550,8 @@
   (return-type "none")
   (parameters
     '("gint" "error_no")
-    '("gchar*" "error_msg")
-    '("gchar*" "debug_msg")
+    '("const-gchar*" "error_msg")
+    '("const-gchar*" "debug_msg")
   )
 )
 
