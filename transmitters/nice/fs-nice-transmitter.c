@@ -720,5 +720,6 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
   g_free (ns->nicesinks);
   g_free (ns->requested_tee_pads);
   g_free (ns->requested_funnel_pads);
+  g_free (ns->probe_ids);
   g_free (ns);
 }
