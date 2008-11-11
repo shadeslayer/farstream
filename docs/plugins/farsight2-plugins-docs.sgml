@@ -19,6 +19,7 @@
       <title>Transmitters</title>
       <xi:include href="xml/fs-rawudp-stream-transmitter.xml"/>
       <xi:include href="xml/fs-multicast-stream-transmitter.xml"/>
+      <xi:include href="xml/fs-nice-stream-transmitter.xml"/>
     </chapter>
   </part>
 

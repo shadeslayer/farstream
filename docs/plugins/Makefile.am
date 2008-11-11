@@ -44,7 +44,7 @@ MKDB_OPTIONS=--sgml-mode
 # Extra options to supply to gtkdoc-fixref.
 FIXXREF_OPTIONS=--extra-dir=$(GLIB_PREFIX)/share/gtk-doc/html \
 	--extra-dir=$(GST_PREFIX)/share/gtk-doc/html \
-        	--extra-dir=$(datadir)/gtk-doc/html
+        --extra-dir=$(datadir)/gtk-doc/html
 
 # Used for dependencies.
 HFILE_GLOB=$(DOC_SOURCE_DIR)/gst/*/*.h $(DOC_SOURCE_DIR)/transmitters/*/*.h
@@ -59,7 +59,11 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/transmitters/rawudp/librawudp-transmitter.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/funnel/libfsfunnel.la \
-	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la
+	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la 
+
+if USE_NICE
+SCANOBJ_DEPS += $(top_builddir)/transmitters/nice/libnice-transmitter.la
+endif
 
 # Header files to ignore when scanning.
 IGNORE_HFILES = 
@@ -84,6 +88,14 @@ EXTRA_HFILES = \
 	$(top_srcdir)/transmitters/rawudp/fs-rawudp-stream-transmitter.h \
 	$(top_srcdir)/transmitters/multicast/fs-multicast-transmitter.h \
 	$(top_srcdir)/transmitters/multicast/fs-multicast-stream-transmitter.h
+
+if USE_NICE
+EXTRA_HFILES += \
+	$(top_srcdir)/transmitters/nice/fs-nice-transmitter.h \
+	$(top_srcdir)/transmitters/nice/fs-nice-stream-transmitter.h
+
+endif
+
 
 # Images to copy into HTML directory.
 HTML_IMAGES =
@@ -110,7 +122,7 @@ GTKDOC_LD=$(LIBTOOL) --mode=link $(CC)
 #DOC_OVERRIDES = $(DOC_MODULE)-overrides.txt
 DOC_OVERRIDES =
 
-FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs
+FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs
 
 update-all: scanobj-trans-build.stamp update
 

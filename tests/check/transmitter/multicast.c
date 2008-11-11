@@ -44,34 +44,7 @@ gboolean src_setup[2] = {FALSE, FALSE};
 
 GST_START_TEST (test_multicasttransmitter_new)
 {
-  GError *error = NULL;
-  FsTransmitter *trans;
-  GstElement *pipeline;
-  GstElement *trans_sink, *trans_src;
-
-  trans = fs_transmitter_new ("multicast", 2, &error);
-
-  if (error) {
-    ts_fail ("Error creating transmitter: (%s:%d) %s",
-      g_quark_to_string (error->domain), error->code, error->message);
-  }
-
-  ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
-
-  pipeline = setup_pipeline (trans, NULL);
-
-  g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
-
-  fail_if (trans_sink == NULL, "Sink is NULL");
-  fail_if (trans_src == NULL, "Src is NULL");
-
-  gst_object_unref (trans_sink);
-  gst_object_unref (trans_src);
-
-  g_object_unref (trans);
-
-  gst_object_unref (pipeline);
-
+  test_transmitter_creation ("multicast");
 }
 GST_END_TEST;
 

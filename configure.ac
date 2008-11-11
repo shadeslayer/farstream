@@ -141,11 +141,14 @@ dnl *** path for our local plugins ***
 dnl these are all the transmitter plug-ins
 FS2_TRANSMITTER_PLUGINS_ALL=" \
 	rawudp \
-	multicast
+	multicast \
+	nice
 	"
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_ALL)
 
 FS2_TRANSMITTER_PLUGINS_SELECTED=""
+
+TRANSMITTERS_DEFAULT=yes
 
 AC_ARG_WITH(transmitter-plugins,
     AC_HELP_STRING([--with-transmitter-plugins],
@@ -157,8 +160,39 @@ AC_ARG_WITH(transmitter-plugins,
         else
             echo "plug-in $i not recognized, ignoring..."
         fi
-    done],
+    done
+    TRANSMITTERS_DEFAULT=no],
     [FS2_TRANSMITTER_PLUGINS_SELECTED=$FS2_TRANSMITTER_PLUGINS_ALL])
+
+
+dnl check for libnice
+if echo $FS2_TRANSMITTER_PLUGINS_SELECTED | grep -qi nice; then
+
+  NICE_REQUIRED=0.0.1
+
+  PKG_CHECK_MODULES(NICE, \
+       nice >= $NICE_REQUIRED,
+       HAVE_NICE=yes,
+       HAVE_NICE=no)
+
+  if test "x$HAVE_NICE" = "xno"; then
+    if test "x$TRANSMITTERS_DEFAULT" = "xyes"; then
+      FS2_TRANSMITTER_PLUGINS_SELECTED="${FS2_TRANSMITTER_PLUGINS_SELECTED/ nice/}"
+      AC_MSG_WARN([Will not build libnice transmitter because libnice is not available])
+    else
+      AC_MSG_ERROR([Can not build requested libnice transmitter because libnice is not installed])
+    fi
+  else
+    USE_NICE=yes
+  fi
+
+  AC_SUBST(NICE_CFLAGS)
+  AC_SUBST(NICE_LIBS)
+else
+  AC_MSG_NOTICE(nice transmitter disabled by user request)
+fi
+
+AM_CONDITIONAL(USE_NICE, test "x$USE_NICE" == "xyes")
 
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_SELECTED)
 
@@ -407,6 +441,7 @@ gst-libs/gst/farsight/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile
+transmitters/nice/Makefile
 dnl pkgconfig/Makefile
 dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc

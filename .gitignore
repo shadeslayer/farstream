@@ -71,6 +71,7 @@ tests/check/base/fscodec
 tests/check/base/fstransmitter
 tests/check/transmitter/rawudp
 tests/check/transmitter/multicast
+tests/check/transmitter/nice
 tests/check/rtp/conference
 tests/check/rtp/codecs
 tests/check/rtp/sendcodecs

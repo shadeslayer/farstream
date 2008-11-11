@@ -10,7 +10,7 @@ TESTS_ENVIRONMENT = \
 	STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
 	$(REGISTRY_ENVIRONMENT)					\
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
-	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs \
+	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs \
 	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH} \
 	UPNP_XML_PATH=$(srcdir)/upnp \
 	SRCDIR=$(srcdir)
@@ -34,6 +34,12 @@ EXTRA_DIST = \
 	upnp/WANIPConnection.xml \
 	base/test1.conf
 
+if USE_NICE
+NICE_TRANSMITTER = transmitter/nice
+else
+NICE_TRANSMITTER = 
+endif
+
 #######
 # From here.. Its a list of our tests and their sub stuff
 #
@@ -42,6 +48,7 @@ check_PROGRAMS = \
 	base/fstransmitter \
 	transmitter/rawudp \
 	transmitter/multicast \
+	$(NICE_TRANSMITTER) \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
@@ -77,6 +84,13 @@ transmitter_multicast_SOURCES = \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/multicast.c 
+
+transmitter_nice_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+transmitter_nice_SOURCES = \
+	check-threadsafe.h  \
+	transmitter/generic.c \
+	transmitter/generic.h \
+	transmitter/nice.c 
 
 rtp_conference_CFLAGS = $(AM_CFLAGS)
 rtp_conference_SOURCES = \
