@@ -1427,6 +1427,13 @@ fs_nice_stream_transmitter_newv (FsNiceTransmitter *transmitter,
 {
   FsNiceStreamTransmitter *streamtransmitter = NULL;
 
+  if (!participant || !FS_IS_PARTICIPANT (participant))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "You need a valid participant");
+    return NULL;
+  }
+
   streamtransmitter = g_object_newv (FS_TYPE_NICE_STREAM_TRANSMITTER,
     n_parameters, parameters);
 
