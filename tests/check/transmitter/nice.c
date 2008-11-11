@@ -605,7 +605,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
 
 
   /* invalid port */
-  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+  g_value_take_boxed (&params[0].value, g_list_append (NULL,
           fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_HOST,
               FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 7777)));
 
@@ -618,7 +618,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
 
 
   /* invalid componnent */
-  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+  g_value_take_boxed (&params[0].value, g_list_append (NULL,
           fs_candidate_new (NULL, 1, FS_CANDIDATE_TYPE_HOST,
               FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0)));
 
@@ -630,7 +630,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   g_clear_error (&error);
 
   /* invalid IP */
-  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+  g_value_take_boxed (&params[0].value, g_list_append (NULL,
           fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_HOST,
               FS_NETWORK_PROTOCOL_UDP, NULL, 0)));
   st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
@@ -641,7 +641,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   g_clear_error (&error);
 
   /* invalid type */
-  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+  g_value_take_boxed (&params[0].value, g_list_append (NULL,
           fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_MULTICAST,
               FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", 0)));
 
@@ -653,7 +653,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   g_clear_error (&error);
 
   /* invalid proto */
-  g_value_set_boxed (&params[0].value, g_list_append (NULL,
+  g_value_take_boxed (&params[0].value, g_list_append (NULL,
           fs_candidate_new (NULL, 0, FS_CANDIDATE_TYPE_HOST,
               FS_NETWORK_PROTOCOL_TCP, "127.0.0.1", 0)));
 
