@@ -32,7 +32,7 @@ SUPPRESSIONS = $(top_srcdir)/common/gst.supp
 EXTRA_DIST = \
 	upnp/InternetGatewayDevice.xml \
 	upnp/WANIPConnection.xml \
-	base/tests1.conf
+	base/test1.conf
 
 #######
 # From here.. Its a list of our tests and their sub stuff
