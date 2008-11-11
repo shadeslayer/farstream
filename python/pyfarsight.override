@@ -173,6 +173,7 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
                            "transmitter_parameters", NULL};
 
   PyObject *participant = NULL;
+  PyObject *py_ret;
   gint direction;
   const gchar *transmitter_name = NULL;
   PyObject *st_params = NULL;
@@ -270,7 +271,10 @@ _wrap_fs_session_new_stream(PyGObject *self, PyObject *args, PyObject *kwargs)
     g_object_unref (transmitter);
   }
 
-  return pygobject_new (G_OBJECT (stream));
+  py_ret = pygobject_new (G_OBJECT (stream));
+  g_object_unref (stream);
+
+  return py_ret;
 
  error:
   if (error)
