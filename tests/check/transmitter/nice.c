@@ -525,7 +525,7 @@ GST_START_TEST (test_nicetransmitter_preferred_candidates)
 
   run_nice_transmitter_test (1, &param, FLAG_IS_LOCAL);
 
-  fs_candidate_list_destroy (list);
+  g_value_unset (&param.value);
 }
 GST_END_TEST;
 
