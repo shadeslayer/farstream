@@ -296,29 +296,6 @@ AG_GST_SET_ERROR_CFLAGS($FS2_CVS)
 dnl define correct level for debugging messages
 AG_GST_SET_LEVEL_DEFAULT($FS2_CVS)
 
-dnl *** sys plug-ins ***
-
-echo
-AC_MSG_NOTICE([Checking libraries for plugins in sys/])
-echo
-
-dnl *** ext plug-ins ***
-dnl keep this list sorted alphabetically !
-
-if test "x$BUILD_EXTERNAL" = "xyes"; then
-
-echo
-AC_MSG_NOTICE([Checking libraries for plugins in ext/])
-echo
-
-else
-
-dnl not building plugins with external dependencies,
-dnl but we still need to set the conditionals
-echo
-
-fi dnl of EXT plugins
-
 AC_CHECK_FUNCS(getifaddrs)
 
 dnl *** finalize CFLAGS, LDFLAGS, LIBS
