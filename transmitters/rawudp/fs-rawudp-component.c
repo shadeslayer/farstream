@@ -63,6 +63,8 @@
 #define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
 #define DEFAULT_UPNP_DISCOVERY_TIMEOUT (10)
 
+#define MAX_STUN_TIMEOUT (30)
+
 /* Signals */
 enum
 {
@@ -323,7 +325,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       g_param_spec_uint ("stun-timeout",
           "The timeout for the STUN reply",
           "How long to wait for for the STUN reply (in seconds) before giving up",
-          1, G_MAXUINT, 30,
+          1, G_MAXUINT, MAX_STUN_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 
 
@@ -1342,6 +1344,7 @@ stun_timeout_func (gpointer user_data)
   gboolean emit = TRUE;
   GstClockTime next_stun_timeout;
   GError *error = NULL;
+  guint total_timeout_ms = 100;
 
   sysclock = gst_system_clock_obtain ();
   if (sysclock == NULL)
@@ -1353,34 +1356,42 @@ stun_timeout_func (gpointer user_data)
     goto error;
   }
 
-  if (!fs_rawudp_component_send_stun (self, &error))
+  FS_RAWUDP_COMPONENT_LOCK(self);
+  while (!self->priv->stun_stop &&
+      (total_timeout_ms / 1000) < self->priv->stun_timeout &&
+      total_timeout_ms < 1000 * MAX_STUN_TIMEOUT)
   {
-    fs_rawudp_component_emit_error (self, error->code, "Could not send stun",
-        error->message);
-    g_clear_error (&error);
-    FS_RAWUDP_COMPONENT_LOCK (self);
-    fs_rawudp_component_stop_stun_locked (self);
-    goto error;
+
+    FS_RAWUDP_COMPONENT_UNLOCK(self);
+    if (!fs_rawudp_component_send_stun (self, &error))
+    {
+      fs_rawudp_component_emit_error (self, error->code, "Could not send stun",
+          error->message);
+      g_clear_error (&error);
+      FS_RAWUDP_COMPONENT_LOCK (self);
+      fs_rawudp_component_stop_stun_locked (self);
+      goto error;
+    }
+    FS_RAWUDP_COMPONENT_LOCK(self);
+
+    if (self->priv->stun_stop)
+      goto error;
+
+    next_stun_timeout = gst_clock_get_time (sysclock) +
+      total_timeout_ms * GST_MSECOND;
+    total_timeout_ms *= 2;
+    total_timeout_ms += 100;
+
+    id = self->priv->stun_timeout_id = gst_clock_new_single_shot_id (sysclock,
+        next_stun_timeout);
+
+    FS_RAWUDP_COMPONENT_UNLOCK(self);
+    gst_clock_id_wait (id, NULL);
+    FS_RAWUDP_COMPONENT_LOCK(self);
+
+    gst_clock_id_unref (id);
+    self->priv->stun_timeout_id = NULL;
   }
-
-  FS_RAWUDP_COMPONENT_LOCK(self);
-
-  if (self->priv->stun_stop)
-    goto error;
-
-  next_stun_timeout = gst_clock_get_time (sysclock) +
-    (self->priv->stun_timeout * GST_SECOND);
-
-  id = self->priv->stun_timeout_id = gst_clock_new_single_shot_id (sysclock,
-      next_stun_timeout);
-
-  FS_RAWUDP_COMPONENT_UNLOCK(self);
-  gst_clock_id_wait (id, NULL);
-  FS_RAWUDP_COMPONENT_LOCK(self);
-
-  gst_clock_id_unref (id);
-  self->priv->stun_timeout_id = NULL;
-
  error:
 
   if (self->priv->stun_stop)
