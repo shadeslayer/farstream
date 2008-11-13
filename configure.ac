@@ -177,7 +177,7 @@ if echo $FS2_TRANSMITTER_PLUGINS_SELECTED | grep -qi nice; then
 
   if test "x$HAVE_NICE" = "xno"; then
     if test "x$TRANSMITTERS_DEFAULT" = "xyes"; then
-      FS2_TRANSMITTER_PLUGINS_SELECTED="${FS2_TRANSMITTER_PLUGINS_SELECTED/ nice/}"
+      FS2_TRANSMITTER_PLUGINS_SELECTED="${FS2_TRANSMITTER_PLUGINS_SELECTED/nice/}"
       AC_MSG_WARN([Will not build libnice transmitter because libnice is not available])
     else
       AC_MSG_ERROR([Can not build requested libnice transmitter because libnice is not installed])
