@@ -751,9 +751,12 @@ nicetransmitter_suite (void)
   tcase_add_test (tc_chain, test_nicetransmitter_preferred_candidates);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("nicetransmitter-stund");
-  tcase_add_test (tc_chain, test_nicetransmitter_stund);
-  suite_add_tcase (s, tc_chain);
+  if (g_getenv ("STUND"))
+  {
+    tc_chain = tcase_create ("nicetransmitter-stund");
+    tcase_add_test (tc_chain, test_nicetransmitter_stund);
+    suite_add_tcase (s, tc_chain);
+  }
 
   tc_chain = tcase_create ("nicetransmitter-force-candidates");
   tcase_add_test (tc_chain, test_nicetransmitter_force_candidates);
