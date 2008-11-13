@@ -56,14 +56,16 @@ libfsrtpconference_la_LIBADD = \
 if ENABLE_GTK_DOC
 noinst_LTLIBRARIES = libfsrtpconference_doc.la
 
-libfsrtpconference_doc_la_SOURCES = gstfsrtpconference_doc.c $(common_SOURCES)
-nodist_libfsrtpconference_doc_la_SOURCES = $(nodist_libfsrtpconference_la_SOURCES)
+nodist_libfsrtpconference_doc_la_SOURCES = \
+	gstfsrtpconference_doc.c  \
+	$(common_SOURCES) \
+	$(nodist_libfsrtpconference_la_SOURCES)
 libfsrtpconference_doc_la_CFLAGS = $(libfsrtpconference_la_CFLAGS)
 libfsrtpconference_doc_la_LIBADD = $(libfsrtpconference_la_LIBADD)
 
 gstfsrtpconference_doc.c: gstfsrtpconference.c
 	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' \
-		gstfsrtpconference.c > gstfsrtpconference_doc.c
+		$(srcdir)/gstfsrtpconference.c > gstfsrtpconference_doc.c
 
 BUILT_SOURCES += gstfsrtpconference_doc.c
 endif

@@ -42,6 +42,7 @@ EXTRA_DIST =			\
 	pyfarsight.override	\
 	pyfarsight.defs		\
 	example.py		\
+	pyfarsight-filter.defs  \
 	rebuild-defs.sh
 
 CLEANFILES = $(BUILT_SOURCES)
