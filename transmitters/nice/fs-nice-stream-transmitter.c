@@ -822,7 +822,7 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate,
 
   if (local && fscandidate->username == NULL && fscandidate->password == NULL)
   {
-    const gchar *username = NULL, *password = NULL;
+    gchar *username = NULL, *password = NULL;
     nice_agent_get_local_credentials (agent, nicecandidate->stream_id,
         &username, &password);
     fscandidate->username = username;
