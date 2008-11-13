@@ -45,6 +45,8 @@ guint received_known[2] = {0, 0};
 gboolean has_stun = FALSE;
 gboolean associate_on_source = TRUE;
 
+GStaticMutex pipeline_mod_mutex = G_STATIC_MUTEX_INIT;
+
 
 enum {
   FLAG_HAS_STUN  = 1 << 0,
@@ -101,8 +103,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   if (has_stun)
     ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_SRFLX,
       "Has stun, but candidate is not server reflexive,"
-      " it is: %s:%u of type %d on component %u (IGNORE if you are not"
-        " connected to the public internet",
+      " it is: %s:%u of type %d on component %u",
       candidate->ip, candidate->port, candidate->type, candidate->component_id);
   else {
     ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
@@ -178,9 +179,11 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
 
   g_debug ("New active candidate pair for component %d", local->component_id);
 
+  g_static_mutex_lock (&pipeline_mod_mutex);
   if (!src_setup[local->component_id-1])
     setup_fakesrc (user_data, pipeline, local->component_id);
   src_setup[local->component_id-1] = TRUE;
+  g_static_mutex_unlock (&pipeline_mod_mutex);
 }
 
 static void
@@ -349,6 +352,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
  skip:
 
+  g_static_mutex_lock (&pipeline_mod_mutex);
+
   gst_element_set_state (pipeline, GST_STATE_NULL);
 
   gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
@@ -365,6 +370,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   g_main_loop_unref (loop);
 
+  g_static_mutex_unlock (&pipeline_mod_mutex);
 }
 
 GST_START_TEST (test_rawudptransmitter_run_nostun)
