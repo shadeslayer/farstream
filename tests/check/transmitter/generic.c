@@ -65,6 +65,12 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
       "filltype", 2,
       NULL);
 
+  /*
+   * We lock and unlock the state to prevent the source to start
+   * playing before we link it
+   */
+  gst_element_set_locked_state (src, TRUE);
+
   ts_fail_unless (gst_bin_add (GST_BIN (pipeline), src),
     "Could not add the fakesrc");
 
@@ -77,6 +83,8 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
 
   ts_fail_if (gst_element_set_state (src, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the fakesrc to playing");
+
+  gst_element_set_locked_state (src, FALSE);
 
   gst_object_unref (trans_sink);
 }
