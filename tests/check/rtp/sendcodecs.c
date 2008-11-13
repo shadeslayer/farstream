@@ -37,6 +37,7 @@ guint dtmf_id = 0;
 gint digit = 0;
 gboolean sending = FALSE;
 gboolean received = FALSE;
+gboolean ready_to_send = FALSE;
 
 struct SimpleTestConference *dat = NULL;
 
@@ -108,6 +109,11 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
               error, debug);
           g_type_class_unref (enumclass);
         }
+        else if (gst_structure_has_name (s, "farsight-send-codec-changed"))
+        {
+          ready_to_send = TRUE;
+        }
+
       }
       break;
     case GST_MESSAGE_ERROR:
@@ -317,9 +323,21 @@ send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 static gboolean
 start_stop_sending_dtmf (gpointer data)
 {
+  GstState state;
+  GstStateChangeReturn ret;
 
-  if (!dat || !dat->session)
+  if (!dat || !dat->pipeline || !dat->session)
     return TRUE;
+
+  ret = gst_element_get_state (dat->pipeline, &state, NULL, 0);
+  ts_fail_if (ret == GST_STATE_CHANGE_FAILURE);
+
+  if (state != GST_STATE_PLAYING)
+    return TRUE;
+
+  if(!ready_to_send)
+    return TRUE;
+
 
   if (sending)
   {
