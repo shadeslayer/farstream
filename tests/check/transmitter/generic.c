@@ -52,8 +52,11 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
   GstElement *src;
   GstElement *trans_sink;
   gchar *padname;
+  gchar *tmp;
 
-  src = gst_element_factory_make ("fakesrc", NULL);
+  tmp = g_strdup_printf ("fakemediasrc_%d", component_id);
+  src = gst_element_factory_make ("fakesrc", tmp);
+  g_free (tmp);
   g_object_set (src,
       "num-buffers", 20,
       "sizetype", 2,
