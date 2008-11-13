@@ -245,6 +245,15 @@ check_running (gpointer data)
   return FALSE;
 }
 
+void
+sync_error_handler (GstBus *bus, GstMessage *message, gpointer blob)
+{
+  GError *error = NULL;
+  gchar *debug;
+  gst_message_parse_error (message, &error, &debug);
+  g_error ("bus sync error %s", error->message);
+}
+
 
 static void
 run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
@@ -278,6 +287,10 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   bus = gst_element_get_bus (pipeline);
   gst_bus_add_watch (bus, bus_error_callback, NULL);
+
+  gst_bus_enable_sync_message_emission (bus);
+  g_signal_connect (bus, "sync-message::error", G_CALLBACK (sync_error_handler), NULL);
+
   gst_object_unref (bus);
 
   st = fs_transmitter_new_stream_transmitter (trans, NULL, n_parameters, params,
