@@ -148,8 +148,8 @@ struct _FsRawUdpComponentPrivate
   gulong buffer_recv_id;
 
   GstClockID stun_timeout_id;
-  GstClockTime next_stun_timeout;
   GThread *stun_timeout_thread;
+  gboolean stun_stop;
 
   gboolean sending;
 
@@ -1190,15 +1190,6 @@ static gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
 {
   gboolean res = TRUE;
-  GstClock *sysclock = NULL;
-
-  sysclock = gst_system_clock_obtain ();
-  if (sysclock == NULL)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Could not obtain gst system clock");
-    return FALSE;
-  }
 
   FS_RAWUDP_COMPONENT_LOCK (self);
   self->priv->stun_recv_id =
@@ -1217,11 +1208,6 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
   }
 
   FS_RAWUDP_COMPONENT_LOCK (self);
-
-  self->priv->next_stun_timeout = gst_clock_get_time (sysclock) +
-    (self->priv->stun_timeout * GST_SECOND);
-
-  gst_object_unref (sysclock);
 
   if (self->priv->stun_timeout_thread == NULL) {
     /* only create a new thread if the old one was stopped. Otherwise we can
@@ -1254,7 +1240,7 @@ fs_rawudp_component_stop_stun_locked (FsRawUdpComponent *self)
     self->priv->stun_recv_id = 0;
   }
 
-  self->priv->next_stun_timeout = 0;
+  self->priv->stun_stop = TRUE;
   if (self->priv->stun_timeout_id)
     gst_clock_id_unschedule (self->priv->stun_timeout_id);
 }
@@ -1366,6 +1352,7 @@ stun_timeout_func (gpointer user_data)
   GstClock *sysclock = NULL;
   GstClockID id;
   gboolean emit = TRUE;
+  GstClockTime next_stun_timeout;
 
   sysclock = gst_system_clock_obtain ();
   if (sysclock == NULL)
@@ -1378,8 +1365,15 @@ stun_timeout_func (gpointer user_data)
   }
 
   FS_RAWUDP_COMPONENT_LOCK(self);
+
+  if (self->priv->stun_stop)
+    goto error;
+
+  next_stun_timeout = gst_clock_get_time (sysclock) +
+    (self->priv->stun_timeout * GST_SECOND);
+
   id = self->priv->stun_timeout_id = gst_clock_new_single_shot_id (sysclock,
-      self->priv->next_stun_timeout);
+      next_stun_timeout);
 
   FS_RAWUDP_COMPONENT_UNLOCK(self);
   gst_clock_id_wait (id, NULL);
@@ -1388,10 +1382,11 @@ stun_timeout_func (gpointer user_data)
   gst_clock_id_unref (id);
   self->priv->stun_timeout_id = NULL;
 
-  if (self->priv->next_stun_timeout == 0)
+ error:
+
+  if (self->priv->stun_stop)
     emit = FALSE;
 
- error:
   fs_rawudp_component_stop_stun_locked (self);
 
   FS_RAWUDP_COMPONENT_UNLOCK(self);
