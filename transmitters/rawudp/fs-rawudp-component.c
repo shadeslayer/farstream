@@ -1134,7 +1134,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 }
 
 static gboolean
-fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
+fs_rawudp_component_send_stun (FsRawUdpComponent *self, GError **error)
 {
   struct addrinfo hints;
   struct addrinfo *result = NULL;
@@ -1143,16 +1143,6 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
   guint length;
   int retval;
   StunMessage *msg;
-  gboolean res = TRUE;
-  GstClock *sysclock = NULL;
-
-  sysclock = gst_system_clock_obtain ();
-  if (sysclock == NULL)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Could not obtain gst system clock");
-    return FALSE;
-  }
 
   memset (&hints, 0, sizeof (struct addrinfo));
   hints.ai_family = AF_INET;
@@ -1170,13 +1160,6 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
 
   address.sin_family = AF_INET;
   address.sin_port = htons (self->priv->stun_port);
-
-  FS_RAWUDP_COMPONENT_LOCK (self);
-  self->priv->stun_recv_id =
-    fs_rawudp_transmitter_udpport_connect_recv (
-        self->priv->udpport,
-        G_CALLBACK (stun_recv_cb), self);
-  FS_RAWUDP_COMPONENT_UNLOCK (self);
 
   msg = stun_message_new (STUN_MESSAGE_BINDING_REQUEST,
       self->priv->stun_cookie, 0);
@@ -1199,6 +1182,39 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
   }
   g_free (packed);
   stun_message_free (msg);
+
+  return TRUE;
+}
+
+static gboolean
+fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
+{
+  gboolean res = TRUE;
+  GstClock *sysclock = NULL;
+
+  sysclock = gst_system_clock_obtain ();
+  if (sysclock == NULL)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Could not obtain gst system clock");
+    return FALSE;
+  }
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
+  self->priv->stun_recv_id =
+    fs_rawudp_transmitter_udpport_connect_recv (
+        self->priv->udpport,
+        G_CALLBACK (stun_recv_cb), self);
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+  if (!fs_rawudp_component_send_stun (self, error))
+  {
+    FS_RAWUDP_COMPONENT_LOCK (self);
+    fs_rawudp_component_stop_stun_locked (self);
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+    return FALSE;
+  }
 
   FS_RAWUDP_COMPONENT_LOCK (self);
 
