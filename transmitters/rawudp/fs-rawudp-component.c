@@ -1196,18 +1196,6 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
     fs_rawudp_transmitter_udpport_connect_recv (
         self->priv->udpport,
         G_CALLBACK (stun_recv_cb), self);
-  FS_RAWUDP_COMPONENT_UNLOCK (self);
-
-  if (!fs_rawudp_component_send_stun (self, error))
-  {
-    FS_RAWUDP_COMPONENT_LOCK (self);
-    fs_rawudp_component_stop_stun_locked (self);
-    FS_RAWUDP_COMPONENT_UNLOCK (self);
-
-    return FALSE;
-  }
-
-  FS_RAWUDP_COMPONENT_LOCK (self);
 
   if (self->priv->stun_timeout_thread == NULL) {
     /* only create a new thread if the old one was stopped. Otherwise we can
@@ -1353,6 +1341,7 @@ stun_timeout_func (gpointer user_data)
   GstClockID id;
   gboolean emit = TRUE;
   GstClockTime next_stun_timeout;
+  GError *error = NULL;
 
   sysclock = gst_system_clock_obtain ();
   if (sysclock == NULL)
@@ -1361,6 +1350,16 @@ stun_timeout_func (gpointer user_data)
         "Could not obtain gst system clock", NULL);
     emit = FALSE;
     FS_RAWUDP_COMPONENT_LOCK(self);
+    goto error;
+  }
+
+  if (!fs_rawudp_component_send_stun (self, &error))
+  {
+    fs_rawudp_component_emit_error (self, error->code, "Could not send stun",
+        error->message);
+    g_clear_error (&error);
+    FS_RAWUDP_COMPONENT_LOCK (self);
+    fs_rawudp_component_stop_stun_locked (self);
     goto error;
   }
 
