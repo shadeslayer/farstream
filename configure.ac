@@ -123,18 +123,6 @@ AC_ARG_WITH(plugins,
 
 AC_SUBST(FS2_PLUGINS_SELECTED)
 
-dnl ext plug-ins; plug-ins that have external dependencies
-AG_GST_CHECK_FEATURE(EXTERNAL, [enable building of plug-ins with external deps],,
-  [HAVE_EXTERNAL=yes], enabled,
-  [
-    AC_MSG_NOTICE(building external plug-ins)
-    BUILD_EXTERNAL="yes"
-  ],[
-    AC_MSG_NOTICE(all plug-ins with external dependencies will not be built)
-    BUILD_EXTERNAL="no"
-  ])
-AM_CONDITIONAL(BUILD_EXTERNAL, test "x$BUILD_EXTERNAL" = "xyes")
-
 dnl *** path for our local plugins ***
 
 
@@ -268,8 +256,6 @@ dnl checks for gstreamer
 dnl uninstalled is selected preferentially -- see pkg-config(1)
 AG_GST_CHECK_GST($GST_MAJORMINOR, [$GST_REQ])
 AG_GST_CHECK_GST_BASE($GST_MAJORMINOR, [$GST_REQ])
-AG_GST_CHECK_GST_GDP($GST_MAJORMINOR, [$GST_REQ])
-AG_GST_CHECK_GST_CONTROLLER($GST_MAJORMINOR, [$GST_REQ])
 AG_GST_CHECK_GST_CHECK($GST_MAJORMINOR, [$GST_REQ], no)
 AG_GST_CHECK_GST_PLUGINS_BASE($GST_MAJORMINOR, [$GSTPB_REQ])
 AM_CONDITIONAL(HAVE_GST_CHECK, test "x$HAVE_GST_CHECK" = "xyes")
