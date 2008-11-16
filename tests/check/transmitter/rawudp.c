@@ -435,20 +435,9 @@ GST_END_TEST;
 GST_START_TEST (test_rawudptransmitter_run_stund)
 {
   GParameter params[3];
-  GError *error = NULL;
-  gint myout, myin;
-  GPid pid;
-  gchar *argv[] = {"stund", NULL};
 
-  if (!g_spawn_async_with_pipes (NULL, argv, NULL,
-          G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, &myin, &myout, NULL,
-          &error))
-  {
-    g_debug ("Could not spawn stund, skipping stun testing: %s",
-        error->message);
-    g_clear_error (&error);
+  if (stund_pid <= 0)
     return;
-  }
 
   memset (params, 0, sizeof (GParameter) * 3);
 
@@ -465,10 +454,6 @@ GST_START_TEST (test_rawudptransmitter_run_stund)
   g_value_set_uint (&params[2].value, 5);
 
   run_rawudp_transmitter_test (3, params, FLAG_HAS_STUN);
-
-  close (myout);
-  close (myin);
-  g_spawn_close_pid (pid);
 }
 GST_END_TEST;
 
@@ -698,6 +683,7 @@ rawudptransmitter_suite (void)
   {
     tc_chain = tcase_create ("rawudptransmitter-stund");
     tcase_set_timeout (tc_chain, 15);
+    tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
     tcase_add_test (tc_chain, test_rawudptransmitter_run_stund);
     suite_add_tcase (s, tc_chain);
   }

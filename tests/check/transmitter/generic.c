@@ -26,6 +26,9 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-stream-transmitter.h>
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include "check-threadsafe.h"
 #include "generic.h"
 
@@ -203,4 +206,38 @@ test_transmitter_creation (gchar *transmitter_name)
 
   gst_object_unref (pipeline);
 
+}
+
+
+GPid stund_pid = 0;
+
+void
+setup_stund (void)
+{
+  GError *error = NULL;
+  gchar *argv[] = {"stund", NULL};
+
+  stund_pid = 0;
+
+  if (!g_spawn_async (NULL, argv, NULL,
+          G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+          NULL, NULL, &stund_pid, &error))
+  {
+    g_debug ("Could not spawn stund, skipping stun testing: %s",
+        error->message);
+    g_clear_error (&error);
+    return;
+  }
+}
+
+void
+teardown_stund (void)
+{
+  if (!stund_pid)
+    return;
+
+  kill (stund_pid, SIGTERM);
+  waitpid (stund_pid, NULL, 0);
+  g_spawn_close_pid (stund_pid);
+  stund_pid = 0;
 }

@@ -535,21 +535,10 @@ GST_END_TEST;
 
 GST_START_TEST (test_nicetransmitter_stund)
 {
-  GError *error = NULL;
-  gint myout, myin;
-  GPid pid;
-  gchar *argv[] = {"stund", NULL};
   GParameter params[2];
 
-  if (!g_spawn_async_with_pipes (NULL, argv, NULL,
-          G_SPAWN_SEARCH_PATH, NULL, NULL, &pid, &myin, &myout, NULL,
-          &error))
-  {
-    g_debug ("Could not spawn stund, skipping stun testing: %s",
-        error->message);
-    g_clear_error (&error);
+  if (stund_pid <= 0)
     return;
-  }
 
   memset (params, 0, sizeof (GParameter) * 2);
 
@@ -562,10 +551,6 @@ GST_START_TEST (test_nicetransmitter_stund)
   g_value_set_uint (&params[1].value, 3478);
 
   run_nice_transmitter_test (2, params, 0);
-
-  close (myout);
-  close (myin);
-  g_spawn_close_pid (pid);
 }
 GST_END_TEST;
 
@@ -758,6 +743,7 @@ nicetransmitter_suite (void)
   if (g_getenv ("STUND"))
   {
     tc_chain = tcase_create ("nicetransmitter-stund");
+    tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
     tcase_add_test (tc_chain, test_nicetransmitter_stund);
     suite_add_tcase (s, tc_chain);
   }
