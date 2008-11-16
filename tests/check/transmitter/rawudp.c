@@ -434,12 +434,12 @@ GST_END_TEST;
 
 GST_START_TEST (test_rawudptransmitter_run_stund)
 {
-  GParameter params[3];
+  GParameter params[4];
 
   if (stund_pid <= 0)
     return;
 
-  memset (params, 0, sizeof (GParameter) * 3);
+  memset (params, 0, sizeof (GParameter) * 4);
 
   params[0].name = "stun-ip";
   g_value_init (&params[0].value, G_TYPE_STRING);
@@ -452,6 +452,11 @@ GST_START_TEST (test_rawudptransmitter_run_stund)
   params[2].name = "stun-timeout";
   g_value_init (&params[2].value, G_TYPE_UINT);
   g_value_set_uint (&params[2].value, 5);
+
+  params[3].name = "upnp-discovery";
+  g_value_init (&params[3].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[3].value, FALSE);
+
 
   run_rawudp_transmitter_test (3, params, FLAG_HAS_STUN);
 }
