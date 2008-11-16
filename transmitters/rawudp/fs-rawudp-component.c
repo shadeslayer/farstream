@@ -1105,14 +1105,17 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
           "Farsight Raw UDP transmitter");
 
 
-      FS_RAWUDP_COMPONENT_LOCK (self);
-      self->priv->upnp_discovery_timeout_src = g_timeout_source_new_seconds (
-          self->priv->upnp_discovery_timeout);
-      g_source_set_callback (self->priv->upnp_discovery_timeout_src,
-          _upnp_discovery_timeout, self, NULL);
-      g_object_get (self->priv->upnp_igd, "main-context", &ctx, NULL);
-      g_source_attach (self->priv->upnp_discovery_timeout_src, ctx);
-      FS_RAWUDP_COMPONENT_UNLOCK (self);
+      if (self->priv->upnp_discovery)
+      {
+        FS_RAWUDP_COMPONENT_LOCK (self);
+        self->priv->upnp_discovery_timeout_src = g_timeout_source_new_seconds (
+            self->priv->upnp_discovery_timeout);
+        g_source_set_callback (self->priv->upnp_discovery_timeout_src,
+            _upnp_discovery_timeout, self, NULL);
+        g_object_get (self->priv->upnp_igd, "main-context", &ctx, NULL);
+        g_source_attach (self->priv->upnp_discovery_timeout_src, ctx);
+        FS_RAWUDP_COMPONENT_UNLOCK (self);
+      }
     }
 
     /* free list of ips */
