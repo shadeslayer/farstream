@@ -45,6 +45,7 @@ guint received_known[2] = {0, 0};
 gboolean has_stun = FALSE;
 gboolean associate_on_source = TRUE;
 
+gboolean pipeline_done = FALSE;
 GStaticMutex pipeline_mod_mutex = G_STATIC_MUTEX_INIT;
 
 
@@ -180,7 +181,7 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   g_debug ("New active candidate pair for component %d", local->component_id);
 
   g_static_mutex_lock (&pipeline_mod_mutex);
-  if (!src_setup[local->component_id-1])
+  if (!pipeline_done && !src_setup[local->component_id-1])
     setup_fakesrc (user_data, pipeline, local->component_id);
   src_setup[local->component_id-1] = TRUE;
   g_static_mutex_unlock (&pipeline_mod_mutex);
@@ -271,6 +272,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   buffer_count[1] = 0;
   received_known[0] = 0;
   received_known[1] = 0;
+  pipeline_done = FALSE;
 
   has_stun = flags & FLAG_HAS_STUN;
 
@@ -353,6 +355,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
  skip:
 
   g_static_mutex_lock (&pipeline_mod_mutex);
+  pipeline_done = TRUE;
+  g_static_mutex_unlock (&pipeline_mod_mutex);
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
 
@@ -369,8 +373,6 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   gst_object_unref (pipeline);
 
   g_main_loop_unref (loop);
-
-  g_static_mutex_unlock (&pipeline_mod_mutex);
 }
 
 GST_START_TEST (test_rawudptransmitter_run_nostun)
