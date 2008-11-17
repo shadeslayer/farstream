@@ -336,6 +336,10 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   GstElement *pipeline2 = NULL;
   FsNiceTestParticipant *p1 = NULL, *p2 = NULL;
 
+  memset (buffer_count, 0, sizeof(gint)*4);
+  memset (received_known, 0, sizeof(guint)*4);
+  running = TRUE;
+
   associate_on_source = !(flags & FLAG_NO_SOURCE);
   is_address_local = (flags & FLAG_IS_LOCAL);
   force_candidates = (flags & FLAG_FORCE_CANDIDATES);
