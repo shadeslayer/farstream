@@ -1336,8 +1336,10 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 
   FS_RAWUDP_COMPONENT_LOCK(self);
   fs_rawudp_component_stop_stun_locked (self);
+  fs_rawudp_component_stop_upnp_discovery_locked (self);
 
   self->priv->local_active_candidate = fs_candidate_copy (candidate);
+
   FS_RAWUDP_COMPONENT_UNLOCK(self);
 
   fs_rawudp_component_emit_candidate (self, candidate);
