@@ -686,14 +686,11 @@ rawudptransmitter_suite (void)
   tcase_add_test (tc_chain, test_rawudptransmitter_run_invalid_stun);
   suite_add_tcase (s, tc_chain);
 
-  if (g_getenv ("STUND"))
-  {
-    tc_chain = tcase_create ("rawudptransmitter-stund");
-    tcase_set_timeout (tc_chain, 15);
-    tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
-    tcase_add_test (tc_chain, test_rawudptransmitter_run_stund);
-    suite_add_tcase (s, tc_chain);
-  }
+  tc_chain = tcase_create ("rawudptransmitter-stund");
+  tcase_set_timeout (tc_chain, 15);
+  tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_stund);
+  suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("rawudptransmitter-local-candidates");
   tcase_add_test (tc_chain, test_rawudptransmitter_run_local_candidates);
