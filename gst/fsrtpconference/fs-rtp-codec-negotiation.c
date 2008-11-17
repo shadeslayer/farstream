@@ -201,7 +201,7 @@ validate_codec_profile (FsCodec *codec,const gchar *bin_description,
     if (src_pad_count != 1)
     {
       GST_WARNING ("Invalid profile (%s), has %u src pads, should have one",
-          bin_description, sink_pad_count);
+          bin_description, src_pad_count);
       return FALSE;
     }
   }
