@@ -997,6 +997,52 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
   return TRUE;
 }
 
+static void
+fs_rawudp_component_maybe_emit_local_candidates (FsRawUdpComponent *self)
+{
+  GError *error = NULL;
+
+  FS_RAWUDP_COMPONENT_LOCK (self);
+  if (self->priv->local_active_candidate)
+  {
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    return;
+  }
+
+  if (self->priv->stun_timeout_thread &&
+      self->priv->stun_timeout_thread != g_thread_self ())
+  {
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    return;
+  }
+
+#ifdef HAVE_GUPNP
+  if (self->priv->local_upnp_candidate)
+  {
+    self->priv->local_active_candidate = self->priv->local_upnp_candidate;
+    self->priv->local_upnp_candidate = NULL;
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
+    fs_rawudp_component_emit_candidate (self,
+        self->priv->local_active_candidate);
+    return;
+  }
+#endif
+
+  FS_RAWUDP_COMPONENT_UNLOCK (self);
+
+  if (!fs_rawudp_component_emit_local_candidates (self, &error))
+  {
+    if (error->domain == FS_ERROR)
+      fs_rawudp_component_emit_error (self, error->code,
+          error->message, error->message);
+    else
+      fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
+          "Error emitting local candidates", NULL);
+  }
+  g_clear_error (&error);
+
+}
+
 #ifdef HAVE_GUPNP
 static void
 _upnp_mapped_external_port (GUPnPSimpleIgdThread *igd, gchar *proto,
@@ -1016,43 +1062,34 @@ _upnp_mapped_external_port (GUPnPSimpleIgdThread *igd, gchar *proto,
 
   fs_rawudp_component_stop_upnp_discovery_locked (self);
 
-  if (self->priv->local_active_candidate)
+  if (self->priv->local_upnp_candidate || self->priv->local_active_candidate)
   {
     FS_RAWUDP_COMPONENT_UNLOCK (self);
     return;
   }
 
-  self->priv->local_active_candidate = fs_candidate_new ("L1",
+  self->priv->local_upnp_candidate = fs_candidate_new ("L1",
       self->priv->component,
       FS_CANDIDATE_TYPE_HOST,
       FS_NETWORK_PROTOCOL_UDP,
       external_ip,
       external_port);
+
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
-  fs_rawudp_component_emit_candidate (self, self->priv->local_active_candidate);
+  fs_rawudp_component_maybe_emit_local_candidates (self);
 }
 
 static gboolean
 _upnp_discovery_timeout (gpointer user_data)
 {
   FsRawUdpComponent *self = user_data;
-  GError *error = NULL;
 
   FS_RAWUDP_COMPONENT_LOCK (self);
   self->priv->upnp_discovery_timeout_src = NULL;
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
-  if (!fs_rawudp_component_emit_local_candidates (self, &error))
-  {
-    if (error->domain == FS_ERROR)
-      fs_rawudp_component_emit_error (self, error->code,
-          error->message, error->message);
-    else
-      fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
-          "Error emitting local candidates", NULL);
-  }
-  g_clear_error (&error);
+  fs_rawudp_component_maybe_emit_local_candidates (self);
 
   return FALSE;
 }
@@ -1420,19 +1457,7 @@ stun_timeout_func (gpointer user_data)
   gst_object_unref (sysclock);
 
   if (emit)
-  {
-    GError *error = NULL;
-    if (!fs_rawudp_component_emit_local_candidates (self, &error))
-    {
-      if (error->domain == FS_ERROR)
-        fs_rawudp_component_emit_error (self, error->code,
-            error->message, error->message);
-      else
-        fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
-            "Error emitting local candidates", NULL);
-    }
-    g_clear_error (&error);
-  }
+    fs_rawudp_component_maybe_emit_local_candidates (self);
 
   return NULL;
 }
