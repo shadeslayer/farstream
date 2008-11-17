@@ -159,6 +159,7 @@ struct _FsRawUdpComponentPrivate
 
 #ifdef HAVE_GUPNP
   GSource *upnp_discovery_timeout_src;
+  FsCandidate *local_upnp_candidate;
 #endif
 };
 
@@ -225,6 +226,11 @@ static gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error);
 static void
 fs_rawudp_component_stop_stun_locked (FsRawUdpComponent *self);
+
+#ifdef HAVE_GUPNP
+static void
+fs_rawudp_component_stop_upnp_discovery_locked (FsRawUdpComponent *self);
+#endif
 
 GType
 fs_rawudp_component_get_type (void)
@@ -625,12 +631,7 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
   {
 #ifdef HAVE_GUPNP
 
-    if (self->priv->upnp_discovery_timeout_src)
-    {
-      g_source_destroy (self->priv->upnp_discovery_timeout_src);
-      g_source_unref (self->priv->upnp_discovery_timeout_src);
-    }
-    self->priv->upnp_discovery_timeout_src = NULL;
+    fs_rawudp_component_stop_upnp_discovery_locked (self);
 
     if (self->priv->upnp_igd  &&
         (self->priv->upnp_mapping || self->priv->upnp_discovery))
@@ -677,6 +678,10 @@ fs_rawudp_component_finalize (GObject *object)
     fs_candidate_destroy (self->priv->local_active_candidate);
   if (self->priv->local_forced_candidate)
     fs_candidate_destroy (self->priv->local_forced_candidate);
+#ifdef HAVE_GUPNP
+  if (self->priv->local_upnp_candidate)
+    fs_candidate_destroy (self->priv->local_upnp_candidate);
+#endif
 
   g_free (self->priv->ip);
   g_free (self->priv->stun_ip);
@@ -1009,12 +1014,7 @@ _upnp_mapped_external_port (GUPnPSimpleIgdThread *igd, gchar *proto,
     return;
   }
 
-  if (self->priv->upnp_discovery_timeout_src)
-  {
-    g_source_destroy (self->priv->upnp_discovery_timeout_src);
-    g_source_unref (self->priv->upnp_discovery_timeout_src);
-  }
-  self->priv->upnp_discovery_timeout_src = NULL;
+  fs_rawudp_component_stop_upnp_discovery_locked (self);
 
   if (self->priv->local_active_candidate)
   {
@@ -1055,6 +1055,17 @@ _upnp_discovery_timeout (gpointer user_data)
   g_clear_error (&error);
 
   return FALSE;
+}
+
+static void
+fs_rawudp_component_stop_upnp_discovery_locked (FsRawUdpComponent *self)
+{
+  if (self->priv->upnp_discovery_timeout_src)
+  {
+    g_source_destroy (self->priv->upnp_discovery_timeout_src);
+    g_source_unref (self->priv->upnp_discovery_timeout_src);
+  }
+  self->priv->upnp_discovery_timeout_src = NULL;
 }
 
 #endif
