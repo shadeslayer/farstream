@@ -935,7 +935,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
-  return ret;;
+  return ret;
 }
 
 FsRtpSubStream *

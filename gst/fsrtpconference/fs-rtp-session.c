@@ -2081,7 +2081,7 @@ fs_rtp_session_negotiate_codecs (FsRtpSession *session,
 
   FS_RTP_SESSION_UNLOCK (session);
 
-  return NULL;;
+  return NULL;
 }
 
 

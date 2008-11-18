@@ -36,7 +36,7 @@ GST_START_TEST (test_fscodec_new)
 
   fail_unless (codec->id == 1, "Codec is incorrect");
   fail_unless (!strcmp (codec->encoding_name, "aa"),
-      "Codec encoding name incorrect");;
+      "Codec encoding name incorrect");
   fail_unless (codec->media_type == FS_MEDIA_TYPE_VIDEO,
       "Codec media type incorrect");
   fail_unless (codec->clock_rate == 650, "Codec clock rate incorrect");

@@ -93,7 +93,7 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
 {
   TestSession *ses = g_slice_new0 (TestSession);
   GError *error = NULL;
-  GstPad *pad = NULL, *pad2 = NULL;;
+  GstPad *pad = NULL, *pad2 = NULL;
   GstElement *src = NULL;
   GList *cands = NULL;
   GList *codecs = NULL;

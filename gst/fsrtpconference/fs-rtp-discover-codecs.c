@@ -279,7 +279,7 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
   if (send_list)
     codec_cap_list_free (send_list);
 
-  return list_codec_blueprints[media_type];;
+  return list_codec_blueprints[media_type];
 }
 
 static gboolean

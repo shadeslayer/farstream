@@ -357,7 +357,7 @@ fs_nice_agent_init_agent (FsNiceAgent *self, GError **error)
          item;
          item = g_list_next (item))
     {
-      NiceAddress *addr = nice_address_new ();;
+      NiceAddress *addr = nice_address_new ();
 
       if (nice_address_set_from_string (addr, item->data))
       {
