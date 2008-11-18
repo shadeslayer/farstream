@@ -1719,7 +1719,6 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
   return TRUE;
 }
 
-
 static void
 _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
@@ -1743,6 +1742,43 @@ _get_recvonly_filter (FsTransmitter *transmitter, guint component,
     return NULL;
 }
 
+static gboolean
+fs_rtp_session_add_transmitter_gst_sink (FsRtpSession *self,
+    FsTransmitter *transmitter,
+    GError **error)
+{
+  GstElement *sink;
+
+  g_object_get (transmitter, "gst-sink", &sink, NULL);
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+      "Could not add the transmitter sink for %s to the conference",
+        G_OBJECT_TYPE_NAME(transmitter));
+    goto error;
+  }
+
+  if (!_get_request_pad_and_link (self->priv->transmitter_rtp_tee,
+      "rtp tee", sink, "sink1", GST_PAD_SINK, error))
+    goto error;
+
+  if (!_get_request_pad_and_link (self->priv->transmitter_rtcp_tee,
+      "rtcp tee", sink, "sink2", GST_PAD_SINK, error))
+    goto error;
+
+  gst_element_sync_state_with_parent (sink);
+
+  gst_object_unref (sink);
+
+  return TRUE;
+
+ error:
+  if (sink)
+    gst_object_unref (sink);
+
+  return FALSE;
+}
 
 /**
  * fs_rtp_session_get_new_stream_transmitter:
@@ -1764,7 +1800,7 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   GParameter *parameters, GError **error)
 {
   FsTransmitter *transmitter;
-  GstElement *src, *sink;
+  GstElement *src;
 
   FS_RTP_SESSION_LOCK (self);
 
@@ -1788,20 +1824,15 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   if (!transmitter)
     return NULL;
 
-  g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
-
   g_signal_connect (transmitter, "error", G_CALLBACK (_transmitter_error),
       self);
   g_signal_connect (transmitter, "get-recvonly-filter",
       G_CALLBACK (_get_recvonly_filter), NULL);
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), sink))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not add the transmitter sink for %s to the conference",
-      transmitter_name);
+  if (!fs_rtp_session_add_transmitter_gst_sink (self, transmitter, error))
     goto error;
-  }
+
+  g_object_get (transmitter, "gst-src", &src, NULL);
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), src))
   {
@@ -1810,14 +1841,6 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
       transmitter_name);
     goto error;
   }
-
-  if (!_get_request_pad_and_link (self->priv->transmitter_rtp_tee,
-      "rtp tee", sink, "sink1", GST_PAD_SINK, error))
-    goto error;
-
-  if (!_get_request_pad_and_link (self->priv->transmitter_rtcp_tee,
-      "rtcp tee", sink, "sink2", GST_PAD_SINK, error))
-    goto error;
 
   if (!_get_request_pad_and_link (self->priv->transmitter_rtp_funnel,
       "rtp funnel", src, "src1", GST_PAD_SRC, error))
@@ -1828,7 +1851,6 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
     goto error;
 
   gst_element_sync_state_with_parent (src);
-  gst_element_sync_state_with_parent (sink);
 
   FS_RTP_SESSION_LOCK (self);
   /* Check if two were added at the same time */
@@ -1837,9 +1859,7 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
     FS_RTP_SESSION_UNLOCK (self);
 
     gst_element_set_locked_state (src, TRUE);
-    gst_element_set_locked_state (sink, TRUE);
     gst_element_set_state (src, GST_STATE_NULL);
-    gst_element_set_state (sink, GST_STATE_NULL);
     goto error;
   }
 
@@ -1848,7 +1868,6 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   FS_RTP_SESSION_UNLOCK (self);
 
   gst_object_unref (src);
-  gst_object_unref (sink);
 
   return fs_transmitter_new_stream_transmitter (transmitter, participant,
     n_parameters, parameters, error);
@@ -1862,8 +1881,6 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
  error:
   if (src)
     gst_object_unref (src);
-  if (sink)
-    gst_object_unref (sink);
   if (transmitter)
     g_object_unref (transmitter);
 
