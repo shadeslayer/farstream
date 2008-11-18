@@ -160,6 +160,8 @@ struct _FsRawUdpComponentPrivate
 #ifdef HAVE_GUPNP
   GSource *upnp_discovery_timeout_src;
   FsCandidate *local_upnp_candidate;
+
+  gulong upnp_signal_id;
 #endif
 };
 
@@ -1103,6 +1105,13 @@ fs_rawudp_component_stop_upnp_discovery_locked (FsRawUdpComponent *self)
     g_source_unref (self->priv->upnp_discovery_timeout_src);
   }
   self->priv->upnp_discovery_timeout_src = NULL;
+
+  if (self->priv->upnp_signal_id)
+  {
+    g_signal_handler_disconnect (self->priv->upnp_igd,
+        self->priv->upnp_signal_id);
+    self->priv->upnp_signal_id = 0;
+  }
 }
 
 #endif
@@ -1144,8 +1153,11 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 
       if (self->priv->upnp_discovery)
       {
-        g_signal_connect (self->priv->upnp_igd, "mapped-external-port",
+        FS_RAWUDP_COMPONENT_LOCK (self);
+        self->priv->upnp_signal_id = g_signal_connect (self->priv->upnp_igd,
+            "mapped-external-port",
             G_CALLBACK (_upnp_mapped_external_port), self);
+        FS_RAWUDP_COMPONENT_UNLOCK (self);
       }
 
       gupnp_simple_igd_add_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
