@@ -624,8 +624,6 @@ GST_END_TEST;
 
 #ifdef HAVE_GUPNP
 
-
-
 GST_START_TEST (test_rawudptransmitter_run_upnp_discovery)
 {
   GParameter params[2];
@@ -655,8 +653,91 @@ GST_START_TEST (test_rawudptransmitter_run_upnp_discovery)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_rawudptransmitter_run_upnp_fallback)
+{
+  GParameter params[6];
+  GObject *context;
+  gboolean got_address = FALSE;
+  gboolean added_mapping = FALSE;
 
-#endif
+  memset (params, 0, sizeof (GParameter) * 6);
+
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, TRUE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, FALSE);
+
+  params[2].name = "stun-ip";
+  g_value_init (&params[2].value, G_TYPE_STRING);
+  g_value_set_static_string (&params[2].value, "127.0.0.1");
+
+  params[3].name = "stun-port";
+  g_value_init (&params[3].value, G_TYPE_UINT);
+  g_value_set_uint (&params[3].value, 3232);
+
+  params[4].name = "stun-timeout";
+  g_value_init (&params[4].value, G_TYPE_UINT);
+  g_value_set_uint (&params[4].value, 6);
+
+  params[5].name = "upnp-discovery-timeout";
+  g_value_init (&params[5].value, G_TYPE_UINT);
+  g_value_set_uint (&params[5].value, 3);
+
+  context = start_upnp_server ();
+
+  run_rawudp_transmitter_test (6, params, 0);
+
+  get_vars (&got_address, &added_mapping);
+  ts_fail_unless (got_address, "did not get address");
+  ts_fail_unless (added_mapping, "did not add mapping");
+
+  g_object_unref (context);
+}
+GST_END_TEST;
+
+GST_START_TEST (test_rawudptransmitter_run_upnp_ignored)
+{
+  GParameter params[6];
+  GObject *context;
+
+  memset (params, 0, sizeof (GParameter) * 6);
+
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, TRUE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, FALSE);
+
+  params[2].name = "stun-ip";
+  g_value_init (&params[2].value, G_TYPE_STRING);
+  g_value_set_static_string (&params[2].value, "127.0.0.1");
+
+  params[3].name = "stun-port";
+  g_value_init (&params[3].value, G_TYPE_UINT);
+  g_value_set_uint (&params[3].value, 3478);
+
+  params[4].name = "stun-timeout";
+  g_value_init (&params[4].value, G_TYPE_UINT);
+  g_value_set_uint (&params[4].value, 6);
+
+  params[5].name = "upnp-discovery-timeout";
+  g_value_init (&params[5].value, G_TYPE_UINT);
+  g_value_set_uint (&params[5].value, 3);
+
+  context = start_upnp_server ();
+
+  run_rawudp_transmitter_test (6, params, FLAG_HAS_STUN);
+
+  g_object_unref (context);
+}
+GST_END_TEST;
+
+#endif /* HAVE_GUPNP */
 
 static Suite *
 rawudptransmitter_suite (void)
@@ -703,6 +784,15 @@ rawudptransmitter_suite (void)
 #ifdef HAVE_GUPNP
   tc_chain = tcase_create ("rawudptransmitter-upnp-discovery");
   tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_discovery);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("rawudptransmitter-upnp-fallback");
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_fallback);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("rawudptransmitter-upnp-ignored");
+  tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
+  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_ignored);
   suite_add_tcase (s, tc_chain);
 #endif
 
