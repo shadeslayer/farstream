@@ -298,8 +298,6 @@ one_way (GCallback havedata_handler, gpointer data)
   cleanup_simple_conference (dat);
   gst_object_unref (recv_pipeline);
 
-  digit = 0;
-
   g_main_loop_unref (loop);
 }
 
@@ -341,10 +339,10 @@ start_stop_sending_dtmf (gpointer data)
   ret = gst_element_get_state (dat->pipeline, &state, NULL, 0);
   ts_fail_if (ret == GST_STATE_CHANGE_FAILURE);
 
-  if (state != GST_STATE_PLAYING)
+  if (ret != GST_STATE_CHANGE_SUCCESS || state != GST_STATE_PLAYING)
     return TRUE;
 
-  if(!ready_to_send)
+  if (!ready_to_send)
     return TRUE;
 
 
