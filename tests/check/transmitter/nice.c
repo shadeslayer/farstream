@@ -47,6 +47,8 @@ gboolean associate_on_source = TRUE;
 gboolean is_address_local = FALSE;
 gboolean force_candidates = FALSE;
 
+GStaticMutex count_mutex = G_STATIC_MUTEX_INIT;
+
 GST_START_TEST (test_nicetransmitter_new)
 {
   test_transmitter_creation ("nice");
@@ -165,6 +167,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     "Buffer is size %d but component_id is %d", GST_BUFFER_SIZE (buffer),
     component_id);
 
+  g_static_mutex_lock (&count_mutex);
+
   buffer_count[stream][component_id-1]++;
 
 
@@ -204,6 +208,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     g_atomic_int_set(&running, FALSE);
     g_main_loop_quit (loop);
   }
+
+  g_static_mutex_unlock (&count_mutex);
 }
 
 static void
