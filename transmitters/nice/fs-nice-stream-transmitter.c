@@ -380,6 +380,9 @@ fs_nice_stream_transmitter_finalize (GObject *object)
 
   fs_candidate_list_destroy (self->priv->preferred_local_candidates);
 
+  if (self->priv->relay_info)
+    g_value_array_free (self->priv->relay_info);
+
   g_free (self->priv->stun_ip);
 
   g_mutex_free (self->priv->mutex);

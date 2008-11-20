@@ -525,7 +525,7 @@ GST_START_TEST (test_nicetransmitter_preferred_candidates)
 
   param.name = "preferred-local-candidates";
   g_value_init (&param.value, FS_TYPE_CANDIDATE_LIST);
-  g_value_set_boxed (&param.value, list);
+  g_value_take_boxed (&param.value, list);
 
   run_nice_transmitter_test (1, &param, FLAG_IS_LOCAL);
 
