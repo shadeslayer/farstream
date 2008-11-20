@@ -283,7 +283,7 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
 
   g_object_set_data (G_OBJECT (st), prop, GINT_TO_POINTER (state));
 
-  if (state < FS_STREAM_STATE_CONNECTED)
+  if (state < FS_STREAM_STATE_READY)
     return;
 
   if (component == 1)
