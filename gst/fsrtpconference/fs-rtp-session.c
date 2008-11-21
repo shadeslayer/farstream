@@ -558,36 +558,44 @@ fs_rtp_session_dispose (GObject *object)
 
   if (self->priv->rtpbin_send_rtcp_src)
   {
+    /* Release pad generates a g_warning as of Nov 11 2008
     gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
     gst_element_release_request_pad (self->priv->conference->gstrtpbin,
       self->priv->rtpbin_send_rtcp_src);
+    */
     gst_object_unref (self->priv->rtpbin_send_rtcp_src);
     self->priv->rtpbin_send_rtcp_src = NULL;
   }
 
   if (self->priv->rtpbin_send_rtp_sink)
   {
+    /* Release pad generates a g_warning as of Nov 11 2008
     gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
     gst_element_release_request_pad (self->priv->conference->gstrtpbin,
       self->priv->rtpbin_send_rtp_sink);
+    */
     gst_object_unref (self->priv->rtpbin_send_rtp_sink);
     self->priv->rtpbin_send_rtp_sink = NULL;
   }
 
   if (self->priv->rtpbin_recv_rtp_sink)
   {
+    /* Release pad generates a g_warning as of Nov 11 2008
     gst_pad_set_active (self->priv->rtpbin_recv_rtp_sink, FALSE);
     gst_element_release_request_pad (self->priv->conference->gstrtpbin,
       self->priv->rtpbin_recv_rtp_sink);
+    */
     gst_object_unref (self->priv->rtpbin_recv_rtp_sink);
     self->priv->rtpbin_recv_rtp_sink = NULL;
   }
 
   if (self->priv->rtpbin_recv_rtcp_sink)
   {
+    /* Release pad generates a g_warning as of Nov 11 2008
     gst_pad_set_active (self->priv->rtpbin_recv_rtcp_sink, FALSE);
     gst_element_release_request_pad (self->priv->conference->gstrtpbin,
       self->priv->rtpbin_recv_rtcp_sink);
+    */
     gst_object_unref (self->priv->rtpbin_recv_rtcp_sink);
     self->priv->rtpbin_recv_rtcp_sink = NULL;
   }
