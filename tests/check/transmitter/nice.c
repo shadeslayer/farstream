@@ -88,20 +88,13 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
           fs_candidate_copy (candidate)));
 }
 
-static void
-_local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
+static gboolean
+set_the_candidates (gpointer user_data)
 {
-  FsStreamTransmitter *st2 = FS_STREAM_TRANSMITTER (user_data);
-  GList *candidates = g_object_get_data (G_OBJECT (st), "candidates");
+  FsStreamTransmitter *st = FS_STREAM_TRANSMITTER (user_data);
+  GList *candidates = g_object_get_data (G_OBJECT (st), "candidates-set");
   gboolean ret;
   GError *error = NULL;
-
-  g_object_set_data (G_OBJECT (st), "candidates", NULL);
-
-  ts_fail_if (g_list_length (candidates) < 2,
-      "We don't have at least 2 candidates");
-
-  g_debug ("Local Candidates Prepared");
 
   if (force_candidates)
   {
@@ -127,13 +120,13 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
       }
     }
 
-    ret = fs_stream_transmitter_force_remote_candidates (st2, new_list, &error);
+    ret = fs_stream_transmitter_force_remote_candidates (st, new_list, &error);
 
     fs_candidate_list_destroy (new_list);
   }
   else
   {
-    ret = fs_stream_transmitter_set_remote_candidates (st2, candidates, &error);
+    ret = fs_stream_transmitter_set_remote_candidates (st, candidates, &error);
   }
 
   if (error)
@@ -143,8 +136,29 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
   ts_fail_unless (ret == TRUE, "No detailed error setting remote_candidate");
 
   fs_candidate_list_destroy (candidates);
+
+  return FALSE;
 }
 
+
+static void
+_local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
+{
+  FsStreamTransmitter *st2 = FS_STREAM_TRANSMITTER (user_data);
+  GList *candidates = g_object_get_data (G_OBJECT (st), "candidates");
+
+  g_object_set_data (G_OBJECT (st), "candidates", NULL);
+
+  ts_fail_if (g_list_length (candidates) < 2,
+      "We don't have at least 2 candidates");
+
+  g_debug ("Local Candidates Prepared");
+
+  g_object_set_data (G_OBJECT (st2), "candidates-set", candidates);
+
+  g_idle_add (set_the_candidates, st2);
+
+}
 
 static void
 _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
