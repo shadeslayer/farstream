@@ -541,6 +541,14 @@ _create_sinksource (
   else
     ret = gst_pad_link (elempad, *requested_pad);
 
+
+  if (GST_PAD_LINK_FAILED(ret))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the new element %s (%d)", elementname, ret);
+    goto error;
+  }
+
   if (have_buffer_callback && buffer_probe_id)
   {
     if (direction == GST_PAD_SINK)
@@ -568,13 +576,7 @@ _create_sinksource (
   }
 
   gst_object_unref (elempad);
-
-  if (GST_PAD_LINK_FAILED(ret))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the new element %s (%d)", elementname, ret);
-    goto error;
-  }
+  elempad = NULL;
 
   if (!gst_element_sync_state_with_parent (elem))
   {
