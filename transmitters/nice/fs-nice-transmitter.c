@@ -515,6 +515,8 @@ _create_sinksource (
     return NULL;
   }
 
+  gst_object_ref (elem);
+
   if (direction == GST_PAD_SINK)
     *requested_pad = gst_element_get_request_pad (teefunnel, "src%d");
   else
@@ -596,6 +598,8 @@ _create_sinksource (
 
   if (elempad)
     gst_object_unref (elempad);
+  if (elem)
+    gst_object_unref (elem);
 
   return NULL;
 }
@@ -687,6 +691,7 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
             gst_element_state_change_return_get_name (ret));
       if (!gst_bin_remove (GST_BIN (self->priv->gst_src), ns->nicesrcs[c]))
         GST_ERROR ("Could not remove nicesrc element from transmitter source");
+      gst_object_unref (ns->nicesrcs[c]);
     }
 
     if (ns->requested_funnel_pads[c])
@@ -706,6 +711,7 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
             gst_element_state_change_return_get_name (ret));
       if (!gst_bin_remove (GST_BIN (self->priv->gst_sink), ns->nicesinks[c]))
         GST_ERROR ("Could not remove nicesink element from transmitter source");
+      gst_object_unref (ns->nicesinks[c]);
     }
 
     if (ns->requested_tee_pads[c])
