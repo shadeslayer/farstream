@@ -99,7 +99,8 @@ NiceGstStream *fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
 void fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
     NiceGstStream *ns);
 
-
+void fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
+    NiceGstStream *ns, gboolean sending);
 
 G_END_DECLS
 
