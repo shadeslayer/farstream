@@ -81,7 +81,10 @@ struct _FsMsnStreamPrivate
   gint port;
   GIOChannel *connection;
 
-
+  GstPoll *poll;
+  GstPollFD  listening_socket;
+  GArray *outgoing_pollfds;
+  GArray *incoming_pollfds;
 
   /* Protected by the session mutex */
 
@@ -245,6 +248,11 @@ fs_msn_stream_init (FsMsnStream *self)
 
   self->priv->direction = FS_DIRECTION_NONE;
   self->priv->fdlist = g_array_new (FALSE, FALSE, sizeof(GIOChannel *));
+
+  self->priv->poll = gst_poll_new (TRUE);
+  gst_poll_fd_init (&self->priv->listening_socket);
+  self->priv->incoming_pollfds = g_array_new (TRUE, TRUE, sizeof(GstPollFD));
+  self->priv->outgoing_pollfds = g_array_new (TRUE, TRUE, sizeof(GstPollFD));
 }
 
 static void
@@ -279,6 +287,18 @@ fs_msn_stream_dispose (GObject *object)
 static void
 fs_msn_stream_finalize (GObject *object)
 {
+  FsMsnStream *self = FS_MSN_STREAM (object);
+  guint i;
+
+  gst_poll_free (self->priv->poll);
+
+  for (i = 0; i < self->priv->incoming_pollfds->len; i++)
+    close (g_array_index(self->priv->incoming_pollfds, GstPollFD, i).fd);
+  g_array_free (self->priv->incoming_pollfds, TRUE);
+  for (i = 0; i < self->priv->outgoing_pollfds->len; i++)
+    close (g_array_index(self->priv->outgoing_pollfds, GstPollFD, i).fd);
+  g_array_free (self->priv->outgoing_pollfds, TRUE);
+
   parent_class->finalize (object);
 }
 
