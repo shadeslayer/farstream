@@ -634,6 +634,12 @@ fs_msn_stream_constructed (GObject *object)
     gst_element_link_many(self->priv->media_fd_src, mimdec, ffmpegcolorspace,
         valve, NULL);
   }
+  else
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_INVALID_ARGUMENTS,
+        "Direction must be sending OR receiving");
+  }
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
