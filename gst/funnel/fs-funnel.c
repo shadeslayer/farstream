@@ -79,6 +79,7 @@ static void fs_funnel_release_pad (GstElement * element, GstPad * pad);
 
 static GstFlowReturn fs_funnel_chain (GstPad * pad, GstBuffer * buffer);
 static gboolean fs_funnel_event (GstPad * pad, GstEvent * event);
+static gboolean fs_funnel_src_event (GstPad * pad, GstEvent * event);
 static GstCaps* fs_funnel_getcaps (GstPad * pad);
 
 
@@ -120,14 +121,12 @@ fs_funnel_class_init (FsFunnelClass * klass)
   gstelement_class->change_state = GST_DEBUG_FUNCPTR (fs_funnel_change_state);
 }
 
-
-
 static void
 fs_funnel_init (FsFunnel * funnel, FsFunnelClass * g_class)
 {
   funnel->srcpad = gst_pad_new_from_static_template (&funnel_src_template,
     "src");
-
+  gst_pad_set_event_function (funnel->srcpad, fs_funnel_src_event);
   gst_element_add_pad (GST_ELEMENT (funnel), funnel->srcpad);
 }
 
@@ -296,6 +295,44 @@ fs_funnel_event (GstPad * pad, GstEvent * event)
   return res;
 }
 
+static gboolean
+fs_funnel_src_event (GstPad * pad, GstEvent * event)
+{
+  GstElement *funnel;
+  GstIterator *iter;
+  GstPad *sinkpad;
+  gboolean result = FALSE;
+  gboolean done = FALSE;
+
+  funnel = gst_pad_get_parent_element (pad);
+  g_return_val_if_fail (funnel != NULL, FALSE);
+
+  iter = gst_element_iterate_sink_pads (funnel);
+
+  while (!done) {
+    switch (gst_iterator_next (iter, (gpointer) &sinkpad)) {
+      case GST_ITERATOR_OK:
+        gst_event_ref (event);
+        result |= gst_pad_push_event (sinkpad, event);
+        gst_object_unref (sinkpad);
+        break;
+      case GST_ITERATOR_RESYNC:
+        gst_iterator_resync (iter);
+        result = FALSE;
+        break;
+      case GST_ITERATOR_ERROR:
+        GST_WARNING_OBJECT (funnel, "Error iterating sinkpads");
+      case GST_ITERATOR_DONE:
+        done = TRUE;
+        break;
+    }
+  }
+  gst_iterator_free (iter);
+  gst_object_unref (funnel);
+  gst_event_unref (event);
+
+  return result;
+}
 
 static void
 reset_pad (gpointer data, gpointer user_data)
