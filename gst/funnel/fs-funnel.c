@@ -79,6 +79,7 @@ static void fs_funnel_release_pad (GstElement * element, GstPad * pad);
 
 static GstFlowReturn fs_funnel_chain (GstPad * pad, GstBuffer * buffer);
 static gboolean fs_funnel_event (GstPad * pad, GstEvent * event);
+static GstCaps* fs_funnel_getcaps (GstPad * pad);
 
 
 typedef struct {
@@ -145,6 +146,7 @@ fs_funnel_request_new_pad (GstElement * element, GstPadTemplate * templ,
 
   gst_pad_set_chain_function (sinkpad, GST_DEBUG_FUNCPTR (fs_funnel_chain));
   gst_pad_set_event_function (sinkpad, GST_DEBUG_FUNCPTR (fs_funnel_event));
+  gst_pad_set_getcaps_function (sinkpad, GST_DEBUG_FUNCPTR (fs_funnel_getcaps));
 
   gst_segment_init (&priv->segment, GST_FORMAT_UNDEFINED);
   gst_pad_set_element_private (sinkpad, priv);
@@ -170,6 +172,21 @@ fs_funnel_release_pad (GstElement * element, GstPad * pad)
     g_slice_free1 (sizeof(FsFunnelPadPrivate), priv);
 
   gst_element_remove_pad (GST_ELEMENT_CAST (funnel), pad);
+}
+
+static GstCaps*
+fs_funnel_getcaps (GstPad * pad)
+{
+  FsFunnel *funnel = FS_FUNNEL (gst_pad_get_parent (pad));
+  GstCaps *caps;
+
+  caps = gst_pad_peer_get_caps (funnel->srcpad);
+  if (caps == NULL)
+    caps = gst_caps_copy (gst_pad_get_pad_template_caps (pad));
+
+  gst_object_unref (funnel);
+
+  return caps;
 }
 
 static GstFlowReturn
