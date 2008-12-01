@@ -156,7 +156,7 @@ AC_ARG_WITH(transmitter-plugins,
 dnl check for libnice
 if echo $FS2_TRANSMITTER_PLUGINS_SELECTED | grep -qi nice; then
 
-  NICE_REQUIRED=0.0.1
+  NICE_REQUIRED=0.0.3
 
   PKG_CHECK_MODULES(NICE, \
        nice >= $NICE_REQUIRED,
