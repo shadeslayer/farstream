@@ -23,7 +23,7 @@ For UPnP support:
  - GUPnP-IGD
 
 For the ICE transmitter:
- - libnice
+ - libnice 0.0.3
 
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
