@@ -51,6 +51,8 @@ typedef struct _FsRtcpFilterPrivate FsRtcpFilterPrivate;
 struct _FsRtcpFilter
 {
   GstBaseTransform parent;
+
+  gboolean sending;
 };
 
 struct _FsRtcpFilterClass

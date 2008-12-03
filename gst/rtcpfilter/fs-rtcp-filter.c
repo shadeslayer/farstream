@@ -69,11 +69,20 @@ enum
 
 enum
 {
-  ARG_0,
+  PROP_0,
+  PROP_SENDING
 };
 
+static void fs_rtcp_filter_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
+static void fs_rtcp_filter_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
 
-GstFlowReturn
+static GstFlowReturn
 fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf);
 
 static void
@@ -102,20 +111,75 @@ fs_rtcp_filter_base_init (gpointer klass)
 static void
 fs_rtcp_filter_class_init (FsRtcpFilterClass *klass)
 {
+  GObjectClass *gobject_class;
   GstBaseTransformClass *gstbasetransform_class;
 
+  gobject_class = (GObjectClass *) klass;
   gstbasetransform_class = (GstBaseTransformClass *) klass;
 
+  gobject_class->set_property = GST_DEBUG_FUNCPTR (fs_rtcp_filter_set_property);
+  gobject_class->get_property = GST_DEBUG_FUNCPTR (fs_rtcp_filter_get_property);
+
   gstbasetransform_class->transform_ip = fs_rtcp_filter_transform_ip;
+
+  g_object_class_install_property (gobject_class,
+      PROP_SENDING,
+      g_param_spec_boolean ("sending",
+          "Sending RTP?",
+          "If set to FALSE, it assumes that all RTP has been dropped",
+          FALSE,
+          G_PARAM_READWRITE));
 }
 
 static void
 fs_rtcp_filter_init (FsRtcpFilter *rtcpfilter,
     FsRtcpFilterClass *klass)
 {
+  rtcpfilter->sending = FALSE;
 }
 
-GstFlowReturn
+static void
+fs_rtcp_filter_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtcpFilter *filter = FS_RTCP_FILTER (object);
+
+  switch (prop_id)
+  {
+    case PROP_SENDING:
+      GST_OBJECT_LOCK (filter);
+      g_value_set_boolean (value, filter->sending);
+      GST_OBJECT_UNLOCK (filter);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+static void
+fs_rtcp_filter_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtcpFilter *filter = FS_RTCP_FILTER (object);
+
+  switch (prop_id)
+  {
+    case PROP_SENDING:
+      GST_OBJECT_LOCK (filter);
+      filter->sending = g_value_get_boolean (value);
+      GST_OBJECT_UNLOCK (filter);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+static GstFlowReturn
 fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
 {
   if (!gst_rtcp_buffer_validate (buf))
