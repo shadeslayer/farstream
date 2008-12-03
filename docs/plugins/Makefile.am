@@ -105,8 +105,14 @@ content_files =
 
 # Other files to distribute.
 extra_files = \
-	farsight2-transmitters.types \
+	farsight2-transmitters.types.in \
 	gtkdoc-scangobj-transmitters
+
+farsight2-transmitters.types: farsight2-transmitters.types.in Makefile
+	cat $< > $@
+	for i in "$(FS2_TRANSMITTER_PLUGINS_SELECTED)"; do \
+		echo "${i}" >> $@ ;\
+	done
 
 # CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
 # contains GtkObjects/GObjects and you want to document signals and properties.

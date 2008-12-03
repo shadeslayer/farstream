@@ -368,7 +368,7 @@ scanobj-trans-update:
 # We have a scanobj-build.stamp just to prevent both from running at the same
 # time as they use temp files with the same name
 
-scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles) scanobj-build.stamp
+scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles) scanobj-build.stamp farsight2-transmitters.types
 	@echo '*** Scanning Transmitters ***'
 	if test x"$(srcdir)" = x. ; then				\
 	    GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/ext	\
