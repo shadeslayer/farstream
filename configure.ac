@@ -102,6 +102,7 @@ dnl these are all the gst plug-ins, compilable without additional libs
 FS2_PLUGINS_ALL=" \
 	fsrtpconference \
 	funnel \
+	rtcpfilter \
  	videoanyrate
 	"
 AC_SUBST(FS2_PLUGINS_ALL)
@@ -397,6 +398,7 @@ common-modified/Makefile
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/funnel/Makefile
+gst/rtcpfilter/Makefile
 gst/videoanyrate/Makefile
 gst-libs/Makefile
 gst-libs/gst/Makefile
