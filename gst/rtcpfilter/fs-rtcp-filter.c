@@ -182,11 +182,38 @@ fs_rtcp_filter_set_property (GObject *object,
 static GstFlowReturn
 fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
 {
+  FsRtcpFilter *filter = FS_RTCP_FILTER (transform);
+
   if (!gst_rtcp_buffer_validate (buf))
   {
     GST_ERROR_OBJECT (transform, "Invalid RTCP buffer");
     return GST_FLOW_ERROR;
   }
+
+  GST_OBJECT_LOCK (filter);
+
+  if (!filter->sending)
+  {
+    GstRTCPPacket packet;
+
+    gst_rtcp_buffer_get_first_packet (buf, &packet);
+
+    for (;;)
+    {
+      if (gst_rtcp_packet_get_type (&packet) == GST_RTCP_TYPE_SR)
+      {
+        if (!gst_rtcp_packet_remove (&packet))
+          break;
+      }
+      else
+      {
+        if (!gst_rtcp_packet_move_to_next (&packet))
+          break;
+      }
+    }
+  }
+
+  GST_OBJECT_UNLOCK (filter);
 
   return GST_FLOW_OK;
 }
