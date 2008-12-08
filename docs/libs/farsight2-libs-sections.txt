@@ -169,6 +169,7 @@ fs_transmitter_new
 fs_transmitter_new_stream_transmitter
 fs_transmitter_get_stream_transmitter_type
 fs_transmitter_emit_error
+fs_transmitter_get_recvonly_filter
 fs_transmitter_list_available
 <SUBSECTION Standard>
 FS_IS_TRANSMITTER

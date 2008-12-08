@@ -25,8 +25,7 @@
 #ifndef __FS_TRANSMITTER_H__
 #define __FS_TRANSMITTER_H__
 
-#include <glib.h>
-#include <glib-object.h>
+#include <gst/gst.h>
 
 #include <gst/farsight/fs-participant.h>
 #include <gst/farsight/fs-stream-transmitter.h>
@@ -116,6 +115,9 @@ void fs_transmitter_emit_error (FsTransmitter *transmitter,
 
 char **fs_transmitter_list_available (void);
 
+GstElement *
+fs_transmitter_get_recvonly_filter (FsTransmitter *transmitter,
+    guint component);
 
 G_END_DECLS
 

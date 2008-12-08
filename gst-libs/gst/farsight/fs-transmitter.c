@@ -52,6 +52,7 @@
 enum
 {
   ERROR_SIGNAL,
+  GET_RECVONLY_FILTER_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -173,6 +174,30 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
       NULL,
       _fs_marshal_VOID__ENUM_STRING_STRING,
       G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
+
+  /**
+   * FsTransmitter::get-recvonly-filter
+   * @self: #FsTransmitter that emitted the signal
+   * @component: The component that the filter will be used for
+   *
+   * This signal is emitted when the transmitter wants to get a filter for
+   * to use if sending is disabled. If you want to drop all buffers, just
+   * don't listen to the signal.
+   *
+   * This element should have a "sending" property that can be changed with the
+   * sending state of the stream. It should default to %TRUE.
+   *
+   * Returns: the #GstElement to use as the filter, or %NULL to drop everything
+   */
+
+  signals[GET_RECVONLY_FILTER_SIGNAL] = g_signal_new ("get-recvonly-filter",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      _fs_marshal_OBJECT__UINT,
+      GST_TYPE_ELEMENT, 1, G_TYPE_UINT);
 
 
   gobject_class->dispose = fs_transmitter_dispose;
@@ -363,4 +388,28 @@ char **
 fs_transmitter_list_available (void)
 {
   return fs_plugin_list_available ("transmitter");
+}
+
+/**
+ * fs_transmitter_get_recvonly_filter:
+ * @transmitter: A #FsTransmitter object
+ * @component: The component to get the filter for
+ *
+ * Get the filter to add on the send pipeline if sending is disabled.
+ *
+ * Only for use by subclasses.
+ *
+ * Returns: a #GstElement to use as the filter or %NULL
+ */
+
+GstElement *
+fs_transmitter_get_recvonly_filter (FsTransmitter *transmitter,
+    guint component)
+{
+  GstElement *element = NULL;
+
+  g_signal_emit (transmitter, signals[GET_RECVONLY_FILTER_SIGNAL], 0, component,
+      &element);
+
+  return element;
 }
