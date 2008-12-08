@@ -107,6 +107,7 @@ typedef enum
  * @stop_telephony_event: Stops a telephony event
  * @set_send_codec: Forces sending with a specific codec
  * @set_codec_preferences: Specifies the codec preferences
+ * @list_transmitters: Returns a list of the available transmitters
  *
  * You must override at least new_stream in a subclass.
  */
