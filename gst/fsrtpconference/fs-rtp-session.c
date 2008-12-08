@@ -1813,6 +1813,31 @@ _get_request_pad_and_link (GstElement *tee_funnel, const gchar *tee_funnel_name,
   return TRUE;
 }
 
+
+static void
+_transmitter_error (
+    FsStreamTransmitter *stream_transmitter,
+    gint errorno,
+    gchar *error_msg,
+    gchar *debug_msg,
+    gpointer user_data)
+{
+  FsSession *session = FS_SESSION (user_data);
+
+  fs_session_emit_error (session, errorno, error_msg, debug_msg);
+}
+
+static GstElement *
+_get_recvonly_filter (FsTransmitter *transmitter, guint component,
+    gpointer user_data)
+{
+  if (component == FS_COMPONENT_RTCP)
+    return gst_element_factory_make ("fsrtcpfilter", NULL);
+  else
+    return NULL;
+}
+
+
 /**
  * fs_rtp_session_get_new_stream_transmitter:
  * @self: a #FsRtpSession
@@ -1858,6 +1883,11 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
     return NULL;
 
   g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
+
+  g_signal_connect (transmitter, "error", G_CALLBACK (_transmitter_error),
+      self);
+  g_signal_connect (transmitter, "get-recvonly-filter",
+      G_CALLBACK (_get_recvonly_filter), NULL);
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), sink))
   {
