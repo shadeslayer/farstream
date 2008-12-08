@@ -381,6 +381,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
     }
     else
     {
+#if 0
       gchar *str = fs_codec_to_string (
           g_object_get_data (G_OBJECT (element), "codec"));
       gchar *str2 = fs_codec_to_string (g_list_last (codecs)->data);
@@ -388,6 +389,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
           str, str2);
       g_free (str);
       g_free (str2);
+#endif
       fs_codec_list_destroy (codecs);
       return;
     }
