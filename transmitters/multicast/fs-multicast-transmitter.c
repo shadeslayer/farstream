@@ -880,6 +880,13 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
     gst_object_unref (udpsock->udpsrc_requested_pad);
   }
 
+  if (udpsock->udpsink_requested_pad)
+  {
+    gst_element_release_request_pad (udpsock->tee,
+      udpsock->udpsink_requested_pad);
+    gst_object_unref (udpsock->udpsink_requested_pad);
+  }
+
   if (udpsock->udpsink)
   {
     GstStateChangeReturn ret;
@@ -890,13 +897,6 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
           gst_element_state_change_return_get_name (ret));
     if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpsock->udpsink))
       GST_ERROR ("Could not remove udpsink element from transmitter source");
-  }
-
-  if (udpsock->udpsink_requested_pad)
-  {
-    gst_element_release_request_pad (udpsock->tee,
-      udpsock->udpsink_requested_pad);
-    gst_object_unref (udpsock->udpsink_requested_pad);
   }
 
   if (udpsock->fd >= 0)
