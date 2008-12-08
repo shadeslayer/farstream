@@ -59,7 +59,7 @@ typedef struct _FsTransmitterPrivate FsTransmitterPrivate;
  * @get_stream_transmitter_type: Returns the #GType of the stream transmitter
  *  created by this class (useful for bindings)
  *
- * You must override the new_stream_transmitter method in a subclass
+ * You must override both methods in a subclass.
  */
 
 struct _FsTransmitterClass
