@@ -703,6 +703,9 @@ GST_START_TEST (test_rawudptransmitter_run_upnp_ignored)
   GParameter params[6];
   GObject *context;
 
+  if (stund_pid <= 0)
+    return;
+
   memset (params, 0, sizeof (GParameter) * 6);
 
   params[0].name = "associate-on-source";
