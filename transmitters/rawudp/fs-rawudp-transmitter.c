@@ -510,6 +510,10 @@ struct _UdpPort {
   GstElement *udpsink;
   GstPad *udpsink_requested_pad;
 
+  GstElement *recvonly_filter;
+  GstElement *recvonly_udpsink;
+  GstPad *recvonly_requested_pad;
+
   gchar *requested_ip;
   guint requested_port;
 
@@ -854,6 +858,24 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
       "sync", FALSE,
       NULL);
 
+  udpport->recvonly_filter = fs_transmitter_get_recvonly_filter (
+      FS_TRANSMITTER (trans), udpport->component_id);
+
+  if (udpport->recvonly_filter)
+  {
+    udpport->recvonly_udpsink = _create_sinksource ("multiudpsink",
+        GST_BIN (trans->priv->gst_sink), udpport->tee, udpport->recvonly_filter,
+        udpport->fd, GST_PAD_SINK, &udpport->recvonly_requested_pad, error);
+    if (!udpport->recvonly_udpsink)
+      goto error;
+
+
+    g_object_set (udpport->recvonly_udpsink,
+        "async", FALSE,
+        "sync", FALSE,
+        NULL);
+  }
+
   g_mutex_lock (trans->priv->mutex);
 
   /* Check if someone else added the same port at the same time */
@@ -951,7 +973,7 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 
 void
 fs_rawudp_transmitter_udpport_add_dest (UdpPort *udpport,
-  const gchar *ip,
+    const gchar *ip,
     gint port)
 {
   GST_DEBUG ("Adding dest %s:%d", ip, port);
@@ -1166,4 +1188,23 @@ fs_rawudp_transmitter_udpport_remove_known_address (UdpPort *udpport,
  out:
 
   g_mutex_unlock (udpport->mutex);
+}
+
+void
+fs_rawudp_transmitter_udpport_add_recvonly_dest (UdpPort *udpport,
+    const gchar *ip,
+    gint port)
+{
+  if (udpport->recvonly_udpsink)
+    g_signal_emit_by_name (udpport->recvonly_udpsink, "add", ip, port);
+}
+
+
+void
+fs_rawudp_transmitter_udpport_remove_recvonly_dest (UdpPort *udpport,
+    const gchar *ip,
+    gint port)
+{
+  if (udpport->recvonly_udpsink)
+    g_signal_emit_by_name (udpport->recvonly_udpsink, "remove", ip, port);
 }

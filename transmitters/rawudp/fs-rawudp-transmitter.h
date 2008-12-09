@@ -144,6 +144,13 @@ void fs_rawudp_transmitter_udpport_remove_known_address (UdpPort *udpport,
     FsRawUdpAddressUniqueCallbackFunc callback,
     gpointer user_data);
 
+void fs_rawudp_transmitter_udpport_add_recvonly_dest (UdpPort *udpport,
+    const gchar *ip,
+    gint port);
+
+void fs_rawudp_transmitter_udpport_remove_recvonly_dest (UdpPort *udpport,
+    const gchar *ip,
+    gint port);
 
 G_END_DECLS
 
