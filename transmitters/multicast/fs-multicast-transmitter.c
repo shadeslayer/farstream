@@ -656,11 +656,11 @@ _bind_port (
 
 static GstElement *
 _create_sinksource (gchar *elementname, GstBin *bin,
-  GstElement *teefunnel, gint fd, GstPadDirection direction,
-  GstPad **requested_pad, GError **error)
+    GstElement *teefunnel, GstElement *filter, gint fd,
+    GstPadDirection direction, GstPad **requested_pad, GError **error)
 {
   GstElement *elem;
-  GstPadLinkReturn ret;
+  GstPadLinkReturn ret = GST_PAD_LINK_OK;
   GstPad *elempad = NULL;
   GstStateChangeReturn state_ret;
 
@@ -708,14 +708,58 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   else
     elempad = gst_element_get_static_pad (elem, "src");
 
-  if (direction == GST_PAD_SINK)
-    ret = gst_pad_link (*requested_pad, elempad);
-  else
+  if (filter)
+  {
+    GstPad *filterpad = NULL;
+
+    if (!gst_bin_add (bin, filter))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not add the filter element to the gst %s bin",
+          (direction == GST_PAD_SINK) ? "sink" : "src");
+      goto error;
+    }
+
+    if (direction == GST_PAD_SINK)
+      filterpad = gst_element_get_static_pad (filter, "src");
+    else
+      filterpad = gst_element_get_static_pad (filter, "sink");
+
+    if (direction == GST_PAD_SINK)
+      ret = gst_pad_link (filterpad, elempad);
+    else
+      ret = gst_pad_link (elempad, filterpad);
+
+    gst_object_unref (elempad);
+    gst_object_unref (filterpad);
+    elempad = NULL;
+
+    if (GST_PAD_LINK_FAILED(ret))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not link the new element %s (%d)", elementname, ret);
+      goto error;
+    }
+
+    if (direction == GST_PAD_SINK)
+      elempad = gst_element_get_static_pad (filter, "sink");
+    else
+      elempad = gst_element_get_static_pad (filter, "src");
+
+
+    if (!gst_element_sync_state_with_parent (filter))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not sync the state of the new filte rwith its parent");
+      goto error;
+    }
+  }
+
+  if (direction != GST_PAD_SINK)
     ret = gst_pad_link (elempad, *requested_pad);
 
-  gst_object_unref (elempad);
-
-  if (GST_PAD_LINK_FAILED(ret)) {
+  if (GST_PAD_LINK_FAILED(ret))
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not link the new element %s (%d)", elementname, ret);
     goto error;
@@ -727,6 +771,18 @@ _create_sinksource (gchar *elementname, GstBin *bin,
       elementname);
     goto error;
   }
+
+  if (direction == GST_PAD_SINK)
+    ret = gst_pad_link (*requested_pad, elempad);
+
+  if (GST_PAD_LINK_FAILED(ret))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the new element %s (%d)", elementname, ret);
+    goto error;
+  }
+
+  gst_object_unref (elempad);
 
   return elem;
 
@@ -841,14 +897,14 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
   udpsock->funnel = trans->priv->udpsrc_funnels[component_id];
 
   udpsock->udpsrc = _create_sinksource ("udpsrc",
-      GST_BIN (trans->priv->gst_src), udpsock->funnel, udpsock->fd,
+      GST_BIN (trans->priv->gst_src), udpsock->funnel, NULL, udpsock->fd,
       GST_PAD_SRC, &udpsock->udpsrc_requested_pad, error);
   if (!udpsock->udpsrc)
     goto error;
 
   udpsock->udpsink = _create_sinksource ("multiudpsink",
-    GST_BIN (trans->priv->gst_sink), udpsock->tee, udpsock->fd, GST_PAD_SINK,
-    &udpsock->udpsink_requested_pad, error);
+      GST_BIN (trans->priv->gst_sink), udpsock->tee, NULL, udpsock->fd,
+      GST_PAD_SINK, &udpsock->udpsink_requested_pad, error);
   if (!udpsock->udpsink)
     goto error;
 
