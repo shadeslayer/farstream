@@ -959,6 +959,26 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
       GST_ERROR ("Could not remove udpsink element from transmitter source");
   }
 
+  if (udpport->recvonly_requested_pad)
+  {
+    gst_element_release_request_pad (udpport->tee,
+        udpport->recvonly_requested_pad);
+    gst_object_unref (udpport->recvonly_requested_pad);
+  }
+
+  if (udpport->recvonly_udpsink)
+  {
+    GstStateChangeReturn ret;
+    gst_element_set_locked_state (udpport->recvonly_udpsink, TRUE);
+    ret = gst_element_set_state (udpport->recvonly_udpsink, GST_STATE_NULL);
+    if (ret != GST_STATE_CHANGE_SUCCESS)
+      GST_ERROR ("Error changing state of udpsink: %s",
+          gst_element_state_change_return_get_name (ret));
+    if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink),
+            udpport->recvonly_udpsink))
+      GST_ERROR ("Could not remove udpsink element from transmitter source");
+  }
+
   if (udpport->fd >= 0)
     close (udpport->fd);
 
