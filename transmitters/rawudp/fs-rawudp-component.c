@@ -649,15 +649,21 @@ fs_rawudp_component_stop (FsRawUdpComponent *self)
       self->priv->buffer_recv_id = 0;
     }
 
-    if (self->priv->remote_candidate &&
-        self->priv->sending)
-      fs_rawudp_transmitter_udpport_remove_dest (udpport,
-          self->priv->remote_candidate->ip,
-          self->priv->remote_candidate->port);
-
     if (self->priv->remote_candidate)
+    {
+      if (self->priv->sending)
+        fs_rawudp_transmitter_udpport_remove_dest (udpport,
+            self->priv->remote_candidate->ip,
+            self->priv->remote_candidate->port);
+      else
+        fs_rawudp_transmitter_udpport_remove_recvonly_dest (udpport,
+            self->priv->remote_candidate->ip,
+            self->priv->remote_candidate->port);
+
+
       fs_rawudp_transmitter_udpport_remove_known_address (udpport,
           &self->priv->remote_address, remote_is_unique_cb, self);
+    }
 
     FS_RAWUDP_COMPONENT_UNLOCK (self);
 
@@ -766,11 +772,19 @@ fs_rawudp_component_set_property (GObject *object,
         if (sending != old_sending && candidate)
         {
           if (sending)
+          {
+            fs_rawudp_transmitter_udpport_remove_recvonly_dest (
+                self->priv->udpport, candidate->ip, candidate->port);
             fs_rawudp_transmitter_udpport_add_dest (self->priv->udpport,
                 candidate->ip, candidate->port);
+          }
           else
+          {
             fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
                 candidate->ip, candidate->port);
+            fs_rawudp_transmitter_udpport_add_recvonly_dest (
+                self->priv->udpport, candidate->ip, candidate->port);
+          }
         }
         if (candidate)
           fs_candidate_destroy (candidate);
@@ -983,12 +997,20 @@ fs_rawudp_component_set_remote_candidate (FsRawUdpComponent *self,
   if (sending)
     fs_rawudp_transmitter_udpport_add_dest (self->priv->udpport,
         candidate->ip, candidate->port);
+  else
+    fs_rawudp_transmitter_udpport_add_recvonly_dest (self->priv->udpport,
+        candidate->ip, candidate->port);
 
   if (old_candidate)
   {
-    fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
-        old_candidate->ip,
-        old_candidate->port);
+    if (sending)
+      fs_rawudp_transmitter_udpport_remove_dest (self->priv->udpport,
+          old_candidate->ip,
+          old_candidate->port);
+    else
+      fs_rawudp_transmitter_udpport_remove_recvonly_dest (self->priv->udpport,
+          candidate->ip,
+          candidate->port);
     fs_candidate_destroy (old_candidate);
   }
 
