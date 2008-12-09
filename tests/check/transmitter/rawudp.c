@@ -44,6 +44,7 @@ volatile gint running = TRUE;
 guint received_known[2] = {0, 0};
 gboolean has_stun = FALSE;
 gboolean associate_on_source = TRUE;
+gboolean sending = TRUE;
 
 gboolean pipeline_done = FALSE;
 GStaticMutex pipeline_mod_mutex = G_STATIC_MUTEX_INIT;
@@ -52,7 +53,8 @@ GStaticMutex pipeline_mod_mutex = G_STATIC_MUTEX_INIT;
 enum {
   FLAG_HAS_STUN  = 1 << 0,
   FLAG_IS_LOCAL  = 1 << 1,
-  FLAG_NO_SOURCE = 1 << 2
+  FLAG_NO_SOURCE = 1 << 2,
+  FLAG_NOT_SENDING = 1 << 3
 };
 
 #define RTP_PORT 9828
@@ -259,6 +261,15 @@ sync_error_handler (GstBus *bus, GstMessage *message, gpointer blob)
 }
 
 
+static GstElement *
+get_recvonly_filter (FsTransmitter *trans, guint component, gpointer user_data)
+{
+  if (component == 1)
+    return NULL;
+
+  return gst_element_factory_make ("identity", NULL);
+}
+
 static void
 run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   gint flags)
@@ -275,8 +286,14 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   pipeline_done = FALSE;
 
   has_stun = flags & FLAG_HAS_STUN;
-
   associate_on_source = !(flags & FLAG_NO_SOURCE);
+  sending = !(flags & FLAG_NOT_SENDING);
+
+  if (!sending)
+  {
+    buffer_count[0] = 20;
+    received_known[0] = 20;
+  }
 
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("rawudp", 2, &error);
@@ -287,6 +304,11 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   }
 
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
+
+  if (!sending)
+    ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
+            G_CALLBACK (get_recvonly_filter), NULL));
+
 
   pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler));
 
@@ -316,6 +338,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   }
 
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
+
+  g_object_set (st, "sending", sending, NULL);
 
   ts_fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (flags)),
@@ -742,6 +766,25 @@ GST_END_TEST;
 
 #endif /* HAVE_GUPNP */
 
+
+GST_START_TEST (test_rawudptransmitter_sending_half)
+{
+  GParameter params[2];
+
+  memset (params, 0, sizeof (GParameter) * 2);
+
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, TRUE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, FALSE);
+
+  run_rawudp_transmitter_test (2, params, FLAG_NOT_SENDING);
+}
+GST_END_TEST;
+
 static Suite *
 rawudptransmitter_suite (void)
 {
@@ -798,6 +841,10 @@ rawudptransmitter_suite (void)
   tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_ignored);
   suite_add_tcase (s, tc_chain);
 #endif
+
+  tc_chain = tcase_create ("rawudptransmitter-sending-half");
+  tcase_add_test (tc_chain, test_rawudptransmitter_sending_half);
+  suite_add_tcase (s, tc_chain);
 
   return s;
 }
