@@ -40,7 +40,8 @@ AC_DEFUN([AS_PATH_PYTHON],
   dnl in 1.5, and I don't want to maintain that logic.
 
   dnl should we do the version check?
-  PYTHON_CANDIDATES="python python2.2 python2.1 python2.0 python2 \
+  PYTHON_CANDIDATES="python python2.6 python2.5 python 2.4 python 2.3 \
+                     python2.2 python2.1 python2.0 python2 \
                      python1.6 python1.5"
   ifelse([$1],[],
          [AC_PATH_PROG(PYTHON, $PYTHON_CANDIDATES)],
