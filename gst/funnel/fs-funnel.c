@@ -127,6 +127,7 @@ fs_funnel_init (FsFunnel * funnel, FsFunnelClass * g_class)
   funnel->srcpad = gst_pad_new_from_static_template (&funnel_src_template,
     "src");
   gst_pad_set_event_function (funnel->srcpad, fs_funnel_src_event);
+  gst_pad_use_fixed_caps (funnel->srcpad);
   gst_element_add_pad (GST_ELEMENT (funnel), funnel->srcpad);
 }
 
