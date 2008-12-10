@@ -470,13 +470,12 @@ fs_multicast_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
 
 /*
  * The UdpSock structure is a ref-counted pseudo-object use to represent
- * one local_ip:port:ttl:multicast_ip quatuor on which we listen and send,
+ * one local_ip:port:multicast_ip trio on which we listen and send,
  * so it includes a udpsrc and a multiudpsink. It represents one BSD socket.
- * If two UdpSock only differ by their TTL, only the first will have
+ * The TTL used is the max TTL requested by any stream.
  */
 
 struct _UdpSock {
-  gint refcount;
 
   GstElement *udpsrc;
   GstPad *udpsrc_requested_pad;
@@ -487,9 +486,11 @@ struct _UdpSock {
   gchar *local_ip;
   gchar *multicast_ip;
   guint16 port;
-  guint8 ttl;
+  guint8 current_ttl;
 
   gint fd;
+
+  GByteArray *ttls;
 
   /* These are just convenience pointers to our parent transmitter */
   GstElement *funnel;
@@ -497,7 +498,6 @@ struct _UdpSock {
 
   guint component_id;
 
-  gboolean sendonly;
   gint sendcount;
 };
 
@@ -747,12 +747,10 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
     const gchar *multicast_ip,
     guint16 port,
     guint8 ttl,
-    gboolean recv,
     GError **error)
 {
   UdpSock *udpsock;
   GList *udpsock_e;
-  gboolean sendonly = FALSE;
 
   /* First lets check if we already have one */
   if (component_id > trans->components)
@@ -773,36 +771,34 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
         ((local_ip == NULL && udpsock->local_ip == NULL) ||
           !strcmp (local_ip, udpsock->local_ip)))
     {
-      if (recv)
+      if (ttl > udpsock->current_ttl)
       {
-        if (!udpsock->sendonly)
+
+        if (setsockopt (udpsock->fd, IPPROTO_IP, IP_MULTICAST_TTL,
+                (const void *)&ttl, sizeof (ttl)) < 0)
         {
-          udpsock->refcount++;
-          return udpsock;
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "Error setting the multicast TTL: %s",
+              g_strerror (errno));
+          return NULL;
         }
+        udpsock->current_ttl = ttl;
       }
-      else /* recv */
-      {
-        if (ttl == udpsock->ttl)
-        {
-          udpsock->refcount++;
-          return udpsock;
-        }
-        sendonly = TRUE;
-      }
+      g_byte_array_append (udpsock->ttls, &ttl, 1);
+      return udpsock;
     }
   }
 
   udpsock = g_slice_new0 (UdpSock);
 
-  udpsock->refcount = 1;
   udpsock->local_ip = g_strdup (local_ip);
   udpsock->multicast_ip = g_strdup (multicast_ip);
   udpsock->fd = -1;
   udpsock->component_id = component_id;
   udpsock->port = port;
-  udpsock->ttl = ttl;
-  udpsock->sendonly = sendonly;
+  udpsock->current_ttl = ttl;
+  udpsock->ttls = g_byte_array_new ();
+  g_byte_array_append (udpsock->ttls, &ttl, 1);
 
   /* Now lets bind both ports */
 
@@ -813,17 +809,13 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
   /* Now lets create the elements */
 
   udpsock->tee = trans->priv->udpsink_tees[component_id];
-  if (!udpsock->sendonly)
-    udpsock->funnel = trans->priv->udpsrc_funnels[component_id];
+  udpsock->funnel = trans->priv->udpsrc_funnels[component_id];
 
-  if (!udpsock->sendonly)
-  {
-    udpsock->udpsrc = _create_sinksource ("udpsrc",
-        GST_BIN (trans->priv->gst_src), udpsock->funnel, udpsock->fd,
-        GST_PAD_SRC, &udpsock->udpsrc_requested_pad, error);
-    if (!udpsock->udpsrc)
-      goto error;
-  }
+  udpsock->udpsrc = _create_sinksource ("udpsrc",
+      GST_BIN (trans->priv->gst_src), udpsock->funnel, udpsock->fd,
+      GST_PAD_SRC, &udpsock->udpsrc_requested_pad, error);
+  if (!udpsock->udpsrc)
+    goto error;
 
   udpsock->udpsink = _create_sinksource ("multiudpsink",
     GST_BIN (trans->priv->gst_sink), udpsock->tee, udpsock->fd, GST_PAD_SINK,
@@ -844,17 +836,53 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
  error:
 
   if (udpsock)
-    fs_multicast_transmitter_put_udpsock (trans, udpsock);
+    fs_multicast_transmitter_put_udpsock (trans, udpsock, ttl);
 
   return NULL;
 }
 
 void
 fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
-  UdpSock *udpsock)
+    UdpSock *udpsock, guint8 ttl)
 {
-  if (udpsock->refcount > 1) {
-    udpsock->refcount--;
+  guint i;
+
+  for (i = udpsock->ttls->len - 1;; i--)
+  {
+    if (udpsock->ttls->data[i] == ttl)
+    {
+      g_byte_array_remove_index_fast (udpsock->ttls, i);
+      break;
+    }
+
+    g_return_if_fail (i > 0);
+  }
+
+  if (udpsock->ttls->len > 0)
+  {
+    /* If we were the max, check if there is a new max */
+    if (udpsock->current_ttl == ttl && ttl > 1)
+    {
+      guint8 max = 1;
+      for (i = 0; i < udpsock->ttls->len; i++)
+      {
+        if (udpsock->ttls->data[i] > max)
+          max = udpsock->ttls->data[i];
+      }
+
+      if (max != udpsock->current_ttl)
+      {
+
+        if (setsockopt (udpsock->fd, IPPROTO_IP, IP_MULTICAST_TTL,
+                (const void *)&max, sizeof (max)) < 0)
+        {
+          GST_WARNING ("Error setting the multicast TTL to %u: %s", max,
+              g_strerror (errno));
+          return;
+        }
+        udpsock->current_ttl = max;
+      }
+    }
     return;
   }
 

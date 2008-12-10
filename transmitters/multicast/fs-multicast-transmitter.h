@@ -92,11 +92,11 @@ UdpSock *fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
     const gchar *multicast_ip,
     guint16 port,
     guint8 ttl,
-    gboolean recv,
     GError **error);
 
 void fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
-    UdpSock *udpsock);
+    UdpSock *udpsock, guint8 ttl);
+
 
 void fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock);
 void fs_multicast_transmitter_udpsock_dec_sending (UdpSock *udpsock);
