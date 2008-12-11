@@ -311,9 +311,6 @@ fs_msn_conference_new_session (FsBaseConference *conf,
 
   new_session = fs_msn_session_new (media_type, self, 1, error);
 
-  if (new_session)
-    g_object_weak_ref (G_OBJECT (new_session), _remove_session, self);
-
   GST_OBJECT_LOCK (self);
   if (new_session)
   {
@@ -346,9 +343,6 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
   GST_OBJECT_UNLOCK (self);
 
   new_participant = fs_msn_participant_new (cname);
-
-  if (new_participant)
-    g_object_weak_ref (G_OBJECT (new_participant), _remove_participant, self);
 
   GST_OBJECT_LOCK (self);
   if (new_participant)
