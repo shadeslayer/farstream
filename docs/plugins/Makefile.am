@@ -114,6 +114,8 @@ farsight2-transmitters.types: farsight2-transmitters.types.in Makefile
 		echo "${i}" >> $@ ;\
 	done
 
+CLEANFILES = farsight2-transmitters.types
+
 # CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
 # contains GtkObjects/GObjects and you want to document signals and properties.
 GTKDOC_CFLAGS = $(GST_BASE_CFLAGS) -I$(top_builddir) -I$(top_builddir)/gst-libs
