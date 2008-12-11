@@ -116,7 +116,7 @@ static FsSession *fs_msn_conference_new_session (FsBaseConference *conf,
     GError **error);
 
 static FsParticipant *fs_msn_conference_new_participant (FsBaseConference *conf,
-    gchar *cname,
+    const gchar *cname,
     GError **error);
 
 static void _remove_session (gpointer user_data,
@@ -328,7 +328,7 @@ fs_msn_conference_new_session (FsBaseConference *conf,
 
 static FsParticipant *
 fs_msn_conference_new_participant (FsBaseConference *conf,
-                                   gchar *cname,
+                                   const gchar *cname,
                                    GError **error)
 {
   FsMsnConference *self = FS_MSN_CONFERENCE (conf);
