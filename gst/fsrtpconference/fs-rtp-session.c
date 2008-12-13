@@ -237,8 +237,8 @@ static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 static void _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session);
 
-static gboolean _stream_new_remote_codecs (FsRtpStream *stream, GList *codecs,
-    GError **error, gpointer user_data);
+static gboolean _stream_new_remote_codecs_locked (FsRtpStream *stream,
+    GList *codecs, GError **error, gpointer user_data);
 
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
@@ -1461,7 +1461,7 @@ fs_rtp_session_new_stream (FsSession *session,
     return NULL;
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
-          direction, st, _stream_new_remote_codecs,
+          direction, st, _stream_new_remote_codecs_locked,
           _stream_known_source_packet_received, self, error));
 
   FS_RTP_SESSION_LOCK (self);
@@ -2186,7 +2186,7 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 }
 
 static gboolean
-_stream_new_remote_codecs (FsRtpStream *stream,
+_stream_new_remote_codecs_locked (FsRtpStream *stream,
     GList *codecs, GError **error, gpointer user_data)
 {
   FsRtpSession *session = FS_RTP_SESSION_CAST (user_data);
