@@ -1912,7 +1912,7 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
     if (stream == force_stream)
       remote_codecs = forced_remote_codecs;
     else
-      g_object_get (stream, "remote-codecs", &remote_codecs, NULL);
+      remote_codecs = stream->remote_codecs;
 
     if (remote_codecs)
     {
@@ -1966,9 +1966,6 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
 
       fs_rtp_stream_set_negotiated_codecs_locked (stream, new_codecs);
     }
-
-    if (stream != force_stream)
-      fs_codec_list_destroy (remote_codecs);
   }
 }
 
