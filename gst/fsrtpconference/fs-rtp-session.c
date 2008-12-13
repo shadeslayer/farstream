@@ -237,7 +237,7 @@ static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 static void _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session);
 
-static gboolean _stream_new_remote_codecs_locked (FsRtpStream *stream,
+static gboolean _stream_new_remote_codecs (FsRtpStream *stream,
     GList *codecs, GError **error, gpointer user_data);
 
 
@@ -261,7 +261,7 @@ static void _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
 
 static gboolean
-fs_rtp_session_update_codecs_locked (FsRtpSession *session,
+fs_rtp_session_update_codecs (FsRtpSession *session,
     FsRtpStream *stream,
     GList *remote_codecs,
     GError **error);
@@ -1468,7 +1468,7 @@ fs_rtp_session_new_stream (FsSession *session,
     return NULL;
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
-          direction, st, _stream_new_remote_codecs_locked,
+          direction, st, _stream_new_remote_codecs,
           _stream_known_source_packet_received, self, error));
 
   FS_RTP_SESSION_LOCK (self);
@@ -1605,35 +1605,29 @@ fs_rtp_session_set_codec_preferences (FsSession *session,
         " this will restore the original list of detected codecs");
 
   FS_RTP_SESSION_LOCK (self);
-
   old_codec_prefs = self->priv->codec_preferences;
-
   self->priv->codec_preferences = new_codec_prefs;
+  FS_RTP_SESSION_UNLOCK (self);
 
-  ret = fs_rtp_session_update_codecs_locked (self, NULL, NULL, error);
+  ret = fs_rtp_session_update_codecs (self, NULL, NULL, error);
+
   if (ret)
   {
     fs_codec_list_destroy (old_codec_prefs);
 
-    g_object_notify ((GObject*) self, "codecs");
-    g_object_notify ((GObject*) self, "codecs-without-config");
     g_object_notify ((GObject*) self, "codec-preferences");
-
-    gst_element_post_message (GST_ELEMENT (self->priv->conference),
-        gst_message_new_element (GST_OBJECT (self->priv->conference),
-            gst_structure_new ("farsight-codecs-changed",
-                "session", FS_TYPE_SESSION, self,
-                NULL)));
-
   }
   else
   {
     fs_codec_list_destroy (new_codec_prefs);
-    self->priv->codec_preferences = old_codec_prefs;
+    FS_RTP_SESSION_LOCK (self);
+    if (self->priv->codec_preferences == new_codec_prefs)
+      self->priv->codec_preferences = old_codec_prefs;
+    else
+      fs_codec_list_destroy (old_codec_prefs);
+    FS_RTP_SESSION_UNLOCK (self);
     GST_WARNING ("Invalid new codec preferences");
   }
-
-  FS_RTP_SESSION_UNLOCK (self);
 
   return ret;
 }
@@ -2082,7 +2076,7 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
 
 
 /**
- * fs_rtp_session_update_codecs_locked:
+ * fs_rtp_session_update_codecs:
  * @session: a #FsRtpSession
  * @stream: The #FsRtpStream to which the new remote codecs belong
  * @remote_codecs: The #GList of remote codecs to use for that stream
@@ -2098,7 +2092,7 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
  */
 
 static gboolean
-fs_rtp_session_update_codecs_locked (FsRtpSession *session,
+fs_rtp_session_update_codecs (FsRtpSession *session,
     FsRtpStream *stream,
     GList *remote_codecs,
     GError **error)
@@ -2108,6 +2102,7 @@ fs_rtp_session_update_codecs_locked (FsRtpSession *session,
   GList *old_negotiated_codec_associations;
   gboolean has_remotes = FALSE;
 
+  FS_RTP_SESSION_LOCK (session);
 
   old_negotiated_codec_associations =
     session->priv->codec_associations;
@@ -2151,7 +2146,8 @@ fs_rtp_session_update_codecs_locked (FsRtpSession *session,
     }
   }
 
-  /* TODO: Unlock around this emission ?? */
+  FS_RTP_SESSION_UNLOCK (session);
+
   if (is_new)
   {
     g_object_notify (G_OBJECT (session), "codecs");
@@ -2168,12 +2164,12 @@ fs_rtp_session_update_codecs_locked (FsRtpSession *session,
 }
 
 static gboolean
-_stream_new_remote_codecs_locked (FsRtpStream *stream,
+_stream_new_remote_codecs (FsRtpStream *stream,
     GList *codecs, GError **error, gpointer user_data)
 {
   FsRtpSession *session = FS_RTP_SESSION_CAST (user_data);
 
-  return fs_rtp_session_update_codecs_locked (session, stream, codecs, error);
+  return fs_rtp_session_update_codecs (session, stream, codecs, error);
 }
 
 
@@ -3193,6 +3189,8 @@ fs_rtp_session_send_codec_changed_locked (FsRtpSession *self)
 
   codec = fs_codec_copy (self->priv->current_send_codec);
 
+  FS_RTP_SESSION_UNLOCK (self);
+
   g_object_notify (G_OBJECT (self), "current-send-codec");
 
   gst_element_post_message (GST_ELEMENT (self->priv->conference),
@@ -3203,6 +3201,8 @@ fs_rtp_session_send_codec_changed_locked (FsRtpSession *self)
               NULL)));
 
   fs_codec_destroy (codec);
+
+  FS_RTP_SESSION_LOCK (self);
 }
 
 static void
@@ -3755,6 +3755,7 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
     }
     if (!item)
     {
+      FS_RTP_SESSION_UNLOCK (session);
       g_object_notify (G_OBJECT (session), "codecs-ready");
       g_object_notify (G_OBJECT (session), "codecs");
       gst_element_post_message (GST_ELEMENT (session->priv->conference),
@@ -3763,7 +3764,7 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
                   "session", FS_TYPE_SESSION, session,
                   NULL)));
 
-      goto out;
+      goto out_unlocked;
     }
 
   }
@@ -3771,6 +3772,8 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
  out:
 
   FS_RTP_SESSION_UNLOCK (session);
+
+ out_unlocked:
 
   gst_caps_unref (caps);
 }
@@ -4060,6 +4063,8 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
   if (!item)
   {
     fs_rtp_session_stop_codec_param_gathering_locked (session);
+    FS_RTP_SESSION_UNLOCK (session);
+
     g_object_notify (G_OBJECT (session), "codecs-ready");
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
@@ -4067,7 +4072,7 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
                 "session", FS_TYPE_SESSION, session,
                 NULL)));
 
-    goto out;
+    goto out_unlocked;
   }
 
   if (fs_codec_are_equal (ca->codec, session->priv->discovery_codec))
@@ -4087,6 +4092,7 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   FS_RTP_SESSION_UNLOCK (session);
 
+ out_unlocked:
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
 }
 

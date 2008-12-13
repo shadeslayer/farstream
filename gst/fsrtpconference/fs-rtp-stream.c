@@ -77,7 +77,7 @@ struct _FsRtpStreamPrivate
 
   GError *construction_error;
 
-  stream_new_remote_codecs_locked_cb new_remote_codecs_locked_cb;
+  stream_new_remote_codecs_cb new_remote_codecs_cb;
   stream_known_source_packet_receive_cb known_source_packet_received_cb;
   gpointer user_data_for_cb;
 
@@ -495,8 +495,6 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
   GList *item = NULL;
   FsMediaType media_type;
 
-  FS_RTP_SESSION_LOCK (self->priv->session);
-
   if (remote_codecs == NULL) {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
       "You can not set NULL remote codecs");
@@ -537,17 +535,18 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
     }
   }
 
-  if (self->priv->new_remote_codecs_locked_cb (self, remote_codecs, error,
+  if (self->priv->new_remote_codecs_cb (self, remote_codecs, error,
           self->priv->user_data_for_cb))
   {
+    FS_RTP_SESSION_LOCK (self->priv->session);
     if (self->remote_codecs)
       fs_codec_list_destroy (self->remote_codecs);
     self->remote_codecs = fs_codec_list_copy (remote_codecs);
+    FS_RTP_SESSION_UNLOCK (self->priv->session);
   } else {
     goto error;
   }
 
-  FS_RTP_SESSION_UNLOCK (self->priv->session);
   return TRUE;
 
  error:
@@ -562,7 +561,7 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
  * @direction: the initial #FsDirection for this stream
  * @stream_transmitter: the #FsStreamTransmitter for this stream, one
  *   reference to it will be eaten
- * @new_remote_codecs_locked_cb: Callback called when the remote codecs change
+ * @new_remote_codecs_cb: Callback called when the remote codecs change
  * (ie when fs_rtp_stream_set_remote_codecs() is called). One must hold
  * the session lock across calls.
  * @known_source_packet_received: Callback called when a packet from a
@@ -578,7 +577,7 @@ fs_rtp_stream_new (FsRtpSession *session,
     FsRtpParticipant *participant,
     FsStreamDirection direction,
     FsStreamTransmitter *stream_transmitter,
-    stream_new_remote_codecs_locked_cb new_remote_codecs_locked_cb,
+    stream_new_remote_codecs_cb new_remote_codecs_cb,
     stream_known_source_packet_receive_cb known_source_packet_received_cb,
     gpointer user_data_for_cb,
     GError **error)
@@ -588,7 +587,7 @@ fs_rtp_stream_new (FsRtpSession *session,
   g_return_val_if_fail (session, NULL);
   g_return_val_if_fail (participant, NULL);
   g_return_val_if_fail (stream_transmitter, NULL);
-  g_return_val_if_fail (new_remote_codecs_locked_cb, NULL);
+  g_return_val_if_fail (new_remote_codecs_cb, NULL);
   g_return_val_if_fail (known_source_packet_received_cb, NULL);
 
   self = g_object_new (FS_TYPE_RTP_STREAM,
@@ -598,7 +597,7 @@ fs_rtp_stream_new (FsRtpSession *session,
     "stream-transmitter", stream_transmitter,
     NULL);
 
-  self->priv->new_remote_codecs_locked_cb = new_remote_codecs_locked_cb;
+  self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
   self->priv->known_source_packet_received_cb = known_source_packet_received_cb;
   self->priv->user_data_for_cb = user_data_for_cb;
 
@@ -897,5 +896,9 @@ fs_rtp_stream_set_negotiated_codecs_locked (FsRtpStream *stream,
 
   stream->priv->negotiated_codecs = codecs;
 
-  g_object_notify (G_OBJECT (stream), "negotiated-codecs");
+  /*
+    TODO: I have no idea how to make this thread safe
+
+    g_object_notify (G_OBJECT (stream), "negotiated-codecs");
+  */
 }
