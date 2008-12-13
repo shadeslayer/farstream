@@ -665,6 +665,11 @@ fs_rtp_sub_stream_finalize (GObject *object)
 
 
 
+/*
+ * These properties can only be accessed while holding the session lock
+ *
+ */
+
 static void
 fs_rtp_sub_stream_set_property (GObject *object,
                                 guint prop_id,
@@ -681,12 +686,10 @@ fs_rtp_sub_stream_set_property (GObject *object,
       self->priv->session = g_value_get_object (value);
       break;
     case PROP_STREAM:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       if (self->priv->stream)
         GST_WARNING ("Stream already set, not re-setting");
       else
         self->priv->stream = g_value_get_object (value);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_RTPBIN_PAD:
       self->priv->rtpbin_pad = GST_PAD (g_value_dup_object (value));
@@ -698,18 +701,14 @@ fs_rtp_sub_stream_set_property (GObject *object,
       self->priv->pt = g_value_get_uint (value);
       break;
     case PROP_RECEIVING:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       self->priv->receiving = g_value_get_boolean (value);
       if (self->priv->output_ghostpad && self->priv->valve)
         g_object_set (G_OBJECT (self->priv->valve),
             "drop", !self->priv->receiving,
             NULL);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_NO_RTCP_TIMEOUT:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       self->priv->no_rtcp_timeout = g_value_get_int (value);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
