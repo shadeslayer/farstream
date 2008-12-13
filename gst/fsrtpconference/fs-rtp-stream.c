@@ -65,15 +65,12 @@ enum
 struct _FsRtpStreamPrivate
 {
   FsRtpSession *session;
-  FsRtpParticipant *participant;
   FsStreamTransmitter *stream_transmitter;
 
   FsStreamDirection direction;
 
   /* Protected by the session mutex */
   guint recv_codecs_changed_idle_id;
-
-  GList *negotiated_codecs;
 
   GError *construction_error;
 
@@ -202,7 +199,7 @@ fs_rtp_stream_init (FsRtpStream *self)
 
   self->priv->disposed = FALSE;
   self->priv->session = NULL;
-  self->priv->participant = NULL;
+  self->participant = NULL;
   self->priv->stream_transmitter = NULL;
 
   self->priv->direction = FS_DIRECTION_NONE;
@@ -238,9 +235,9 @@ fs_rtp_stream_dispose (GObject *object)
   }
   FS_RTP_SESSION_UNLOCK (self->priv->session);
 
-  if (self->priv->participant) {
-    g_object_unref (self->priv->participant);
-    self->priv->participant = NULL;
+  if (self->participant) {
+    g_object_unref (self->participant);
+    self->participant = NULL;
   }
 
   /* Make sure dispose does not run twice. */
@@ -263,8 +260,8 @@ fs_rtp_stream_finalize (GObject *object)
   if (self->remote_codecs)
     fs_codec_list_destroy (self->remote_codecs);
 
-  if (self->priv->negotiated_codecs)
-    fs_codec_list_destroy (self->priv->negotiated_codecs);
+  if (self->negotiated_codecs)
+    fs_codec_list_destroy (self->negotiated_codecs);
 
   parent_class->finalize (object);
 }
@@ -298,14 +295,14 @@ fs_rtp_stream_get_property (GObject *object,
       break;
     case PROP_NEGOTIATED_CODECS:
       FS_RTP_SESSION_LOCK (self->priv->session);
-      g_value_set_boxed (value, self->priv->negotiated_codecs);
+      g_value_set_boxed (value, self->negotiated_codecs);
       FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_SESSION:
       g_value_set_object (value, self->priv->session);
       break;
     case PROP_PARTICIPANT:
-      g_value_set_object (value, self->priv->participant);
+      g_value_set_object (value, self->participant);
       break;
     case PROP_STREAM_TRANSMITTER:
       g_value_set_object (value, self->priv->stream_transmitter);
@@ -359,7 +356,7 @@ fs_rtp_stream_set_property (GObject *object,
       self->priv->session = FS_RTP_SESSION (g_value_dup_object (value));
       break;
     case PROP_PARTICIPANT:
-      self->priv->participant = FS_RTP_PARTICIPANT (g_value_dup_object (value));
+      self->participant = FS_RTP_PARTICIPANT (g_value_dup_object (value));
       break;
     case PROP_STREAM_TRANSMITTER:
       self->priv->stream_transmitter =
@@ -885,16 +882,16 @@ void
 fs_rtp_stream_set_negotiated_codecs_locked (FsRtpStream *stream,
     GList *codecs)
 {
-  if (fs_codec_list_are_equal (stream->priv->negotiated_codecs, codecs))
+  if (fs_codec_list_are_equal (stream->negotiated_codecs, codecs))
   {
     fs_codec_list_destroy (codecs);
     return;
   }
 
-  if (stream->priv->negotiated_codecs)
-    fs_codec_list_destroy (stream->priv->negotiated_codecs);
+  if (stream->negotiated_codecs)
+    fs_codec_list_destroy (stream->negotiated_codecs);
 
-  stream->priv->negotiated_codecs = codecs;
+  stream->negotiated_codecs = codecs;
 
   /*
     TODO: I have no idea how to make this thread safe

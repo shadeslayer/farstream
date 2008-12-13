@@ -997,14 +997,11 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
 {
   GstPad *valve_srcpad;
   gchar *padname = NULL;
-  guint session_id;
   GstPad *ghostpad = NULL;
 
   g_assert (substream->priv->output_ghostpad == NULL);
 
-  g_object_get (substream->priv->session, "id", &session_id, NULL);
-
-  padname = g_strdup_printf ("src_%u_%u_%d", session_id,
+  padname = g_strdup_printf ("src_%u_%u_%d", substream->priv->session->id,
       substream->priv->ssrc,
       substream->priv->pt);
 
@@ -1023,7 +1020,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   if (!ghostpad)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not build ghostpad src_%u_%u_%d", session_id,
+        "Could not build ghostpad src_%u_%u_%d", substream->priv->session->id,
         substream->priv->ssrc, substream->priv->pt);
     return FALSE;
   }
@@ -1031,7 +1028,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   if (!gst_pad_set_active (ghostpad, TRUE))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not activate the src_%u_%u_%d", session_id,
+        "Could not activate the src_%u_%u_%d", substream->priv->session->id,
         substream->priv->ssrc, substream->priv->pt);
     gst_object_unref (ghostpad);
     return FALSE;
@@ -1042,7 +1039,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could add build ghostpad src_%u_%u_%d to the conference",
-        session_id, substream->priv->ssrc, substream->priv->pt);
+        substream->priv->session->id, substream->priv->ssrc, substream->priv->pt);
     gst_object_unref (ghostpad);
     return FALSE;
   }

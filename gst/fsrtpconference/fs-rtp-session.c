@@ -2675,13 +2675,9 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 
   if (stream)
   {
-    GList *stream_codecs = NULL;
-
-    g_object_get (stream, "negotiated-codecs", &stream_codecs, NULL);
-
-    for(item = stream_codecs; item; item = g_list_next (item))
+    for (item = stream->negotiated_codecs; item; item = g_list_next (item))
     {
-      recv_codec = item->data;
+      recv_codec = fs_codec_copy (item->data);
       if (recv_codec->id == pt)
         break;
     }
@@ -2690,15 +2686,12 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     {
       GST_DEBUG ("Receiving on stream codec " FS_CODEC_FORMAT,
           FS_CODEC_ARGS (recv_codec));
-      stream_codecs = g_list_remove_all (stream_codecs, recv_codec);
     }
     else
     {
       GST_DEBUG ("Have stream, but it does not have negotiatied codec");
       recv_codec = NULL;
     }
-
-    fs_codec_list_destroy (stream_codecs);
   }
 
   if (!recv_codec)
@@ -3535,12 +3528,9 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
        item = g_list_next (item))
   {
     FsRtpStream *localstream = item->data;
-    FsRtpParticipant *participant = NULL;
     gchar *localcname = NULL;
 
-    g_object_get (localstream, "participant", &participant, NULL);
-    g_object_get (participant, "cname", &localcname, NULL);
-    g_object_unref (participant);
+    g_object_get (localstream->participant, "cname", &localcname, NULL);
 
     g_assert (localcname);
 
