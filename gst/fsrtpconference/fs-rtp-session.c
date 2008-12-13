@@ -228,7 +228,7 @@ static gboolean fs_rtp_session_set_codec_preferences (FsSession *session,
 static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     FsRtpSession *self,
     GError **error);
-static void fs_rtp_session_send_codec_changed (FsRtpSession *self);
+static void fs_rtp_session_send_codec_changed_locked (FsRtpSession *self);
 
 static gchar **fs_rtp_session_list_transmitters (FsSession *session);
 
@@ -3167,7 +3167,7 @@ fs_rtp_session_add_send_codec_bin_locked (FsRtpSession *session,
   session->priv->send_codecbin = codecbin;
   session->priv->current_send_codec = fs_codec_copy (codec);
 
-  fs_rtp_session_send_codec_changed (session);
+  fs_rtp_session_send_codec_changed_locked (session);
 
   fs_codec_list_destroy (codecs);
 
@@ -3182,7 +3182,7 @@ fs_rtp_session_add_send_codec_bin_locked (FsRtpSession *session,
 }
 
 /**
- * fs_rtp_session_send_codec_changed:
+ * fs_rtp_session_send_codec_changed_locked:
  * @self: The #FsRtpSession that changed its codec
  *
  * Call this function when the value of the #FsSession:current-send-codec
@@ -3190,13 +3190,11 @@ fs_rtp_session_add_send_codec_bin_locked (FsRtpSession *session,
  */
 
 static void
-fs_rtp_session_send_codec_changed (FsRtpSession *self)
+fs_rtp_session_send_codec_changed_locked (FsRtpSession *self)
 {
   FsCodec *codec = NULL;
 
-  FS_RTP_SESSION_LOCK (self);
   codec = fs_codec_copy (self->priv->current_send_codec);
-  FS_RTP_SESSION_UNLOCK (self);
 
   g_object_notify (G_OBJECT (self), "current-send-codec");
 
