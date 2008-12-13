@@ -221,7 +221,6 @@ fs_rtp_stream_dispose (GObject *object)
     self->priv->stream_transmitter = NULL;
   }
 
-  FS_RTP_SESSION_LOCK (self->priv->session);
   if (self->priv->recv_codecs_changed_idle_id)
   {
     g_source_remove (self->priv->recv_codecs_changed_idle_id);
@@ -233,7 +232,6 @@ fs_rtp_stream_dispose (GObject *object)
     g_list_free (self->substreams);
     self->substreams = NULL;
   }
-  FS_RTP_SESSION_UNLOCK (self->priv->session);
 
   if (self->participant) {
     g_object_unref (self->participant);

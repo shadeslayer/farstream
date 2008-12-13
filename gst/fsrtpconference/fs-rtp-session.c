@@ -435,11 +435,8 @@ fs_rtp_session_dispose (GObject *object)
   GList *item = NULL;
   GstBin *conferencebin = NULL;
 
-  FS_RTP_SESSION_LOCK (self);
-
   if (self->priv->disposed)
   {
-    FS_RTP_SESSION_UNLOCK (self);
     /* If dispose did already run, return. */
     return;
   }
@@ -649,8 +646,6 @@ fs_rtp_session_dispose (GObject *object)
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
-
-  FS_RTP_SESSION_UNLOCK (self);
 
   parent_class->dispose (object);
 }

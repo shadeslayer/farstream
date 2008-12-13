@@ -1052,7 +1052,9 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
                  ghostpad, substream->priv->codec);
 
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
   g_signal_emit (substream, signals[CODEC_CHANGED], 0);
+  FS_RTP_SESSION_LOCK (substream->priv->session);
 
   if (substream->priv->receiving)
     g_object_set (substream->priv->valve, "drop", FALSE, NULL);
