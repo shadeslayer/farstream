@@ -2304,12 +2304,9 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   g_clear_error (&error);
 
-
-  FS_RTP_SESSION_UNLOCK (session);
-
   if (stream)
   {
-    if (!fs_rtp_stream_add_substream (stream, substream, &error))
+    if (!fs_rtp_stream_add_substream_locked (stream, substream, &error))
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the output ghostpad to the new substream",
           error->message);
@@ -2317,6 +2314,8 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     g_clear_error (&error);
     g_object_unref (stream);
   }
+
+  FS_RTP_SESSION_UNLOCK (session);
 }
 
 
@@ -3465,13 +3464,13 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
 {
   gboolean added = FALSE;
 
+  FS_RTP_SESSION_LOCK (session);
+
   for (;;)
   {
     FsRtpSubStream *substream = NULL;
     GList *item = NULL;
     GError *error = NULL;
-
-    FS_RTP_SESSION_LOCK (session);
 
     for (item = g_list_first (session->priv->free_substreams);
          item;
@@ -3490,7 +3489,6 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
         break;
       }
     }
-    FS_RTP_SESSION_UNLOCK (session);
 
     if (!substream)
       break;
@@ -3503,7 +3501,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
         g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout",
             session) > 0);
 
-    if (fs_rtp_stream_add_substream (stream, substream, &error))
+    if (fs_rtp_stream_add_substream_locked (stream, substream, &error))
     {
       fs_rtp_sub_stream_verify_codec_locked (substream);
       GST_DEBUG ("Associated SSRC %x in session %u", ssrc, session->id);
@@ -3518,6 +3516,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
     }
     g_clear_error (&error);
   }
+  FS_RTP_SESSION_UNLOCK (session);
 
   if (added == FALSE)
     GST_DEBUG ("No free substream with SSRC %x in session %u",
@@ -3614,7 +3613,7 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
   while (
       g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0);
 
-  if (fs_rtp_stream_add_substream (
+  if (fs_rtp_stream_add_substream_locked (
           g_list_first (session->priv->streams)->data,
           substream, &error))
     fs_rtp_sub_stream_verify_codec_locked (substream);

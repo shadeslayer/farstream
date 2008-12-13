@@ -748,7 +748,7 @@ _substream_error (FsRtpSubStream *substream,
 }
 
 /**
- * fs_rtp_stream_add_substream:
+ * fs_rtp_stream_add_substream_locked:
  * @stream: a #FsRtpStream
  * @substream: the #FsRtpSubStream to associate with this stream
  *
@@ -757,14 +757,13 @@ _substream_error (FsRtpSubStream *substream,
  * Returns: TRUE on success, FALSE on failure
  */
 gboolean
-fs_rtp_stream_add_substream (FsRtpStream *stream,
+fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
     FsRtpSubStream *substream,
     GError **error)
 {
   FsCodec *codec = NULL;
   gboolean ret = TRUE;
 
-  FS_RTP_SESSION_LOCK (stream->priv->session);
   stream->substreams = g_list_prepend (stream->substreams,
       substream);
   g_object_set (substream,
@@ -786,8 +785,6 @@ fs_rtp_stream_add_substream (FsRtpStream *stream,
     ret = fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
     fs_codec_destroy (codec);
   }
-
-  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
   return ret;
 }
