@@ -724,11 +724,9 @@ static void
 _substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
                           FsCodec *codec, gpointer user_data)
 {
-  FsRtpStream *self = FS_RTP_STREAM (user_data);
+  FsStream *stream = FS_STREAM (user_data);
 
-  FS_RTP_SESSION_UNLOCK (self->priv->session);
-  fs_stream_emit_src_pad_added (FS_STREAM_CAST (self), pad, codec);
-  FS_RTP_SESSION_LOCK (self->priv->session);
+  fs_stream_emit_src_pad_added (stream, pad, codec);
 }
 
 static void

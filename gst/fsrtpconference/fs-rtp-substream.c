@@ -288,7 +288,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
    * This signal is not emitted on the main thread, but on GStreamer's streaming
    * thread!
    *
-   * This is probably re-emited by the FsStream
+   * This is re-emited by the FsStream
    *
    */
   signals[SRC_PAD_ADDED] = g_signal_new ("src-pad-added",
@@ -1049,10 +1049,9 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
       substream->priv->ssrc, substream->priv->pt,
       FS_CODEC_ARGS (substream->priv->codec));
 
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
   g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
                  ghostpad, substream->priv->codec);
-
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
   g_signal_emit (substream, signals[CODEC_CHANGED], 0);
   FS_RTP_SESSION_LOCK (substream->priv->session);
 
