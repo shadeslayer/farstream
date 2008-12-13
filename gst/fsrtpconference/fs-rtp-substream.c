@@ -767,7 +767,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
 }
 
 /**
- * fs_rtp_sub_stream_set_codecbin:
+ * fs_rtp_sub_stream_set_codecbin_locked:
  * @substream: a #FsRtpSubStream
  * @codec: The codec to set
  * @codecbin: the codecbin to set
@@ -781,7 +781,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
  */
 
 gboolean
-fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
+fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
     FsCodec *codec,
     GstElement *codecbin,
     GError **error)
@@ -791,8 +791,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   gboolean ret = FALSE;
   GstPad *pad;
   gboolean codec_changed = TRUE;
-
-  FS_RTP_SESSION_LOCK (substream->priv->session);
 
   if (substream->priv->codec)
   {
@@ -902,11 +900,12 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   }
   else
   {
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
     if (codec_changed)
       g_signal_emit (substream, signals[CODEC_CHANGED], 0);
+    FS_RTP_SESSION_LOCK (substream->priv->session);
   }
 
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
   return TRUE;
 
  error:
@@ -917,8 +916,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
 
  error_no_remove:
-
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   return ret;
 }

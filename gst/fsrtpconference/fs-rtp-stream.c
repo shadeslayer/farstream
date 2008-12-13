@@ -730,9 +730,11 @@ static void
 _substream_src_pad_added (FsRtpSubStream *substream, GstPad *pad,
                           FsCodec *codec, gpointer user_data)
 {
-  FsStream *stream = FS_STREAM (user_data);
+  FsRtpStream *self = FS_RTP_STREAM (user_data);
 
-  fs_stream_emit_src_pad_added (stream, pad, codec);
+  FS_RTP_SESSION_UNLOCK (self->priv->session);
+  fs_stream_emit_src_pad_added (FS_STREAM_CAST (self), pad, codec);
+  FS_RTP_SESSION_LOCK (self->priv->session);
 }
 
 static void
@@ -872,7 +874,7 @@ _substream_codec_changed (FsRtpSubStream *substream,
 }
 
 /**
- * fs_rtp_stream_set_negotiated_codecs
+ * fs_rtp_stream_set_negotiated_codecs_locked
  * @stream: a #FsRtpStream
  * @codecs: The #GList of #FsCodec to set for the negotiated-codecs property
  *
@@ -881,14 +883,12 @@ _substream_codec_changed (FsRtpSubStream *substream,
  * codecs, so you have to give it its own copy.
  */
 void
-fs_rtp_stream_set_negotiated_codecs (FsRtpStream *stream,
+fs_rtp_stream_set_negotiated_codecs_locked (FsRtpStream *stream,
     GList *codecs)
 {
-  FS_RTP_SESSION_LOCK (stream->priv->session);
   if (fs_codec_list_are_equal (stream->priv->negotiated_codecs, codecs))
   {
     fs_codec_list_destroy (codecs);
-    FS_RTP_SESSION_UNLOCK (stream->priv->session);
     return;
   }
 
@@ -896,8 +896,6 @@ fs_rtp_stream_set_negotiated_codecs (FsRtpStream *stream,
     fs_codec_list_destroy (stream->priv->negotiated_codecs);
 
   stream->priv->negotiated_codecs = codecs;
-
-  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
   g_object_notify (G_OBJECT (stream), "negotiated-codecs");
 }

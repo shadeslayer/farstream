@@ -103,7 +103,7 @@ gboolean fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
     GError **error);
 
 void
-fs_rtp_stream_set_negotiated_codecs (FsRtpStream *stream,
+fs_rtp_stream_set_negotiated_codecs_locked (FsRtpStream *stream,
     GList *codecs);
 
 G_END_DECLS

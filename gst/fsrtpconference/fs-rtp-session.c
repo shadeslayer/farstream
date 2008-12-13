@@ -1964,7 +1964,7 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
         }
       }
 
-      fs_rtp_stream_set_negotiated_codecs (stream, new_codecs);
+      fs_rtp_stream_set_negotiated_codecs_locked (stream, new_codecs);
     }
 
     if (stream != force_stream)
@@ -2312,10 +2312,12 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
           error->message);
 
     g_clear_error (&error);
-    g_object_unref (stream);
   }
 
   FS_RTP_SESSION_UNLOCK (session);
+
+  if (stream)
+    g_object_unref (stream);
 }
 
 
@@ -2765,7 +2767,8 @@ fs_rtp_session_substream_set_codec_bin_locked (FsRtpSession *session,
   if (!codecbin)
     goto out;
 
-  ret = fs_rtp_sub_stream_set_codecbin (substream, ca->codec, codecbin, error);
+  ret = fs_rtp_sub_stream_set_codecbin_locked (substream, ca->codec, codecbin,
+      error);
 
  out:
 
