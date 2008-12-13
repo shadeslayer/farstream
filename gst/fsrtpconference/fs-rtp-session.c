@@ -3059,7 +3059,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
 }
 
 /**
- * fs_rtp_session_add_send_codec_bin:
+ * fs_rtp_session_add_send_codec_bin_locked:
  * @session: a #FsRtpSession
  * @codec: a #FsCodec
  * @ca: the #CodecAssociation to use
@@ -3073,7 +3073,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
  */
 
 static GstElement *
-fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
+fs_rtp_session_add_send_codec_bin_locked (FsRtpSession *session,
     const FsCodec *codec,
     const CodecAssociation *ca,
     GError **error)
@@ -3330,7 +3330,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
 
 
-  if (!fs_rtp_session_add_send_codec_bin (self, codec_without_config,
+  if (!fs_rtp_session_add_send_codec_bin_locked (self, codec_without_config,
           ca, &error))
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
@@ -3408,7 +3408,7 @@ fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
   {
     /* The codec does exist yet, lets just create it */
 
-    if (!fs_rtp_session_add_send_codec_bin (self, codec_without_config,
+    if (!fs_rtp_session_add_send_codec_bin_locked (self, codec_without_config,
             ca, error))
       /* We have an error !! */
       goto error;
