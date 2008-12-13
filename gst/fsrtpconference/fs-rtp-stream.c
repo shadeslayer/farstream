@@ -810,14 +810,17 @@ _substream_codec_changed (FsRtpSubStream *substream,
   FsCodec *codec = NULL;
   GList *codeclist = NULL;
 
+  FS_RTP_SESSION_LOCK (stream->priv->session);
+
   g_object_get (substream, "codec", &codec, NULL);
 
   if (!codec)
+  {
+    FS_RTP_SESSION_UNLOCK (stream->priv->session);
     return;
+  }
 
   codeclist = g_list_prepend (NULL, codec);
-
-  FS_RTP_SESSION_LOCK (stream->priv->session);
 
   for (substream_item = stream->substreams;
        substream_item;

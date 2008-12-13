@@ -717,6 +717,10 @@ fs_rtp_sub_stream_set_property (GObject *object,
   }
 }
 
+/*
+ * These properties can only be accessed while holding the session lock
+ *
+ */
 
 static void
 fs_rtp_sub_stream_get_property (GObject *object,
@@ -734,9 +738,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_object (value, self->priv->session);
       break;
     case PROP_STREAM:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_object (value, self->priv->stream);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_RTPBIN_PAD:
       g_value_set_object (value, self->priv->rtpbin_pad);
@@ -748,23 +750,15 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_uint (value, self->priv->pt);
       break;
     case PROP_CODEC:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_boxed (value, self->priv->codec);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_RECEIVING:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_boolean (value, self->priv->receiving);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
     case PROP_OUTPUT_GHOSTPAD:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_object (value, self->priv->output_ghostpad);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     case PROP_NO_RTCP_TIMEOUT:
-      FS_RTP_SESSION_LOCK (self->priv->session);
       g_value_set_int (value, self->priv->no_rtcp_timeout);
-      FS_RTP_SESSION_UNLOCK (self->priv->session);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
