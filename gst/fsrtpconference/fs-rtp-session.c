@@ -368,7 +368,7 @@ fs_rtp_session_init (FsRtpSession *self)
   self->priv->transmitters = g_hash_table_new_full (g_str_hash, g_str_equal,
     g_free, g_object_unref);
 
-  g_static_rec_mutex_init (&self->mutex);
+  g_static_mutex_init (&self->mutex);
 
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
 
@@ -660,7 +660,7 @@ fs_rtp_session_finalize (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION (object);
 
-  g_static_rec_mutex_free (&self->mutex);
+  g_static_mutex_free (&self->mutex);
 
   if (self->priv->codec_preferences)
     fs_codec_list_destroy (self->priv->codec_preferences);

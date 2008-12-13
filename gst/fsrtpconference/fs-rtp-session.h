@@ -70,15 +70,15 @@ struct _FsRtpSession
   /* This ID can be accessed by the stream/substreams for this session */
   guint id;
 
-  GStaticRecMutex mutex; /* Should only be accessed using the macros */
+  GStaticMutex mutex; /* Should only be accessed using the macros */
 
   FsRtpSessionPrivate *priv;
 };
 
 #define FS_RTP_SESSION_LOCK(session) \
-  g_static_rec_mutex_lock (&FS_RTP_SESSION (session)->mutex)
+  g_static_mutex_lock (&FS_RTP_SESSION (session)->mutex)
 #define FS_RTP_SESSION_UNLOCK(session) \
-  g_static_rec_mutex_unlock (&FS_RTP_SESSION (session)->mutex)
+  g_static_mutex_unlock (&FS_RTP_SESSION (session)->mutex)
 
 
 GType fs_rtp_session_get_type (void);
