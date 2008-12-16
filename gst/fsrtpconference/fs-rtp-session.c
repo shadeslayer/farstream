@@ -2718,42 +2718,27 @@ fs_rtp_session_substream_set_codec_bin_locked (FsRtpSession *session,
     guint pt,
     GError **error)
 {
-  gboolean ret = FALSE;
   GstElement *codecbin = NULL;
   gchar *name;
-  FsCodec *current_codec = NULL;
   CodecAssociation *ca = NULL;
 
   ca = fs_rtp_session_get_recv_codec_locked (session, pt, stream, error);
 
   if (!ca)
-    goto out;
+    return FALSE;
 
-  g_object_get (substream,
-      "codec", &current_codec,
-      NULL);
-
-  if (fs_codec_are_equal (ca->codec, current_codec))
-  {
-    ret = TRUE;
-    goto out;
-  }
+  if (fs_codec_are_equal (ca->codec, substream->codec))
+    return TRUE;
 
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
   codecbin = _create_codec_bin (ca, ca->codec, name, FALSE, NULL, error);
   g_free (name);
 
   if (!codecbin)
-    goto out;
+    return FALSE;
 
-  ret = fs_rtp_sub_stream_set_codecbin_locked (substream, ca->codec, codecbin,
+  return fs_rtp_sub_stream_set_codecbin_locked (substream, ca->codec, codecbin,
       error);
-
- out:
-
-  fs_codec_destroy (current_codec);
-
-  return ret;
 }
 
 

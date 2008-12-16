@@ -318,15 +318,13 @@ fs_rtp_stream_get_property (GObject *object,
              substream_item;
              substream_item = g_list_next (substream_item))
         {
-          FsCodec *codec = NULL;
-          g_object_get (substream_item->data, "codec", &codec, NULL);
+          FsRtpSubStream *substream = substream_item->data;
 
-          if (codec)
+          if (substream->codec)
           {
-            if (!_codec_list_has_codec (codeclist, codec))
-              codeclist = g_list_append (codeclist, codec);
-            else
-              fs_codec_destroy (codec);
+            if (!_codec_list_has_codec (codeclist, substream->codec))
+              codeclist = g_list_append (codeclist,
+                  fs_codec_copy (substream->codec));
           }
         }
 
@@ -755,7 +753,6 @@ fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
     FsRtpSubStream *substream,
     GError **error)
 {
-  FsCodec *codec = NULL;
   gboolean ret = TRUE;
 
   stream->substreams = g_list_prepend (stream->substreams,
@@ -772,13 +769,9 @@ fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
   g_signal_connect (substream, "error",
                     G_CALLBACK (_substream_error), stream);
 
-  g_object_get (substream, "codec", &codec, NULL);
-
   /* Only announce a pad if it has a codec attached to it */
-  if (codec) {
+  if (substream->codec)
     ret = fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
-    fs_codec_destroy (codec);
-  }
 
   return ret;
 }
@@ -798,20 +791,17 @@ _substream_codec_changed (FsRtpSubStream *substream,
     FsRtpStream *stream)
 {
   GList *substream_item = NULL;
-  FsCodec *codec = NULL;
   GList *codeclist = NULL;
 
   FS_RTP_SESSION_LOCK (stream->priv->session);
 
-  g_object_get (substream, "codec", &codec, NULL);
-
-  if (!codec)
+  if (!substream->codec)
   {
     FS_RTP_SESSION_UNLOCK (stream->priv->session);
     return;
   }
 
-  codeclist = g_list_prepend (NULL, codec);
+  codeclist = g_list_prepend (NULL, fs_codec_copy (substream->codec));
 
   for (substream_item = stream->substreams;
        substream_item;
@@ -821,23 +811,14 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
     if (othersubstream != substream)
     {
-      FsCodec *othercodec = NULL;
-
-      g_object_get (othersubstream, "codec", &othercodec, NULL);
-
-      if (othercodec)
+      if (othersubstream->codec)
       {
-        if (fs_codec_are_equal (codec, othercodec))
-        {
-          fs_codec_destroy (othercodec);
+        if (fs_codec_are_equal (substream->codec, othersubstream->codec))
           break;
-        }
 
-        if (!_codec_list_has_codec (codeclist, othercodec))
-          codeclist = g_list_append (codeclist, othercodec);
-        else
-          fs_codec_destroy (othercodec);
-
+        if (!_codec_list_has_codec (codeclist, othersubstream->codec))
+          codeclist = g_list_append (codeclist,
+              fs_codec_copy (othersubstream->codec));
       }
     }
   }
