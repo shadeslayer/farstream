@@ -250,7 +250,7 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     GParameter *parameters,
     GError **error);
 
-static gboolean fs_rtp_session_substream_set_codec_bin_locked (
+static gboolean fs_rtp_session_substream_set_codec_bin_unlock (
     FsRtpSession *session,
     FsRtpSubStream *substream,
     FsRtpStream *stream,
@@ -2292,7 +2292,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   }
 
 
-  if (!fs_rtp_session_substream_set_codec_bin_locked (session, substream,
+  if (!fs_rtp_session_substream_set_codec_bin_unlock (session, substream,
           stream, ssrc, pt, &error))
   {
     if (error)
@@ -2305,6 +2305,8 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   }
 
   g_clear_error (&error);
+
+  FS_RTP_SESSION_LOCK (session);
 
   if (stream)
   {
@@ -2714,7 +2716,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 }
 
 /**
- * fs_rtp_session_substream_set_codec_bin_locked:
+ * fs_rtp_session_substream_set_codec_bin_unlock:
  * @session: a #FsRtpSession
  * @substream: a #FsRtpSubStream
  * @ssrc: the ssrc of the substream
@@ -2723,11 +2725,14 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
  *
  * Sets a codecbin on a substream according to the currently negotiated codecs
  *
+ * You must enter this function with the session lock held and it will release
+ * it.
+ *
  * Returns: %TRUE on success, %FALSE on error
  */
 
 static gboolean
-fs_rtp_session_substream_set_codec_bin_locked (FsRtpSession *session,
+fs_rtp_session_substream_set_codec_bin_unlock (FsRtpSession *session,
     FsRtpSubStream *substream,
     FsRtpStream *stream,
     guint32 ssrc,
@@ -2737,24 +2742,32 @@ fs_rtp_session_substream_set_codec_bin_locked (FsRtpSession *session,
   GstElement *codecbin = NULL;
   gchar *name;
   CodecAssociation *ca = NULL;
+  gboolean ret = FALSE;
 
   ca = fs_rtp_session_get_recv_codec_locked (session, pt, stream, error);
 
   if (!ca)
-    return FALSE;
+    goto out;
 
   if (fs_codec_are_equal (ca->codec, substream->codec))
-    return TRUE;
+  {
+    ret = TRUE;
+    goto out;
+  }
 
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
   codecbin = _create_codec_bin (ca, ca->codec, name, FALSE, NULL, error);
   g_free (name);
 
   if (!codecbin)
-    return FALSE;
+    goto out;
 
-  return fs_rtp_sub_stream_set_codecbin_locked (substream, ca->codec, codecbin,
+  return fs_rtp_sub_stream_set_codecbin_unlock (substream, ca->codec, codecbin,
       error);
+
+ out:
+  FS_RTP_SESSION_UNLOCK (session);
+  return ret;
 }
 
 
@@ -3406,18 +3419,22 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session)
 {
   GError *error = NULL;
+  guint32 ssrc;
+  guint pt;
 
   FS_RTP_SESSION_LOCK (session);
+
+  pt = substream->pt;
+  ssrc = substream->ssrc;
 
   GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
       session->id, substream->ssrc, substream->pt);
 
-  if (!fs_rtp_session_substream_set_codec_bin_locked (session, substream,
+  if (!fs_rtp_session_substream_set_codec_bin_unlock (session, substream,
           stream, substream->ssrc, substream->pt, &error))
   {
     gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
-        " ssrc %u and payload type %d to the state NULL", substream->ssrc,
-        substream->pt);
+        " ssrc %u and payload type %d to the state NULL", ssrc, pt);
 
     if (stream)
       fs_stream_emit_error (FS_STREAM (stream), FS_ERROR_CONSTRUCTION,
@@ -3426,13 +3443,7 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
       fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
           "Could not add the new recv codec bin", error->message);
     g_free (str);
-    goto done;
   }
-
-
- done:
-
-  FS_RTP_SESSION_UNLOCK (session);
 
   g_clear_error (&error);
 }

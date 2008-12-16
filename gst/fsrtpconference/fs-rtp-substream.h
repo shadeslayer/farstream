@@ -91,7 +91,7 @@ FsRtpSubStream *fs_rtp_sub_stream_new (FsRtpConference *conference,
     GError **error);
 
 
-gboolean fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
+gboolean fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
     FsCodec *codec,
     GstElement *codecbin,
     GError **error);

@@ -759,21 +759,21 @@ fs_rtp_sub_stream_get_property (GObject *object,
 }
 
 /**
- * fs_rtp_sub_stream_set_codecbin_locked:
- * @substream: a #FsRtpSubStream
- * @codec: The codec to set
- * @codecbin: the codecbin to set
+ * fs_rtp_sub_stream_set_codecbin_unlock:
  *
  * Add and links the rtpbin for a given substream.
  * Removes any codecbin that was previously there.
  *
  * This function will swallow one ref to the codecbin
  *
+ * You must enter this function with the session lock held and it will release
+ * it.
+ *
  * Returns: TRUE on success
  */
 
 gboolean
-fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
+fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
     FsCodec *codec,
     GstElement *codecbin,
     GError **error)
@@ -889,13 +889,13 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
   {
     if (!fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error))
       goto error;
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
   }
   else
   {
     FS_RTP_SESSION_UNLOCK (substream->priv->session);
     if (codec_changed)
       g_signal_emit (substream, signals[CODEC_CHANGED], 0);
-    FS_RTP_SESSION_LOCK (substream->priv->session);
   }
 
   return TRUE;
@@ -908,6 +908,8 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
   gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
 
  error_no_remove:
+
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   return ret;
 }
