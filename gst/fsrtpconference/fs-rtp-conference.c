@@ -189,7 +189,6 @@ fs_rtp_conference_dispose (GObject * object)
     self->gstrtpbin = NULL;
   }
 
-  GST_OBJECT_LOCK (object);
   for (item = g_list_first (self->priv->sessions);
        item;
        item = g_list_next (item))
@@ -203,7 +202,6 @@ fs_rtp_conference_dispose (GObject * object)
     g_object_weak_unref (G_OBJECT (item->data), _remove_participant, self);
   g_list_free (self->priv->participants);
   self->priv->participants = NULL;
-  GST_OBJECT_UNLOCK (object);
 
   self->priv->disposed = TRUE;
 
