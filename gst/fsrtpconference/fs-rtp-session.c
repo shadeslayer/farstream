@@ -3554,6 +3554,7 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session)
 {
   GError *error = NULL;
+  FsRtpStream *first_stream = NULL;
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -3582,9 +3583,9 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
   while (
       g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout", session) > 0);
 
-  if (fs_rtp_stream_add_substream_locked (
-          g_list_first (session->priv->streams)->data,
-          substream, &error))
+  first_stream = g_list_first (session->priv->streams)->data;
+  g_object_ref (first_stream);
+  if (fs_rtp_stream_add_substream_locked (first_stream, substream, &error))
     fs_rtp_sub_stream_verify_codec_locked (substream);
   else
     fs_session_emit_error (FS_SESSION (session),
@@ -3592,6 +3593,7 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
         "Could not link the substream to a stream",
         error ? error->message : "No error message");
   g_clear_error (&error);
+  g_object_unref (first_stream);
 
  done:
 
