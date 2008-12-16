@@ -697,21 +697,11 @@ create_local_codec_associations (
        lca_e = g_list_next (lca_e))
   {
     CodecAssociation *lca = lca_e->data;
-    CodecAssociation *tmpca = NULL;
 
     if (lca->reserved)
       continue;
 
-    tmpca = lookup_codec_association_by_pt_list (current_codec_associations,
-        lca->codec->id, TRUE);
-
-    /* Same blueprint, we've copied the ID voluntarily, continue */
-    if (tmpca && tmpca->blueprint == lca->blueprint)
-      continue;
-
-    /* If we have a different blueprint or a ANY id, we have to get a new id
-     */
-    if (tmpca || lca->codec->id < 0)
+    if (lca->codec->id < 0)
     {
       lca->codec->id = _find_first_empty_dynamic_entry (
           current_codec_associations, codec_associations);
