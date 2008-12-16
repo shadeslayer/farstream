@@ -534,7 +534,6 @@ fs_rtp_conference_get_session_by_id_locked (FsRtpConference *self,
  * @session_id: The session id
  *
  * Gets the #FsRtpSession from a list of sessions or NULL if it doesnt exist
- * You have to hold the GST_OBJECT_LOCK to call this function.
  *
  * Return value: A #FsRtpSession (unref after use) or NULL if it doesn't exist
  */
