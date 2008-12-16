@@ -66,6 +66,12 @@ struct _FsRtpSubStreamClass
 struct _FsRtpSubStream
 {
   GObject parent;
+
+  /* Those are read-only and can only be accessed while holding the session lock
+   */
+
+  FsCodec *codec;
+
   FsRtpSubStreamPrivate *priv;
 };
 

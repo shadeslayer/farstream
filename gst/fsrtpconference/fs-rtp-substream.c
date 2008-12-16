@@ -95,7 +95,6 @@ struct _FsRtpSubStreamPrivate {
    * otherwise the rtpbin_pad is blocked */
   /* Protected by the session mutex */
   GstElement *codecbin;
-  FsCodec *codec;
   GstCaps *caps;
 
   /* This is only created when the substream is associated with a FsRtpStream */
@@ -651,8 +650,8 @@ fs_rtp_sub_stream_finalize (GObject *object)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
 
-  if (self->priv->codec)
-    fs_codec_destroy (self->priv->codec);
+  if (self->codec)
+    fs_codec_destroy (self->codec);
 
   if (self->priv->caps)
     gst_caps_unref (self->priv->caps);
@@ -749,7 +748,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_uint (value, self->priv->pt);
       break;
     case PROP_CODEC:
-      g_value_set_boxed (value, self->priv->codec);
+      g_value_set_boxed (value, self->codec);
       break;
     case PROP_RECEIVING:
       g_value_set_boolean (value, self->priv->receiving);
@@ -791,9 +790,9 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
   GstPad *pad;
   gboolean codec_changed = TRUE;
 
-  if (substream->priv->codec)
+  if (substream->codec)
   {
-    if (!fs_codec_are_equal (codec, substream->priv->codec))
+    if (!fs_codec_are_equal (codec, substream->codec))
       codec_changed = FALSE;
   }
 
@@ -815,8 +814,8 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
         substream->priv->codecbin);
     substream->priv->codecbin = NULL;
 
-    fs_codec_destroy (substream->priv->codec);
-    substream->priv->codec = NULL;
+    fs_codec_destroy (substream->codec);
+    substream->codec = NULL;
 
     if (substream->priv->caps)
       gst_caps_unref (substream->priv->caps);
@@ -890,7 +889,7 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
 
   substream->priv->caps = caps;
   substream->priv->codecbin = codecbin;
-  substream->priv->codec = fs_codec_copy (codec);
+  substream->codec = fs_codec_copy (codec);
 
   if (substream->priv->stream && !substream->priv->output_ghostpad)
   {
@@ -1047,11 +1046,11 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
 
   GST_DEBUG ("Src pad added on substream for ssrc:%X pt:%u " FS_CODEC_FORMAT,
       substream->priv->ssrc, substream->priv->pt,
-      FS_CODEC_ARGS (substream->priv->codec));
+      FS_CODEC_ARGS (substream->codec));
 
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
   g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
-                 ghostpad, substream->priv->codec);
+                 ghostpad, substream->codec);
   g_signal_emit (substream, signals[CODEC_CHANGED], 0);
   FS_RTP_SESSION_LOCK (substream->priv->session);
 
@@ -1081,7 +1080,7 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   FS_RTP_SESSION_LOCK (self->priv->session);
 
-  if (!self->priv->codecbin || !self->priv->codec || !self->priv->caps)
+  if (!self->priv->codecbin || !self->codec || !self->priv->caps)
   {
     ret = FALSE;
   }
