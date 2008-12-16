@@ -870,9 +870,9 @@ fs_rtp_stream_set_negotiated_codecs_locked (FsRtpStream *stream,
 
   stream->negotiated_codecs = codecs;
 
-  /*
-    TODO: I have no idea how to make this thread safe
+  FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
-    g_object_notify (G_OBJECT (stream), "negotiated-codecs");
-  */
+  g_object_notify (G_OBJECT (stream), "negotiated-codecs");
+
+  FS_RTP_SESSION_LOCK (stream->priv->session);
 }

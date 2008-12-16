@@ -163,6 +163,7 @@ struct _FsRtpSessionPrivate
 
   /* These lists are protected by the session mutex */
   GList *streams;
+  guint streams_cookie;
   GList *free_substreams;
 
   /* The static list of all the blueprints */
@@ -641,6 +642,7 @@ fs_rtp_session_dispose (GObject *object)
     g_object_weak_unref (G_OBJECT (item->data), _remove_stream, self);
   g_list_free (self->priv->streams);
   self->priv->streams = NULL;
+  self->priv->streams_cookie++;
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -1412,6 +1414,7 @@ _remove_stream (gpointer user_data,
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams =
     g_list_remove_all (self->priv->streams, where_the_object_was);
+  self->priv->streams_cookie++;
 
   g_hash_table_foreach_remove (self->priv->ssrc_streams, _remove_stream_from_ht,
       where_the_object_was);
@@ -1466,6 +1469,7 @@ fs_rtp_session_new_stream (FsSession *session,
 
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
+  self->priv->streams_cookie++;
   FS_RTP_SESSION_UNLOCK (self);
 
   g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
@@ -1888,6 +1892,11 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
     GList *forced_remote_codecs)
 {
   GList *item = NULL;
+  guint cookie;
+
+ restart:
+
+  cookie = session->priv->streams_cookie;
 
   for (item = session->priv->streams;
        item;
@@ -1951,7 +1960,14 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
         }
       }
 
+      /* This function unlocks the lock, so we have to check the cookie
+       * when we come back */
+      g_object_ref (stream);
       fs_rtp_stream_set_negotiated_codecs_locked (stream, new_codecs);
+      g_object_unref (stream);
+
+      if (cookie != session->priv->streams_cookie)
+        goto restart;
     }
   }
 }
