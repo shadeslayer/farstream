@@ -2948,7 +2948,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   GstPad *pad = item;
   struct link_data *data = user_data;
   GstCaps *caps;
-  GstCaps *filter_caps;
+  GstCaps *filter_caps = NULL;
   GList *listitem;
   GstElement *capsfilter;
   GstPad *otherpad;
