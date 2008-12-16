@@ -78,6 +78,9 @@ fs_candidate_list_get_type (void)
 void
 fs_candidate_destroy (FsCandidate * cand)
 {
+  if (cand == NULL)
+    return;
+
   g_free ((gchar *) cand->foundation);
   g_free ((gchar *) cand->ip);
   g_free ((gchar *) cand->base_ip);
@@ -99,6 +102,9 @@ FsCandidate *
 fs_candidate_copy (const FsCandidate * cand)
 {
   FsCandidate *copy = g_slice_new0 (FsCandidate);
+
+  if (cand == NULL)
+    return NULL;
 
   copy->component_id = cand->component_id;
   copy->port = cand->port;
