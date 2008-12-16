@@ -1963,8 +1963,10 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
       /* This function unlocks the lock, so we have to check the cookie
        * when we come back */
       g_object_ref (stream);
-      fs_rtp_stream_set_negotiated_codecs_locked (stream, new_codecs);
+      fs_rtp_stream_set_negotiated_codecs_unlock (stream, new_codecs);
       g_object_unref (stream);
+
+      FS_RTP_SESSION_LOCK (session);
 
       if (cookie != session->priv->streams_cookie)
         goto restart;
