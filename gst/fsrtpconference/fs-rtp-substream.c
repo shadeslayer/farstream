@@ -82,9 +82,6 @@ struct _FsRtpSubStreamPrivate {
   FsRtpSession *session;
   FsRtpStream *stream; /* only set once, protected by session lock */
 
-  guint32 ssrc;
-  guint pt;
-
   GstPad *rtpbin_pad;
 
   GstElement *valve;
@@ -113,9 +110,6 @@ struct _FsRtpSubStreamPrivate {
   GstClockID no_rtcp_timeout_id;
   GstClockTime next_no_rtcp_timeout;
   GThread *no_rtcp_timeout_thread;
-
-  /* Protected by the session mutex*/
-  gint no_rtcp_timeout;
 
   GError *construction_error;
 };
@@ -429,7 +423,7 @@ fs_rtp_sub_stream_start_no_rtcp_timeout_thread (FsRtpSubStream *self,
   FS_RTP_SUB_STREAM_LOCK(self);
 
   self->priv->next_no_rtcp_timeout = gst_clock_get_time (sysclock) +
-    (self->priv->no_rtcp_timeout * GST_MSECOND);
+    (self->no_rtcp_timeout * GST_MSECOND);
 
   gst_object_unref (sysclock);
 
@@ -486,7 +480,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
   gchar *tmp;
 
   GST_DEBUG ("New substream in session %u for ssrc %x and pt %u",
-      self->priv->session->id, self->priv->ssrc, self->priv->pt);
+      self->priv->session->id, self->ssrc, self->pt);
 
   if (!self->priv->conference) {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -495,15 +489,15 @@ fs_rtp_sub_stream_constructed (GObject *object)
   }
 
   tmp = g_strdup_printf ("recv_valve_%d_%d_%d", self->priv->session->id,
-      self->priv->ssrc, self->priv->pt);
+      self->ssrc, self->pt);
   self->priv->valve = gst_element_factory_make ("fsvalve", tmp);
   g_free (tmp);
 
   if (!self->priv->valve) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not create a fsvalve element for"
-      " session substream with ssrc: %u and pt:%d", self->priv->ssrc,
-      self->priv->pt);
+      " session substream with ssrc: %u and pt:%d", self->ssrc,
+      self->pt);
     return;
   }
 
@@ -511,7 +505,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the fsvalve element for session"
       " substream with ssrc: %u and pt:%d to the conference bin",
-      self->priv->ssrc, self->priv->pt);
+      self->ssrc, self->pt);
     return;
   }
 
@@ -526,20 +520,20 @@ fs_rtp_sub_stream_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not set the fsvalve element for session"
       " substream with ssrc: %u and pt:%d to the playing state",
-      self->priv->ssrc, self->priv->pt);
+      self->ssrc, self->pt);
     return;
   }
 
   tmp = g_strdup_printf ("recv_capsfilter_%d_%d_%d", self->priv->session->id,
-      self->priv->ssrc, self->priv->pt);
+      self->ssrc, self->pt);
   self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
   g_free (tmp);
 
   if (!self->priv->capsfilter) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not create a capsfilter element for"
-      " session substream with ssrc: %u and pt:%d", self->priv->ssrc,
-      self->priv->pt);
+      " session substream with ssrc: %u and pt:%d", self->ssrc,
+      self->pt);
     return;
   }
 
@@ -547,7 +541,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for session"
       " substream with ssrc: %u and pt:%d to the conference bin",
-      self->priv->ssrc, self->priv->pt);
+      self->ssrc, self->pt);
     return;
   }
 
@@ -556,7 +550,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not set the capsfilter element for session"
       " substream with ssrc: %u and pt:%d to the playing state",
-      self->priv->ssrc, self->priv->pt);
+      self->ssrc, self->pt);
     return;
   }
 
@@ -583,7 +577,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
   }
 
 
-  if (self->priv->no_rtcp_timeout > 0)
+  if (self->no_rtcp_timeout > 0)
     if (!fs_rtp_sub_stream_start_no_rtcp_timeout_thread (self,
             &self->priv->construction_error))
       return;
@@ -694,10 +688,10 @@ fs_rtp_sub_stream_set_property (GObject *object,
       self->priv->rtpbin_pad = GST_PAD (g_value_dup_object (value));
       break;
     case PROP_SSRC:
-      self->priv->ssrc = g_value_get_uint (value);
+      self->ssrc = g_value_get_uint (value);
       break;
     case PROP_PT:
-      self->priv->pt = g_value_get_uint (value);
+      self->pt = g_value_get_uint (value);
       break;
     case PROP_RECEIVING:
       self->priv->receiving = g_value_get_boolean (value);
@@ -707,7 +701,7 @@ fs_rtp_sub_stream_set_property (GObject *object,
             NULL);
       break;
     case PROP_NO_RTCP_TIMEOUT:
-      self->priv->no_rtcp_timeout = g_value_get_int (value);
+      self->no_rtcp_timeout = g_value_get_int (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -742,10 +736,10 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_object (value, self->priv->rtpbin_pad);
       break;
     case PROP_SSRC:
-      g_value_set_uint (value, self->priv->ssrc);
+      g_value_set_uint (value, self->ssrc);
       break;
     case PROP_PT:
-      g_value_set_uint (value, self->priv->pt);
+      g_value_set_uint (value, self->pt);
       break;
     case PROP_CODEC:
       g_value_set_boxed (value, self->codec);
@@ -756,7 +750,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
       g_value_set_object (value, self->priv->output_ghostpad);
       break;
     case PROP_NO_RTCP_TIMEOUT:
-      g_value_set_int (value, self->priv->no_rtcp_timeout);
+      g_value_set_int (value, self->no_rtcp_timeout);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -805,8 +799,8 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
       gst_element_set_locked_state (substream->priv->codecbin, FALSE);
       g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
           "Could not set the codec bin for ssrc %u"
-          " and payload type %d to the state NULL", substream->priv->ssrc,
-          substream->priv->pt);
+          " and payload type %d to the state NULL", substream->ssrc,
+          substream->pt);
       goto error_no_remove;
     }
 
@@ -850,7 +844,7 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
   {
      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
          "Could not link the receive capsfilter and the codecbin for pt %d",
-         substream->priv->pt);
+         substream->pt);
     goto error;
   }
 
@@ -878,7 +872,7 @@ fs_rtp_sub_stream_set_codecbin_locked (FsRtpSubStream *substream,
     gst_caps_unref (caps);
 
     GST_DEBUG ("Could not set the caps on the codecbin, waiting on config-data"
-        " for SSRC:%x pt:%d", substream->priv->ssrc, substream->priv->pt);
+        " for SSRC:%x pt:%d", substream->ssrc, substream->pt);
 
     /* We call this to drop all buffers until something comes up */
     fs_rtp_sub_stream_add_probe_locked (substream);
@@ -1000,8 +994,8 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   g_assert (substream->priv->output_ghostpad == NULL);
 
   padname = g_strdup_printf ("src_%u_%u_%d", substream->priv->session->id,
-      substream->priv->ssrc,
-      substream->priv->pt);
+      substream->ssrc,
+      substream->pt);
 
   valve_srcpad = gst_element_get_static_pad (substream->priv->valve,
       "src");
@@ -1019,7 +1013,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not build ghostpad src_%u_%u_%d", substream->priv->session->id,
-        substream->priv->ssrc, substream->priv->pt);
+        substream->ssrc, substream->pt);
     return FALSE;
   }
 
@@ -1027,7 +1021,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not activate the src_%u_%u_%d", substream->priv->session->id,
-        substream->priv->ssrc, substream->priv->pt);
+        substream->ssrc, substream->pt);
     gst_object_unref (ghostpad);
     return FALSE;
   }
@@ -1037,7 +1031,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could add build ghostpad src_%u_%u_%d to the conference",
-        substream->priv->session->id, substream->priv->ssrc, substream->priv->pt);
+        substream->priv->session->id, substream->ssrc, substream->pt);
     gst_object_unref (ghostpad);
     return FALSE;
   }
@@ -1045,7 +1039,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   substream->priv->output_ghostpad = ghostpad;
 
   GST_DEBUG ("Src pad added on substream for ssrc:%X pt:%u " FS_CODEC_FORMAT,
-      substream->priv->ssrc, substream->priv->pt,
+      substream->ssrc, substream->pt,
       FS_CODEC_ARGS (substream->codec));
 
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
@@ -1156,7 +1150,7 @@ void
 fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream)
 {
   GST_LOG ("Starting codec verification process for substream with"
-      " SSRC:%x pt:%d", substream->priv->ssrc, substream->priv->pt);
+      " SSRC:%x pt:%d", substream->ssrc, substream->pt);
 
 
   fs_rtp_sub_stream_add_probe_locked (substream);

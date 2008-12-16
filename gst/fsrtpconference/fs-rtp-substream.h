@@ -72,6 +72,11 @@ struct _FsRtpSubStream
 
   FsCodec *codec;
 
+  guint32 ssrc;
+  guint pt;
+
+  gint no_rtcp_timeout;
+
   FsRtpSubStreamPrivate *priv;
 };
 
