@@ -485,9 +485,6 @@ fs_multicast_stream_transmitter_add_remote_candidate (
   self->priv->remote_candidate[candidate->component_id] =
     fs_candidate_copy (candidate);
 
-  self->priv->local_candidate[candidate->component_id]->port = candidate->port;
-
-
   g_signal_emit_by_name (self, "new-active-candidate-pair",
       self->priv->local_candidate[candidate->component_id],
       self->priv->remote_candidate[candidate->component_id]);
