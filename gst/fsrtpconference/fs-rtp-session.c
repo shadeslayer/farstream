@@ -642,8 +642,6 @@ fs_rtp_session_dispose (GObject *object)
   g_list_free (self->priv->streams);
   self->priv->streams = NULL;
 
-  self->priv->disposed = TRUE;
-
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
