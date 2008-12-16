@@ -433,7 +433,6 @@ fs_multicast_stream_transmitter_add_remote_candidate (
     GError **error)
 {
   UdpSock *newudpsock = NULL;
-  guint8 old_ttl = 1;
 
   if (self->priv->remote_candidate[candidate->component_id])
   {
@@ -446,9 +445,6 @@ fs_multicast_stream_transmitter_add_remote_candidate (
       GST_DEBUG ("Re-set the same candidate, ignoring");
       return TRUE;
     }
-    old_ttl = old_candidate->ttl;
-    fs_candidate_destroy (old_candidate);
-    self->priv->remote_candidate[candidate->component_id] = NULL;
   }
 
   /*
@@ -475,7 +471,8 @@ fs_multicast_stream_transmitter_add_remote_candidate (
       fs_multicast_transmitter_udpsock_dec_sending (
           self->priv->udpsocks[candidate->component_id]);
     fs_multicast_transmitter_put_udpsock (self->priv->transmitter,
-        self->priv->udpsocks[candidate->component_id], old_ttl);
+        self->priv->udpsocks[candidate->component_id],
+        self->priv->remote_candidate[candidate->component_id]->ttl);
   }
 
   self->priv->udpsocks[candidate->component_id] = newudpsock;
@@ -484,6 +481,7 @@ fs_multicast_stream_transmitter_add_remote_candidate (
     fs_multicast_transmitter_udpsock_inc_sending (
         self->priv->udpsocks[candidate->component_id]);
 
+  fs_candidate_destroy (self->priv->remote_candidate[candidate->component_id]);
   self->priv->remote_candidate[candidate->component_id] =
     fs_candidate_copy (candidate);
 
