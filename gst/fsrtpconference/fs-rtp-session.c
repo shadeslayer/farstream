@@ -1744,14 +1744,23 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   FsTransmitter *transmitter;
   GstElement *src, *sink;
 
+  FS_RTP_SESSION_LOCK (self);
+
   transmitter = g_hash_table_lookup (self->priv->transmitters,
     transmitter_name);
 
   if (transmitter)
   {
-    return fs_transmitter_new_stream_transmitter (transmitter, participant,
+    FsStreamTransmitter *st = NULL;
+    g_object_ref (transmitter);
+    FS_RTP_SESSION_UNLOCK (self);
+    st = fs_transmitter_new_stream_transmitter (transmitter, participant,
       n_parameters, parameters, error);
+    g_object_unref (transmitter);
+    return st;
   }
+
+  FS_RTP_SESSION_UNLOCK (self);
 
   transmitter = fs_transmitter_new (transmitter_name, 2, error);
   if (!transmitter)
@@ -1794,14 +1803,34 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   gst_element_sync_state_with_parent (src);
   gst_element_sync_state_with_parent (sink);
 
+  FS_RTP_SESSION_LOCK (self);
+  /* Check if two were added at the same time */
+  if (g_hash_table_lookup (self->priv->transmitters, transmitter_name))
+  {
+    FS_RTP_SESSION_UNLOCK (self);
+
+    gst_element_set_locked_state (src, TRUE);
+    gst_element_set_locked_state (sink, TRUE);
+    gst_element_set_state (src, GST_STATE_NULL);
+    gst_element_set_state (sink, GST_STATE_NULL);
+    goto error;
+  }
+
   g_hash_table_insert (self->priv->transmitters, g_strdup (transmitter_name),
     transmitter);
+  FS_RTP_SESSION_UNLOCK (self);
 
   gst_object_unref (src);
   gst_object_unref (sink);
 
   return fs_transmitter_new_stream_transmitter (transmitter, participant,
     n_parameters, parameters, error);
+
+  /*
+   * TODO:
+   * The transmitters sink/sources should be cleanly removed if there is
+   * an error
+  */
 
  error:
   if (src)
