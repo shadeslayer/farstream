@@ -885,6 +885,70 @@ GST_START_TEST (test_rtpcodecs_profile)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpcodecs_dynamic_pt)
+{
+  struct SimpleTestConference *dat = NULL;
+  GList *codecs = NULL, *item = NULL;
+  GList *codec_prefs = NULL;
+  FsCodec *codec1 = NULL, *codec2 = NULL;
+  FsCodec *tmpcodec;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+
+    if (codec->id >= 96)
+    {
+      if (!codec1)
+      {
+        codec1 = fs_codec_copy (codec);
+      }
+      else
+      {
+        codec2 = fs_codec_copy (codec);
+        break;
+      }
+    }
+  }
+  fs_codec_list_destroy (codecs);
+
+  if (!codec1 || !codec2)
+  {
+    g_warning ("Could not find two dynamically allocated codec,"
+        "skipping testing of the payload-type dynamic number preferences");
+    goto out;
+  }
+
+  tmpcodec = fs_codec_copy (codec2);
+  tmpcodec->id = codec1->id;
+
+  codec_prefs = g_list_prepend (NULL, tmpcodec);
+
+  fail_unless (fs_session_set_codec_preferences (dat->session, codec_prefs,
+          NULL), "Could not set codec preferences");
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    if (fs_codec_are_equal (item->data, tmpcodec))
+      break;
+  }
+  fs_codec_list_destroy (codecs);
+
+  fail_if (item == NULL, "Could not force codec id");
+
+ out:
+  fs_codec_destroy (codec1);
+  fs_codec_destroy (codec2);
+  cleanup_simple_conference (dat);
+
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -923,6 +987,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_test_codec_profile");
   tcase_add_test (tc_chain, test_rtpcodecs_profile);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_dynamic_pt");
+  tcase_add_test (tc_chain, test_rtpcodecs_dynamic_pt);
   suite_add_tcase (s, tc_chain);
 
   return s;
