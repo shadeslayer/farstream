@@ -1856,7 +1856,7 @@ fs_rtp_session_verify_recv_codecs_locked (FsRtpSession *session)
   for (item = g_list_first (session->priv->free_substreams);
        item;
        item = g_list_next (item))
-    fs_rtp_sub_stream_verify_codec_locked (item->data);
+    fs_rtp_sub_stream_verify_codec (item->data);
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -1867,7 +1867,7 @@ fs_rtp_session_verify_recv_codecs_locked (FsRtpSession *session)
     for (item2 = g_list_first (stream->substreams);
          item2;
          item2 = g_list_next (item2))
-      fs_rtp_sub_stream_verify_codec_locked (item2->data);
+      fs_rtp_sub_stream_verify_codec (item2->data);
 
   }
 }
@@ -2314,15 +2314,17 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   if (stream)
   {
-    if (!fs_rtp_stream_add_substream_locked (stream, substream, &error))
+    if (!fs_rtp_stream_add_substream_unlock (stream, substream, &error))
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the output ghostpad to the new substream",
           error->message);
 
     g_clear_error (&error);
   }
-
-  FS_RTP_SESSION_UNLOCK (session);
+  else
+  {
+    FS_RTP_SESSION_UNLOCK (session);
+  }
 
   if (stream)
     g_object_unref (stream);
@@ -3502,9 +3504,9 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
         g_signal_handlers_disconnect_by_func (substream, "no-rtcp-timedout",
             session) > 0);
 
-    if (fs_rtp_stream_add_substream_locked (stream, substream, &error))
+    if (fs_rtp_stream_add_substream_unlock (stream, substream, &error))
     {
-      fs_rtp_sub_stream_verify_codec_locked (substream);
+      fs_rtp_sub_stream_verify_codec (substream);
       GST_DEBUG ("Associated SSRC %x in session %u", ssrc, session->id);
     }
     else
@@ -3516,6 +3518,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
           error->message);
     }
     g_clear_error (&error);
+    FS_RTP_SESSION_LOCK (session);
   }
   FS_RTP_SESSION_UNLOCK (session);
 
@@ -3587,14 +3590,16 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
         " for %d milliseconds, but we have more than one stream so we can"
         " not associate it.", substream->ssrc, substream->pt,
         substream->no_rtcp_timeout);
-    goto done;
+    FS_RTP_SESSION_UNLOCK (session);
+    return;
   }
 
   if (!g_list_find (session->priv->free_substreams, substream))
   {
     GST_WARNING ("Could not find substream %p in the list of free substreams",
         substream);
-    goto done;
+    FS_RTP_SESSION_UNLOCK (session);
+    return;
   }
 
   session->priv->free_substreams =
@@ -3608,8 +3613,8 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 
   first_stream = g_list_first (session->priv->streams)->data;
   g_object_ref (first_stream);
-  if (fs_rtp_stream_add_substream_locked (first_stream, substream, &error))
-    fs_rtp_sub_stream_verify_codec_locked (substream);
+  if (fs_rtp_stream_add_substream_unlock (first_stream, substream, &error))
+    fs_rtp_sub_stream_verify_codec (substream);
   else
     fs_session_emit_error (FS_SESSION (session),
         error ? error->code : FS_ERROR_INTERNAL,
@@ -3617,10 +3622,6 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
         error ? error->message : "No error message");
   g_clear_error (&error);
   g_object_unref (first_stream);
-
- done:
-
-  FS_RTP_SESSION_UNLOCK (session);
 }
 
 /**

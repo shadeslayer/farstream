@@ -740,16 +740,19 @@ _substream_error (FsRtpSubStream *substream,
 }
 
 /**
- * fs_rtp_stream_add_substream_locked:
+ * fs_rtp_stream_add_substream_unlock:
  * @stream: a #FsRtpStream
  * @substream: the #FsRtpSubStream to associate with this stream
  *
  * This functions associates a substream with this stream
  *
+ * You must enter this function with the session lock held and it will release
+ * it.
+ *
  * Returns: TRUE on success, FALSE on failure
  */
 gboolean
-fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
+fs_rtp_stream_add_substream_unlock (FsRtpStream *stream,
     FsRtpSubStream *substream,
     GError **error)
 {
@@ -771,7 +774,9 @@ fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
 
   /* Only announce a pad if it has a codec attached to it */
   if (substream->codec)
-    ret = fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error);
+    ret = fs_rtp_sub_stream_add_output_ghostpad_unlock (substream, error);
+  else
+    FS_RTP_SESSION_UNLOCK (stream->priv->session);
 
   return ret;
 }

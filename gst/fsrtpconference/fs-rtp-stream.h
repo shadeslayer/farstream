@@ -100,7 +100,7 @@ FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
     gpointer user_data_for_cb,
     GError **error);
 
-gboolean fs_rtp_stream_add_substream_locked (FsRtpStream *stream,
+gboolean fs_rtp_stream_add_substream_unlock (FsRtpStream *stream,
     FsRtpSubStream *substream,
     GError **error);
 

@@ -801,7 +801,8 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
           "Could not set the codec bin for ssrc %u"
           " and payload type %d to the state NULL", substream->ssrc,
           substream->pt);
-      goto error_no_remove;
+      FS_RTP_SESSION_UNLOCK (substream->priv->session);
+      return FALSE;
     }
 
     gst_bin_remove (GST_BIN (substream->priv->conference),
@@ -820,7 +821,8 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the codec bin to the conference");
-    goto error_no_remove;
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+    return FALSE;
   }
 
   if (gst_element_set_state (codecbin, GST_STATE_PLAYING) ==
@@ -828,7 +830,7 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not set the codec bin to the playing state");
-    goto error;
+    goto error_locked;
   }
 
   if (!gst_element_link_pads (codecbin, "src",
@@ -836,7 +838,7 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not link the codec bin to the valve");
-    goto error;
+    goto error_locked;
   }
 
   if (!gst_element_link_pads (substream->priv->capsfilter, "src",
@@ -845,7 +847,7 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
          "Could not link the receive capsfilter and the codecbin for pt %d",
          substream->pt);
-    goto error;
+    goto error_locked;
   }
 
   caps = fs_codec_to_gst_caps (codec);
@@ -859,7 +861,7 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL, "Could not get sink pad"
         " from codecbin");
-    goto error;
+    goto error_locked;
   }
 
   /* This is a non-error error
@@ -876,7 +878,7 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
 
     /* We call this to drop all buffers until something comes up */
     fs_rtp_sub_stream_add_probe_locked (substream);
-    goto error;
+    goto error_locked;
   }
 
   gst_object_unref (pad);
@@ -887,9 +889,8 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
 
   if (substream->priv->stream && !substream->priv->output_ghostpad)
   {
-    if (!fs_rtp_sub_stream_add_output_ghostpad_locked (substream, error))
+    if (!fs_rtp_sub_stream_add_output_ghostpad_unlock (substream, error))
       goto error;
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
   }
   else
   {
@@ -900,16 +901,15 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
 
   return TRUE;
 
+ error_locked:
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
+
  error:
 
   gst_element_set_locked_state (codecbin, TRUE);
   gst_element_set_state (codecbin, GST_STATE_NULL);
   gst_object_ref (codecbin);
   gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);
-
- error_no_remove:
-
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   return ret;
 }
@@ -976,7 +976,7 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
 
 
 /**
- * fs_rtp_sub_stream_add_output_ghostpad:
+ * fs_rtp_sub_stream_add_output_ghostpad_unlock:
  *
  * Creates and adds an output ghostpad for this substreams
  *
@@ -986,7 +986,7 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
  */
 
 gboolean
-fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
+fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
     GError **error)
 {
   GstPad *valve_srcpad;
@@ -1016,6 +1016,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not build ghostpad src_%u_%u_%d", substream->priv->session->id,
         substream->ssrc, substream->pt);
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
     return FALSE;
   }
 
@@ -1025,6 +1026,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
         "Could not activate the src_%u_%u_%d", substream->priv->session->id,
         substream->ssrc, substream->pt);
     gst_object_unref (ghostpad);
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
     return FALSE;
   }
 
@@ -1035,6 +1037,7 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
         "Could add build ghostpad src_%u_%u_%d to the conference",
         substream->priv->session->id, substream->ssrc, substream->pt);
     gst_object_unref (ghostpad);
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
     return FALSE;
   }
 
@@ -1048,10 +1051,11 @@ fs_rtp_sub_stream_add_output_ghostpad_locked (FsRtpSubStream *substream,
   g_signal_emit (substream, signals[SRC_PAD_ADDED], 0,
                  ghostpad, substream->codec);
   g_signal_emit (substream, signals[CODEC_CHANGED], 0);
-  FS_RTP_SESSION_LOCK (substream->priv->session);
 
+  FS_RTP_SESSION_LOCK (substream->priv->session);
   if (substream->priv->receiving)
     g_object_set (substream->priv->valve, "drop", FALSE, NULL);
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   return TRUE;
 }
@@ -1139,7 +1143,7 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
 }
 
 /**
- * fs_rtp_sub_stream_verify_codec_locked:
+ * fs_rtp_sub_stream_verify_codec:
  * @substream: A #FsRtpSubStream
  *
  * This function will start the process that invalidates the codec
@@ -1149,7 +1153,7 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
  */
 
 void
-fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream)
+fs_rtp_sub_stream_verify_codec (FsRtpSubStream *substream)
 {
   GST_LOG ("Starting codec verification process for substream with"
       " SSRC:%x pt:%d", substream->ssrc, substream->pt);
