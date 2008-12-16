@@ -3390,24 +3390,18 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
     FsRtpSession *session)
 {
   GError *error = NULL;
-  gint pt;
-  guint32 ssrc;
 
   FS_RTP_SESSION_LOCK (session);
 
-  g_object_get (substream,
-      "pt", &pt,
-      "ssrc", &ssrc,
-      NULL);
-
   GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
-      session->id, ssrc, pt);
+      session->id, substream->ssrc, substream->pt);
 
   if (!fs_rtp_session_substream_set_codec_bin_locked (session, substream,
-          stream, ssrc, pt, &error))
+          stream, substream->ssrc, substream->pt, &error))
   {
     gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
-        " ssrc %u and payload type %d to the state NULL", ssrc, pt);
+        " ssrc %u and payload type %d to the state NULL", substream->ssrc,
+        substream->pt);
 
     if (stream)
       fs_stream_emit_error (FS_STREAM (stream), FS_ERROR_CONSTRUCTION,
@@ -3446,11 +3440,10 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
          item = g_list_next (item))
     {
       FsRtpSubStream *localsubstream = item->data;
-      guint32 localssrc;
 
-      g_object_get (localsubstream, "ssrc", &localssrc, NULL);
-      GST_LOG ("Have substream with ssrc %x, looking for %x", localssrc, ssrc);
-      if (ssrc == localssrc)
+      GST_LOG ("Have substream with ssrc %x, looking for %x",
+          localsubstream->ssrc, ssrc);
+      if (ssrc == localsubstream->ssrc)
       {
         substream = localsubstream;
         session->priv->free_substreams = g_list_delete_link (
@@ -3550,16 +3543,10 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 
   if (g_list_length (session->priv->streams) != 1)
   {
-    guint ssrc, pt;
-    gint timeout;
-    g_object_get (substream,
-        "ssrc", &ssrc,
-        "pt", &pt,
-        "no-rtcp-timeout", &timeout,
-        NULL);
     GST_WARNING ("The substream for SSRC %x and pt %u did not receive RTCP"
         " for %d milliseconds, but we have more than one stream so we can"
-        " not associate it.", ssrc, pt, timeout);
+        " not associate it.", substream->ssrc, substream->pt,
+        substream->no_rtcp_timeout);
     goto done;
   }
 
