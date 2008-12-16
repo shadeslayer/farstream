@@ -781,16 +781,16 @@ successfull_connection_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
 
     if (self->priv->direction == FS_DIRECTION_RECV)
     {
+      GstState state;
       g_message("Setting media_fd_src on fd %d", pollfd->pollfd.fd);
 
-      GstState state;
       gst_element_get_state(self->priv->media_fd_src, &state, NULL,
           GST_CLOCK_TIME_NONE);
 
       if ( state > GST_STATE_READY)
       {
         g_message("Error: fdsrc in state above ready");
-        gst_element_set_state(self->priv->media_fd_src,GST_STATE_READY);
+        gst_element_set_state(self->priv->media_fd_src, GST_STATE_READY);
       }
       g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", pollfd->pollfd.fd, NULL);
       gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
@@ -798,16 +798,16 @@ successfull_connection_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
     }
     else if (self->priv->direction == FS_DIRECTION_SEND)
     {
+      GstState state;
       g_message("Setting media_fd_sink on fd %d", pollfd->pollfd.fd);
 
-      GstState state;
       gst_element_get_state(self->priv->media_fd_sink, &state, NULL,
           GST_CLOCK_TIME_NONE);
 
       if ( state > GST_STATE_READY)
       {
         g_message("Error: fdsrc in state above ready");
-        gst_element_set_state(self->priv->media_fd_sink,GST_STATE_READY);
+        gst_element_set_state(self->priv->media_fd_sink, GST_STATE_READY);
       }
       g_object_set (G_OBJECT(self->priv->media_fd_sink), "fd", pollfd->pollfd.fd, NULL);
       gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
@@ -996,9 +996,9 @@ fd_accept_connection_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
     }
     if (self->priv->direction == FS_DIRECTION_RECV)
     {
+      GstState state;
       g_message("Setting media_fd_src on fd %d",fd);
 
-      GstState state;
       gst_element_get_state(self->priv->media_fd_src, &state, NULL,
           GST_CLOCK_TIME_NONE);
 
@@ -1013,6 +1013,23 @@ fd_accept_connection_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
     }
     else if (self->priv->direction == FS_DIRECTION_SEND)
     {
+
+      GstState state;
+      g_message("Setting media_fd_sink on fd %d", fd);
+
+      gst_element_get_state(self->priv->media_fd_sink, &state, NULL,
+          GST_CLOCK_TIME_NONE);
+
+      if ( state > GST_STATE_READY)
+      {
+        g_message("Error: fdsrc in state above ready");
+        gst_element_set_state(self->priv->media_fd_sink, GST_STATE_READY);
+      }
+      g_object_set (G_OBJECT(self->priv->media_fd_sink), "fd", fd, NULL);
+      gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
+      gst_element_sync_state_with_parent(self->priv->media_fd_sink);
+      g_object_set (G_OBJECT (self->priv->send_valve), "drop", FALSE, NULL);
+
     }
 
     newpollfd = g_slice_new0 (FsMsnPollFD);
