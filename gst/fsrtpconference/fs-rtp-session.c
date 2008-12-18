@@ -507,9 +507,6 @@ fs_rtp_session_dispose (GObject *object)
 
   stop_and_remove (conferencebin, &self->priv->rtpmuxer, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_capsfilter, TRUE);
-  stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
-  stop_and_remove (conferencebin, &self->priv->send_tee, TRUE);
-  stop_and_remove (conferencebin, &self->priv->media_sink_valve, TRUE);
 
   while (self->priv->extra_send_capsfilters)
   {
@@ -520,6 +517,10 @@ fs_rtp_session_dispose (GObject *object)
         self->priv->extra_send_capsfilters,
         self->priv->extra_send_capsfilters);
   }
+
+  stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
+  stop_and_remove (conferencebin, &self->priv->send_tee, TRUE);
+  stop_and_remove (conferencebin, &self->priv->media_sink_valve, TRUE);
 
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
