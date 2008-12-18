@@ -327,10 +327,18 @@ fs_stream_transmitter_set_property (GObject *object,
                                     const GValue *value,
                                     GParamSpec *pspec)
 {
-  GST_WARNING ("Subclass %s of FsStreamTransmitter does not override the %s"
-      " property setter",
-      G_OBJECT_TYPE_NAME(object),
-      g_param_spec_get_name (pspec));
+  switch (prop_id)
+  {
+    /* These properties, we can safely not override */
+    case PROP_ASSOCIATE_ON_SOURCE:
+      break;
+    default:
+      GST_WARNING ("Subclass %s of FsStreamTransmitter does not override the %s"
+          " property setter",
+          G_OBJECT_TYPE_NAME(object),
+          g_param_spec_get_name (pspec));
+      break;
+  }
 }
 
 
