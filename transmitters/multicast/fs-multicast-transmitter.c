@@ -809,6 +809,7 @@ fs_multicast_transmitter_get_udpsock_locked (FsMulticastTransmitter *trans,
     const gchar *multicast_ip,
     guint16 port,
     guint8 ttl,
+    gboolean sending,
     GError **error)
 {
   UdpSock *udpsock;
@@ -839,7 +840,7 @@ fs_multicast_transmitter_get_udpsock_locked (FsMulticastTransmitter *trans,
         udpsock->current_ttl = ttl;
       }
       g_byte_array_append (udpsock->ttls, &ttl, 1);
-      g_mutex_unlock (trans->priv->mutex);
+
       return udpsock;
     }
   }

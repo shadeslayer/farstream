@@ -487,6 +487,7 @@ fs_multicast_stream_transmitter_add_remote_candidate (
       candidate->ip,
       candidate->port,
       candidate->ttl,
+      self->priv->sending,
       error);
 
   if (!newudpsock)
@@ -505,10 +506,6 @@ fs_multicast_stream_transmitter_add_remote_candidate (
   }
 
   self->priv->udpsocks[candidate->component_id] = newudpsock;
-
-  if (self->priv->sending)
-    fs_multicast_transmitter_udpsock_inc_sending (
-        self->priv->udpsocks[candidate->component_id]);
 
   fs_candidate_destroy (self->priv->remote_candidate[candidate->component_id]);
   self->priv->remote_candidate[candidate->component_id] =
