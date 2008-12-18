@@ -610,29 +610,23 @@ fs_rtp_sub_stream_dispose (GObject *object)
   }
 
   if (self->priv->valve) {
-    gst_object_ref (self->priv->valve);
+    gst_element_set_locked_state (self->priv->valve, TRUE);
     gst_element_set_state (self->priv->valve, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->valve);
-    gst_element_set_state (self->priv->valve, GST_STATE_NULL);
-    gst_object_unref (self->priv->valve);
     self->priv->valve = NULL;
   }
 
   if (self->priv->codecbin) {
-    gst_object_ref (self->priv->codecbin);
+    gst_element_set_locked_state (self->priv->codecbin, TRUE);
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->codecbin);
-    gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
-    gst_object_unref (self->priv->codecbin);
     self->priv->codecbin = NULL;
   }
 
   if (self->priv->capsfilter) {
-    gst_object_ref (self->priv->capsfilter);
+    gst_element_set_locked_state (self->priv->capsfilter, TRUE);
     gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
-    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
-    gst_object_unref (self->priv->capsfilter);
     self->priv->capsfilter = NULL;
   }
 
@@ -972,15 +966,24 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
     gst_pad_set_active (substream->priv->output_ghostpad, FALSE);
 
   if (substream->priv->valve)
+  {
+    gst_element_set_locked_state (substream->priv->valve, TRUE);
     gst_element_set_state (substream->priv->valve, GST_STATE_NULL);
+  }
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
   if (substream->priv->codecbin)
+  {
+    gst_element_set_locked_state (substream->priv->codecbin, TRUE);
     gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL);
+  }
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   if (substream->priv->capsfilter)
+  {
+    gst_element_set_locked_state (substream->priv->capsfilter, TRUE);
     gst_element_set_state (substream->priv->capsfilter, GST_STATE_NULL);
+  }
 }
 
 
