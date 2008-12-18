@@ -609,15 +609,6 @@ fs_rtp_sub_stream_dispose (GObject *object)
     self->priv->output_ghostpad = NULL;
   }
 
-  if (self->priv->capsfilter) {
-    gst_object_ref (self->priv->capsfilter);
-    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
-    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
-    gst_object_unref (self->priv->capsfilter);
-    self->priv->capsfilter = NULL;
-  }
-
   if (self->priv->valve) {
     gst_object_ref (self->priv->valve);
     gst_element_set_state (self->priv->valve, GST_STATE_NULL);
@@ -625,16 +616,6 @@ fs_rtp_sub_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->valve, GST_STATE_NULL);
     gst_object_unref (self->priv->valve);
     self->priv->valve = NULL;
-  }
-
-
-  FS_RTP_SESSION_LOCK (self->priv->session);
-
-  if (self->priv->blocking_id)
-  {
-    gst_pad_remove_data_probe (self->priv->rtpbin_pad,
-        self->priv->blocking_id);
-    self->priv->blocking_id = 0;
   }
 
   if (self->priv->codecbin) {
@@ -646,8 +627,21 @@ fs_rtp_sub_stream_dispose (GObject *object)
     self->priv->codecbin = NULL;
   }
 
-  FS_RTP_SESSION_UNLOCK (self->priv->session);
+  if (self->priv->capsfilter) {
+    gst_object_ref (self->priv->capsfilter);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_object_unref (self->priv->capsfilter);
+    self->priv->capsfilter = NULL;
+  }
 
+  if (self->priv->blocking_id)
+  {
+    gst_pad_remove_data_probe (self->priv->rtpbin_pad,
+        self->priv->blocking_id);
+    self->priv->blocking_id = 0;
+  }
 
   if (self->priv->rtpbin_pad) {
     gst_object_unref (self->priv->rtpbin_pad);
