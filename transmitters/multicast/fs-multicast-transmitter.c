@@ -485,6 +485,7 @@ struct _UdpSock {
   GstPad *udpsrc_requested_pad;
 
   GstElement *udpsink;
+  GstElement *udpsink_filter;
   GstPad *udpsink_requested_pad;
 
   gchar *local_ip;
@@ -1029,6 +1030,19 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
           gst_element_state_change_return_get_name (ret));
     if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink), udpsock->udpsink))
       GST_ERROR ("Could not remove udpsink element from transmitter source");
+  }
+
+  if (udpsock->udpsink_filter)
+  {
+    GstStateChangeReturn ret;
+    gst_element_set_locked_state (udpsock->udpsink_filter, TRUE);
+    ret = gst_element_set_state (udpsock->udpsink_filter, GST_STATE_NULL);
+    if (ret != GST_STATE_CHANGE_SUCCESS)
+      GST_ERROR ("Error changing state of udpsink filter: %s",
+          gst_element_state_change_return_get_name (ret));
+    if (!gst_bin_remove (GST_BIN (trans->priv->gst_sink),
+            udpsock->udpsink_filter))
+      GST_ERROR ("Could not remove sink filter element from transmitter sink");
   }
 
   if (udpsock->fd >= 0)
