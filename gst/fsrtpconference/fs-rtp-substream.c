@@ -808,9 +808,11 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
   if (substream->priv->codecbin)
   {
+    gst_element_set_locked_state (substream->priv->codecbin, TRUE);
     if (gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL) !=
         GST_STATE_CHANGE_SUCCESS)
     {
+      gst_element_set_locked_state (substream->priv->codecbin, FALSE);
       g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
           "Could not set the codec bin for ssrc %u"
           " and payload type %d to the state NULL", substream->priv->ssrc,
@@ -915,6 +917,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
  error:
 
+  gst_element_set_locked_state (codecbin, TRUE);
   gst_element_set_state (codecbin, GST_STATE_NULL);
   gst_object_ref (codecbin);
   gst_bin_remove (GST_BIN (substream->priv->conference), codecbin);

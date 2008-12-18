@@ -385,13 +385,15 @@ _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
 
   g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
 
+  gst_element_set_locked_state (src, TRUE);
   gst_element_set_state (src, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (self->priv->conference), src);
-  gst_element_set_state (src, GST_STATE_NULL);
+  gst_element_set_locked_state (src, FALSE);
 
+  gst_element_set_locked_state (sink, TRUE);
   gst_element_set_state (sink, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (self->priv->conference), sink);
-  gst_element_set_state (sink, GST_STATE_NULL);
+  gst_element_set_locked_state (sink, FALSE);
 
   gst_object_unref (src);
   gst_object_unref (sink);
@@ -3189,6 +3191,7 @@ fs_rtp_session_add_send_codec_bin (FsRtpSession *session,
   return codecbin;
 
  error:
+  gst_element_set_locked_state (codecbin, TRUE);
   gst_element_set_state (codecbin, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (session->priv->conference), codecbin);
   fs_codec_list_destroy (codecs);
@@ -3267,6 +3270,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   if (gst_element_set_state (self->priv->send_codecbin, GST_STATE_NULL) !=
       GST_STATE_CHANGE_SUCCESS)
   {
+    gst_element_set_locked_state (self->priv->send_codecbin, FALSE);
     fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
         "Could not stop the codec bin",
         "Setting the codec bin to NULL did not succeed" );
@@ -3297,6 +3301,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       gst_object_unref (ourpad);
     }
 
+    gst_element_set_locked_state (cf, TRUE);
     gst_element_set_state (cf, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), cf);
 
