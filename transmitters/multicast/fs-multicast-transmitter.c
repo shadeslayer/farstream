@@ -936,8 +936,11 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
   g_mutex_unlock (trans->priv->mutex);
 
   if (udpsock->udpsink_recvonly_filter)
+  {
+    g_object_set (udpsock->udpsink_recvonly_filter, "sending", sending, NULL);
     g_signal_emit_by_name (udpsock->udpsink, "add", udpsock->multicast_ip,
         udpsock->port);
+  }
 
   if (sending)
     fs_multicast_transmitter_udpsock_inc_sending (udpsock);
