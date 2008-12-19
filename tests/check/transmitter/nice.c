@@ -30,6 +30,7 @@
 
 #include "check-threadsafe.h"
 #include "generic.h"
+#include "fake-filter.c"
 
 
 enum {

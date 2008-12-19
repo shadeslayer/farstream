@@ -92,6 +92,8 @@ transmitter_nice_SOURCES = \
 	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
+	transmitter/fake-filter.c \
+	transmitter/fake-filter.h \
 	transmitter/nice.c 
 
 rtp_conference_CFLAGS = $(AM_CFLAGS)

@@ -43,8 +43,10 @@ gint candidates[2] = {0, 0};
 GstElement *pipeline = NULL;
 gboolean src_setup[2] = {FALSE, FALSE};
 
-#define FLAG_NOT_SENDING            1<<0
-#define FLAG_RECVONLY_FILTER        1<<1
+enum {
+  FLAG_NOT_SENDING = 1<<0,
+  FLAG_RECVONLY_FILTER = 1<<1
+};
 
 
 GST_START_TEST (test_multicasttransmitter_new)
