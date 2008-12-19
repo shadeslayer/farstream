@@ -44,7 +44,6 @@ volatile gint running = TRUE;
 guint received_known[2] = {0, 0};
 gboolean has_stun = FALSE;
 gboolean associate_on_source = TRUE;
-gboolean sending = TRUE;
 
 gboolean pipeline_done = FALSE;
 GStaticMutex pipeline_mod_mutex = G_STATIC_MUTEX_INIT;
@@ -287,9 +286,8 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   has_stun = flags & FLAG_HAS_STUN;
   associate_on_source = !(flags & FLAG_NO_SOURCE);
-  sending = !(flags & FLAG_NOT_SENDING);
 
-  if (!sending)
+  if (flags & FLAG_NOT_SENDING)
   {
     buffer_count[0] = 20;
     received_known[0] = 20;
@@ -305,7 +303,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
-  if (!sending)
+  if (flags & FLAG_NOT_SENDING)
     ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
             G_CALLBACK (get_recvonly_filter), NULL));
 
@@ -339,7 +337,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
 
-  g_object_set (st, "sending", sending, NULL);
+  g_object_set (st, "sending", !(flags & FLAG_NOT_SENDING), NULL);
 
   ts_fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), GINT_TO_POINTER (flags)),
