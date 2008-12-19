@@ -83,6 +83,8 @@ transmitter_multicast_SOURCES = \
 	check-threadsafe.h  \
 	transmitter/generic.c \
 	transmitter/generic.h \
+	transmitter/fake-filter.c \
+	transmitter/fake-filter.h \
 	transmitter/multicast.c 
 
 transmitter_nice_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
