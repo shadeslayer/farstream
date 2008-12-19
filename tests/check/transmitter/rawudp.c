@@ -53,7 +53,8 @@ enum {
   FLAG_HAS_STUN  = 1 << 0,
   FLAG_IS_LOCAL  = 1 << 1,
   FLAG_NO_SOURCE = 1 << 2,
-  FLAG_NOT_SENDING = 1 << 3
+  FLAG_NOT_SENDING = 1 << 3,
+  FLAG_RECVONLY_FILTER = 1 << 4
 };
 
 #define RTP_PORT 9828
@@ -287,7 +288,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   has_stun = flags & FLAG_HAS_STUN;
   associate_on_source = !(flags & FLAG_NO_SOURCE);
 
-  if (flags & FLAG_NOT_SENDING)
+  if ((flags & FLAG_NOT_SENDING) && (flags & FLAG_RECVONLY_FILTER))
   {
     buffer_count[0] = 20;
     received_known[0] = 20;
@@ -303,7 +304,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
-  if (flags & FLAG_NOT_SENDING)
+  if (flags & FLAG_RECVONLY_FILTER)
     ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
             G_CALLBACK (get_recvonly_filter), NULL));
 
@@ -779,7 +780,8 @@ GST_START_TEST (test_rawudptransmitter_sending_half)
   g_value_init (&params[1].value, G_TYPE_BOOLEAN);
   g_value_set_boolean (&params[1].value, FALSE);
 
-  run_rawudp_transmitter_test (2, params, FLAG_NOT_SENDING);
+  run_rawudp_transmitter_test (2, params,
+      FLAG_NOT_SENDING | FLAG_RECVONLY_FILTER);
 }
 GST_END_TEST;
 
