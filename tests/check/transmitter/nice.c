@@ -30,13 +30,15 @@
 
 #include "check-threadsafe.h"
 #include "generic.h"
-#include "fake-filter.c"
+#include "fake-filter.h"
 
 
 enum {
   FLAG_NO_SOURCE = 1 << 0,
   FLAG_IS_LOCAL = 1 << 1,
-  FLAG_FORCE_CANDIDATES = 1 << 2
+  FLAG_FORCE_CANDIDATES = 1 << 2,
+  FLAG_NOT_SENDING = 1 << 3,
+  FLAG_RECVONLY_FILTER = 1 << 4
 };
 
 
@@ -344,6 +346,14 @@ fs_nice_test_participant_class_init (FsNiceTestParticipantClass *klass)
 {
 }
 
+static GstElement *
+_get_recvonly_filter (FsTransmitter *trans, guint component, gpointer user_data)
+{
+  if (component == 1)
+    return NULL;
+
+  return gst_element_factory_make ("fsfakefilter", NULL);
+}
 
 static void
 run_nice_transmitter_test (gint n_parameters, GParameter *params,
@@ -365,6 +375,17 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   is_address_local = (flags & FLAG_IS_LOCAL);
   force_candidates = (flags & FLAG_FORCE_CANDIDATES);
 
+  if (flags & FLAG_RECVONLY_FILTER)
+    fail_unless (fs_fake_filter_register ());
+
+  if (flags & FLAG_NOT_SENDING)
+  {
+    buffer_count[0][0] = 20;
+    received_known[0][0] = 20;
+    buffer_count[1][0] = 20;
+    received_known[1][0] = 20;
+  }
+
   loop = g_main_loop_new (NULL, FALSE);
 
   trans = fs_transmitter_new ("nice", 2, &error);
@@ -374,6 +395,10 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   }
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
 
+  if (flags & FLAG_RECVONLY_FILTER)
+    ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
+            G_CALLBACK (_get_recvonly_filter), NULL));
+
   trans2 = fs_transmitter_new ("nice", 2, &error);
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
@@ -381,6 +406,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   }
   ts_fail_if (trans2 == NULL, "No transmitter create, yet error is still NULL");
 
+ if (flags & FLAG_RECVONLY_FILTER)
+    ts_fail_unless (g_signal_connect (trans2, "get-recvonly-filter",
+            G_CALLBACK (_get_recvonly_filter), NULL));
 
   pipeline = setup_pipeline (trans, G_CALLBACK (_handoff_handler1));
   pipeline2 = setup_pipeline (trans2, G_CALLBACK (_handoff_handler2));
@@ -417,6 +445,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
   ts_fail_if (st2 == NULL, "No stream transmitter created, yet error is NULL");
+
+  g_object_set (st, "sending", !(flags & FLAG_NOT_SENDING), NULL);
+  g_object_set (st2, "sending", !(flags & FLAG_NOT_SENDING), NULL);
 
   ts_fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), st2),
@@ -733,6 +764,18 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_nicetransmitter_with_filter)
+{
+  run_nice_transmitter_test (0, NULL, FLAG_RECVONLY_FILTER);
+}
+GST_END_TEST;
+
+GST_START_TEST (test_nicetransmitter_sending_half)
+{
+  run_nice_transmitter_test (0, NULL, FLAG_NOT_SENDING | FLAG_RECVONLY_FILTER);
+}
+GST_END_TEST;
+
 
 static Suite *
 nicetransmitter_suite (void)
@@ -775,6 +818,14 @@ nicetransmitter_suite (void)
 
   tc_chain = tcase_create ("nicetransmitter-invalid-arguments");
   tcase_add_test (tc_chain, test_nicetransmitter_invalid_arguments);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("nicetransmitter-with-filter");
+  tcase_add_test (tc_chain, test_nicetransmitter_with_filter);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("nicetransmitter-sending-half");
+  tcase_add_test (tc_chain, test_nicetransmitter_sending_half);
   suite_add_tcase (s, tc_chain);
 
   return s;
