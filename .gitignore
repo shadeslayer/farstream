@@ -52,6 +52,7 @@ docs/plugins/farsight2-plugins.interfaces
 docs/plugins/farsight2-plugins.prerequisites
 docs/plugins/farsight2-plugins.signals
 docs/plugins/farsight2-plugins.signals.new
+docs/plugins/farsight2-transmitters.types
 docs/plugins/html/
 docs/plugins/inspect-registry.xml
 docs/plugins/inspect/
