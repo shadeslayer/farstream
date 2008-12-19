@@ -766,6 +766,25 @@ GST_END_TEST;
 #endif /* HAVE_GUPNP */
 
 
+GST_START_TEST (test_rawudptransmitter_with_filter)
+{
+  GParameter params[2];
+
+  memset (params, 0, sizeof (GParameter) * 2);
+
+  params[0].name = "associate-on-source";
+  g_value_init (&params[0].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[0].value, TRUE);
+
+  params[1].name = "upnp-discovery";
+  g_value_init (&params[1].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[1].value, FALSE);
+
+  run_rawudp_transmitter_test (2, params,
+      FLAG_RECVONLY_FILTER);
+}
+GST_END_TEST;
+
 GST_START_TEST (test_rawudptransmitter_sending_half)
 {
   GParameter params[2];
@@ -841,6 +860,10 @@ rawudptransmitter_suite (void)
   tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_ignored);
   suite_add_tcase (s, tc_chain);
 #endif
+
+  tc_chain = tcase_create ("rawudptransmitter-with-filter");
+  tcase_add_test (tc_chain, test_rawudptransmitter_with_filter);
+  suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("rawudptransmitter-sending-half");
   tcase_add_test (tc_chain, test_rawudptransmitter_sending_half);
