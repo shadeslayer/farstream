@@ -52,7 +52,8 @@ check_PROGRAMS = \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
-	utils/binadded
+	utils/binadded \
+	elements/rtcpfilter
 
 AM_CFLAGS = \
 	$(CFLAGS) \
@@ -119,3 +120,7 @@ rtp_sendcodecs_SOURCES = \
 utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
 	utils/binadded.c
+
+elements_rtcpfilter_CFLAGS = $(AM_CFLAGS)
+elements_rtcpfilter_SOURCES = elements/rtcpfilter.c
+elements_rtcpfilter_LDADD = $(LDADD) -lgstrtp-0.10
