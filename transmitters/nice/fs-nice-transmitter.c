@@ -742,13 +742,37 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
   return NULL;
 }
 
+
+static void
+remove_sink (FsNiceTransmitter *self, NiceGstStream *ns, guint component_id)
+{
+  GstStateChangeReturn ret;
+
+  if (ns->requested_tee_pads[component_id] == NULL)
+    return;
+
+  gst_element_release_request_pad (self->priv->sink_tees[component_id],
+      ns->requested_tee_pads[component_id]);
+  gst_object_unref (ns->requested_tee_pads[component_id]);
+  ns->requested_tee_pads[component_id] = NULL;
+
+  gst_element_set_locked_state (ns->nicesinks[component_id], TRUE);
+  ret = gst_element_set_state (ns->nicesinks[component_id], GST_STATE_NULL);
+  if (ret != GST_STATE_CHANGE_SUCCESS)
+    GST_ERROR ("Error changing state of nicesink: %s",
+        gst_element_state_change_return_get_name (ret));
+  if (!gst_bin_remove (GST_BIN (self->priv->gst_sink),
+          ns->nicesinks[component_id]))
+    GST_ERROR ("Could not remove nicesink element from transmitter"
+        " sink");
+  gst_element_set_locked_state (ns->nicesinks[component_id], FALSE);
+}
+
 void
 fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
     NiceGstStream *ns)
 {
   guint c;
-
-  fs_nice_transmitter_set_sending (self, ns, FALSE);
 
   for (c = 1; c <= self->components; c++)
   {
@@ -774,6 +798,7 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
 
     if (ns->nicesinks[c])
     {
+      remove_sink (self, ns, c);
       gst_object_unref (ns->nicesinks[c]);
     }
 
@@ -812,30 +837,11 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
 
     g_mutex_unlock (ns->mutex);
 
+
     if (current_sending)
     {
-      for (c = 1; c <= self->components; c++)
-      {
-        GstStateChangeReturn ret;
-
-
-        if (ns->requested_tee_pads[c])
-        {
-          gst_element_release_request_pad (self->priv->sink_tees[c],
-              ns->requested_tee_pads[c]);
-          gst_object_unref (ns->requested_tee_pads[c]);
-        }
-
-        gst_element_set_locked_state (ns->nicesinks[c], TRUE);
-        ret = gst_element_set_state (ns->nicesinks[c], GST_STATE_NULL);
-        if (ret != GST_STATE_CHANGE_SUCCESS)
-          GST_ERROR ("Error changing state of nicesink: %s",
-              gst_element_state_change_return_get_name (ret));
-        if (!gst_bin_remove (GST_BIN (self->priv->gst_sink), ns->nicesinks[c]))
-          GST_ERROR ("Could not remove nicesink element from transmitter"
-              " sink");
-        gst_element_set_locked_state (ns->nicesinks[c], FALSE);
-      }
+       for (c = 1; c <= self->components; c++)
+         remove_sink (self, ns, c);
     }
     else
     {
