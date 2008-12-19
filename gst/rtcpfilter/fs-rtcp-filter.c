@@ -195,6 +195,7 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
   if (!filter->sending)
   {
     GstRTCPPacket packet;
+    gboolean modified = FALSE;
 
     gst_rtcp_buffer_get_first_packet (buf, &packet);
 
@@ -204,6 +205,7 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
       {
         if (!gst_rtcp_packet_remove (&packet))
           break;
+        modified = TRUE;
       }
       else
       {
@@ -211,6 +213,9 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
           break;
       }
     }
+
+    if (modified)
+      gst_rtcp_buffer_end (buf);
   }
 
   GST_OBJECT_UNLOCK (filter);
