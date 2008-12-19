@@ -930,6 +930,7 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
   if (udpsock->fd >= 0)
     close (udpsock->fd);
 
+  g_byte_array_free (udpsock->ttls, TRUE);
   g_free (udpsock->multicast_ip);
   g_free (udpsock->local_ip);
   g_slice_free (UdpSock, udpsock);
