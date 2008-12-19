@@ -723,6 +723,9 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     ns->recvonly_filters[c] = fs_transmitter_get_recvonly_filter (
         FS_TRANSMITTER (self), c);
 
+    if (ns->recvonly_filters[c])
+      g_object_set (ns->recvonly_filters[c], "sending", TRUE, NULL);
+
     ns->nicesinks[c] = _create_sinksource ("nicesink",
         GST_BIN (self->priv->gst_sink),
         self->priv->sink_tees[c],
@@ -857,37 +860,46 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
 
     g_mutex_unlock (ns->mutex);
 
-
     if (current_sending)
     {
-       for (c = 1; c <= self->components; c++)
-         remove_sink (self, ns, c);
+      for (c = 1; c <= self->components; c++)
+      {
+        if (ns->recvonly_filters[c])
+          g_object_set (ns->recvonly_filters[c], "sending", FALSE, NULL);
+        else
+          remove_sink (self, ns, c);
+      }
     }
     else
     {
       for (c = 1; c <= self->components; c++)
       {
-        GstStateChangeReturn ret;
-        GstPad *elempad;
+        if (ns->recvonly_filters[c])
+          g_object_set (ns->recvonly_filters[c], "sending", TRUE, NULL);
+        else
+        {
+          GstStateChangeReturn ret;
+          GstPad *elempad;
 
-        if (!gst_bin_add (GST_BIN (self->priv->gst_sink), ns->nicesinks[c]))
-          GST_ERROR ("Could not add nicesink element to the transmitter"
-              " sink");
+          if (!gst_bin_add (GST_BIN (self->priv->gst_sink), ns->nicesinks[c]))
+            GST_ERROR ("Could not add nicesink element to the transmitter"
+                " sink");
 
-        if (!gst_element_sync_state_with_parent (ns->nicesinks[c]))
-          GST_ERROR ("Could sync the state of the nicesink with its parent");
+          if (!gst_element_sync_state_with_parent (ns->nicesinks[c]))
+            GST_ERROR ("Could sync the state of the nicesink with its parent");
 
 
-        ns->requested_tee_pads[c] =
-          gst_element_get_request_pad (self->priv->sink_tees[c], "src%d");
+          ns->requested_tee_pads[c] =
+            gst_element_get_request_pad (self->priv->sink_tees[c], "src%d");
 
-        g_assert (ns->requested_tee_pads[c]);
+          g_assert (ns->requested_tee_pads[c]);
 
-        elempad = gst_element_get_static_pad (ns->nicesinks[c], "sink");
-        ret = gst_pad_link (ns->requested_tee_pads[c], elempad);
-        if (GST_PAD_LINK_FAILED(ret))
-          GST_ERROR ("Could not link nicesink to its tee pad");
-        gst_object_unref (elempad);
+          elempad = gst_element_get_static_pad (ns->nicesinks[c], "sink");
+          ret = gst_pad_link (ns->requested_tee_pads[c], elempad);
+          if (GST_PAD_LINK_FAILED(ret))
+            GST_ERROR ("Could not link nicesink to its tee pad");
+          gst_object_unref (elempad);
+        }
       }
     }
 
