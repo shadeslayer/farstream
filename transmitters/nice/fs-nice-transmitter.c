@@ -468,6 +468,7 @@ _create_sinksource (
     gchar *elementname,
     GstBin *bin,
     GstElement *teefunnel,
+    GstElement *filter,
     NiceAgent *agent,
     guint stream_id,
     guint component_id,
@@ -479,7 +480,7 @@ _create_sinksource (
     GError **error)
 {
   GstElement *elem;
-  GstPadLinkReturn ret;
+  GstPadLinkReturn ret = GST_PAD_LINK_OK;
   GstPad *elempad = NULL;
   GstStateChangeReturn state_ret;
 
@@ -536,11 +537,55 @@ _create_sinksource (
   else
     elempad = gst_element_get_static_pad (elem, "src");
 
-  if (direction == GST_PAD_SINK)
-    ret = gst_pad_link (*requested_pad, elempad);
-  else
-    ret = gst_pad_link (elempad, *requested_pad);
 
+  if (filter)
+  {
+    GstPad *filterpad = NULL;
+
+    if (!gst_bin_add (bin, filter))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not add the filter element to the gst %s bin",
+          (direction == GST_PAD_SINK) ? "sink" : "src");
+      goto error;
+    }
+
+    if (direction == GST_PAD_SINK)
+      filterpad = gst_element_get_static_pad (filter, "src");
+    else
+      filterpad = gst_element_get_static_pad (filter, "sink");
+
+    if (direction == GST_PAD_SINK)
+      ret = gst_pad_link (filterpad, elempad);
+    else
+      ret = gst_pad_link (elempad, filterpad);
+
+    gst_object_unref (elempad);
+    gst_object_unref (filterpad);
+    elempad = NULL;
+
+    if (GST_PAD_LINK_FAILED(ret))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not link the new element %s (%d)", elementname, ret);
+      goto error;
+    }
+
+    if (direction == GST_PAD_SINK)
+      elempad = gst_element_get_static_pad (filter, "sink");
+    else
+      elempad = gst_element_get_static_pad (filter, "src");
+
+    if (!gst_element_sync_state_with_parent (filter))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not sync the state of the new filte rwith its parent");
+      goto error;
+    }
+  }
+
+  if (direction != GST_PAD_SINK)
+    ret = gst_pad_link (elempad, *requested_pad);
 
   if (GST_PAD_LINK_FAILED(ret))
   {
@@ -575,9 +620,6 @@ _create_sinksource (
     }
   }
 
-  gst_object_unref (elempad);
-  elempad = NULL;
-
   if (!gst_element_sync_state_with_parent (elem))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -585,6 +627,19 @@ _create_sinksource (
         elementname);
     goto error;
   }
+
+  if (direction == GST_PAD_SINK)
+    ret = gst_pad_link (*requested_pad, elempad);
+
+  if (GST_PAD_LINK_FAILED(ret))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the new element %s (%d)", elementname, ret);
+    goto error;
+  }
+
+  gst_object_unref (elempad);
+
 
   return elem;
 
@@ -649,6 +704,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     ns->nicesrcs[c] = _create_sinksource ("nicesrc",
         GST_BIN (self->priv->gst_src),
         self->priv->src_funnels[c],
+        NULL,
         agent,
         stream_id,
         c,
@@ -666,6 +722,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     ns->nicesinks[c] = _create_sinksource ("nicesink",
         GST_BIN (self->priv->gst_sink),
         self->priv->sink_tees[c],
+        NULL,
         agent,
         stream_id,
         c,
