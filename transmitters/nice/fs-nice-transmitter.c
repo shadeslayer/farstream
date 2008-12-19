@@ -664,6 +664,7 @@ _create_sinksource (
 struct _NiceGstStream {
   GstElement **nicesrcs;
   GstElement **nicesinks;
+  GstElement **recvonly_filters;
 
   GstPad **requested_funnel_pads;
   GstPad **requested_tee_pads;
@@ -695,6 +696,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
   ns->mutex = g_mutex_new ();
   ns->nicesrcs = g_new0 (GstElement *, self->components + 1);
   ns->nicesinks = g_new0 (GstElement *, self->components + 1);
+  ns->recvonly_filters = g_new0 (GstElement *, self->components + 1);
   ns->requested_tee_pads = g_new0 (GstPad *, self->components + 1);
   ns->requested_funnel_pads = g_new0 (GstPad *, self->components + 1);
   ns->probe_ids = g_new0 (gulong, self->components + 1);
@@ -718,11 +720,13 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
     if (ns->nicesrcs[c] == NULL)
       goto error;
 
+    ns->recvonly_filters[c] = fs_transmitter_get_recvonly_filter (
+        FS_TRANSMITTER (self), c);
 
     ns->nicesinks[c] = _create_sinksource ("nicesink",
         GST_BIN (self->priv->gst_sink),
         self->priv->sink_tees[c],
-        NULL,
+        ns->recvonly_filters[c],
         agent,
         stream_id,
         c,
@@ -768,6 +772,7 @@ remove_sink (FsNiceTransmitter *self, NiceGstStream *ns, guint component_id)
   gst_element_set_locked_state (ns->nicesinks[component_id], FALSE);
 }
 
+
 void
 fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
     NiceGstStream *ns)
@@ -802,10 +807,25 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
       gst_object_unref (ns->nicesinks[c]);
     }
 
+    if (ns->recvonly_filters[c])
+    {
+      GstStateChangeReturn ret;
+
+      gst_element_set_locked_state (ns->recvonly_filters[c], TRUE);
+      ret = gst_element_set_state (ns->recvonly_filters[c], GST_STATE_NULL);
+      if (ret != GST_STATE_CHANGE_SUCCESS)
+        GST_ERROR ("Error changing state of nicesink: %s",
+            gst_element_state_change_return_get_name (ret));
+      if (!gst_bin_remove (GST_BIN (self->priv->gst_sink),
+              ns->recvonly_filters[c]))
+        GST_ERROR ("Could not remove the recvonly filter element from"
+            " the transmitter sink");
+    }
   }
 
   g_free (ns->nicesrcs);
   g_free (ns->nicesinks);
+  g_free (ns->recvonly_filters);
   g_free (ns->requested_tee_pads);
   g_free (ns->requested_funnel_pads);
   g_free (ns->probe_ids);
