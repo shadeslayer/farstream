@@ -35,6 +35,7 @@
 
 #include "check-threadsafe.h"
 #include "generic.h"
+#include "fake-filter.h"
 
 gint buffer_count[2] = {0, 0};
 GMainLoop *loop = NULL;
@@ -118,7 +119,7 @@ _get_recvonly_filter (FsTransmitter *trans, guint component, gpointer user_data)
   if (component == 1)
     return NULL;
 
-  return gst_element_factory_make ("identity", NULL);
+  return gst_element_factory_make ("fsfakefilter", NULL);
 }
 
 static void
@@ -137,6 +138,9 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
   if (flags & FLAG_NOT_SENDING && flags & FLAG_RECVONLY_FILTER)
     buffer_count[0] = 20;
+
+  if (flags & FLAG_RECVONLY_FILTER)
+    fail_unless (fs_fake_filter_register ());
 
   loop = g_main_loop_new (NULL, FALSE);
   trans = fs_transmitter_new ("multicast", 2, &error);
@@ -327,7 +331,6 @@ multicasttransmitter_suite (void)
   TCase *tc_chain;
   GLogLevelFlags fatal_mask;
   gchar *tmp_addr;
-
 
   tmp_addr = _find_multicast_capable_address ();
 
