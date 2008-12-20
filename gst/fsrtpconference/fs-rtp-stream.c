@@ -543,7 +543,6 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
   return TRUE;
 
  error:
-  FS_RTP_SESSION_UNLOCK (self->priv->session);
   return FALSE;
 }
 

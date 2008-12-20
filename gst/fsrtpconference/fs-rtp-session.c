@@ -2181,8 +2181,6 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
   {
     if (!fs_rtp_session_verify_send_codec_bin_unlock (session, error))
       return FALSE;
-    else
-      FS_RTP_SESSION_UNLOCK (session);
   }
   else
   {
