@@ -70,16 +70,35 @@ struct _FsRtpSession
   /* This ID can be accessed by the stream/substreams for this session */
   guint id;
 
-  GStaticMutex mutex; /* Should only be accessed using the macros */
+  GMutex *mutex; /* Should only be accessed using the macros */
+
+#ifdef DEBUG_MUTEXES
+  guint count;
+#endif
 
   FsRtpSessionPrivate *priv;
 };
 
-#define FS_RTP_SESSION_LOCK(session) \
-  g_static_mutex_lock (&FS_RTP_SESSION (session)->mutex)
-#define FS_RTP_SESSION_UNLOCK(session) \
-  g_static_mutex_unlock (&FS_RTP_SESSION (session)->mutex)
+#ifdef DEBUG_MUTEXES
 
+#define FS_RTP_SESSION_LOCK(session) \
+  do { \
+    g_mutex_lock (FS_RTP_SESSION (session)->mutex);   \
+    g_assert (FS_RTP_SESSION (session)->count == 0);  \
+    FS_RTP_SESSION (session)->count++;                \
+  } while (0);
+#define FS_RTP_SESSION_UNLOCK(session) \
+  do { \
+    g_assert (FS_RTP_SESSION (session)->count == 1);  \
+    FS_RTP_SESSION (session)->count--;                \
+    g_mutex_unlock (FS_RTP_SESSION (session)->mutex); \
+  } while (0);
+#else
+#define FS_RTP_SESSION_LOCK(session) \
+  g_mutex_lock (FS_RTP_SESSION_CAST (session)->mutex)
+#define FS_RTP_SESSION_UNLOCK(session) \
+  g_mutex_unlock (FS_RTP_SESSION_CAST (session)->mutex)
+#endif
 
 GType fs_rtp_session_get_type (void);
 
