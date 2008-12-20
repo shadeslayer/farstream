@@ -136,8 +136,6 @@ struct _FsRtpSessionPrivate
    */
   GstPad *media_sink_pad;
 
-  GList *extra_send_capsfilters;
-
   /* The discovery elements are only created when codec parameter discovery is
    * under progress.
    * They are normally destroyed when the caps are found but may be destroyed
@@ -162,6 +160,7 @@ struct _FsRtpSessionPrivate
 
   /* Can only be modified by the streaming thread with the pad blocked */
   GstElement *send_codecbin;
+  GList *extra_send_capsfilters;
 
   /* These lists are protected by the session mutex */
   GList *streams;
@@ -228,10 +227,7 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
 static gboolean fs_rtp_session_set_codec_preferences (FsSession *session,
     GList *codec_preferences,
     GError **error);
-static gboolean fs_rtp_session_verify_send_codec_bin_locked (
-    FsRtpSession *self,
-    GError **error);
-static void fs_rtp_session_send_codec_changed_unlock (FsRtpSession *self);
+static void fs_rtp_session_verify_send_codec_bin (FsRtpSession *self);
 
 static gchar **fs_rtp_session_list_transmitters (FsSession *session);
 
@@ -1560,7 +1556,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  gboolean ret = FALSE;
+  gboolean ret = TRUE;
 
   FS_RTP_SESSION_LOCK (self);
 
@@ -1572,7 +1568,8 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 
     self->priv->requested_send_codec = fs_codec_copy (send_codec);
 
-    ret = fs_rtp_session_verify_send_codec_bin_locked (self, error);
+    fs_rtp_session_verify_send_codec_bin (self);
+    ret = TRUE;
   }
   else
   {
@@ -2180,14 +2177,12 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
   fs_rtp_session_start_codec_param_gathering_locked (session);
 
-  if (has_remotes)
-  {
-    if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
-      return FALSE;
-  }
-
   FS_RTP_SESSION_UNLOCK (session);
 
+  if (has_remotes)
+  {
+    fs_rtp_session_verify_send_codec_bin (session);
+  }
 
   if (is_new)
   {
@@ -3077,6 +3072,92 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   return FALSE;
 }
 
+
+static gboolean
+fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
+    FsCodec *codec_without_config,
+    gboolean error_emit)
+{
+  if (self->priv->send_codecbin)
+  {
+    gst_element_set_locked_state (self->priv->send_codecbin, TRUE);
+    if (gst_element_set_state (self->priv->send_codecbin, GST_STATE_NULL) !=
+        GST_STATE_CHANGE_SUCCESS)
+    {
+      gst_element_set_locked_state (self->priv->send_codecbin, FALSE);
+      if (error_emit)
+        fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
+            "Could not stop the codec bin",
+            "Setting the codec bin to NULL did not succeed" );
+      return FALSE;
+    }
+
+    gst_bin_remove (GST_BIN (self->priv->conference),
+        self->priv->send_codecbin);
+    self->priv->send_codecbin = NULL;
+  }
+
+  FS_RTP_SESSION_LOCK (self);
+  fs_codec_destroy (self->priv->current_send_codec);
+  self->priv->current_send_codec = NULL;
+  FS_RTP_SESSION_UNLOCK (self);
+
+  while (self->priv->extra_send_capsfilters)
+  {
+    GstElement *cf = self->priv->extra_send_capsfilters->data;
+    GstPad *ourpad = gst_element_get_static_pad (cf, "src");
+    GstPad *pad = NULL;
+
+    if (ourpad)
+    {
+      pad = gst_pad_get_peer (ourpad);
+      if (pad)
+      {
+        gst_pad_set_active (pad, FALSE);
+        gst_element_release_request_pad (self->priv->rtpmuxer, pad);
+        gst_object_unref (pad);
+      }
+      gst_object_unref (ourpad);
+    }
+
+    gst_element_set_locked_state (cf, TRUE);
+    gst_element_set_state (cf, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), cf);
+
+    self->priv->extra_send_capsfilters = g_list_delete_link (
+        self->priv->extra_send_capsfilters,
+        self->priv->extra_send_capsfilters);
+  }
+
+  if (codec_without_config)
+  {
+    GError *error = NULL;
+
+    FS_RTP_SESSION_LOCK (self);
+    self->priv->extra_sources = fs_rtp_special_sources_remove (
+        self->priv->extra_sources,
+        self->priv->codec_associations, codec_without_config,
+        GST_ELEMENT (self->priv->conference),
+        self->priv->rtpmuxer);
+    FS_RTP_SESSION_UNLOCK (self);
+    if (error)
+    {
+      if (error_emit)
+        fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
+            "Could not remove unused special sources",
+            "Could not remove unused special sources");
+      return FALSE;
+    }
+  }
+  /*
+   * Lets reset the clock-rate (because rtpmuxer saves it.. )
+   */
+  g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
+
+  return TRUE;
+}
+
+
 /**
  * fs_rtp_session_add_send_codec_bin_unlock:
  * @session: a #FsRtpSession
@@ -3114,12 +3195,15 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   codecbin = _create_codec_bin (ca, codec, name, TRUE, codecs, error);
   g_free (name);
 
+  FS_RTP_SESSION_UNLOCK (session);
+
   if (!codecbin)
   {
     fs_codec_list_destroy (codecs);
-    FS_RTP_SESSION_UNLOCK (session);
     return NULL;
   }
+
+  gst_element_set_locked_state (codecbin, TRUE);
 
   if (!gst_bin_add (GST_BIN (session->priv->conference), codecbin))
   {
@@ -3128,7 +3212,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
         codec->id);
     gst_object_unref (codecbin);
     fs_codec_list_destroy (codecs);
-    FS_RTP_SESSION_UNLOCK (session);
     return NULL;
   }
 
@@ -3139,7 +3222,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
         "Could not get the valve sink for the send codec bin");
     gst_bin_remove (GST_BIN (session->priv->conference), (codecbin));
     fs_codec_list_destroy (codecs);
-    FS_RTP_SESSION_UNLOCK (session);
     return NULL;
   }
 
@@ -3192,6 +3274,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   if (!g_value_get_boolean (&link_rv))
     goto error;
 
+  gst_element_set_locked_state (codecbin, FALSE);
 
   if (!gst_element_sync_state_with_parent (codecbin))
   {
@@ -3204,51 +3287,31 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
 
   session->priv->send_codecbin = codecbin;
-  session->priv->current_send_codec = fs_codec_copy (codec);
 
-  fs_rtp_session_send_codec_changed_unlock (session);
+  FS_RTP_SESSION_LOCK (session);
+  session->priv->current_send_codec = fs_codec_copy (codec);
+  FS_RTP_SESSION_UNLOCK (session);
+
+  g_object_notify (G_OBJECT (session), "current-send-codec");
+
+  gst_element_post_message (GST_ELEMENT (session->priv->conference),
+      gst_message_new_element (GST_OBJECT (session->priv->conference),
+          gst_structure_new ("farsight-send-codec-changed",
+              "session", FS_TYPE_SESSION, session,
+              "codec", FS_TYPE_CODEC, codec,
+              NULL)));
+
 
   fs_codec_list_destroy (codecs);
 
   return codecbin;
 
  error:
-  gst_element_set_locked_state (codecbin, TRUE);
-  gst_element_set_state (codecbin, GST_STATE_NULL);
-  gst_bin_remove (GST_BIN (session->priv->conference), codecbin);
+  fs_rtp_session_remove_send_codec_bin (session, NULL, FALSE);
   fs_codec_list_destroy (codecs);
   FS_RTP_SESSION_UNLOCK (session);
 
   return NULL;
-}
-
-/**
- * fs_rtp_session_send_codec_changed_unlock:
- * @self: The #FsRtpSession that changed its codec
- *
- * Call this function when the value of the #FsSession:current-send-codec
- * changes
- */
-
-static void
-fs_rtp_session_send_codec_changed_unlock (FsRtpSession *self)
-{
-  FsCodec *codec = NULL;
-
-  codec = fs_codec_copy (self->priv->current_send_codec);
-
-  FS_RTP_SESSION_UNLOCK (self);
-
-  g_object_notify (G_OBJECT (self), "current-send-codec");
-
-  gst_element_post_message (GST_ELEMENT (self->priv->conference),
-      gst_message_new_element (GST_OBJECT (self->priv->conference),
-          gst_structure_new ("farsight-send-codec-changed",
-              "session", FS_TYPE_SESSION, self,
-              "codec", FS_TYPE_CODEC, codec,
-              NULL)));
-
-  fs_codec_destroy (codec);
 }
 
 static void
@@ -3287,72 +3350,30 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   g_clear_error (&error);
 
   if (fs_codec_are_equal (codec_without_config, self->priv->current_send_codec))
+    goto done_locked;
+
+  FS_RTP_SESSION_UNLOCK (self);
+
+  g_object_set (self->priv->media_sink_valve, "drop", TRUE, NULL);
+
+  if (!fs_rtp_session_remove_send_codec_bin (self, codec_without_config,
+          TRUE))
     goto done;
 
+  FS_RTP_SESSION_LOCK (self);
+  /* We have to re-fetch the ca because we lifted the lock */
+  ca = fs_rtp_session_select_send_codec_locked (self, &error);
 
-  gst_element_set_locked_state (self->priv->send_codecbin, TRUE);
-  if (gst_element_set_state (self->priv->send_codecbin, GST_STATE_NULL) !=
-      GST_STATE_CHANGE_SUCCESS)
+  if (!ca)
   {
-    gst_element_set_locked_state (self->priv->send_codecbin, FALSE);
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
-        "Could not stop the codec bin",
-        "Setting the codec bin to NULL did not succeed" );
-    goto done;
+    fs_session_emit_error (FS_SESSION (self), error->code,
+        "Could not select a new send codec", error->message);
+    goto done_locked;
   }
 
-  gst_bin_remove (GST_BIN (self->priv->conference), self->priv->send_codecbin);
-  self->priv->send_codecbin = NULL;
+  codec_without_config = codec_copy_without_config (ca->codec);
 
-  fs_codec_destroy (self->priv->current_send_codec);
-  self->priv->current_send_codec = NULL;
-
-  while (self->priv->extra_send_capsfilters)
-  {
-    GstElement *cf = self->priv->extra_send_capsfilters->data;
-    GstPad *ourpad = gst_element_get_static_pad (cf, "src");
-    GstPad *pad = NULL;
-
-    if (ourpad)
-    {
-      pad = gst_pad_get_peer (ourpad);
-      if (pad)
-      {
-        gst_pad_set_active (pad, FALSE);
-        gst_element_release_request_pad (self->priv->rtpmuxer, pad);
-        gst_object_unref (pad);
-      }
-      gst_object_unref (ourpad);
-    }
-
-    gst_element_set_locked_state (cf, TRUE);
-    gst_element_set_state (cf, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (self->priv->conference), cf);
-
-    self->priv->extra_send_capsfilters = g_list_delete_link (
-        self->priv->extra_send_capsfilters,
-        self->priv->extra_send_capsfilters);
-  }
-
-
-  self->priv->extra_sources = fs_rtp_special_sources_remove (
-      self->priv->extra_sources,
-      self->priv->codec_associations, codec_without_config,
-      GST_ELEMENT (self->priv->conference),
-      self->priv->rtpmuxer);
-  if (error)
-  {
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
-        "Could not remove unused special sources",
-        "Could not remove unused special sources");
-    goto done;
-  }
-
-  /*
-   * Lets reset the clock-rate (because rtpmuxer saves it.. )
-   */
-  g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
-
+  g_clear_error (&error);
 
   if (!fs_rtp_session_add_send_codec_bin_unlock (self, codec_without_config,
           ca, &error))
@@ -3369,13 +3390,13 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
   if (error)
-  {
     fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
         "Could not create special sources",
         "Could not create special sources");
-    goto done;
-  }
 
+ done_locked:
+
+  FS_RTP_SESSION_UNLOCK (self);
 
  done:
   g_clear_error (&error);
@@ -3388,47 +3409,23 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   fs_codec_destroy (codec_without_config);
 
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
-
-  FS_RTP_SESSION_UNLOCK (self);
 }
 
 /**
- * fs_rtp_session_verify_send_codec_bin_locked:
+ * fs_rtp_session_verify_send_codec_bin:
  *
  * Verify that the current send codec is still valid and if it is not
  * do whats required to have the right one be used.
  *
- * Must be called with the FsRtpSession lock taken
+ * Does not care about locks
  *
- * Returns: TRUE if it succeeds, FALSE on an error
  */
 
-static gboolean
-fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
+static void
+fs_rtp_session_verify_send_codec_bin (FsRtpSession *self)
 {
-  CodecAssociation *ca = NULL;
-  FsCodec *codec_without_config = NULL;
-
-  ca = fs_rtp_session_select_send_codec_locked (self, error);
-  if (!ca)
-    return FALSE;
-
-  codec_without_config = codec_copy_without_config (ca->codec);
-
-  if (self->priv->current_send_codec)
-  {
-    if (fs_codec_are_equal (codec_without_config,
-            self->priv->current_send_codec))
-      goto done;
-  }
-
   gst_pad_set_blocked_async (self->priv->send_tee_media_pad, TRUE,
       _send_src_pad_blocked_callback, self);
-
- done:
-
-  fs_codec_destroy (codec_without_config);
-  return TRUE;
 }
 
 /*
