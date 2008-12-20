@@ -157,9 +157,11 @@ struct _FsRtpSessionPrivate
 
   /* Protected by the session mutex */
   /* The codec bin is owned implicitely by the Conference bin for us */
-  GstElement *send_codecbin;
   FsCodec *current_send_codec;
   FsCodec *requested_send_codec;
+
+  /* Can only be modified by the streaming thread with the pad blocked */
+  GstElement *send_codecbin;
 
   /* These lists are protected by the session mutex */
   GList *streams;
@@ -226,7 +228,7 @@ static gboolean fs_rtp_session_set_send_codec (FsSession *session,
 static gboolean fs_rtp_session_set_codec_preferences (FsSession *session,
     GList *codec_preferences,
     GError **error);
-static gboolean fs_rtp_session_verify_send_codec_bin_unlock (
+static gboolean fs_rtp_session_verify_send_codec_bin_locked (
     FsRtpSession *self,
     GError **error);
 static void fs_rtp_session_send_codec_changed_unlock (FsRtpSession *self);
@@ -1570,15 +1572,15 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 
     self->priv->requested_send_codec = fs_codec_copy (send_codec);
 
-    ret = fs_rtp_session_verify_send_codec_bin_unlock (self, error);
+    ret = fs_rtp_session_verify_send_codec_bin_locked (self, error);
   }
   else
   {
-    FS_RTP_SESSION_UNLOCK (self);
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "The passed codec is not part of the list of codecs");
   }
 
+  FS_RTP_SESSION_UNLOCK (self);
 
   return ret;
 }
@@ -2180,13 +2182,11 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
   if (has_remotes)
   {
-    if (!fs_rtp_session_verify_send_codec_bin_unlock (session, error))
+    if (!fs_rtp_session_verify_send_codec_bin_locked (session, error))
       return FALSE;
   }
-  else
-  {
-    FS_RTP_SESSION_UNLOCK (session);
-  }
+
+  FS_RTP_SESSION_UNLOCK (session);
 
 
   if (is_new)
@@ -3384,7 +3384,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 }
 
 /**
- * fs_rtp_session_verify_send_codec_bin_unlock:
+ * fs_rtp_session_verify_send_codec_bin_locked:
  *
  * Verify that the current send codec is still valid and if it is not
  * do whats required to have the right one be used.
@@ -3395,7 +3395,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
  */
 
 static gboolean
-fs_rtp_session_verify_send_codec_bin_unlock (FsRtpSession *self, GError **error)
+fs_rtp_session_verify_send_codec_bin_locked (FsRtpSession *self, GError **error)
 {
   CodecAssociation *ca = NULL;
   FsCodec *codec_without_config = NULL;
@@ -3411,43 +3411,15 @@ fs_rtp_session_verify_send_codec_bin_unlock (FsRtpSession *self, GError **error)
     if (fs_codec_are_equal (codec_without_config,
             self->priv->current_send_codec))
       goto done;
-
-    /* If we have to change an already made pipeline,
-     * we have to make sure that is it blocked
-     */
-
-
-    gst_pad_set_blocked_async (self->priv->send_tee_media_pad, TRUE,
-        _send_src_pad_blocked_callback, self);
   }
-  else
-  {
-    /* The codec does exist yet, lets just create it */
 
-    if (!fs_rtp_session_add_send_codec_bin_unlock (self, codec_without_config,
-            ca, error))
-      /* We have an error !! */
-      goto error;
-
-    FS_RTP_SESSION_LOCK (self);
-
-    self->priv->extra_sources = fs_rtp_special_sources_create (
-        self->priv->extra_sources,
-        self->priv->codec_associations, codec_without_config,
-        GST_ELEMENT (self->priv->conference),
-        self->priv->rtpmuxer);
-  }
+  gst_pad_set_blocked_async (self->priv->send_tee_media_pad, TRUE,
+      _send_src_pad_blocked_callback, self);
 
  done:
 
-  FS_RTP_SESSION_UNLOCK (self);
-
   fs_codec_destroy (codec_without_config);
   return TRUE;
-
- error:
-  fs_codec_destroy (codec_without_config);
-  return FALSE;
 }
 
 /*
