@@ -281,6 +281,8 @@ one_way (GCallback havedata_handler, gpointer data)
 
   set_codecs (dat, stream);
 
+  setup_fakesrc (dat);
+
   g_main_loop_run (loop);
 
   gst_element_set_state (dat->pipeline, GST_STATE_NULL);
@@ -302,8 +304,8 @@ send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 
   ts_fail_unless (gst_rtp_buffer_validate (buf), "Buffer is not valid rtp");
 
-  fail_unless (gst_rtp_buffer_get_payload_type (buf) == dtmf_id,
-      "Payload type is not DTMF");
+  if (gst_rtp_buffer_get_payload_type (buf) != dtmf_id)
+    return;
 
   data = gst_rtp_buffer_get_payload (buf);
 
