@@ -3054,6 +3054,15 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
     return FALSE;
   }
 
+
+  if (!gst_element_sync_state_with_parent (capsfilter))
+  {
+    g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the extra send capsfilter"
+        " with the state of the conference");
+    goto error;
+  }
+
   return TRUE;
 
  error:
