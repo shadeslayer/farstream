@@ -140,10 +140,13 @@ struct _FsRtpSessionPrivate
    * under progress.
    * They are normally destroyed when the caps are found but may be destroyed
    * by the dispose function too, we hold refs to them
+   * These three elements can only be modified from the streaming threads
+   * and are protected by the stream lock
    */
   GstElement *discovery_fakesink;
   GstElement *discovery_capsfilter;
   GstElement *discovery_codecbin;
+  /* This one is protected by the session lock */
   FsCodec *discovery_codec;
 
   /* Request pad to release on dispose */
@@ -274,7 +277,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 static void
 fs_rtp_session_start_codec_param_gathering_locked (FsRtpSession *session);
 static void
-fs_rtp_session_stop_codec_param_gathering_locked (FsRtpSession *session);
+fs_rtp_session_stop_codec_param_gathering_unlock (FsRtpSession *session);
 
 static void
 fs_rtp_session_associate_free_substreams (FsRtpSession *session,
@@ -459,7 +462,8 @@ fs_rtp_session_dispose (GObject *object)
   if (self->priv->rtpbin_send_rtp_sink)
     gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
 
-  fs_rtp_session_stop_codec_param_gathering_locked (self);
+  FS_RTP_SESSION_LOCK (self);
+  fs_rtp_session_stop_codec_param_gathering_unlock (self);
 
   if (self->priv->send_tee_discovery_pad)
   {
@@ -3829,7 +3833,7 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 }
 
 /**
- * fs_rtp_session_get_codec_params_locked:
+ * fs_rtp_session_get_codec_params_unlock:
  * @session: a #FsRtpSession
  * @ca: the #CodecAssociaton to get params for
  *
@@ -3839,15 +3843,26 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
  */
 
 static gboolean
-fs_rtp_session_get_codec_params_locked (FsRtpSession *session,
+fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
     CodecAssociation *ca, GError **error)
 {
   GstPad *pad = NULL;
   gchar *tmp;
   GstCaps *caps;
+  FsCodec *codec = fs_codec_copy (ca->codec);
+  GstElement *codecbin = NULL;
 
   GST_LOG ("Gathering params for codec " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (ca->codec));
+
+  fs_codec_destroy (session->priv->discovery_codec);
+  session->priv->discovery_codec = NULL;
+
+  tmp = g_strdup_printf ("discover_%d_%d", session->id, ca->codec->id);
+  codecbin = _create_codec_bin (ca, ca->codec, tmp, TRUE, NULL, error);
+  g_free (tmp);
+
+  FS_RTP_SESSION_UNLOCK (session);
 
   if (session->priv->discovery_codecbin)
   {
@@ -3858,8 +3873,6 @@ fs_rtp_session_get_codec_params_locked (FsRtpSession *session,
     session->priv->discovery_codecbin = NULL;
   }
 
-  fs_codec_destroy (session->priv->discovery_codec);
-  session->priv->discovery_codec = NULL;
 
   /* They must both exist or neither exists, anything else is wrong */
   if ((session->priv->discovery_fakesink == NULL ||
@@ -3948,13 +3961,11 @@ fs_rtp_session_get_codec_params_locked (FsRtpSession *session,
     gst_object_unref (pad);
   }
 
-  tmp = g_strdup_printf ("discover_%d_%d", session->id, ca->codec->id);
-  session->priv->discovery_codecbin = _create_codec_bin (ca, ca->codec,
-      tmp, TRUE, NULL, error);
-  g_free (tmp);
-
-  if (!session->priv->discovery_codecbin)
+  if (!codecbin)
     goto error;
+
+  session->priv->discovery_codecbin = codecbin;
+  codecbin = NULL;
 
   if (!gst_bin_add (GST_BIN (session->priv->conference),
             session->priv->discovery_codecbin))
@@ -3999,11 +4010,17 @@ fs_rtp_session_get_codec_params_locked (FsRtpSession *session,
 
   gst_object_unref (pad);
 
-  session->priv->discovery_codec = fs_codec_copy (ca->codec);
+
+  session->priv->discovery_codec = codec;
 
   return TRUE;
 
  error:
+
+  fs_codec_destroy (codec);
+
+  if (codecbin)
+    gst_object_unref (codecbin);
 
   if (session->priv->discovery_fakesink)
   {
@@ -4031,8 +4048,6 @@ fs_rtp_session_get_codec_params_locked (FsRtpSession *session,
         session->priv->discovery_codecbin);
     session->priv->discovery_codecbin = NULL;
   }
-
-  FS_RTP_SESSION_UNLOCK (session);
 
   return FALSE;
 }
@@ -4065,8 +4080,7 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
   }
   if (!item)
   {
-    fs_rtp_session_stop_codec_param_gathering_locked (session);
-    FS_RTP_SESSION_UNLOCK (session);
+    fs_rtp_session_stop_codec_param_gathering_unlock (session);
 
     g_object_notify (G_OBJECT (session), "codecs-ready");
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
@@ -4079,24 +4093,26 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
   }
 
   if (fs_codec_are_equal (ca->codec, session->priv->discovery_codec))
-    goto out;
+    goto out_locked;
 
-  if (!fs_rtp_session_get_codec_params_locked (session, ca, &error))
+  if (!fs_rtp_session_get_codec_params_unlock (session, ca, &error))
   {
-    fs_rtp_session_stop_codec_param_gathering_locked (session);
+    FS_RTP_SESSION_LOCK (session);
+    fs_rtp_session_stop_codec_param_gathering_unlock (session);
     fs_session_emit_error (FS_SESSION (session), error->code,
         "Error while discovering codec data, discovery cancelled",
         error->message);
   }
 
- out:
-
   g_clear_error (&error);
-
-  FS_RTP_SESSION_UNLOCK (session);
 
  out_unlocked:
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
+  return;
+
+ out_locked:
+  FS_RTP_SESSION_UNLOCK (session);
+  goto out_unlocked;
 }
 
 /**
@@ -4133,14 +4149,14 @@ fs_rtp_session_start_codec_param_gathering_locked (FsRtpSession *session)
 
 
 /**
- * fs_rtp_session_stop_codec_param_gathering_locked
+ * fs_rtp_session_stop_codec_param_gathering_unlock:
  * @session: a #FsRtpSession
  *
  * Stop the codec config gathering and remove the elements used for that
  */
 
 static void
-fs_rtp_session_stop_codec_param_gathering_locked (FsRtpSession *session)
+fs_rtp_session_stop_codec_param_gathering_unlock (FsRtpSession *session)
 {
 
   GST_DEBUG ("Stopping Codec Param discovery for session %d", session->id);
@@ -4150,6 +4166,8 @@ fs_rtp_session_stop_codec_param_gathering_locked (FsRtpSession *session)
     fs_codec_destroy (session->priv->discovery_codec);
     session->priv->discovery_codec = NULL;
   }
+
+  FS_RTP_SESSION_UNLOCK (session);
 
   if (session->priv->discovery_fakesink)
   {
