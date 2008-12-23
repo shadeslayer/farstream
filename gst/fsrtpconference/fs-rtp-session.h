@@ -95,9 +95,9 @@ struct _FsRtpSession
   } while (0);
 #else
 #define FS_RTP_SESSION_LOCK(session) \
-  g_mutex_lock (FS_RTP_SESSION_CAST (session)->mutex)
+  g_mutex_lock ((session)->mutex)
 #define FS_RTP_SESSION_UNLOCK(session) \
-  g_mutex_unlock (FS_RTP_SESSION_CAST (session)->mutex)
+  g_mutex_unlock ((session)->mutex)
 #endif
 
 GType fs_rtp_session_get_type (void);
