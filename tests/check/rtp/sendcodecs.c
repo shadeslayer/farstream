@@ -207,7 +207,7 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
     else if (codec->clock_rate == 8000 &&
         !g_strcasecmp (codec->encoding_name, "telephone-event"))
     {
-      ts_fail_unless (dtmf_id == 0, "More than one copy of telephon-event");
+      ts_fail_unless (dtmf_id == 0, "More than one copy of telephone-event");
       dtmf_id = codec->id;
       filtered_codecs = g_list_append (filtered_codecs, codec);
     }
