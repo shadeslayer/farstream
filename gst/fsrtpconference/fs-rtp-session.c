@@ -2337,20 +2337,16 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   g_clear_error (&error);
 
-  FS_RTP_SESSION_LOCK (session);
 
   if (stream)
   {
+    FS_RTP_SESSION_LOCK (session);
     if (!fs_rtp_stream_add_substream_unlock (stream, substream, &error))
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the output ghostpad to the new substream",
           error->message);
 
     g_clear_error (&error);
-  }
-  else
-  {
-    FS_RTP_SESSION_UNLOCK (session);
   }
 
   if (stream)
