@@ -3378,15 +3378,11 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   FS_RTP_SESSION_LOCK (self);
 
-    self->priv->extra_sources = fs_rtp_special_sources_create (
+  self->priv->extra_sources = fs_rtp_special_sources_create (
       self->priv->extra_sources,
       self->priv->codec_associations, codec_without_config,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
-  if (error)
-    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
-        "Could not create special sources",
-        "Could not create special sources");
 
  done_locked:
 
