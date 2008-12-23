@@ -2717,7 +2717,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
   {
     for (item = stream->negotiated_codecs; item; item = g_list_next (item))
     {
-      recv_codec = fs_codec_copy (item->data);
+      recv_codec = item->data;
       if (recv_codec->id == pt)
         break;
     }
@@ -2734,7 +2734,11 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     }
   }
 
-  if (!recv_codec)
+  if (recv_codec)
+  {
+    recv_codec = fs_codec_copy (recv_codec);
+  }
+  else
   {
     recv_codec = codec_copy_without_config (ca->codec);
     GST_DEBUG ("Receiving on session codec " FS_CODEC_FORMAT,
