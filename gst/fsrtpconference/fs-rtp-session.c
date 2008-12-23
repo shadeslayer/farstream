@@ -3336,7 +3336,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
         "Could not select a new send codec", error->message);
-    goto done;
+    goto done_locked;
   }
 
   codec_without_config = codec_copy_without_config (ca->codec);
