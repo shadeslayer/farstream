@@ -2795,8 +2795,9 @@ fs_rtp_session_substream_set_codec_bin_unlock (FsRtpSession *session,
   if (!codecbin)
     goto out;
 
-  return fs_rtp_sub_stream_set_codecbin_unlock (substream, ca->codec, codecbin,
-      error);
+
+  return fs_rtp_sub_stream_set_codecbin_unlock (substream,
+      fs_codec_copy (ca->codec), codecbin, error);
 
  out:
   FS_RTP_SESSION_UNLOCK (session);
