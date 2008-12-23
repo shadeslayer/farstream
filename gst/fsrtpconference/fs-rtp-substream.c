@@ -97,6 +97,10 @@ struct _FsRtpSubStreamPrivate {
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
 
+  /* Set to TRUE if the ghostpad is already being added */
+  /* Proteced by the session mutex */
+  gboolean adding_output_ghostpad;
+
   /* The id of the pad probe used to block the stream while the recv codec
    * is changed
    * Protected by the session mutex
@@ -526,7 +530,6 @@ fs_rtp_sub_stream_constructed (GObject *object)
   g_object_set (self->priv->valve,
       "drop", TRUE,
       NULL);
-
 
   if (gst_element_set_state (self->priv->valve, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE) {
@@ -1041,7 +1044,6 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
   fs_rtp_sub_stream_try_stop (substream);
 }
 
-
 /**
  * fs_rtp_sub_stream_add_output_ghostpad_unlock:
  *
@@ -1062,11 +1064,21 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
   gboolean receiving;
   FsCodec *codec = NULL;
 
+  if (substream->priv->adding_output_ghostpad)
+  {
+    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+    return TRUE;
+  }
+
   g_assert (substream->priv->output_ghostpad == NULL);
+
+  substream->priv->adding_output_ghostpad = TRUE;
 
   padname = g_strdup_printf ("src_%u_%u_%d", substream->priv->session->id,
       substream->ssrc,
       substream->pt);
+
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   valve_srcpad = gst_element_get_static_pad (substream->priv->valve,
       "src");
@@ -1085,7 +1097,7 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not build ghostpad src_%u_%u_%d", substream->priv->session->id,
         substream->ssrc, substream->pt);
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+    substream->priv->adding_output_ghostpad = FALSE;
     return FALSE;
   }
 
@@ -1095,7 +1107,7 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
         "Could not activate the src_%u_%u_%d", substream->priv->session->id,
         substream->ssrc, substream->pt);
     gst_object_unref (ghostpad);
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+    substream->priv->adding_output_ghostpad = FALSE;
     return FALSE;
   }
 
@@ -1106,10 +1118,11 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
         "Could add build ghostpad src_%u_%u_%d to the conference",
         substream->priv->session->id, substream->ssrc, substream->pt);
     gst_object_unref (ghostpad);
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+    substream->priv->adding_output_ghostpad = FALSE;
     return FALSE;
   }
 
+  FS_RTP_SESSION_LOCK (substream->priv->session);
   substream->priv->output_ghostpad = ghostpad;
 
   GST_DEBUG ("Src pad added on substream for ssrc:%X pt:%u " FS_CODEC_FORMAT,
@@ -1129,6 +1142,8 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
 
   if (receiving)
     g_object_set (substream->priv->valve, "drop", FALSE, NULL);
+
+  fs_rtp_sub_stream_try_stop (substream);
 
   return TRUE;
 }
