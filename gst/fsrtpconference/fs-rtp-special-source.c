@@ -104,10 +104,6 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer);
-static gboolean
-fs_rtp_special_source_update (FsRtpSpecialSource *source,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec);
 
 static gpointer
 register_classes (gpointer data)
@@ -440,8 +436,7 @@ fs_rtp_special_sources_remove (
     if (obj_item)
     {
       if (!fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
-              send_codec) ||
-          fs_rtp_special_source_update (obj, negotiated_codecs, send_codec))
+              send_codec))
       {
         current_extra_sources = g_list_remove (current_extra_sources, obj);
         g_object_unref (obj);
@@ -583,18 +578,6 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
   g_object_unref (source);
 
   return NULL;
-}
-
-static gboolean
-fs_rtp_special_source_update (FsRtpSpecialSource *source,
-    GList *negotiated_sources, FsCodec *selected_codec)
-{
-  FsRtpSpecialSourceClass *klass = FS_RTP_SPECIAL_SOURCE_GET_CLASS (source);
-
-  if (klass->update)
-    return klass->update (source, negotiated_sources, selected_codec);
-
-  return FALSE;
 }
 
 /**
