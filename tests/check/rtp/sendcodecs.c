@@ -243,6 +243,13 @@ one_way (GCallback havedata_handler, gpointer data)
   GList *candidates = NULL;
   GstBus *bus = NULL;
 
+  method = FS_DTMF_METHOD_AUTO;
+  dtmf_id = 0;
+  digit = 0;
+  sending = FALSE;
+  received = FALSE;
+  ready_to_send = FALSE;
+
   loop = g_main_loop_new (NULL, FALSE);
 
   dat = setup_simple_conference (1, "fsrtpconference", "tester@123445");
