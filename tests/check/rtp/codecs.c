@@ -939,6 +939,8 @@ GST_START_TEST (test_rtpcodecs_dynamic_pt)
   }
   fs_codec_list_destroy (codecs);
 
+  fs_codec_list_destroy (codec_prefs);
+
   fail_if (item == NULL, "Could not force codec id");
 
  out:
