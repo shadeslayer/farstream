@@ -102,9 +102,23 @@ fs_funnel_base_init (gpointer g_class)
 
 
 static void
-fs_funnel_finalize (GObject * object)
+fs_funnel_dispose (GObject * object)
 {
-  G_OBJECT_CLASS (parent_class)->finalize (object);
+  GList *item;
+
+ restart:
+  for (item = GST_ELEMENT_PADS (object); item; item = g_list_next (item))
+  {
+    GstPad *pad = GST_PAD (item->data);
+
+    if (GST_PAD_IS_SINK (pad))
+    {
+      gst_element_release_request_pad (GST_ELEMENT (object), pad);
+      goto restart;
+    }
+  }
+
+  G_OBJECT_CLASS (parent_class)->dispose (object);
 }
 
 static void
@@ -113,7 +127,7 @@ fs_funnel_class_init (FsFunnelClass * klass)
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
 
-  gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_funnel_finalize);
+  gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_funnel_dispose);
 
   gstelement_class->request_new_pad =
     GST_DEBUG_FUNCPTR (fs_funnel_request_new_pad);
