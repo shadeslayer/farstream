@@ -454,7 +454,7 @@ fs_rtp_special_sources_remove (
 
 
 /**
- * fs_rtp_special_sources_remove:
+ * fs_rtp_special_sources_create:
  * @current_extra_sources: The #GList returned by previous calls to this function
  * @negotiated_codecs: A #GList of current negotiated #CodecAssociation
  * @send_codec: The currently selected send codec
