@@ -108,10 +108,11 @@ struct _FsRtpSpecialSource
 
 GType fs_rtp_special_source_get_type (void);
 
-GList *
+void
 fs_rtp_special_sources_remove (
-    GList *current_extra_sources,
-    GList *negotiated_codecs,
+    GList **current_extra_sources,
+    GList **negotiated_codecs,
+    GMutex *mutex,
     FsCodec *send_codec,
     GstElement *bin,
     GstElement *rtpmuxer);

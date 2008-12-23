@@ -100,6 +100,8 @@ struct _FsRtpSession
   g_mutex_unlock ((session)->mutex)
 #endif
 
+#define FS_RTP_SESSION_GET_LOCK(session) ((session)->mutex)
+
 GType fs_rtp_session_get_type (void);
 
 FsRtpSession *fs_rtp_session_new (FsMediaType media_type,

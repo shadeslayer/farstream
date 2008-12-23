@@ -392,21 +392,23 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
 
 /**
  * fs_rtp_special_sources_remove:
- * @current_extra_sources: The #GList returned by previous calls to this function
- * @negotiated_codecs: A #GList of current negotiated #CodecAssociation
- * @send_codec: The currently selected send codec
+ * @extra_sources: A pointer to the #GList returned by previous calls to this
+ *  function
+ * @negotiated_codecs: A pointer to the #GList of current negotiated
+ * #CodecAssociation
+ * @mutex: the mutex protecting the last two things
+ * @send_codec: A pointer to the currently selected send codec
  * @bin: The #GstBin to add the stuff to
  * @rtpmuxer: The rtpmux element
  *
  * This function removes any special source that are not compatible with the
  * currently selected send codec.
- *
- * Returns: A #GList to be passed to other functions in this class
  */
-GList *
+void
 fs_rtp_special_sources_remove (
-    GList *current_extra_sources,
-    GList *negotiated_codecs,
+    GList **extra_sources,
+    GList **negotiated_codecs,
+    GMutex *mutex,
     FsCodec *send_codec,
     GstElement *bin,
     GstElement *rtpmuxer)
@@ -423,8 +425,11 @@ fs_rtp_special_sources_remove (
     GList *obj_item;
     FsRtpSpecialSource *obj = NULL;
 
+  restart:
+    g_mutex_lock (mutex);
+
     /* Check if we already have an object for this type */
-    for (obj_item = g_list_first (current_extra_sources);
+    for (obj_item = g_list_first (*extra_sources);
          obj_item;
          obj_item = g_list_next (obj_item))
     {
@@ -435,16 +440,18 @@ fs_rtp_special_sources_remove (
 
     if (obj_item)
     {
-      if (!fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
+      if (!fs_rtp_special_source_class_want_source (klass, *negotiated_codecs,
               send_codec))
       {
-        current_extra_sources = g_list_remove (current_extra_sources, obj);
+        *extra_sources = g_list_remove (*extra_sources, obj);
+        g_mutex_unlock (mutex);
         g_object_unref (obj);
+        goto restart;
       }
     }
-  }
 
-  return current_extra_sources;
+    g_mutex_unlock (mutex);
+  }
 }
 
 

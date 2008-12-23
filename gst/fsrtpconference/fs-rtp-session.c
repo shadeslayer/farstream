@@ -3135,25 +3135,14 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
   }
 
   if (codec_without_config)
-  {
-    GError *error = NULL;
-
-    FS_RTP_SESSION_LOCK (self);
-    self->priv->extra_sources = fs_rtp_special_sources_remove (
-        self->priv->extra_sources,
-        self->priv->codec_associations, codec_without_config,
+    fs_rtp_special_sources_remove (
+        &self->priv->extra_sources,
+        &self->priv->codec_associations,
+        FS_RTP_SESSION_GET_LOCK (self),
+        codec_without_config,
         GST_ELEMENT (self->priv->conference),
         self->priv->rtpmuxer);
-    FS_RTP_SESSION_UNLOCK (self);
-    if (error)
-    {
-      if (error_emit)
-        fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
-            "Could not remove unused special sources",
-            "Could not remove unused special sources");
-      return FALSE;
-    }
-  }
+
   /*
    * Lets reset the clock-rate (because rtpmuxer saves it.. )
    */
