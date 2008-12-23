@@ -3354,6 +3354,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
           TRUE))
     goto done;
 
+
   FS_RTP_SESSION_LOCK (self);
   /* We have to re-fetch the ca because we lifted the lock */
   ca = fs_rtp_session_select_send_codec_locked (self, &error);
@@ -3365,6 +3366,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     goto done_locked;
   }
 
+  fs_codec_destroy (codec_without_config);
   codec_without_config = codec_copy_without_config (ca->codec);
 
   g_clear_error (&error);
@@ -3376,17 +3378,13 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         "Could not build a new send codec bin", error->message);
   }
 
-  FS_RTP_SESSION_LOCK (self);
-
-  self->priv->extra_sources = fs_rtp_special_sources_create (
-      self->priv->extra_sources,
-      self->priv->codec_associations, codec_without_config,
+  fs_rtp_special_sources_create (
+      &self->priv->extra_sources,
+      &self->priv->codec_associations,
+      FS_RTP_SESSION_GET_LOCK (self),
+      codec_without_config,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
-
- done_locked:
-
-  FS_RTP_SESSION_UNLOCK (self);
 
  done:
   g_clear_error (&error);
@@ -3399,6 +3397,12 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   fs_codec_destroy (codec_without_config);
 
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
+
+  return;
+
+ done_locked:
+  FS_RTP_SESSION_UNLOCK (self);
+  goto done;
 }
 
 /**

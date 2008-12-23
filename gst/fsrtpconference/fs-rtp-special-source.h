@@ -57,7 +57,7 @@ typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
 /**
  * FsRtpSpecialSourceClass:
  * @build: The method builds the source #GstElement from the list of negotiated
- *   codecs and selected codecs, it returns %NULL on error
+ *  codecs and selected codecs, it returns %NULL on error
  * @want_source: Returns %TRUE if a source of this type should be created
  *  according to the selected codec and the negotiated codecs
  * @add_blueprint: Adds #CodecBlueprint structs to the list if the proper
@@ -117,10 +117,11 @@ fs_rtp_special_sources_remove (
     GstElement *bin,
     GstElement *rtpmuxer);
 
-GList *
+void
 fs_rtp_special_sources_create (
-    GList *current_extra_sources,
-    GList *negotiated_codecs,
+    GList **extra_sources,
+    GList **negotiated_codecs,
+    GMutex *mutex,
     FsCodec *send_codec,
     GstElement *bin,
     GstElement *rtpmuxer);

@@ -100,7 +100,8 @@ static void fs_rtp_special_source_finalize (GObject *object);
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
+    GList **negotiated_codecs,
+    GMutex *mutex,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer);
@@ -457,20 +458,22 @@ fs_rtp_special_sources_remove (
 
 /**
  * fs_rtp_special_sources_create:
- * @current_extra_sources: The #GList returned by previous calls to this function
- * @negotiated_codecs: A #GList of current negotiated #CodecAssociation
+ * @current_extra_sources: A pointer to the #GList returned by previous calls
+ * to this function
+ * @negotiated_codecs: A pointer to the #GList of current negotiated
+ * #CodecAssociation
+ * @mutex: the mutex protecting the last two things
  * @send_codec: The currently selected send codec
  * @bin: The #GstBin to add the stuff to
  * @rtpmuxer: The rtpmux element
  *
  * This function add special sources that don't already exist but are needed
- *
- * Returns: A #GList to be passed to other functions in this class
  */
-GList *
+void
 fs_rtp_special_sources_create (
-    GList *current_extra_sources,
-    GList *negotiated_codecs,
+    GList **extra_sources,
+    GList **negotiated_codecs,
+    GMutex *mutex,
     FsCodec *send_codec,
     GstElement *bin,
     GstElement *rtpmuxer)
@@ -478,6 +481,8 @@ fs_rtp_special_sources_create (
   GList *klass_item = NULL;
 
   fs_rtp_special_sources_init ();
+
+  g_mutex_lock (mutex);
 
   for (klass_item = g_list_first (classes);
        klass_item;
@@ -488,7 +493,7 @@ fs_rtp_special_sources_create (
     FsRtpSpecialSource *obj = NULL;
 
     /* Check if we already have an object for this type */
-    for (obj_item = g_list_first (current_extra_sources);
+    for (obj_item = g_list_first (*extra_sources);
          obj_item;
          obj_item = g_list_next (obj_item))
     {
@@ -498,26 +503,44 @@ fs_rtp_special_sources_create (
     }
 
     if (!obj_item &&
-        fs_rtp_special_source_class_want_source (klass, negotiated_codecs,
+        fs_rtp_special_source_class_want_source (klass, *negotiated_codecs,
             send_codec))
     {
-      obj = fs_rtp_special_source_new (klass, negotiated_codecs, send_codec,
-          bin, rtpmuxer);
+      g_mutex_unlock (mutex);
+      obj = fs_rtp_special_source_new (klass, negotiated_codecs, mutex,
+          send_codec, bin, rtpmuxer);
       if (!obj)
-        goto error;
-      current_extra_sources = g_list_insert_sorted (current_extra_sources,
-          obj, _source_order_compare_func);
+        return;
+
+      g_mutex_lock (mutex);
+
+      /* Check again if we already have an object for this type */
+      for (obj_item = g_list_first (*extra_sources);
+           obj_item;
+           obj_item = g_list_next (obj_item))
+        if (G_OBJECT_TYPE(obj_item->data) == G_OBJECT_CLASS_TYPE(klass))
+          break;
+      if (obj_item)
+      {
+        g_mutex_unlock (mutex);
+        g_object_unref (obj);
+        g_mutex_lock (mutex);
+      }
+      else
+      {
+        *extra_sources = g_list_insert_sorted (*extra_sources,
+            obj, _source_order_compare_func);
+      }
     }
   }
 
- error:
-
-  return current_extra_sources;
+  g_mutex_unlock (mutex);
 }
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
+    GList **negotiated_codecs,
+    GMutex *mutex,
     FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer)
@@ -536,7 +559,11 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
       NULL);
   g_return_val_if_fail (source, NULL);
 
-  source->priv->src = klass->build (source, negotiated_codecs, selected_codec);
+  g_mutex_lock (mutex);
+
+  source->priv->src = klass->build (source, *negotiated_codecs, selected_codec);
+
+  g_mutex_unlock (mutex);
 
   if (!source->priv->src)
     goto error;

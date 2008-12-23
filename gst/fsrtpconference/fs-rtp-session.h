@@ -93,14 +93,17 @@ struct _FsRtpSession
     FS_RTP_SESSION (session)->count--;                \
     g_mutex_unlock (FS_RTP_SESSION (session)->mutex); \
   } while (0);
+#define FS_RTP_SESSION_GET_LOCK(session) \
+  (FS_RTP_SESSION (session)->mutex)
 #else
 #define FS_RTP_SESSION_LOCK(session) \
   g_mutex_lock ((session)->mutex)
 #define FS_RTP_SESSION_UNLOCK(session) \
   g_mutex_unlock ((session)->mutex)
+#define FS_RTP_SESSION_GET_LOCK(session) \
+  ((session)->mutex)
 #endif
 
-#define FS_RTP_SESSION_GET_LOCK(session) ((session)->mutex)
 
 GType fs_rtp_session_get_type (void);
 
