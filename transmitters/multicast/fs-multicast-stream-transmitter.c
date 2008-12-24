@@ -119,8 +119,6 @@ struct _FsMulticastStreamTransmitterPrivate
   UdpSock **udpsocks;
 
   GList *preferred_local_candidates;
-
-  guint next_candidate_id;
 };
 
 #define FS_MULTICAST_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
