@@ -80,8 +80,6 @@ struct _FsNiceStreamTransmitterPrivate
 
   guint stream_id;
 
-  gboolean sending;
-
   gchar *stun_ip;
   guint stun_port;
 
@@ -103,6 +101,8 @@ struct _FsNiceStreamTransmitterPrivate
   volatile gint associate_on_source;
 
   /* Everything below is protected by the mutex */
+
+  gboolean sending;
 
   gboolean forced_candidates;
   GList *remote_candidates;
@@ -401,7 +401,9 @@ fs_nice_stream_transmitter_get_property (GObject *object,
   switch (prop_id)
   {
     case PROP_SENDING:
+      FS_NICE_STREAM_TRANSMITTER_LOCK (self);
       g_value_set_boolean (value, self->priv->sending);
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       g_value_set_boxed (value, self->priv->preferred_local_candidates);
@@ -456,9 +458,11 @@ fs_nice_stream_transmitter_set_property (GObject *object,
   switch (prop_id)
   {
     case PROP_SENDING:
+      FS_NICE_STREAM_TRANSMITTER_LOCK (self);
       self->priv->sending = g_value_get_boolean (value);
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       fs_nice_transmitter_set_sending (self->priv->transmitter,
-          self->priv->gststream, self->priv->sending);
+          self->priv->gststream, g_value_get_boolean (value));
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       self->priv->preferred_local_candidates = g_value_dup_boxed (value);
