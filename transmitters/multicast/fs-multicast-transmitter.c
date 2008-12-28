@@ -87,6 +87,7 @@ struct _FsMulticastTransmitterPrivate
   GstElement **udpsrc_funnels;
   GstElement **udpsink_tees;
 
+  GMutex *mutex;
   GList **udpsocks;
 
   gboolean disposed;
@@ -202,6 +203,7 @@ fs_multicast_transmitter_init (FsMulticastTransmitter *self)
   self->priv->disposed = FALSE;
 
   self->components = 2;
+  self->priv->mutex = g_mutex_new ();
 }
 
 static void
@@ -398,6 +400,8 @@ fs_multicast_transmitter_finalize (GObject *object)
     self->priv->udpsocks = NULL;
   }
 
+  g_mutex_free (self->priv->mutex);
+
   parent_class->finalize (object);
 }
 
@@ -486,10 +490,12 @@ struct _UdpSock {
   gchar *local_ip;
   gchar *multicast_ip;
   guint16 port;
+  /* Protected by the transmitter mutex */
   guint8 current_ttl;
 
   gint fd;
 
+  /* Protected by the transmitter mutex */
   GByteArray *ttls;
 
   /* These are just convenience pointers to our parent transmitter */
@@ -760,6 +766,8 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
     return NULL;
   }
 
+  g_mutex_lock (trans->priv->mutex);
+
   for (udpsock_e = g_list_first (trans->priv->udpsocks[component_id]);
        udpsock_e;
        udpsock_e = g_list_next (udpsock_e))
@@ -780,14 +788,17 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
           g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
               "Error setting the multicast TTL: %s",
               g_strerror (errno));
+          g_mutex_unlock (trans->priv->mutex);
           return NULL;
         }
         udpsock->current_ttl = ttl;
       }
       g_byte_array_append (udpsock->ttls, &ttl, 1);
+      g_mutex_unlock (trans->priv->mutex);
       return udpsock;
     }
   }
+  g_mutex_unlock (trans->priv->mutex);
 
   udpsock = g_slice_new0 (UdpSock);
 
@@ -828,8 +839,10 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
       "sync", FALSE,
       NULL);
 
+  g_mutex_lock (trans->priv->mutex);
   trans->priv->udpsocks[component_id] =
     g_list_prepend (trans->priv->udpsocks[component_id], udpsock);
+  g_mutex_unlock (trans->priv->mutex);
 
   return udpsock;
 
@@ -847,6 +860,7 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
 {
   guint i;
 
+  g_mutex_lock (trans->priv->mutex);
   for (i = udpsock->ttls->len - 1;; i--)
   {
     if (udpsock->ttls->data[i] == ttl)
@@ -878,16 +892,20 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
         {
           GST_WARNING ("Error setting the multicast TTL to %u: %s", max,
               g_strerror (errno));
+          g_mutex_unlock (trans->priv->mutex);
           return;
         }
         udpsock->current_ttl = max;
       }
     }
+    g_mutex_unlock (trans->priv->mutex);
     return;
   }
 
   trans->priv->udpsocks[udpsock->component_id] =
     g_list_remove (trans->priv->udpsocks[udpsock->component_id], udpsock);
+
+  g_mutex_unlock (trans->priv->mutex);
 
   if (udpsock->udpsrc)
   {
