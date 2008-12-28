@@ -87,6 +87,8 @@ struct _FsRawUdpTransmitterPrivate
   GstElement **udpsrc_funnels;
   GstElement **udpsink_tees;
 
+  GMutex *mutex;
+  /* Protected by the mutex */
   GList **udpports;
 
   gboolean disposed;
@@ -206,6 +208,7 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
   self->priv->disposed = FALSE;
 
   self->components = 2;
+  self->priv->mutex = g_mutex_new ();
 }
 
 static void
@@ -415,6 +418,8 @@ fs_rawudp_transmitter_finalize (GObject *object)
     self->priv->udpports = NULL;
   }
 
+  g_mutex_free (self->priv->mutex);
+
   parent_class->finalize (object);
 }
 
@@ -496,6 +501,7 @@ fs_rawudp_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
  */
 
 struct _UdpPort {
+  /* Protected by the transmitter mutex */
   gint refcount;
 
   GstElement *udpsrc;
@@ -694,23 +700,14 @@ _create_sinksource (
 }
 
 
-UdpPort *
-fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
+static UdpPort *
+fs_rawudp_transmitter_get_udpport_locked (FsRawUdpTransmitter *trans,
     guint component_id,
     const gchar *requested_ip,
-    guint requested_port,
-    GError **error)
+    guint requested_port)
 {
   UdpPort *udpport;
   GList *udpport_e;
-
-  /* First lets check if we already have one */
-  if (component_id > trans->components)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid component %d > %d", component_id, trans->components);
-    return NULL;
-  }
 
   for (udpport_e = g_list_first (trans->priv->udpports[component_id]);
        udpport_e;
@@ -727,6 +724,36 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
       return udpport;
     }
   }
+
+  return NULL;
+}
+
+
+UdpPort *
+fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
+    guint component_id,
+    const gchar *requested_ip,
+    guint requested_port,
+    GError **error)
+{
+  UdpPort *udpport;
+  UdpPort *tmpudpport;
+
+  /* First lets check if we already have one */
+  if (component_id > trans->components)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid component %d > %d", component_id, trans->components);
+    return NULL;
+  }
+
+  g_mutex_lock (trans->priv->mutex);
+  udpport = fs_rawudp_transmitter_get_udpport_locked (trans, component_id,
+      requested_ip, requested_port);
+  g_mutex_unlock (trans->priv->mutex);
+
+  if (udpport)
+    return udpport;
 
   GST_DEBUG ("Make new UdpPort for component %u requesting %s:%u", component_id,
       requested_ip ? requested_ip : "ANY", requested_port);
@@ -771,8 +798,22 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
       "sync", FALSE,
       NULL);
 
+  g_mutex_lock (trans->priv->mutex);
+
+  /* Check if someone else added the same port at the same time */
+  tmpudpport = fs_rawudp_transmitter_get_udpport_locked (trans, component_id,
+      requested_ip, requested_port);
+
+  if (tmpudpport)
+  {
+    g_mutex_unlock (trans->priv->mutex);
+    fs_rawudp_transmitter_put_udpport (trans, udpport);
+    return tmpudpport;
+  }
+
   trans->priv->udpports[component_id] =
     g_list_prepend (trans->priv->udpports[component_id], udpport);
+  g_mutex_unlock (trans->priv->mutex);
 
   return udpport;
 
@@ -788,14 +829,19 @@ fs_rawudp_transmitter_put_udpport (FsRawUdpTransmitter *trans,
 {
   GST_LOG ("Put port refcount %d->%d", udpport->refcount, udpport->refcount-1);
 
+  g_mutex_lock (trans->priv->mutex);
+
   if (udpport->refcount > 1)
   {
     udpport->refcount--;
+    g_mutex_unlock (trans->priv->mutex);
     return;
   }
 
   trans->priv->udpports[udpport->component_id] =
     g_list_remove (trans->priv->udpports[udpport->component_id], udpport);
+
+  g_mutex_unlock (trans->priv->mutex);
 
   if (udpport->udpsrc)
   {
