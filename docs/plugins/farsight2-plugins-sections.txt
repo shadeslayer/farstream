@@ -153,6 +153,7 @@ FS_RTP_SESSION
 FS_RTP_SESSION_CAST
 FS_RTP_SESSION_CLASS
 FS_RTP_SESSION_GET_CLASS
+FS_RTP_SESSION_GET_LOCK
 FS_RTP_SESSION_LOCK
 FS_RTP_SESSION_UNLOCK
 FS_TYPE_RTP_SESSION
@@ -182,9 +183,9 @@ FS_RTP_STREAM_GET_CLASS
 FS_TYPE_RTP_STREAM
 <SUBSECTION Private>
 FsRtpStreamPrivate
-fs_rtp_stream_add_substream
 fs_rtp_stream_new
-fs_rtp_stream_set_negotiated_codecs
+fs_rtp_stream_add_substream_unlock
+fs_rtp_stream_set_negotiated_codecs_unlock
 </SECTION>
 
 
@@ -226,6 +227,7 @@ FsNiceTransmitterPrivate
 NiceGstStream
 fs_nice_transmitter_add_gst_stream
 fs_nice_transmitter_free_gst_stream
+fs_nice_transmitter_set_sending
 </SECTION>
 
 
