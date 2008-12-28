@@ -504,7 +504,7 @@ struct _UdpSock {
 
   guint component_id;
 
-  gint sendcount;
+  volatile gint sendcount;
 };
 
 static gboolean
@@ -986,19 +986,15 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
 void
 fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock)
 {
-  if (udpsock->sendcount == 0)
+  if (g_atomic_int_exchange_and_add (&udpsock->sendcount, 1) == 0)
     g_signal_emit_by_name (udpsock->udpsink, "add", udpsock->multicast_ip,
         udpsock->port);
-
-  udpsock->sendcount++;
 }
 
 void
 fs_multicast_transmitter_udpsock_dec_sending (UdpSock *udpsock)
 {
-  udpsock->sendcount--;
-
-  if (udpsock->sendcount == 0)
+  if (g_atomic_int_dec_and_test (&udpsock->sendcount))
     g_signal_emit_by_name (udpsock->udpsink, "remove", udpsock->multicast_ip,
         udpsock->port);
 }
