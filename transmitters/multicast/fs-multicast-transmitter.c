@@ -746,8 +746,8 @@ _create_sinksource (gchar *elementname, GstBin *bin,
   return NULL;
 }
 
-UdpSock *
-fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
+static UdpSock *
+fs_multicast_transmitter_get_udpsock_locked (FsMulticastTransmitter *trans,
     guint component_id,
     const gchar *local_ip,
     const gchar *multicast_ip,
@@ -757,16 +757,6 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
 {
   UdpSock *udpsock;
   GList *udpsock_e;
-
-  /* First lets check if we already have one */
-  if (component_id > trans->components)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-      "Invalid component %d > %d", component_id, trans->components);
-    return NULL;
-  }
-
-  g_mutex_lock (trans->priv->mutex);
 
   for (udpsock_e = g_list_first (trans->priv->udpsocks[component_id]);
        udpsock_e;
@@ -788,7 +778,6 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
           g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
               "Error setting the multicast TTL: %s",
               g_strerror (errno));
-          g_mutex_unlock (trans->priv->mutex);
           return NULL;
         }
         udpsock->current_ttl = ttl;
@@ -798,7 +787,36 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
       return udpsock;
     }
   }
+  return NULL;
+}
+
+UdpSock *
+fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
+    guint component_id,
+    const gchar *local_ip,
+    const gchar *multicast_ip,
+    guint16 port,
+    guint8 ttl,
+    GError **error)
+{
+  UdpSock *udpsock;
+  UdpSock *tmpudpsock;
+
+  /* First lets check if we already have one */
+  if (component_id > trans->components)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+      "Invalid component %d > %d", component_id, trans->components);
+    return NULL;
+  }
+
+  g_mutex_lock (trans->priv->mutex);
+  udpsock = fs_multicast_transmitter_get_udpsock_locked (trans, component_id,
+      local_ip, multicast_ip, port, ttl, error);
   g_mutex_unlock (trans->priv->mutex);
+
+  if (udpsock)
+    return udpsock;
 
   udpsock = g_slice_new0 (UdpSock);
 
@@ -840,6 +858,17 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
       NULL);
 
   g_mutex_lock (trans->priv->mutex);
+  /* Check if someone else has added the same thing at the same time */
+  tmpudpsock = fs_multicast_transmitter_get_udpsock_locked (trans, component_id,
+      local_ip, multicast_ip, port, ttl, error);
+
+  if (tmpudpsock)
+  {
+    g_mutex_unlock (trans->priv->mutex);
+    fs_multicast_transmitter_put_udpsock (trans, udpsock, ttl);
+    return tmpudpsock;
+  }
+
   trans->priv->udpsocks[component_id] =
     g_list_prepend (trans->priv->udpsocks[component_id], udpsock);
   g_mutex_unlock (trans->priv->mutex);
