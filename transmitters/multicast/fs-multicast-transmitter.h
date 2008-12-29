@@ -101,6 +101,9 @@ void fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
 void fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock);
 void fs_multicast_transmitter_udpsock_dec_sending (UdpSock *udpsock);
 
+void fs_multicast_transmitter_udpsock_ref (FsMulticastTransmitter *trans,
+    UdpSock *udpsock, guint8 ttl);
+
 
 G_END_DECLS
 

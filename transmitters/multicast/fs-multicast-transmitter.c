@@ -1005,3 +1005,12 @@ fs_multicast_transmitter_get_stream_transmitter_type (
 {
   return FS_TYPE_MULTICAST_STREAM_TRANSMITTER;
 }
+
+void
+fs_multicast_transmitter_udpsock_ref (FsMulticastTransmitter *trans,
+    UdpSock *udpsock, guint8 ttl)
+{
+  g_mutex_lock (trans->priv->mutex);
+  g_byte_array_append (udpsock->ttls, &ttl, 1);
+  g_mutex_unlock (trans->priv->mutex);
+}
