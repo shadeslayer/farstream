@@ -4,6 +4,7 @@ libfsmsnconference_la_SOURCES = \
 	fs-msn-conference.c \
 	fs-msn-participant.c \
 	fs-msn-session.c \
+	fs-msn-connection.c \
 	fs-msn-stream.c 
 
 BUILT_SOURCES =  
@@ -12,6 +13,7 @@ noinst_HEADERS = \
 	fs-msn-conference.h \
 	fs-msn-participant.h \
 	fs-msn-session.h \
+	fs-msn-connection.h  \
 	fs-msn-stream.h 
 
 EXTRA_libfsmsnconference_la_SOURCES = 

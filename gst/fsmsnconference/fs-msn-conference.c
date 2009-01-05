@@ -171,7 +171,6 @@ static void
 fs_msn_conference_class_init (FsMsnConferenceClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-  GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
   FsBaseConferenceClass *baseconf_class = FS_BASE_CONFERENCE_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (FsMsnConferencePrivate));
@@ -189,14 +188,6 @@ fs_msn_conference_class_init (FsMsnConferenceClass * klass)
     GST_DEBUG_FUNCPTR (fs_msn_conference_set_property);
   gobject_class->get_property =
     GST_DEBUG_FUNCPTR (fs_msn_conference_get_property);
-
-  gst_element_class_set_details (gstelement_class, &fs_msn_conference_details);
-
-  gst_element_class_add_pad_template (gstelement_class,
-      gst_static_pad_template_get (&fs_msn_conference_sink_template));
-  gst_element_class_add_pad_template (gstelement_class,
-      gst_static_pad_template_get (&fs_msn_conference_src_template));
-
   g_object_class_install_property (gobject_class,PROP_LOCAL_MSNADD,
       g_param_spec_string ("local_address", "Msn Address",
           "The local contact address for the MSN sessions",
@@ -206,6 +197,14 @@ fs_msn_conference_class_init (FsMsnConferenceClass * klass)
 static void
 fs_msn_conference_base_init (gpointer g_class)
 {
+  GstElementClass *gstelement_class = GST_ELEMENT_CLASS (g_class);
+
+  gst_element_class_add_pad_template (gstelement_class,
+      gst_static_pad_template_get (&fs_msn_conference_sink_template));
+  gst_element_class_add_pad_template (gstelement_class,
+      gst_static_pad_template_get (&fs_msn_conference_src_template));
+
+  gst_element_class_set_details (gstelement_class, &fs_msn_conference_details);
 }
 
 static void
@@ -229,7 +228,7 @@ fs_msn_conference_get_property (GObject *object,
   {
     case PROP_LOCAL_MSNADD:
       GST_OBJECT_LOCK (self);
-      g_value_set_string (value,self->priv->local_address);
+      g_value_set_string (value, self->priv->local_address);
       GST_OBJECT_UNLOCK (self);
       break;
     default:
@@ -296,6 +295,7 @@ fs_msn_conference_new_session (FsBaseConference *conf,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Only video supported for msn webcam");
+    return NULL;
   }
 
   GST_OBJECT_LOCK (self);
@@ -311,13 +311,13 @@ fs_msn_conference_new_session (FsBaseConference *conf,
 
   new_session = fs_msn_session_new (media_type, self, 1, error);
 
-  GST_OBJECT_LOCK (self);
   if (new_session)
   {
+    GST_OBJECT_LOCK (self);
     self->priv->session = new_session;
     g_object_weak_ref (G_OBJECT (new_session), _remove_session, self);
+    GST_OBJECT_UNLOCK (self);
   }
-  GST_OBJECT_UNLOCK (self);
 
   return FS_SESSION (new_session);
 }
@@ -344,13 +344,13 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
 
   new_participant = fs_msn_participant_new (cname);
 
-  GST_OBJECT_LOCK (self);
   if (new_participant)
   {
+    GST_OBJECT_LOCK (self);
     self->priv->participant = new_participant;
     g_object_weak_ref (G_OBJECT (new_participant), _remove_participant, self);
+    GST_OBJECT_UNLOCK (self);
   }
-  GST_OBJECT_UNLOCK (self);
 
   return FS_PARTICIPANT (new_participant);
 

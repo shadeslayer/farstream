@@ -56,25 +56,9 @@ enum
   PROP_DIRECTION,
   PROP_PARTICIPANT,
   PROP_SESSION,
-  PROP_SINK_PAD,
-  PROP_SRC_PAD,
-  PROP_CONFERENCE,
-  PROP_L_RID,
-  PROP_L_SID,
-  PROP_R_RID,
-  PROP_R_SID,
-  PROP_PORT
+  PROP_CONFERENCE
 };
 
-
-typedef struct _FsMsnPollFD FsMsnPollFD;
-
-struct _FsMsnPollFD {
-  GstPollFD pollfd;
-  gboolean want_read;
-  gboolean want_write;
-  void (*next_step) (FsMsnStream *self, FsMsnPollFD *pollfd);
-};
 
 
 struct _FsMsnStreamPrivate
@@ -85,14 +69,6 @@ struct _FsMsnStreamPrivate
   FsMsnConference *conference;
   GstElement *media_fd_src,*media_fd_sink,*send_valve;
   GstPad *sink_pad,*src_pad;
-  gint local_recipientid, local_sessionid;
-  gint remote_recipientid, remote_sessionid;
-  gint port;
-
-  GThread *polling_thread;
-  GstClockTime poll_timeout;
-  GstPoll *poll;
-  GArray *pollfds;
 
   GError *construction_error;
 
@@ -126,26 +102,6 @@ static gboolean fs_msn_stream_set_remote_candidates (FsStream *stream,
 static gboolean fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
     FsCandidate *candidate,
     GError **error);
-
-static void main_fd_closed_cb (FsMsnStream *self, FsMsnPollFD *fd);
-
-static void successfull_connection_cb (FsMsnStream *self, FsMsnPollFD *fd);
-
-static void fd_accept_connection_cb (FsMsnStream *self, FsMsnPollFD *fd);
-
-static gboolean fs_msn_stream_attempt_connection (FsMsnStream *stream,
-    gchar const *ip,
-    guint16 port);
-
-static gboolean fs_msn_authenticate_outgoing (FsMsnStream *stream,
-    gint fd);
-
-static void fs_msn_open_listening_port (FsMsnStream *stream,
-    guint16 port);
-
-static gpointer connection_polling_thread (gpointer data);
-
-static void shutdown_fd (FsMsnStream *self, FsMsnPollFD *pollfd);
 
 static GObjectClass *parent_class = NULL;
 
@@ -181,67 +137,12 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
       "session");
 
   g_object_class_install_property (gobject_class,
-      PROP_SINK_PAD,
-      g_param_spec_object ("sink-pad",
-          "A gstreamer sink pad for this stream",
-          "A pad used for sending data on this stream",
-          GST_TYPE_PAD,
-          G_PARAM_READABLE));
-
-  g_object_class_install_property (gobject_class,
-      PROP_SRC_PAD,
-      g_param_spec_object ("src-pad",
-          "A gstreamer src pad for this stream",
-          "A pad used for reading data from this stream",
-          GST_TYPE_PAD,
-          G_PARAM_READABLE));
-
-  g_object_class_install_property (gobject_class,
       PROP_CONFERENCE,
       g_param_spec_object ("conference",
           "The Conference this stream refers to",
           "This is a conveniance pointer for the Conference",
           FS_TYPE_MSN_CONFERENCE,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class,
-      PROP_L_RID,
-      g_param_spec_uint ("local-recipientid",
-          "The local recipientid used for this stream",
-          "The session ID used for this stream",
-          0, G_MAXUINT, 0,
-          G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class,
-      PROP_L_SID,
-      g_param_spec_uint ("local-sessionid",
-          "The local sessionid used for this stream",
-          "The session ID used for this stream",
-          0, G_MAXUINT, 0,
-          G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class,
-      PROP_R_RID,
-      g_param_spec_uint ("remote-recipientid",
-          "The remote recipientid used for this stream",
-          "The session ID used for this stream",
-          0, G_MAXUINT, 0,
-          G_PARAM_READWRITE));
-
-  g_object_class_install_property (gobject_class,
-      PROP_R_SID,
-      g_param_spec_uint ("remote-sessionid",
-          "The remote sessionid used for this stream",
-          "The session ID used for this stream",
-          0, G_MAXUINT, 0,
-          G_PARAM_READWRITE));
-  g_object_class_install_property (gobject_class,
-      PROP_PORT,
-      g_param_spec_uint ("local-port",
-          "The local port used for this stream",
-          "The local port used for this stream",
-          0, G_MAXUINT, 0,
-          G_PARAM_READWRITE));
 }
 
 static void
@@ -256,10 +157,6 @@ fs_msn_stream_init (FsMsnStream *self)
 
   self->priv->direction = FS_DIRECTION_NONE;
 
-  self->priv->poll_timeout = GST_CLOCK_TIME_NONE;
-  self->priv->poll = gst_poll_new (TRUE);
-  gst_poll_set_controllable (self->priv->poll, TRUE);
-  self->priv->pollfds = g_array_new (TRUE, TRUE, sizeof(FsMsnPollFD));
 }
 
 static void
@@ -271,13 +168,6 @@ fs_msn_stream_dispose (GObject *object)
   {
     /* If dispose did already run, return. */
     return;
-  }
-
-  if (self->priv->polling_thread)
-  {
-    gst_poll_set_flushing (self->priv->poll, TRUE);
-    g_thread_join (self->priv->polling_thread);
-    self->priv->polling_thread = NULL;
   }
 
   if (self->priv->participant)
@@ -301,15 +191,6 @@ fs_msn_stream_dispose (GObject *object)
 static void
 fs_msn_stream_finalize (GObject *object)
 {
-  FsMsnStream *self = FS_MSN_STREAM (object);
-  guint i;
-
-  gst_poll_free (self->priv->poll);
-
-  for (i = 0; i < self->priv->pollfds->len; i++)
-    close (g_array_index(self->priv->pollfds, FsMsnPollFD, i).pollfd.fd);
-  g_array_free (self->priv->pollfds, TRUE);
-
   parent_class->finalize (object);
 }
 
@@ -333,29 +214,8 @@ fs_msn_stream_get_property (GObject *object,
     case PROP_DIRECTION:
       g_value_set_flags (value, self->priv->direction);
       break;
-    case PROP_SINK_PAD:
-      g_value_set_object (value, self->priv->sink_pad);
-      break;
-    case PROP_SRC_PAD:
-      g_value_set_object (value, self->priv->src_pad);
-      break;
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
-      break;
-    case PROP_L_RID:
-      g_value_set_uint (value, self->priv->local_recipientid);
-      break;
-    case PROP_L_SID:
-      g_value_set_uint (value, self->priv->local_sessionid);
-      break;
-    case PROP_R_RID:
-      g_value_set_uint (value, self->priv->remote_recipientid);
-      break;
-    case PROP_R_SID:
-      g_value_set_uint (value, self->priv->remote_sessionid);
-      break;
-    case PROP_PORT:
-      g_value_set_uint (value, self->priv->port);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -384,21 +244,6 @@ fs_msn_stream_set_property (GObject *object,
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
-      break;
-    case PROP_L_RID:
-      self->priv->local_recipientid = g_value_get_uint (value);
-      break;
-    case PROP_L_SID:
-      self->priv->local_sessionid = g_value_get_uint (value);
-      break;
-    case PROP_R_RID:
-      self->priv->remote_recipientid = g_value_get_uint (value);
-      break;
-    case PROP_R_SID:
-      self->priv->remote_sessionid = g_value_get_uint (value);
-      break;
-    case PROP_PORT:
-      self->priv->port = g_value_get_uint (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -672,9 +517,6 @@ fs_msn_stream_constructed (GObject *object)
         "Direction must be sending OR receiving");
   }
 
-  self->priv->polling_thread = g_thread_create (connection_polling_thread,
-      self, TRUE, &self->priv->construction_error);
-
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
@@ -710,456 +552,13 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
   return TRUE;
 }
 
-static void
-main_fd_closed_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
-{
-  g_message ("disconnection on video feed");
-  /* IXME - How to handle the disconnection of the stream
-     Destroy the elements involved?
-     Set the state to Null ?
-  */
-}
-
-static void
-successfull_connection_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
-{
-  gint error;
-  socklen_t option_len;
-
-  g_message ("handler called on fd %d", pollfd->pollfd.fd);
-
-  errno = 0;
-  if (gst_poll_fd_has_error (self->priv->poll, &pollfd->pollfd) ||
-      gst_poll_fd_has_closed (self->priv->poll, &pollfd->pollfd))
-  {
-    g_message ("connecton closed or error");
-    goto error;
-  }
-
-  option_len = sizeof(error);
-
-  /* Get the error option */
-  if (getsockopt(pollfd->pollfd.fd, SOL_SOCKET, SO_ERROR, (void*) &error, &option_len) < 0)
-  {
-    g_warning ("getsockopt() failed");
-    goto error;
-  }
-
-  /* Check if there is an error */
-  if (error)
-  {
-    g_message ("getsockopt gave an error : %d", error);
-    goto error;
-  }
-
-  /* Remove NON BLOCKING MODE */
-  if (fcntl(pollfd->pollfd.fd, F_SETFL,
-          fcntl(pollfd->pollfd.fd, F_GETFL) & ~O_NONBLOCK) != 0)
-  {
-    g_warning ("fcntl() failed");
-    goto error;
-  }
-
-  g_message ("Got connection on fd %d", pollfd->pollfd.fd);
-
-  if (fs_msn_authenticate_outgoing (self, pollfd->pollfd.fd))
-  {
-    g_message ("Authenticated outgoing successfully fd %d", pollfd->pollfd.fd);
-
-    // success! we need to shutdown/close all other channels
-    gint i;
-    for (i = 0; i < self->priv->pollfds->len; i++)
-    {
-      FsMsnPollFD *pollfd2 = &g_array_index(self->priv->pollfds, FsMsnPollFD, i);
-      if (pollfd != pollfd2)
-      {
-        g_message ("closing fd %d", pollfd2->pollfd.fd);
-        shutdown_fd (self, pollfd2);
-        i--;
-      }
-    }
-
-    if (self->priv->direction == FS_DIRECTION_RECV)
-    {
-      GstState state;
-      g_message("Setting media_fd_src on fd %d", pollfd->pollfd.fd);
-
-      gst_element_get_state(self->priv->media_fd_src, &state, NULL,
-          GST_CLOCK_TIME_NONE);
-
-      if ( state > GST_STATE_READY)
-      {
-        g_message("Error: fdsrc in state above ready");
-        gst_element_set_state(self->priv->media_fd_src, GST_STATE_READY);
-      }
-      g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", pollfd->pollfd.fd, NULL);
-      gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
-      gst_element_sync_state_with_parent(self->priv->media_fd_src);
-    }
-    else if (self->priv->direction == FS_DIRECTION_SEND)
-    {
-      GstState state;
-      g_message("Setting media_fd_sink on fd %d", pollfd->pollfd.fd);
-
-      gst_element_get_state(self->priv->media_fd_sink, &state, NULL,
-          GST_CLOCK_TIME_NONE);
-
-      if ( state > GST_STATE_READY)
-      {
-        g_message("Error: fdsrc in state above ready");
-        gst_element_set_state(self->priv->media_fd_sink, GST_STATE_READY);
-      }
-      g_object_set (G_OBJECT(self->priv->media_fd_sink), "fd", pollfd->pollfd.fd, NULL);
-      gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
-      gst_element_sync_state_with_parent(self->priv->media_fd_sink);
-      g_object_set (G_OBJECT (self->priv->send_valve), "drop", FALSE, NULL);
-
-    }
-    pollfd->want_read = FALSE;
-    pollfd->want_write = FALSE;
-    gst_poll_fd_ctl_read (self->priv->poll, &pollfd->pollfd, FALSE);
-    gst_poll_fd_ctl_write (self->priv->poll, &pollfd->pollfd, FALSE);
-    pollfd->next_step = main_fd_closed_cb;
-    return;
-  }
-  else
-  {
-    g_message ("Authentification failed on fd %d", pollfd->pollfd.fd);
-  }
-
-  /* Error */
- error:
-  g_message ("Got error from fd %d, closing", pollfd->pollfd.fd);
-  // find, shutdown and remove channel from fdlist
-  gint i;
-  for (i = 0; i < self->priv->pollfds->len; i++)
-  {
-    FsMsnPollFD *pollfd2 = &g_array_index(self->priv->pollfds, FsMsnPollFD, i);
-    if (pollfd == pollfd2)
-    {
-      g_message ("closing fd %d", pollfd2->pollfd.fd);
-      shutdown_fd (self, pollfd2);
-      i--;
-    }
-  }
-
-  return;
-}
-
-static gboolean
-fs_msn_stream_attempt_connection (FsMsnStream *stream,
-    const gchar *ip,
-    guint16 port)
-{
-  FsMsnStream *self = FS_MSN_STREAM (stream);
-  FsMsnPollFD *pollfd = NULL;
-  gint fd = -1;
-  struct sockaddr_in theiraddr;
-  memset(&theiraddr, 0, sizeof(theiraddr));
-
-  if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
-  {
-    // show error
-    g_message ("could not create socket!");
-    return FALSE;
-  }
-
-  // set non-blocking mode
-  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-
-  theiraddr.sin_family = AF_INET;
-  theiraddr.sin_addr.s_addr = inet_addr (ip);
-  theiraddr.sin_port = htons (port);
-
-  g_message ("Attempting connection to %s %d on socket %d", ip, port, fd);
-  // this is non blocking, the return value isn't too usefull
-  gint ret = connect (fd, (struct sockaddr *) &theiraddr, sizeof (theiraddr));
-  if (ret < 0)
-  {
-    if (errno != EINPROGRESS)
-    {
-      close (fd);
-      return FALSE;
-    }
-  }
-  g_message("ret %d %d %s", ret, errno, strerror(errno));
-
-  pollfd = g_slice_new0 (FsMsnPollFD);
-  gst_poll_fd_init (&pollfd->pollfd);
-  pollfd->pollfd.fd = fd;
-  pollfd->want_read = TRUE;
-  pollfd->want_write = TRUE;
-  gst_poll_fd_ctl_read (self->priv->poll, &pollfd->pollfd, TRUE);
-  gst_poll_fd_ctl_write (self->priv->poll, &pollfd->pollfd, TRUE);
-  pollfd->next_step = successfull_connection_cb;
-  g_array_append_val (self->priv->pollfds, pollfd);
-
-  return TRUE;
-}
-
 static gboolean
 fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
                                      FsCandidate *candidate,
                                      GError **error)
 {
-  FsMsnStream *self = FS_MSN_STREAM (stream);
-  fs_msn_open_listening_port(self,self->priv->port); // FIXME - Should be done in the constructor, with a message passed onto the bus to give the port to the client program
-  if (fs_msn_stream_attempt_connection(self,candidate->ip,candidate->port))
-    return TRUE;
   return FALSE;
 }
-
-static gboolean
-fs_msn_authenticate_incoming (FsMsnStream *stream, gint fd)
-{
-  FsMsnStream *self = FS_MSN_STREAM (stream);
-  if (fd != 0)
-    {
-      gchar str[400];
-      gchar check[400];
-
-      memset(str, 0, sizeof(str));
-      if (recv(fd, str, sizeof(str), 0) != -1)
-        {
-          g_message ("Got %s, checking if it's auth", str);
-          sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
-                  self->priv->local_recipientid, self->priv->remote_sessionid);
-          if (strcmp (str, check) != 0)
-            {
-              // send our connected message also
-              memset(str, 0, sizeof(str));
-              sprintf(str, "connected\r\n\r\n");
-              send(fd, str, strlen(str), 0);
-
-              // now we get connected
-              memset(str, 0, sizeof(str));
-              if (recv(fd, str, sizeof(str), 0) != -1)
-                {
-                  if (strcmp (str, "connected\r\n\r\n") == 0)
-                    {
-                      g_message ("Authentication successfull");
-                      return TRUE;
-                    }
-                }
-            }
-        }
-      else
-        {
-          perror("auth");
-        }
-    }
-  return FALSE;
-}
-
-static void
-fd_accept_connection_cb (FsMsnStream *self, FsMsnPollFD *pollfd)
-{
-  struct sockaddr_in in;
-  int fd = -1;
-  socklen_t n = sizeof (in);
-  FsMsnPollFD *newpollfd = NULL;
-
-  if (gst_poll_fd_has_error (self->priv->poll, &pollfd->pollfd) ||
-      gst_poll_fd_has_closed (self->priv->poll, &pollfd->pollfd))
-  {
-    g_message ("Error in accept socket : %d", pollfd->pollfd.fd);
-    goto error;
-  }
-
-  if ((fd = accept(pollfd->pollfd.fd,
-              (struct sockaddr*) &in, &n)) == -1)
-  {
-    g_message ("Error while running accept() %d", errno);
-    return;
-  }
-
-  /* Remove NON BLOCKING MODE */
-  if (fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK) != 0)
-  {
-    g_warning ("fcntl() failed");
-    goto error;
-  }
-
-  // now we try to auth
-  if (fs_msn_authenticate_incoming(self,fd))
-  {
-    g_message ("Authenticated incoming successfully fd %d", fd);
-
-    // success! we need to shutdown/close all other channels
-    gint i;
-    for (i = 0; i < self->priv->pollfds->len; i++)
-    {
-      FsMsnPollFD *pollfd2 = &g_array_index(self->priv->pollfds, FsMsnPollFD, i);
-      g_message ("closing fd %d", pollfd2->pollfd.fd);
-      shutdown_fd (self, pollfd2);
-      i--;
-    }
-    if (self->priv->direction == FS_DIRECTION_RECV)
-    {
-      GstState state;
-      g_message("Setting media_fd_src on fd %d",fd);
-
-      gst_element_get_state(self->priv->media_fd_src, &state, NULL,
-          GST_CLOCK_TIME_NONE);
-
-      if ( state > GST_STATE_READY)
-      {
-        g_message("Error: fdsrc in state above ready");
-        gst_element_set_state(self->priv->media_fd_src, GST_STATE_READY);
-      }
-      g_object_set (G_OBJECT(self->priv->media_fd_src), "fd", fd, NULL);
-      gst_element_set_locked_state(self->priv->media_fd_src,FALSE);
-      gst_element_sync_state_with_parent(self->priv->media_fd_src);
-    }
-    else if (self->priv->direction == FS_DIRECTION_SEND)
-    {
-
-      GstState state;
-      g_message("Setting media_fd_sink on fd %d", fd);
-
-      gst_element_get_state(self->priv->media_fd_sink, &state, NULL,
-          GST_CLOCK_TIME_NONE);
-
-      if ( state > GST_STATE_READY)
-      {
-        g_message("Error: fdsrc in state above ready");
-        gst_element_set_state(self->priv->media_fd_sink, GST_STATE_READY);
-      }
-      g_object_set (G_OBJECT(self->priv->media_fd_sink), "fd", fd, NULL);
-      gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
-      gst_element_sync_state_with_parent(self->priv->media_fd_sink);
-      g_object_set (G_OBJECT (self->priv->send_valve), "drop", FALSE, NULL);
-
-    }
-
-    newpollfd = g_slice_new0 (FsMsnPollFD);
-    gst_poll_fd_init (&newpollfd->pollfd);
-    newpollfd->pollfd.fd = fd;
-    newpollfd->want_read = FALSE;
-    newpollfd->want_write = FALSE;
-    gst_poll_fd_ctl_read (self->priv->poll, &newpollfd->pollfd, FALSE);
-    gst_poll_fd_ctl_write (self->priv->poll, &newpollfd->pollfd, FALSE);
-    newpollfd->next_step = main_fd_closed_cb;
-    g_array_append_val (self->priv->pollfds, newpollfd);
-    return;
-  }
-
-  /* Error */
- error:
-  g_message ("Got error from fd %d, closing", fd);
-  // find, shutdown and remove channel from fdlist
-  gint i;
-  for (i = 0; i < self->priv->pollfds->len; i++)
-  {
-    FsMsnPollFD *pollfd2 = &g_array_index(self->priv->pollfds, FsMsnPollFD, i);
-    if (pollfd == pollfd2)
-    {
-      g_message ("closing fd %d", pollfd2->pollfd.fd);
-      shutdown_fd (self, pollfd2);
-      i--;
-    }
-  }
-
-  if (fd > 0)
-    close (fd);
-
-  return;
-}
-
-static void
-fs_msn_open_listening_port (FsMsnStream *stream,
-                            guint16 port)
-{
-  FsMsnStream *self = FS_MSN_STREAM (stream);
-  gint fd = -1;
-  FsMsnPollFD *pollfd = NULL;
-  struct sockaddr_in myaddr;
-  memset(&myaddr, 0, sizeof(myaddr));
-
-  g_message ("Attempting to listen on port %d.....\n",port);
-
-  if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
-  {
-    // show error
-    g_message ("could not create socket!");
-    return;
-  }
-
-  // set non-blocking mode
-  fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-  myaddr.sin_family = AF_INET;
-  myaddr.sin_port = htons (port);
-  // bind
-  if (bind(fd, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0)
-  {
-    close (fd);
-    return;
-  }
-
-
-  /* Listen */
-  if (listen(fd, 3) != 0)
-  {
-    close (fd);
-    return;
-  }
-  pollfd = g_slice_new0 (FsMsnPollFD);
-  gst_poll_fd_init (&pollfd->pollfd);
-  pollfd->pollfd.fd = fd;
-  pollfd->want_read = TRUE;
-  pollfd->want_write = FALSE;
-  gst_poll_fd_ctl_read (self->priv->poll, &pollfd->pollfd, TRUE);
-  gst_poll_fd_ctl_write (self->priv->poll, &pollfd->pollfd, FALSE);
-  pollfd->next_step = fd_accept_connection_cb;
-
-  g_array_append_val (self->priv->pollfds, pollfd);
-  g_message ("Listening on port %d\n",port);
-
-}
-
-// Authenticate ourselves when connecting out
-static gboolean
-fs_msn_authenticate_outgoing (FsMsnStream *stream, gint fd)
-{
-  FsMsnStream *self = FS_MSN_STREAM (stream);
-  gchar str[400];
-  memset(str, 0, sizeof(str));
-  if (fd != 0)
-  {
-    g_message ("Authenticating connection on %d...", fd);
-    g_message ("sending : recipientid=%d&sessionid=%d\r\n\r\n",
-        self->priv->remote_recipientid, self->priv->remote_sessionid);
-    sprintf(str, "recipientid=%d&sessionid=%d\r\n\r\n",
-        self->priv->remote_recipientid, self->priv->remote_sessionid);
-    if (send(fd, str, strlen(str), 0) == -1)
-    {
-      g_message("sending failed");
-      perror("auth");
-    }
-
-    memset(str, 0, sizeof(str));
-    if (recv(fd, str, 13, 0) != -1)
-    {
-      g_message ("Got %s, checking if it's auth", str);
-      // we should get a connected message now
-      if (strcmp (str, "connected\r\n\r\n") == 0)
-      {
-        // send our connected message also
-        memset(str, 0, sizeof(str));
-        sprintf(str, "connected\r\n\r\n");
-        send(fd, str, strlen(str), 0);
-        g_message ("Authentication successfull");
-        return TRUE;
-      }
-    }
-    else
-    {
-      perror("auth");
-    }
-  }
-  return FALSE;
-}
-
 
 /**
  * fs_msn_stream_new:
@@ -1197,71 +596,3 @@ fs_msn_stream_new (FsMsnSession *session,
   return self;
 }
 
-
-static gpointer
-connection_polling_thread (gpointer data)
-{
-  FsMsnStream *self = data;
-  gint ret;
-  GstClockTime timeout;
-
-  GST_OBJECT_LOCK (self->priv->conference);
-  timeout = self->priv->poll_timeout;
-  GST_OBJECT_UNLOCK (self->priv->conference);
-
-  while ((ret = gst_poll_wait (self->priv->poll, timeout)) >= 0)
-  {
-    if (ret > 0)
-    {
-      gint i;
-
-      for (i = 0; i < self->priv->pollfds->len; i++)
-      {
-        FsMsnPollFD *pollfd = &g_array_index(self->priv->pollfds,
-            FsMsnPollFD, i);
-
-        if (gst_poll_fd_has_error (self->priv->poll, &pollfd->pollfd) ||
-            gst_poll_fd_has_closed (self->priv->poll, &pollfd->pollfd))
-        {
-          pollfd->next_step (self, pollfd);
-          shutdown_fd (self, pollfd);
-          i--;
-          continue;
-        }
-        if ((pollfd->want_read &&
-                gst_poll_fd_can_read (self->priv->poll, &pollfd->pollfd)) ||
-            (pollfd->want_write &&
-                gst_poll_fd_can_write (self->priv->poll, &pollfd->pollfd)))
-          pollfd->next_step (self, pollfd);
-      }
-
-    }
-    GST_OBJECT_LOCK (self->priv->conference);
-    timeout = self->priv->poll_timeout;
-    GST_OBJECT_UNLOCK (self->priv->conference);
-  }
-
-  return NULL;
-}
-
-static void
-shutdown_fd (FsMsnStream *self, FsMsnPollFD *pollfd)
-{
-  gint i;
-
-
-  if (!gst_poll_fd_has_closed (self->priv->poll, &pollfd->pollfd))
-    close (pollfd->pollfd.fd);
-  gst_poll_remove_fd (self->priv->poll, &pollfd->pollfd);
-  for (i = 0; i < self->priv->pollfds->len; i++)
-  {
-    FsMsnPollFD *p = &g_array_index(self->priv->pollfds, FsMsnPollFD, i);
-    if (p == pollfd)
-    {
-      g_array_remove_index_fast (self->priv->pollfds, i);
-      break;
-    }
-
-  }
-  gst_poll_restart (self->priv->poll);
-}

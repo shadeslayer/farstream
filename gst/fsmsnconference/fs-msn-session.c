@@ -56,7 +56,12 @@ enum
   PROP_0,
   PROP_MEDIA_TYPE,
   PROP_ID,
+  PROP_SINK_PAD,
   PROP_CODEC_PREFERENCES,
+  PROP_CODECS,
+  PROP_CODECS_WITHOUT_CONFIG,
+  PROP_CURRENT_SEND_CODEC,
+  PROP_CODECS_READY,
   PROP_CONFERENCE
 };
 
@@ -129,6 +134,19 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
       PROP_MEDIA_TYPE, "media-type");
   g_object_class_override_property (gobject_class,
       PROP_ID, "id");
+  g_object_class_override_property (gobject_class,
+      PROP_SINK_PAD, "sink-pad");
+
+  g_object_class_override_property (gobject_class,
+    PROP_CODEC_PREFERENCES, "codec-preferences");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS, "codecs");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS_WITHOUT_CONFIG, "codecs-without-config");
+  g_object_class_override_property (gobject_class,
+    PROP_CURRENT_SEND_CODEC, "current-send-codec");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS_READY, "codecs-ready");
 
   g_object_class_install_property (gobject_class,
       PROP_CONFERENCE,
@@ -223,6 +241,30 @@ fs_msn_session_get_property (GObject *object,
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
       break;
+    case PROP_SINK_PAD:
+      g_value_set_object (value, self->priv->media_sink_pad);
+      break;
+    case PROP_CODECS_READY:
+      g_value_set_boolean (value, TRUE);
+      break;
+    case PROP_CODEC_PREFERENCES:
+    case PROP_CODECS:
+    case PROP_CODECS_WITHOUT_CONFIG:
+      {
+        GList *codecs = NULL;
+        FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
+          FS_MEDIA_TYPE_VIDEO, 0);
+        codecs = g_list_append (codecs, mimic_codec);
+        g_value_take_boxed (value, codecs);
+      }
+      break;
+    case PROP_CURRENT_SEND_CODEC:
+      {
+        FsCodec *send_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
+            FS_MEDIA_TYPE_VIDEO, 0);
+        g_value_take_boxed (value, send_codec);
+        break;
+      }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -366,11 +408,14 @@ fs_msn_session_new_stream (FsSession *session,
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
           direction,self->priv->conference,error));
 
-  g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+  if (new_stream)
+  {
+    GST_OBJECT_LOCK (self);
+    self->priv->stream = (FsMsnStream *) new_stream;
+    g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+    GST_OBJECT_UNLOCK (self);
+  }
 
-  FS_MSN_SESSION_LOCK (self);
-  self->priv->stream = (FsMsnStream *) new_stream;
-  FS_MSN_SESSION_UNLOCK (self);
 
   return new_stream;
 }
