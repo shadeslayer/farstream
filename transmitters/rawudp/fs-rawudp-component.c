@@ -63,7 +63,8 @@
 #define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
 #define DEFAULT_UPNP_DISCOVERY_TIMEOUT (10)
 
-#define MAX_STUN_TIMEOUT (30)
+#define MAX_STUN_TIMEOUT (60)
+#define DEFAULT_STUN_TIMEOUT (10)
 
 /* Signals */
 enum
@@ -333,7 +334,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       g_param_spec_uint ("stun-timeout",
           "The timeout for the STUN reply",
           "How long to wait for for the STUN reply (in seconds) before giving up",
-          1, G_MAXUINT, MAX_STUN_TIMEOUT,
+          1,  MAX_STUN_TIMEOUT, DEFAULT_STUN_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 
 
