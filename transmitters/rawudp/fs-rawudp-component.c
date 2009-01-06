@@ -1024,6 +1024,10 @@ fs_rawudp_component_maybe_emit_local_candidates (FsRawUdpComponent *self)
     self->priv->local_active_candidate = self->priv->local_upnp_candidate;
     self->priv->local_upnp_candidate = NULL;
     FS_RAWUDP_COMPONENT_UNLOCK (self);
+    GST_DEBUG ("C:%d Emitting UPnP discovered candidate: %s:%u",
+        self->priv->component,
+        self->priv->local_upnp_candidate->ip,
+        self->priv->local_upnp_candidate->port);
     fs_rawudp_component_emit_candidate (self,
         self->priv->local_active_candidate);
     return;
@@ -1393,6 +1397,9 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 
   FS_RAWUDP_COMPONENT_UNLOCK(self);
 
+  GST_DEBUG ("C:%d Emitting STUN discovered candidate: %s:%u",
+      self->priv->component,
+      candidate->ip, candidate->port);
   fs_rawudp_component_emit_candidate (self, candidate);
 
   fs_candidate_destroy (candidate);
@@ -1528,6 +1535,10 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
         self->priv->local_forced_candidate);
     FS_RAWUDP_COMPONENT_UNLOCK (self);
 
+    GST_DEBUG ("C:%d Emitting forced candidate: %s:%u",
+        self->priv->component,
+        self->priv->local_active_candidate->ip,
+        self->priv->local_active_candidate->port);
     fs_rawudp_component_emit_candidate (self,
         self->priv->local_active_candidate);
     return TRUE;
@@ -1557,6 +1568,10 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
   if (self->priv->local_active_candidate)
   {
     FS_RAWUDP_COMPONENT_UNLOCK (self);
+    GST_DEBUG ("C:%d Emitting local interface candidate: %s:%u",
+        self->priv->component,
+        self->priv->local_active_candidate->ip,
+        self->priv->local_active_candidate->port);
     fs_rawudp_component_emit_candidate (self,
         self->priv->local_active_candidate);
   }
