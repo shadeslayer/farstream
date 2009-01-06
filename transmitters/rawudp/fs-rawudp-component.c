@@ -1261,6 +1261,9 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
 {
   gboolean res = TRUE;
 
+  GST_DEBUG ("C:%d starting the STUN process with server %s:%u",
+      self->priv->component, self->priv->stun_ip, self->priv->stun_port);
+
   FS_RAWUDP_COMPONENT_LOCK (self);
   self->priv->stun_recv_id =
     fs_rawudp_transmitter_udpport_connect_recv (
@@ -1470,7 +1473,10 @@ stun_timeout_func (gpointer user_data)
  error:
 
   if (self->priv->stun_stop)
+  {
+    GST_DEBUG ("C:%u STUN process interrupted", self->priv->component);
     emit = FALSE;
+  }
 
   fs_rawudp_component_stop_stun_locked (self);
 
