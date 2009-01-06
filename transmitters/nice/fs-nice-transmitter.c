@@ -798,7 +798,7 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
         ns->requested_tee_pads[c] =
           gst_element_get_request_pad (self->priv->sink_tees[c], "src%d");
 
-        g_warn_if_fail (ns->requested_tee_pads[c]);
+        g_assert (ns->requested_tee_pads[c]);
 
         elempad = gst_element_get_static_pad (ns->nicesinks[c], "sink");
         ret = gst_pad_link (ns->requested_tee_pads[c], elempad);
