@@ -303,7 +303,7 @@ fs_stream_class_init (FsStreamClass *klass)
         "The transmitter use by the stream",
         "An FsStreamTransmitter used by this stream",
         FS_TYPE_STREAM_TRANSMITTER,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 
   /**
    * FsStream::error:

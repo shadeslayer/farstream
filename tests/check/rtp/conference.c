@@ -63,7 +63,6 @@ GST_START_TEST (test_rtpconference_new)
   GstElement *conf = NULL;
   FsSession *sess = NULL;
   FsParticipant *part = NULL;
-  FsStreamTransmitter *stt = NULL;
   FsStreamDirection dir;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
@@ -105,7 +104,6 @@ GST_START_TEST (test_rtpconference_new)
   g_object_get (st->stream,
       "participant", &part,
       "session", &sess,
-      "stream-transmitter", &stt,
       "direction", &dir,
       NULL);
   ts_fail_unless (part == st->participant, "The stream does not have the right"
@@ -114,9 +112,6 @@ GST_START_TEST (test_rtpconference_new)
   ts_fail_unless (sess == dat->session, "The stream does not have the right"
       " session");
   g_object_unref (sess);
-  ts_fail_unless (FS_IS_STREAM_TRANSMITTER (stt), "The stream transmitter is not"
-      " a stream transmitter");
-  g_object_unref (stt);
   ts_fail_unless (dir == FS_DIRECTION_BOTH, "The direction is not both");
 
   g_object_set (st->stream, "direction", FS_DIRECTION_NONE, NULL);
