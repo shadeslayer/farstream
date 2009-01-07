@@ -392,11 +392,18 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 
   if (select_last_codec || st->flags & SHOULD_BE_LAST_CODEC)
-    ts_fail_unless (
-        fs_codec_are_equal (
+  {
+    if (!fs_codec_are_equal (
             g_list_last (codecs)->data,
-            g_object_get_data (G_OBJECT (element), "codec")),
-        "The handoff handler got a buffer from the wrong codec (last)");
+            g_object_get_data (G_OBJECT (element), "codec")))
+    {
+      if (!reset_to_last_codec)
+        ts_fail ("The handoff handler got a buffer from the wrong codec"
+            " (ie. not the last)");
+      fs_codec_list_destroy (codecs);
+      return;
+    }
+  }
   else
     ts_fail_unless (
         fs_codec_are_equal (
