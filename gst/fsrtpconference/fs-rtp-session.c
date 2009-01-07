@@ -660,11 +660,8 @@ fs_rtp_session_finalize (GObject *object)
   g_mutex_free (self->mutex);
   self->mutex = NULL;
 
-  if (self->priv->codec_preferences)
-    fs_codec_list_destroy (self->priv->codec_preferences);
-
-  if (self->priv->codec_associations)
-    codec_association_list_destroy (self->priv->codec_associations);
+  fs_codec_list_destroy (self->priv->codec_preferences);
+  codec_association_list_destroy (self->priv->codec_associations);
 
   if (self->priv->current_send_codec)
     fs_codec_destroy (self->priv->current_send_codec);
