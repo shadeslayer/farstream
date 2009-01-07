@@ -246,9 +246,6 @@ dnl *** checks for compiler characteristics ***
 
 dnl *** checks for library functions ***
 
-dnl Check for a way to display the function name in debug output
-AG_GST_CHECK_FUNCTION
-
 dnl *** checks for dependency libraries ***
 
 dnl GLib is required
