@@ -119,6 +119,7 @@ fs_multicast_transmitter_get_udpsock
 fs_multicast_transmitter_put_udpsock
 fs_multicast_transmitter_udpsock_inc_sending
 fs_multicast_transmitter_udpsock_dec_sending
+fs_multicast_transmitter_udpsock_ref
 </SECTION>
 
 <SECTION>
