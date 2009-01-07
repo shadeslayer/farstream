@@ -69,9 +69,6 @@ struct _FsRtpStreamPrivate
 
   FsStreamDirection direction;
 
-  /* Protected by the session mutex */
-  guint recv_codecs_changed_idle_id;
-
   GError *construction_error;
 
   stream_new_remote_codecs_cb new_remote_codecs_cb;
@@ -209,43 +206,49 @@ static void
 fs_rtp_stream_dispose (GObject *object)
 {
   FsRtpStream *self = FS_RTP_STREAM (object);
+  FsStreamTransmitter *st;
+  FsRtpParticipant *participant;
+  FsRtpSession *session;
+
+  FS_RTP_SESSION_LOCK (self->priv->session);
 
   if (self->priv->disposed) {
     /* If dispose did already run, return. */
+    FS_RTP_SESSION_UNLOCK (self->priv->session);
     return;
-  }
-
-  if (self->priv->stream_transmitter) {
-    fs_stream_transmitter_stop (self->priv->stream_transmitter);
-    g_object_unref (self->priv->stream_transmitter);
-    self->priv->stream_transmitter = NULL;
-  }
-
-  if (self->priv->recv_codecs_changed_idle_id)
-  {
-    g_source_remove (self->priv->recv_codecs_changed_idle_id);
-    self->priv->recv_codecs_changed_idle_id = 0;
-  }
-
-  if (self->substreams) {
-    g_list_foreach (self->substreams, (GFunc) g_object_unref, NULL);
-    g_list_free (self->substreams);
-    self->substreams = NULL;
-  }
-
-  if (self->participant) {
-    g_object_unref (self->participant);
-    self->participant = NULL;
   }
 
   /* Make sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
-  if (self->priv->session)
+  st = self->priv->stream_transmitter;
+  self->priv->stream_transmitter = NULL;
+
+  if (st)
   {
-    g_object_unref (self->priv->session);
-    self->priv->session = NULL;
+    FS_RTP_SESSION_UNLOCK (self->priv->session);
+    fs_stream_transmitter_stop (st);
+    g_object_unref (st);
+    FS_RTP_SESSION_LOCK (self->priv->session);
   }
+
+  while (self->substreams)
+  {
+    FsRtpSubStream *substream = self->substreams->data;
+    self->substreams = g_list_remove (self->substreams, substream);
+    FS_RTP_SESSION_UNLOCK (self->priv->session);
+    g_object_unref (substream);
+    FS_RTP_SESSION_LOCK (self->priv->session);
+  }
+
+  participant = self->participant;
+  self->participant = NULL;
+  session = self->priv->session;
+  self->priv->session = NULL;
+  FS_RTP_SESSION_UNLOCK (session);
+
+  g_object_unref (participant);
+  g_object_unref (session);
 
   parent_class->dispose (object);
 }
