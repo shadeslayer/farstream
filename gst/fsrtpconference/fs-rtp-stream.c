@@ -255,11 +255,8 @@ fs_rtp_stream_finalize (GObject *object)
 {
   FsRtpStream *self = FS_RTP_STREAM (object);
 
-  if (self->remote_codecs)
-    fs_codec_list_destroy (self->remote_codecs);
-
-  if (self->negotiated_codecs)
-    fs_codec_list_destroy (self->negotiated_codecs);
+  fs_codec_list_destroy (self->remote_codecs);
+  fs_codec_list_destroy (self->negotiated_codecs);
 
   parent_class->finalize (object);
 }
