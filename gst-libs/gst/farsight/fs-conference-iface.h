@@ -104,6 +104,7 @@ GType fs_conference_get_type (void);
  * @FS_ERROR_NO_CODECS_LEFT: All of the codecs have been disabled by the
  * codec preferences, one should try less strict codec preferences.
  * @FS_ERROR_CONNECTION_FAILED: Could not connect to the to remote party.
+ * @FS_ERROR_DISPOSED: The object has been disposed.
  *
  * This is the enum of error numbers that will come either on the "error"
  * signal, from the Gst Bus or for error in the FS_ERROR domain in GErrors
@@ -121,6 +122,7 @@ typedef enum {
   FS_ERROR_NO_CODECS,
   FS_ERROR_NO_CODECS_LEFT,
   FS_ERROR_CONNECTION_FAILED,
+  FS_ERROR_DISPOSED,
 } FsError;
 
 /**
