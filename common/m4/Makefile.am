@@ -25,7 +25,6 @@ EXTRA_DIST = \
 	ulonglong.m4 \
 	as-python.m4 \
 	gst-args.m4 \
-	gst-function.m4 \
 	iconv.m4 \
 	lib-ld.m4 \
 	as-scrub-include.m4 \
