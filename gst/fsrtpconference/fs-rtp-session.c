@@ -626,12 +626,6 @@ fs_rtp_session_dispose (GObject *object)
   }
 
 
-  if (self->priv->blueprints)
-  {
-    fs_rtp_blueprints_unref (self->priv->media_type);
-    self->priv->blueprints = NULL;
-  }
-
   if (self->priv->conference)
   {
     g_object_unref (self->priv->conference);
@@ -645,6 +639,7 @@ fs_rtp_session_dispose (GObject *object)
   g_list_free (self->priv->streams);
   self->priv->streams = NULL;
   self->priv->streams_cookie++;
+  g_hash_table_remove_all (self->priv->ssrc_streams);
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -659,6 +654,12 @@ fs_rtp_session_finalize (GObject *object)
 
   g_mutex_free (self->mutex);
   self->mutex = NULL;
+
+  if (self->priv->blueprints)
+  {
+    fs_rtp_blueprints_unref (self->priv->media_type);
+    self->priv->blueprints = NULL;
+  }
 
   fs_codec_list_destroy (self->priv->codec_preferences);
   codec_association_list_destroy (self->priv->codec_associations);
