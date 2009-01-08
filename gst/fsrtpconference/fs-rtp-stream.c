@@ -221,6 +221,30 @@ fs_rtp_stream_get_session (FsRtpStream *self, GError **error)
   return session;
 }
 
+
+static FsStreamTransmitter *
+fs_rtp_stream_get_stream_transmitter (FsRtpStream *self, GError **error)
+{
+  FsRtpSession *session = fs_rtp_stream_get_session (self, error);
+  FsStreamTransmitter *st = NULL;
+
+  if (!session)
+    return NULL;
+
+  FS_RTP_SESSION_LOCK (session);
+  st = self->priv->stream_transmitter;
+  if (st)
+    g_object_ref (st);
+  FS_RTP_SESSION_UNLOCK (session);
+
+  if (!st)
+    g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
+        "Called function after stream has been disposed");
+
+  g_object_unref (session);
+  return st;
+}
+
 static void
 fs_rtp_stream_dispose (GObject *object)
 {
@@ -368,11 +392,7 @@ fs_rtp_stream_set_property (GObject *object,
                             GParamSpec *pspec)
 {
   FsRtpStream *self = FS_RTP_STREAM (object);
-  FsRtpSession *session = fs_rtp_stream_get_session (self, NULL);
   GList *item;
-
-  if (!session)
-    return;
 
   switch (prop_id) {
     case PROP_SESSION:
@@ -386,25 +406,48 @@ fs_rtp_stream_set_property (GObject *object,
         FS_STREAM_TRANSMITTER (g_value_get_object (value));
       break;
     case PROP_DIRECTION:
-      self->priv->direction = g_value_get_flags (value);
-      if (self->priv->stream_transmitter)
-        g_object_set (self->priv->stream_transmitter, "sending",
-            self->priv->direction & FS_DIRECTION_SEND, NULL);
-      FS_RTP_SESSION_LOCK (session);
-      for (item = g_list_first (self->substreams);
-           item;
-           item = g_list_next (item))
-        g_object_set (G_OBJECT (item->data),
-            "receiving", ((self->priv->direction & FS_DIRECTION_RECV) != 0),
-            NULL);
-      FS_RTP_SESSION_UNLOCK (session);
+      {
+        FsStreamTransmitter *st = NULL;
+        GList *copy = NULL;
+        FsRtpSession *session = fs_rtp_stream_get_session (self, NULL);
+        FsStreamDirection dir;
+
+        if (!session)
+        {
+          self->priv->direction = g_value_get_flags (value);
+          return;
+        }
+
+        FS_RTP_SESSION_LOCK (session);
+        dir = self->priv->direction = g_value_get_flags (value);
+        FS_RTP_SESSION_UNLOCK (session);
+        st = fs_rtp_stream_get_stream_transmitter (self, NULL);
+        if (st)
+        {
+          g_object_set (self->priv->stream_transmitter, "sending",
+              dir & FS_DIRECTION_SEND, NULL);
+          g_object_unref (st);
+        }
+
+        FS_RTP_SESSION_LOCK (session);
+        copy = g_list_copy (g_list_first (self->substreams));
+        g_list_foreach (copy, (GFunc) g_object_ref, NULL);
+        FS_RTP_SESSION_UNLOCK (session);
+
+        for (item = copy;  item; item = g_list_next (item))
+          g_object_set (G_OBJECT (item->data),
+              "receiving", ((dir & FS_DIRECTION_RECV) != 0),
+              NULL);
+        g_list_foreach (copy, (GFunc) g_object_unref, NULL);
+        g_list_free (copy);
+        g_object_unref (session);
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 
-  g_object_unref (session);
 }
 
 static void
@@ -470,9 +513,16 @@ fs_rtp_stream_set_remote_candidates (FsStream *stream, GList *candidates,
                                      GError **error)
 {
   FsRtpStream *self = FS_RTP_STREAM (stream);
+  FsStreamTransmitter *st = fs_rtp_stream_get_stream_transmitter (self, error);
+  gboolean ret = FALSE;
 
-  return fs_stream_transmitter_set_remote_candidates (
-      self->priv->stream_transmitter, candidates, error);
+  if (!st)
+    return FALSE;
+
+  ret = fs_stream_transmitter_set_remote_candidates (st, candidates, error);
+
+  g_object_unref (st);
+  return ret;
 }
 
 /**
@@ -488,10 +538,19 @@ fs_rtp_stream_force_remote_candidates (FsStream *stream,
     GError **error)
 {
   FsRtpStream *self = FS_RTP_STREAM (stream);
+  FsStreamTransmitter *st = fs_rtp_stream_get_stream_transmitter (self, error);
+  gboolean ret = FALSE;
 
-  return fs_stream_transmitter_force_remote_candidates (
+  if (!st)
+    return FALSE;
+
+
+  ret = fs_stream_transmitter_force_remote_candidates (
       self->priv->stream_transmitter, remote_candidates,
       error);
+
+  g_object_unref (st);
+  return ret;
 }
 
 
