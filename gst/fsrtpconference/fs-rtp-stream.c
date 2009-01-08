@@ -302,9 +302,6 @@ fs_rtp_stream_get_property (GObject *object,
     case PROP_PARTICIPANT:
       g_value_set_object (value, self->participant);
       break;
-    case PROP_STREAM_TRANSMITTER:
-      g_value_set_object (value, self->priv->stream_transmitter);
-      break;
     case PROP_DIRECTION:
       g_value_set_flags (value, self->priv->direction);
       break;
