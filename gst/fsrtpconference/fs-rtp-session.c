@@ -105,9 +105,7 @@ struct _FsRtpSessionPrivate
 {
   FsMediaType media_type;
 
-  /* We dont need a reference to this one per our reference model
-   * This Session object can only exist while its parent conference exists
-   */
+  /* We hold a ref to this, needs the lock to access it */
   FsRtpConference *conference;
 
   GHashTable *transmitters;
