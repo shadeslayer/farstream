@@ -322,7 +322,9 @@ fs_rtp_stream_get_property (GObject *object,
       g_value_set_object (value, session);
       break;
     case PROP_PARTICIPANT:
+      FS_RTP_SESSION_LOCK (session);
       g_value_set_object (value, self->participant);
+      FS_RTP_SESSION_UNLOCK (session);
       break;
     case PROP_DIRECTION:
       g_value_set_flags (value, self->priv->direction);
