@@ -189,8 +189,9 @@
   (c-name "FsComponentType")
   (gtype-id "FS_TYPE_COMPONENT_TYPE")
   (values
-    '("p" "FS_COMPONENT_RTP")
-    '("cp" "FS_COMPONENT_RTCP")
+    '("none" "FS_COMPONENT_NONE")
+    '("rtp" "FS_COMPONENT_RTP")
+    '("rtcp" "FS_COMPONENT_RTCP")
   )
 )
 
