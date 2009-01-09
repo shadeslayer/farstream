@@ -1130,6 +1130,83 @@ GST_START_TEST (test_rtpconference_double_codec_profile)
 GST_END_TEST;
 
 
+GST_START_TEST (test_rtpconference_dispose)
+{
+  FsConference *conf;
+  FsParticipant *part;
+  FsSession *session;
+  FsStream *stream;
+  GError *error = NULL;
+
+  conf = FS_CONFERENCE (gst_element_factory_make ("fsrtpconference", NULL));
+  fail_if (conf == NULL);
+
+  session = fs_conference_new_session (conf, FS_MEDIA_TYPE_AUDIO, &error);
+  fail_if (session == NULL || error != NULL);
+
+  part = fs_conference_new_participant (conf, "name@1.2.3.4", &error);
+  fail_if (part == NULL || error != NULL);
+
+  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, "rawudp",
+      0, NULL, &error);
+  fail_if (stream == NULL || error != NULL);
+
+  g_object_run_dispose (G_OBJECT (stream));
+
+  fail_if (fs_stream_set_remote_candidates (stream, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  fail_if (fs_stream_set_remote_codecs (stream, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  fail_if (fs_stream_force_remote_candidates (stream, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  g_object_unref (stream);
+
+  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, "rawudp",
+      0, NULL, &error);
+  fail_if (stream == NULL || error != NULL);
+
+  g_object_run_dispose (G_OBJECT (stream));
+
+  fail_if (fs_stream_set_remote_candidates (stream, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  fail_if (fs_stream_set_remote_codecs (stream, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  fail_if (fs_stream_force_remote_candidates (stream, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  g_object_run_dispose (G_OBJECT (session));
+
+  fail_if (fs_session_start_telephony_event (session, 1, 2,
+          FS_DTMF_METHOD_AUTO));
+  fail_if (fs_session_stop_telephony_event (session, FS_DTMF_METHOD_AUTO));
+
+  fail_if (fs_session_set_send_codec (session, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  fail_if (fs_session_set_codec_preferences (session, NULL, &error));
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  g_clear_error (&error);
+
+  g_object_unref (session);
+  g_object_unref (part);
+  g_object_unref (stream);
+  gst_object_unref (conf);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -1195,6 +1272,10 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconference_double_codec_profile");
   tcase_add_test (tc_chain, test_rtpconference_double_codec_profile);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconference_dispose");
+  tcase_add_test (tc_chain, test_rtpconference_dispose);
   suite_add_tcase (s, tc_chain);
 
   return s;
