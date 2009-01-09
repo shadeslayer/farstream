@@ -925,3 +925,15 @@ _wrap_fs_stream_dispose (PyGObject *self)
   Py_INCREF(Py_None);
   return Py_None;
 }
+%%
+override fs_participant_dispose noargs
+static PyObject *
+_wrap_fs_participant_dispose (PyGObject *self)
+{
+  Py_BEGIN_ALLOW_THREADS
+  g_object_run_dispose (self->obj);
+  Py_END_ALLOW_THREADS
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}

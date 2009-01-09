@@ -36,3 +36,11 @@
   (return-type "gboolean")
   (return-type "none")
 )
+
+(define-method dispose
+  (of-object "FsParticipant")
+  (unblock-threads t)
+  (c-name "fs_participant_dispose")
+  (return-type "gboolean")
+  (return-type "none")
+)
