@@ -271,6 +271,7 @@
     '("no-codecs" "FS_ERROR_NO_CODECS")
     '("no-codecs-left" "FS_ERROR_NO_CODECS_LEFT")
     '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
+    '("disposed" "FS_ERROR_DISPOSED")
   )
 )
 
