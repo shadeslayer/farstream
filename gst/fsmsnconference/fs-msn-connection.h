@@ -74,18 +74,22 @@ struct _FsMsnConnection
   GstClockTime poll_timeout;
   GstPoll *poll;
   GArray *pollfds;
-
   gboolean disposed;
+  GStaticRecMutex mutex;
 };
+
+typedef void (*NewLocalCandidateCB) (FsCandidate *candidate, gpointer data);
 
 GType fs_msn_connection_get_type (void);
 
 FsMsnConnection *fs_msn_connection_new (guint session_id, guint initial_port);
 
-gboolean fs_msn_connection_gather_local_candidates (FsMsnConnection *connection);
+gboolean fs_msn_connection_gather_local_candidates (FsMsnConnection *connection,
+    NewLocalCandidateCB cb, gpointer data);
 
 gboolean fs_msn_connection_set_remote_candidates (FsMsnConnection *connection,
     GList *candidates, GError **error);
+
 
 G_END_DECLS
 

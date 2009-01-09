@@ -434,8 +434,8 @@ fs_msn_session_new (FsMediaType media_type,
 
   if (!session)
   {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION, "Could not create object");
+    *error = g_error_new (FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create object");
   }
   else if (session->priv->construction_error)
   {
