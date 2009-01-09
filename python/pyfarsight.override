@@ -845,3 +845,59 @@ _wrap_fs_session_list_transmitters (PyGObject *self)
 
   return tuple;
 }
+%%
+override fs_stream_force_remote_candidates onearg
+static PyObject *
+_wrap_fs_stream_force_remote_candidates (PyGObject *self, PyObject *arg)
+{
+  gboolean ret = FALSE;
+  GError *error = NULL;
+  GList *candidates = NULL;
+  Py_ssize_t i;
+
+  if (!PySequence_Check (arg))
+  {
+    PyErr_SetString (PyExc_TypeError,
+        "The parameter must be a Sequence of FsCandidate");
+    return NULL;
+  }
+
+  if (PySequence_Size (arg) == 0)
+  {
+    PyErr_SetString (PyExc_TypeError,
+        "Empty list invalid");
+    return NULL;
+  }
+
+  for (i = 0; i < PySequence_Size (arg); i++)
+  {
+    PyObject *item = PySequence_GetItem (arg, i);
+
+    if (!pyg_boxed_check (item, FS_TYPE_CANDIDATE))
+    {
+      PyErr_SetString(PyExc_TypeError,
+          "The parameter must be a Sequence of FsCandidate");
+      return NULL;
+    }
+  }
+
+  for (i = 0; i < PySequence_Size (arg); i++)
+  {
+    PyObject *item = PySequence_GetItem (arg, i);
+
+    candidates = g_list_append (candidates, pyg_boxed_get (item, FsCandidate));
+  }
+
+
+  Py_BEGIN_ALLOW_THREADS
+  ret = fs_stream_set_remote_candidates (FS_STREAM(self->obj), candidates,
+      &error);
+  Py_END_ALLOW_THREADS
+
+  g_list_free (candidates);
+
+  if (pyg_error_check(&error))
+    return NULL;
+
+  return PyBool_FromLong (ret);
+}
