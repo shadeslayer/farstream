@@ -63,9 +63,6 @@
 #define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
 #define DEFAULT_UPNP_DISCOVERY_TIMEOUT (10)
 
-#define MAX_STUN_TIMEOUT (60)
-#define DEFAULT_STUN_TIMEOUT (10)
-
 /* Signals */
 enum
 {

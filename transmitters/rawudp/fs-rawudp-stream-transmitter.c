@@ -280,7 +280,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
       g_param_spec_uint ("stun-timeout",
           "The timeout for the STUN reply",
           "How long to wait for for the STUN reply (in seconds) before giving up",
-          1, G_MAXUINT, 30,
+          1, MAX_STUN_TIMEOUT, DEFAULT_STUN_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
