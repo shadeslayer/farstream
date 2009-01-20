@@ -3941,6 +3941,8 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 
  out:
 
+  g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
+      "blocked", (gpointer)1);
   FS_RTP_SESSION_UNLOCK (session);
 
   gst_caps_unref (caps);
@@ -4190,6 +4192,15 @@ _send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   FS_RTP_SESSION_LOCK (session);
 
+  if (!g_object_get_data (G_OBJECT (session->priv->send_tee_discovery_pad),
+          "blocked"))
+  {
+    FS_RTP_SESSION_UNLOCK (session);
+    return;
+  }
+  g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
+      "blocked", NULL);
+
   /* Find out if there is a codec that needs the config to be fetched */
   for (item = g_list_first (session->priv->codec_associations);
        item;
@@ -4265,6 +4276,8 @@ fs_rtp_session_start_codec_param_gathering_locked (FsRtpSession *session)
 
   GST_DEBUG ("Starting Codec Param discovery for session %d", session->id);
 
+  g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
+      "blocked", (gpointer)1);
   gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
       _send_sink_pad_blocked_callback, session);
 }
