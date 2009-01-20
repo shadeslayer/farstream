@@ -3181,6 +3181,8 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
         GST_STATE_CHANGE_SUCCESS)
     {
       gst_element_set_locked_state (self->priv->send_codecbin, FALSE);
+      GST_ERROR ("Could not stop the codec bin, setting it to NULL did not"
+          " succeed");
       if (error_emit)
         fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
             "Could not stop the codec bin",
