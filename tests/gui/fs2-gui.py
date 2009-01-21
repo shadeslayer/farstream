@@ -99,7 +99,7 @@ class FsUIPipeline:
 
     def int_handler(self, sig, frame):
         try:
-            self.pipeline.to_dot_file(0, "pipelinedump")
+            gst.DEBUG_BIN_TO_DOT_FILE(self.pipeline, 0, "pipelinedump")
         except:
             pass
         sys.exit(2)
