@@ -40,12 +40,21 @@
 #include <unistd.h>
 #include <gst/gst.h>
 
+#include <nice/interfaces.h>
+
+
 /* Signals */
 enum
 {
-  LAST_SIGNAL
+  SIGNAL_NEW_LOCAL_CANDIDATE,
+  SIGNAL_LOCAL_CANDIDATES_PREPARED,
+  SIGNAL_CONNECTED,
+  SIGNAL_CONNECTION_FAILED,
+  N_SIGNALS
 };
 
+
+static guint signals[N_SIGNALS];
 
 /* props */
 enum
@@ -86,7 +95,7 @@ static gboolean fs_msn_connection_attempt_connection (
     FsMsnConnection *connection,
     FsCandidate *candidate);
 static gboolean fs_msn_open_listening_port (FsMsnConnection *connection,
-    guint16 port, NewLocalCandidateCB cb, gpointer data);
+    guint16 port);
 
 static void successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
 static void accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
@@ -103,6 +112,49 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
   GObjectClass *gobject_class = (GObjectClass *) klass;
 
   parent_class = g_type_class_peek_parent (klass);
+
+  signals[SIGNAL_NEW_LOCAL_CANDIDATE] = g_signal_new
+      ("new-local-candidate",
+          G_TYPE_FROM_CLASS (klass),
+          G_SIGNAL_RUN_LAST,
+          0,
+          NULL,
+          NULL,
+          g_cclosure_marshal_VOID__BOXED,
+          G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
+
+
+  signals[SIGNAL_LOCAL_CANDIDATES_PREPARED] = g_signal_new
+    ("local-candidates-prepared",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
+
+
+  signals[SIGNAL_CONNECTED] = g_signal_new
+    ("connected",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__UINT,
+        G_TYPE_NONE, 1, G_TYPE_UINT);
+
+
+  signals[SIGNAL_CONNECTION_FAILED] = g_signal_new
+    ("connection-failed",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 
   gobject_class->dispose = fs_msn_connection_dispose;
 }
@@ -190,8 +242,7 @@ fs_msn_connection_new (guint session_id, guint initial_port)
 }
 
 gboolean
-fs_msn_connection_gather_local_candidates (FsMsnConnection *self,
-    NewLocalCandidateCB cb, gpointer data)
+fs_msn_connection_gather_local_candidates (FsMsnConnection *self)
 {
   gboolean ret = FALSE;
   g_static_rec_mutex_lock (&self->mutex);
@@ -200,7 +251,9 @@ fs_msn_connection_gather_local_candidates (FsMsnConnection *self,
       self, TRUE, NULL);
 
   if (self->polling_thread)
-    ret = fs_msn_open_listening_port (self, self->initial_port, cb, data);
+    ret = fs_msn_open_listening_port (self, self->initial_port);
+
+  g_signal_emit (self, signals[SIGNAL_LOCAL_CANDIDATES_PREPARED], 0);
 
   g_static_rec_mutex_unlock (&self->mutex);
   return ret;
@@ -221,6 +274,7 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
   g_static_rec_mutex_lock (&self->mutex);
 
   recipient_id = self->remote_recipient_id;
+
 
   for (item = candidates; item; item = g_list_next (item))
   {
@@ -268,11 +322,14 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
 
 
 static gboolean
-fs_msn_open_listening_port (FsMsnConnection *self,
-    guint16 port, NewLocalCandidateCB cb, gpointer data)
+fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
 {
   gint fd = -1;
   struct sockaddr_in myaddr;
+  FsCandidate * candidate = NULL;
+  GList *addresses = nice_interfaces_get_local_ips (FALSE);
+  GList *item = NULL;
+
   memset(&myaddr, 0, sizeof(myaddr));
 
   g_debug ("Attempting to listen on port %d.....",port);
@@ -326,14 +383,20 @@ fs_msn_open_listening_port (FsMsnConnection *self,
 
   g_debug ("Listening on port %d", port);
 
-  FsCandidate * cand = fs_candidate_new ("123", 1, FS_CANDIDATE_TYPE_HOST,
-      FS_NETWORK_PROTOCOL_TCP, "127.0.0.1", port);
-  g_static_rec_mutex_unlock (&self->mutex);
-  cb (cand, data);
-  g_static_rec_mutex_lock (&self->mutex);
-  fs_candidate_destroy (cand);
+  self->local_recipient_id = g_strdup_printf ("%d",
+      g_random_int_range (100, 199));
 
-  self->local_recipient_id = g_strdup ("123");
+  for (item = addresses;
+       item;
+       item = g_list_next (item))
+  {
+    candidate = fs_candidate_new (self->local_recipient_id, 1,
+        FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_TCP, item->data, port);
+
+    g_signal_emit (self, signals[SIGNAL_NEW_LOCAL_CANDIDATE], 0, candidate);
+
+    fs_candidate_destroy (candidate);
+  }
 
   return TRUE;
 }
@@ -699,7 +762,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
       }
     }
 
-    /* TODO : callback */
+    g_signal_emit (self, signals[SIGNAL_CONNECTED], 0, pollfd->pollfd.fd);
 
     pollfd->want_read = FALSE;
     pollfd->want_write = FALSE;
@@ -723,7 +786,10 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
       i--;
     }
   }
-
+  if (self->pollfds->len <= 1)
+  {
+    g_signal_emit (self, signals[SIGNAL_CONNECTION_FAILED], 0);
+  }
   return;
 }
 

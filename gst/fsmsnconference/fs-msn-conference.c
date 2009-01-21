@@ -52,8 +52,7 @@ enum
 /* Properties */
 enum
 {
-  PROP_0,
-  PROP_LOCAL_MSNADD,
+  PROP_0
 };
 
 
@@ -62,7 +61,8 @@ static GstElementDetails fs_msn_conference_details =
   "Farsight MSN Conference",
   "Generic/Bin/MSN",
   "A Farsight MSN Conference",
-  "Richard Spiers <richard.spiers@gmail.com>"
+  "Richard Spiers <richard.spiers@gmail.com>, "
+  "Youness Alaoui <youness.alaoui@collabora.co.uk"
 };
 
 
@@ -87,8 +87,6 @@ struct _FsMsnConferencePrivate
 {
   gboolean disposed;
   /* Protected by GST_OBJECT_LOCK */
-  gchar *local_address;
-
   FsMsnParticipant *participant;
   FsMsnSession *session;
 };
@@ -98,18 +96,6 @@ static void fs_msn_conference_do_init (GType type);
 
 GST_BOILERPLATE_FULL (FsMsnConference, fs_msn_conference, FsBaseConference,
     FS_TYPE_BASE_CONFERENCE, fs_msn_conference_do_init);
-
-static void fs_msn_conference_get_property (GObject *object,
-    guint prop_id,
-    GValue *value,
-    GParamSpec *pspec);
-
-static void fs_msn_conference_set_property (GObject *object,
-    guint prop_id,
-    const GValue *value,
-    GParamSpec *pspec);
-
-static void fs_msn_conference_finalize (GObject *object);
 
 static FsSession *fs_msn_conference_new_session (FsBaseConference *conf,
     FsMediaType media_type,
@@ -155,18 +141,6 @@ fs_msn_conference_dispose (GObject * object)
   G_OBJECT_CLASS (parent_class)->dispose (object);
 }
 
-
-static void
-fs_msn_conference_finalize (GObject * object)
-{
-  FsMsnConference *self = FS_MSN_CONFERENCE (object);
-
-  g_free (self->priv->local_address);
-  self->priv->local_address = NULL;
-
-  G_OBJECT_CLASS (parent_class)->finalize (object);
-}
-
 static void
 fs_msn_conference_class_init (FsMsnConferenceClass * klass)
 {
@@ -182,16 +156,7 @@ fs_msn_conference_class_init (FsMsnConferenceClass * klass)
   baseconf_class->new_participant =
     GST_DEBUG_FUNCPTR (fs_msn_conference_new_participant);
 
-  gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_msn_conference_finalize);
   gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_msn_conference_dispose);
-  gobject_class->set_property =
-    GST_DEBUG_FUNCPTR (fs_msn_conference_set_property);
-  gobject_class->get_property =
-    GST_DEBUG_FUNCPTR (fs_msn_conference_get_property);
-  g_object_class_install_property (gobject_class,PROP_LOCAL_MSNADD,
-      g_param_spec_string ("local_address", "Msn Address",
-          "The local contact address for the MSN sessions",
-          NULL, G_PARAM_READWRITE));
 }
 
 static void
@@ -214,48 +179,6 @@ fs_msn_conference_init (FsMsnConference *conf,
   GST_DEBUG_OBJECT (conf, "fs_msn_conference_init");
 
   conf->priv = FS_MSN_CONFERENCE_GET_PRIVATE (conf);
-}
-
-static void
-fs_msn_conference_get_property (GObject *object,
-                                guint prop_id,
-                                GValue *value,
-                                GParamSpec *pspec)
-{
-  FsMsnConference *self = FS_MSN_CONFERENCE (object);
-
-  switch (prop_id)
-  {
-    case PROP_LOCAL_MSNADD:
-      GST_OBJECT_LOCK (self);
-      g_value_set_string (value, self->priv->local_address);
-      GST_OBJECT_UNLOCK (self);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-}
-static void
-fs_msn_conference_set_property (GObject *object,
-                                guint prop_id,
-                                const GValue *value,
-                                GParamSpec *pspec)
-{
-  FsMsnConference *self = FS_MSN_CONFERENCE (object);
-
-  switch (prop_id)
-  {
-    case PROP_LOCAL_MSNADD:
-      GST_OBJECT_LOCK (self);
-      g_free (self->priv->local_address);
-      self->priv->local_address = g_value_dup_string (value);
-      GST_OBJECT_UNLOCK (self);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
 }
 
 static void

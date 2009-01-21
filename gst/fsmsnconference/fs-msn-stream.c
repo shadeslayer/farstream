@@ -34,6 +34,7 @@
 #endif
 
 #include "fs-msn-stream.h"
+#include "fs-msn-connection.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <fcntl.h>
@@ -69,6 +70,7 @@ struct _FsMsnStreamPrivate
   FsMsnConference *conference;
   GstElement *media_fd_src,*media_fd_sink,*send_valve;
   GstPad *sink_pad,*src_pad;
+  FsMsnConnection *connection;
 
   GError *construction_error;
 
@@ -99,9 +101,16 @@ static gboolean fs_msn_stream_set_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error);
 
-static gboolean fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
+static void _local_candidates_prepared (FsMsnConnection *connection,
+    gpointer user_data);
+
+static void _new_local_candidate (
+    FsMsnConnection *connection,
     FsCandidate *candidate,
-    GError **error);
+    gpointer user_data);
+
+
+
 
 static GObjectClass *parent_class = NULL;
 
@@ -520,6 +529,49 @@ fs_msn_stream_constructed (GObject *object)
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
 
+
+static void
+_local_candidates_prepared (FsMsnConnection *connection,
+    gpointer user_data)
+{
+  FsMsnStream *self = FS_MSN_STREAM (user_data);
+
+  gst_element_post_message (GST_ELEMENT (self->priv->conference),
+      gst_message_new_element (GST_OBJECT (self->priv->conference),
+          gst_structure_new ("farsight-local-candidates-prepared",
+              "stream", FS_TYPE_STREAM, self,
+              NULL)));
+
+}
+
+static void
+_new_local_candidate (
+    FsMsnConnection *connection,
+    FsCandidate *candidate,
+    gpointer user_data)
+{
+  FsMsnStream *self = FS_MSN_STREAM (user_data);
+
+  gst_element_post_message (GST_ELEMENT (self->priv->conference),
+      gst_message_new_element (GST_OBJECT (self->priv->conference),
+          gst_structure_new ("farsight-new-local-candidate",
+              "stream", FS_TYPE_STREAM, self,
+              "candidate", FS_TYPE_CANDIDATE, candidate,
+              NULL)));
+}
+
+
+static void
+_connected (
+    FsMsnConnection *connection,
+    guint *fd,
+    gpointer user_data)
+{
+  FsMsnStream *self = FS_MSN_STREAM (user_data);
+
+  (void)self;
+}
+
 /**
  * fs_msn_stream_set_remote_candidate:
  */
@@ -528,37 +580,11 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
                                      GError **error)
 {
   FsMsnStream *self = FS_MSN_STREAM (stream);
-  GList *item = NULL;
 
-  for (item = candidates; item; item = g_list_next (item))
-  {
-    FsCandidate *candidate = item->data;
-
-    if (!candidate->ip || !candidate->port)
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "The candidate passed does not contain a valid ip or port");
-      return FALSE;
-    }
-  }
-
-  for (item = candidates; item; item = g_list_next (item))
-  {
-    FsCandidate *candidate = item->data;
-    if (!fs_msn_stream_set_remote_candidate (self,candidate,error))
-      return FALSE;
-  }
-
-  return TRUE;
+  return fs_msn_connection_set_remote_candidates (self->priv->connection,
+      candidates, error);
 }
 
-static gboolean
-fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
-                                     FsCandidate *candidate,
-                                     GError **error)
-{
-  return FALSE;
-}
 
 /**
  * fs_msn_stream_new:
@@ -574,10 +600,12 @@ fs_msn_stream_set_remote_candidate  (FsMsnStream *stream,
 
 FsMsnStream *
 fs_msn_stream_new (FsMsnSession *session,
-                   FsMsnParticipant *participant,
-                   FsStreamDirection direction,
-                   FsMsnConference *conference,
-                   GError **error)
+    FsMsnParticipant *participant,
+    FsStreamDirection direction,
+    FsMsnConference *conference,
+    guint session_id,
+    guint initial_port,
+    GError **error)
 {
   FsMsnStream *self = g_object_new (FS_TYPE_MSN_STREAM,
       "session", session,
@@ -586,11 +614,34 @@ fs_msn_stream_new (FsMsnSession *session,
       "conference",conference,
       NULL);
 
-  if (self->priv->construction_error)
+  if (!self)
+  {
+    *error = g_error_new (FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create object");
+  }
+  else if (self->priv->construction_error)
   {
     g_propagate_error (error, self->priv->construction_error);
     g_object_unref (self);
     return NULL;
+  }
+
+  if (self)
+  {
+    self->priv->connection = fs_msn_connection_new (session_id, initial_port);
+
+    g_signal_connect (self->priv->connection,
+        "new-local-candidate",
+        G_CALLBACK (_new_local_candidate), self);
+    g_signal_connect (self->priv->connection,
+        "local-candidates-prepared",
+        G_CALLBACK (_local_candidates_prepared), self);
+
+    g_signal_connect (self->priv->connection,
+        "connected",
+        G_CALLBACK (_connected), self);
+
+    fs_msn_connection_gather_local_candidates (self->priv->connection);
   }
 
   return self;
