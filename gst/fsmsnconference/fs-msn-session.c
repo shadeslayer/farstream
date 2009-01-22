@@ -366,7 +366,7 @@ fs_msn_session_constructed (GObject *object)
   self->priv->media_sink_pad = gst_ghost_pad_new ("sink1", pad);
   gst_object_unref (pad);
 
-  if (!pad)
+  if (!self->priv->media_sink_pad)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not create sink ghost pad");
@@ -450,15 +450,15 @@ fs_msn_session_new_stream (FsSession *session,
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-          direction, self->priv->conference,
+          direction, self->priv->conference, self->priv->valve,
           self->priv->session_id, self->priv->initial_port, error));
 
   if (new_stream)
   {
-    GST_OBJECT_LOCK (self);
+    FS_MSN_SESSION_LOCK (self);
     self->priv->stream = (FsMsnStream *) new_stream;
     g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
-    GST_OBJECT_UNLOCK (self);
+    FS_MSN_SESSION_UNLOCK (self);
   }
 
 
