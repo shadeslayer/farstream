@@ -40,7 +40,7 @@
 #include <unistd.h>
 #include <gst/gst.h>
 
-#include <nice/interfaces.h>
+#include <gst/farsight/fs-interfaces.h>
 
 
 /* Signals */
@@ -328,7 +328,7 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
   struct sockaddr_in myaddr;
   guint myaddr_len = sizeof (struct sockaddr_in);
   FsCandidate * candidate = NULL;
-  GList *addresses = nice_interfaces_get_local_ips (FALSE);
+  GList *addresses = fs_interfaces_get_local_ips (FALSE);
   GList *item = NULL;
 
   memset(&myaddr, 0, sizeof(myaddr));
