@@ -68,7 +68,9 @@ struct _FsMsnStreamPrivate
   FsMsnParticipant *participant;
   FsStreamDirection direction;
   FsMsnConference *conference;
-  GstElement *media_fd_src,*media_fd_sink,*send_valve;
+  GstElement *media_fd_src;
+  GstElement *media_fd_sink;
+  GstElement *session_valve;
   GstPad *sink_pad,*src_pad;
   FsMsnConnection *connection;
 
@@ -271,36 +273,6 @@ fs_msn_stream_constructed (GObject *object)
     GstElement *mimenc;
     GstElement *ffmpegcolorspace;
 
-
-    self->priv->send_valve = gst_element_factory_make ("fsvalve","send_valve");
-
-    if (!self->priv->send_valve)
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not create the fsvalve element");
-      return;
-    }
-
-    if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->send_valve))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not add the valve element to the FsRtpConference");
-      gst_object_unref (self->priv->send_valve);
-      return;
-    }
-
-    g_object_set (G_OBJECT (self->priv->send_valve), "drop", TRUE, NULL);
-
-    if (!gst_element_sync_state_with_parent (self->priv->send_valve))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not sync state for valve element");
-      return;
-    }
-
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
 
     if (!ffmpegcolorspace)
@@ -325,6 +297,33 @@ fs_msn_stream_constructed (GObject *object)
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not sync state for ffmpegcolorspace element");
+      return;
+    }
+
+    mimenc = gst_element_factory_make ("mimenc", "send_mim_enc");
+
+    if (!mimenc)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the mimenc element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), mimenc))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the mimenc element to the FsMsnConference");
+      gst_object_unref (mimenc);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent (mimenc))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not set state for mimenc element");
       return;
     }
 
@@ -357,104 +356,20 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    mimenc = gst_element_factory_make ("mimenc", "send_mim_enc");
 
-    if (!mimenc)
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not create the mimenc element");
-      return;
-    }
-
-    if (!gst_bin_add (GST_BIN (self->priv->conference), mimenc))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not add the mimenc element to the FsMsnConference");
-      gst_object_unref (mimenc);
-      return;
-    }
-
-    if (!gst_element_sync_state_with_parent (mimenc))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not set state for mimenc element");
-      return;
-    }
-
-    GstPad *tmp_sink_pad = gst_element_get_static_pad (self->priv->send_valve,
-        "sink");
-    self->priv->sink_pad = gst_ghost_pad_new ("sink", tmp_sink_pad);
-    gst_pad_set_active(self->priv->sink_pad, TRUE);
-
-    gst_element_link_many(self->priv->send_valve, ffmpegcolorspace, mimenc,
+    gst_element_link_many(ffmpegcolorspace, mimenc,
         self->priv->media_fd_sink, NULL);
+
+    self->priv->sink_pad = gst_element_get_static_pad (ffmpegcolorspace, "sink");
+
   }
   else if (self->priv->direction == FS_DIRECTION_RECV)
   {
 
     GstElement *mimdec;
     GstElement *ffmpegcolorspace;
-    GstElement *valve;
-
-    valve = gst_element_factory_make ("fsvalve","recv_valve");
-
-    if (!valve)
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not create the fsvalve element");
-      return;
-    }
-
-    if (!gst_bin_add (GST_BIN (self->priv->conference), valve))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not add the valve element to the FsRtpConference");
-      gst_object_unref (valve);
-      return;
-    }
-
-    g_object_set (G_OBJECT (valve), "drop", FALSE, NULL);
-
-    if (!gst_element_sync_state_with_parent  (valve))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not sync state with parent for valve element");
-      return;
-    }
-
-    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
-
-    if (!ffmpegcolorspace)
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not create the ffmpegcolorspace element");
-      return;
-    }
-
-    if (!gst_bin_add (GST_BIN (self->priv->conference), ffmpegcolorspace))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not add the ffmpegcolorspace element to the FsMsnConference");
-      gst_object_unref (ffmpegcolorspace);
-      return;
-    }
-
-    if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not sync state with parent for ffmpegcolorspace element");
-      return;
-    }
-
+    FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
+        FS_MEDIA_TYPE_VIDEO, 0);
 
     self->priv->media_fd_src = gst_element_factory_make ("fdsrc",
         "recv_fd_src");
@@ -513,11 +428,56 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    GstPad *tmp_src_pad = gst_element_get_static_pad (valve, "src");
+    ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
+
+    if (!ffmpegcolorspace)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the ffmpegcolorspace element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), ffmpegcolorspace))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the ffmpegcolorspace element to the FsMsnConference");
+      gst_object_unref (ffmpegcolorspace);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent  (ffmpegcolorspace))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for ffmpegcolorspace element");
+      return;
+    }
+
+
+    GstPad *tmp_src_pad = gst_element_get_static_pad (ffmpegcolorspace, "src");
     self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
+    gst_object_unref (tmp_src_pad);
+
     gst_pad_set_active(self->priv->src_pad, TRUE);
-    gst_element_link_many(self->priv->media_fd_src, mimdec, ffmpegcolorspace,
-        valve, NULL);
+
+    if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
+            self->priv->src_pad))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION, "Could not add sink pad to conference");
+      gst_object_unref (self->priv->src_pad);
+      self->priv->src_pad = NULL;
+      return;
+    }
+
+    gst_element_link_many(self->priv->media_fd_src, mimdec,
+        ffmpegcolorspace, NULL);
+
+    fs_stream_emit_src_pad_added (FS_STREAM (self), self->priv->src_pad,
+        mimic_codec);
+    fs_codec_destroy (mimic_codec);
   }
   else
   {
@@ -564,12 +524,28 @@ _new_local_candidate (
 static void
 _connected (
     FsMsnConnection *connection,
-    guint *fd,
+    guint fd,
     gpointer user_data)
 {
   FsMsnStream *self = FS_MSN_STREAM (user_data);
 
-  (void)self;
+  g_debug ("******** CONNECTED %d**********", fd);
+  if (self->priv->media_fd_src) {
+    g_object_set (G_OBJECT (self->priv->media_fd_src), "fd", fd, NULL);
+    gst_element_set_locked_state(self->priv->media_fd_src, FALSE);
+    gst_element_sync_state_with_parent (self->priv->media_fd_src);
+  }
+  else if (self->priv->media_fd_sink)
+  {
+    g_object_set (G_OBJECT (self->priv->media_fd_sink), "fd", fd, NULL);
+    gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
+    gst_element_sync_state_with_parent (self->priv->media_fd_sink);
+    g_object_set (G_OBJECT (self->priv->session_valve), "drop", FALSE, NULL);
+  }
+  else
+  {
+    g_debug ("no media fd src/sink...");
+  }
 }
 
 /**
@@ -603,6 +579,7 @@ fs_msn_stream_new (FsMsnSession *session,
     FsMsnParticipant *participant,
     FsStreamDirection direction,
     FsMsnConference *conference,
+    GstElement *session_valve,
     guint session_id,
     guint initial_port,
     GError **error)
@@ -628,6 +605,14 @@ fs_msn_stream_new (FsMsnSession *session,
 
   if (self)
   {
+
+    if (self->priv->sink_pad)
+    {
+      gst_pad_link (gst_element_get_static_pad (session_valve, "src"),
+          self->priv->sink_pad);
+    }
+    self->priv->session_valve = session_valve;
+
     self->priv->connection = fs_msn_connection_new (session_id, initial_port);
 
     g_signal_connect (self->priv->connection,
