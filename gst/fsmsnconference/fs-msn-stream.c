@@ -272,6 +272,7 @@ fs_msn_stream_constructed (GObject *object)
   {
     GstElement *mimenc;
     GstElement *ffmpegcolorspace;
+    GstElement *queue;
 
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
 
@@ -297,6 +298,34 @@ fs_msn_stream_constructed (GObject *object)
       self->priv->construction_error = g_error_new (FS_ERROR,
           FS_ERROR_CONSTRUCTION,
           "Could not sync state for ffmpegcolorspace element");
+      return;
+    }
+
+
+    queue = gst_element_factory_make ("queue", NULL);
+
+    if (!queue)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the queue element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), queue))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the queue element to the FsMsnConference");
+      gst_object_unref (queue);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent (queue))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state for queue element");
       return;
     }
 
@@ -357,7 +386,7 @@ fs_msn_stream_constructed (GObject *object)
     }
 
 
-    gst_element_link_many(ffmpegcolorspace, mimenc,
+    gst_element_link_many(queue, ffmpegcolorspace, mimenc,
         self->priv->media_fd_sink, NULL);
 
     self->priv->sink_pad = gst_element_get_static_pad (ffmpegcolorspace, "sink");
@@ -367,6 +396,7 @@ fs_msn_stream_constructed (GObject *object)
   {
 
     GstElement *mimdec;
+    GstElement *queue;
     GstElement *ffmpegcolorspace;
     FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
         FS_MEDIA_TYPE_VIDEO, 0);
@@ -428,6 +458,33 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
+    queue = gst_element_factory_make ("queue", NULL);
+
+    if (!queue)
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not create the queue element");
+      return;
+    }
+
+    if (!gst_bin_add (GST_BIN (self->priv->conference), queue))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the queue element to the FsMsnConference");
+      gst_object_unref (queue);
+      return;
+    }
+
+    if (!gst_element_sync_state_with_parent  (queue))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not sync state with parent for queue element");
+      return;
+    }
+
     ffmpegcolorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
 
     if (!ffmpegcolorspace)
@@ -455,7 +512,6 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-
     GstPad *tmp_src_pad = gst_element_get_static_pad (ffmpegcolorspace, "src");
     self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
     gst_object_unref (tmp_src_pad);
@@ -472,7 +528,7 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    gst_element_link_many(self->priv->media_fd_src, mimdec,
+    gst_element_link_many(self->priv->media_fd_src, mimdec, queue,
         ffmpegcolorspace, NULL);
 
     fs_stream_emit_src_pad_added (FS_STREAM (self), self->priv->src_pad,
