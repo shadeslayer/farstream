@@ -398,8 +398,6 @@ fs_msn_stream_constructed (GObject *object)
     GstElement *mimdec;
     GstElement *queue;
     GstElement *ffmpegcolorspace;
-    FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
-        FS_MEDIA_TYPE_VIDEO, 0);
 
     self->priv->media_fd_src = gst_element_factory_make ("fdsrc",
         "recv_fd_src");
@@ -531,9 +529,6 @@ fs_msn_stream_constructed (GObject *object)
     gst_element_link_many(self->priv->media_fd_src, mimdec, queue,
         ffmpegcolorspace, NULL);
 
-    fs_stream_emit_src_pad_added (FS_STREAM (self), self->priv->src_pad,
-        mimic_codec);
-    fs_codec_destroy (mimic_codec);
   }
   else
   {
@@ -587,6 +582,12 @@ _connected (
 
   g_debug ("******** CONNECTED %d**********", fd);
   if (self->priv->media_fd_src) {
+    FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
+        FS_MEDIA_TYPE_VIDEO, 0);
+    fs_stream_emit_src_pad_added (FS_STREAM (self), self->priv->src_pad,
+        mimic_codec);
+    fs_codec_destroy (mimic_codec);
+
     g_object_set (G_OBJECT (self->priv->media_fd_src), "fd", fd, NULL);
     gst_element_set_locked_state(self->priv->media_fd_src, FALSE);
     gst_element_sync_state_with_parent (self->priv->media_fd_src);
