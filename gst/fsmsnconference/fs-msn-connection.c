@@ -326,6 +326,7 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
 {
   gint fd = -1;
   struct sockaddr_in myaddr;
+  guint myaddr_len = sizeof (struct sockaddr_in);
   FsCandidate * candidate = NULL;
   GList *addresses = nice_interfaces_get_local_ips (FALSE);
   GList *item = NULL;
@@ -379,6 +380,12 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
     }
   } while (errno == EADDRINUSE);
 
+
+  if (getsockname (fd, (struct sockaddr *) &myaddr, &myaddr_len) < 0) {
+    close (fd);
+    return FALSE;
+  }
+  port = ntohs (myaddr.sin_port);
   add_pollfd (self, fd, accept_connection_cb, TRUE, TRUE);
 
   g_debug ("Listening on port %d", port);
