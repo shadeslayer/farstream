@@ -23,11 +23,13 @@ codec_discovery_CFLAGS = \
 	-I$(top_builddir)/gst/fsrtpconference/ \
 	$(FS2_INTERNAL_CFLAGS) \
 	$(FS2_CFLAGS) \
+	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_CFLAGS) \
 	$(CFLAGS)
 
 LDADD = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
 	$(GST_CHECK_LIBS) \
-	-lgstrtp-@GST_MAJORMINOR@ \
-	$(GST_LIBS) 
+	$(GST_PLUGINS_BASE_LIBS) \
+	$(GST_LIBS) \
+	-lgstrtp-@GST_MAJORMINOR@
