@@ -286,7 +286,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
 static void
 _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session);
 static void
-_send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
+_discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
     gpointer user_data);
 
 
@@ -3948,7 +3948,7 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   gst_caps_unref (caps);
 
   gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
-      _send_sink_pad_blocked_callback, session);
+      _discovery_pad_blocked_callback, session);
   fs_rtp_session_has_disposed_exit (session);
 }
 
@@ -4173,13 +4173,13 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
 }
 
 /**
- * _send_sink_pad_blocked_callback:
+ * _discovery_pad_blocked_callback:
  *
  * This is the callback to change the discovery codecbin
  */
 
 static void
-_send_sink_pad_blocked_callback (GstPad *pad, gboolean blocked,
+_discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
     gpointer user_data)
 {
   FsRtpSession *session = user_data;
@@ -4279,7 +4279,7 @@ fs_rtp_session_start_codec_param_gathering_locked (FsRtpSession *session)
   g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
       "blocked", (gpointer)1);
   gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
-      _send_sink_pad_blocked_callback, session);
+      _discovery_pad_blocked_callback, session);
 }
 
 
