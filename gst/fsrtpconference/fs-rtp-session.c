@@ -187,6 +187,9 @@ struct _FsRtpSessionPrivate
 
   GError *construction_error;
 
+  GMutex *send_pad_blocked_mutex;
+  GMutex *discovery_pad_blocked_mutex;
+
   /* Can only be used while using the lock */
   GStaticRWLock disposed_lock;
   gboolean disposed;
@@ -372,6 +375,8 @@ fs_rtp_session_init (FsRtpSession *self)
 
   self->mutex = g_mutex_new ();
 
+  self->priv->send_pad_blocked_mutex = g_mutex_new ();
+  self->priv->discovery_pad_blocked_mutex = g_mutex_new ();
   g_static_rw_lock_init (&self->priv->disposed_lock);
 
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
@@ -678,6 +683,10 @@ fs_rtp_session_finalize (GObject *object)
 
   if (self->priv->ssrc_streams)
     g_hash_table_destroy (self->priv->ssrc_streams);
+
+  g_mutex_free (self->priv->send_pad_blocked_mutex);
+  g_mutex_free (self->priv->discovery_pad_blocked_mutex);
+
 
   g_static_rw_lock_free (&self->priv->disposed_lock);
 
@@ -3428,6 +3437,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     return;
   }
 
+  g_mutex_lock (self->priv->send_pad_blocked_mutex);
+
   FS_RTP_SESSION_LOCK (self);
   ca = fs_rtp_session_select_send_codec_locked (self, &error);
 
@@ -3497,6 +3508,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
 
+  g_mutex_unlock (self->priv->send_pad_blocked_mutex);
   fs_rtp_session_has_disposed_exit (self);
   return;
 
@@ -3941,8 +3953,6 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 
  out:
 
-  g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
-      "blocked", (gpointer)1);
   FS_RTP_SESSION_UNLOCK (session);
 
   gst_caps_unref (caps);
@@ -4190,16 +4200,9 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
   if (fs_rtp_session_has_disposed_enter (session, NULL))
     return;
 
-  FS_RTP_SESSION_LOCK (session);
+  g_mutex_lock (session->priv->discovery_pad_blocked_mutex);
 
-  if (!g_object_get_data (G_OBJECT (session->priv->send_tee_discovery_pad),
-          "blocked"))
-  {
-    FS_RTP_SESSION_UNLOCK (session);
-    return;
-  }
-  g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
-      "blocked", NULL);
+  FS_RTP_SESSION_LOCK (session);
 
   /* Find out if there is a codec that needs the config to be fetched */
   for (item = g_list_first (session->priv->codec_associations);
@@ -4240,6 +4243,7 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
  out_unlocked:
   gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
+  g_mutex_unlock (session->priv->discovery_pad_blocked_mutex);
   fs_rtp_session_has_disposed_exit (session);
   return;
 
@@ -4276,8 +4280,6 @@ fs_rtp_session_start_codec_param_gathering_locked (FsRtpSession *session)
 
   GST_DEBUG ("Starting Codec Param discovery for session %d", session->id);
 
-  g_object_set_data (G_OBJECT (session->priv->send_tee_discovery_pad),
-      "blocked", (gpointer)1);
   gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
       _discovery_pad_blocked_callback, session);
 }
