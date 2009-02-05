@@ -32,7 +32,8 @@ G_BEGIN_DECLS
 /**
  * CodecAssociation:
  * @reserved: Marks a payload-type reserved at the users request
- * @disable: means that its not a real association, just a spot thats disabled
+ * @disable: means that its not a real association, just a spot thats disabled,
+ *  its marks the PT of a remote codec that has been refused
  * @need_config: means that the config has to be retreived from the codec data
  * @recv_only: means thats its not a real negotiated codec, just a codec that
  * we have offered from which we have to be ready to receive stuff, just in case
