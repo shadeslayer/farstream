@@ -137,4 +137,4 @@ FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmi
 update-all: scanobj-trans-build.stamp update
 
 
-include $(top_srcdir)/common/gtk-doc-plugins.mak
+include $(top_srcdir)/common-modified/gtk-doc-plugins.mak

@@ -13,7 +13,8 @@ SUBDIRS = 			\
 	$(PYTHON_SUBDIR)	\
 	tests 			\
 	docs			\
-	common
+	common			\
+	common-modified
 #	pkgconfig
 
 DIST_SUBDIRS = 			\
@@ -23,7 +24,8 @@ DIST_SUBDIRS = 			\
 	python			\
 	tests 			\
 	docs			\
-	common
+	common			\
+	common-modified
 #	pkgconfig
 
 EXTRA_DIST = \

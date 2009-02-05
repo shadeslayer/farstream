@@ -393,6 +393,7 @@ Makefile
 farsight2.pc
 common/Makefile
 common/m4/Makefile
+common-modified/Makefile
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/funnel/Makefile
