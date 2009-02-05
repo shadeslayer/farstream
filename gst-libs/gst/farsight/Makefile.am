@@ -84,4 +84,4 @@ glib_enum_headers=$(public_headers)
 glib_enum_define=FS
 glib_enum_prefix=_fs
 
-include $(top_srcdir)/common/glib-gen.mak
+include $(top_srcdir)/common-modified/glib-gen.mak

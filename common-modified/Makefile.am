@@ -1,2 +1,3 @@
 EXTRA_DIST = \
-	gtk-doc-plugins.mak
+	gtk-doc-plugins.mak	\
+	glib-gen.mak

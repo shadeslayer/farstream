@@ -57,5 +57,5 @@ fs-rawudp-marshal.list: $(librawudp_transmitter_la_SOURCES) Makefile.am
 glib_enum_define=FS_RAWUDP
 glib_enum_prefix=_fs_rawudp
 
-include $(top_srcdir)/common/glib-gen.mak
+include $(top_srcdir)/common-modified/glib-gen.mak
 

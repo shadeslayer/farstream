@@ -85,4 +85,4 @@ fs-rtp-marshal.list: $(libfsrtpconference_la_SOURCES) Makefile.am
 glib_enum_define=FS_RTP
 glib_enum_prefix=_fs_rtp
 
-include $(top_srcdir)/common/glib-gen.mak
+include $(top_srcdir)/common-modified/glib-gen.mak
