@@ -308,7 +308,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
    *   <tr>
    *    <td nowrap="nowrap">(gchar *)</td>
    *    <td nowrap="nowrap">relay-type</td>
-   *    <td>The type of STUN server, can use "udp", "tcp" or "tls".
+   *    <td>The type of TURN server, can use "udp", "tcp" or "tls".
    *        Defaults to "udp" if not specified.</td>
    *   </tr>
    *   <tr>
