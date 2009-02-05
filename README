@@ -15,8 +15,8 @@ Requirements
 ============
 
 Build time:
- - gstreamer 0.10.20
- - gst-plugins-base 0.10.20
+ - gstreamer 0.10.22
+ - gst-plugins-base 0.10.22
  - glib 2.16
 
 For UPnP support:
