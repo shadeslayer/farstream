@@ -855,6 +855,7 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
     const gchar *multicast_ip,
     guint16 port,
     guint8 ttl,
+    gboolean sending,
     GError **error)
 {
   UdpSock *udpsock;
@@ -870,11 +871,15 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
 
   g_mutex_lock (trans->priv->mutex);
   udpsock = fs_multicast_transmitter_get_udpsock_locked (trans, component_id,
-      local_ip, multicast_ip, port, ttl, error);
+      local_ip, multicast_ip, port, ttl, sending, error);
   g_mutex_unlock (trans->priv->mutex);
 
   if (udpsock)
+  {
+    if (sending)
+      fs_multicast_transmitter_udpsock_inc_sending (udpsock);
     return udpsock;
+  }
 
   udpsock = g_slice_new0 (UdpSock);
 
@@ -922,12 +927,14 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
   g_mutex_lock (trans->priv->mutex);
   /* Check if someone else has added the same thing at the same time */
   tmpudpsock = fs_multicast_transmitter_get_udpsock_locked (trans, component_id,
-      local_ip, multicast_ip, port, ttl, error);
+      local_ip, multicast_ip, port, ttl, sending, error);
 
   if (tmpudpsock)
   {
     g_mutex_unlock (trans->priv->mutex);
     fs_multicast_transmitter_put_udpsock (trans, udpsock, ttl);
+    if (sending)
+      fs_multicast_transmitter_udpsock_inc_sending (udpsock);
     return tmpudpsock;
   }
 
