@@ -39,6 +39,7 @@ docs/libs/farsight2-libs-undeclared.txt
 docs/libs/html
 docs/libs/tmpl
 docs/libs/xml
+docs/libs/doc-registry.xml
 docs/plugins/farsight2-plugins-decl-list.txt
 docs/plugins/farsight2-plugins-decl.txt
 docs/plugins/farsight2-plugins-overrides.txt
