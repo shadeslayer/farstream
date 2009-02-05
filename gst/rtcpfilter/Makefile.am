@@ -32,5 +32,5 @@ fs-rtcp-filter-marshal.list: $(libfsrtcpfilter_la_SOURCES) Makefile.am
 glib_enum_define=FS_RTCP_FILTER
 glib_enum_prefix=_fs_rtcp_filter
 
-include $(top_srcdir)/common/glib-gen.mak
+include $(top_srcdir)/common-modified/glib-gen.mak
 
