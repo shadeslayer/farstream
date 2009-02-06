@@ -74,6 +74,9 @@ static gboolean fs_rtp_dtmf_event_source_class_want_source (
 static GList *fs_rtp_dtmf_event_source_class_add_blueprint (
     FsRtpSpecialSourceClass *klass,
     GList *blueprints);
+static GList *fs_rtp_dtmf_event_source_negotiation_filter (
+    FsRtpSpecialSourceClass *klass,
+    GList *codec_associations);
 
 static void
 fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
@@ -84,6 +87,8 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   spsource_class->build = fs_rtp_dtmf_event_source_build;
   spsource_class->want_source = fs_rtp_dtmf_event_source_class_want_source;
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
+  spsource_class->negotiation_filter =
+    fs_rtp_dtmf_event_source_negotiation_filter;
 
   g_type_class_add_private (klass, sizeof (FsRtpDtmfEventSourcePrivate));
 }
@@ -331,3 +336,44 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   return NULL;
 }
 
+/*
+ * This looks if there is a non-disabled codec with the requested clock rate
+ * other than telephone-event.
+ */
+
+static gboolean
+has_rate (CodecAssociation *ca, gpointer user_data)
+{
+  guint clock_rate = GPOINTER_TO_UINT (user_data);
+
+  if (ca->codec->clock_rate == clock_rate &&
+      !ca->recv_only &&
+      g_ascii_strcasecmp (ca->codec->encoding_name, "telephone-event"))
+    return TRUE;
+  else
+    return FALSE;
+}
+
+static GList *
+fs_rtp_dtmf_event_source_negotiation_filter (FsRtpSpecialSourceClass *klass,
+      GList *codec_associations)
+{
+  GList *tmp;
+
+  for (tmp = codec_associations; tmp; tmp = g_list_next (tmp))
+  {
+    CodecAssociation *ca = tmp->data;
+
+    /* Ignore disabled or non telephone-event codecs*/
+    if (ca->disable || ca->reserved || ca->recv_only ||
+        g_ascii_strcasecmp (ca->codec->encoding_name, "telephone-event"))
+      continue;
+
+    /* Lets disable telephone-event codecs where we don't find */
+    if (!lookup_codec_association_custom (codec_associations, has_rate,
+            GUINT_TO_POINTER (ca->codec->clock_rate)))
+      ca->disable = TRUE;
+  }
+
+  return codec_associations;
+}
