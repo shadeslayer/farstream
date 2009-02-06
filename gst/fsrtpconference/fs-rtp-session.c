@@ -2226,6 +2226,9 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
       session->priv->codec_associations,
       new_negotiated_codec_associations);
 
+  new_negotiated_codec_associations =
+    fs_rtp_special_sources_negotiation_filter (
+        new_negotiated_codec_associations);
 
   return new_negotiated_codec_associations;
 
