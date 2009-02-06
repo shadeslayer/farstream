@@ -65,6 +65,8 @@ typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
  *  installed don't change. It must fill the #CodecBlueprint completely except
  *  for the send_pipeline_factory field. If no blueprints are installed by this
  *  class, this method is not required.
+ * @negotiation_filter: This filters out the invalid CodecAssociation according
+ *  to the special source specific rules.
  *
  * Class structure for #FsRtpSpecialSource, the build() and want_source()
  * methods are required.
@@ -87,6 +89,9 @@ struct _FsRtpSpecialSourceClass
 
   GList* (*add_blueprint) (FsRtpSpecialSourceClass *klass,
       GList *blueprints);
+
+  GList* (*negotiation_filter) (FsRtpSpecialSourceClass *klass,
+      GList *codec_associations);
 };
 
 /**
@@ -141,6 +146,9 @@ fs_rtp_special_sources_start_telephony_event (GList *current_extra_sources,
 gboolean
 fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
     FsDTMFMethod method);
+
+GList *
+fs_rtp_special_sources_negotiation_filter (GList *codec_associations);
 
 G_END_DECLS
 

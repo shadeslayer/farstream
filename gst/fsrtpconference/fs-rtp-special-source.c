@@ -352,6 +352,22 @@ fs_rtp_special_source_class_want_source (FsRtpSpecialSourceClass *klass,
   return FALSE;
 }
 
+
+static GList*
+fs_rtp_special_source_class_negotiation_filter (FsRtpSpecialSourceClass *klass,
+    GList *codec_associations)
+{
+  if (klass->negotiation_filter)
+    return klass->negotiation_filter (klass, codec_associations);
+  else
+    GST_CAT_DEBUG (fsrtpconference_disco,
+        "Class %s has no negotiation_filter function",
+        G_OBJECT_CLASS_NAME(klass));
+
+  return codec_associations;
+}
+
+
 /**
  * fs_rtp_special_sources_add_blueprints:
  * @blueprints: a #GList of #CodecBlueprint
@@ -380,6 +396,34 @@ fs_rtp_special_sources_add_blueprints (GList *blueprints)
   }
 
   return blueprints;
+}
+
+/**
+ * fs_rtp_special_sources_negotiation_filter:
+ * @codec_associations: A #GList of negotiation Codec Associations
+ *
+ * This will apply all of the source specific negotiation filters to the list
+ * of just negotiated codec associations and modify it in the appropriate way.
+ */
+
+GList *
+fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
+{
+  GList *item = NULL;
+
+  fs_rtp_special_sources_init ();
+
+  for (item = g_list_first (classes);
+       item;
+       item = g_list_next (item))
+  {
+    FsRtpSpecialSourceClass *klass = item->data;
+
+    codec_associations = fs_rtp_special_source_class_negotiation_filter (klass,
+        codec_associations);
+  }
+
+  return codec_associations;
 }
 
 static gboolean
