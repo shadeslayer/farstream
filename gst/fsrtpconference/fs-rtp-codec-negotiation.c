@@ -857,7 +857,7 @@ negotiate_stream_codecs (
 
     if (old_ca) {
       GST_DEBUG ("Have local codec in the same PT, lets try it first");
-      nego_codec = sdp_is_compat (old_ca->codec, remote_codec, TRUE);
+      nego_codec = sdp_is_compat (old_ca->codec, remote_codec, FALSE);
     }
 
     if (!nego_codec) {
@@ -868,7 +868,7 @@ negotiate_stream_codecs (
       {
         old_ca = item->data;
 
-        nego_codec = sdp_is_compat (old_ca->codec, remote_codec, TRUE);
+        nego_codec = sdp_is_compat (old_ca->codec, remote_codec, FALSE);
 
         if (nego_codec)
         {
