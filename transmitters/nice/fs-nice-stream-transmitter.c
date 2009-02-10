@@ -674,6 +674,51 @@ fs_nice_stream_transmitter_set_remote_candidates (
   {
     FsCandidate *candidate = item->data;
 
+    if (!candidate->ip)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Candidate MUST have an IP address");
+      return FALSE;
+    }
+
+    if (candidate->component_id == 0 ||
+        candidate->component_id > self->priv->transmitter->components)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Candidate MUST have a component id between 1 and %d, %d is invalid",
+          self->priv->transmitter->components, candidate->component_id);
+      return FALSE;
+    }
+
+    if (candidate->type == FS_CANDIDATE_TYPE_MULTICAST)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "libnice transmitter does not accept multicast candidates");
+      return FALSE;
+    }
+
+
+    if (self->priv->compatibility_mode == NICE_COMPATIBILITY_DRAFT19)
+    {
+      if (candidate->type == FS_CANDIDATE_TYPE_HOST &&
+          (candidate->base_ip || candidate->base_port))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Must not include the base addr/port in host candidates");
+        return FALSE;
+      }
+
+      if ((candidate->type == FS_CANDIDATE_TYPE_SRFLX ||
+              candidate->type == FS_CANDIDATE_TYPE_PRFLX ||
+              candidate->type == FS_CANDIDATE_TYPE_RELAY ) &&
+          (!candidate->base_ip || !candidate->base_port))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Must include the base addr/port in server/peer reflexive and relay candidates");
+        return FALSE;
+      }
+    }
+
     if (!candidate->username)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -688,7 +733,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
       return FALSE;
     }
 
-    if (self->priv->compatibility_mode == NICE_COMPATIBILITY_DRAFT19)
+    if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
+        self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
     {
       if (!username)
       {
