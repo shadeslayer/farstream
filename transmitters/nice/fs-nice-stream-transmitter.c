@@ -107,6 +107,10 @@ struct _FsNiceStreamTransmitterPrivate
   gboolean forced_candidates;
   GList *remote_candidates;
 
+  /* These are fixed and must be identical in the latest draft */
+  gchar *username;
+  gchar *password;
+
   gboolean gathered;
 
   NiceGstStream *gststream;
@@ -435,6 +439,9 @@ fs_nice_stream_transmitter_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
+  g_free (self->priv->username);
+  g_free (self->priv->password);
+
   parent_class->finalize (object);
 }
 
@@ -635,6 +642,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
   GList  *item;
   GSList *nice_candidates = NULL;
   gint c;
+  const gchar *username;
+  const gchar *password;
 
   if (!candidates)
   {
@@ -644,12 +653,72 @@ fs_nice_stream_transmitter_set_remote_candidates (
       fs_candidate_list_destroy (self->priv->remote_candidates);
     self->priv->remote_candidates = NULL;
     self->priv->forced_candidates = FALSE;
+    g_free (self->priv->username);
+    g_free (self->priv->password);
+    self->priv->username = NULL;
+    self->priv->password = NULL;
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     nice_agent_restart (self->priv->agent->agent);
     return TRUE;
   }
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+
+  username = self->priv->username;
+  password = self->priv->password;
+
+  /* Validate candidates */
+  for (item = candidates;
+       item;
+       item = g_list_next (item))
+  {
+    FsCandidate *candidate = item->data;
+
+    if (!candidate->username)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Invalid remote candidates passed, does not have a username");
+      return FALSE;
+    }
+
+    if (!candidate->password && self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Invalid remote candidates passed, does not have a password");
+      return FALSE;
+    }
+
+    if (self->priv->compatibility_mode == NICE_COMPATIBILITY_DRAFT19)
+    {
+      if (!username)
+      {
+        username = candidate->username;
+      }
+      else if (strcmp (username, candidate->username))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Invalid remote candidates passed, does not have the right username");
+        return FALSE;
+      }
+
+      if (!password)
+      {
+        password = candidate->password;
+      }
+      else if (strcmp (password, candidate->password))
+      {
+        g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+            "Invalid remote candidates passed, does not have the right password");
+        return FALSE;
+      }
+    }
+  }
+
+  if (!self->priv->username)
+    self->priv->username = g_strdup (username);
+  if (!self->priv->password)
+    self->priv->password = g_strdup (password);
+
   if (self->priv->forced_candidates)
   {
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
@@ -666,7 +735,22 @@ fs_nice_stream_transmitter_set_remote_candidates (
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     return TRUE;
   }
+
+  username = g_strdup (username);
+  password = g_strdup (password);
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  if (!nice_agent_set_remote_credentials (self->priv->agent->agent, self->priv->stream_id,
+          username, password))
+  {
+    g_free ((gchar*) username);
+    g_free ((gchar*) password);
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+        "Could not set the security credentials");
+    return FALSE;
+  }
+  g_free ((gchar*) username);
+  g_free ((gchar*) password);
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
@@ -1447,6 +1531,16 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 
   if (remote_candidates)
   {
+    if (!nice_agent_set_remote_credentials (agent, self->priv->stream_id,
+            self->priv->username, self->priv->password))
+    {
+      fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+          FS_ERROR_INTERNAL, "Error setting delayed remote candidates",
+          "Could not set the security credentials");
+      fs_candidate_list_destroy (remote_candidates);
+      return;
+    }
+
     if (forced_candidates)
     {
       if (!fs_nice_stream_transmitter_force_remote_candidates_act (self,
