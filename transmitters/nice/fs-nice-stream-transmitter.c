@@ -995,7 +995,8 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate,
       ipaddr,
       nice_address_get_port (&nicecandidate->addr));
 
-  if (nice_address_is_valid (&nicecandidate->base_addr))
+  if (nice_address_is_valid (&nicecandidate->base_addr) &&
+      nicecandidate->type != NICE_CANDIDATE_TYPE_HOST)
   {
     nice_address_to_string (&nicecandidate->base_addr, ipaddr);
     fscandidate->base_ip = ipaddr;
