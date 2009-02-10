@@ -73,8 +73,16 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   ts_fail_if (candidate->foundation == NULL,
       "Candidate doenst have a foundation");
   ts_fail_if (candidate->component_id == 0, "Component id is 0");
-  ts_fail_if (candidate->base_ip == NULL, "Candidate doesnt have a base ip");
-  ts_fail_if (candidate->base_port == 0, "Candidate doesnt have a base port");
+  if (candidate->type == FS_CANDIDATE_TYPE_HOST)
+  {
+    ts_fail_if (candidate->base_ip != NULL, "Host candidate has a base ip");
+    ts_fail_if (candidate->base_port != 0, "Host candidate has a base port");
+  }
+  else
+  {
+    ts_fail_if (candidate->base_ip == NULL, "Candidate doesnt have a base ip");
+    ts_fail_if (candidate->base_port == 0, "Candidate doesnt have a base port");
+  }
   ts_fail_if (candidate->username == NULL, "Candidate doenst have a username");
   ts_fail_if (candidate->password == NULL, "Candidate doenst have a password");
 
