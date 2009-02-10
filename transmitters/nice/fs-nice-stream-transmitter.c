@@ -714,7 +714,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
           (!candidate->base_ip || !candidate->base_port))
       {
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "Must include the base addr/port in server/peer reflexive and relay candidates");
+            "Must include the base addr/port in server/peer reflexive and"
+            " relay candidates");
         return FALSE;
       }
     }
@@ -726,7 +727,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
       return FALSE;
     }
 
-    if (!candidate->password && self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE)
+    if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
+        !candidate->password)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Invalid remote candidates passed, does not have a password");
@@ -743,7 +745,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
       else if (strcmp (username, candidate->username))
       {
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "Invalid remote candidates passed, does not have the right username");
+            "Invalid remote candidates passed, does not have the right"
+            " username");
         return FALSE;
       }
 
@@ -754,7 +757,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
       else if (strcmp (password, candidate->password))
       {
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "Invalid remote candidates passed, does not have the right password");
+            "Invalid remote candidates passed, does not have the right"
+            " password");
         return FALSE;
       }
     }
@@ -786,8 +790,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
   password = g_strdup (password);
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
-  if (!nice_agent_set_remote_credentials (self->priv->agent->agent, self->priv->stream_id,
-          username, password))
+  if (!nice_agent_set_remote_credentials (self->priv->agent->agent,
+          self->priv->stream_id, username, password))
   {
     g_free ((gchar*) username);
     g_free ((gchar*) password);
