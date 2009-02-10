@@ -1112,6 +1112,7 @@ _upnp_discovery_timeout (gpointer user_data)
   FsRawUdpComponent *self = user_data;
 
   FS_RAWUDP_COMPONENT_LOCK (self);
+  g_source_unref (self->priv->upnp_discovery_timeout_src);
   self->priv->upnp_discovery_timeout_src = NULL;
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
