@@ -4026,6 +4026,8 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
   g_free (tmp);
 
   FS_RTP_SESSION_UNLOCK (session);
+  /* Invalidate CA because we've just unlocked */
+  ca = NULL;
 
   if (session->priv->discovery_codecbin)
   {
@@ -4145,7 +4147,7 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
     goto error;
   }
 
-  caps = fs_codec_to_gst_caps (ca->codec);
+  caps = fs_codec_to_gst_caps (codec);
   g_object_set (session->priv->discovery_capsfilter,
       "caps", caps,
       NULL);
