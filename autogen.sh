@@ -22,7 +22,7 @@ then
 fi
 . common/gst-autogen.sh
 
-CONFIGURE_DEF_OPT='--enable-gtk-doc --enable-plugin-docs'
+CONFIGURE_DEF_OPT='--enable-gtk-doc'
 
 autogen_options $@
 
