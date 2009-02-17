@@ -420,6 +420,7 @@ docs/libs/Makefile
 docs/plugins/Makefile
 docs/version.entities
 python/Makefile
+m4/Makefile
 dnl docs/plugins/Makefile
 )
 AC_OUTPUT
