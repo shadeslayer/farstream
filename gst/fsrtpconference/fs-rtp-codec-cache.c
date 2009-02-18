@@ -99,13 +99,13 @@ get_codecs_cache_path (FsMediaType media_type) {
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
     cache_path = g_strdup (g_getenv ("FS_AUDIO_CODECS_CACHE"));
     if (cache_path == NULL) {
-      cache_path = g_build_filename (g_get_home_dir (), ".farsight",
+      cache_path = g_build_filename (g_get_user_cache_dir (), "farsight",
           "codecs.audio." HOST_CPU ".cache", NULL);
     }
   } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     cache_path = g_strdup (g_getenv ("FS_VIDEO_CODECS_CACHE"));
     if (cache_path == NULL) {
-      cache_path = g_build_filename (g_get_home_dir (), ".farsight",
+      cache_path = g_build_filename (g_get_user_cache_dir (), "farsight",
           "codecs.video." HOST_CPU ".cache", NULL);
     }
   } else {

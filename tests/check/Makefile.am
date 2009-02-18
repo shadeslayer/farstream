@@ -13,13 +13,15 @@ TESTS_ENVIRONMENT = \
 	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs \
 	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH} \
 	UPNP_XML_PATH=$(srcdir)/upnp \
-	SRCDIR=$(srcdir)
+	SRCDIR=$(srcdir) \
+	XDG_CACHE_HOME=$(builddir)/cache
 
 
 # ths core dumps of some machines have PIDs appended
 CLEANFILES = core* test-registry.xml
 
 clean-local: clean-local-check
+	rm -rf cache
 
 $(CHECK_REGISTRY):
 	$(TESTS_ENVIRONMENT)
