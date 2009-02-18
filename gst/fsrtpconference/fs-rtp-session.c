@@ -3382,6 +3382,8 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
   if (!g_value_get_boolean (&link_rv))
   {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link main pad of codec bin for pt %d", codec->id);
     gst_iterator_free (iter);
     goto error;
   }
@@ -3401,7 +3403,11 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   gst_iterator_free (iter);
 
   if (!g_value_get_boolean (&link_rv))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link all other pads of codec bin for pt %d", codec->id);
     goto error;
+  }
 
   gst_element_set_locked_state (codecbin, FALSE);
 
