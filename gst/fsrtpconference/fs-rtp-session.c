@@ -3278,11 +3278,6 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
         GST_ELEMENT (self->priv->conference),
         self->priv->rtpmuxer);
 
-  /*
-   * Lets reset the clock-rate (because rtpmuxer saves it.. )
-   */
-  g_object_set (self->priv->rtpmuxer, "clock-rate", 0, NULL);
-
   return TRUE;
 }
 
