@@ -676,6 +676,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
 
     if (!candidate->ip)
     {
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Candidate MUST have an IP address");
       return FALSE;
@@ -684,6 +685,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
     if (candidate->component_id == 0 ||
         candidate->component_id > self->priv->transmitter->components)
     {
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Candidate MUST have a component id between 1 and %d, %d is invalid",
           self->priv->transmitter->components, candidate->component_id);
@@ -692,6 +694,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
 
     if (candidate->type == FS_CANDIDATE_TYPE_MULTICAST)
     {
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "libnice transmitter does not accept multicast candidates");
       return FALSE;
@@ -699,6 +702,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
 
     if (!candidate->username)
     {
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Invalid remote candidates passed, does not have a username");
       return FALSE;
@@ -707,6 +711,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
     if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
         !candidate->password)
     {
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "Invalid remote candidates passed, does not have a password");
       return FALSE;
@@ -721,6 +726,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
       }
       else if (strcmp (username, candidate->username))
       {
+        FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
             "Invalid remote candidates passed, does not have the right"
             " username");
@@ -733,6 +739,7 @@ fs_nice_stream_transmitter_set_remote_candidates (
       }
       else if (strcmp (password, candidate->password))
       {
+        FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
             "Invalid remote candidates passed, does not have the right"
             " password");
