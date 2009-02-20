@@ -307,6 +307,27 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fs_codec_list_destroy (codecs);
   codecs = NULL;
 
+  codecs = g_list_append (codecs,
+      fs_codec_new (
+          0,
+          "PCMU",
+          FS_MEDIA_TYPE_AUDIO,
+          0));
+
+  fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
+      "Could not set remote PCMU codec with unknown clock-rate");
+
+  g_object_get (dat->session, "codecs", &codecs2, NULL);
+  fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
+  ((FsCodec*)(codecs->data))->clock_rate = 8000;
+  fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
+      "Negotiated codec does not match remote codec");
+  fs_codec_list_destroy (codecs2);
+  codecs2 = NULL;
+
+  fs_codec_list_destroy (codecs);
+  codecs = NULL;
+
   cleanup_simple_conference (dat);
 }
 GST_END_TEST;
