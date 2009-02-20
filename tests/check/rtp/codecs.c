@@ -247,6 +247,8 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fs_codec_list_destroy (codecs);
   codecs = NULL;
 
+  has_negotiated = FALSE;
+
   codecs = g_list_append (codecs,
       fs_codec_new (
           118,
