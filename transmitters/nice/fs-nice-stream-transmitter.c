@@ -770,21 +770,29 @@ fs_nice_stream_transmitter_set_remote_candidates (
     return TRUE;
   }
 
-  username = g_strdup (username);
-  password = g_strdup (password);
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-
-  if (!nice_agent_set_remote_credentials (self->priv->agent->agent,
-          self->priv->stream_id, username, password))
+  if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
+        self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
   {
+    username = g_strdup (username);
+    password = g_strdup (password);
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+    if (!nice_agent_set_remote_credentials (self->priv->agent->agent,
+            self->priv->stream_id, username, password))
+    {
+      g_free ((gchar*) username);
+      g_free ((gchar*) password);
+      g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+          "Could not set the security credentials");
+      return FALSE;
+    }
     g_free ((gchar*) username);
     g_free ((gchar*) password);
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Could not set the security credentials");
-    return FALSE;
   }
-  g_free ((gchar*) username);
-  g_free ((gchar*) password);
+  else
+  {
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+  }
 
   for (c = 1; c <= self->priv->transmitter->components; c++)
   {
@@ -1566,16 +1574,6 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 
   if (remote_candidates)
   {
-    if (!nice_agent_set_remote_credentials (agent, self->priv->stream_id,
-            self->priv->username, self->priv->password))
-    {
-      fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-          FS_ERROR_INTERNAL, "Error setting delayed remote candidates",
-          "Could not set the security credentials");
-      fs_candidate_list_destroy (remote_candidates);
-      return;
-    }
-
     if (forced_candidates)
     {
       if (!fs_nice_stream_transmitter_force_remote_candidates_act (self,
@@ -1589,6 +1587,22 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
     else
     {
       GError *error = NULL;
+
+      if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
+          self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
+      {
+        if (!nice_agent_set_remote_credentials (agent, self->priv->stream_id,
+                self->priv->username, self->priv->password))
+        {
+          fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
+              FS_ERROR_INTERNAL, "Error setting delayed remote candidates",
+              "Could not set the security credentials");
+          fs_candidate_list_destroy (remote_candidates);
+          return;
+        }
+      }
+
+
       if (!fs_nice_stream_transmitter_set_remote_candidates (
               FS_STREAM_TRANSMITTER_CAST (self),
               remote_candidates, &error))
