@@ -275,6 +275,7 @@ static CodecAssociation *
 fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     guint pt,
     FsRtpStream *stream,
+    FsCodec **recv_codec,
     GError **error);
 
 static void
@@ -2811,6 +2812,7 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
  * @session: a #FsRtpSession
  * @pt: The payload type to find the codec for
  * @stream: an optional #FsRtpStream for which this data is received
+ * @recv_codec: The codec one wants to receive one
  *
  * This function returns the #CodecAssociation that will be used to receive
  * data on a specific payload type, optionally from a specific stream.
@@ -2824,9 +2826,10 @@ static CodecAssociation *
 fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
     guint pt,
     FsRtpStream *stream,
+    FsCodec **recv_codec,
     GError **error)
 {
-  FsCodec *recv_codec = NULL;
+  FsCodec *recv_codec_tmp = NULL;
   CodecAssociation *ca = NULL;
   GList *item = NULL;
 
@@ -2850,32 +2853,32 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
   {
     for (item = stream->negotiated_codecs; item; item = g_list_next (item))
     {
-      recv_codec = item->data;
-      if (recv_codec->id == pt)
+      recv_codec_tmp = item->data;
+      if (recv_codec_tmp->id == pt)
         break;
     }
 
     if (item)
     {
       GST_DEBUG ("Receiving on stream codec " FS_CODEC_FORMAT,
-          FS_CODEC_ARGS (recv_codec));
+          FS_CODEC_ARGS (recv_codec_tmp));
     }
     else
     {
       GST_DEBUG ("Have stream, but it does not have negotiatied codec");
-      recv_codec = NULL;
+      recv_codec_tmp = NULL;
     }
   }
 
-  if (recv_codec)
+  if (recv_codec_tmp)
   {
-    recv_codec = fs_codec_copy (recv_codec);
+    *recv_codec = fs_codec_copy (recv_codec_tmp);
   }
   else
   {
-    recv_codec = codec_copy_without_config (ca->codec);
+    *recv_codec = codec_copy_without_config (ca->codec);
     GST_DEBUG ("Receiving on session codec " FS_CODEC_FORMAT,
-        FS_CODEC_ARGS (recv_codec));
+        FS_CODEC_ARGS (recv_codec_tmp));
   }
 
   return ca;
@@ -2909,20 +2912,22 @@ fs_rtp_session_substream_set_codec_bin_unlock (FsRtpSession *session,
   gchar *name;
   CodecAssociation *ca = NULL;
   gboolean ret = FALSE;
+  FsCodec *codec = NULL;
 
-  ca = fs_rtp_session_get_recv_codec_locked (session, pt, stream, error);
+  ca = fs_rtp_session_get_recv_codec_locked (session, pt, stream, &codec,
+      error);
 
   if (!ca)
     goto out;
 
-  if (fs_codec_are_equal (ca->codec, substream->codec))
+  if (fs_codec_are_equal (codec, substream->codec))
   {
     ret = TRUE;
     goto out;
   }
 
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, ssrc, pt);
-  codecbin = _create_codec_bin (ca, ca->codec, name, FALSE, NULL, error);
+  codecbin = _create_codec_bin (ca, codec, name, FALSE, NULL, error);
   g_free (name);
 
   if (!codecbin)
@@ -2930,10 +2935,11 @@ fs_rtp_session_substream_set_codec_bin_unlock (FsRtpSession *session,
 
 
   return fs_rtp_sub_stream_set_codecbin_unlock (substream,
-      fs_codec_copy (ca->codec), codecbin, error);
+      codec, codecbin, error);
 
  out:
   FS_RTP_SESSION_UNLOCK (session);
+  fs_codec_destroy (codec);
   return ret;
 }
 
