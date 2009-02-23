@@ -15,7 +15,8 @@ SUBDIRS = 			\
 	docs			\
 	common			\
 	common-modified		\
-	m4
+	m4			\
+	examples
 #	pkgconfig
 
 DIST_SUBDIRS = 			\
@@ -27,7 +28,8 @@ DIST_SUBDIRS = 			\
 	docs			\
 	common			\
 	common-modified		\
-	m4
+	m4			\
+	examples
 #	pkgconfig
 
 EXTRA_DIST = \

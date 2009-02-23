@@ -413,8 +413,9 @@ dnl pkgconfig/farsight2-uninstalled.pc
 tests/Makefile
 tests/check/Makefile
 tests/rtp/Makefile
-tests/gui/Makefile
-tests/commandline/Makefile
+examples/Makefile
+examples/gui/Makefile
+examples/commandline/Makefile
 docs/Makefile
 docs/libs/Makefile
 docs/plugins/Makefile
