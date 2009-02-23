@@ -68,6 +68,7 @@ python/*.pyo
 python/*.pyc
 
 tests/check/test-registry.xml
+tests/check/cache
 tests/check/*/.dirstamp
 tests/check/base/fscodec
 tests/check/base/fstransmitter
