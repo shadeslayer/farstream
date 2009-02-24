@@ -608,19 +608,6 @@ create_local_codec_associations (
         FsCodec *codec = sdp_is_compat (codec_pref, oldca->codec, FALSE);
         if (codec)
         {
-          GList *item = NULL;
-
-          /* Keep the local configuration */
-          for (item = oldca->codec->optional_params;
-               item;
-               item = g_list_next (item))
-          {
-            FsCodecParameter *param = item->data;
-            if (codec_has_config_data_named (codec, param->name))
-              fs_codec_add_optional_parameter (codec, param->name,
-                  param->value);
-          }
-
           ca = g_slice_new (CodecAssociation);
           memcpy (ca, oldca, sizeof (CodecAssociation));
           codec_remove_parameter (codec, SEND_PROFILE_ARG);
