@@ -664,7 +664,6 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
 
   codec = fs_codec_new (117, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
-  fs_codec_add_optional_parameter (codec, "delivery-method", "inline");
   fs_codec_add_optional_parameter (codec, "configuration", config2);
   codecs = g_list_prepend (NULL, codec);
 
@@ -776,7 +775,6 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 
     cd.config = config;
     codec = fs_codec_new (105, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
-    fs_codec_add_optional_parameter (codec, "delivery-method", "inline");
     fs_codec_add_optional_parameter (codec, "configuration", config);
     codecs = g_list_prepend (NULL, codec);
 
