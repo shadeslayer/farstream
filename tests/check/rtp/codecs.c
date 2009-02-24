@@ -507,7 +507,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 }
 GST_END_TEST;
 
-static void
+static FsCodec *
 check_vorbis_and_configuration (const gchar *text, GList *codecs,
     const gchar *config)
 {
@@ -538,6 +538,8 @@ check_vorbis_and_configuration (const gchar *text, GList *codecs,
   }
 
   fail_if (item == NULL, "%s: The configuration parameter is not there", text);
+
+  return codec;
 }
 
 
@@ -564,6 +566,8 @@ _bus_message_element (GstBus *bus, GstMessage *message,
     "enfiuewfkdnwqiucnwiufenciuawndiunfucnweciuqfiucina";
   const gchar config2[] = "sadsajdsakdjlksajdsajldsaldjsalkjdl";
   GError *error = NULL;
+  gchar *discovered_config = NULL;
+  FsCodecParameter *param;
 
   if (!gst_structure_has_name (s, "farsight-codecs-changed"))
     return;
@@ -574,7 +578,11 @@ _bus_message_element (GstBus *bus, GstMessage *message,
     return;
 
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
-  check_vorbis_and_configuration ("codecs before negotiation", codecs, NULL);
+  codec = check_vorbis_and_configuration ("codecs before negotiation", codecs,
+      NULL);
+
+  param = fs_codec_get_optional_parameter (codec, "configuration", NULL);
+  discovered_config = g_strdup (param->value);
 
   g_object_get (cd->dat->session, "codecs-without-config", &codecs2, NULL);
   fail_if (codecs2 == NULL, "Could not get codecs without config");
@@ -609,7 +617,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   {
     g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
     check_vorbis_and_configuration ("stream codecs before negotiation",
-        codecs ,cd->config);
+        codecs, cd->config);
     fs_codec_list_destroy (codecs);
   }
 
@@ -636,7 +644,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
   check_vorbis_and_configuration ("session codecs after negotiation",
-      codecs, NULL);
+      codecs, discovered_config);
   fs_codec_list_destroy (codecs);
 
   g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
@@ -678,7 +686,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
   check_vorbis_and_configuration ("session codecs after renegotiation",
-      codecs, NULL);
+      codecs, discovered_config);
   fs_codec_list_destroy (codecs);
 
   g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
@@ -694,6 +702,8 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   g_object_unref (p2);
   g_object_unref (stream2);
+
+  g_free (discovered_config);
 
   g_main_loop_quit (loop);
 }
