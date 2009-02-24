@@ -568,6 +568,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   GError *error = NULL;
   gchar *discovered_config = NULL;
   FsCodecParameter *param;
+  guint vorbis_id;
 
   if (!gst_structure_has_name (s, "farsight-codecs-changed"))
     return;
@@ -580,6 +581,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
   codec = check_vorbis_and_configuration ("codecs before negotiation", codecs,
       NULL);
+  vorbis_id = codec->id;
 
   param = fs_codec_get_optional_parameter (codec, "configuration", NULL);
   discovered_config = g_strdup (param->value);
@@ -622,7 +624,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   }
 
 
-  codec = fs_codec_new (105, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+  codec = fs_codec_new (vorbis_id,  "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
   fs_codec_add_optional_parameter (codec, "configuration", config);
   codecs = g_list_prepend (NULL, codec);
 
@@ -663,7 +665,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   fail_if (stream2 == NULL, "Could not second create new stream");
 
 
-  codec = fs_codec_new (117, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+  codec = fs_codec_new (vorbis_id, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
   fs_codec_add_optional_parameter (codec, "configuration", config2);
   codecs = g_list_prepend (NULL, codec);
 
