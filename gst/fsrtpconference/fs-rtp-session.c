@@ -2691,12 +2691,15 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
     {
       /* We have to check some kind of configuration to see if we have a
          favorite */
-      current_element = gst_element_factory_make ("fsselector", NULL);
+      current_element = gst_element_factory_make ("autoconvert", NULL);
+
+      if (!current_element)
+        current_element = gst_element_factory_make ("fsselector", NULL);
 
       if (!current_element)
       {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not create fsselector element");
+          "Could not create autoconvert (ex-fsselector) element");
         goto error;
       }
 
