@@ -2878,7 +2878,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
   {
     *recv_codec = codec_copy_without_config (ca->codec);
     GST_DEBUG ("Receiving on session codec " FS_CODEC_FORMAT,
-        FS_CODEC_ARGS (recv_codec_tmp));
+        FS_CODEC_ARGS (ca->codec));
   }
 
   return ca;
