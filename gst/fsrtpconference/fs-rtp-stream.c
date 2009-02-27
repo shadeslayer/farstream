@@ -892,6 +892,8 @@ fs_rtp_stream_add_substream_unlock (FsRtpStream *stream,
   g_signal_connect (substream, "error",
                     G_CALLBACK (_substream_error), stream);
 
+  fs_rtp_sub_stream_verify_codec (substream);
+
   /* Only announce a pad if it has a codec attached to it */
   if (substream->codec)
     ret = fs_rtp_sub_stream_add_output_ghostpad_unlock (substream, error);

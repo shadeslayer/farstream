@@ -2455,30 +2455,19 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   }
 
 
-  if (!fs_rtp_session_substream_set_codec_bin_unlock (session, substream,
-          stream, ssrc, pt, &error))
-  {
-    if (error)
-      fs_session_emit_error (FS_SESSION (session), error->code,
-          "Could not add the codec bin to the new substream", error->message);
-    else
-      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
-          "Could not add the codec bin to the new substream",
-          "No error details returned");
-  }
-
-  g_clear_error (&error);
-
-
   if (stream)
   {
-    FS_RTP_SESSION_LOCK (session);
     if (!fs_rtp_stream_add_substream_unlock (stream, substream, &error))
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not add the output ghostpad to the new substream",
           error->message);
 
     g_clear_error (&error);
+  }
+  else
+  {
+    fs_rtp_sub_stream_verify_codec (substream);
+    FS_RTP_SESSION_UNLOCK (session);
   }
 
   if (stream)
@@ -3665,7 +3654,6 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
 
     if (fs_rtp_stream_add_substream_unlock (stream, substream, &error))
     {
-      fs_rtp_sub_stream_verify_codec (substream);
       GST_DEBUG ("Associated SSRC %x in session %u", ssrc, session->id);
     }
     else
@@ -3782,9 +3770,7 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
 
   first_stream = g_list_first (session->priv->streams)->data;
   g_object_ref (first_stream);
-  if (fs_rtp_stream_add_substream_unlock (first_stream, substream, &error))
-    fs_rtp_sub_stream_verify_codec (substream);
-  else
+  if (!fs_rtp_stream_add_substream_unlock (first_stream, substream, &error))
     fs_session_emit_error (FS_SESSION (session),
         error ? error->code : FS_ERROR_INTERNAL,
         "Could not link the substream to a stream",
