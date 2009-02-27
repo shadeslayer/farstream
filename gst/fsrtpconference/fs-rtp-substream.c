@@ -1179,14 +1179,11 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
       GstCaps *intersect = gst_caps_intersect (GST_BUFFER_CAPS (miniobj),
           self->priv->caps);
 
-      if (intersect)
-      {
-        gst_buffer_set_caps (GST_BUFFER (miniobj), self->priv->caps);
-
-        gst_caps_unref (intersect);
-      }
-      else
+      if (gst_caps_is_empty (intersect))
         ret = FALSE;
+      else
+        gst_buffer_set_caps (GST_BUFFER (miniobj), self->priv->caps);
+      gst_caps_unref (intersect);
     }
     else
     {
