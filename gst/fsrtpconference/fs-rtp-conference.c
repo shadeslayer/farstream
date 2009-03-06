@@ -308,7 +308,7 @@ fs_rtp_conference_init (FsRtpConference *conf,
   conf->priv->disposed = FALSE;
   conf->priv->max_session_id = 1;
 
-  conf->gstrtpbin = gst_element_factory_make ("gstrtpbin", NULL);
+  conf->gstrtpbin = gst_element_factory_make ("gstrtpbin", "rtpbin");
 
   if (!conf->gstrtpbin) {
     GST_ERROR_OBJECT (conf, "Could not create GstRtpBin element");
