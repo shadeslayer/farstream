@@ -846,6 +846,8 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
 
   ns->desired_sending = sending;
 
+  GST_DEBUG ("Requesting gst stream sending status: %d", sending);
+
   if (ns->modifying)
   {
     g_mutex_unlock (ns->mutex);
@@ -859,6 +861,8 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
     gboolean current_sending = ns->sending;
 
     g_mutex_unlock (ns->mutex);
+
+    GST_DEBUG ("Changing gst stream sending status to %d", !current_sending);
 
     if (current_sending)
     {
