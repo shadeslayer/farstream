@@ -28,8 +28,8 @@ For the ICE transmitter:
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.7
- - gst-plugins-bad 0.10.7
- - gst-plugins-farsight 0.12.9
+ - gst-plugins-bad 0.10.10
+ - gst-plugins-farsight 0.12.10 (or lower) OR -bad 0.10.11
 
 For the python module and examples you also need:
  - Python 2.1
