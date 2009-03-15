@@ -617,11 +617,19 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
   if (self->priv->new_remote_codecs_cb (self, remote_codecs, error,
           self->priv->user_data_for_cb))
   {
+    gboolean is_new = TRUE;
+
     FS_RTP_SESSION_LOCK (session);
     if (self->remote_codecs)
+    {
+      is_new = !fs_codec_list_are_equal (self->remote_codecs, remote_codecs);
       fs_codec_list_destroy (self->remote_codecs);
+    }
     self->remote_codecs = fs_codec_list_copy (remote_codecs);
     FS_RTP_SESSION_UNLOCK (session);
+
+    if (is_new)
+      g_object_notify (G_OBJECT (stream), "remote-codecs");
   } else {
     goto error;
   }
