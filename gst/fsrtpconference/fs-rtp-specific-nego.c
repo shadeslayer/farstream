@@ -59,7 +59,7 @@ static FsCodec *
 sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config);
 static FsCodec *
-sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
+sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config);
 static FsCodec *
 sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
@@ -68,7 +68,7 @@ sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
    {NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "H263-1998", sdp_is_compat_h263_1998,
+  {FS_MEDIA_TYPE_VIDEO, "H263-2000", sdp_is_compat_h263_2000,
    {NULL}},
   {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_theora_vorbis,
    {"configuration", NULL}},
@@ -409,13 +409,13 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
 
 
 static FsCodec *
-sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
+sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config)
 {
   GList *mylistitem = NULL, *remote_param_list = NULL;
   FsCodecParameter *profile = NULL;
 
-  GST_DEBUG ("Using H263-1998 negotiation function");
+  GST_DEBUG ("Using H263-2000 negotiation function");
 
   if (remote_codec->clock_rate != 90000)
   {
@@ -431,7 +431,9 @@ sdp_is_compat_h263_1998 (FsCodec *local_codec, FsCodec *remote_codec,
     return NULL;
   }
 
-  /* First lets check if there is a profile */
+  /* First lets check if there is a profile, it MUST be the same
+   * as ours
+   */
 
   for (remote_param_list = remote_codec->optional_params;
        remote_param_list;
