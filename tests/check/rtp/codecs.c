@@ -176,13 +176,17 @@ GST_START_TEST (test_rtpcodecs_codec_preferences)
 GST_END_TEST;
 
 static gboolean session_codecs_notified = FALSE;
+static gboolean stream_remote_codecs_notified = FALSE;
+static gboolean stream_nego_codecs_notified = FALSE;
 
 static void
-_session_codecs_notify (GObject *object, GParamSpec *paramspec,
+_codecs_notify (GObject *object, GParamSpec *paramspec,
     gpointer user_data)
 {
-  session_codecs_notified = TRUE;
+  gboolean *notified_marker = user_data;
+  *notified_marker = TRUE;
 }
+
 
 GST_START_TEST (test_rtpcodecs_two_way_negotiation)
 {
@@ -195,8 +199,15 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   st = simple_conference_add_stream (dat, dat, 0, NULL);
 
   session_codecs_notified = FALSE;
+  stream_remote_codecs_notified = FALSE;
+  stream_nego_codecs_notified = FALSE;
+
   g_signal_connect (dat->session, "notify::codecs",
-      G_CALLBACK (_session_codecs_notify), dat);
+      G_CALLBACK (_codecs_notify), &session_codecs_notified);
+  g_signal_connect (st->stream, "notify::remote-codecs",
+      G_CALLBACK (_codecs_notify), &stream_remote_codecs_notified);
+  g_signal_connect (st->stream, "notify::negotiated-codecs",
+      G_CALLBACK (_codecs_notify), &stream_nego_codecs_notified);
 
   codecs = g_list_append (codecs,
       fs_codec_new (
@@ -213,6 +224,10 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
 
   g_clear_error (&error);
 
+  fail_if (session_codecs_notified);
+  fail_if (stream_remote_codecs_notified);
+  fail_if (stream_nego_codecs_notified);
+
   fs_codec_list_destroy (codecs);
   codecs = NULL;
 
@@ -227,8 +242,9 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
       "Could not set remote PCMU codec");
 
-  fail_unless (session_codecs_notified == TRUE,
-      "Did not receive the notify::codecs signal");
+  fail_unless (session_codecs_notified);
+  fail_unless (stream_remote_codecs_notified);
+  fail_unless (stream_nego_codecs_notified);
 
   g_object_get (dat->session, "codecs", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
@@ -237,18 +253,22 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fs_codec_list_destroy (codecs2);
 
   session_codecs_notified = FALSE;
+  stream_remote_codecs_notified = FALSE;
+  stream_nego_codecs_notified = FALSE;
 
   fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
       "Could not re-set remote PCMU codec");
 
-  fail_if (session_codecs_notified == TRUE,
-      "We received the notify::codecs signal even though codecs"
-      " have not changed");
+  fail_if (session_codecs_notified);
+  fail_if (stream_nego_codecs_notified);
+  fail_if (stream_remote_codecs_notified);
 
   fs_codec_list_destroy (codecs);
   codecs = NULL;
 
   session_codecs_notified = FALSE;
+  stream_remote_codecs_notified = FALSE;
+  stream_nego_codecs_notified = FALSE;
 
   codecs = g_list_append (codecs,
       fs_codec_new (
@@ -260,8 +280,9 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
       "Could not set remote PCMU codec with Pt 118");
 
-  fail_unless (session_codecs_notified == TRUE,
-      "Did not receive the notify::codecs signal");
+  fail_unless (session_codecs_notified);
+  fail_unless (stream_nego_codecs_notified);
+  fail_unless (stream_remote_codecs_notified);
 
   g_object_get (dat->session, "codecs", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
@@ -271,13 +292,15 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   codecs2 = NULL;
 
   session_codecs_notified = FALSE;
+  stream_remote_codecs_notified = FALSE;
+  stream_nego_codecs_notified = FALSE;
 
   fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
       "Could not re-set remote PCMU codec");
 
-  fail_if (session_codecs_notified == TRUE,
-      "We received the notify::codecs signal even though codecs"
-      " have not changed");
+  fail_if (session_codecs_notified);
+  fail_if (stream_remote_codecs_notified);
+  fail_if (stream_nego_codecs_notified);
 
   fs_codec_list_destroy (codecs);
   codecs = NULL;
@@ -290,12 +313,15 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
           0));
 
   session_codecs_notified = FALSE;
+  stream_remote_codecs_notified = FALSE;
+  stream_nego_codecs_notified = FALSE;
   fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
       "Could not set remote PCMU codec with clock rate 0");
   g_clear_error (&error);
 
-  fail_unless (session_codecs_notified == TRUE,
-      "Did not receive the notify::codecs signal");
+  fail_unless (session_codecs_notified);
+  fail_unless (stream_remote_codecs_notified);
+  fail_unless (stream_nego_codecs_notified);
 
   ((FsCodec*)codecs->data)->clock_rate = 8000;
 
