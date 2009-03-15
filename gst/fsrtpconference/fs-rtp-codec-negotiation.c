@@ -1195,6 +1195,12 @@ codec_associations_list_are_equal (GList *list1, GList *list2)
     if (list1 == NULL || list2 == NULL)
       break;
 
+    /* We must emit the notification if the recv-only status
+     * of a codec has changed
+     */
+    if (ca1->recv_only != ca2->recv_only)
+      return FALSE;
+
     if (!fs_codec_are_equal (ca1->codec, ca2->codec))
       return FALSE;
   }
