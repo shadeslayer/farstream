@@ -120,8 +120,6 @@ struct _FsRtpSessionPrivate
   GstElement *transmitter_rtcp_tee;
   GstElement *transmitter_rtp_funnel;
   GstElement *transmitter_rtcp_funnel;
-  GstElement *transmitter_rtp_fakesink;
-  GstElement *transmitter_rtcp_fakesink;
 
   GstElement *rtpmuxer;
 
@@ -464,8 +462,6 @@ fs_rtp_session_dispose (GObject *object)
     g_hash_table_foreach (self->priv->transmitters, _stop_transmitter_elem,
       "gst-sink");
 
-  stop_and_remove (conferencebin, &self->priv->transmitter_rtp_fakesink, TRUE);
-  stop_and_remove (conferencebin, &self->priv->transmitter_rtcp_fakesink, TRUE);
   stop_and_remove (conferencebin, &self->priv->transmitter_rtp_tee, TRUE);
   stop_and_remove (conferencebin, &self->priv->transmitter_rtcp_tee, TRUE);
 
@@ -845,13 +841,12 @@ fs_rtp_session_constructed (GObject *object)
   GstElement *tee = NULL;
   GstElement *funnel = NULL;
   GstElement *muxer = NULL;
-  GstElement *fakesink = NULL;
   GstPad *tee_sink_pad = NULL;
   GstPad *valve_sink_pad = NULL;
   GstPad *funnel_src_pad = NULL;
   GstPad *muxer_src_pad = NULL;
   GstPad *transmitter_rtcp_tee_sink_pad;
-  GstPad *pad1, *pad2;
+  GstPad *pad;
   GstPadLinkReturn ret;
   gchar *tmp;
 
@@ -1196,51 +1191,6 @@ fs_rtp_session_constructed (GObject *object)
   }
   g_free (tmp);
 
-  /* Now add a fakesink to the RTP tee */
-
-  tmp = g_strdup_printf ("sink_rtp_fakesink_%u", self->id);
-  fakesink = gst_element_factory_make ("fakesink", tmp);
-  g_free (tmp);
-
-  if (!fakesink)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the rtp fakesink element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), fakesink))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the rtp fakesink element to the FsRtpConference");
-    gst_object_unref (tee);
-    return;
-  }
-
-  g_object_set (fakesink, "sync", FALSE, "async", FALSE, NULL);
-
-  gst_element_set_state (fakesink, GST_STATE_PLAYING);
-
-  self->priv->transmitter_rtp_fakesink = gst_object_ref (fakesink);
-
-  pad1 = gst_element_get_request_pad (tee, "src%d");
-  pad2 = gst_element_get_static_pad (fakesink, "sink");
-
-  ret = gst_pad_link (pad1, pad2);
-
-  gst_object_unref (pad2);
-  gst_object_unref (pad1);
-
-  if (GST_PAD_LINK_FAILED (ret))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-        "Could not link the rtp tee to its fakesink");
-    return;
-  }
-
   /* Now create the transmitter RTCP tee */
 
   tmp = g_strdup_printf ("send_rtcp_tee_%u", self->id);
@@ -1300,51 +1250,6 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
-  /* Now add a fakesink to the RTCP tee */
-
-  tmp = g_strdup_printf ("sink_rtcp_fakesink_%u", self->id);
-  fakesink = gst_element_factory_make ("fakesink", tmp);
-  g_free (tmp);
-
-  if (!fakesink)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not create the rtcp fakesink element");
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), fakesink))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-      "Could not add the rtcp fakesink element to the FsRtcpConference");
-    gst_object_unref (tee);
-    return;
-  }
-
-  g_object_set (fakesink, "sync", FALSE, "async", FALSE, NULL);
-
-  gst_element_set_state (fakesink, GST_STATE_PLAYING);
-
-  self->priv->transmitter_rtcp_fakesink = gst_object_ref (fakesink);
-
-  pad1 = gst_element_get_request_pad (tee, "src%d");
-  pad2 = gst_element_get_static_pad (fakesink, "sink");
-
-  ret = gst_pad_link (pad1, pad2);
-
-  gst_object_unref (pad2);
-  gst_object_unref (pad1);
-
-  if (GST_PAD_LINK_FAILED (ret))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION,
-        "Could not link the rtcp tee to its fakesink");
-    return;
-  }
-
   /* Lets now do the send_capsfilter */
 
   tmp = g_strdup_printf ("send_rtp_capsfilter_%u", self->id);
@@ -1368,10 +1273,10 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
-  pad1 = gst_element_get_static_pad (capsfilter, "src");
-  g_signal_connect (pad1, "notify::caps", G_CALLBACK (_send_caps_changed),
+  pad = gst_element_get_static_pad (capsfilter, "src");
+  g_signal_connect (pad, "notify::caps", G_CALLBACK (_send_caps_changed),
       self);
-  gst_object_unref (pad1);
+  gst_object_unref (pad);
 
   self->priv->send_capsfilter = gst_object_ref (capsfilter);
 
