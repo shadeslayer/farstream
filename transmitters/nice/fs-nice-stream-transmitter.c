@@ -1058,9 +1058,9 @@ weak_agent_removed (gpointer user_data, GObject *where_the_object_was)
   g_object_unref (participant);
 }
 
-static void
+static gboolean
 fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
-    const GstStructure *s, guint component_id)
+    const GstStructure *s, guint component_id, GError **error)
 {
   const gchar *username, *password, *ip;
   const gchar *relay_type_string;
@@ -1073,6 +1073,13 @@ fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
   password = gst_structure_get_string (s, "password");
   relay_type_string = gst_structure_get_string (s, "relay-type");
 
+  if (!ip || !port || !username || !password)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Need to pass an ip, port, username and password for a relay");
+    return FALSE;
+  }
+
   if (relay_type_string)
   {
     if (!g_ascii_strcasecmp(relay_type_string, "tcp"))
@@ -1084,6 +1091,8 @@ fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
   nice_agent_set_relay_info(self->priv->agent->agent,
       self->priv->stream_id, component_id, ip, port, username, password,
       relay_type);
+
+  return TRUE;
 }
 
 static gboolean
@@ -1314,7 +1323,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
         if (gst_structure_get_uint (s, "component", &component_id) &&
             component_id == c)
         {
-          fs_nice_stream_transmitter_set_relay_info (self, s, c);
+          if (!fs_nice_stream_transmitter_set_relay_info (self, s, c, error))
+            return FALSE;
           relay_info_set = TRUE;
         }
       }
@@ -1327,7 +1337,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
           const GstStructure *s = gst_value_get_structure (val);
 
           if (!gst_structure_has_field (s, "component"))
-            fs_nice_stream_transmitter_set_relay_info (self, s, c);
+            if (!fs_nice_stream_transmitter_set_relay_info (self, s, c, error))
+              return FALSE;
         }
       }
     }
