@@ -722,7 +722,11 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
 
   /* no IP */
   va = g_value_array_new (1);
-  s = gst_structure_new ("aa", NULL);
+  s = gst_structure_new ("aa",
+      "port", G_TYPE_UINT, 7654,
+      "username", G_TYPE_STRING, "blah",
+      "password", G_TYPE_STRING, "blah2",
+      NULL);
   g_value_init (&val, GST_TYPE_STRUCTURE);
   g_value_take_boxed (&val, s);
   g_value_array_append (va, &val);
@@ -738,6 +742,61 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   va = g_value_array_new (1);
   s = gst_structure_new ("aa",
       "ip", G_TYPE_STRING, "127.0.0.1",
+      "username", G_TYPE_STRING, "blah",
+      "password", G_TYPE_STRING, "blah2",
+      NULL);
+  g_value_take_boxed (&val, s);
+  g_value_array_append (va, &val);
+  g_value_take_boxed (&params[0].value, va);
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+
+  /* invalid port */
+  va = g_value_array_new (1);
+  s = gst_structure_new ("aa",
+      "ip", G_TYPE_STRING, "127.0.0.1",
+      "port", G_TYPE_UINT, 0,
+      "username", G_TYPE_STRING, "blah",
+      "password", G_TYPE_STRING, "blah2",
+      NULL);
+  g_value_take_boxed (&val, s);
+  g_value_array_append (va, &val);
+  g_value_take_boxed (&params[0].value, va);
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* no username */
+  va = g_value_array_new (1);
+  s = gst_structure_new ("aa",
+      "ip", G_TYPE_STRING, "127.0.0.1",
+      "port", G_TYPE_UINT, 7654,
+      "password", G_TYPE_STRING, "blah2",
+      NULL);
+  g_value_take_boxed (&val, s);
+  g_value_array_append (va, &val);
+  g_value_take_boxed (&params[0].value, va);
+  st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
+  ts_fail_unless (st == NULL);
+  ts_fail_unless (error &&
+      error->domain == FS_ERROR &&
+      error->code == FS_ERROR_INVALID_ARGUMENTS);
+  g_clear_error (&error);
+
+  /* no password */
+  va = g_value_array_new (1);
+  s = gst_structure_new ("aa",
+      "ip", G_TYPE_STRING, "127.0.0.1",
+      "port", G_TYPE_UINT, 7654,
+      "username", G_TYPE_STRING, "blah",
       NULL);
   g_value_take_boxed (&val, s);
   g_value_array_append (va, &val);
@@ -754,6 +813,8 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   s = gst_structure_new ("aa",
       "ip", G_TYPE_STRING, "127.0.0.1",
       "port", G_TYPE_UINT, 7654,
+      "username", G_TYPE_STRING, "blah",
+      "password", G_TYPE_STRING, "blah2",
       NULL);
   g_value_take_boxed (&val, s);
   g_value_array_append (va, &val);
