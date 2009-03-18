@@ -207,7 +207,7 @@ AM_CONDITIONAL(HAVE_VALGRIND, test ! "x$VALGRIND_PATH" = "xno")
 
 dnl check for documentation tools
 GTK_DOC_CHECK([1.8])
-AS_PATH_PYTHON([2.4])
+AM_PATH_PYTHON([2.4])
 LT_AC_PROG_SED
 AG_GST_PLUGIN_DOCS([1.8],[2.1])
 AC_SUBST(SED)
