@@ -18,6 +18,7 @@ Build time:
  - gstreamer 0.10.22
  - gst-plugins-base 0.10.22
  - glib 2.16
+ - Python 2.4
 
 For UPnP support:
  - GUPnP-IGD
@@ -31,7 +32,6 @@ Run time for the RTP plugin:
  - gst-plugins-bad 0.10.11
 
 For the python module and examples you also need:
- - Python 2.1
  - PyGObject 2.12
  - PyGTK 2.10
  - gst-python 0.10.10

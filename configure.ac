@@ -355,7 +355,6 @@ AC_ARG_ENABLE([python],
         esac],
 	WANT_PYTHON=yes)
 if test "x$WANT_PYTHON" = "xyes"; then
-   AM_PATH_PYTHON
    AM_CHECK_PYTHON_HEADERS(,[AC_MSG_ERROR(could not find Python headers)])
    PKG_CHECK_MODULES(PYFARSIGHT, [ 	pygobject-2.0 >= 2.12.0
 					gst-python-0.10 >= 0.10.10
