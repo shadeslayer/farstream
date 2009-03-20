@@ -323,16 +323,8 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
       case G_TYPE_UINT64:
       case G_TYPE_INT64:
       case G_TYPE_DOUBLE:
-        /* FIXME it seems get_double is only in 2.12, so for now get a
-         * string and convert it to double */
-#if GLIB_CHECK_VERSION(2,12,0)
         double_key_value = g_key_file_get_double (keyfile, name,
             keys[i], NULL);
-#else
-        str_key_value = g_key_file_get_value (keyfile, name, keys[i],
-            NULL);
-        double_key_value = g_strtod (str_key_value, NULL);
-#endif
         g_value_init (&key_value, G_TYPE_DOUBLE);
         g_value_set_double (&key_value, double_key_value);
         DEBUG ("%s is a uint64", keys[i]);
