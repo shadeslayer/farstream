@@ -41,7 +41,7 @@
  *
  * This object controls a part of the receive pipeline, with the following shape
  *
- * rtpbin_pad -> capsfilter -> codecbin -> valve  -> output_ghostad
+ * rtpbin_pad -> input_valve -> capsfilter -> codecbin -> output_valve -> output_ghostad
  *
  */
 
@@ -84,7 +84,8 @@ struct _FsRtpSubStreamPrivate {
 
   GstPad *rtpbin_pad;
 
-  GstElement *valve;
+  GstElement *input_valve;
+  GstElement *output_valve;
 
   GstElement *capsfilter;
 
@@ -492,7 +493,7 @@ static void
 fs_rtp_sub_stream_constructed (GObject *object)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
-  GstPad *capsfilter_sink_pad = NULL;
+  GstPad *valve_sink_pad = NULL;
   GstPadLinkReturn linkret;
   gchar *tmp;
 
@@ -505,12 +506,12 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  tmp = g_strdup_printf ("recv_valve_%d_%d_%d", self->priv->session->id,
+  tmp = g_strdup_printf ("output_recv_valve_%d_%d_%d", self->priv->session->id,
       self->ssrc, self->pt);
-  self->priv->valve = gst_element_factory_make ("valve", tmp);
+  self->priv->output_valve = gst_element_factory_make ("valve", tmp);
   g_free (tmp);
 
-  if (!self->priv->valve) {
+  if (!self->priv->output_valve) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not create a valve element for"
       " session substream with ssrc: %u and pt:%d", self->ssrc,
@@ -518,7 +519,8 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve)) {
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->output_valve))
+  {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the valve element for session"
       " substream with ssrc: %u and pt:%d to the conference bin",
@@ -527,11 +529,9 @@ fs_rtp_sub_stream_constructed (GObject *object)
   }
 
   /* We set the valve to dropping, the stream will unblock it when its linked */
-  g_object_set (self->priv->valve,
-      "drop", TRUE,
-      NULL);
+  g_object_set (self->priv->output_valve, "drop", TRUE, NULL);
 
-  if (gst_element_set_state (self->priv->valve, GST_STATE_PLAYING) ==
+  if (gst_element_set_state (self->priv->output_valve, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not set the valve element for session"
@@ -570,19 +570,58 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  capsfilter_sink_pad = gst_element_get_static_pad (self->priv->capsfilter,
-      "sink");
-  if (!capsfilter_sink_pad)
-  {
+  tmp = g_strdup_printf ("input_recv_valve_%d_%d_%d", self->priv->session->id,
+      self->ssrc, self->pt);
+  self->priv->input_valve = gst_element_factory_make ("valve", tmp);
+  g_free (tmp);
+
+  if (!self->priv->input_valve) {
     self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not get the capsfilter's sink pad");
+      FS_ERROR_CONSTRUCTION, "Could not create a valve element for"
+      " session substream with ssrc: %u and pt:%d", self->ssrc,
+      self->pt);
     return;
   }
 
-  linkret = gst_pad_link (self->priv->rtpbin_pad, capsfilter_sink_pad);
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->input_valve))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the valve element for session"
+      " substream with ssrc: %u and pt:%d to the conference bin",
+      self->ssrc, self->pt);
+    return;
+  }
 
-  gst_object_unref (capsfilter_sink_pad);
+  if (gst_element_set_state (self->priv->input_valve, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not set the valve element for session"
+      " substream with ssrc: %u and pt:%d to the playing state",
+      self->ssrc, self->pt);
+    return;
+  }
+
+  if (!gst_element_link (self->priv->input_valve, self->priv->capsfilter))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not link the input valve"
+        " and the capsfilter");
+    return;
+  }
+
+  valve_sink_pad = gst_element_get_static_pad (self->priv->input_valve,
+      "sink");
+  if (!valve_sink_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not get the valve's sink pad");
+    return;
+  }
+
+  linkret = gst_pad_link (self->priv->rtpbin_pad, valve_sink_pad);
+
+  gst_object_unref (valve_sink_pad);
 
   if (GST_PAD_LINK_FAILED (linkret))
   {
@@ -591,7 +630,6 @@ fs_rtp_sub_stream_constructed (GObject *object)
         "Could not link the rtpbin to the codec bin (%d)", linkret);
     return;
   }
-
 
   if (self->no_rtcp_timeout > 0)
     if (!fs_rtp_sub_stream_start_no_rtcp_timeout_thread (self,
@@ -618,11 +656,11 @@ fs_rtp_sub_stream_dispose (GObject *object)
     self->priv->output_ghostpad = NULL;
   }
 
-  if (self->priv->valve) {
-    gst_element_set_locked_state (self->priv->valve, TRUE);
-    gst_element_set_state (self->priv->valve, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->valve);
-    self->priv->valve = NULL;
+  if (self->priv->output_valve) {
+    gst_element_set_locked_state (self->priv->output_valve, TRUE);
+    gst_element_set_state (self->priv->output_valve, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->output_valve);
+    self->priv->output_valve = NULL;
   }
 
   if (self->priv->codecbin) {
@@ -637,6 +675,13 @@ fs_rtp_sub_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
     self->priv->capsfilter = NULL;
+  }
+
+  if (self->priv->input_valve) {
+    gst_element_set_locked_state (self->priv->input_valve, TRUE);
+    gst_element_set_state (self->priv->input_valve, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->input_valve);
+    self->priv->input_valve = NULL;
   }
 
   if (self->priv->blocking_id)
@@ -711,8 +756,8 @@ fs_rtp_sub_stream_set_property (GObject *object,
       break;
     case PROP_RECEIVING:
       self->priv->receiving = g_value_get_boolean (value);
-      if (self->priv->output_ghostpad && self->priv->valve)
-        g_object_set (G_OBJECT (self->priv->valve),
+      if (self->priv->input_valve)
+        g_object_set (G_OBJECT (self->priv->input_valve),
             "drop", !self->priv->receiving,
             NULL);
       break;
@@ -878,10 +923,10 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   }
 
   if (!gst_element_link_pads (codecbin, "src",
-      substream->priv->valve, "sink"))
+      substream->priv->output_valve, "sink"))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not link the codec bin to the valve");
+      "Could not link the codec bin to the output_valve");
     goto error;
   }
 
@@ -1009,10 +1054,10 @@ fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
   if (substream->priv->output_ghostpad)
     gst_pad_set_active (substream->priv->output_ghostpad, FALSE);
 
-  if (substream->priv->valve)
+  if (substream->priv->output_valve)
   {
-    gst_element_set_locked_state (substream->priv->valve, TRUE);
-    gst_element_set_state (substream->priv->valve, GST_STATE_NULL);
+    gst_element_set_locked_state (substream->priv->output_valve, TRUE);
+    gst_element_set_state (substream->priv->output_valve, GST_STATE_NULL);
   }
 
   if (substream->priv->codecbin)
@@ -1025,6 +1070,12 @@ fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
   {
     gst_element_set_locked_state (substream->priv->capsfilter, TRUE);
     gst_element_set_state (substream->priv->capsfilter, GST_STATE_NULL);
+  }
+
+  if (substream->priv->input_valve)
+  {
+    gst_element_set_locked_state (substream->priv->input_valve, TRUE);
+    gst_element_set_state (substream->priv->input_valve, GST_STATE_NULL);
   }
 }
 
@@ -1080,7 +1131,7 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
 
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
-  valve_srcpad = gst_element_get_static_pad (substream->priv->valve,
+  valve_srcpad = gst_element_get_static_pad (substream->priv->output_valve,
       "src");
   g_assert (valve_srcpad);
 
@@ -1140,8 +1191,7 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
 
   fs_codec_destroy (codec);
 
-  if (receiving)
-    g_object_set (substream->priv->valve, "drop", FALSE, NULL);
+  g_object_set (substream->priv->output_valve, "drop", FALSE, NULL);
 
   fs_rtp_sub_stream_try_stop (substream);
 
