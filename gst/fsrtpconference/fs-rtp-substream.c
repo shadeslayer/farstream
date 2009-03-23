@@ -507,12 +507,12 @@ fs_rtp_sub_stream_constructed (GObject *object)
 
   tmp = g_strdup_printf ("recv_valve_%d_%d_%d", self->priv->session->id,
       self->ssrc, self->pt);
-  self->priv->valve = gst_element_factory_make ("fsvalve", tmp);
+  self->priv->valve = gst_element_factory_make ("valve", tmp);
   g_free (tmp);
 
   if (!self->priv->valve) {
     self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not create a fsvalve element for"
+      FS_ERROR_CONSTRUCTION, "Could not create a valve element for"
       " session substream with ssrc: %u and pt:%d", self->ssrc,
       self->pt);
     return;
@@ -520,7 +520,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve)) {
     self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not add the fsvalve element for session"
+      FS_ERROR_CONSTRUCTION, "Could not add the valve element for session"
       " substream with ssrc: %u and pt:%d to the conference bin",
       self->ssrc, self->pt);
     return;
@@ -534,7 +534,7 @@ fs_rtp_sub_stream_constructed (GObject *object)
   if (gst_element_set_state (self->priv->valve, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE) {
     self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not set the fsvalve element for session"
+      FS_ERROR_CONSTRUCTION, "Could not set the valve element for session"
       " substream with ssrc: %u and pt:%d to the playing state",
       self->ssrc, self->pt);
     return;

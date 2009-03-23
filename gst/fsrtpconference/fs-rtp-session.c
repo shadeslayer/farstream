@@ -955,14 +955,14 @@ fs_rtp_session_constructed (GObject *object)
   }
 
   tmp = g_strdup_printf ("valve_send_%u", self->id);
-  valve = gst_element_factory_make ("fsvalve", tmp);
+  valve = gst_element_factory_make ("valve", tmp);
   g_free (tmp);
 
   if (!valve)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION,
-      "Could not create the fsvalve element");
+      "Could not create the valve element");
     return;
   }
 
@@ -2683,12 +2683,9 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
       current_element = gst_element_factory_make ("autoconvert", NULL);
 
       if (!current_element)
-        current_element = gst_element_factory_make ("fsselector", NULL);
-
-      if (!current_element)
       {
         g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not create autoconvert (ex-fsselector) element");
+          "Could not create autoconvert element");
         goto error;
       }
 
