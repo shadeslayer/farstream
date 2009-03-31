@@ -974,7 +974,7 @@ nice_candidate_to_fs_candidate (NiceAgent *agent, NiceCandidate *nicecandidate,
     gboolean local)
 {
   FsCandidate *fscandidate;
-  gchar *ipaddr = g_malloc (INET_ADDRSTRLEN);
+  gchar *ipaddr = g_malloc (INET6_ADDRSTRLEN);
 
   nice_address_to_string (&nicecandidate->addr, ipaddr);
 
