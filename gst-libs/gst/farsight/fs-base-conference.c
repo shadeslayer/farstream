@@ -96,12 +96,6 @@ fs_base_conference_base_init (gpointer g_class)
 static void
 fs_base_conference_class_init (FsBaseConferenceClass * klass)
 {
-  GObjectClass *gobject_class;
-
-  gobject_class = G_OBJECT_CLASS (klass);
-
-  // g_type_class_add_private (klass, sizeof (FsBaseConferencePrivate));
-
   parent_class = g_type_class_peek_parent (klass);
 }
 
