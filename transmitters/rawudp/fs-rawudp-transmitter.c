@@ -776,7 +776,8 @@ fs_rawudp_transmitter_get_udpport_locked (FsRawUdpTransmitter *trans,
     udpport = udpport_e->data;
     if (requested_port == udpport->requested_port &&
         ((requested_ip == NULL && udpport->requested_ip == NULL) ||
-            !strcmp (requested_ip, udpport->requested_ip)))
+            (requested_ip && udpport->requested_ip &&
+                !strcmp (requested_ip, udpport->requested_ip))))
     {
       GST_LOG ("Got port refcount %d->%d", udpport->refcount,
           udpport->refcount+1);

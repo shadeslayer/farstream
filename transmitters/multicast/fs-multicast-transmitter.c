@@ -825,7 +825,8 @@ fs_multicast_transmitter_get_udpsock_locked (FsMulticastTransmitter *trans,
     if (port == udpsock->port &&
         !strcmp (multicast_ip, udpsock->multicast_ip) &&
         ((local_ip == NULL && udpsock->local_ip == NULL) ||
-          !strcmp (local_ip, udpsock->local_ip)))
+            (local_ip && udpsock->local_ip &&
+                !strcmp (local_ip, udpsock->local_ip))))
     {
       if (ttl > udpsock->current_ttl)
       {
