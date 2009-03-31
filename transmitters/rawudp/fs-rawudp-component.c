@@ -1411,6 +1411,12 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
     }
   }
 
+  if (!candidate)
+  {
+    stun_message_free (msg);
+    return TRUE;
+  }
+
   FS_RAWUDP_COMPONENT_LOCK(self);
   fs_rawudp_component_stop_stun_locked (self);
 #ifdef HAVE_GUPNP
