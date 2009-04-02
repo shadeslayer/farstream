@@ -36,12 +36,6 @@ EXTRA_DIST = \
 	upnp/WANIPConnection.xml \
 	base/test1.conf
 
-if USE_NICE
-NICE_TRANSMITTER = transmitter/nice
-else
-NICE_TRANSMITTER = 
-endif
-
 #######
 # From here.. Its a list of our tests and their sub stuff
 #
@@ -50,7 +44,7 @@ check_PROGRAMS = \
 	base/fstransmitter \
 	transmitter/rawudp \
 	transmitter/multicast \
-	$(NICE_TRANSMITTER) \
+	transmitter/nice \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \

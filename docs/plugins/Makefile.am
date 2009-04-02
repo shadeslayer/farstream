@@ -57,13 +57,10 @@ CFILE_GLOB=$(DOC_SOURCE_DIR)/gst/*/*.c $(DOC_SOURCE_DIR)/transmitters/*/*.c
 SCANOBJ_DEPS = \
 	$(top_builddir)/transmitters/multicast/libmulticast-transmitter.la \
 	$(top_builddir)/transmitters/rawudp/librawudp-transmitter.la \
+	$(top_builddir)/transmitters/nice/libnice-transmitter.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/funnel/libfsfunnel.la \
 	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la 
-
-if USE_NICE
-SCANOBJ_DEPS += $(top_builddir)/transmitters/nice/libnice-transmitter.la
-endif
 
 # Header files to ignore when scanning.
 IGNORE_HFILES = 
@@ -87,15 +84,9 @@ EXTRA_HFILES = \
 	$(top_srcdir)/transmitters/rawudp/fs-rawudp-transmitter.h \
 	$(top_srcdir)/transmitters/rawudp/fs-rawudp-stream-transmitter.h \
 	$(top_srcdir)/transmitters/multicast/fs-multicast-transmitter.h \
-	$(top_srcdir)/transmitters/multicast/fs-multicast-stream-transmitter.h
-
-if USE_NICE
-EXTRA_HFILES += \
+	$(top_srcdir)/transmitters/multicast/fs-multicast-stream-transmitter.h \
 	$(top_srcdir)/transmitters/nice/fs-nice-transmitter.h \
 	$(top_srcdir)/transmitters/nice/fs-nice-stream-transmitter.h
-
-endif
-
 
 # Images to copy into HTML directory.
 HTML_IMAGES =

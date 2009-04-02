@@ -19,12 +19,11 @@ Build time:
  - gst-plugins-base 0.10.22
  - glib 2.16
  - Python 2.4
+ - libnice 0.0.3
 
 For UPnP support:
  - GUPnP-IGD
 
-For the ICE transmitter:
- - libnice 0.0.3
 
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
