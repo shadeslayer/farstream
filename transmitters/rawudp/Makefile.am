@@ -7,8 +7,7 @@ plugin_LTLIBRARIES = librawudp-transmitter.la
 librawudp_transmitter_la_SOURCES = \
 	fs-rawudp-transmitter.c \
 	fs-rawudp-stream-transmitter.c \
-	fs-rawudp-component.c \
-	stun.c
+	fs-rawudp-component.c
 
 nodist_librawudp_transmitter_la_SOURCES = \
 	fs-rawudp-marshal.c \
@@ -36,8 +35,7 @@ librawudp_transmitter_la_LIBADD = \
 noinst_HEADERS = \
 	fs-rawudp-transmitter.h \
 	fs-rawudp-stream-transmitter.h \
-	fs-rawudp-component.h \
-	stun.h
+	fs-rawudp-component.h
 
 BUILT_SOURCES = $(nodist_librawudp_transmitter_la_SOURCES)
 
