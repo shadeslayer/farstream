@@ -21,6 +21,7 @@ librawudp_transmitter_la_CFLAGS = \
 	$(FS2_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_CFLAGS) \
+	$(NICE_CFLAGS) \
 	$(GUPNP_CFLAGS)
 librawudp_transmitter_la_LDFLAGS = $(FS2_PLUGIN_LDFLAGS)
 librawudp_transmitter_la_LIBADD = \
@@ -28,6 +29,7 @@ librawudp_transmitter_la_LIBADD = \
 	$(FS2_LIBS) \
 	$(GST_PLUGINS_BASE_LIBS) \
 	$(GST_LIBS) \
+	$(NICE_LIBS) \
 	$(GUPNP_LIBS) \
 	-lgstnetbuffer-@GST_MAJORMINOR@
 

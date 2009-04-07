@@ -31,7 +31,8 @@
 
 #include "fs-rawudp-marshal.h"
 
-#include "stun.h"
+#include <stun/usages/bind.h>
+#include <stun/stunagent.h>
 
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-interfaces.h>
@@ -117,7 +118,10 @@ struct _FsRawUdpComponentPrivate
 
   GMutex *mutex;
 
-  gchar stun_cookie[16];
+  StunAgent stun_agent;
+  StunMessage stun_message;
+  guchar stun_buffer[STUN_MAX_MESSAGE_SIZE_IPV6];
+  struct sockaddr_storage stun_sockaddr;
 
   gboolean associate_on_source;
 
@@ -519,10 +523,8 @@ fs_rawudp_component_init (FsRawUdpComponent *self)
 
   self->priv->associate_on_source = TRUE;
 
-  ((guint32*)self->priv->stun_cookie)[0] = g_random_int ();
-  ((guint32*)self->priv->stun_cookie)[1] = g_random_int ();
-  ((guint32*)self->priv->stun_cookie)[2] = g_random_int ();
-  ((guint32*)self->priv->stun_cookie)[3] = g_random_int ();
+  stun_agent_init (&self->priv->stun_agent,
+      STUN_ALL_KNOWN_ATTRIBUTES, STUN_COMPATIBILITY_RFC3489, 0);
 
 #ifdef HAVE_GUPNP
   self->priv->upnp_mapping = TRUE;
@@ -1224,61 +1226,21 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 }
 
 static gboolean
-fs_rawudp_component_send_stun (FsRawUdpComponent *self, GError **error)
+fs_rawudp_component_send_stun_locked (FsRawUdpComponent *self, GError **error)
 {
-  struct addrinfo hints;
-  struct addrinfo *result = NULL;
-  struct sockaddr_in address;
-  gchar *packed;
-  guint length;
-  int retval;
-  StunMessage *msg;
-
-  memset (&hints, 0, sizeof (struct addrinfo));
-  hints.ai_family = AF_INET;
-  hints.ai_flags = AI_NUMERICHOST;
-  retval = getaddrinfo (self->priv->stun_ip, NULL, &hints, &result);
-  if (retval != 0)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid IP address %s passed for STUN: %s",
-        self->priv->stun_ip, gai_strerror (retval));
-    return FALSE;
-  }
-  memcpy (&address, result->ai_addr, sizeof (struct sockaddr_in));
-  freeaddrinfo (result);
-
-  address.sin_family = AF_INET;
-  address.sin_port = htons (self->priv->stun_port);
-
-  msg = stun_message_new (STUN_MESSAGE_BINDING_REQUEST,
-      self->priv->stun_cookie, 0);
-  if (!msg)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-        "Could not create a new STUN binding request");
-    return FALSE;
-  }
-
-  length = stun_message_pack (msg, &packed);
-
-  if (!fs_rawudp_transmitter_udpport_sendto (self->priv->udpport,
-          packed, length, (const struct sockaddr *)&address, sizeof (address),
-          error))
-  {
-    g_free (packed);
-    stun_message_free (msg);
-    return FALSE;
-  }
-  g_free (packed);
-  stun_message_free (msg);
-
-  return TRUE;
+  return fs_rawudp_transmitter_udpport_sendto (self->priv->udpport,
+      (gchar*) self->priv->stun_buffer,
+      stun_message_length (&self->priv->stun_message),
+      (const struct sockaddr *)&self->priv->stun_sockaddr,
+      sizeof (self->priv->stun_sockaddr), error);
 }
 
 static gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
 {
+  struct addrinfo hints;
+  struct addrinfo *result = NULL;
+  int retval;
   gboolean res = TRUE;
 
   GST_DEBUG ("C:%d starting the STUN process with server %s:%u",
@@ -1289,6 +1251,44 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
     fs_rawudp_transmitter_udpport_connect_recv (
         self->priv->udpport,
         G_CALLBACK (stun_recv_cb), self);
+
+
+  memset (&hints, 0, sizeof (struct addrinfo));
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_flags = AI_NUMERICHOST;
+  retval = getaddrinfo (self->priv->stun_ip, NULL, &hints, &result);
+  if (retval != 0)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid IP address %s passed for STUN: %s",
+        self->priv->stun_ip, gai_strerror (retval));
+    return FALSE;
+  }
+  memcpy (&self->priv->stun_sockaddr, result->ai_addr,
+      sizeof (struct sockaddr_storage));
+  freeaddrinfo (result);
+
+  switch (((struct sockaddr*)&self->priv->stun_sockaddr)->sa_family)
+  {
+    case AF_INET:
+      ((struct sockaddr_in*)&self->priv->stun_sockaddr)->sin_port =
+        htons (self->priv->stun_port);
+      break;
+    case AF_INET6:
+      ((struct sockaddr_in6*)&self->priv->stun_sockaddr)->sin6_port =
+        htons (self->priv->stun_port);
+      break;
+    default:
+      g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+          "Address resolved in something that is not INET or INET6");
+      return FALSE;
+  }
+
+  stun_usage_bind_create (
+      &self->priv->stun_agent,
+      &self->priv->stun_message,
+      self->priv->stun_buffer,
+      sizeof(self->priv->stun_buffer));
 
   if (self->priv->stun_timeout_thread == NULL) {
     /* only create a new thread if the old one was stopped. Otherwise we can
@@ -1450,6 +1450,7 @@ stun_timeout_func (gpointer user_data)
   GError *error = NULL;
   guint next_timeout_ms = 100;
   guint timeout_accum_ms = 0;
+  StunTransactionId stunid;
 
   sysclock = gst_system_clock_obtain ();
   if (sysclock == NULL)
@@ -1464,9 +1465,9 @@ stun_timeout_func (gpointer user_data)
   while (!self->priv->stun_stop &&
       timeout_accum_ms < self->priv->stun_timeout * 1000)
   {
-    FS_RAWUDP_COMPONENT_UNLOCK(self);
-    if (!fs_rawudp_component_send_stun (self, &error))
+    if (!fs_rawudp_component_send_stun_locked (self, &error))
     {
+      FS_RAWUDP_COMPONENT_UNLOCK(self);
       fs_rawudp_component_emit_error (self, error->code, "Could not send stun",
           error->message);
       g_clear_error (&error);
@@ -1508,6 +1509,9 @@ stun_timeout_func (gpointer user_data)
   }
 
   fs_rawudp_component_stop_stun_locked (self);
+
+  stun_message_id (&self->priv->stun_message, stunid);
+  stun_agent_forget_transaction (&self->priv->stun_agent, stunid);
 
   FS_RAWUDP_COMPONENT_UNLOCK(self);
 
