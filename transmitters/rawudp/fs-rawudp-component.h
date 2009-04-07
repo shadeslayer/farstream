@@ -58,7 +58,7 @@ typedef struct _FsRawUdpComponentClass FsRawUdpComponentClass;
 typedef struct _FsRawUdpComponentPrivate FsRawUdpComponentPrivate;
 
 #define MAX_STUN_TIMEOUT (60)
-#define DEFAULT_STUN_TIMEOUT (10)
+#define DEFAULT_STUN_TIMEOUT (30)
 
 
 /**

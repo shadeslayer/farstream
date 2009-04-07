@@ -33,6 +33,7 @@
 
 #include <stun/usages/bind.h>
 #include <stun/stunagent.h>
+#include <stun/usages/timer.h>
 #include <nice/address.h>
 
 #include <gst/farsight/fs-conference-iface.h>
@@ -1253,7 +1254,6 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
         self->priv->udpport,
         G_CALLBACK (stun_recv_cb), self);
 
-
   memset (&hints, 0, sizeof (struct addrinfo));
   hints.ai_family = AF_UNSPEC;
   hints.ai_flags = AI_NUMERICHOST;
@@ -1430,9 +1430,11 @@ stun_timeout_func (gpointer user_data)
   gboolean emit = TRUE;
   GstClockTime next_stun_timeout;
   GError *error = NULL;
-  guint next_timeout_ms = 100;
   guint timeout_accum_ms = 0;
+  guint remainder;
+  StunUsageTimerReturn timer_ret = STUN_USAGE_TIMER_RETURN_RETRANSMIT;
   StunTransactionId stunid;
+  StunTimer stun_timer;
 
   sysclock = gst_system_clock_obtain ();
   if (sysclock == NULL)
@@ -1444,10 +1446,13 @@ stun_timeout_func (gpointer user_data)
   }
 
   FS_RAWUDP_COMPONENT_LOCK(self);
+  stun_timer_start (&stun_timer);
+
   while (!self->priv->stun_stop &&
       timeout_accum_ms < self->priv->stun_timeout * 1000)
   {
-    if (!fs_rawudp_component_send_stun_locked (self, &error))
+    if (timer_ret == STUN_USAGE_TIMER_RETURN_RETRANSMIT &&
+        !fs_rawudp_component_send_stun_locked (self, &error))
     {
       FS_RAWUDP_COMPONENT_UNLOCK(self);
       fs_rawudp_component_emit_error (self, error->code, "Could not send stun",
@@ -1461,14 +1466,16 @@ stun_timeout_func (gpointer user_data)
     if (self->priv->stun_stop)
       goto interrupt;
 
+    remainder = stun_timer_remainder (&stun_timer);
+
     next_stun_timeout = gst_clock_get_time (sysclock) +
-      next_timeout_ms * GST_MSECOND;
+      remainder * GST_MSECOND;
 
     id = self->priv->stun_timeout_id = gst_clock_new_single_shot_id (sysclock,
         next_stun_timeout);
 
     GST_LOG ("C:%u Waiting for STUN reply for %u ms, next: %u ms",
-        self->priv->component, next_timeout_ms, timeout_accum_ms);
+        self->priv->component, remainder, timeout_accum_ms);
 
     FS_RAWUDP_COMPONENT_UNLOCK(self);
     gst_clock_id_wait (id, NULL);
@@ -1477,9 +1484,11 @@ stun_timeout_func (gpointer user_data)
     gst_clock_id_unref (id);
     self->priv->stun_timeout_id = NULL;
 
-    next_timeout_ms *= 2;
-    next_timeout_ms += 100;
-    timeout_accum_ms += next_timeout_ms;
+    timer_ret = stun_timer_refresh (&stun_timer);
+    timeout_accum_ms += remainder;
+
+    if (timer_ret == STUN_USAGE_TIMER_RETURN_TIMEOUT)
+      break;
   }
 
  interrupt:
