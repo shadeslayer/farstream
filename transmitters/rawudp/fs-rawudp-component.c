@@ -33,6 +33,7 @@
 
 #include <stun/usages/bind.h>
 #include <stun/stunagent.h>
+#include <nice/address.h>
 
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-interfaces.h>
@@ -1334,8 +1335,15 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 {
   FsRawUdpComponent *self = FS_RAWUDP_COMPONENT (user_data);
   FsCandidate *candidate = NULL;
-  StunMessage *msg;
-  StunAttribute **attr;
+  StunMessage msg;
+  StunValidationStatus stunv;
+  StunUsageBindReturn stunr;
+  struct sockaddr_storage addr;
+  socklen_t addr_len = sizeof(addr);
+  struct sockaddr_storage alt_addr;
+  socklen_t alt_addr_len = sizeof(alt_addr);
+  gchar addr_str[NI_MAXHOST];
+  NiceAddress niceaddr;
 
   if (GST_BUFFER_SIZE (buffer) < 4)
     /* Packet is too small to be STUN */
@@ -1348,74 +1356,50 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 
   g_assert (fs_rawudp_transmitter_udpport_is_pad (self->priv->udpport, pad));
 
-  msg = stun_message_unpack (GST_BUFFER_SIZE (buffer),
-      (const gchar *) GST_BUFFER_DATA (buffer));
-  if (!msg)
-    /* invalid message */
+  FS_RAWUDP_COMPONENT_LOCK(self);
+  stunv = stun_agent_validate (&self->priv->stun_agent, &msg,
+      GST_BUFFER_DATA (buffer), GST_BUFFER_SIZE (buffer), NULL, NULL);
+  FS_RAWUDP_COMPONENT_UNLOCK(self);
+
+  /* not a valid stun message */
+  if (stunv != STUN_VALIDATION_SUCCESS)
     return TRUE;
 
-  if (memcmp (msg->transaction_id, self->priv->stun_cookie, 16) != 0)
+  stunr = stun_usage_bind_process (&msg,
+      (struct sockaddr *) &addr, &addr_len,
+      (struct sockaddr *) &alt_addr, &alt_addr_len);
+
+  switch (stunr)
   {
-    /* not ours */
-    stun_message_free (msg);
-    return TRUE;
-  }
-
-  if (msg->type == STUN_MESSAGE_BINDING_ERROR_RESPONSE)
-  {
-    fs_rawudp_component_emit_error (FS_RAWUDP_COMPONENT (self),
-        FS_ERROR_NETWORK, "Got an error message from the STUN server",
-        "The STUN process produced an error");
-    stun_message_free (msg);
-    // fs_rawudp_component_stop_stun (self, component_id);
-    /* Lets not stop the STUN now and wait for the timeout
-     * in case the server answers with the right reply
-     */
-    return FALSE;
-  }
-
-  if (msg->type != STUN_MESSAGE_BINDING_RESPONSE)
-  {
-    stun_message_free (msg);
-    return TRUE;
-  }
-
-
-  for (attr = msg->attributes; *attr; attr++)
-  {
-    if ((*attr)->type == STUN_ATTRIBUTE_MAPPED_ADDRESS)
-    {
-      // TODO
-      gchar *id = g_strdup_printf ("L1");
-      gchar *ip = g_strdup_printf ("%u.%u.%u.%u",
-          ((*attr)->address.ip & 0xff000000) >> 24,
-          ((*attr)->address.ip & 0x00ff0000) >> 16,
-          ((*attr)->address.ip & 0x0000ff00) >>  8,
-          ((*attr)->address.ip & 0x000000ff));
-
-      candidate = fs_candidate_new (id,
-          self->priv->component,
-          FS_CANDIDATE_TYPE_SRFLX,
-          FS_NETWORK_PROTOCOL_UDP,
-          ip,
-          (*attr)->address.port);
-      g_free (id);
-      g_free (ip);
-
-      GST_DEBUG ("Stun server says we are %u.%u.%u.%u %u\n",
-          ((*attr)->address.ip & 0xff000000) >> 24,
-          ((*attr)->address.ip & 0x00ff0000) >> 16,
-          ((*attr)->address.ip & 0x0000ff00) >>  8,
-          ((*attr)->address.ip & 0x000000ff),(*attr)->address.port);
+    case STUN_USAGE_BIND_RETURN_INVALID:
+      /* Not a valid bind reponse */
+      return TRUE;
+    case STUN_USAGE_BIND_RETURN_ERROR:
+      /* Not a valid bind reponse */
+      return FALSE;
+    case STUN_USAGE_BIND_RETURN_ALTERNATE_SERVER:
+      /* Change servers and reset timeouts */
+      return FALSE;
+    default:
+      /* For any other case, pass the packet through */
+      return TRUE;
+    case STUN_USAGE_BIND_RETURN_SUCCESS:
       break;
-    }
   }
 
-  if (!candidate)
-  {
-    stun_message_free (msg);
-    return TRUE;
-  }
+  nice_address_init (&niceaddr);
+  nice_address_set_from_sockaddr (&niceaddr, (const struct sockaddr *) &addr);
+  nice_address_to_string (&niceaddr, addr_str);
+
+  candidate = fs_candidate_new ("L1",
+      self->priv->component,
+      FS_CANDIDATE_TYPE_SRFLX,
+      FS_NETWORK_PROTOCOL_UDP,
+      addr_str,
+      nice_address_get_port (&niceaddr));
+
+  GST_DEBUG ("Stun server says we are %s:%u\n", addr_str,
+      nice_address_get_port (&niceaddr));
 
   FS_RAWUDP_COMPONENT_LOCK(self);
   fs_rawudp_component_stop_stun_locked (self);
@@ -1434,8 +1418,6 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
 
   fs_candidate_destroy (candidate);
 
-  /* It was a stun packet, lets drop it */
-  stun_message_free (msg);
   return FALSE;
 }
 
@@ -1475,7 +1457,6 @@ stun_timeout_func (gpointer user_data)
       fs_rawudp_component_stop_stun_locked (self);
       goto interrupt;
     }
-    FS_RAWUDP_COMPONENT_LOCK(self);
 
     if (self->priv->stun_stop)
       goto interrupt;
