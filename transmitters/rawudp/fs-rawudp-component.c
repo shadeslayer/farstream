@@ -124,6 +124,7 @@ struct _FsRawUdpComponentPrivate
   StunMessage stun_message;
   guchar stun_buffer[STUN_MAX_MESSAGE_SIZE_IPV6];
   struct sockaddr_storage stun_sockaddr;
+  gboolean stun_server_changed;
 
   gboolean associate_on_source;
 
@@ -1379,6 +1380,24 @@ stun_recv_cb (GstPad *pad, GstBuffer *buffer,
       return FALSE;
     case STUN_USAGE_BIND_RETURN_ALTERNATE_SERVER:
       /* Change servers and reset timeouts */
+      FS_RAWUDP_COMPONENT_LOCK(self);
+      memcpy (&self->priv->stun_sockaddr, &alt_addr,
+          MIN (sizeof(self->priv->stun_sockaddr), alt_addr_len));
+      self->priv->stun_server_changed = TRUE;
+      stun_usage_bind_create (
+          &self->priv->stun_agent,
+          &self->priv->stun_message,
+          self->priv->stun_buffer,
+          sizeof(self->priv->stun_buffer));
+      nice_address_init (&niceaddr);
+      nice_address_set_from_sockaddr (&niceaddr,
+          (const struct sockaddr *) &alt_addr);
+      nice_address_to_string (&niceaddr, addr_str);
+      GST_DEBUG ("Stun server redirected us to alternate server %s:%d",
+          addr_str, nice_address_get_port (&niceaddr));
+      if (self->priv->stun_timeout_id)
+        gst_clock_id_unschedule (self->priv->stun_timeout_id);
+      FS_RAWUDP_COMPONENT_UNLOCK(self);
       return FALSE;
     default:
       /* For any other case, pass the packet through */
@@ -1451,6 +1470,13 @@ stun_timeout_func (gpointer user_data)
   while (!self->priv->stun_stop &&
       timeout_accum_ms < self->priv->stun_timeout * 1000)
   {
+    if (self->priv->stun_server_changed)
+    {
+      stun_timer_start (&stun_timer);
+      self->priv->stun_server_changed = FALSE;
+      timer_ret = STUN_USAGE_TIMER_RETURN_RETRANSMIT;
+    }
+
     if (timer_ret == STUN_USAGE_TIMER_RETURN_RETRANSMIT &&
         !fs_rawudp_component_send_stun_locked (self, &error))
     {
