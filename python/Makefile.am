@@ -34,8 +34,6 @@ farsight_la_LDFLAGS =					\
 pyfarsight.c: pyfarsight.override pyfarsight.defs
 	$(PYCODEGEN)						\
 		--prefix fs					\
-		--register $(PYDEFS)/gdk-types.defs		\
-		--register $(PYDEFS)/gtk-types.defs		\
 		--register $(GSTPYDEFS)/gst-types.defs		\
 		--override $(srcdir)/pyfarsight.override	\
 		$(srcdir)/pyfarsight.defs > $@ 
