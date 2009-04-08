@@ -241,3 +241,63 @@ teardown_stund (void)
   g_spawn_close_pid (stund_pid);
   stund_pid = 0;
 }
+
+
+GPid stunalternd_pid = 0;
+
+static void
+setup_stunalternd_internal (gchar *argv[])
+{
+  GError *error = NULL;
+
+  stunalternd_pid = 0;
+
+  if (!g_spawn_async (NULL, argv, NULL,
+          G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+          NULL, NULL, &stunalternd_pid, &error))
+  {
+    g_debug ("Could not spawn stunalternd, skipping stun testing: %s",
+        error->message);
+    g_clear_error (&error);
+    return;
+  }
+}
+
+void
+setup_stunalternd_valid (void)
+{
+  gchar *argv[] = {"stunalternd", "127.0.0.1", "3478", "3480", NULL};
+  setup_stunalternd_internal (argv);
+}
+
+void
+setup_stunalternd_loop (void)
+{
+  gchar *argv[] = {"stunalternd", "127.0.0.1", "3480", "3480", NULL};
+  setup_stunalternd_internal (argv);
+}
+
+void
+teardown_stunalternd (void)
+{
+  if (!stunalternd_pid)
+    return;
+
+  kill (stunalternd_pid, SIGTERM);
+  waitpid (stunalternd_pid, NULL, 0);
+  g_spawn_close_pid (stunalternd_pid);
+  stunalternd_pid = 0;
+}
+
+void setup_stund_stunalternd (void)
+{
+  setup_stund ();
+  setup_stunalternd_valid ();
+}
+
+
+void teardown_stund_stunalternd (void)
+{
+  teardown_stund ();
+  teardown_stunalternd ();
+}
