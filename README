@@ -24,16 +24,18 @@ Build time:
 For UPnP support:
  - GUPnP-IGD
 
+For the python module:
+ - PyGObject 2.12
+ - gst-python 0.10.10
+ - PyGObject 2.16 or PyGTK 2.10 
 
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.7
  - gst-plugins-bad 0.10.11
 
-For the python module and examples you also need:
- - PyGObject 2.12
+For the GUI example:
  - PyGTK 2.10
- - gst-python 0.10.10
 
 The tests require gst-check (which requires check)
 Building the documentation requires gtk-doc 1.8

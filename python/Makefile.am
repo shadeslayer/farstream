@@ -1,4 +1,5 @@
-PYDEFS=`pkg-config --variable=defsdir pygtk-2.0`
+PYDEFS=`pkg-config --variable=defsdir pygobject-2.0`
+[ -z "$PYDEFS" && PYDEFS=`pkg-config --variable=defsdir pygtk-2.0`]
 GSTPYDEFS=`pkg-config --variable=defsdir gst-python-0.10`
 
 AM_CPPFLAGS =						\
@@ -31,7 +32,7 @@ farsight_la_LDFLAGS =					\
 	-module -avoid-version
 
 pyfarsight.c: pyfarsight.override pyfarsight.defs
-	pygtk-codegen-2.0					\
+	$(PYCODEGEN)						\
 		--prefix fs					\
 		--register $(PYDEFS)/gdk-types.defs		\
 		--register $(PYDEFS)/gtk-types.defs		\
