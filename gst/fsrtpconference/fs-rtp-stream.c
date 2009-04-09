@@ -73,6 +73,7 @@ struct _FsRtpStreamPrivate
 
   stream_new_remote_codecs_cb new_remote_codecs_cb;
   stream_known_source_packet_receive_cb known_source_packet_received_cb;
+  stream_sending_changed_locked_cb sending_changed_locked_cb;
   gpointer user_data_for_cb;
 
   GMutex *mutex;
@@ -261,6 +262,12 @@ fs_rtp_stream_dispose (GObject *object)
   g_mutex_unlock (self->priv->mutex);
 
   FS_RTP_SESSION_LOCK (session);
+
+  if (self->priv->sending_changed_locked_cb &&
+      self->priv->direction & FS_DIRECTION_SEND)
+    self->priv->sending_changed_locked_cb (self, FALSE,
+        self->priv->user_data_for_cb);
+
   participant = self->participant;
   self->participant = NULL;
 
@@ -419,6 +426,13 @@ fs_rtp_stream_set_property (GObject *object,
         }
 
         FS_RTP_SESSION_LOCK (session);
+        if (self->priv->sending_changed_locked_cb &&
+            (self->priv->direction & FS_DIRECTION_SEND) !=
+            (g_value_get_flags (value) & FS_DIRECTION_SEND))
+          self->priv->sending_changed_locked_cb (self,
+              g_value_get_flags (value) & FS_DIRECTION_SEND,
+              self->priv->user_data_for_cb);
+
         dir = self->priv->direction = g_value_get_flags (value);
         FS_RTP_SESSION_UNLOCK (session);
         st = fs_rtp_stream_get_stream_transmitter (self, NULL);
@@ -655,6 +669,8 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
  * the session lock across calls.
  * @known_source_packet_received: Callback called when a packet from a
  * known source is receive.
+ * @sending_changed_locked_cb: Callback called when the sending status of
+ *  this stream changes
  * @user_data: User data for the callbacks.
  * This function create a new stream
  *
@@ -668,6 +684,7 @@ fs_rtp_stream_new (FsRtpSession *session,
     FsStreamTransmitter *stream_transmitter,
     stream_new_remote_codecs_cb new_remote_codecs_cb,
     stream_known_source_packet_receive_cb known_source_packet_received_cb,
+    stream_sending_changed_locked_cb sending_changed_locked_cb,
     gpointer user_data_for_cb,
     GError **error)
 {
@@ -688,7 +705,14 @@ fs_rtp_stream_new (FsRtpSession *session,
 
   self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
   self->priv->known_source_packet_received_cb = known_source_packet_received_cb;
+  self->priv->sending_changed_locked_cb = sending_changed_locked_cb;
   self->priv->user_data_for_cb = user_data_for_cb;
+
+  FS_RTP_SESSION_LOCK (session);
+  if (sending_changed_locked_cb && (direction & FS_DIRECTION_SEND))
+    sending_changed_locked_cb (self, direction & FS_DIRECTION_SEND,
+        user_data_for_cb);
+  FS_RTP_SESSION_UNLOCK (session);
 
   if (self->priv->construction_error) {
     g_propagate_error (error, self->priv->construction_error);

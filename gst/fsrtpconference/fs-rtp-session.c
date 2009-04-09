@@ -167,6 +167,7 @@ struct _FsRtpSessionPrivate
   GList *streams;
   guint streams_cookie;
   GList *free_substreams;
+  guint streams_sending;
 
   /* The static list of all the blueprints */
   GList *blueprints;
@@ -1371,6 +1372,24 @@ _stream_known_source_packet_received (FsRtpStream *stream, guint component,
   fs_rtp_session_has_disposed_exit (self);
 }
 
+static void
+_stream_sending_changed_locked (FsRtpStream *stream, gboolean sending,
+    gpointer user_data)
+{
+  FsRtpSession *session = user_data;
+
+  if (sending)
+    session->priv->streams_sending++;
+  else
+    session->priv->streams_sending--;
+
+  if (session->priv->streams_sending && session->priv->send_codecbin)
+    g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
+  else
+    g_object_set (session->priv->media_sink_valve, "drop", TRUE, NULL);
+
+}
+
 static gboolean
 _remove_stream_from_ht (gpointer key, gpointer value, gpointer user_data)
 {
@@ -1449,7 +1468,8 @@ fs_rtp_session_new_stream (FsSession *session,
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
           direction, st, _stream_new_remote_codecs,
-          _stream_known_source_packet_received, self, error));
+          _stream_known_source_packet_received,
+          _stream_sending_changed_locked, self, error));
 
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
@@ -3378,13 +3398,13 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
     g_object_unref (transmitter);
     FS_RTP_SESSION_LOCK (session);
   }
-  FS_RTP_SESSION_UNLOCK (session);
 
-  g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
+  if (session->priv->streams_sending)
+    g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
+
 
   session->priv->send_codecbin = codecbin;
 
-  FS_RTP_SESSION_LOCK (session);
   session->priv->current_send_codec = fs_codec_copy (codec);
   FS_RTP_SESSION_UNLOCK (session);
 
