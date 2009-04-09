@@ -662,13 +662,6 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
     g_free (tmp);
     debug_pipeline (codec_blueprint->send_pipeline_factory);
     debug_pipeline (codec_blueprint->receive_pipeline_factory);
-
-    if (!g_ascii_strcasecmp (codec->encoding_name, "H263-1998")) {
-      codec = fs_codec_copy (codec);
-      g_free (codec->encoding_name);
-      codec->encoding_name = g_strdup ("H263-N800");
-      goto another;
-    }
   }
 }
 

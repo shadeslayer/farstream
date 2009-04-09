@@ -789,11 +789,6 @@ fs_codec_to_gst_caps (const FsCodec *codec)
   {
     gchar *encoding_name = g_ascii_strup (codec->encoding_name, -1);
 
-    if (!g_ascii_strcasecmp (encoding_name, "H263-N800")) {
-      g_free (encoding_name);
-      encoding_name = g_strdup ("H263-1998");
-    }
-
     gst_structure_set (structure,
         "encoding-name", G_TYPE_STRING, encoding_name,
         NULL);
