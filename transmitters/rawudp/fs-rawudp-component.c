@@ -1241,9 +1241,7 @@ fs_rawudp_component_send_stun_locked (FsRawUdpComponent *self, GError **error)
 static gboolean
 fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
 {
-  struct addrinfo hints;
-  struct addrinfo *result = NULL;
-  int retval;
+  NiceAddress niceaddr;
   gboolean res = TRUE;
 
   GST_DEBUG ("C:%d starting the STUN process with server %s:%u",
@@ -1255,36 +1253,17 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
         self->priv->udpport,
         G_CALLBACK (stun_recv_cb), self);
 
-  memset (&hints, 0, sizeof (struct addrinfo));
-  hints.ai_family = AF_UNSPEC;
-  hints.ai_flags = AI_NUMERICHOST;
-  retval = getaddrinfo (self->priv->stun_ip, NULL, &hints, &result);
-  if (retval != 0)
+
+  nice_address_init (&niceaddr);
+  if (!nice_address_set_from_string (&niceaddr, self->priv->stun_ip))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid IP address %s passed for STUN: %s",
-        self->priv->stun_ip, gai_strerror (retval));
+        "Invalid IP address %s passed for STUN", self->priv->stun_ip);
     return FALSE;
   }
-  memcpy (&self->priv->stun_sockaddr, result->ai_addr,
-      sizeof (struct sockaddr_storage));
-  freeaddrinfo (result);
-
-  switch (((struct sockaddr*)&self->priv->stun_sockaddr)->sa_family)
-  {
-    case AF_INET:
-      ((struct sockaddr_in*)&self->priv->stun_sockaddr)->sin_port =
-        htons (self->priv->stun_port);
-      break;
-    case AF_INET6:
-      ((struct sockaddr_in6*)&self->priv->stun_sockaddr)->sin6_port =
-        htons (self->priv->stun_port);
-      break;
-    default:
-      g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
-          "Address resolved in something that is not INET or INET6");
-      return FALSE;
-  }
+  nice_address_set_port (&niceaddr, self->priv->stun_port);
+  nice_address_copy_to_sockaddr (&niceaddr,
+      (struct sockaddr *) &self->priv->stun_sockaddr);
 
   stun_usage_bind_create (
       &self->priv->stun_agent,
