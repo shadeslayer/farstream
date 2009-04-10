@@ -585,8 +585,6 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
         break;
     }
 
-  another:
-
     codec_blueprint = g_slice_new0 (CodecBlueprint);
     codec_blueprint->codec = codec;
     codec_blueprint->media_caps = gst_caps_copy (codec_cap->caps);
