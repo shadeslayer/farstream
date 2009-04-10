@@ -1087,6 +1087,10 @@ fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock)
     else
       g_signal_emit_by_name (udpsock->udpsink, "add", udpsock->multicast_ip,
           udpsock->port);
+
+    gst_element_send_event (udpsock->udpsink,
+        gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+            gst_structure_new ("GstForceKeyUnit", NULL)));
   }
 }
 
