@@ -903,6 +903,10 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
           if (GST_PAD_LINK_FAILED(ret))
             GST_ERROR ("Could not link nicesink to its tee pad");
           gst_object_unref (elempad);
+
+          gst_element_send_event (ns->nicesinks[c],
+              gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+                  gst_structure_new ("GstForceKeyUnit", NULL)));
         }
       }
     }
