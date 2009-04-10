@@ -1043,11 +1043,11 @@ fs_rawudp_component_maybe_emit_local_candidates (FsRawUdpComponent *self)
   {
     self->priv->local_active_candidate = self->priv->local_upnp_candidate;
     self->priv->local_upnp_candidate = NULL;
-    FS_RAWUDP_COMPONENT_UNLOCK (self);
     GST_DEBUG ("C:%d Emitting UPnP discovered candidate: %s:%u",
         self->priv->component,
-        self->priv->local_upnp_candidate->ip,
-        self->priv->local_upnp_candidate->port);
+        self->priv->local_active_candidate->ip,
+        self->priv->local_active_candidate->port);
+    FS_RAWUDP_COMPONENT_UNLOCK (self);
     fs_rawudp_component_emit_candidate (self,
         self->priv->local_active_candidate);
     return;
