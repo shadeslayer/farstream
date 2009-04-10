@@ -507,6 +507,11 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
 
 
   g_type_class_add_private (klass, sizeof (FsRawUdpComponentPrivate));
+
+  if (gst_debug_category_get_threshold (GST_CAT_DEFAULT) >= GST_LEVEL_DEBUG)
+    stun_debug_enable ();
+  else
+    stun_debug_disable ();
 }
 
 
