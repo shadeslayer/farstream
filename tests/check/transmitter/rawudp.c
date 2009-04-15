@@ -35,6 +35,9 @@
 #include "generic.h"
 #include "transmitter/rawudp-upnp.h"
 
+#include "stunalternd.h"
+
+
 gint buffer_count[2] = {0, 0};
 GMainLoop *loop = NULL;
 gint candidates[2] = {0, 0};
@@ -48,6 +51,7 @@ gboolean associate_on_source = TRUE;
 gboolean pipeline_done = FALSE;
 GStaticMutex pipeline_mod_mutex = G_STATIC_MUTEX_INIT;
 
+void *stun_alternd_data = NULL;
 
 enum {
   FLAG_HAS_STUN  = 1 << 0,
@@ -809,7 +813,7 @@ GST_START_TEST (test_rawudptransmitter_run_stunalternd)
 {
   GParameter params[4];
 
-  if (stund_pid <= 0 || stunalternd_pid <= 0)
+  if (stund_pid <= 0 || stun_alternd_data == NULL)
     return;
 
   memset (params, 0, sizeof (GParameter) * 4);
@@ -840,7 +844,7 @@ GST_START_TEST (test_rawudptransmitter_run_stun_altern_to_nowhere)
 {
   GParameter params[3];
 
-  if (stunalternd_pid <= 0)
+  if (stun_alternd_data == NULL)
     return;
 
   /*
@@ -865,6 +869,54 @@ GST_START_TEST (test_rawudptransmitter_run_stun_altern_to_nowhere)
 
 }
 GST_END_TEST;
+
+
+void
+setup_stunalternd_valid (void)
+{
+  stun_alternd_data = stun_alternd_init (AF_INET,
+      "127.0.0.1", 3478, 3480);
+
+  if (!stun_alternd_data)
+    g_debug ("Could not spawn stunalternd,"
+        " skipping stun alternate server testing");
+}
+
+static void
+setup_stunalternd_loop (void)
+{
+  stun_alternd_data = stun_alternd_init (AF_INET,
+      "127.0.0.1", 3478, 3478);
+
+  if (!stun_alternd_data)
+    g_debug ("Could not spawn stunalternd,"
+        " skipping stun alternate server testing");
+}
+
+static void
+teardown_stunalternd (void)
+{
+  if (!stun_alternd_data)
+    return;
+
+  stun_alternd_stop (stun_alternd_data);
+  stun_alternd_data = NULL;
+}
+
+static void
+setup_stund_stunalternd (void)
+{
+  setup_stund ();
+  setup_stunalternd_valid ();
+}
+
+
+static void
+teardown_stund_stunalternd (void)
+{
+  teardown_stund ();
+  teardown_stunalternd ();
+}
 
 
 static Suite *

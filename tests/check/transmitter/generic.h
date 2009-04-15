@@ -39,16 +39,8 @@ gboolean bus_error_callback (GstBus *bus, GstMessage *message,
 void test_transmitter_creation (gchar *transmitter_name);
 
 extern GPid stund_pid;
-extern GPid stunalternd_pid;
 
 void setup_stund (void);
 void teardown_stund (void);
-
-void setup_stunalternd_valid (void);
-void setup_stunalternd_loop (void);
-void teardown_stunalternd (void);
-
-void setup_stund_stunalternd (void);
-void teardown_stund_stunalternd (void);
 
 #endif /* __GENERIC_H__ */
