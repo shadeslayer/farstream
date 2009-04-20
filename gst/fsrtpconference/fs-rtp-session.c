@@ -96,7 +96,8 @@ enum
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY,
   PROP_CONFERENCE,
-  PROP_NO_RTCP_TIMEOUT
+  PROP_NO_RTCP_TIMEOUT,
+  PROP_SSRC
 };
 
 #define DEFAULT_NO_RTCP_TIMEOUT (7000)
@@ -359,6 +360,14 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
           " of a second FsStream",
           -1, G_MAXINT, DEFAULT_NO_RTCP_TIMEOUT,
           G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class,
+      PROP_SSRC,
+      g_param_spec_uint ("ssrc",
+          "The SSRC of the sent data",
+          "This is the current SSRC used to send data"
+          " (defaults to a random value)",
+          0, G_MAXUINT, 0, G_PARAM_READWRITE));
 
   gobject_class->dispose = fs_rtp_session_dispose;
   gobject_class->finalize = fs_rtp_session_finalize;
@@ -805,6 +814,10 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_int (value, self->priv->no_rtcp_timeout);
       FS_RTP_SESSION_UNLOCK (self);
       break;
+    case PROP_SSRC:
+      g_object_get_property (G_OBJECT (self->priv->rtpbin_internal_session),
+          "internal-ssrc", value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -840,12 +853,23 @@ fs_rtp_session_set_property (GObject *object,
       self->priv->no_rtcp_timeout = g_value_get_int (value);
       FS_RTP_SESSION_UNLOCK (self);
       break;
+    case PROP_SSRC:
+      g_object_set_property (G_OBJECT (self->priv->rtpbin_internal_session),
+          "internal-ssrc", value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 
   fs_rtp_session_has_disposed_exit (self);
+}
+
+static void
+_rtpbin_internal_session_notify_internal_ssrc (GObject *internal_session,
+    GParamSpec *pspec, gpointer self)
+{
+  g_object_notify (G_OBJECT (self), "ssrc");
 }
 
 static void
@@ -1315,13 +1339,16 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
+  g_signal_connect (self->priv->rtpbin_internal_session,
+      "notify::internal-ssrc",
+      G_CALLBACK (_rtpbin_internal_session_notify_internal_ssrc), self);
+
   FS_RTP_SESSION_LOCK (self);
   fs_rtp_session_start_codec_param_gathering_locked (self);
   FS_RTP_SESSION_UNLOCK (self);
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
-
 
 static void
 _stream_known_source_packet_received (FsRtpStream *stream, guint component,
