@@ -123,8 +123,11 @@ struct _FsStreamClass
   gboolean (*set_remote_codecs) (FsStream *stream,
                                  GList *remote_codecs, GError **error);
 
+  void (*add_id) (FsStream *stream,
+                  guint id);
+
   /*< private >*/
-  gpointer _padding[8];
+  gpointer _padding[7];
 };
 
 /**
@@ -155,6 +158,8 @@ gboolean fs_stream_force_remote_candidates (FsStream *stream,
 
 gboolean fs_stream_set_remote_codecs (FsStream *stream,
                                       GList *remote_codecs, GError **error);
+
+void fs_stream_add_id (FsStream *stream, guint id);
 
 void fs_stream_emit_error (FsStream *stream,
     gint error_no,

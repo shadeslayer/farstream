@@ -475,6 +475,34 @@ fs_stream_set_remote_codecs (FsStream *stream,
   return FALSE;
 }
 
+/**
+ * fs_stream_add_id:
+ * @stream: a #FsStream
+ * @id: The id to add to the stream
+ *
+ * This function is used to add data identifiers that allow the
+ * plugin to recognize packets that are meant for id. For example, in RTP,
+ * one would set the SSRCs that are expected.
+ *
+ * Depending on the protocol, one may be able to add more than one ID
+ * to a stream (in RTP you can have multiple SSRCs in a stream).
+ * If a protocol supports only one id, adding a new one will overwrite it.
+ * If an ID was already set on a stream, adding it to another stream will
+ * override the previdous decision.
+ *
+ * For most protocols, calling this function is optional as the incoming data
+ * can be matched with a stream by its source IP address. This is mostly useful
+ * if one is using multicast or is behind a muxer server.
+ */
+void
+fs_stream_add_id (FsStream *stream,
+                  guint id)
+{
+  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+
+  if (klass->add_id)
+    klass->add_id (stream, id);
+}
 
 /**
  * fs_stream_emit_error:
