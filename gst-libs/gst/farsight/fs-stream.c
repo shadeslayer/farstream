@@ -447,7 +447,7 @@ fs_stream_force_remote_candidates (FsStream *stream,
 
 /**
  * fs_stream_set_remote_codecs:
- * @stream: an #FsStream
+ * @stream: a #FsStream
  * @remote_codecs: a #GList of #FsCodec representing the remote codecs
  * @error: location of a #GError, or %NULL if no error occured
  *
