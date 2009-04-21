@@ -393,6 +393,51 @@ GST_START_TEST (test_senddtmf_auto)
 GST_END_TEST;
 
 
+static void
+change_ssrc_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
+{
+  guint sess_ssrc;
+  guint buf_ssrc;
+  static gboolean checked = FALSE;
+
+  ts_fail_unless (gst_rtp_buffer_validate (buf));
+
+  buf_ssrc = gst_rtp_buffer_get_ssrc (buf);
+
+  g_object_get (dat->session, "ssrc", &sess_ssrc, NULL);
+
+  if (buf_ssrc == 12345)
+  {
+    /* Step two, set it to 6789 */
+    ts_fail_unless (buf_ssrc == sess_ssrc || sess_ssrc == 6789);
+
+    g_object_set (dat->session, "ssrc", 6789, NULL);
+  }
+  else if (buf_ssrc == 6789)
+  {
+    /* Step three, quit */
+    ts_fail_unless (buf_ssrc == sess_ssrc);
+
+    g_main_loop_quit (loop);
+  }
+  else
+  {
+    ts_fail_unless (checked || buf_ssrc == sess_ssrc);
+    checked = TRUE;
+
+    /* Step one, set the ssrc to 12345 */
+    if (sess_ssrc != 12345)
+      g_object_set (dat->session, "ssrc", 12345, NULL);
+  }
+}
+
+GST_START_TEST (test_change_ssrc)
+{
+  one_way (G_CALLBACK (change_ssrc_handler), NULL);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpsendcodecs_suite (void)
 {
@@ -411,6 +456,10 @@ fsrtpsendcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpsenddtmf_auto");
   tcase_add_test (tc_chain, test_senddtmf_auto);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpchangessrc");
+  tcase_add_test (tc_chain, test_change_ssrc);
   suite_add_tcase (s, tc_chain);
 
   return s;
