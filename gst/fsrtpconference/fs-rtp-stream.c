@@ -74,6 +74,7 @@ struct _FsRtpStreamPrivate
   stream_new_remote_codecs_cb new_remote_codecs_cb;
   stream_known_source_packet_receive_cb known_source_packet_received_cb;
   stream_sending_changed_locked_cb sending_changed_locked_cb;
+  stream_ssrc_added_cb ssrc_added_cb;
   gpointer user_data_for_cb;
 
   GMutex *mutex;
@@ -109,6 +110,8 @@ static gboolean fs_rtp_stream_force_remote_candidates (FsStream *stream,
 static gboolean fs_rtp_stream_set_remote_codecs (FsStream *stream,
                                                  GList *remote_codecs,
                                                  GError **error);
+
+static void fs_rtp_stream_add_id (FsStream *stream, guint id);
 
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
@@ -162,6 +165,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   stream_class->set_remote_candidates = fs_rtp_stream_set_remote_candidates;
   stream_class->set_remote_codecs = fs_rtp_stream_set_remote_codecs;
   stream_class->force_remote_candidates = fs_rtp_stream_force_remote_candidates;
+  stream_class->add_id = fs_rtp_stream_add_id;
 
 
   g_type_class_add_private (klass, sizeof (FsRtpStreamPrivate));
@@ -685,6 +689,7 @@ fs_rtp_stream_new (FsRtpSession *session,
     stream_new_remote_codecs_cb new_remote_codecs_cb,
     stream_known_source_packet_receive_cb known_source_packet_received_cb,
     stream_sending_changed_locked_cb sending_changed_locked_cb,
+    stream_ssrc_added_cb ssrc_added_cb,
     gpointer user_data_for_cb,
     GError **error)
 {
@@ -706,6 +711,7 @@ fs_rtp_stream_new (FsRtpSession *session,
   self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
   self->priv->known_source_packet_received_cb = known_source_packet_received_cb;
   self->priv->sending_changed_locked_cb = sending_changed_locked_cb;
+  self->priv->ssrc_added_cb = ssrc_added_cb;
   self->priv->user_data_for_cb = user_data_for_cb;
 
   FS_RTP_SESSION_LOCK (session);
@@ -1065,6 +1071,21 @@ fs_rtp_stream_set_negotiated_codecs_unlock (FsRtpStream *stream,
   FS_RTP_SESSION_UNLOCK (session);
 
   g_object_notify (G_OBJECT (stream), "negotiated-codecs");
+
+  g_object_unref (session);
+}
+
+static void
+fs_rtp_stream_add_id (FsStream *stream, guint id)
+{
+  FsRtpStream *self = FS_RTP_STREAM (stream);
+  FsRtpSession *session = fs_rtp_stream_get_session (self, NULL);
+
+  if (!session)
+    return;
+
+  if (self->priv->ssrc_added_cb)
+    self->priv->ssrc_added_cb (self, id, self->priv->user_data_for_cb);
 
   g_object_unref (session);
 }

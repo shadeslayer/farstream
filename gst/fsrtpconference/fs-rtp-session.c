@@ -188,6 +188,7 @@ struct _FsRtpSessionPrivate
   /* This is a ht of ssrc->streams
    * It is protected by the session mutex */
   GHashTable *ssrc_streams;
+  GHashTable *ssrc_streams_manual;
 
   GError *construction_error;
 
@@ -397,6 +398,8 @@ fs_rtp_session_init (FsRtpSession *self)
   self->priv->no_rtcp_timeout = DEFAULT_NO_RTCP_TIMEOUT;
 
   self->priv->ssrc_streams = g_hash_table_new (g_direct_hash, g_direct_equal);
+  self->priv->ssrc_streams_manual = g_hash_table_new (g_direct_hash,
+      g_direct_equal);
 }
 
 static gboolean
@@ -673,6 +676,7 @@ fs_rtp_session_dispose (GObject *object)
   self->priv->streams = NULL;
   self->priv->streams_cookie++;
   g_hash_table_remove_all (self->priv->ssrc_streams);
+  g_hash_table_remove_all (self->priv->ssrc_streams_manual);
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
@@ -705,6 +709,9 @@ fs_rtp_session_finalize (GObject *object)
 
   if (self->priv->ssrc_streams)
     g_hash_table_destroy (self->priv->ssrc_streams);
+
+  if (self->priv->ssrc_streams_manual)
+    g_hash_table_destroy (self->priv->ssrc_streams_manual);
 
   g_mutex_free (self->priv->send_pad_blocked_mutex);
   g_mutex_free (self->priv->discovery_pad_blocked_mutex);
@@ -1431,6 +1438,22 @@ _stream_sending_changed_locked (FsRtpStream *stream, gboolean sending,
 
 }
 
+static void
+_stream_ssrc_added_cb (FsRtpStream *stream, guint32 ssrc, gpointer user_data)
+{
+  FsRtpSession *self = user_data;
+
+  FS_RTP_SESSION_LOCK (self);
+  g_hash_table_insert (self->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
+      stream);
+  g_hash_table_insert (self->priv->ssrc_streams_manual, GUINT_TO_POINTER (ssrc),
+      stream);
+  FS_RTP_SESSION_UNLOCK (self);
+
+  fs_rtp_session_associate_free_substreams (self, stream, ssrc);
+}
+
+
 static gboolean
 _remove_stream_from_ht (gpointer key, gpointer value, gpointer user_data)
 {
@@ -1453,6 +1476,8 @@ _remove_stream (gpointer user_data,
 
   g_hash_table_foreach_remove (self->priv->ssrc_streams, _remove_stream_from_ht,
       where_the_object_was);
+  g_hash_table_foreach_remove (self->priv->ssrc_streams_manual,
+      _remove_stream_from_ht, where_the_object_was);
   FS_RTP_SESSION_UNLOCK (self);
 
   fs_rtp_session_has_disposed_exit (self);
@@ -1510,7 +1535,9 @@ fs_rtp_session_new_stream (FsSession *session,
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
           direction, st, _stream_new_remote_codecs,
           _stream_known_source_packet_received,
-          _stream_sending_changed_locked, self, error));
+          _stream_sending_changed_locked,
+          _stream_ssrc_added_cb,
+          self, error));
 
   FS_RTP_SESSION_LOCK (self);
   self->priv->streams = g_list_append (self->priv->streams, new_stream);
@@ -3782,8 +3809,10 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     return;
   }
 
-  g_hash_table_insert (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
-      stream);
+  if (!g_hash_table_lookup (session->priv->ssrc_streams,
+          GUINT_TO_POINTER (ssrc)))
+    g_hash_table_insert (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
+        stream);
 
   FS_RTP_SESSION_UNLOCK (session);
 
@@ -3862,7 +3891,9 @@ fs_rtp_session_bye_ssrc (FsRtpSession *session,
   /* First remove it from the known SSRCs */
 
   FS_RTP_SESSION_LOCK (session);
-  g_hash_table_remove (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc));
+  if (!g_hash_table_lookup (session->priv->ssrc_streams_manual,
+          GUINT_TO_POINTER (ssrc)))
+    g_hash_table_remove (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc));
   FS_RTP_SESSION_UNLOCK (session);
 
   /*

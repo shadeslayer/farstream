@@ -92,6 +92,8 @@ typedef void (*stream_known_source_packet_receive_cb) (FsRtpStream *stream,
     guint component, GstBuffer *buffer, gpointer user_data);
 typedef void (*stream_sending_changed_locked_cb) (FsRtpStream *stream,
     gboolean sending, gpointer user_data);
+typedef void (*stream_ssrc_added_cb) (FsRtpStream *stream, guint32 ssrc,
+    gpointer user_data);
 
 FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
     FsRtpParticipant *participant,
@@ -100,6 +102,7 @@ FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
     stream_new_remote_codecs_cb new_remote_codecs_cb,
     stream_known_source_packet_receive_cb known_source_packet_received_cb,
     stream_sending_changed_locked_cb sending_changed_locked_cb,
+    stream_ssrc_added_cb ssrc_added_cb,
     gpointer user_data_for_cb,
     GError **error);
 

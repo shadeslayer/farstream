@@ -190,6 +190,7 @@ fs_rtp_stream_new
 fs_rtp_stream_add_substream_unlock
 fs_rtp_stream_set_negotiated_codecs_unlock
 stream_sending_changed_locked_cb
+stream_ssrc_added_cb
 </SECTION>
 
 
