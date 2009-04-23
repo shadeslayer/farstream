@@ -62,6 +62,7 @@ struct SimpleTestConference *setup_simple_conference (
 struct SimpleTestStream *simple_conference_add_stream (
     struct SimpleTestConference *dat,
     struct SimpleTestConference *target,
+    const gchar *transmitter,
     guint st_param_count,
     GParameter *st_params);
 

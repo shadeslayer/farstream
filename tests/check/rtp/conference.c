@@ -66,7 +66,7 @@ GST_START_TEST (test_rtpconference_new)
   FsStreamDirection dir;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
-  st = simple_conference_add_stream (dat, dat, 0, NULL);
+  st = simple_conference_add_stream (dat, dat, "rawudp", 0, NULL);
 
   g_object_get (dat->conference, "sdes-cname", &str, NULL);
   ts_fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
@@ -718,7 +718,7 @@ set_initial_codecs (
 typedef void (*extra_init) (void);
 
 static void
-nway_test (int in_count, extra_init extrainit,
+nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
     guint st_param_count, GParameter *st_params)
 {
   int i, j;
@@ -766,8 +766,8 @@ nway_test (int in_count, extra_init extrainit,
       {
         struct SimpleTestStream *st = NULL;
 
-        st = simple_conference_add_stream (dats[i], dats[j], st_param_count+2,
-            params);
+        st = simple_conference_add_stream (dats[i], dats[j], transmitter,
+            st_param_count+2, params);
         st->handoff_handler = G_CALLBACK (_handoff_handler);
         g_signal_connect (st->stream, "src-pad-added",
             G_CALLBACK (_src_pad_added), st);
@@ -800,21 +800,21 @@ nway_test (int in_count, extra_init extrainit,
 
 GST_START_TEST (test_rtpconference_two_way)
 {
-  nway_test (2, NULL, 0, NULL);
+  nway_test (2, NULL, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_three_way)
 {
-  nway_test (3, NULL, 0, NULL);
+  nway_test (3, NULL, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_ten_way)
 {
-  nway_test (10, NULL, 0, NULL);
+  nway_test (10, NULL, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -856,7 +856,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
-  nway_test (2, NULL, 0, NULL);
+  nway_test (2, NULL, "rawudp", 0, NULL);
   select_last_codec = FALSE;
 }
 GST_END_TEST;
@@ -865,7 +865,7 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
-  nway_test (2, NULL, 0, NULL);
+  nway_test (2, NULL, "rawudp", 0, NULL);
   reset_to_last_codec = FALSE;
 }
 GST_END_TEST;
@@ -918,8 +918,8 @@ _recv_only_init_2 (void)
 
 GST_START_TEST (test_rtpconference_recv_only)
 {
-  nway_test (2, _recv_only_init_1, 0, NULL);
-  nway_test (2, _recv_only_init_2, 0, NULL);
+  nway_test (2, _recv_only_init_1, "rawudp", 0, NULL);
+  nway_test (2, _recv_only_init_2, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -949,8 +949,8 @@ _send_only_init_2 (void)
 
 GST_START_TEST (test_rtpconference_send_only)
 {
-  nway_test (2, _send_only_init_1, 0, NULL);
-  nway_test (2, _send_only_init_2, 0, NULL);
+  nway_test (2, _send_only_init_1, "rawudp", 0, NULL);
+  nway_test (2, _send_only_init_2, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -984,7 +984,7 @@ _change_to_send_only_init (void)
 
 GST_START_TEST (test_rtpconference_change_to_send_only)
 {
-  nway_test (2, _change_to_send_only_init, 0, NULL);
+  nway_test (2, _change_to_send_only_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -993,7 +993,7 @@ GST_START_TEST (test_rtpconference_no_rtcp)
 {
   no_rtcp = TRUE;
 
-  nway_test (2, NULL, 0, NULL);
+  nway_test (2, NULL, "rawudp", 0, NULL);
 
   no_rtcp = FALSE;
 }
@@ -1026,7 +1026,7 @@ GST_START_TEST (test_rtpconference_three_way_cname_assoc)
   g_value_init (&param.value, G_TYPE_BOOLEAN);
   g_value_set_boolean (&param.value, FALSE);
 
-  nway_test (3, associate_cnames_init, 1, &param);
+  nway_test (3, associate_cnames_init, "rawudp", 1, &param);
 }
 GST_END_TEST;
 
@@ -1059,7 +1059,7 @@ _simple_profile_init (void)
 
 GST_START_TEST (test_rtpconference_simple_profile)
 {
-  nway_test (2, _simple_profile_init, 0, NULL);
+  nway_test (2, _simple_profile_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -1148,7 +1148,7 @@ _double_profile_init (void)
 
 GST_START_TEST (test_rtpconference_double_codec_profile)
 {
-  nway_test (2, _double_profile_init, 0, NULL);
+  nway_test (2, _double_profile_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
