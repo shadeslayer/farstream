@@ -81,11 +81,13 @@ transmitter_rawudp_SOURCES = \
 transmitter_multicast_CFLAGS = $(AM_CFLAGS)
 transmitter_multicast_SOURCES = \
 	check-threadsafe.h  \
+	testutils.c \
+	testutils.h \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/fake-filter.c \
 	transmitter/fake-filter.h \
-	transmitter/multicast.c 
+	transmitter/multicast.c
 
 transmitter_nice_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_nice_SOURCES = \

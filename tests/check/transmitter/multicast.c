@@ -26,16 +26,10 @@
 #include <gst/farsight/fs-transmitter.h>
 #include <gst/farsight/fs-conference-iface.h>
 
-#ifdef HAVE_GETIFADDRS
- #include <sys/socket.h>
- #include <ifaddrs.h>
- #include <net/if.h>
- #include <arpa/inet.h>
-#endif
-
 #include "check-threadsafe.h"
 #include "generic.h"
 #include "fake-filter.h"
+#include "testutils.h"
 
 gint buffer_count[2] = {0, 0};
 GMainLoop *loop = NULL;
@@ -227,60 +221,13 @@ GST_START_TEST (test_multicasttransmitter_run)
 }
 GST_END_TEST;
 
-static gchar *
-_find_multicast_capable_address (void)
-{
-#ifdef HAVE_GETIFADDRS
-  gchar *retval = NULL;
-  struct ifaddrs *ifa, *results;
-
-  if (getifaddrs (&results) < 0)
-    return NULL;
-
-  for (ifa = results; ifa; ifa = ifa->ifa_next) {
-    /* no ip address from interface that is down */
-    if ((ifa->ifa_flags & IFF_UP) == 0)
-      continue;
-
-    if ((ifa->ifa_flags & IFF_MULTICAST) == 0)
-      continue;
-
-    if (ifa->ifa_addr == NULL || ifa->ifa_addr->sa_family != AF_INET)
-      continue;
-
-    if (retval)
-    {
-      g_free (retval);
-      retval = NULL;
-      g_debug ("Disabling test, more than one multicast capable interface");
-      break;
-    }
-
-    retval = g_strdup (
-        inet_ntoa (((struct sockaddr_in *) ifa->ifa_addr)->sin_addr));
-    g_debug ("Sending from %s on interface %s", retval, ifa->ifa_name);
-  }
-
-  freeifaddrs (results);
-
-  if (retval == NULL)
-    g_message ("Skipping multicast transmitter tests, "
-        "no multicast capable interface found");
-  return retval;
-
-#else
-  g_message ("This system does not have getifaddrs,"
-      " this test will be disabled");
-  return NULL;
-#endif
-}
 
 GST_START_TEST (test_multicasttransmitter_run_local_candidates)
 {
   GParameter params[1];
   GList *list = NULL;
   FsCandidate *candidate;
-  gchar *address = _find_multicast_capable_address ();
+  gchar *address = find_multicast_capable_address ();
 
   if (address == NULL)
     return;
@@ -334,7 +281,7 @@ multicasttransmitter_suite (void)
   GLogLevelFlags fatal_mask;
   gchar *tmp_addr;
 
-  tmp_addr = _find_multicast_capable_address ();
+  tmp_addr = find_multicast_capable_address ();
 
   if (!tmp_addr)
     return s;
