@@ -101,6 +101,8 @@ transmitter_nice_SOURCES = \
 rtp_conference_CFLAGS = $(AM_CFLAGS)
 rtp_conference_SOURCES = \
 	check-threadsafe.h  \
+	testutils.c \
+	testutils.h \
 	rtp/generic.c \
 	rtp/generic.h \
 	rtp/conference.c

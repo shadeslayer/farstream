@@ -29,6 +29,7 @@
 #include "check-threadsafe.h"
 
 #include "generic.h"
+#include "testutils.h"
 
 static struct SimpleTestStream *
 find_pointback_stream (
@@ -722,19 +723,26 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
     guint st_param_count, GParameter *st_params)
 {
   int i, j;
-  GParameter *params;
+  GParameter *params = NULL;
 
-  params = g_new0 (GParameter, st_param_count+2);
 
-  memcpy (params, st_params, st_param_count * sizeof (GParameter));
+  if (!strcmp ("rawudp", transmitter))
+  {
+    params = g_new0 (GParameter, st_param_count+2);
 
-  params[st_param_count].name = "upnp-discovery";
-  g_value_init (&params[st_param_count].value, G_TYPE_BOOLEAN);
-  g_value_set_boolean (&params[st_param_count].value, FALSE);
+    memcpy (params, st_params, st_param_count * sizeof (GParameter));
 
-  params[st_param_count+1].name = "upnp-mapping";
-  g_value_init (&params[st_param_count+1].value, G_TYPE_BOOLEAN);
-  g_value_set_boolean (&params[st_param_count+1].value, FALSE);
+    params[st_param_count].name = "upnp-discovery";
+    g_value_init (&params[st_param_count].value, G_TYPE_BOOLEAN);
+    g_value_set_boolean (&params[st_param_count].value, FALSE);
+
+    params[st_param_count+1].name = "upnp-mapping";
+    g_value_init (&params[st_param_count+1].value, G_TYPE_BOOLEAN);
+    g_value_set_boolean (&params[st_param_count+1].value, FALSE);
+
+    st_param_count += 2;
+    st_params = params;
+  }
 
   count = in_count;
 
@@ -767,7 +775,7 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
         struct SimpleTestStream *st = NULL;
 
         st = simple_conference_add_stream (dats[i], dats[j], transmitter,
-            st_param_count+2, params);
+            st_param_count, st_params);
         st->handoff_handler = G_CALLBACK (_handoff_handler);
         g_signal_connect (st->stream, "src-pad-added",
             G_CALLBACK (_src_pad_added), st);
@@ -1229,6 +1237,76 @@ GST_START_TEST (test_rtpconference_dispose)
 }
 GST_END_TEST;
 
+static guint mcast_confs;
+
+static void
+multicast_init(void)
+{
+  guint i;
+  GList *candidates = NULL;
+  FsCandidate *cand;
+
+  cand = fs_candidate_new ("1", FS_COMPONENT_RTP,
+      FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP, "224.0.0.11",
+      2324);
+  cand->ttl = 1;
+  candidates = g_list_prepend (candidates, cand);
+
+  cand = fs_candidate_copy (cand);
+  cand->component_id = FS_COMPONENT_RTCP;
+  cand->port = 2325;
+  candidates = g_list_prepend (candidates, cand);
+
+  for (i = 0; i < mcast_confs; i++)
+  {
+    GList *item;
+
+    for (item = dats[i]->streams; item; item = item->next)
+    {
+      struct SimpleTestStream *st = item->data;
+      GError *error = NULL;
+
+      ts_fail_unless (fs_stream_set_remote_candidates (st->stream, candidates,
+              &error), "Error %s", error ? error->message : "No GError");
+    }
+  }
+
+  fs_candidate_list_destroy (candidates);
+}
+
+static void
+multicast_cname_init(void)
+{
+  multicast_init();
+  associate_cnames_init ();
+}
+
+
+GST_START_TEST (test_rtpconference_multicast_two_way_cname_assoc)
+{
+  gchar *mcast_addr = find_multicast_capable_address ();
+
+  if (!mcast_addr)
+    return;
+  g_free (mcast_addr);
+
+  mcast_confs = 3;
+  nway_test (mcast_confs, multicast_cname_init, "multicast", 0, NULL);
+}
+GST_END_TEST;
+
+
+static void
+min_timeout (TCase *tc_chain, guint min)
+{
+  const gchar *env = g_getenv("CK_DEFAULT_TIMEOUT");
+  int tmp = 0;
+
+  if (env != NULL)
+    tmp = atoi(env);
+
+  tcase_set_timeout (tc_chain, MAX (min, tmp));
+}
 
 static Suite *
 fsrtpconference_suite (void)
@@ -1299,6 +1377,11 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconference_dispose");
   tcase_add_test (tc_chain, test_rtpconference_dispose);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconference_multicast_two_way_cname_assoc");
+  min_timeout (tc_chain, 30);
+  tcase_add_test (tc_chain, test_rtpconference_multicast_two_way_cname_assoc);
   suite_add_tcase (s, tc_chain);
 
   return s;
