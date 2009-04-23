@@ -225,7 +225,13 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
 
   /* if already computed just return list */
   if (codecs_lists_ref[media_type] > 1)
+  {
+    if (!list_codec_blueprints[media_type])
+      g_set_error (error, FS_ERROR, FS_ERROR_NO_CODECS,
+          "No codecs for media type %s detected",
+          fs_media_type_to_string (media_type));
     return list_codec_blueprints[media_type];
+  }
 
   list_codec_blueprints[media_type] = load_codecs_cache (media_type);
   if (list_codec_blueprints[media_type]) {
