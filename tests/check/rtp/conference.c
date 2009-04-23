@@ -1295,6 +1295,53 @@ GST_START_TEST (test_rtpconference_multicast_two_way_cname_assoc)
 }
 GST_END_TEST;
 
+static void
+add_ssrc_cb (GObject *session, GParamSpec *pspec, FsStream *stream)
+{
+  guint ssrc;
+
+  g_object_get (session, "ssrc", &ssrc, NULL);
+  fs_stream_add_id (stream, ssrc);
+}
+
+static void
+multicast_ssrc_init(void)
+{
+  int i;
+
+  multicast_init();
+
+  for (i = 0; i < mcast_confs; i++)
+  {
+    GList *item;
+
+    for (item = dats[i]->streams; item; item = item->next)
+    {
+      struct SimpleTestStream *st = item->data;
+      guint ssrc;
+
+      g_object_get (st->target->session, "ssrc", &ssrc, NULL);
+      fs_stream_add_id (st->stream, ssrc);
+      g_signal_connect (st->target->session, "notify::ssrc",
+          G_CALLBACK (add_ssrc_cb), st->stream);
+    }
+  }
+}
+
+
+GST_START_TEST (test_rtpconference_multicast_two_way_ssrc_assoc)
+{
+  gchar *mcast_addr = find_multicast_capable_address ();
+
+  if (!mcast_addr)
+    return;
+  g_free (mcast_addr);
+
+  mcast_confs = 3;
+  nway_test (mcast_confs, multicast_ssrc_init, "multicast", 0, NULL);
+}
+GST_END_TEST;
+
 
 static void
 min_timeout (TCase *tc_chain, guint min)
@@ -1382,6 +1429,10 @@ fsrtpconference_suite (void)
   tc_chain = tcase_create ("fsrtpconference_multicast_two_way_cname_assoc");
   min_timeout (tc_chain, 30);
   tcase_add_test (tc_chain, test_rtpconference_multicast_two_way_cname_assoc);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconference_multicast_two_way_ssrc_assoc");
+  tcase_add_test (tc_chain, test_rtpconference_multicast_two_way_ssrc_assoc);
   suite_add_tcase (s, tc_chain);
 
   return s;
