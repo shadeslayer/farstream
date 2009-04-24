@@ -99,7 +99,7 @@ GType fs_conference_get_type (void);
  * likely denotes an error on the remote side, the buffers will be ignored.
  * It can safely be ignored in most cases (but may result in a call with no
  * media received).
- * @FS_ERROR_UNKNOWN_CNAME: Data was received for an unknown cname.
+ * @FS_ERROR_UNKNOWN_CNAME: Data was received for an unknown cname (DEPRECATED).
  * @FS_ERROR_NO_CODECS: There are no codecs detected for that media type.
  * @FS_ERROR_NO_CODECS_LEFT: All of the codecs have been disabled by the
  * codec preferences, one should try less strict codec preferences.

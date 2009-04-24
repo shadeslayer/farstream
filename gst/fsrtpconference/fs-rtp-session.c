@@ -3674,6 +3674,14 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     return;
 
   FS_RTP_SESSION_LOCK (session);
+
+  if (!session->priv->free_substreams)
+  {
+    FS_RTP_SESSION_UNLOCK (session);
+    fs_rtp_session_has_disposed_exit (session);
+    return;
+  }
+
   for (item = g_list_first (session->priv->streams);
        item;
        item = g_list_next (item))
@@ -3696,12 +3704,9 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
 
   if (!stream)
   {
-    gchar *str = g_strdup_printf ("There is no particpant with cname %s for"
-        " ssrc %u", cname, ssrc);
+    GST_LOG ("There is no participant with cname %s, but"
+        " we have streams of unknown origin", cname);
     FS_RTP_SESSION_UNLOCK (session);
-    fs_session_emit_error (FS_SESSION (session), FS_ERROR_UNKNOWN_CNAME,
-        str, str);
-    g_free (str);
     fs_rtp_session_has_disposed_exit (session);
     return;
   }
