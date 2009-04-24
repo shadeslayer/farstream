@@ -125,6 +125,8 @@ struct _FsRtpSessionPrivate
 
   GstElement *rtpmuxer;
 
+  GObject *rtpbin_internal_session;
+
   /* Request pads that are disposed of when the tee is disposed of */
   GstPad *send_tee_media_pad;
   GstPad *send_tee_discovery_pad;
@@ -460,6 +462,9 @@ fs_rtp_session_dispose (GObject *object)
 
 
   conferencebin = GST_BIN (self->priv->conference);
+
+  g_object_unref (self->priv->rtpbin_internal_session);
+  self->priv->rtpbin_internal_session = NULL;
 
   /* Lets stop all of the elements sink to source */
 
@@ -892,8 +897,6 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
-
-
   tmp = g_strdup_printf ("send_tee_%u", self->id);
   tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
@@ -1300,6 +1303,17 @@ fs_rtp_session_constructed (GObject *object)
   }
 
   gst_element_set_state (capsfilter, GST_STATE_PLAYING);
+
+  g_signal_emit_by_name (self->priv->conference->gstrtpbin,
+      "get-internal-session", self->id, &self->priv->rtpbin_internal_session);
+
+  if (!self->priv->rtpbin_internal_session)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not get the rtpbin's internal session");
+    return;
+  }
 
   FS_RTP_SESSION_LOCK (self);
   fs_rtp_session_start_codec_param_gathering_locked (self);
