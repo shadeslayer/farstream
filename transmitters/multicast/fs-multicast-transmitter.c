@@ -861,6 +861,7 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
 {
   UdpSock *udpsock;
   UdpSock *tmpudpsock;
+  GError *local_error = NULL;
 
   /* First lets check if we already have one */
   if (component_id > trans->components)
@@ -872,8 +873,14 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
 
   g_mutex_lock (trans->priv->mutex);
   udpsock = fs_multicast_transmitter_get_udpsock_locked (trans, component_id,
-      local_ip, multicast_ip, port, ttl, sending, error);
+      local_ip, multicast_ip, port, ttl, sending, &local_error);
   g_mutex_unlock (trans->priv->mutex);
+
+  if (local_error)
+  {
+    g_propagate_error (error, local_error);
+    return NULL;
+  }
 
   if (udpsock)
   {
@@ -928,12 +935,17 @@ fs_multicast_transmitter_get_udpsock (FsMulticastTransmitter *trans,
   g_mutex_lock (trans->priv->mutex);
   /* Check if someone else has added the same thing at the same time */
   tmpudpsock = fs_multicast_transmitter_get_udpsock_locked (trans, component_id,
-      local_ip, multicast_ip, port, ttl, sending, error);
+      local_ip, multicast_ip, port, ttl, sending, &local_error);
 
-  if (tmpudpsock)
+  if (tmpudpsock || local_error)
   {
     g_mutex_unlock (trans->priv->mutex);
     fs_multicast_transmitter_put_udpsock (trans, udpsock, ttl);
+    if (local_error)
+    {
+      g_propagate_error (error, local_error);
+      goto error;
+    }
     if (sending)
       fs_multicast_transmitter_udpsock_inc_sending (udpsock);
     return tmpudpsock;
