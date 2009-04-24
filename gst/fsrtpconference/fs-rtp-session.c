@@ -3691,9 +3691,7 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
 
     g_object_get (localstream->participant, "cname", &localcname, NULL);
 
-    g_assert (localcname);
-
-    if (!strcmp (localcname, cname))
+    if (localcname && !strcmp (localcname, cname))
     {
       stream = localstream;
       g_free (localcname);

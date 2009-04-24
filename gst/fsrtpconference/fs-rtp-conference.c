@@ -627,37 +627,32 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
     return NULL;
   }
 
-  if (!cname)
+  if (cname)
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid NULL cname");
-    return NULL;
-  }
-
-  GST_OBJECT_LOCK (self);
-  for (item = g_list_first (self->priv->participants);
-       item;
-       item = g_list_next (item))
-  {
-    gchar *lcname;
-
-    g_object_get (item->data, "cname", &lcname, NULL);
-    if (!strcmp (lcname, cname))
+    GST_OBJECT_LOCK (self);
+    for (item = g_list_first (self->priv->participants);
+         item;
+         item = g_list_next (item))
     {
-      g_free (lcname);
+      gchar *lcname;
+
+      g_object_get (item->data, "cname", &lcname, NULL);
+      if (lcname && !strcmp (lcname, cname))
+      {
+        g_free (lcname);
         break;
+      }
+      g_free (lcname);
     }
-    g_free (lcname);
-  }
-  GST_OBJECT_UNLOCK (self);
+    GST_OBJECT_UNLOCK (self);
 
-  if (item)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "There is already a participant with this cname");
-    return NULL;
+    if (item)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "There is already a participant with this cname");
+      return NULL;
+    }
   }
-
 
   new_participant = FS_PARTICIPANT_CAST (fs_rtp_participant_new (cname));
 
