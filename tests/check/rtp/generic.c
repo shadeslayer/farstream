@@ -77,7 +77,7 @@ simple_conference_add_stream (
   st->target = target;
 
   st->participant = fs_conference_new_participant (
-      FS_CONFERENCE (dat->conference), target->cname, &error);
+      FS_CONFERENCE (dat->conference), NULL, &error);
   if (error)
     fail ("Error while creating new participant (%d): %s",
         error->code, error->message);

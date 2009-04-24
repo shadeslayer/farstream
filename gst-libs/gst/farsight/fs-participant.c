@@ -96,9 +96,8 @@ fs_participant_class_init (FsParticipantClass *klass)
   /**
    * FsParticipant:cname:
    *
-   * A string representing the cname of the current participant. This is a
-   * constructor parameter that cannot be changed afterwards. User must free the
-   * string after getting it.
+   * A string representing the cname of the current participant.
+   * User must free the string after getting it.
    *
    */
   g_object_class_install_property (gobject_class,
@@ -107,7 +106,7 @@ fs_participant_class_init (FsParticipantClass *klass)
         "The cname of the participant",
         "A string of the cname of the participant",
         NULL,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 
   /**
    * FsParticipant::error:
