@@ -377,7 +377,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
 
   g_idle_add (check_running, NULL);
 
-  g_main_run (loop);
+  g_main_loop_run (loop);
 
  skip:
 
@@ -635,7 +635,7 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
 
   g_idle_add (check_running, NULL);
 
-  g_main_run (loop);
+  g_main_loop_run (loop);
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
 

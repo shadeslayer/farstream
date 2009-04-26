@@ -524,7 +524,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
 
   g_idle_add (check_running, NULL);
 
-  g_main_run (loop);
+  g_main_loop_run (loop);
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);

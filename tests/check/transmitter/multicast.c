@@ -202,7 +202,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
   fs_candidate_list_destroy (candidates);
 
-  g_main_run (loop);
+  g_main_loop_run (loop);
 
   g_object_unref (st);
 

@@ -543,7 +543,7 @@ gchar * fs_interfaces_get_ip_for_interface (gchar *interface_name)
           if_table->table[i].wszName, MAX_INTERFACE_NAME_LEN,
           NULL, NULL, NULL);
 
-      if (g_strcasecmp (interface_name, tmp_str) == 0)
+      if (g_ascii_strcasecmp (interface_name, tmp_str) == 0)
       {
         ret = win32_get_ip_for_interface (if_table->table[i].dwIndex);
         g_free (tmp_str);
