@@ -368,6 +368,7 @@ if test "x$HAVE_GUPNP" = "xyes"; then
    AC_DEFINE(HAVE_GUPNP,,[Have the GUPnP IGD library])
 fi
 
+SHAVE_INIT([common],[enable])
 
 dnl *** output files ***
 
@@ -377,6 +378,8 @@ farsight2.pc
 common/Makefile
 common/m4/Makefile
 common-modified/Makefile
+common/shave
+common/shave-libtool
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/funnel/Makefile
