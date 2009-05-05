@@ -3937,6 +3937,7 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 {
   CodecAssociation *ca = NULL;
   GstCaps *caps = NULL;
+  gboolean block = TRUE;
 
   g_object_get (pad, "caps", &caps, NULL);
 
@@ -3950,25 +3951,23 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 
   FS_RTP_SESSION_LOCK (session);
 
+  /* If there is no codec, its because we're shutting down */
   if (!session->priv->discovery_codec)
   {
-    fs_session_emit_error (FS_SESSION (session), FS_ERROR_INTERNAL,
-        "Internal error while discovering codecs configurations",
-        "Got notify::caps signal on the discovery codecs whith no codecs"
-        " being discovered");
+    GST_DEBUG ("Got caps while discovery is stopping");
     goto out;
   }
 
   ca = lookup_codec_association_by_codec (session->priv->codec_associations,
       session->priv->discovery_codec);
 
-  fs_codec_destroy (session->priv->discovery_codec);
-  session->priv->discovery_codec = NULL;
 
   if (ca && ca->need_config)
   {
     gather_caps_parameters (ca, caps);
+    fs_codec_destroy (session->priv->discovery_codec);
     session->priv->discovery_codec = fs_codec_copy (ca->codec);
+    block = !ca->need_config;
   }
 
  out:
@@ -3977,8 +3976,9 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
 
   gst_caps_unref (caps);
 
-  gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
-      _discovery_pad_blocked_callback, session);
+  if (block)
+    gst_pad_set_blocked_async (session->priv->send_tee_discovery_pad, TRUE,
+        _discovery_pad_blocked_callback, session);
   fs_rtp_session_has_disposed_exit (session);
 }
 
