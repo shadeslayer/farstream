@@ -151,10 +151,9 @@ fs_funnel_request_new_pad (GstElement * element, GstPadTemplate * templ,
   const gchar * name)
 {
   GstPad *sinkpad;
-  FsFunnel *funnel = FS_FUNNEL (element);
   FsFunnelPadPrivate *priv = g_slice_alloc0 (sizeof(FsFunnelPadPrivate));
 
-  GST_DEBUG_OBJECT (funnel, "requesting pad");
+  GST_DEBUG_OBJECT (element, "requesting pad");
 
   sinkpad = gst_pad_new_from_template (templ, name);
 
