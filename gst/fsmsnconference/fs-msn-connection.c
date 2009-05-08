@@ -336,12 +336,12 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
 
   memset(&myaddr, 0, sizeof(myaddr));
 
-  g_debug ("Attempting to listen on port %d.....",port);
+  GST_DEBUG ("Attempting to listen on port %d.....",port);
 
   if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
   {
     // show error
-    g_debug ("could not create socket!");
+    GST_ERROR ("could not create socket!");
     return FALSE;
   }
 
@@ -350,7 +350,7 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
   myaddr.sin_family = AF_INET;
   do
   {
-    g_debug ("Attempting to listen on port %d.....",port);
+    GST_DEBUG ("Attempting to listen on port %d.....",port);
     myaddr.sin_port = htons (port);
     // bind
     if (bind(fd, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0)
@@ -391,7 +391,7 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
   port = ntohs (myaddr.sin_port);
   add_pollfd (self, fd, accept_connection_cb, TRUE, TRUE);
 
-  g_debug ("Listening on port %d", port);
+  GST_DEBUG ("Listening on port %d", port);
 
   self->local_recipient_id = g_strdup_printf ("%d",
       g_random_int_range (100, 199));
@@ -426,7 +426,7 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
   if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
   {
     // show error
-    g_debug ("could not create socket!");
+    GST_ERROR ("could not create socket!");
     return FALSE;
   }
 
@@ -437,7 +437,7 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
   theiraddr.sin_addr.s_addr = inet_addr (candidate->ip);
   theiraddr.sin_port = htons (candidate->port);
 
-  g_debug ("Attempting connection to %s %d on socket %d", candidate->ip,
+  GST_DEBUG ("Attempting connection to %s %d on socket %d", candidate->ip,
       candidate->port, fd);
   // this is non blocking, the return value isn't too usefull
   ret = connect (fd, (struct sockaddr *) &theiraddr, sizeof (theiraddr));
@@ -445,12 +445,12 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
   {
     if (errno != EINPROGRESS)
     {
-      g_debug("ret %d %d %s", ret, errno, strerror(errno));
+      GST_DEBUG("ret %d %d %s", ret, errno, strerror(errno));
       close (fd);
       return FALSE;
     }
   }
-  g_debug("ret %d %d %s", ret, errno, strerror(errno));
+  GST_DEBUG("ret %d %d %s", ret, errno, strerror(errno));
 
 
   pollfd = add_pollfd (self, fd, successful_connection_cb, TRUE, TRUE);
@@ -471,14 +471,14 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
   {
-    g_debug ("Error in accept socket : %d", pollfd->pollfd.fd);
+    GST_ERROR ("Error in accept socket : %d", pollfd->pollfd.fd);
     goto error;
   }
 
   if ((fd = accept(pollfd->pollfd.fd,
               (struct sockaddr*) &in, &n)) == -1)
   {
-    g_debug ("Error while running accept() %d", errno);
+    GST_ERROR ("Error while running accept() %d", errno);
     return;
   }
 
@@ -489,14 +489,14 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
   /* Error */
  error:
-  g_debug ("Got error from fd %d, closing", fd);
+  GST_ERROR ("Got error from fd %d, closing", fd);
   // find, shutdown and remove channel from fdlist
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
     if (pollfd == pollfd2)
     {
-      g_debug ("closing fd %d", pollfd2->pollfd.fd);
+      GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
       shutdown_fd (self, pollfd2);
       i--;
     }
@@ -513,13 +513,13 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   socklen_t option_len;
   gint i;
 
-  g_debug ("handler called on fd %d", pollfd->pollfd.fd);
+  GST_DEBUG ("handler called on fd %d", pollfd->pollfd.fd);
 
   errno = 0;
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
   {
-    g_debug ("connecton closed or error");
+    GST_WARNING ("connecton closed or error");
     goto error;
   }
 
@@ -535,25 +535,25 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   /* Check if there is an error */
   if (error)
   {
-    g_debug ("getsockopt gave an error : %d", error);
+    GST_ERROR ("getsockopt gave an error : %d", error);
     goto error;
   }
 
   pollfd->callback = connection_cb;
 
-  g_debug ("connection succeeded on socket %p", pollfd);
+  GST_DEBUG ("connection succeeded on socket %p", pollfd);
   return;
 
   /* Error */
  error:
-  g_debug ("Got error from fd %d, closing", pollfd->pollfd.fd);
+  GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
     if (pollfd == pollfd2)
     {
-      g_debug ("closing fd %d", pollfd2->pollfd.fd);
+      GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
       shutdown_fd (self, pollfd2);
       i--;
     }
@@ -569,7 +569,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   gboolean success = FALSE;
   gint i;
 
-  g_debug ("handler called on fd %d. %d %d %d %d", pollfd->pollfd.fd,
+  GST_DEBUG ("handler called on fd %d. %d %d %d %d", pollfd->pollfd.fd,
       pollfd->server, pollfd->status,
       gst_poll_fd_can_read (self->poll, &pollfd->pollfd),
       gst_poll_fd_can_write (self->poll, &pollfd->pollfd));
@@ -577,7 +577,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
   {
-    g_debug ("connecton closed or error");
+    GST_WARNING ("connecton closed or error");
     goto error;
   }
 
@@ -593,19 +593,19 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
           if (recv(pollfd->pollfd.fd, str, 34, 0) != -1)
           {
-            g_debug ("Got %s, checking if it's auth", str);
+            GST_DEBUG ("Got %s, checking if it's auth", str);
             sprintf(check, "recipientid=%s&sessionid=%d\r\n\r\n",
                 self->local_recipient_id, self->session_id);
             if (strcmp (str, check) == 0)
             {
-              g_debug ("Authentication successful");
+              GST_DEBUG ("Authentication successful");
               pollfd->status = FS_MSN_STATUS_CONNECTED;
               pollfd->want_write = TRUE;
               gst_poll_fd_ctl_write (self->poll, &pollfd->pollfd, TRUE);
             }
             else
             {
-              g_debug ("Authentication failed");
+              GST_WARNING ("Authentication failed");
               goto error;
             }
           }
@@ -616,7 +616,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
 
         } else {
-          g_debug ("shouldn't receive data when client on AUTH state");
+          GST_ERROR ("shouldn't receive data when client on AUTH state");
           goto error;
         }
         break;
@@ -627,17 +627,17 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
           if (recv(pollfd->pollfd.fd, str, 13, 0) != -1)
           {
-            g_debug ("Got %s, checking if it's connected", str);
+            GST_DEBUG ("Got %s, checking if it's connected", str);
             if (strcmp (str, "connected\r\n\r\n") == 0)
             {
-              g_debug ("connection successful");
+              GST_DEBUG ("connection successful");
               pollfd->status = FS_MSN_STATUS_CONNECTED2;
               pollfd->want_write = TRUE;
               gst_poll_fd_ctl_write (self->poll, &pollfd->pollfd, TRUE);
             }
             else
             {
-              g_debug ("connected failed");
+              GST_WARNING ("connected failed");
               goto error;
             }
           }
@@ -647,7 +647,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
             goto error;
           }
         } else {
-          g_debug ("shouldn't receive data when server on CONNECTED state");
+          GST_ERROR ("shouldn't receive data when server on CONNECTED state");
           goto error;
         }
         break;
@@ -658,16 +658,16 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
           if (recv(pollfd->pollfd.fd, str, 13, 0) != -1)
           {
-            g_debug ("Got %s, checking if it's connected", str);
+            GST_DEBUG ("Got %s, checking if it's connected", str);
             if (strcmp (str, "connected\r\n\r\n") == 0)
             {
-              g_debug ("connection successful");
+              GST_DEBUG ("connection successful");
               pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
               success = TRUE;
             }
             else
             {
-              g_debug ("connected failed");
+              GST_ERROR ("connected failed");
               goto error;
             }
           }
@@ -678,12 +678,12 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
 
         } else {
-          g_debug ("shouldn't receive data when client on CONNECTED2 state");
+          GST_ERROR ("shouldn't receive data when client on CONNECTED2 state");
           goto error;
         }
         break;
       default:
-        g_debug ("Invalid status %d", pollfd->status);
+        GST_ERROR ("Invalid status %d", pollfd->status);
         goto error;
         break;
 
@@ -701,7 +701,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
               self->remote_recipient_id, self->session_id);
           if (send(pollfd->pollfd.fd, str, strlen (str), 0) != -1)
           {
-            g_debug ("Sent %s", str);
+            GST_DEBUG ("Sent %s", str);
             pollfd->status = FS_MSN_STATUS_CONNECTED;
             g_free (str);
           }
@@ -720,7 +720,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
           if (send(pollfd->pollfd.fd, "connected\r\n\r\n", 13, 0) != -1)
           {
-            g_debug ("sent connected");
+            GST_DEBUG ("sent connected");
             pollfd->status = FS_MSN_STATUS_CONNECTED2;
           }
           else
@@ -729,7 +729,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
             goto error;
           }
         } else {
-          g_debug ("shouldn't receive data when server on CONNECTED state");
+          GST_DEBUG ("shouldn't receive data when server on CONNECTED state");
           goto error;
         }
         break;
@@ -739,7 +739,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
           if (send(pollfd->pollfd.fd, "connected\r\n\r\n", 13, 0) != -1)
           {
-            g_debug ("sent connected");
+            GST_DEBUG ("sent connected");
             pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
             success = TRUE;
           }
@@ -749,12 +749,12 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
             goto error;
           }
         } else {
-          g_debug ("shouldn't receive data when client on CONNECTED2 state");
+          GST_ERROR ("shouldn't receive data when client on CONNECTED2 state");
           goto error;
         }
         break;
       default:
-        g_debug ("Invalid status %d", pollfd->status);
+        GST_ERROR ("Invalid status %d", pollfd->status);
         goto error;
         break;
     }
@@ -768,7 +768,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
       FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
       if (pollfd != pollfd2)
       {
-        g_debug ("closing fd %d", pollfd2->pollfd.fd);
+        GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
         shutdown_fd (self, pollfd2);
         i--;
       }
@@ -785,14 +785,14 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   return;
  error:
   /* Error */
-  g_debug ("Got error from fd %d, closing", pollfd->pollfd.fd);
+  GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
     if (pollfd == pollfd2)
     {
-      g_debug ("closing fd %d", pollfd2->pollfd.fd);
+      GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
       shutdown_fd (self, pollfd2);
       i--;
     }
@@ -815,12 +815,12 @@ connection_polling_thread (gpointer data)
   FS_MSN_CONNECTION_LOCK(self);
   timeout = self->poll_timeout;
   poll = self->poll;
-  g_debug ("poll waiting %d", self->pollfds->len);
+  GST_DEBUG ("poll waiting %d", self->pollfds->len);
   FS_MSN_CONNECTION_UNLOCK(self);
 
   while ((ret = gst_poll_wait (poll, timeout)) >= 0)
   {
-    g_debug ("gst_poll_wait returned : %d", ret);
+    GST_DEBUG ("gst_poll_wait returned : %d", ret);
     FS_MSN_CONNECTION_LOCK(self);
     if (ret > 0)
     {
@@ -832,9 +832,9 @@ connection_polling_thread (gpointer data)
 
         pollfd = g_array_index(self->pollfds, FsMsnPollFD *, i);
 
-        g_debug ("ret %d - i = %d, len = %d", ret, i, self->pollfds->len);
+        GST_DEBUG ("ret %d - i = %d, len = %d", ret, i, self->pollfds->len);
 
-        g_debug ("%p - error %d, close %d, read %d-%d, write %d-%d",
+        GST_DEBUG ("%p - error %d, close %d, read %d-%d, write %d-%d",
             pollfd,
             gst_poll_fd_has_error (poll, &pollfd->pollfd),
             gst_poll_fd_has_closed (poll, &pollfd->pollfd),
@@ -874,11 +874,11 @@ shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd)
 {
   gint i;
 
-  g_debug ("Shutting down pollfd %p", pollfd);
+  GST_DEBUG ("Shutting down pollfd %p", pollfd);
 
   if (!gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
     close (pollfd->pollfd.fd);
-  g_debug ("gst poll remove : %d",
+  GST_DEBUG ("gst poll remove : %d",
       gst_poll_remove_fd (self->poll, &pollfd->pollfd));
   for (i = 0; i < self->pollfds->len; i++)
   {
@@ -910,17 +910,16 @@ add_pollfd (FsMsnConnection *self, int fd, PollFdCallback callback,
   gst_poll_fd_ctl_write (self->poll, &pollfd->pollfd, write);
   pollfd->callback = callback;
 
-        g_debug ("ADD_POLLFD %p (%p) - error %d, close %d, read %d-%d, write %d-%d",
-            self->pollfds, pollfd,
-            gst_poll_fd_has_error (self->poll, &pollfd->pollfd),
-            gst_poll_fd_has_closed (self->poll, &pollfd->pollfd),
-            pollfd->want_read,
-            gst_poll_fd_can_read (self->poll, &pollfd->pollfd),
-            pollfd->want_write,
-            gst_poll_fd_can_write (self->poll, &pollfd->pollfd));
+  GST_DEBUG ("ADD_POLLFD %p (%p) - error %d, close %d, read %d-%d, write %d-%d",
+      self->pollfds, pollfd,
+      gst_poll_fd_has_error (self->poll, &pollfd->pollfd),
+      gst_poll_fd_has_closed (self->poll, &pollfd->pollfd),
+      pollfd->want_read,
+      gst_poll_fd_can_read (self->poll, &pollfd->pollfd),
+      pollfd->want_write,
+      gst_poll_fd_can_write (self->poll, &pollfd->pollfd));
 
   g_array_append_val (self->pollfds, pollfd);
   gst_poll_restart (self->poll);
   return pollfd;
 }
-// (gdb) p ((FsMsnPollFD **) ((FsMsnConnection *)data)->pollfds->data)[1]

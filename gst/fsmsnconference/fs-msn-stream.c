@@ -581,7 +581,7 @@ _connected (
 {
   FsMsnStream *self = FS_MSN_STREAM (user_data);
 
-  g_debug ("******** CONNECTED %d**********", fd);
+  GST_DEBUG ("******** CONNECTED %d**********", fd);
   if (self->priv->media_fd_src) {
     FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
         FS_MEDIA_TYPE_VIDEO, 0);
@@ -602,7 +602,7 @@ _connected (
   }
   else
   {
-    g_debug ("no media fd src/sink...");
+    GST_ERROR ("no media fd src/sink...");
   }
 }
 
