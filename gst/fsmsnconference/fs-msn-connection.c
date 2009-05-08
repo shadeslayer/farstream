@@ -83,6 +83,9 @@ struct _FsMsnPollFD {
   PollFdCallback callback;
 };
 
+#define FS_MSN_CONNECTION_LOCK(conn)   g_static_rec_mutex_lock(&(conn)->mutex)
+#define FS_MSN_CONNECTION_UNLOCK(conn) g_static_rec_mutex_unlock(&(conn)->mutex)
+
 
 G_DEFINE_TYPE(FsMsnConnection, fs_msn_connection, G_TYPE_OBJECT);
 
@@ -180,12 +183,12 @@ fs_msn_connection_dispose (GObject *object)
   FsMsnConnection *self = FS_MSN_CONNECTION (object);
   gint i;
 
-  g_static_rec_mutex_lock (&self->mutex);
+  FS_MSN_CONNECTION_LOCK(self);
 
   /* If dispose did already run, return. */
   if (self->disposed)
   {
-    g_static_rec_mutex_unlock (&self->mutex);
+    FS_MSN_CONNECTION_UNLOCK(self);
     return;
   }
 
@@ -213,7 +216,7 @@ fs_msn_connection_dispose (GObject *object)
 
   parent_class->dispose (object);
 
-  g_static_rec_mutex_unlock (&self->mutex);
+  FS_MSN_CONNECTION_UNLOCK(self);
 }
 
 /**
@@ -245,7 +248,7 @@ gboolean
 fs_msn_connection_gather_local_candidates (FsMsnConnection *self)
 {
   gboolean ret = FALSE;
-  g_static_rec_mutex_lock (&self->mutex);
+  FS_MSN_CONNECTION_LOCK(self);
 
   self->polling_thread = g_thread_create (connection_polling_thread,
       self, TRUE, NULL);
@@ -255,7 +258,7 @@ fs_msn_connection_gather_local_candidates (FsMsnConnection *self)
 
   g_signal_emit (self, signals[SIGNAL_LOCAL_CANDIDATES_PREPARED], 0);
 
-  g_static_rec_mutex_unlock (&self->mutex);
+  FS_MSN_CONNECTION_UNLOCK(self);
   return ret;
 }
 
@@ -271,7 +274,7 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
   gchar *recipient_id = NULL;
   gboolean ret = FALSE;
 
-  g_static_rec_mutex_lock (&self->mutex);
+  FS_MSN_CONNECTION_LOCK(self);
 
   recipient_id = self->remote_recipient_id;
 
@@ -316,7 +319,7 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
 
   ret = TRUE;
  out:
-  g_static_rec_mutex_unlock (&self->mutex);
+  FS_MSN_CONNECTION_UNLOCK(self);
   return ret;
 }
 
@@ -809,16 +812,16 @@ connection_polling_thread (gpointer data)
   GstClockTime timeout;
   GstPoll * poll;
 
-  g_static_rec_mutex_lock (&self->mutex);
+  FS_MSN_CONNECTION_LOCK(self);
   timeout = self->poll_timeout;
   poll = self->poll;
   g_debug ("poll waiting %d", self->pollfds->len);
-  g_static_rec_mutex_unlock (&self->mutex);
+  FS_MSN_CONNECTION_UNLOCK(self);
 
   while ((ret = gst_poll_wait (poll, timeout)) >= 0)
   {
     g_debug ("gst_poll_wait returned : %d", ret);
-    g_static_rec_mutex_lock (&self->mutex);
+    FS_MSN_CONNECTION_LOCK(self);
     if (ret > 0)
     {
       gint i;
@@ -859,7 +862,7 @@ connection_polling_thread (gpointer data)
       }
     }
     timeout = self->poll_timeout;
-    g_static_rec_mutex_unlock (&self->mutex);
+    FS_MSN_CONNECTION_UNLOCK(self);
   }
 
   return NULL;
