@@ -202,7 +202,7 @@ _remove_participant (gpointer user_data,
   GST_OBJECT_LOCK (self);
   if (self->priv->participant == (FsMsnParticipant *) where_the_object_was)
     self->priv->participant = NULL;
- GST_OBJECT_UNLOCK (self);
+  GST_OBJECT_UNLOCK (self);
 }
 
 
