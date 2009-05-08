@@ -170,13 +170,13 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
           G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class,
-      PROP_SESSION_ID,
+      PROP_INITIAL_PORT,
       g_param_spec_uint ("initial-port",
           "The initial port to listen on",
           "The initial port to try to listen on for incoming connection."
           " If already used, port+1 is tried until one succeeds",
-          0, 65535, 0,
-          G_PARAM_READWRITE));
+          1025, 65535, 1025,
+          G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
 
 
   gobject_class->dispose = fs_msn_session_dispose;
