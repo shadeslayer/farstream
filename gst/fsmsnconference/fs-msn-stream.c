@@ -398,6 +398,7 @@ fs_msn_stream_constructed (GObject *object)
     GstElement *mimdec;
     GstElement *queue;
     GstElement *ffmpegcolorspace;
+    GstPad *tmp_src_pad;
 
     self->priv->media_fd_src = gst_element_factory_make ("fdsrc",
         "recv_fd_src");
@@ -510,7 +511,7 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
 
-    GstPad *tmp_src_pad = gst_element_get_static_pad (ffmpegcolorspace, "src");
+    tmp_src_pad = gst_element_get_static_pad (ffmpegcolorspace, "src");
     self->priv->src_pad = gst_ghost_pad_new ("src", tmp_src_pad);
     gst_object_unref (tmp_src_pad);
 

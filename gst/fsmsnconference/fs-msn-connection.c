@@ -415,6 +415,7 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
   FsMsnConnection *self = FS_MSN_CONNECTION (connection);
   FsMsnPollFD *pollfd;
   gint fd = -1;
+  gint ret;
   struct sockaddr_in theiraddr;
   memset(&theiraddr, 0, sizeof(theiraddr));
 
@@ -436,7 +437,7 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
   g_debug ("Attempting connection to %s %d on socket %d", candidate->ip,
       candidate->port, fd);
   // this is non blocking, the return value isn't too usefull
-  gint ret = connect (fd, (struct sockaddr *) &theiraddr, sizeof (theiraddr));
+  ret = connect (fd, (struct sockaddr *) &theiraddr, sizeof (theiraddr));
   if (ret < 0)
   {
     if (errno != EINPROGRESS)
@@ -462,6 +463,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   int fd = -1;
   socklen_t n = sizeof (in);
   FsMsnPollFD *newpollfd = NULL;
+  gint i;
 
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
@@ -486,7 +488,6 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   g_debug ("Got error from fd %d, closing", fd);
   // find, shutdown and remove channel from fdlist
-  gint i;
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
@@ -507,6 +508,7 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 {
   gint error;
   socklen_t option_len;
+  gint i;
 
   g_debug ("handler called on fd %d", pollfd->pollfd.fd);
 
@@ -543,7 +545,6 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   g_debug ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
-  gint i;
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
@@ -563,6 +564,7 @@ static void
 connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 {
   gboolean success = FALSE;
+  gint i;
 
   g_debug ("handler called on fd %d. %d %d %d %d", pollfd->pollfd.fd,
       pollfd->server, pollfd->status,
@@ -782,7 +784,6 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   /* Error */
   g_debug ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
-  gint i;
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
