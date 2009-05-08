@@ -159,7 +159,7 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
           "The Conference this stream refers to",
           "This is a convience pointer for the Conference",
           FS_TYPE_MSN_CONFERENCE,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_SESSION_ID,
@@ -167,7 +167,7 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
           "The session-id of the session",
           "This is the session-id of the MSN session",
           9000, 9999, 9000,
-          G_PARAM_READWRITE));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_INITIAL_PORT,
@@ -176,7 +176,7 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
           "The initial port to try to listen on for incoming connection."
           " If already used, port+1 is tried until one succeeds",
           1025, 65535, 1025,
-          G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 
   gobject_class->dispose = fs_msn_session_dispose;
