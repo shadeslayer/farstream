@@ -929,23 +929,24 @@ shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd)
 {
   gint i;
 
-  GST_DEBUG ("Shutting down pollfd %p", pollfd);
-
-  if (!gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
-    close (pollfd->pollfd.fd);
-  GST_DEBUG ("gst poll remove : %d",
-      gst_poll_remove_fd (self->poll, &pollfd->pollfd));
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *p = g_array_index(self->pollfds, FsMsnPollFD *, i);
     if (p == pollfd)
     {
-      g_array_remove_index_fast (self->pollfds, i);
-      break;
-    }
+      GST_DEBUG ("Shutting down pollfd %p", pollfd);
 
+      if (!gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
+        close (pollfd->pollfd.fd);
+      GST_DEBUG ("gst poll remove : %d",
+          gst_poll_remove_fd (self->poll, &pollfd->pollfd));
+      g_array_remove_index_fast (self->pollfds, i);
+      gst_poll_restart (self->poll);
+      return;
+    }
   }
-  gst_poll_restart (self->poll);
+
+  GST_WARNING ("Could find pollfd to remove");
 }
 
 static FsMsnPollFD *
