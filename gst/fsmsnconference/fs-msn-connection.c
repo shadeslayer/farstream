@@ -740,7 +740,8 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
         break;
 
     }
-  } else if (gst_poll_fd_can_write (self->poll, &pollfd->pollfd))
+  }
+  else if (gst_poll_fd_can_write (self->poll, &pollfd->pollfd))
   {
     pollfd->want_write = FALSE;
     gst_poll_fd_ctl_write (self->poll, &pollfd->pollfd, FALSE);
