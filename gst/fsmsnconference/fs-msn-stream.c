@@ -391,7 +391,7 @@ fs_msn_stream_constructed (GObject *object)
     gst_element_link_many(queue, ffmpegcolorspace, mimenc,
         self->priv->media_fd_sink, NULL);
 
-    self->priv->sink_pad = gst_element_get_static_pad (ffmpegcolorspace, "sink");
+    self->priv->sink_pad = gst_element_get_static_pad (queue, "sink");
 
   }
   else if (self->priv->direction == FS_DIRECTION_RECV)
