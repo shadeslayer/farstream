@@ -108,7 +108,8 @@ static void accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
 static void connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
 
 static gpointer connection_polling_thread (gpointer data);
-static void shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd);
+static void shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd,
+    gboolean equal);
 static FsMsnPollFD * add_pollfd (FsMsnConnection *self, int fd,
     PollFdCallback callback, gboolean read, gboolean write, gboolean server);
 
@@ -509,7 +510,6 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   int fd = -1;
   socklen_t n = sizeof (in);
   FsMsnPollFD *newpollfd = NULL;
-  gint i;
 
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
@@ -533,7 +533,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   GST_ERROR ("Got error from fd %d, closing", fd);
   // find, shutdown and remove channel from fdlist
-  shutdown_fd (self, pollfd);
+  shutdown_fd (self, pollfd, TRUE);
 
   return;
 }
@@ -544,7 +544,6 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 {
   gint error;
   socklen_t option_len;
-  gint i;
 
   GST_DEBUG ("handler called on fd %d", pollfd->pollfd.fd);
 
@@ -581,7 +580,7 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
-  shutdown_fd (self, pollfd);
+  shutdown_fd (self, pollfd, TRUE);
 
   return;
 }
@@ -591,7 +590,6 @@ static void
 connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 {
   gboolean success = FALSE;
-  gint i;
 
   GST_DEBUG ("handler called on fd %d. %d %d %d %d", pollfd->pollfd.fd,
       pollfd->server, pollfd->status,
@@ -799,17 +797,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
   if (success) {
     // success! we need to shutdown/close all other channels
-    gint i;
-    for (i = 0; i < self->pollfds->len; i++)
-    {
-      FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
-      if (pollfd != pollfd2)
-      {
-        GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
-        shutdown_fd (self, pollfd2);
-        i--;
-      }
-    }
+    shutdown_fd (self, pollfd, FALSE);
 
     g_signal_emit (self, signals[SIGNAL_CONNECTED], 0, pollfd->pollfd.fd);
 
@@ -823,7 +811,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   /* Error */
   GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
-  shutdown_fd (self, pollfd);
+  shutdown_fd (self, pollfd, TRUE);
 
   if (self->pollfds->len <= 1)
     g_signal_emit (self, signals[SIGNAL_CONNECTION_FAILED], 0);
@@ -874,7 +862,7 @@ connection_polling_thread (gpointer data)
             gst_poll_fd_has_closed (poll, &pollfd->pollfd))
         {
           pollfd->callback (self, pollfd);
-          shutdown_fd (self, pollfd);
+          shutdown_fd (self, pollfd, TRUE);
           i--;
           continue;
         }
@@ -897,28 +885,32 @@ connection_polling_thread (gpointer data)
 
 
 static void
-shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd)
+shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
 {
   gint i;
+  guint closed = 0;
 
   for (i = 0; i < self->pollfds->len; i++)
   {
     FsMsnPollFD *p = g_array_index(self->pollfds, FsMsnPollFD *, i);
-    if (p == pollfd)
+    if ((equal && p == pollfd) || (!equal && p != pollfd))
     {
-      GST_DEBUG ("Shutting down pollfd %p", pollfd);
+      GST_DEBUG ("Shutting down p %p (fd %d)", p, p->pollfd.fd);
 
-      if (!gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
-        close (pollfd->pollfd.fd);
-      GST_DEBUG ("gst poll remove : %d",
-          gst_poll_remove_fd (self->poll, &pollfd->pollfd));
+      if (!gst_poll_fd_has_closed (self->poll, &p->pollfd))
+        close (p->pollfd.fd);
+      if (gst_poll_remove_fd (self->poll, &p->pollfd))
+        GST_WARNING ("Could not remove pollfd %p", p);
       g_array_remove_index_fast (self->pollfds, i);
-      gst_poll_restart (self->poll);
-      return;
+      closed++;
+      i--;
     }
   }
 
-  GST_WARNING ("Could find pollfd to remove");
+  if (closed)
+    gst_poll_restart (self->poll);
+  else
+    GST_WARNING ("Could find pollfd to remove");
 }
 
 static FsMsnPollFD *
