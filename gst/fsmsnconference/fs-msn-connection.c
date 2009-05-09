@@ -42,6 +42,7 @@
 
 #include <gst/farsight/fs-interfaces.h>
 
+#define GST_CAT_DEFAULT fsmsnconference_debug
 
 /* Signals */
 enum

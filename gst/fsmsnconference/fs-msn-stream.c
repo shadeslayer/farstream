@@ -44,6 +44,8 @@
 #include <unistd.h>
 #include <gst/gst.h>
 
+#define GST_CAT_DEFAULT fsmsnconference_debug
+
 /* Signals */
 enum
 {
