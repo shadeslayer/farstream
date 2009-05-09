@@ -94,9 +94,10 @@ static GObjectClass *parent_class = NULL;
 static void fs_msn_connection_dispose (GObject *object);
 
 
-static gboolean fs_msn_connection_attempt_connection (
+static gboolean fs_msn_connection_attempt_connection_locked (
     FsMsnConnection *connection,
-    FsCandidate *candidate);
+    FsCandidate *candidate,
+    GError **error);
 static gboolean fs_msn_open_listening_port_unlock (FsMsnConnection *connection,
     guint16 port,
     GError **error);
@@ -282,10 +283,16 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
   gchar *recipient_id = NULL;
   gboolean ret = FALSE;
 
+  if (!candidates)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Candidate list can no be empty");
+    return FALSE;
+  }
+
   FS_MSN_CONNECTION_LOCK(self);
 
   recipient_id = self->remote_recipient_id;
-
 
   for (item = candidates; item; item = g_list_next (item))
   {
@@ -319,13 +326,17 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
   }
 
   self->remote_recipient_id = g_strdup (recipient_id);
+  ret = TRUE;
   for (item = candidates; item; item = g_list_next (item))
   {
     FsCandidate *candidate = item->data;
-    fs_msn_connection_attempt_connection(self, candidate);
+    if (!fs_msn_connection_attempt_connection_locked (self, candidate, error))
+    {
+      ret = FALSE;
+      break;
+    }
   }
 
-  ret = TRUE;
  out:
   FS_MSN_CONNECTION_UNLOCK(self);
   return ret;
@@ -447,8 +458,9 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
 }
 
 static gboolean
-fs_msn_connection_attempt_connection (FsMsnConnection *connection,
-    FsCandidate *candidate)
+fs_msn_connection_attempt_connection_locked (FsMsnConnection *connection,
+    FsCandidate *candidate,
+    GError **error)
 {
   FsMsnConnection *self = FS_MSN_CONNECTION (connection);
   FsMsnPollFD *pollfd;
@@ -460,8 +472,10 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
 
   if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
   {
-    // show error
-    GST_ERROR ("could not create socket!");
+    gchar error_str[256];
+    strerror_r (errno, error_str, 256);
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+        "Could not create socket: %s", error_str);
     return FALSE;
   }
 
@@ -476,17 +490,15 @@ fs_msn_connection_attempt_connection (FsMsnConnection *connection,
       candidate->port, fd);
   // this is non blocking, the return value isn't too usefull
   ret = connect (fd, (struct sockaddr *) &theiraddr, sizeof (theiraddr));
-  if (ret < 0)
+  if (ret < 0 && errno != EINPROGRESS)
   {
-    if (errno != EINPROGRESS)
-    {
-      GST_DEBUG("ret %d %d %s", ret, errno, strerror(errno));
-      close (fd);
-      return FALSE;
-    }
+    gchar error_str[256];
+    strerror_r (errno, error_str, 256);
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+        "Could not connect socket: %s", error_str);
+    close (fd);
+    return FALSE;
   }
-  GST_DEBUG("ret %d %d %s", ret, errno, strerror(errno));
-
 
   pollfd = add_pollfd (self, fd, successful_connection_cb, TRUE, TRUE);
   pollfd->server = FALSE;
