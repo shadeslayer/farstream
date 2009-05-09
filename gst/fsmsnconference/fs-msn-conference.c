@@ -232,7 +232,7 @@ fs_msn_conference_new_session (FsBaseConference *conf,
 
   GST_OBJECT_UNLOCK (self);
 
-  new_session = fs_msn_session_new (media_type, self, 1, error);
+  new_session = fs_msn_session_new (media_type, self, error);
 
   if (new_session)
   {

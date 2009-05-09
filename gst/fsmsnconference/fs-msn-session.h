@@ -66,8 +66,6 @@ struct _FsMsnSession
 {
   FsSession parent;
 
-  guint id;
-
   /*< private >*/
 
   GStaticRecMutex mutex; /* Should only be accessed using the macros */
@@ -85,7 +83,6 @@ GType fs_msn_session_get_type (void);
 
 FsMsnSession *fs_msn_session_new (FsMediaType media_type,
     FsMsnConference *conference,
-    guint id,
     GError **error);
 
 void fs_msn_session_new_recv_pad (FsMsnSession *session,

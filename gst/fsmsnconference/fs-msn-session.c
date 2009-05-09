@@ -260,7 +260,7 @@ fs_msn_session_get_property (GObject *object,
       g_value_set_enum (value, self->priv->media_type);
       break;
     case PROP_ID:
-      g_value_set_uint (value, self->id);
+      g_value_set_uint (value, 1);
       break;
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
@@ -317,7 +317,6 @@ fs_msn_session_set_property (GObject *object,
       self->priv->media_type = g_value_get_enum (value);
       break;
     case PROP_ID:
-      self->id = g_value_get_uint (value);
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
@@ -470,13 +469,11 @@ fs_msn_session_new_stream (FsSession *session,
 FsMsnSession *
 fs_msn_session_new (FsMediaType media_type,
     FsMsnConference *conference,
-    guint id,
     GError **error)
 {
   FsMsnSession *session = g_object_new (FS_TYPE_MSN_SESSION,
       "media-type", media_type,
       "conference", conference,
-      "id", id,
       NULL);
 
   if (!session)
