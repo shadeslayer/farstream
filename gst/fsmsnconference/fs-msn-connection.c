@@ -110,7 +110,7 @@ static void connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
 static gpointer connection_polling_thread (gpointer data);
 static void shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd);
 static FsMsnPollFD * add_pollfd (FsMsnConnection *self, int fd,
-    PollFdCallback callback, gboolean read, gboolean write);
+    PollFdCallback callback, gboolean read, gboolean write, gboolean server);
 
 static void
 fs_msn_connection_class_init (FsMsnConnectionClass *klass)
@@ -419,7 +419,7 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
     goto error;
   }
   port = ntohs (myaddr.sin_port);
-  add_pollfd (self, fd, accept_connection_cb, TRUE, TRUE);
+  add_pollfd (self, fd, accept_connection_cb, TRUE, TRUE, FALSE);
 
   GST_DEBUG ("Listening on port %d", port);
 
@@ -497,8 +497,7 @@ fs_msn_connection_attempt_connection_locked (FsMsnConnection *connection,
     return FALSE;
   }
 
-  pollfd = add_pollfd (self, fd, successful_connection_cb, TRUE, TRUE);
-  pollfd->server = FALSE;
+  pollfd = add_pollfd (self, fd, successful_connection_cb, TRUE, TRUE, FALSE);
 
   return TRUE;
 }
@@ -526,8 +525,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
     return;
   }
 
-  newpollfd = add_pollfd (self, fd, connection_cb, TRUE, FALSE);
-  newpollfd->server = TRUE;
+  newpollfd = add_pollfd (self, fd, connection_cb, TRUE, FALSE, TRUE);
 
   return;
 
@@ -952,11 +950,12 @@ shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
 static FsMsnPollFD *
 add_pollfd (FsMsnConnection *self, int fd, PollFdCallback callback,
-    gboolean read, gboolean write)
+    gboolean read, gboolean write, gboolean server)
 {
   FsMsnPollFD *pollfd = g_slice_new0 (FsMsnPollFD);
   gst_poll_fd_init (&pollfd->pollfd);
   pollfd->pollfd.fd = fd;
+  pollfd->server = server;
   pollfd->want_read = read;
   pollfd->want_write = write;
   pollfd->status = FS_MSN_STATUS_AUTH;
