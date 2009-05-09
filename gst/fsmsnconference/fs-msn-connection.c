@@ -92,6 +92,7 @@ G_DEFINE_TYPE(FsMsnConnection, fs_msn_connection, G_TYPE_OBJECT);
 static GObjectClass *parent_class = NULL;
 
 static void fs_msn_connection_dispose (GObject *object);
+static void fs_msn_connection_finalize (GObject *object);
 
 
 static gboolean fs_msn_connection_attempt_connection_locked (
@@ -162,6 +163,7 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
       G_TYPE_NONE, 0);
 
   gobject_class->dispose = fs_msn_connection_dispose;
+  gobject_class->finalize = fs_msn_connection_finalize;
 }
 
 static void
@@ -183,16 +185,8 @@ static void
 fs_msn_connection_dispose (GObject *object)
 {
   FsMsnConnection *self = FS_MSN_CONNECTION (object);
-  gint i;
 
   FS_MSN_CONNECTION_LOCK(self);
-
-  /* If dispose did already run, return. */
-  if (self->disposed)
-  {
-    FS_MSN_CONNECTION_UNLOCK(self);
-    return;
-  }
 
   if (self->polling_thread)
   {
@@ -200,6 +194,17 @@ fs_msn_connection_dispose (GObject *object)
     g_thread_join (self->polling_thread);
     self->polling_thread = NULL;
   }
+
+  FS_MSN_CONNECTION_UNLOCK(self);
+
+  parent_class->dispose (object);
+}
+
+static void
+fs_msn_connection_finalize (GObject *object)
+{
+  FsMsnConnection *self = FS_MSN_CONNECTION (object);
+  gint i;
 
   if (self->local_recipient_id)
     g_free (self->local_recipient_id);
@@ -212,13 +217,7 @@ fs_msn_connection_dispose (GObject *object)
     close (g_array_index(self->pollfds, FsMsnPollFD *, i)->pollfd.fd);
   g_array_free (self->pollfds, TRUE);
 
-
-  /* Make sure dispose does not run twice. */
-  self->disposed = TRUE;
-
-  parent_class->dispose (object);
-
-  FS_MSN_CONNECTION_UNLOCK(self);
+  parent_class->finalize (object);
 }
 
 /**
