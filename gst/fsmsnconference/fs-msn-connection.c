@@ -217,6 +217,8 @@ fs_msn_connection_finalize (GObject *object)
     close (g_array_index(self->pollfds, FsMsnPollFD *, i)->pollfd.fd);
   g_array_free (self->pollfds, TRUE);
 
+  g_static_rec_mutex_free (&self->mutex);
+
   parent_class->finalize (object);
 }
 
