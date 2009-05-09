@@ -65,16 +65,17 @@ struct _FsMsnConnection
 {
   GObject parent;
 
+  /* All variables that are not protected by the lock are read-only */
+
   gchar *local_recipient_id;
-  gchar *remote_recipient_id;
+  gchar *remote_recipient_id; /* protected by lock */
   gint session_id;
   gint initial_port;
 
-  GThread *polling_thread;
-  GstClockTime poll_timeout;
+  GThread *polling_thread; /* protected by lock */
+  GstClockTime poll_timeout; /* protected by lock */
   GstPoll *poll;
   GArray *pollfds;
-  gboolean disposed;
   GStaticRecMutex mutex;
 };
 

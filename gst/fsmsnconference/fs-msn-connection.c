@@ -171,8 +171,6 @@ fs_msn_connection_init (FsMsnConnection *self)
 {
   /* member init */
 
-  self->disposed = FALSE;
-
   self->poll_timeout = GST_CLOCK_TIME_NONE;
   self->poll = gst_poll_new (TRUE);
   gst_poll_set_flushing (self->poll, FALSE);
