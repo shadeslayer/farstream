@@ -533,16 +533,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   GST_ERROR ("Got error from fd %d, closing", fd);
   // find, shutdown and remove channel from fdlist
-  for (i = 0; i < self->pollfds->len; i++)
-  {
-    FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
-    if (pollfd == pollfd2)
-    {
-      GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
-      shutdown_fd (self, pollfd2);
-      i--;
-    }
-  }
+  shutdown_fd (self, pollfd);
 
   return;
 }
@@ -590,16 +581,7 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
-  for (i = 0; i < self->pollfds->len; i++)
-  {
-    FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
-    if (pollfd == pollfd2)
-    {
-      GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
-      shutdown_fd (self, pollfd2);
-      i--;
-    }
-  }
+  shutdown_fd (self, pollfd);
 
   return;
 }
@@ -841,21 +823,11 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
  error:
   /* Error */
   GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
-  // find, shutdown and remove channel from fdlist
-  for (i = 0; i < self->pollfds->len; i++)
-  {
-    FsMsnPollFD *pollfd2 = g_array_index(self->pollfds, FsMsnPollFD *, i);
-    if (pollfd == pollfd2)
-    {
-      GST_DEBUG ("closing fd %d", pollfd2->pollfd.fd);
-      shutdown_fd (self, pollfd2);
-      i--;
-    }
-  }
+  shutdown_fd (self, pollfd);
+
   if (self->pollfds->len <= 1)
-  {
     g_signal_emit (self, signals[SIGNAL_CONNECTION_FAILED], 0);
-  }
+
   return;
 }
 
