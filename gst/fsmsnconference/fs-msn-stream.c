@@ -582,6 +582,7 @@ _connected (
     gpointer user_data)
 {
   FsMsnStream *self = FS_MSN_STREAM (user_data);
+  int checkfd;
 
   GST_DEBUG ("******** CONNECTED %d**********", fd);
   if (self->priv->media_fd_src) {
@@ -591,13 +592,27 @@ _connected (
         mimic_codec);
     fs_codec_destroy (mimic_codec);
 
-    g_object_set (G_OBJECT (self->priv->media_fd_src), "fd", fd, NULL);
+    g_object_set (self->priv->media_fd_src, "fd", fd, NULL);
+    g_object_get (self->priv->media_fd_src, "fd", &checkfd, NULL);
+    if (fd != checkfd)
+    {
+      GST_ERROR ("Failed to set fd");
+      return;
+    }
     gst_element_set_locked_state(self->priv->media_fd_src, FALSE);
     gst_element_sync_state_with_parent (self->priv->media_fd_src);
   }
   else if (self->priv->media_fd_sink)
   {
     g_object_set (G_OBJECT (self->priv->media_fd_sink), "fd", fd, NULL);
+    g_object_get (self->priv->media_fd_src, "fd", &checkfd, NULL);
+    if (fd != checkfd)
+    {
+      GST_ERROR ("Failed to set fd");
+      return;
+    }
+    gst_element_set_locked_state(self->priv->media_fd_src, FALSE);
+
     gst_element_set_locked_state(self->priv->media_fd_sink,FALSE);
     gst_element_sync_state_with_parent (self->priv->media_fd_sink);
     g_object_set (G_OBJECT (self->priv->session_valve), "drop", FALSE, NULL);
