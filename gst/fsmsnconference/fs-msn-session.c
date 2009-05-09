@@ -346,7 +346,7 @@ fs_msn_session_constructed (GObject *object)
   FsMsnSession *self = FS_MSN_SESSION (object);
   GstPad *pad;
 
-  self->priv->valve = gst_element_factory_make ("fsvalve", NULL);
+  self->priv->valve = gst_element_factory_make ("valve", NULL);
 
   if (!self->priv->valve)
   {
