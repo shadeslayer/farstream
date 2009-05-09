@@ -110,7 +110,9 @@ static void connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
 static gpointer connection_polling_thread (gpointer data);
 static void shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd,
     gboolean equal);
-static FsMsnPollFD * add_pollfd (FsMsnConnection *self, int fd,
+static void shutdown_fd_locked (FsMsnConnection *self, FsMsnPollFD *pollfd,
+    gboolean equal);
+static FsMsnPollFD * add_pollfd_locked (FsMsnConnection *self, int fd,
     PollFdCallback callback, gboolean read, gboolean write, gboolean server);
 
 static void
@@ -420,7 +422,7 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
     goto error;
   }
   port = ntohs (myaddr.sin_port);
-  add_pollfd (self, fd, accept_connection_cb, TRUE, TRUE, FALSE);
+  add_pollfd_locked (self, fd, accept_connection_cb, TRUE, TRUE, FALSE);
 
   GST_DEBUG ("Listening on port %d", port);
 
@@ -498,7 +500,10 @@ fs_msn_connection_attempt_connection_locked (FsMsnConnection *connection,
     return FALSE;
   }
 
-  pollfd = add_pollfd (self, fd, successful_connection_cb, TRUE, TRUE, FALSE);
+  FS_MSN_CONNECTION_LOCK (self);
+  pollfd = add_pollfd_locked (self, fd, successful_connection_cb, TRUE, TRUE,
+      FALSE);
+  FS_MSN_CONNECTION_UNLOCK (self);
 
   return TRUE;
 }
@@ -525,7 +530,9 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
     return;
   }
 
-  newpollfd = add_pollfd (self, fd, connection_cb, TRUE, FALSE, TRUE);
+  FS_MSN_CONNECTION_LOCK (self);
+  newpollfd = add_pollfd_locked (self, fd, connection_cb, TRUE, FALSE, TRUE);
+  FS_MSN_CONNECTION_UNLOCK (self);
 
   return;
 
@@ -813,7 +820,11 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
   shutdown_fd (self, pollfd, TRUE);
 
-  if (self->pollfds->len <= 1)
+  FS_MSN_CONNECTION_LOCK (self);
+  success = (self->pollfds->len > 1);
+  FS_MSN_CONNECTION_LOCK (self);
+
+  if (!success)
     g_signal_emit (self, signals[SIGNAL_CONNECTION_FAILED], 0);
 
   return;
@@ -862,7 +873,7 @@ connection_polling_thread (gpointer data)
             gst_poll_fd_has_closed (poll, &pollfd->pollfd))
         {
           pollfd->callback (self, pollfd);
-          shutdown_fd (self, pollfd, TRUE);
+          shutdown_fd_locked (self, pollfd, TRUE);
           i--;
           continue;
         }
@@ -886,6 +897,14 @@ connection_polling_thread (gpointer data)
 
 static void
 shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
+{
+  FS_MSN_CONNECTION_LOCK (self);
+  shutdown_fd_locked (self, pollfd, equal);
+  FS_MSN_CONNECTION_UNLOCK (self);
+}
+
+static void
+shutdown_fd_locked (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
 {
   gint i;
   guint closed = 0;
@@ -914,7 +933,7 @@ shutdown_fd (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
 }
 
 static FsMsnPollFD *
-add_pollfd (FsMsnConnection *self, int fd, PollFdCallback callback,
+add_pollfd_locked (FsMsnConnection *self, int fd, PollFdCallback callback,
     gboolean read, gboolean write, gboolean server)
 {
   FsMsnPollFD *pollfd = g_slice_new0 (FsMsnPollFD);
