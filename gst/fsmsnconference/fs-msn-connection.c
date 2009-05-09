@@ -365,7 +365,6 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
     strerror_r (errno, error_str, 256);
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
         "Could not create socket: %s", error_str);
-    GST_ERROR ("could not create socket: %s", error_str);
     goto error;
   }
 
@@ -389,7 +388,6 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
         strerror_r (errno, error_str, 256);
         g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
             "Could not bind socket: %s", error_str);
-        GST_ERROR ("could not bind socket: %s", error_str);
         goto error;
       }
     } else {
@@ -406,7 +404,6 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
           strerror_r (errno, error_str, 256);
           g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
               "Could not listen on socket: %s", error_str);
-          GST_ERROR ("could not listen on socket: %s", error_str);
           goto error;
         }
       }
@@ -419,7 +416,6 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
     strerror_r (errno, error_str, 256);
     g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
         "Could not get the socket name: %s", error_str);
-    GST_ERROR ("could not get the socket name: %s", error_str);
     goto error;
   }
   port = ntohs (myaddr.sin_port);
@@ -520,7 +516,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
   {
-    GST_ERROR ("Error in accept socket : %d", pollfd->pollfd.fd);
+    GST_WARNING ("Error in accept socket : %d", pollfd->pollfd.fd);
     goto error;
   }
 
@@ -539,7 +535,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
   /* Error */
  error:
-  GST_ERROR ("Got error from fd %d, closing", fd);
+  GST_WARNING ("Got error from fd %d, closing", fd);
   // find, shutdown and remove channel from fdlist
   shutdown_fd (self, pollfd, TRUE);
 
@@ -575,7 +571,7 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   /* Check if there is an error */
   if (error)
   {
-    GST_ERROR ("getsockopt gave an error : %d", error);
+    GST_WARNING ("getsockopt gave an error : %d", error);
     goto error;
   }
 
@@ -586,7 +582,7 @@ successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
   /* Error */
  error:
-  GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
+  GST_WARNING ("Got error from fd %d, closing", pollfd->pollfd.fd);
   // find, shutdown and remove channel from fdlist
   shutdown_fd (self, pollfd, TRUE);
 
@@ -643,7 +639,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           {
             gchar error_str[256];
             strerror_r (errno, error_str, 256);
-            GST_ERROR ("auth: %s", error_str);
+            GST_WARNING ("auth: %s", error_str);
             goto error;
           }
 
@@ -677,7 +673,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           {
             gchar error_str[256];
             strerror_r (errno, error_str, 256);
-            GST_ERROR ("connected: %s", error_str);
+            GST_WARNING ("recv: %s", error_str);
             goto error;
           }
         } else {
@@ -701,7 +697,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
             }
             else
             {
-              GST_ERROR ("connected failed");
+              GST_WARNING ("connected failed");
               goto error;
             }
           }
@@ -709,7 +705,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           {
             gchar error_str[256];
             strerror_r (errno, error_str, 256);
-            GST_ERROR ("connected: %s", error_str);
+            GST_WARNING ("recv: %s", error_str);
             goto error;
           }
 
@@ -746,7 +742,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           {
             gchar error_str[256];
             strerror_r (errno, error_str, 256);
-            GST_ERROR ("auth: %s", error_str);
+            GST_WARNING ("auth send: %s", error_str);
             g_free (str);
             goto error;
           }
@@ -766,7 +762,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           {
             gchar error_str[256];
             strerror_r (errno, error_str, 256);
-            GST_ERROR ("sending connected: %s", error_str);
+            GST_WARNING ("sending connected: %s", error_str);
             goto error;
           }
         } else {
@@ -788,7 +784,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           {
             gchar error_str[256];
             strerror_r (errno, error_str, 256);
-            GST_ERROR ("sending connected: %s", error_str);
+            GST_WARNING ("sending connected: %s", error_str);
             goto error;
           }
         } else {
@@ -818,7 +814,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   return;
  error:
   /* Error */
-  GST_ERROR ("Got error from fd %d, closing", pollfd->pollfd.fd);
+  GST_WARNING ("Got error from fd %d, closing", pollfd->pollfd.fd);
   shutdown_fd (self, pollfd, TRUE);
 
   FS_MSN_CONNECTION_LOCK (self);
