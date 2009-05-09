@@ -661,30 +661,31 @@ fs_msn_stream_new (FsMsnSession *session,
     return NULL;
   }
 
-  if (self)
+  if (self->priv->sink_pad)
   {
+    gst_pad_link (gst_element_get_static_pad (session_valve, "src"),
+        self->priv->sink_pad);
+  }
+  self->priv->session_valve = session_valve;
 
-    if (self->priv->sink_pad)
-    {
-      gst_pad_link (gst_element_get_static_pad (session_valve, "src"),
-          self->priv->sink_pad);
-    }
-    self->priv->session_valve = session_valve;
+  self->priv->connection = fs_msn_connection_new (session_id, initial_port);
 
-    self->priv->connection = fs_msn_connection_new (session_id, initial_port);
+  g_signal_connect (self->priv->connection,
+      "new-local-candidate",
+      G_CALLBACK (_new_local_candidate), self);
+  g_signal_connect (self->priv->connection,
+      "local-candidates-prepared",
+      G_CALLBACK (_local_candidates_prepared), self);
 
-    g_signal_connect (self->priv->connection,
-        "new-local-candidate",
-        G_CALLBACK (_new_local_candidate), self);
-    g_signal_connect (self->priv->connection,
-        "local-candidates-prepared",
-        G_CALLBACK (_local_candidates_prepared), self);
+  g_signal_connect (self->priv->connection,
+      "connected",
+      G_CALLBACK (_connected), self);
 
-    g_signal_connect (self->priv->connection,
-        "connected",
-        G_CALLBACK (_connected), self);
-
-    fs_msn_connection_gather_local_candidates (self->priv->connection);
+  if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
+          error))
+  {
+    g_object_unref (self);
+    return NULL;
   }
 
   return self;

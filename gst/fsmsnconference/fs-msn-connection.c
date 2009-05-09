@@ -97,8 +97,9 @@ static void fs_msn_connection_dispose (GObject *object);
 static gboolean fs_msn_connection_attempt_connection (
     FsMsnConnection *connection,
     FsCandidate *candidate);
-static gboolean fs_msn_open_listening_port (FsMsnConnection *connection,
-    guint16 port);
+static gboolean fs_msn_open_listening_port_unlock (FsMsnConnection *connection,
+    guint16 port,
+    GError **error);
 
 static void successful_connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
 static void accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *fd);
@@ -245,20 +246,27 @@ fs_msn_connection_new (guint session_id, guint initial_port)
 }
 
 gboolean
-fs_msn_connection_gather_local_candidates (FsMsnConnection *self)
+fs_msn_connection_gather_local_candidates (FsMsnConnection *self,
+    GError **error)
 {
-  gboolean ret = FALSE;
+  gboolean ret;
+
   FS_MSN_CONNECTION_LOCK(self);
 
   self->polling_thread = g_thread_create (connection_polling_thread,
       self, TRUE, NULL);
 
-  if (self->polling_thread)
-    ret = fs_msn_open_listening_port (self, self->initial_port);
+  if (!self->polling_thread)
+  {
+    FS_MSN_CONNECTION_UNLOCK(self);
+    g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL, "Could not start thread");
+    return FALSE;
+  }
+
+  ret = fs_msn_open_listening_port_unlock (self, self->initial_port, error);
 
   g_signal_emit (self, signals[SIGNAL_LOCAL_CANDIDATES_PREPARED], 0);
 
-  FS_MSN_CONNECTION_UNLOCK(self);
   return ret;
 }
 
@@ -325,7 +333,8 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
 
 
 static gboolean
-fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
+fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
+    GError **error)
 {
   gint fd = -1;
   struct sockaddr_in myaddr;
@@ -338,11 +347,14 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
 
   GST_DEBUG ("Attempting to listen on port %d.....",port);
 
-  if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) == -1 )
+  if ( (fd = socket(PF_INET, SOCK_STREAM, 0)) < 0 )
   {
-    // show error
-    GST_ERROR ("could not create socket!");
-    return FALSE;
+    gchar error_str[256];
+    strerror_r (errno, error_str, 256);
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+        "Could not create socket: %s", error_str);
+    GST_ERROR ("could not create socket: %s", error_str);
+    goto error;
   }
 
   // set non-blocking mode
@@ -361,9 +373,12 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
       }
       else
       {
-        perror ("bind");
-        close (fd);
-        return FALSE;
+        gchar error_str[256];
+        strerror_r (errno, error_str, 256);
+        g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+            "Could not bind socket: %s", error_str);
+        GST_ERROR ("could not bind socket: %s", error_str);
+        goto error;
       }
     } else {
       /* Listen */
@@ -375,9 +390,12 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
         }
         else
         {
-          perror ("listen");
-          close (fd);
-          return FALSE;
+          gchar error_str[256];
+          strerror_r (errno, error_str, 256);
+          g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+              "Could not listen on socket: %s", error_str);
+          GST_ERROR ("could not listen on socket: %s", error_str);
+          goto error;
         }
       }
     }
@@ -385,8 +403,12 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
 
 
   if (getsockname (fd, (struct sockaddr *) &myaddr, &myaddr_len) < 0) {
-    close (fd);
-    return FALSE;
+    gchar error_str[256];
+    strerror_r (errno, error_str, 256);
+    g_set_error (error, FS_ERROR, FS_ERROR_NETWORK,
+        "Could not get the socket name: %s", error_str);
+    GST_ERROR ("could not get the socket name: %s", error_str);
+    goto error;
   }
   port = ntohs (myaddr.sin_port);
   add_pollfd (self, fd, accept_connection_cb, TRUE, TRUE);
@@ -395,6 +417,8 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
 
   self->local_recipient_id = g_strdup_printf ("%d",
       g_random_int_range (100, 199));
+
+  FS_MSN_CONNECTION_UNLOCK (self);
 
   for (item = addresses;
        item;
@@ -408,7 +432,18 @@ fs_msn_open_listening_port (FsMsnConnection *self, guint16 port)
     fs_candidate_destroy (candidate);
   }
 
+  g_list_foreach (addresses, (GFunc) g_free, NULL);
+  g_list_free (addresses);
+
   return TRUE;
+
+ error:
+  if (fd >= 0)
+    close (fd);
+  g_list_foreach (addresses, (GFunc) g_free, NULL);
+  g_list_free (addresses);
+  FS_MSN_CONNECTION_UNLOCK (self);
+  return FALSE;
 }
 
 static gboolean
