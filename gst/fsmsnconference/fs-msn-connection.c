@@ -206,10 +206,8 @@ fs_msn_connection_finalize (GObject *object)
   FsMsnConnection *self = FS_MSN_CONNECTION (object);
   gint i;
 
-  if (self->local_recipient_id)
-    g_free (self->local_recipient_id);
-  if (self->remote_recipient_id)
-    g_free (self->remote_recipient_id);
+  g_free (self->local_recipient_id);
+  g_free (self->remote_recipient_id);
 
   gst_poll_free (self->poll);
 
