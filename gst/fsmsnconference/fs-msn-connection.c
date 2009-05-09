@@ -640,9 +640,9 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           if (recv(pollfd->pollfd.fd, str, 34, 0) != -1)
           {
             GST_DEBUG ("Got %s, checking if it's auth", str);
-            sprintf(check, "recipientid=%s&sessionid=%d\r\n\r\n",
+            snprintf(check, 35, "recipientid=%s&sessionid=%d\r\n\r\n",
                 self->local_recipient_id, self->session_id);
-            if (strcmp (str, check) == 0)
+            if (strncmp (str, check, 35) == 0)
             {
               GST_DEBUG ("Authentication successful");
               pollfd->status = FS_MSN_STATUS_CONNECTED;
