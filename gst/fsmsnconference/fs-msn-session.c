@@ -194,7 +194,7 @@ fs_msn_session_init (FsMsnSession *self)
   self->priv->construction_error = NULL;
   self->priv->session_id = g_random_int_range (9000, 9999);
 
-  g_static_rec_mutex_init (&self->mutex);
+  g_static_mutex_init (&self->mutex);
 
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
 }
@@ -241,7 +241,7 @@ fs_msn_session_finalize (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
 
-  g_static_rec_mutex_free (&self->mutex);
+  g_static_mutex_free (&self->mutex);
 
   parent_class->finalize (object);
 }
