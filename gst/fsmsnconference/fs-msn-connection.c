@@ -657,7 +657,9 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
           else
           {
-            perror ("auth");
+            gchar error_str[256];
+            strerror_r (errno, error_str, 256);
+            GST_ERROR ("auth: %s", error_str);
             goto error;
           }
 
@@ -689,7 +691,9 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
           else
           {
-            perror ("connected");
+            gchar error_str[256];
+            strerror_r (errno, error_str, 256);
+            GST_ERROR ("connected: %s", error_str);
             goto error;
           }
         } else {
@@ -719,7 +723,9 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
           else
           {
-            perror ("connected");
+            gchar error_str[256];
+            strerror_r (errno, error_str, 256);
+            GST_ERROR ("connected: %s", error_str);
             goto error;
           }
 
@@ -753,8 +759,10 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
           else
           {
+            gchar error_str[256];
+            strerror_r (errno, error_str, 256);
+            GST_ERROR ("auth: %s", error_str);
             g_free (str);
-            perror ("auth");
             goto error;
           }
 
@@ -771,7 +779,9 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
           else
           {
-            perror ("sending connected");
+            gchar error_str[256];
+            strerror_r (errno, error_str, 256);
+            GST_ERROR ("sending connected: %s", error_str);
             goto error;
           }
         } else {
@@ -791,7 +801,9 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           }
           else
           {
-            perror ("sending connected");
+            gchar error_str[256];
+            strerror_r (errno, error_str, 256);
+            GST_ERROR ("sending connected: %s", error_str);
             goto error;
           }
         } else {
