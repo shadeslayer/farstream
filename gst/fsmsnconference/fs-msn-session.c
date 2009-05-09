@@ -272,6 +272,8 @@ fs_msn_session_get_property (GObject *object,
       g_value_set_boolean (value, TRUE);
       break;
     case PROP_CODEC_PREFERENCES:
+      /* There are no preferences, so return NULL */
+      break;
     case PROP_CODECS:
     case PROP_CODECS_WITHOUT_CONFIG:
       {
