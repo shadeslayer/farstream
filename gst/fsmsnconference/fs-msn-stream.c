@@ -557,6 +557,7 @@ fs_msn_stream_new (FsMsnSession *session,
   {
     *error = g_error_new (FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not create object");
+    return NULL;
   }
   else if (self->priv->construction_error)
   {
