@@ -79,7 +79,6 @@ struct _FsMsnSessionPrivate
   GError *construction_error;
 
   GstPad *media_sink_pad;
-  GstElement *valve;
 
   guint session_id;
   guint initial_port;
@@ -239,8 +238,8 @@ fs_msn_session_dispose (GObject *object)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
 
   GST_OBJECT_LOCK (conference);
-  valve = self->priv->valve;
-  self->priv->valve = NULL;
+  valve = self->valve;
+  self->valve = NULL;
   GST_OBJECT_UNLOCK (conference);
 
   if (valve)
@@ -384,25 +383,25 @@ fs_msn_session_constructed (GObject *object)
   FsMsnSession *self = FS_MSN_SESSION (object);
   GstPad *pad;
 
-  self->priv->valve = gst_element_factory_make ("valve", NULL);
+  self->valve = gst_element_factory_make ("valve", NULL);
 
-  if (!self->priv->valve)
+  if (!self->valve)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not make sink valve");
     return;
   }
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve))
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->valve))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
     return;
   }
 
-  g_object_set (G_OBJECT (self->priv->valve), "drop", TRUE, NULL);
+  g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
 
-  pad = gst_element_get_static_pad (self->priv->valve, "sink");
+  pad = gst_element_get_static_pad (self->valve, "sink");
   self->priv->media_sink_pad = gst_ghost_pad_new ("sink1", pad);
   gst_object_unref (pad);
 
@@ -424,7 +423,7 @@ fs_msn_session_constructed (GObject *object)
     return;
   }
 
-  gst_element_sync_state_with_parent (self->priv->valve);
+  gst_element_sync_state_with_parent (self->valve);
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
@@ -500,7 +499,7 @@ fs_msn_session_new_stream (FsSession *session,
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-          direction, conference, self->priv->valve,
+          direction, conference, self->valve,
           self->priv->session_id, self->priv->initial_port, error));
 
   if (new_stream)

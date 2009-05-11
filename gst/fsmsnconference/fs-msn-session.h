@@ -66,6 +66,9 @@ struct _FsMsnSession
 {
   FsSession parent;
 
+  /* Protected by the conf lock */
+  GstElement *valve;
+
   /*< private >*/
 
   FsMsnSessionPrivate *priv;
