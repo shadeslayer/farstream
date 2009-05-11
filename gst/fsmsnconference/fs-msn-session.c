@@ -230,6 +230,9 @@ fs_msn_session_dispose (GObject *object)
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
 
+  gst_element_remove (self->priv->conferencebin, self->priv->media_sink_pad);
+  self->priv->media_sink_pad = NULL;
+
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
