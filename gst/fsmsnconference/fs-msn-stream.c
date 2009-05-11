@@ -569,7 +569,7 @@ fs_msn_stream_new (FsMsnSession *session,
       "session", session,
       "participant", participant,
       "direction", direction,
-      "conference",conference,
+      "conference", conference,
       NULL);
 
   if (!self)
