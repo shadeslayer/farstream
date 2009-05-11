@@ -200,20 +200,6 @@ fs_msn_session_init (FsMsnSession *self)
 }
 
 static void
-stop_and_remove (GstBin *conf, GstElement **element, gboolean unref)
-{
-  if (*element == NULL)
-    return;
-
-  gst_element_set_locked_state (*element, TRUE);
-  gst_element_set_state (*element, GST_STATE_NULL);
-  gst_bin_remove (conf, *element);
-  if (unref)
-    gst_object_unref (*element);
-  *element = NULL;
-}
-
-static void
 fs_msn_session_dispose (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
@@ -225,16 +211,30 @@ fs_msn_session_dispose (GObject *object)
 
   conferencebin = GST_BIN (self->priv->conference);
 
-  stop_and_remove (conferencebin, &self->priv->valve, TRUE);
+  if (!conferencebin)
+    goto out;
 
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
 
-  gst_element_remove (self->priv->conferencebin, self->priv->media_sink_pad);
+  if (self->priv->valve)
+  {
+    gst_element_set_locked_state (self->priv->valve, TRUE);
+    gst_element_set_state (self->priv->valve, GST_STATE_NULL);
+    gst_bin_remove (conferencebin, self->priv->valve);
+  }
+  self->priv->valve = NULL;
+
+  if (self->priv->media_sink_pad)
+    gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
+        self->priv->media_sink_pad);
   self->priv->media_sink_pad = NULL;
 
-  gst_object_unref (conferencebin);
+  if (conferencebin)
+    gst_object_unref (conferencebin);
   self->priv->conference = NULL;
+
+ out:
 
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
