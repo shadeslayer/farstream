@@ -84,7 +84,7 @@ struct _FsMsnSessionPrivate
   guint session_id;
   guint initial_port;
 
-  gboolean disposed;
+  GMutex *mutex; /* protects the conference */
 };
 
 G_DEFINE_TYPE (FsMsnSession, fs_msn_session, FS_TYPE_SESSION);
@@ -190,26 +190,47 @@ fs_msn_session_init (FsMsnSession *self)
 {
   /* member init */
   self->priv = FS_MSN_SESSION_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
   self->priv->construction_error = NULL;
   self->priv->session_id = g_random_int_range (9000, 9999);
 
-  g_static_mutex_init (&self->mutex);
+  self->priv->mutex = g_mutex_new ();
 
   self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
 }
+
+
+static FsMsnConference *
+fs_msn_session_get_conference (FsMsnSession *self, GError **error)
+{
+  FsMsnConference *conference;
+
+  g_mutex_lock (self->priv->mutex);
+  conference = self->priv->conference;
+  if (conference)
+    g_object_ref (conference);
+  g_mutex_unlock (self->priv->mutex);
+
+  if (!conference)
+    g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
+        "Called function after session has been disposed");
+
+  return conference;
+}
+
 
 static void
 fs_msn_session_dispose (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
   GstBin *conferencebin = NULL;
+  FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
+  GstElement *valve = NULL;
 
-  if (self->priv->disposed)
-    /* If dispose did already run, return. */
-    return;
+  g_mutex_lock (self->priv->mutex);
+  self->priv->conference = NULL;
+  g_mutex_unlock (self->priv->mutex);
 
-  conferencebin = GST_BIN (self->priv->conference);
+  conferencebin = GST_BIN (conference);
 
   if (!conferencebin)
     goto out;
@@ -217,27 +238,27 @@ fs_msn_session_dispose (GObject *object)
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
 
-  if (self->priv->valve)
-  {
-    gst_element_set_locked_state (self->priv->valve, TRUE);
-    gst_element_set_state (self->priv->valve, GST_STATE_NULL);
-    gst_bin_remove (conferencebin, self->priv->valve);
-  }
+  GST_OBJECT_LOCK (conference);
+  valve = self->priv->valve;
   self->priv->valve = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (valve)
+  {
+    gst_element_set_locked_state (valve, TRUE);
+    gst_element_set_state (valve, GST_STATE_NULL);
+    gst_bin_remove (conferencebin, valve);
+  }
 
   if (self->priv->media_sink_pad)
-    gst_element_remove_pad (GST_ELEMENT (self->priv->conference),
+    gst_element_remove_pad (GST_ELEMENT (conference),
         self->priv->media_sink_pad);
   self->priv->media_sink_pad = NULL;
 
-  if (conferencebin)
-    gst_object_unref (conferencebin);
-  self->priv->conference = NULL;
+  gst_object_unref (conferencebin);
+  gst_object_unref (conference);
 
  out:
-
-  /* MAKE sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
 
   parent_class->dispose (object);
 }
@@ -247,7 +268,7 @@ fs_msn_session_finalize (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
 
-  g_static_mutex_free (&self->mutex);
+  g_mutex_free (self->priv->mutex);
 
   parent_class->finalize (object);
 }
@@ -259,6 +280,10 @@ fs_msn_session_get_property (GObject *object,
                              GParamSpec *pspec)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
+  FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
+
+  if (!conference)
+    return;
 
   switch (prop_id)
   {
@@ -307,6 +332,8 @@ fs_msn_session_get_property (GObject *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
+
+  gst_object_unref (conference);
 }
 
 static void
@@ -316,6 +343,10 @@ fs_msn_session_set_property (GObject *object,
                              GParamSpec *pspec)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
+  FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
+
+  if (!conference)
+    return;
 
   switch (prop_id)
   {
@@ -343,6 +374,8 @@ fs_msn_session_set_property (GObject *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
+
+  gst_object_unref (conference);
 }
 
 static void
@@ -402,11 +435,16 @@ _remove_stream (gpointer user_data,
                 GObject *where_the_object_was)
 {
   FsMsnSession *self = FS_MSN_SESSION (user_data);
+  FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
 
-  FS_MSN_SESSION_LOCK (self);
+  if (!conference)
+    return;
+
+  GST_OBJECT_LOCK (conference);
   if (self->priv->stream == (FsMsnStream *) where_the_object_was)
     self->priv->stream = NULL;
-  FS_MSN_SESSION_UNLOCK (self);
+  GST_OBJECT_UNLOCK (conference);
+  gst_object_unref (conference);
 }
 
 /**
@@ -435,7 +473,7 @@ fs_msn_session_new_stream (FsSession *session,
   FsMsnSession *self = FS_MSN_SESSION (session);
   FsMsnParticipant *msnparticipant = NULL;
   FsStream *new_stream = NULL;
-
+  FsMsnConference *conference;
 
   if (!FS_IS_MSN_PARTICIPANT (participant))
   {
@@ -444,30 +482,35 @@ fs_msn_session_new_stream (FsSession *session,
     return NULL;
   }
 
-  FS_MSN_SESSION_LOCK (self);
+  conference = fs_msn_session_get_conference (self, error);
+  if (!conference)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conference);
   if (self->priv->stream)
   {
-    FS_MSN_SESSION_UNLOCK (self);
+    GST_OBJECT_UNLOCK (conference);
+    gst_object_unref (conference);
     g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
         "There already is a stream in this session");
     return NULL;
   }
-  FS_MSN_SESSION_UNLOCK (self);
+  GST_OBJECT_UNLOCK (conference);
 
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-          direction, self->priv->conference, self->priv->valve,
+          direction, conference, self->priv->valve,
           self->priv->session_id, self->priv->initial_port, error));
 
   if (new_stream)
   {
-    FS_MSN_SESSION_LOCK (self);
+    GST_OBJECT_LOCK (conference);
     self->priv->stream = (FsMsnStream *) new_stream;
     g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
-    FS_MSN_SESSION_UNLOCK (self);
+    GST_OBJECT_UNLOCK (conference);
   }
-
+  gst_object_unref (conference);
 
   return new_stream;
 }

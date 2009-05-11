@@ -68,15 +68,8 @@ struct _FsMsnSession
 
   /*< private >*/
 
-  GStaticMutex mutex; /* Should only be accessed using the macros */
-
   FsMsnSessionPrivate *priv;
 };
-
-#define FS_MSN_SESSION_LOCK(session) \
-  g_static_mutex_lock (&FS_MSN_SESSION (session)->mutex)
-#define FS_MSN_SESSION_UNLOCK(session) \
-  g_static_mutex_unlock (&FS_MSN_SESSION (session)->mutex)
 
 
 GType fs_msn_session_get_type (void);
