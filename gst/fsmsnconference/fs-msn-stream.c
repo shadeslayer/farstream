@@ -71,6 +71,7 @@ struct _FsMsnStreamPrivate
   FsStreamDirection direction;
   FsMsnConference *conference;
   GstElement *session_valve;
+  GstElement *recv_valve;
   GstPad *src_pad;
   FsMsnConnection *connection;
 
@@ -255,19 +256,22 @@ fs_msn_stream_set_property (GObject *object,
         self->priv->direction =
           g_value_get_flags (value) & self->priv->orig_direction;
 
-        /*
-         * Start stop the valves to control the direction
-         *
         if (self->priv->direction == FS_DIRECTION_NONE)
         {
+          if (self->priv->recv_valve)
+            g_object_set (self->priv->recv_valve, "drop", TRUE, NULL);
+          g_object_set (self->priv->session_valve, "drop", TRUE, NULL);
         }
         else if (self->priv->direction == FS_DIRECTION_SEND)
         {
+          if (self->priv->codecbin)
+            g_object_set (self->priv->session_valve, "drop", FALSE, NULL);
         }
         else if (self->priv->direction == FS_DIRECTION_RECV)
         {
+         if (self->priv->recv_valve)
+            g_object_set (self->priv->recv_valve, "drop", FALSE, NULL);
         }
-        */
       }
       self->priv->direction = g_value_get_flags (value);
       break;
@@ -377,7 +381,7 @@ _connected (
 
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
     self->priv->codecbin = gst_parse_bin_from_description (
-        "fdsrc name=fdsrc ! mimdec", TRUE, &error);
+        "fdsrc name=fdsrc ! mimdec ! valve name=recv_valve", TRUE, &error);
   else
     self->priv->codecbin = gst_parse_bin_from_description (
         "ffmpegcolorspace ! videoscale ! mimenc ! fdsink name=fdsink",
@@ -464,6 +468,20 @@ _connected (
       return;
     }
 
+    self->priv->recv_valve = fdelem = gst_bin_get_by_name (
+        GST_BIN (self->priv->codecbin), "recv_valve");
+
+    if (!self->priv->recv_valve)
+    {
+       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
+           "Could not get recv_valve",
+           "Could not get recv_valve");
+       return;
+    }
+
+    g_object_set (self->priv->recv_valve,
+        "drop", !(self->priv->direction & FS_DIRECTION_RECV), NULL);
+
     mimic_codec = fs_codec_new (0, "mimic",
         FS_MEDIA_TYPE_VIDEO, 0);
     fs_stream_emit_src_pad_added (FS_STREAM (self), self->priv->src_pad,
@@ -507,7 +525,8 @@ _connected (
 
 
   if (self->priv->direction == FS_DIRECTION_SEND)
-    g_object_set (G_OBJECT (self->priv->session_valve), "drop", FALSE, NULL);
+    g_object_set (self->priv->recv_valve,
+        "drop", !(self->priv->direction & FS_DIRECTION_SEND), NULL);
 }
 
 /**
