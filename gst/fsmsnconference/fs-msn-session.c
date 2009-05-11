@@ -499,7 +499,7 @@ fs_msn_session_new_stream (FsSession *session,
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-          direction, conference, self->valve,
+          direction, conference,
           self->priv->session_id, self->priv->initial_port, error));
 
   if (new_stream)

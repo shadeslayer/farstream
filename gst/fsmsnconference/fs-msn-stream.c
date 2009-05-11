@@ -70,7 +70,6 @@ struct _FsMsnStreamPrivate
   FsMsnParticipant *participant;
   FsStreamDirection direction;
   FsMsnConference *conference;
-  GstElement *session_valve;
   GstElement *recv_valve;
   GstPad *src_pad;
   FsMsnConnection *connection;
@@ -260,12 +259,12 @@ fs_msn_stream_set_property (GObject *object,
         {
           if (self->priv->recv_valve)
             g_object_set (self->priv->recv_valve, "drop", TRUE, NULL);
-          g_object_set (self->priv->session_valve, "drop", TRUE, NULL);
+          g_object_set (self->priv->session->valve, "drop", TRUE, NULL);
         }
         else if (self->priv->direction == FS_DIRECTION_SEND)
         {
           if (self->priv->codecbin)
-            g_object_set (self->priv->session_valve, "drop", FALSE, NULL);
+            g_object_set (self->priv->session->valve, "drop", FALSE, NULL);
         }
         else if (self->priv->direction == FS_DIRECTION_RECV)
         {
@@ -490,7 +489,7 @@ _connected (
   }
   else
   {
-    GstPad *valvepad = gst_element_get_static_pad (self->priv->session_valve,
+    GstPad *valvepad = gst_element_get_static_pad (self->priv->session->valve,
         "src");
 
     if (!valvepad)
@@ -560,7 +559,6 @@ fs_msn_stream_new (FsMsnSession *session,
     FsMsnParticipant *participant,
     FsStreamDirection direction,
     FsMsnConference *conference,
-    GstElement *session_valve,
     guint session_id,
     guint initial_port,
     GError **error)
@@ -584,8 +582,6 @@ fs_msn_stream_new (FsMsnSession *session,
     g_object_unref (self);
     return NULL;
   }
-
-  self->priv->session_valve = session_valve;
 
   self->priv->connection = fs_msn_connection_new (session_id, initial_port);
 
