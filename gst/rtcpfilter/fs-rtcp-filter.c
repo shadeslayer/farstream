@@ -197,20 +197,21 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
     GstRTCPPacket packet;
     gboolean modified = FALSE;
 
-    gst_rtcp_buffer_get_first_packet (buf, &packet);
-
-    for (;;)
+    if (gst_rtcp_buffer_get_first_packet (buf, &packet))
     {
-      if (gst_rtcp_packet_get_type (&packet) == GST_RTCP_TYPE_SR)
+      for (;;)
       {
-        if (!gst_rtcp_packet_remove (&packet))
-          break;
-        modified = TRUE;
-      }
-      else
-      {
-        if (!gst_rtcp_packet_move_to_next (&packet))
-          break;
+        if (gst_rtcp_packet_get_type (&packet) == GST_RTCP_TYPE_SR)
+        {
+          if (!gst_rtcp_packet_remove (&packet))
+            break;
+          modified = TRUE;
+        }
+        else
+        {
+          if (!gst_rtcp_packet_move_to_next (&packet))
+            break;
+        }
       }
     }
 
