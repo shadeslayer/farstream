@@ -214,7 +214,11 @@ fs_msn_connection_finalize (GObject *object)
   gst_poll_free (self->poll);
 
   for (i = 0; i < self->pollfds->len; i++)
-    close (g_array_index(self->pollfds, FsMsnPollFD *, i)->pollfd.fd);
+  {
+    FsMsnPollFD *p = g_array_index(self->pollfds, FsMsnPollFD *, i);
+    close (p->pollfd.fd);
+    g_slice_free (FsMsnPollFD, p);
+  }
   g_array_free (self->pollfds, TRUE);
 
   g_static_rec_mutex_free (&self->mutex);
@@ -922,6 +926,7 @@ shutdown_fd_locked (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
       if (gst_poll_remove_fd (self->poll, &p->pollfd))
         GST_WARNING ("Could not remove pollfd %p", p);
       g_array_remove_index_fast (self->pollfds, i);
+      g_slice_free (FsMsnPollFD, p);
       closed++;
       i--;
     }
