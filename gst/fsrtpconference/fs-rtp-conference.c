@@ -702,6 +702,14 @@ fs_rtp_conference_handle_message (
 
         cname = gst_structure_get_string (s, "cname");
 
+        if (!ssrc || !cname)
+        {
+          GST_WARNING_OBJECT (self,
+              "Got GstRTPBinSDES without a ssrc or a cname (ssrc:%u cname:%p)",
+              ssrc, cname);
+          break;
+        }
+
         session = fs_rtp_conference_get_session_by_id (self, session_id);
 
         if (session) {
