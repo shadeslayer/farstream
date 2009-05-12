@@ -48,6 +48,7 @@ check_PROGRAMS = \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
+	msn/conference \
 	utils/binadded \
 	elements/rtcpfilter
 
@@ -119,6 +120,10 @@ rtp_sendcodecs_SOURCES = \
 	rtp/generic.c \
 	rtp/generic.h \
 	rtp/sendcodecs.c
+
+msn_conference_CFLAGS = $(AM_CFLAGS)
+msn_conference_SOURCES = \
+	msn/conference.c
 
 utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
