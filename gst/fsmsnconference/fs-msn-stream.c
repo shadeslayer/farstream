@@ -680,7 +680,7 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
   FsMsnConference *conference = fs_msn_stream_get_conference (self, error);
   gboolean ret;
 
-  if (error)
+  if (!conference)
     return FALSE;
 
   GST_OBJECT_LOCK (conference);
