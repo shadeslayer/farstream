@@ -75,7 +75,7 @@ struct _FsMsnConnection
   GThread *polling_thread; /* protected by lock */
   GstClockTime poll_timeout; /* protected by lock */
   GstPoll *poll;
-  GArray *pollfds; /* protected by lock */
+  GPtrArray *pollfds; /* protected by lock */
   GStaticRecMutex mutex;
 };
 

@@ -178,7 +178,7 @@ fs_msn_connection_init (FsMsnConnection *self)
   self->poll_timeout = GST_CLOCK_TIME_NONE;
   self->poll = gst_poll_new (TRUE);
   gst_poll_set_flushing (self->poll, FALSE);
-  self->pollfds = g_array_new (TRUE, TRUE, sizeof(FsMsnPollFD *));
+  self->pollfds = g_ptr_array_new ();
 
   g_static_rec_mutex_init (&self->mutex);
 }
@@ -215,11 +215,11 @@ fs_msn_connection_finalize (GObject *object)
 
   for (i = 0; i < self->pollfds->len; i++)
   {
-    FsMsnPollFD *p = g_array_index(self->pollfds, FsMsnPollFD *, i);
+    FsMsnPollFD *p = g_ptr_array_index(self->pollfds, i);
     close (p->pollfd.fd);
     g_slice_free (FsMsnPollFD, p);
   }
-  g_array_free (self->pollfds, TRUE);
+  g_ptr_array_free (self->pollfds, TRUE);
 
   g_static_rec_mutex_free (&self->mutex);
 
@@ -861,7 +861,7 @@ connection_polling_thread (gpointer data)
       {
         FsMsnPollFD *pollfd = NULL;
 
-        pollfd = g_array_index(self->pollfds, FsMsnPollFD *, i);
+        pollfd = g_ptr_array_index(self->pollfds, i);
 
         GST_DEBUG ("ret %d - i = %d, len = %d", ret, i, self->pollfds->len);
 
@@ -916,7 +916,7 @@ shutdown_fd_locked (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
 
   for (i = 0; i < self->pollfds->len; i++)
   {
-    FsMsnPollFD *p = g_array_index(self->pollfds, FsMsnPollFD *, i);
+    FsMsnPollFD *p = g_ptr_array_index(self->pollfds, i);
     if ((equal && p == pollfd) || (!equal && p != pollfd))
     {
       GST_DEBUG ("Shutting down p %p (fd %d)", p, p->pollfd.fd);
@@ -925,7 +925,7 @@ shutdown_fd_locked (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
         close (p->pollfd.fd);
       if (gst_poll_remove_fd (self->poll, &p->pollfd))
         GST_WARNING ("Could not remove pollfd %p", p);
-      g_array_remove_index_fast (self->pollfds, i);
+      g_ptr_array_remove_index_fast (self->pollfds, i);
       g_slice_free (FsMsnPollFD, p);
       closed++;
       i--;
@@ -965,7 +965,7 @@ add_pollfd_locked (FsMsnConnection *self, int fd, PollFdCallback callback,
       pollfd->want_write,
       gst_poll_fd_can_write (self->poll, &pollfd->pollfd));
 
-  g_array_append_val (self->pollfds, pollfd);
+  g_ptr_array_add (self->pollfds, pollfd);
   gst_poll_restart (self->poll);
   return pollfd;
 }
