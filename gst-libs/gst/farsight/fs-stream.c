@@ -133,8 +133,7 @@ enum
   PROP_CURRENT_RECV_CODECS,
   PROP_DIRECTION,
   PROP_PARTICIPANT,
-  PROP_SESSION,
-  PROP_STREAM_TRANSMITTER
+  PROP_SESSION
 };
 
 /*
@@ -290,20 +289,6 @@ fs_stream_class_init (FsStreamClass *klass)
         "An FsSession represented by the stream",
         FS_TYPE_SESSION,
         G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
-
-  /**
-   * FsStream:stream-transmitter:
-   *
-   * The #FsStreamTransmitter for this stream.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_STREAM_TRANSMITTER,
-      g_param_spec_object ("stream-transmitter",
-        "The transmitter use by the stream",
-        "An FsStreamTransmitter used by this stream",
-        FS_TYPE_STREAM_TRANSMITTER,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
 
   /**
    * FsStream::error:

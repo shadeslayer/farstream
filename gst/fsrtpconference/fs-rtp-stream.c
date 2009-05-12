@@ -188,9 +188,20 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   g_object_class_override_property (gobject_class,
                                     PROP_SESSION,
                                     "session");
-  g_object_class_override_property (gobject_class,
-                                    PROP_STREAM_TRANSMITTER,
-                                   "stream-transmitter");
+  /**
+   * FsRtpStream:stream-transmitter:
+   *
+   * The #FsStreamTransmitter for this stream.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_STREAM_TRANSMITTER,
+      g_param_spec_object ("stream-transmitter",
+        "The transmitter use by the stream",
+        "An FsStreamTransmitter used by this stream",
+        FS_TYPE_STREAM_TRANSMITTER,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+
 }
 
 static void

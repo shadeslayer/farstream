@@ -30,11 +30,6 @@
 GMainLoop *loop;
 int count = 0;
 
-// Options
-gboolean select_last_codec = FALSE;
-gboolean reset_to_last_codec = FALSE;
-gboolean no_rtcp = FALSE;
-
 #define WAITING_ON_LAST_CODEC   (1<<0)
 #define SHOULD_BE_LAST_CODEC    (1<<1)
 #define HAS_BEEN_RESET          (1<<2)
@@ -56,9 +51,157 @@ struct SimpleMsnConference {
 static gboolean
 bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
 {
-  //struct SimpleMsnConference *dat = user_data;
+  struct SimpleMsnConference *dat = user_data;
+
+  switch (GST_MESSAGE_TYPE (message))
+  {
+    case GST_MESSAGE_ELEMENT:
+      {
+        const GstStructure *s = gst_message_get_structure (message);
+        ts_fail_if (s==NULL, "NULL structure in element message");
+        if (gst_structure_has_name (s, "farsight-error"))
+        {
+          const GValue *value;
+          FsError errorno;
+          const gchar *error, *debug;
+
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
+
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "src-object", G_TYPE_OBJECT),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "error-no", FS_TYPE_ERROR),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
+              "farsight-error structure has no src-object field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "debug-msg", G_TYPE_STRING),
+              "farsight-error structure has no src-object field");
+
+          value = gst_structure_get_value (s, "error-no");
+          errorno = g_value_get_enum (value);
+          error = gst_structure_get_string (s, "error-msg");
+          debug = gst_structure_get_string (s, "debug-msg");
+
+          ts_fail ("Error on BUS (%d) %s .. %s", errorno, error, debug);
+        }
+        else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
+        {
+          FsStream *stream;
+          FsCandidate *candidate;
+          const GValue *value;
+
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-error from non-farsight element");
+
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
+              "farsight-new-local-candidate structure has no stream field");
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "candidate", FS_TYPE_CANDIDATE),
+              "farsight-new-local-candidate structure has no candidate field");
+
+          value = gst_structure_get_value (s, "stream");
+          stream = g_value_get_object (value);
+
+          value = gst_structure_get_value (s, "candidate");
+          candidate = g_value_get_boxed (value);
+
+          ts_fail_unless (stream && candidate, "new-local-candidate with NULL"
+              " stream(%p) or candidate(%p)", stream, candidate);
+
+          if (dat->target)
+          {
+            GError *error = NULL;
+            GList *list = g_list_append (NULL, candidate);
+
+            g_debug ("Setting candidate: %s %d",
+                candidate->ip, candidate->port);
+            ts_fail_unless (fs_stream_set_remote_candidates (
+                    dat->target->stream, list, &error),
+                "Could not set remote candidate: %s",
+                error ? error->message : "No GError");
+            ts_fail_unless (error == NULL);
+            g_list_free (list);
+          }
+        }
+      }
+      break;
+    case GST_MESSAGE_ERROR:
+      {
+        GError *error = NULL;
+        gchar *debug = NULL;
+        gst_message_parse_error (message, &error, &debug);
+
+        ts_fail ("Got an error on the BUS (%d): %s (%s)", error->code,
+            error->message, debug);
+        g_error_free (error);
+        g_free (debug);
+      }
+      break;
+    case GST_MESSAGE_WARNING:
+      {
+        GError *error = NULL;
+        gchar *debug = NULL;
+        gst_message_parse_warning (message, &error, &debug);
+
+        g_debug ("%d: Got a warning on the BUS: %s (%s)",
+            error->code,
+            error->message, debug);
+        g_error_free (error);
+        g_free (debug);
+      }
+      break;
+    default:
+      break;
+  }
 
   return TRUE;
+}
+
+static void
+pad_probe_cb (GstPad *pad, GstBuffer *buf, gpointer user_data)
+{
+  count++;
+
+  g_debug ("buf %d", count);
+
+  if (count > 20)
+    g_main_loop_quit (loop);
+}
+
+static void
+stream_src_pad_added (FsStream *stream, GstPad *pad, FsCodec *codec,
+    struct SimpleMsnConference *dat)
+{
+  GstElement *sink = gst_element_factory_make ("fakesink", NULL);
+  GstPad *sinkpad;
+
+  g_debug ("pad added");
+
+  ts_fail_unless (sink != NULL);
+
+  ts_fail_unless (gst_bin_add (GST_BIN (dat->pipeline), sink));
+
+  sinkpad = gst_element_get_static_pad (sink, "sink");
+  ts_fail_unless (sinkpad != NULL);
+
+  gst_pad_add_buffer_probe (sinkpad, G_CALLBACK (pad_probe_cb), dat);
+
+  ts_fail_if (GST_PAD_LINK_FAILED (gst_pad_link (pad, sinkpad)));
+
+  gst_object_unref (sinkpad);
+
+  ts_fail_if (gst_element_set_state (sink, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE);
+
 }
 
 struct SimpleMsnConference *
@@ -117,13 +260,16 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
 
     g_object_get (target->session, "session-id", &session_id, NULL);
     ts_fail_unless (session_id >= 9000 && session_id < 10000);
-    g_object_get (dat->session, "session-id", session_id, NULL);
+    g_object_set (dat->session, "session-id", session_id, NULL);
   }
 
   dat->stream = fs_session_new_stream (dat->session, dat->part, dir, NULL, 0,
       NULL, &error);
   ts_fail_unless (dat->stream != NULL);
   ts_fail_unless (error == NULL);
+
+  g_signal_connect (dat->stream, "src-pad-added",
+      G_CALLBACK (stream_src_pad_added), dat);
 
   return dat;
 }
@@ -161,6 +307,30 @@ GST_START_TEST (test_msnconference_new)
 GST_END_TEST;
 
 
+
+GST_START_TEST (test_msnconference_send_to_recv)
+{
+  struct SimpleMsnConference *senddat = setup_conference (FS_DIRECTION_SEND,
+      NULL);
+  struct SimpleMsnConference *recvdat = setup_conference (FS_DIRECTION_SEND,
+      senddat);
+
+  loop = g_main_loop_new (NULL, FALSE);
+
+  ts_fail_if (gst_element_set_state (senddat->pipeline, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE);
+  ts_fail_if (gst_element_set_state (recvdat->pipeline, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE);
+
+  g_main_loop_run (loop);
+
+  free_conference (senddat);
+  free_conference (recvdat);
+  g_main_loop_unref (loop);
+}
+GST_END_TEST;
+
+
   /*
 
 GST_START_TEST (test_msnconference_error)
@@ -191,6 +361,11 @@ fsmsnconference_suite (void)
 
   tc_chain = tcase_create ("fsmsnconference_new");
   tcase_add_test (tc_chain, test_msnconference_new);
+  suite_add_tcase (s, tc_chain);
+
+
+  tc_chain = tcase_create ("fsmsnconference_send_to_recv");
+  tcase_add_test (tc_chain, test_msnconference_send_to_recv);
   suite_add_tcase (s, tc_chain);
 
   return s;
