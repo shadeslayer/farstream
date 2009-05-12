@@ -539,10 +539,6 @@ _connected (
     goto error;
   }
 
-  GST_OBJECT_LOCK (conference);
-  self->priv->codecbin = gst_object_ref (codecbin);
-  GST_OBJECT_UNLOCK (conference);
-
   if (!gst_bin_add (GST_BIN (conference), codecbin))
   {
     gst_object_unref (pad);
@@ -551,6 +547,10 @@ _connected (
         "Could not add codecbin to the conference");
     goto error;
   }
+
+  GST_OBJECT_LOCK (conference);
+  self->priv->codecbin = gst_object_ref (codecbin);
+  GST_OBJECT_UNLOCK (conference);
 
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
   {
