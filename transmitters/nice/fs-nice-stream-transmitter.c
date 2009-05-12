@@ -604,7 +604,7 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
   nc->component_id = candidate->component_id;
   if (candidate->foundation != NULL)
     strncpy (nc->foundation, candidate->foundation,
-       NICE_CANDIDATE_MAX_FOUNDATION);
+       NICE_CANDIDATE_MAX_FOUNDATION - 1);
 
   nc->username = g_strdup(candidate->username);
   nc->password = g_strdup(candidate->password);
