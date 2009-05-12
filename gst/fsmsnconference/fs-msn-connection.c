@@ -355,7 +355,6 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
   GList *addresses = fs_interfaces_get_local_ips (FALSE);
   GList *item = NULL;
 
-  memset(&myaddr, 0, sizeof(myaddr));
 
   GST_DEBUG ("Attempting to listen on port %d.....",port);
 
@@ -370,10 +369,10 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
 
   // set non-blocking mode
   fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
-  myaddr.sin_family = AF_INET;
-  do
-  {
+  for (;;) {
     GST_DEBUG ("Attempting to listen on port %d.....",port);
+    memset(&myaddr, 0, sizeof(myaddr));
+    myaddr.sin_family = AF_INET;
     myaddr.sin_port = htons (port);
     // bind
     if (bind(fd, (struct sockaddr *) &myaddr, sizeof(myaddr)) != 0)
@@ -407,9 +406,14 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
           goto error;
         }
       }
+      else
+      {
+        goto done;
+      }
     }
-  } while (errno == EADDRINUSE);
+  }
 
+ done:
 
   if (getsockname (fd, (struct sockaddr *) &myaddr, &myaddr_len) < 0) {
     gchar error_str[256];
