@@ -171,8 +171,6 @@ pad_probe_cb (GstPad *pad, GstBuffer *buf, gpointer user_data)
 {
   count++;
 
-  g_debug ("buf %d", count);
-
   if (count > 20)
     g_main_loop_quit (loop);
 }
@@ -328,6 +326,24 @@ GST_START_TEST (test_msnconference_send_to_recv)
 GST_END_TEST;
 
 
+GST_START_TEST (test_msnconference_recv_to_send)
+{
+  struct SimpleMsnConference *recvdat = setup_conference (FS_DIRECTION_RECV,
+      NULL);
+  struct SimpleMsnConference *senddat = setup_conference (FS_DIRECTION_SEND,
+      recvdat);
+
+  loop = g_main_loop_new (NULL, FALSE);
+
+  g_main_loop_run (loop);
+
+  free_conference (senddat);
+  free_conference (recvdat);
+  g_main_loop_unref (loop);
+}
+GST_END_TEST;
+
+
   /*
 
 GST_START_TEST (test_msnconference_error)
@@ -364,6 +380,11 @@ fsmsnconference_suite (void)
   tc_chain = tcase_create ("fsmsnconference_send_to_recv");
   tcase_add_test (tc_chain, test_msnconference_send_to_recv);
   suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsmsnconference_recv_to_send");
+  tcase_add_test (tc_chain, test_msnconference_recv_to_send);
+  suite_add_tcase (s, tc_chain);
+
 
   return s;
 }
