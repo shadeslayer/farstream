@@ -807,6 +807,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
       break;
     case PROP_RECEIVING:
       g_value_set_boolean (value, self->priv->receiving);
+      break;
     case PROP_OUTPUT_GHOSTPAD:
       g_value_set_object (value, self->priv->output_ghostpad);
       break;
