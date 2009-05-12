@@ -281,7 +281,7 @@ fs_msn_session_get_property (GObject *object,
   FsMsnSession *self = FS_MSN_SESSION (object);
   FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
 
-  if (!conference)
+  if (!conference && !(pspec->flags & G_PARAM_CONSTRUCT_ONLY))
     return;
 
   switch (prop_id)
@@ -332,7 +332,8 @@ fs_msn_session_get_property (GObject *object,
       break;
   }
 
-  gst_object_unref (conference);
+  if (conference)
+    gst_object_unref (conference);
 }
 
 static void
@@ -344,7 +345,7 @@ fs_msn_session_set_property (GObject *object,
   FsMsnSession *self = FS_MSN_SESSION (object);
   FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
 
-  if (!conference)
+  if (!conference && !(pspec->flags & G_PARAM_CONSTRUCT_ONLY))
     return;
 
   switch (prop_id)
@@ -374,7 +375,8 @@ fs_msn_session_set_property (GObject *object,
       break;
   }
 
-  gst_object_unref (conference);
+  if (conference)
+    gst_object_unref (conference);
 }
 
 static void
@@ -382,6 +384,8 @@ fs_msn_session_constructed (GObject *object)
 {
   FsMsnSession *self = FS_MSN_SESSION (object);
   GstPad *pad;
+
+  g_assert (self->priv->conference);
 
   self->valve = gst_element_factory_make ("valve", NULL);
 

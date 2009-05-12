@@ -132,7 +132,6 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
   gobject_class->dispose = fs_msn_stream_dispose;
   gobject_class->finalize = fs_msn_stream_finalize;
 
-
   stream_class->set_remote_candidates = fs_msn_stream_set_remote_candidates;
 
 
@@ -213,9 +212,7 @@ fs_msn_stream_dispose (GObject *object)
 
   if (self->priv->recv_valve)
   {
-    gst_element_set_locked_state (self->priv->recv_valve, TRUE);
-    gst_element_set_state (self->priv->recv_valve, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (conference), self->priv->recv_valve);
+    gst_object_unref (self->priv->recv_valve);
     self->priv->recv_valve = NULL;
   }
 
@@ -269,6 +266,14 @@ fs_msn_stream_get_property (GObject *object,
                             GParamSpec *pspec)
 {
   FsMsnStream *self = FS_MSN_STREAM (object);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
+
+  if (!conference &&
+      !(pspec->flags & (G_PARAM_CONSTRUCT_ONLY | G_PARAM_CONSTRUCT)))
+    return;
+
+  if (conference)
+    GST_OBJECT_LOCK (conference);
 
   switch (prop_id)
   {
@@ -288,6 +293,12 @@ fs_msn_stream_get_property (GObject *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
+
+  if (conference)
+  {
+    GST_OBJECT_UNLOCK (conference);
+    gst_object_unref (conference);
+  }
 }
 
 static void
@@ -297,6 +308,14 @@ fs_msn_stream_set_property (GObject *object,
                             GParamSpec *pspec)
 {
   FsMsnStream *self = FS_MSN_STREAM (object);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
+
+  if (!conference &&
+      !(pspec->flags & (G_PARAM_CONSTRUCT_ONLY | G_PARAM_CONSTRUCT)))
+    return;
+
+  if (conference)
+    GST_OBJECT_LOCK (conference);
 
   switch (prop_id)
   {
@@ -344,6 +363,12 @@ fs_msn_stream_set_property (GObject *object,
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
+  }
+
+  if (conference)
+  {
+    GST_OBJECT_UNLOCK (conference);
+    gst_object_unref (conference);
   }
 }
 
@@ -403,13 +428,18 @@ _local_candidates_prepared (FsMsnConnection *connection,
     gpointer user_data)
 {
   FsMsnStream *self = FS_MSN_STREAM (user_data);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
 
-  gst_element_post_message (GST_ELEMENT (self->priv->conference),
-      gst_message_new_element (GST_OBJECT (self->priv->conference),
+  if (!conference)
+    return;
+
+  gst_element_post_message (GST_ELEMENT (conference),
+      gst_message_new_element (GST_OBJECT (conference),
           gst_structure_new ("farsight-local-candidates-prepared",
               "stream", FS_TYPE_STREAM, self,
               NULL)));
 
+  gst_object_unref (conference);
 }
 
 static void
@@ -419,13 +449,19 @@ _new_local_candidate (
     gpointer user_data)
 {
   FsMsnStream *self = FS_MSN_STREAM (user_data);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
 
-  gst_element_post_message (GST_ELEMENT (self->priv->conference),
-      gst_message_new_element (GST_OBJECT (self->priv->conference),
+  if (!conference)
+    return;
+
+  gst_element_post_message (GST_ELEMENT (conference),
+      gst_message_new_element (GST_OBJECT (conference),
           gst_structure_new ("farsight-new-local-candidate",
               "stream", FS_TYPE_STREAM, self,
               "candidate", FS_TYPE_CANDIDATE, candidate,
               NULL)));
+
+  gst_object_unref (conference);
 }
 
 static void
@@ -439,39 +475,44 @@ _connected (
   GstPad *pad;
   GstElement *fdelem;
   int checkfd;
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
+  GstElement *codecbin = NULL;
+  GstElement *recv_valve = NULL;
+  GstElement *send_valve = NULL;
+  gboolean drop;
+
+  if (!conference)
+    goto error;
 
   GST_DEBUG ("******** CONNECTED %d**********", fd);
 
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
-    self->priv->codecbin = gst_parse_bin_from_description (
+    codecbin = gst_parse_bin_from_description (
         "fdsrc name=fdsrc ! mimdec ! valve name=recv_valve", TRUE, &error);
   else
-    self->priv->codecbin = gst_parse_bin_from_description (
+    codecbin = gst_parse_bin_from_description (
         "ffmpegcolorspace ! videoscale ! mimenc ! fdsink name=fdsink",
         TRUE, &error);
 
-  if (!self->priv->codecbin)
+  if (!codecbin)
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
         "Could not build codecbin", error->message);
     g_clear_error (&error);
-    return;
+    goto error;
   }
 
-
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
-    fdelem = gst_bin_get_by_name (GST_BIN (self->priv->codecbin), "fdsrc");
+    fdelem = gst_bin_get_by_name (GST_BIN (codecbin), "fdsrc");
   else
-    fdelem = gst_bin_get_by_name (GST_BIN (self->priv->codecbin), "fdsink");
+    fdelem = gst_bin_get_by_name (GST_BIN (codecbin), "fdsink");
 
   if (!fdelem)
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
         "Could not get fd element",
         "Could not get fd element");
-      gst_object_unref (self->priv->codecbin);
-      self->priv->codecbin = NULL;
-      return;
+    goto error;
   }
 
   g_object_set (fdelem, "fd", fd, NULL);
@@ -482,79 +523,101 @@ _connected (
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_INTERNAL,
         "Could not set file descriptor", "Could not set fd");
-    gst_object_unref (self->priv->codecbin);
-    self->priv->codecbin = NULL;
-    return;
+    goto error;
   }
 
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
-    pad = gst_element_get_static_pad (self->priv->codecbin, "src");
+    pad = gst_element_get_static_pad (codecbin, "src");
   else
-    pad = gst_element_get_static_pad (self->priv->codecbin, "sink");
+    pad = gst_element_get_static_pad (codecbin, "sink");
 
   if (!pad)
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
         "Could not get codecbin pad",
         "Could not get codecbin pad");
-    gst_object_unref (self->priv->codecbin);
-    self->priv->codecbin = NULL;
-    return;
+    goto error;
   }
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->codecbin))
+  GST_OBJECT_LOCK (conference);
+  self->priv->codecbin = gst_object_ref (codecbin);
+  GST_OBJECT_UNLOCK (conference);
+
+  if (!gst_bin_add (GST_BIN (conference), codecbin))
   {
+    gst_object_unref (pad);
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
         "Could not add codecbin to the conference",
         "Could not add codecbin to the conference");
-    gst_object_unref (pad);
-    gst_object_unref (self->priv->codecbin);
-    self->priv->codecbin = NULL;
-    return;
+    goto error;
   }
 
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
   {
     FsCodec *mimic_codec;
+    GstPad *src_pad;
 
-    self->priv->src_pad = gst_ghost_pad_new ("src_1_1_1", pad);
+    src_pad = gst_ghost_pad_new ("src_1_1_1", pad);
     gst_object_unref (pad);
 
-    if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
-            self->priv->src_pad))
+    GST_OBJECT_LOCK (conference);
+    self->priv->src_pad =  gst_object_ref (src_pad);
+    GST_OBJECT_UNLOCK (conference);
+
+    gst_pad_set_active (src_pad, TRUE);
+    if (!gst_element_add_pad (GST_ELEMENT (conference), src_pad))
     {
-         fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-             "Could not add src_1_1_1 pad",
-             "Could not add src_1_1_1 pad");
-         gst_object_unref (self->priv->src_pad);
-         self->priv->src_pad = NULL;
-      return;
+      fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
+          "Could not add src_1_1_1 pad",
+          "Could not add src_1_1_1 pad");
+      gst_object_unref (src_pad);
+      goto error;
     }
 
-    self->priv->recv_valve = fdelem = gst_bin_get_by_name (
-        GST_BIN (self->priv->codecbin), "recv_valve");
+    recv_valve = gst_bin_get_by_name (GST_BIN (codecbin), "recv_valve");
 
-    if (!self->priv->recv_valve)
+    if (!recv_valve)
     {
        fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
            "Could not get recv_valve",
            "Could not get recv_valve");
-       return;
+       gst_object_unref (src_pad);
+       goto error;
     }
 
-    g_object_set (self->priv->recv_valve,
-        "drop", !(self->priv->direction & FS_DIRECTION_RECV), NULL);
+    GST_OBJECT_LOCK (conference);
+    self->priv->recv_valve = gst_object_ref (recv_valve);
+    drop = !(self->priv->direction & FS_DIRECTION_RECV);
+    GST_OBJECT_UNLOCK (conference);
+
+    g_object_set (recv_valve, "drop", drop, NULL);
+
 
     mimic_codec = fs_codec_new (0, "mimic",
         FS_MEDIA_TYPE_VIDEO, 0);
-    fs_stream_emit_src_pad_added (FS_STREAM (self), self->priv->src_pad,
-        mimic_codec);
+    fs_stream_emit_src_pad_added (FS_STREAM (self), src_pad, mimic_codec);
     fs_codec_destroy (mimic_codec);
+    gst_object_unref (src_pad);
+
   }
   else
   {
-    GstPad *valvepad = gst_element_get_static_pad (self->priv->session->valve,
-        "src");
+    GstPad *valvepad;
+
+    GST_OBJECT_LOCK (conference);
+    if (self->priv->session->valve)
+      send_valve = gst_object_ref (self->priv->session->valve);
+    GST_OBJECT_UNLOCK (conference);
+
+    if (!send_valve)
+    {
+      fs_stream_emit_error (FS_STREAM (self), FS_ERROR_DISPOSED,
+          "Session was disposed",
+          "Session was disposed");
+      goto error;
+    }
+
+    valvepad = gst_element_get_static_pad (send_valve, "src");
 
     if (!valvepad)
     {
@@ -562,7 +625,7 @@ _connected (
       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
           "Could not get valve sink pad",
           "Could not get valve sink pad");
-      return;
+      goto error;
     }
 
     if (GST_PAD_LINK_FAILED (gst_pad_link (valvepad, pad)))
@@ -572,24 +635,38 @@ _connected (
       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
           "Could not link valve to codec bin",
           "Could not link valve to codec bin");
-      return;
+      goto error;
     }
     gst_object_unref (valvepad);
     gst_object_unref (pad);
   }
 
-  if (!gst_element_sync_state_with_parent (self->priv->codecbin))
+  if (!gst_element_sync_state_with_parent (codecbin))
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
         "Could not start codec bin",
         "Could not start codec bin");
-    return;
+    goto error;
   }
 
+  if (self->priv->orig_direction == FS_DIRECTION_SEND)
+  {
+    GST_OBJECT_LOCK (conference);
+    drop = !(self->priv->direction & FS_DIRECTION_SEND);
+    GST_OBJECT_UNLOCK (conference);
+    g_object_set (send_valve, "drop", drop, NULL);
+  }
 
-  if (self->priv->direction == FS_DIRECTION_SEND)
-    g_object_set (self->priv->recv_valve,
-        "drop", !(self->priv->direction & FS_DIRECTION_SEND), NULL);
+ error:
+
+  if (send_valve)
+    gst_object_unref (send_valve);
+  if (recv_valve)
+    gst_object_unref (recv_valve);
+  if (codecbin)
+    gst_object_unref (codecbin);
+  if (conference)
+    gst_object_unref (conference);
 }
 
 /**
@@ -600,9 +677,18 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
                                      GError **error)
 {
   FsMsnStream *self = FS_MSN_STREAM (stream);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, error);
+  gboolean ret;
 
-  return fs_msn_connection_set_remote_candidates (self->priv->connection,
+  if (error)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conference);
+  ret = fs_msn_connection_set_remote_candidates (self->priv->connection,
       candidates, error);
+  GST_OBJECT_UNLOCK (conference);
+
+  return ret;
 }
 
 
