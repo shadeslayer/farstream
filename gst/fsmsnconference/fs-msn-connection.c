@@ -923,7 +923,7 @@ shutdown_fd_locked (FsMsnConnection *self, FsMsnPollFD *pollfd, gboolean equal)
 
       if (!gst_poll_fd_has_closed (self->poll, &p->pollfd))
         close (p->pollfd.fd);
-      if (gst_poll_remove_fd (self->poll, &p->pollfd))
+      if (!gst_poll_remove_fd (self->poll, &p->pollfd))
         GST_WARNING ("Could not remove pollfd %p", p);
       g_ptr_array_remove_index_fast (self->pollfds, i);
       g_slice_free (FsMsnPollFD, p);

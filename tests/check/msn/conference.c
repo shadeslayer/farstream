@@ -215,13 +215,14 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   dat->direction = dir;
 
   dat->pipeline = gst_pipeline_new (NULL);
-  dat->conf = FS_CONFERENCE (
-      gst_element_factory_make ("fsmsnconference", NULL));
-  ts_fail_unless (dat->conf != NULL);
 
   bus = gst_element_get_bus (dat->pipeline);
   gst_bus_add_watch (bus, bus_watch, dat);
   gst_object_unref (bus);
+
+  dat->conf = FS_CONFERENCE (
+      gst_element_factory_make ("fsmsnconference", NULL));
+  ts_fail_unless (dat->conf != NULL);
 
   ts_fail_unless (gst_bin_add (GST_BIN (dat->pipeline),
           GST_ELEMENT (dat->conf)));
@@ -230,8 +231,10 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   ts_fail_unless (dat->part != NULL);
   ts_fail_unless (error == NULL);
 
-  dat->session = fs_conference_new_session (dat->conf, dir, &error);
-  ts_fail_unless (dat->session != NULL);
+  dat->session = fs_conference_new_session (dat->conf, FS_MEDIA_TYPE_VIDEO,
+      &error);
+  ts_fail_unless (dat->session != NULL, "Session create error: %s:",
+      error ? error->message : "No GError");
   ts_fail_unless (error == NULL);
 
   if (dir == FS_DIRECTION_SEND)
@@ -271,6 +274,9 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   g_signal_connect (dat->stream, "src-pad-added",
       G_CALLBACK (stream_src_pad_added), dat);
 
+  ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE);
+
   return dat;
 }
 
@@ -293,13 +299,9 @@ GST_START_TEST (test_msnconference_new)
 {
   struct SimpleMsnConference *senddat = setup_conference (FS_DIRECTION_SEND,
       NULL);
-  struct SimpleMsnConference *recvdat = setup_conference (FS_DIRECTION_SEND,
+  struct SimpleMsnConference *recvdat = setup_conference (FS_DIRECTION_RECV,
       NULL);
 
-  ts_fail_if (gst_element_set_state (senddat->pipeline, GST_STATE_PLAYING) ==
-      GST_STATE_CHANGE_FAILURE);
-  ts_fail_if (gst_element_set_state (recvdat->pipeline, GST_STATE_PLAYING) ==
-      GST_STATE_CHANGE_FAILURE);
 
   free_conference (senddat);
   free_conference (recvdat);
@@ -312,15 +314,10 @@ GST_START_TEST (test_msnconference_send_to_recv)
 {
   struct SimpleMsnConference *senddat = setup_conference (FS_DIRECTION_SEND,
       NULL);
-  struct SimpleMsnConference *recvdat = setup_conference (FS_DIRECTION_SEND,
+  struct SimpleMsnConference *recvdat = setup_conference (FS_DIRECTION_RECV,
       senddat);
 
   loop = g_main_loop_new (NULL, FALSE);
-
-  ts_fail_if (gst_element_set_state (senddat->pipeline, GST_STATE_PLAYING) ==
-      GST_STATE_CHANGE_FAILURE);
-  ts_fail_if (gst_element_set_state (recvdat->pipeline, GST_STATE_PLAYING) ==
-      GST_STATE_CHANGE_FAILURE);
 
   g_main_loop_run (loop);
 
