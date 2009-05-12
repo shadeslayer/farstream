@@ -66,19 +66,19 @@ enum
 
 struct _FsMsnStreamPrivate
 {
+  FsMsnConference *conference;
   FsMsnSession *session;
   FsMsnParticipant *participant;
+  FsStreamDirection orig_direction;
   FsStreamDirection direction;
-  FsMsnConference *conference;
+  GstElement *codecbin;
   GstElement *recv_valve;
   GstPad *src_pad;
   FsMsnConnection *connection;
 
-  FsStreamDirection orig_direction;
-
-  GstElement *codecbin;
-
   GError *construction_error;
+
+  GMutex *mutex; /* protects the conference */
 };
 
 
@@ -169,12 +169,63 @@ fs_msn_stream_init (FsMsnStream *self)
   self->priv->direction = FS_DIRECTION_NONE;
   self->priv->orig_direction = FS_DIRECTION_NONE;
 
+  self->priv->mutex = g_mutex_new ();
+}
+
+
+static FsMsnConference *
+fs_msn_stream_get_conference (FsMsnStream *self, GError **error)
+{
+  FsMsnConference *conference;
+
+  g_mutex_lock (self->priv->mutex);
+  conference = self->priv->conference;
+  if (conference)
+    g_object_ref (conference);
+  g_mutex_unlock (self->priv->mutex);
+
+  if (!conference)
+    g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
+        "Called function after stream has been disposed");
+
+  return conference;
 }
 
 static void
 fs_msn_stream_dispose (GObject *object)
 {
   FsMsnStream *self = FS_MSN_STREAM (object);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
+
+  if (!conference)
+    return;
+
+  g_mutex_lock (self->priv->mutex);
+  self->priv->conference = NULL;
+  g_mutex_unlock (self->priv->mutex);
+
+  if (self->priv->src_pad)
+  {
+    gst_pad_set_active (self->priv->src_pad, FALSE);
+    gst_element_remove_pad (GST_ELEMENT (conference), self->priv->src_pad);
+    self->priv->src_pad = NULL;
+  }
+
+  if (self->priv->recv_valve)
+  {
+    gst_element_set_locked_state (self->priv->recv_valve, TRUE);
+    gst_element_set_state (self->priv->recv_valve, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (conference), self->priv->recv_valve);
+    self->priv->recv_valve = NULL;
+  }
+
+  if (self->priv->codecbin)
+  {
+    gst_element_set_locked_state (self->priv->codecbin, TRUE);
+    gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (conference), self->priv->codecbin);
+    self->priv->codecbin = NULL;
+  }
 
   if (self->priv->participant)
   {
@@ -188,12 +239,25 @@ fs_msn_stream_dispose (GObject *object)
     self->priv->session = NULL;
   }
 
+  if (self->priv->connection)
+  {
+    g_object_unref (self->priv->connection);
+    self->priv->connection = NULL;
+  }
+
+  gst_object_unref (conference);
+  gst_object_unref (conference);
+
   parent_class->dispose (object);
 }
 
 static void
 fs_msn_stream_finalize (GObject *object)
 {
+  FsMsnStream *self = FS_MSN_STREAM (object);
+
+  g_mutex_free (self->priv->mutex);
+
   parent_class->finalize (object);
 }
 
