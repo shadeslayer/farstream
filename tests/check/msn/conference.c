@@ -344,10 +344,11 @@ GST_START_TEST (test_msnconference_recv_to_send)
 GST_END_TEST;
 
 
-  /*
-
 GST_START_TEST (test_msnconference_error)
 {
+  struct SimpleMsnConference *dat = setup_conference (FS_DIRECTION_SEND,
+      NULL);
+  GError *error = NULL;
 
   ts_fail_unless (
       fs_conference_new_participant (dat->conf, "", &error) == NULL);
@@ -356,10 +357,24 @@ GST_START_TEST (test_msnconference_error)
   g_clear_error (&error);
 
 
+  ts_fail_unless (
+      fs_conference_new_session (dat->conf, FS_MEDIA_TYPE_VIDEO, &error) == NULL);
+  ts_fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_ALREADY_EXISTS);
+  g_clear_error (&error);
+
+
+  ts_fail_unless (
+      fs_session_new_stream (dat->session, dat->part, FS_DIRECTION_SEND,
+          NULL, 0, NULL, &error) == NULL);
+  ts_fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_ALREADY_EXISTS);
+  g_clear_error (&error);
+
+
+  free_conference (dat);
 }
 GST_END_TEST;
-
-  */
 
 static Suite *
 fsmsnconference_suite (void)
@@ -383,6 +398,11 @@ fsmsnconference_suite (void)
 
   tc_chain = tcase_create ("fsmsnconference_recv_to_send");
   tcase_add_test (tc_chain, test_msnconference_recv_to_send);
+  suite_add_tcase (s, tc_chain);
+
+
+  tc_chain = tcase_create ("fsmsnconference_error");
+  tcase_add_test (tc_chain, test_msnconference_error);
   suite_add_tcase (s, tc_chain);
 
 
