@@ -2316,6 +2316,35 @@ _substream_error (FsRtpSubStream *substream,
   fs_session_emit_error (session, errorno, error_msg, debug_msg);
 }
 
+static void
+_substream_unlinked (FsRtpSubStream *substream, gpointer user_data)
+{
+  FsRtpSession *self = FS_RTP_SESSION (user_data);
+
+
+  if (fs_rtp_session_has_disposed_enter (self, NULL))
+    return;
+
+  FS_RTP_SESSION_LOCK (self);
+
+  if (g_list_find (self->priv->free_substreams, substream))
+  {
+    self->priv->free_substreams = g_list_remove (self->priv->free_substreams,
+        substream);
+    FS_RTP_SESSION_UNLOCK (self);
+
+    fs_rtp_sub_stream_stop (substream);
+    g_object_unref (substream);
+  }
+  else
+  {
+    FS_RTP_SESSION_UNLOCK (self);
+  }
+
+  fs_rtp_session_has_disposed_exit (self);
+}
+
+
 /**
  * fs_rtp_session_new_recv_pad:
  * @session: a #FsSession
@@ -2364,6 +2393,9 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   }
 
   g_signal_connect (substream, "blocked", G_CALLBACK (_substream_blocked),
+      session);
+
+  g_signal_connect (substream, "unlinked", G_CALLBACK (_substream_unlinked),
       session);
 
   /* Lets find the FsRtpStream for this substream, if no Stream claims it

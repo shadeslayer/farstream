@@ -879,6 +879,28 @@ _substream_error (FsRtpSubStream *substream,
   fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
 }
 
+
+static void
+_substream_unlinked (FsRtpSubStream *substream, gpointer user_data)
+{
+  FsRtpStream *stream = FS_RTP_STREAM (user_data);
+  FsRtpSession *session =  fs_rtp_stream_get_session (stream, NULL);
+
+  if (!session)
+    return;
+
+  FS_RTP_SESSION_LOCK (session);
+  stream->substreams = g_list_remove (stream->substreams,
+      substream);
+  FS_RTP_SESSION_UNLOCK (session);
+
+  fs_rtp_sub_stream_stop (substream);
+
+  g_object_unref (substream);
+  g_object_unref (session);
+}
+
+
 /**
  * fs_rtp_stream_add_substream_unlock:
  * @stream: a #FsRtpStream
@@ -909,6 +931,8 @@ fs_rtp_stream_add_substream_unlock (FsRtpStream *stream,
       "receiving", ((stream->priv->direction & FS_DIRECTION_RECV) != 0),
       NULL);
 
+  g_signal_connect (substream, "unlinked",
+      G_CALLBACK (_substream_unlinked), stream);
   g_signal_connect (substream, "src-pad-added",
                     G_CALLBACK (_substream_src_pad_added), stream);
   g_signal_connect (substream, "codec-changed",
