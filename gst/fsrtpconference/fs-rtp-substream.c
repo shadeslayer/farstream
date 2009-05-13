@@ -53,6 +53,7 @@ enum
   CODEC_CHANGED,
   ERROR_SIGNAL,
   BLOCKED,
+  UNLINKED,
   LAST_SIGNAL
 };
 
@@ -83,6 +84,8 @@ struct _FsRtpSubStreamPrivate {
   FsRtpStream *stream; /* only set once, protected by session lock */
 
   GstPad *rtpbin_pad;
+
+  gulong rtpbin_unlinked_sig;
 
   GstElement *input_valve;
   GstElement *output_valve;
@@ -364,6 +367,23 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       g_cclosure_marshal_VOID__POINTER,
       G_TYPE_NONE, 1, G_TYPE_POINTER);
 
+
+ /**
+   * FsRtpSubStream:unlinked
+   * @self: #FsRtpSubStream that emitted the signal
+   *
+   * This signal is emitted when the rtpbin pad that this substream decodes
+   * from is unlinked.
+   */
+  signals[UNLINKED] = g_signal_new ("unlinked",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0, G_TYPE_NONE);
+
   g_type_class_add_private (klass, sizeof (FsRtpSubStreamPrivate));
 }
 
@@ -490,6 +510,14 @@ fs_rtp_sub_stream_stop_no_rtcp_timeout_thread (FsRtpSubStream *self)
 }
 
 static void
+rtpbin_pad_unlinked (GstPad *pad, GstPad *peer, gpointer user_data)
+{
+  FsRtpSubStream *self = user_data;
+
+  g_signal_emit (self, signals[UNLINKED], 0);
+}
+
+static void
 fs_rtp_sub_stream_constructed (GObject *object)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
@@ -505,6 +533,9 @@ fs_rtp_sub_stream_constructed (GObject *object)
       FS_ERROR_INVALID_ARGUMENTS, "A Substream needs a conference object");
     return;
   }
+
+  self->priv->rtpbin_unlinked_sig = g_signal_connect (self->priv->rtpbin_pad,
+      "unlinked", G_CALLBACK (rtpbin_pad_unlinked), self);
 
   tmp = g_strdup_printf ("output_recv_valve_%d_%d_%d", self->priv->session->id,
       self->ssrc, self->pt);
@@ -1051,6 +1082,12 @@ fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
     return;
   }
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
+
+  if (substream->priv->rtpbin_unlinked_sig) {
+    g_signal_handler_disconnect (substream->priv->rtpbin_pad,
+        substream->priv->rtpbin_unlinked_sig);
+    substream->priv->rtpbin_unlinked_sig = 0;
+  }
 
   if (substream->priv->output_ghostpad)
     gst_pad_set_active (substream->priv->output_ghostpad, FALSE);
