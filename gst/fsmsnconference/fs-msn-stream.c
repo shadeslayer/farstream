@@ -335,25 +335,45 @@ fs_msn_stream_set_property (GObject *object,
 
       if (g_value_get_flags (value) != self->priv->direction)
       {
+        GstElement *recv_valve = NULL;
+        GstElement *session_valve = NULL;
+        if (self->priv->recv_valve)
+          recv_valve = gst_object_ref (self->priv->recv_valve);
+        if (self->priv->session->valve)
+          session_valve = gst_object_ref (self->priv->session->valve);
+
         self->priv->direction =
           g_value_get_flags (value) & self->priv->orig_direction;
 
         if (self->priv->direction == FS_DIRECTION_NONE)
         {
-          if (self->priv->recv_valve)
-            g_object_set (self->priv->recv_valve, "drop", TRUE, NULL);
-          g_object_set (self->priv->session->valve, "drop", TRUE, NULL);
+          GST_OBJECT_UNLOCK (conference);
+          if (recv_valve)
+            g_object_set (recv_valve, "drop", TRUE, NULL);
+          g_object_set (session_valve, "drop", TRUE, NULL);
+          GST_OBJECT_LOCK (conference);
         }
         else if (self->priv->direction == FS_DIRECTION_SEND)
         {
           if (self->priv->codecbin)
-            g_object_set (self->priv->session->valve, "drop", FALSE, NULL);
+          {
+            GST_OBJECT_UNLOCK (conference);
+            g_object_set (session_valve, "drop", FALSE, NULL);
+            GST_OBJECT_LOCK (conference);
+          }
         }
         else if (self->priv->direction == FS_DIRECTION_RECV)
         {
-         if (self->priv->recv_valve)
-            g_object_set (self->priv->recv_valve, "drop", FALSE, NULL);
+          GST_OBJECT_UNLOCK (conference);
+          if (recv_valve)
+            g_object_set (recv_valve, "drop", FALSE, NULL);
+          GST_OBJECT_LOCK (conference);
         }
+
+        if (session_valve)
+          gst_object_unref (session_valve);
+        if (recv_valve)
+          gst_object_unref (recv_valve);
       }
       self->priv->direction = g_value_get_flags (value);
       break;
