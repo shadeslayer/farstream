@@ -626,7 +626,7 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
   return nc;
 
  error:
-  g_free (nc);
+  nice_candidate_free (nc);
   return NULL;
 }
 
