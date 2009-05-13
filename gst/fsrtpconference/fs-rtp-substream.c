@@ -676,8 +676,7 @@ fs_rtp_sub_stream_dispose (GObject *object)
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (object);
 
-  if (self->priv->disposed)
-    return;
+  fs_rtp_sub_stream_stop (self);
 
   fs_rtp_sub_stream_stop_no_rtcp_timeout_thread (self);
 
