@@ -524,7 +524,7 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
       codec1->channels != codec2->channels ||
       codec1->encoding_name == NULL ||
       codec2->encoding_name == NULL ||
-      strcmp (codec1->encoding_name, codec2->encoding_name))
+      g_ascii_strcasecmp (codec1->encoding_name, codec2->encoding_name))
     return FALSE;
 
 
