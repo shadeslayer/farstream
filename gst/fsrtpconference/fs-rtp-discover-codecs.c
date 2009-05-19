@@ -1204,12 +1204,11 @@ create_codec_cap_list (GstElementFactory *factory,
             gst_caps_unref (entry->rtp_caps);
             entry->rtp_caps = new_rtp_caps;
           } else {
-            entry->rtp_caps = rtp_caps;
+            entry->rtp_caps = gst_caps_ref (rtp_caps);
             /* This shouldn't happen, its we're looking at rtp elements
              * or we're not */
             g_assert_not_reached ();
           }
-          gst_caps_unref (rtp_caps);
         }
 
         newcaps = gst_caps_union (cur_caps, entry->caps);
