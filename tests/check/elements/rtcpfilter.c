@@ -28,23 +28,28 @@
 #include <gst/rtp/gstrtcpbuffer.h>
 
 static GstBuffer *
-make_buffer (GstCaps *caps, gboolean have_sr, guint rr_count,
+make_buffer (GstCaps *caps, gboolean have_sr, gint rr_count,
     gboolean have_sdes, gboolean have_bye)
 {
   GstRTCPPacket packet;
   GstBuffer *buf = gst_rtcp_buffer_new (1024);
-  guint i;
+  gint i;
 
   gst_buffer_set_caps (buf, caps);
   if (have_sr)
   {
     gst_rtcp_buffer_add_packet (buf, GST_RTCP_TYPE_SR, &packet);
-    gst_rtcp_packet_sr_set_sender_info (&packet, 1212, 12, 12, 12, 12);
+    gst_rtcp_packet_sr_set_sender_info (&packet, 132132, 12, 12, 12, 12);
   }
-  gst_rtcp_buffer_add_packet (buf, GST_RTCP_TYPE_RR, &packet);
-  gst_rtcp_packet_rr_set_ssrc (&packet, 132132);
-  for (i = 0; i < rr_count; i++)
-    gst_rtcp_packet_add_rb (&packet, 123123+i, 12, 12, 21, 31, 41, 12);
+
+  if (rr_count >= 0 || !have_sr)
+  {
+    gst_rtcp_buffer_add_packet (buf, GST_RTCP_TYPE_RR, &packet);
+    gst_rtcp_packet_rr_set_ssrc (&packet, 132132);
+    for (i = 0; i < rr_count; i++)
+      gst_rtcp_packet_add_rb (&packet, 123124+i, 12, 12, 21, 31, 41, 12);
+  }
+
   if (have_sdes)
   {
     gst_rtcp_buffer_add_packet (buf, GST_RTCP_TYPE_SDES, &packet);
@@ -74,9 +79,9 @@ GST_START_TEST (test_rtcpfilter)
   GList *out_buffers = NULL;
   GstBuffer *buf = NULL;
   GstCaps *caps = gst_caps_new_simple ("application/x-rtcp", NULL);
-  guint i;
+  gint i;
 
-  for (i = 0; i < 3; i++)
+ for (i = 0; i < 3; i++)
   {
     buf = make_buffer (caps, FALSE, i, FALSE, FALSE);
     in_buffers = g_list_append (in_buffers, gst_buffer_ref (buf));
@@ -91,9 +96,9 @@ GST_START_TEST (test_rtcpfilter)
     out_buffers = g_list_append (out_buffers, buf);
   }
 
-
-  for (i = 0; i < 3; i++)
+  for (i = -1; i < 3; i++)
   {
+
     in_buffers = g_list_append (in_buffers,
         make_buffer (caps, TRUE, i, FALSE, FALSE));
     out_buffers = g_list_append (out_buffers,
@@ -104,11 +109,13 @@ GST_START_TEST (test_rtcpfilter)
     out_buffers = g_list_append (out_buffers,
         make_buffer (caps, FALSE, i, TRUE, FALSE));
 
+
     in_buffers = g_list_append (in_buffers,
         make_buffer (caps, TRUE, i, TRUE, TRUE));
     out_buffers = g_list_append (out_buffers,
         make_buffer (caps, FALSE, i, TRUE, TRUE));
   }
+
 
 
   gst_check_element_push_buffer_list ("fsrtcpfilter", in_buffers, out_buffers,
