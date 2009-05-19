@@ -485,7 +485,7 @@ compare_lists (GList *list1, GList *list2)
          item2 = g_list_next (item2)) {
       FsCodecParameter *param2 = item2->data;
 
-      if (!strcmp (param1->name, param2->name) &&
+      if (!g_ascii_strcasecmp (param1->name, param2->name) &&
           !strcmp (param1->value, param2->value))
         break;
     }
