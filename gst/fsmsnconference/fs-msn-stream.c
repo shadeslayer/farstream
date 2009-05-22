@@ -697,6 +697,29 @@ _connected (
     gst_object_unref (conference);
 }
 
+static void
+_connection_failed (FsMsnConnection *connection, FsMsnStream *self)
+{
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, NULL);
+
+  if (!conference)
+    return;
+
+  gst_element_post_message (GST_ELEMENT (conference),
+      gst_message_new_element (GST_OBJECT (conference),
+          gst_structure_new ("farsight-component-state-changed",
+              "stream", FS_TYPE_STREAM, self,
+              "component", G_TYPE_UINT, 1,
+              "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_FAILED,
+              NULL)));
+
+  fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONNECTION_FAILED,
+      "Could not establish streaming connection",
+      "Could not establish streaming connection");
+
+  gst_object_unref (conference);
+}
+
 /**
  * fs_msn_stream_set_remote_candidate:
  */
@@ -781,10 +804,12 @@ fs_msn_stream_new (FsMsnSession *session,
   g_signal_connect (self->priv->connection,
       "local-candidates-prepared",
       G_CALLBACK (_local_candidates_prepared), self);
-
   g_signal_connect (self->priv->connection,
       "connected",
       G_CALLBACK (_connected), self);
+  g_signal_connect (self->priv->connection,
+      "connection-failed",
+      G_CALLBACK (_connection_failed), self);
 
   if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
           error))
