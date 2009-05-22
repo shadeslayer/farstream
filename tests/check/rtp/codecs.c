@@ -416,7 +416,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 
   if (!item)
   {
-    g_warning ("Could not find a dynamically allocated codec, skipping testing"
+    g_debug ("Could not find a dynamically allocated codec, skipping testing"
                " of the payload-type reservation mecanism");
     goto out;
   }
@@ -759,7 +759,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 
   if (!item)
   {
-    g_warning ("Could not find Vorbis encoder/decoder/payloader/depayloaders,"
+    g_debug ("Could not find Vorbis encoder/decoder/payloader/depayloaders,"
         " so we are skipping the config-data test");
     goto out;
   }
@@ -987,7 +987,7 @@ GST_START_TEST (test_rtpcodecs_dynamic_pt)
 
   if (!codec1 || !codec2)
   {
-    g_warning ("Could not find two dynamically allocated codec,"
+    g_debug ("Could not find two dynamically allocated codec,"
         "skipping testing of the payload-type dynamic number preferences");
     goto out;
   }
