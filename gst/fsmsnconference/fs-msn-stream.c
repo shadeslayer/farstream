@@ -506,6 +506,14 @@ _connected (
 
   GST_DEBUG ("******** CONNECTED %d**********", fd);
 
+  gst_element_post_message (GST_ELEMENT (conference),
+      gst_message_new_element (GST_OBJECT (conference),
+          gst_structure_new ("farsight-component-state-changed",
+              "stream", FS_TYPE_STREAM, self,
+              "component", G_TYPE_UINT, 1,
+              "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_READY,
+              NULL)));
+
   if (self->priv->orig_direction == FS_DIRECTION_RECV)
     codecbin = gst_parse_bin_from_description (
         "fdsrc name=fdsrc ! mimdec ! valve name=recv_valve", TRUE, &error);
@@ -707,6 +715,18 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
   ret = fs_msn_connection_set_remote_candidates (self->priv->connection,
       candidates, error);
   GST_OBJECT_UNLOCK (conference);
+
+
+  if (ret)
+    gst_element_post_message (GST_ELEMENT (conference),
+        gst_message_new_element (GST_OBJECT (conference),
+            gst_structure_new ("farsight-component-state-changed",
+                "stream", FS_TYPE_STREAM, self,
+                "component", G_TYPE_UINT, 1,
+                "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_CONNECTING,
+                NULL)));
+
+  gst_object_unref (conference);
 
   return ret;
 }
