@@ -436,13 +436,13 @@ GST_END_TEST;
 
 GST_START_TEST (test_rawudptransmitter_run_invalid_stun)
 {
-  GParameter params[3];
+  GParameter params[4];
 
   /*
    * Hopefully not one is runing a stun server on local port 7777
    */
 
-  memset (params, 0, sizeof (GParameter) * 3);
+  memset (params, 0, sizeof (GParameter) * 4);
 
   params[0].name = "stun-ip";
   g_value_init (&params[0].value, G_TYPE_STRING);
@@ -456,8 +456,11 @@ GST_START_TEST (test_rawudptransmitter_run_invalid_stun)
   g_value_init (&params[2].value, G_TYPE_UINT);
   g_value_set_uint (&params[2].value, 3);
 
-  run_rawudp_transmitter_test (3, params, 0);
+  params[3].name = "upnp-discovery";
+  g_value_init (&params[3].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[3].value, FALSE);
 
+  run_rawudp_transmitter_test (4, params, 0);
 }
 GST_END_TEST;
 
@@ -842,7 +845,7 @@ GST_END_TEST;
 
 GST_START_TEST (test_rawudptransmitter_run_stun_altern_to_nowhere)
 {
-  GParameter params[3];
+  GParameter params[4];
 
   if (stun_alternd_data == NULL)
     return;
@@ -851,7 +854,7 @@ GST_START_TEST (test_rawudptransmitter_run_stun_altern_to_nowhere)
    * Hopefully not one is runing a stun server on local port 3478
    */
 
-  memset (params, 0, sizeof (GParameter) * 3);
+  memset (params, 0, sizeof (GParameter) * 4);
 
   params[0].name = "stun-ip";
   g_value_init (&params[0].value, G_TYPE_STRING);
@@ -865,8 +868,11 @@ GST_START_TEST (test_rawudptransmitter_run_stun_altern_to_nowhere)
   g_value_init (&params[2].value, G_TYPE_UINT);
   g_value_set_uint (&params[2].value, 10);
 
-  run_rawudp_transmitter_test (3, params, 0);
+  params[3].name = "upnp-discovery";
+  g_value_init (&params[3].value, G_TYPE_BOOLEAN);
+  g_value_set_boolean (&params[3].value, FALSE);
 
+  run_rawudp_transmitter_test (4, params, 0);
 }
 GST_END_TEST;
 
