@@ -58,6 +58,7 @@ libfsrtpconference_la_LIBADD = \
 	$(GST_LIBS) \
 	-lgstrtp-@GST_MAJORMINOR@
 
+libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 
 # Optionally build a library to allow building the gtk-doc
 
