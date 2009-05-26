@@ -3274,13 +3274,20 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
     FsCodec *codec_without_config,
     gboolean error_emit)
 {
+  FS_RTP_SESSION_LOCK (self);
+
   if (self->priv->send_codecbin)
   {
-    gst_element_set_locked_state (self->priv->send_codecbin, TRUE);
-    if (gst_element_set_state (self->priv->send_codecbin, GST_STATE_NULL) !=
+    GstElement *codecbin = self->priv->send_codecbin;
+    self->priv->send_codecbin = NULL;
+
+    FS_RTP_SESSION_UNLOCK (self);
+
+    gst_element_set_locked_state (codecbin, TRUE);
+    if (gst_element_set_state (codecbin, GST_STATE_NULL) !=
         GST_STATE_CHANGE_SUCCESS)
     {
-      gst_element_set_locked_state (self->priv->send_codecbin, FALSE);
+      gst_element_set_locked_state (codecbin, FALSE);
       GST_ERROR ("Could not stop the codec bin, setting it to NULL did not"
           " succeed");
       if (error_emit)
@@ -3290,12 +3297,10 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
       return FALSE;
     }
 
-    gst_bin_remove (GST_BIN (self->priv->conference),
-        self->priv->send_codecbin);
-    self->priv->send_codecbin = NULL;
+    gst_bin_remove (GST_BIN (self->priv->conference), codecbin);
+    FS_RTP_SESSION_LOCK (self);
   }
 
-  FS_RTP_SESSION_LOCK (self);
   fs_codec_destroy (self->priv->current_send_codec);
   self->priv->current_send_codec = NULL;
   FS_RTP_SESSION_UNLOCK (self);
