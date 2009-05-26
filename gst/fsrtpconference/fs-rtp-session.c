@@ -1857,6 +1857,8 @@ fs_rtp_session_add_transmitter_gst_sink (FsRtpSession *self,
     goto error;
   }
 
+  gst_element_sync_state_with_parent (sink);
+
   if (!_get_request_pad_and_link (self->priv->transmitter_rtp_tee,
       "rtp tee", sink, "sink1", GST_PAD_SINK, error))
     goto error;
@@ -1864,8 +1866,6 @@ fs_rtp_session_add_transmitter_gst_sink (FsRtpSession *self,
   if (!_get_request_pad_and_link (self->priv->transmitter_rtcp_tee,
       "rtcp tee", sink, "sink2", GST_PAD_SINK, error))
     goto error;
-
-  gst_element_sync_state_with_parent (sink);
 
   gst_object_unref (sink);
 
