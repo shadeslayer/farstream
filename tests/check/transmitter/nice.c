@@ -197,13 +197,15 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   buffer_count[stream][component_id-1]++;
 
 
-  g_debug ("Buffer %d stream: %u component: %d size: %u",
-      buffer_count[stream][component_id-1], stream,
-      component_id, GST_BUFFER_SIZE (buffer));
-
-  g_debug ("has %d %d %d %d",
-      buffer_count[0][0], buffer_count[0][1],
-      buffer_count[1][0], buffer_count[1][1]);
+  if (buffer_count[stream][component_id-1] % 10 == 0)
+  {
+    g_debug ("Buffer %d stream: %u component: %d size: %u",
+        buffer_count[stream][component_id-1], stream,
+        component_id, GST_BUFFER_SIZE (buffer));
+    g_debug ("Received %d %d %d %d",
+        buffer_count[0][0], buffer_count[0][1],
+        buffer_count[1][0], buffer_count[1][1]);
+  }
 
   ts_fail_if (buffer_count[stream][component_id-1] > 20,
     "Too many buffers %d > 20 for component",
