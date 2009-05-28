@@ -683,7 +683,7 @@ fs_rtp_conference_handle_message (
       const GstStructure *s = gst_message_get_structure (message);
 
       /* we change the structure name and add the session ID to it */
-      if (gst_structure_has_name (s, "GstRTPBinSDES") &&
+      if (gst_structure_has_name (s, "application/x-rtp-source-sdes") &&
           gst_structure_has_field_typed (s, "session", G_TYPE_UINT) &&
           gst_structure_has_field_typed (s, "ssrc", G_TYPE_UINT) &&
           gst_structure_has_field_typed (s, "cname", G_TYPE_STRING))
