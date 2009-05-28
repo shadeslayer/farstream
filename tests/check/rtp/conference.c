@@ -1277,12 +1277,12 @@ multicast_init(void)
 static void
 multicast_cname_init(void)
 {
-  multicast_init();
   associate_cnames_init ();
+  multicast_init();
 }
 
 
-GST_START_TEST (test_rtpconference_multicast_two_way_cname_assoc)
+GST_START_TEST (test_rtpconference_multicast_three_way_cname_assoc)
 {
   gchar *mcast_addr = find_multicast_capable_address ();
 
@@ -1329,7 +1329,7 @@ multicast_ssrc_init(void)
 }
 
 
-GST_START_TEST (test_rtpconference_multicast_two_way_ssrc_assoc)
+GST_START_TEST (test_rtpconference_multicast_three_way_ssrc_assoc)
 {
   gchar *mcast_addr = find_multicast_capable_address ();
 
@@ -1426,13 +1426,13 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_dispose);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconference_multicast_two_way_cname_assoc");
+  tc_chain = tcase_create ("fsrtpconference_multicast_three_way_cname_assoc");
   min_timeout (tc_chain, 30);
-  tcase_add_test (tc_chain, test_rtpconference_multicast_two_way_cname_assoc);
+  tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_cname_assoc);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconference_multicast_two_way_ssrc_assoc");
-  tcase_add_test (tc_chain, test_rtpconference_multicast_two_way_ssrc_assoc);
+  tc_chain = tcase_create ("fsrtpconference_multicast_three_way_ssrc_assoc");
+  tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_ssrc_assoc);
   suite_add_tcase (s, tc_chain);
 
   return s;
