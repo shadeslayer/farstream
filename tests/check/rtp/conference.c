@@ -1412,7 +1412,7 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconference_three_way_cname_assoc");
   tcase_add_test (tc_chain, test_rtpconference_three_way_cname_assoc);
-  suite_add_tcase (s, tc_chain);
+  //suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrtpconference_simple_profile");
   tcase_add_test (tc_chain, test_rtpconference_simple_profile);
@@ -1429,7 +1429,7 @@ fsrtpconference_suite (void)
   tc_chain = tcase_create ("fsrtpconference_multicast_three_way_cname_assoc");
   min_timeout (tc_chain, 30);
   tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_cname_assoc);
-  suite_add_tcase (s, tc_chain);
+  //suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrtpconference_multicast_three_way_ssrc_assoc");
   tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_ssrc_assoc);
