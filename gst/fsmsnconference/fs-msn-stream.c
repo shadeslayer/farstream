@@ -59,7 +59,9 @@ enum
   PROP_DIRECTION,
   PROP_PARTICIPANT,
   PROP_SESSION,
-  PROP_CONFERENCE
+  PROP_CONFERENCE,
+  PROP_SESSION_ID,
+  PROP_INITIAL_PORT
 };
 
 
@@ -77,6 +79,9 @@ struct _FsMsnStreamPrivate
   FsMsnConnection *connection;
 
   GError *construction_error;
+
+  guint session_id;
+  guint initial_port;
 
   GMutex *mutex; /* protects the conference */
 };
@@ -154,6 +159,22 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
           "This is a conveniance pointer for the Conference",
           FS_TYPE_MSN_CONFERENCE,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+  g_object_class_install_property (gobject_class,
+      PROP_SESSION_ID,
+      g_param_spec_uint ("session-id",
+          "The session-id of the session",
+          "This is the session-id of the MSN session",
+          9000, 9999, 9000,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class,
+      PROP_INITIAL_PORT,
+      g_param_spec_uint ("initial-port",
+          "The initial port to listen on",
+          "The initial port to try to listen on for incoming connection."
+          " If already used, port+1 is tried until one succeeds",
+          1025, 65535, 1025,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -289,6 +310,12 @@ fs_msn_stream_get_property (GObject *object,
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
       break;
+    case PROP_SESSION_ID:
+      g_value_set_uint (value, self->priv->session_id);
+      break;
+    case PROP_INITIAL_PORT:
+      g_value_set_uint (value, self->priv->initial_port);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -379,6 +406,12 @@ fs_msn_stream_set_property (GObject *object,
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
+      break;
+    case PROP_SESSION_ID:
+      self->priv->session_id = g_value_get_uint (value);
+      break;
+    case PROP_INITIAL_PORT:
+      self->priv->initial_port = g_value_get_uint (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
