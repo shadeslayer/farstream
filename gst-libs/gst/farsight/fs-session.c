@@ -599,3 +599,26 @@ fs_session_list_transmitters (FsSession *session)
     return NULL;
   }
 }
+
+
+/**
+ * fs_session_get_stream_transmitter_type:
+ * @session: A #FsSession
+ * @transmitter: The name of the transmitter
+ *
+ * Returns the GType of the stream transmitter, bindings can use it
+ * to validate/convert the parameters passed to fs_session_new_stream().
+ *
+ * Returns: The #GType of the stream transmitter
+ */
+GType
+fs_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter)
+{
+  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+
+  if (klass->get_stream_transmitter_type)
+    return klass->get_stream_transmitter_type (session, transmitter);
+
+  return 0;
+}
