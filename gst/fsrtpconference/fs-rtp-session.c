@@ -1880,44 +1880,35 @@ fs_rtp_session_add_transmitter_gst_sink (FsRtpSession *self,
 }
 
 /**
- * fs_rtp_session_get_new_stream_transmitter:
+ * fs_rtp_session_get_transmitter:
  * @self: a #FsRtpSession
- * @transmitter_name: The name of the transmitter to create a stream for
- * @participant: The #FsRtpParticipant for this stream
- * @n_parameters: the number of parameters
- * @parameters: a table of n_parameters #GParameter structs
+ * @transmitter_name: The name of the transmitter
+ * @error: a #GError or %NULL
  *
- * This function will create a new #FsStreamTransmitter, possibly creating
- * and inserting into the pipeline its parent #FsTransmitter
+ * Returns the requested #FsTransmitter, possibly creating it if it
+ * does not exist.
  *
- * Returns: a newly allocated #FsStreamTransmitter
+ * Returns: a #FsTransmitter or %NULL on error
  */
-
-static FsStreamTransmitter *
-fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
-  const gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
-  GParameter *parameters, GError **error)
+static FsTransmitter *
+fs_rtp_session_get_transmitter (FsRtpSession *self,
+    const gchar *transmitter_name,
+    GError **error)
 {
   FsTransmitter *transmitter;
   GstElement *src;
   gboolean sink_add_later = FALSE;
 
   FS_RTP_SESSION_LOCK (self);
-
   transmitter = g_hash_table_lookup (self->priv->transmitters,
     transmitter_name);
 
   if (transmitter)
   {
-    FsStreamTransmitter *st = NULL;
     g_object_ref (transmitter);
     FS_RTP_SESSION_UNLOCK (self);
-    st = fs_transmitter_new_stream_transmitter (transmitter, participant,
-      n_parameters, parameters, error);
-    g_object_unref (transmitter);
-    return st;
+    return transmitter;
   }
-
   FS_RTP_SESSION_UNLOCK (self);
 
   transmitter = fs_transmitter_new (transmitter_name, 2, error);
@@ -1970,6 +1961,8 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
     goto error;
   }
 
+  g_object_ref (transmitter);
+
   if (sink_add_later)
     self->priv->transmitters_add_sink = g_list_prepend (
         self->priv->transmitters_add_sink, g_object_ref (transmitter));
@@ -1979,8 +1972,7 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
 
   gst_object_unref (src);
 
-  return fs_transmitter_new_stream_transmitter (transmitter, participant,
-    n_parameters, parameters, error);
+  return transmitter;
 
   /*
    * TODO:
@@ -1997,6 +1989,40 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
   return NULL;
 }
 
+/**
+ * fs_rtp_session_get_new_stream_transmitter:
+ * @self: a #FsRtpSession
+ * @transmitter_name: The name of the transmitter to create a stream for
+ * @participant: The #FsRtpParticipant for this stream
+ * @n_parameters: the number of parameters
+ * @parameters: a table of n_parameters #GParameter structs
+ *
+ * This function will create a new #FsStreamTransmitter, possibly creating
+ * and inserting into the pipeline its parent #FsTransmitter
+ *
+ * Returns: a newly allocated #FsStreamTransmitter
+ */
+
+static FsStreamTransmitter *
+fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
+  const gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
+  GParameter *parameters, GError **error)
+{
+  FsTransmitter *transmitter;
+  FsStreamTransmitter *st = NULL;
+
+  transmitter = fs_rtp_session_get_transmitter (self, transmitter_name, error);
+
+  if (!transmitter)
+    return NULL;
+
+  st = fs_transmitter_new_stream_transmitter (transmitter, participant,
+      n_parameters, parameters, error);
+
+  g_object_unref (transmitter);
+
+  return st;
+}
 
 /**
  * fs_rtp_session_get_stream_by_ssrc_locked
