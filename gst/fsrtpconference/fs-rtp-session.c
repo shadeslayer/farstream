@@ -241,6 +241,8 @@ static gboolean fs_rtp_session_set_codec_preferences (FsSession *session,
 static void fs_rtp_session_verify_send_codec_bin (FsRtpSession *self);
 
 static gchar **fs_rtp_session_list_transmitters (FsSession *session);
+static GType fs_rtp_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter);
 
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
@@ -324,6 +326,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->set_codec_preferences =
     fs_rtp_session_set_codec_preferences;
   session_class->list_transmitters = fs_rtp_session_list_transmitters;
+  session_class->get_stream_transmitter_type =
+    fs_rtp_session_get_stream_transmitter_type;
 
   g_object_class_override_property (gobject_class,
     PROP_MEDIA_TYPE, "media-type");
@@ -4511,4 +4515,23 @@ fs_rtp_session_list_transmitters (FsSession *session)
     rv = g_malloc0 (1);
 
   return rv;
+}
+
+
+static GType
+fs_rtp_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter)
+{
+  FsRtpSession *self = FS_RTP_SESSION (session);
+  GType st_type = 0;
+  FsTransmitter *trans;
+
+  trans = fs_rtp_session_get_transmitter (self, transmitter, NULL);
+
+  if (transmitter)
+    st_type = fs_transmitter_get_stream_transmitter_type (trans);
+
+  g_object_unref (trans);
+
+  return st_type;
 }
