@@ -113,6 +113,10 @@ static FsStream *fs_msn_session_new_stream (FsSession *session,
     GParameter *parameters,
     GError **error);
 
+static GType
+fs_msn_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter);
+
 static void _remove_stream (gpointer user_data,
                             GObject *where_the_object_was);
 
@@ -133,6 +137,8 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
   gobject_class->constructed = fs_msn_session_constructed;
 
   session_class->new_stream = fs_msn_session_new_stream;
+  session_class->get_stream_transmitter_type =
+    fs_msn_session_get_stream_transmitter_type;
 
   g_object_class_override_property (gobject_class,
       PROP_MEDIA_TYPE, "media-type");
@@ -543,3 +549,10 @@ fs_msn_session_new (FsMediaType media_type,
   return session;
 }
 
+
+static GType
+fs_msn_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter)
+{
+  return FS_TYPE_MSN_STREAM;
+}
