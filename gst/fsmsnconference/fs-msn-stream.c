@@ -118,6 +118,14 @@ static void _new_local_candidate (
     FsCandidate *candidate,
     gpointer user_data);
 
+static void
+_connected (
+    FsMsnConnection *connection,
+    guint fd,
+    gpointer user_data);
+
+static void
+_connection_failed (FsMsnConnection *connection, FsMsnStream *self);
 
 
 static GObjectClass *parent_class = NULL;
@@ -428,7 +436,6 @@ fs_msn_stream_set_property (GObject *object,
 static void
 fs_msn_stream_constructed (GObject *object)
 {
-
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
 
   if (self->priv->direction == FS_DIRECTION_SEND)
@@ -471,6 +478,27 @@ fs_msn_stream_constructed (GObject *object)
         FS_ERROR_INVALID_ARGUMENTS,
         "Direction must be sending OR receiving");
   }
+
+  self->priv->connection = fs_msn_connection_new (self->priv->session_id,
+      self->priv->initial_port);
+
+  g_signal_connect (self->priv->connection,
+      "new-local-candidate",
+      G_CALLBACK (_new_local_candidate), self);
+  g_signal_connect (self->priv->connection,
+      "local-candidates-prepared",
+      G_CALLBACK (_local_candidates_prepared), self);
+  g_signal_connect (self->priv->connection,
+      "connected",
+      G_CALLBACK (_connected), self);
+  g_signal_connect (self->priv->connection,
+      "connection-failed",
+      G_CALLBACK (_connection_failed), self);
+
+  if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
+          &self->priv->construction_error))
+    return;
+
 
   GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
 }
@@ -814,6 +842,8 @@ fs_msn_stream_new (FsMsnSession *session,
       "participant", participant,
       "direction", direction,
       "conference", conference,
+      "session-id", session_id,
+      "initial-port", initial_port,
       NULL);
 
   if (!self)
@@ -825,28 +855,6 @@ fs_msn_stream_new (FsMsnSession *session,
   else if (self->priv->construction_error)
   {
     g_propagate_error (error, self->priv->construction_error);
-    g_object_unref (self);
-    return NULL;
-  }
-
-  self->priv->connection = fs_msn_connection_new (session_id, initial_port);
-
-  g_signal_connect (self->priv->connection,
-      "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), self);
-  g_signal_connect (self->priv->connection,
-      "local-candidates-prepared",
-      G_CALLBACK (_local_candidates_prepared), self);
-  g_signal_connect (self->priv->connection,
-      "connected",
-      G_CALLBACK (_connected), self);
-  g_signal_connect (self->priv->connection,
-      "connection-failed",
-      G_CALLBACK (_connection_failed), self);
-
-  if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
-          error))
-  {
     g_object_unref (self);
     return NULL;
   }
