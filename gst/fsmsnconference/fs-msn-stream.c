@@ -174,7 +174,6 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
           "This is the session-id of the MSN session",
           9000, 9999, 9000,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
   g_object_class_install_property (gobject_class,
       PROP_INITIAL_PORT,
       g_param_spec_uint ("initial-port",
@@ -196,6 +195,8 @@ fs_msn_stream_init (FsMsnStream *self)
 
   self->priv->direction = FS_DIRECTION_NONE;
   self->priv->orig_direction = FS_DIRECTION_NONE;
+
+  self->priv->session_id = g_random_int_range (9000, 9999);
 
   self->priv->mutex = g_mutex_new ();
 }
@@ -833,18 +834,37 @@ fs_msn_stream_new (FsMsnSession *session,
     FsMsnParticipant *participant,
     FsStreamDirection direction,
     FsMsnConference *conference,
-    guint session_id,
-    guint initial_port,
+    guint n_parameters,
+    GParameter *parameters,
     GError **error)
 {
-  FsMsnStream *self = g_object_new (FS_TYPE_MSN_STREAM,
-      "session", session,
-      "participant", participant,
-      "direction", direction,
-      "conference", conference,
-      "session-id", session_id,
-      "initial-port", initial_port,
-      NULL);
+  FsMsnStream *self;
+  GParameter *params;
+
+  params = g_new0 (GParameter, n_parameters + 4);
+
+  params[0].name = "session";
+  g_value_init (&params[0].value, FS_TYPE_SESSION);
+  g_value_set_object (&params[0].value, session);
+
+  params[1].name = "participant";
+  g_value_init (&params[1].value, FS_TYPE_PARTICIPANT);
+  g_value_set_object (&params[1].value, participant);
+
+  params[2].name = "direction";
+  g_value_init (&params[2].value, FS_TYPE_STREAM_DIRECTION);
+  g_value_set_flags (&params[2].value, direction);
+
+  params[3].name = "conference";
+  g_value_init (&params[3].value, FS_TYPE_MSN_CONFERENCE);
+  g_value_set_object (&params[3].value, conference);
+
+  if (n_parameters)
+    memcpy (params+4, parameters, n_parameters * sizeof(GParameter));
+
+  self = g_object_newv (FS_TYPE_MSN_STREAM, n_parameters + 4, params);
+
+  g_free (params);
 
   if (!self)
   {

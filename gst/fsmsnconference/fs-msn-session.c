@@ -62,9 +62,7 @@ enum
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY,
-  PROP_CONFERENCE,
-  PROP_SESSION_ID,
-  PROP_INITIAL_PORT
+  PROP_CONFERENCE
 };
 
 
@@ -79,9 +77,6 @@ struct _FsMsnSessionPrivate
   GError *construction_error;
 
   GstPad *media_sink_pad;
-
-  guint session_id;
-  guint initial_port;
 
   GMutex *mutex; /* protects the conference */
 };
@@ -166,24 +161,6 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
           FS_TYPE_MSN_CONFERENCE,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  g_object_class_install_property (gobject_class,
-      PROP_SESSION_ID,
-      g_param_spec_uint ("session-id",
-          "The session-id of the session",
-          "This is the session-id of the MSN session",
-          9000, 9999, 9000,
-          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class,
-      PROP_INITIAL_PORT,
-      g_param_spec_uint ("initial-port",
-          "The initial port to listen on",
-          "The initial port to try to listen on for incoming connection."
-          " If already used, port+1 is tried until one succeeds",
-          1025, 65535, 1025,
-          G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-
   gobject_class->dispose = fs_msn_session_dispose;
   gobject_class->finalize = fs_msn_session_finalize;
 
@@ -196,7 +173,6 @@ fs_msn_session_init (FsMsnSession *self)
   /* member init */
   self->priv = FS_MSN_SESSION_GET_PRIVATE (self);
   self->priv->construction_error = NULL;
-  self->priv->session_id = g_random_int_range (9000, 9999);
 
   self->priv->mutex = g_mutex_new ();
 
@@ -327,12 +303,6 @@ fs_msn_session_get_property (GObject *object,
         g_value_take_boxed (value, send_codec);
         break;
       }
-    case PROP_SESSION_ID:
-      g_value_set_uint (value, self->priv->session_id);
-      break;
-    case PROP_INITIAL_PORT:
-      g_value_set_uint (value, self->priv->initial_port);
-      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -363,18 +333,6 @@ fs_msn_session_set_property (GObject *object,
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
-      break;
-    case PROP_SESSION_ID:
-      if (self->priv->stream)
-        GST_DEBUG ("Cannot change the session-id after a stream is created");
-      else
-        self->priv->session_id = g_value_get_uint (value);
-      break;
-    case PROP_INITIAL_PORT:
-      if (self->priv->stream)
-        GST_DEBUG ("Cannot change the initial-port after a stream is created");
-      else
-        self->priv->initial_port = g_value_get_uint (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -503,8 +461,7 @@ fs_msn_session_new_stream (FsSession *session,
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-          direction, conference,
-          self->priv->session_id, self->priv->initial_port, error));
+          direction, conference, n_parameters, parameters, error));
 
   if (new_stream)
   {

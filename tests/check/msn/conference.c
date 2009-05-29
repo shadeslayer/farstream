@@ -208,6 +208,8 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   struct SimpleMsnConference *dat = g_new0 (struct SimpleMsnConference, 1);
   GError *error = NULL;
   GstBus *bus;
+  GParameter param = {NULL, {0}};
+  gint n_params = 0;
 
   dat->target = target;
   dat->direction = dir;
@@ -258,14 +260,16 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   if (target)
   {
     guint session_id = 0;
-
-    g_object_get (target->session, "session-id", &session_id, NULL);
+    n_params = 1;
+    g_object_get (target->stream, "session-id", &session_id, NULL);
     ts_fail_unless (session_id >= 9000 && session_id < 10000);
-    g_object_set (dat->session, "session-id", session_id, NULL);
+    param.name = "session-id";
+    g_value_init (&param.value, G_TYPE_UINT);
+    g_value_set_uint (&param.value, session_id);
   }
 
-  dat->stream = fs_session_new_stream (dat->session, dat->part, dir, NULL, 0,
-      NULL, &error);
+  dat->stream = fs_session_new_stream (dat->session, dat->part, dir, NULL,
+      n_params, &param, &error);
   ts_fail_unless (dat->stream != NULL);
   ts_fail_unless (error == NULL);
 

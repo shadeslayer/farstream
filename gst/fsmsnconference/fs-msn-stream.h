@@ -77,8 +77,8 @@ FsMsnStream *fs_msn_stream_new (FsMsnSession *session,
     FsMsnParticipant *participant,
     FsStreamDirection direction,
     FsMsnConference *conference,
-    guint session_id,
-    guint initial_port,
+    guint n_parameters,
+    GParameter *parameters,
     GError **error);
 
 
