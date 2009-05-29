@@ -497,13 +497,7 @@ fs_msn_session_new_stream (FsSession *session,
 
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream)
-  {
-    GST_OBJECT_UNLOCK (conference);
-    gst_object_unref (conference);
-    g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
-        "There already is a stream in this session");
-    return NULL;
-  }
+    goto already_have_stream;
   GST_OBJECT_UNLOCK (conference);
 
   msnparticipant = FS_MSN_PARTICIPANT (participant);
@@ -515,6 +509,11 @@ fs_msn_session_new_stream (FsSession *session,
   if (new_stream)
   {
     GST_OBJECT_LOCK (conference);
+    if (self->priv->stream)
+    {
+      g_object_unref (new_stream);
+      goto already_have_stream;
+    }
     self->priv->stream = (FsMsnStream *) new_stream;
     g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
     GST_OBJECT_UNLOCK (conference);
@@ -522,6 +521,14 @@ fs_msn_session_new_stream (FsSession *session,
   gst_object_unref (conference);
 
   return new_stream;
+
+ already_have_stream:
+  GST_OBJECT_UNLOCK (conference);
+  gst_object_unref (conference);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
+        "There already is a stream in this session");
+  return NULL;
 }
 
 FsMsnSession *
