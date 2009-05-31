@@ -69,8 +69,8 @@ struct _FsMsnConnection
 
   gchar *local_recipient_id;
   gchar *remote_recipient_id; /* protected by lock */
-  gint session_id;
-  gint initial_port;
+  guint session_id;
+  guint initial_port;
 
   GThread *polling_thread; /* protected by lock */
   GstClockTime poll_timeout; /* protected by lock */
