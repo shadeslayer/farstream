@@ -34,21 +34,3 @@ libfsmsnconference_la_LIBADD = \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS) \
 	$(NICE_LIBS)
-
-#check_PROGRAMS = test-connection
-
-#test_connection_SOURCES = test-connection.c fs-msn-connection.c
-#test_connection_CFLAGS = \
-#        $(FS2_INTERNAL_CFLAGS) \
-#        $(FS2_CFLAGS) \
-#        $(GST_PLUGINS_BASE_CFLAGS) \
-#        $(GST_CFLAGS) \
-#	$(NICE_CFLAGS)
-#test_connection_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
-#test_connection_LDADD = \
-#        $(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
-#        $(FS2_LIBS) \
-#        $(GST_BASE_LIBS) \
-#        $(GST_LIBS) \
-#	$(NICE_LIBS)
-
