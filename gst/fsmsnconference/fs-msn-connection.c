@@ -349,6 +349,7 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
   GList *item = NULL;
   gchar *recipient_id = NULL;
   gboolean ret = FALSE;
+  guint session_id = 0;
 
   if (!candidates)
   {
@@ -390,9 +391,38 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
     {
       recipient_id = candidate->foundation;
     }
+
+    if (candidate->username)
+    {
+      guint sid = atoi (candidate->username);
+
+      if (sid < 9000 || session_id > 9999)
+      {
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "The session ID (in the username) must be between 9000 and 9999,"
+              " %d is invalid", sid);
+          goto out;
+      }
+
+      if (session_id)
+      {
+        if (session_id != sid)
+        {
+          g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+              "The candidates do not have the same session ID"
+              " (in the username)");
+          goto out;
+        }
+      }
+      else
+      {
+        session_id = sid;
+      }
+    }
   }
 
   self->remote_recipient_id = g_strdup (recipient_id);
+  self->session_id = session_id;
   ret = TRUE;
   for (item = candidates; item; item = g_list_next (item))
   {
@@ -420,6 +450,7 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
   FsCandidate * candidate = NULL;
   GList *addresses = fs_interfaces_get_local_ips (FALSE);
   GList *item = NULL;
+  gchar *session_id;
 
 
   GST_DEBUG ("Attempting to listen on port %d.....",port);
@@ -495,6 +526,7 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
 
   self->local_recipient_id = g_strdup_printf ("%d",
       g_random_int_range (100, 199));
+  session_id = g_strdup_printf ("%u", self->session_id);
 
   FS_MSN_CONNECTION_UNLOCK (self);
 
@@ -504,11 +536,14 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
   {
     candidate = fs_candidate_new (self->local_recipient_id, 1,
         FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_TCP, item->data, port);
+    candidate->username = g_strdup (session_id);
 
     g_signal_emit (self, signals[SIGNAL_NEW_LOCAL_CANDIDATE], 0, candidate);
 
     fs_candidate_destroy (candidate);
   }
+
+  g_free (session_id);
 
   g_list_foreach (addresses, (GFunc) g_free, NULL);
   g_list_free (addresses);
