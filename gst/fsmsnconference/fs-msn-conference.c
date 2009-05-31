@@ -26,10 +26,13 @@
  */
 
 /**
- * SECTION:fs-msn-conference
- * @short_description: FarsightMSN Conference Gstreamer Elements
+ * SECTION:element-fsmsnconference
+ * @short_description: Farsight MSN Conference Gstreamer Elements
  *
+ * This element implements the unidirection webcam feature found in various
+ * version of MSN Messenger (tm) and Windows Live Messenger (tm).
  */
+
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"

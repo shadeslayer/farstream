@@ -27,7 +27,20 @@
  * SECTION:fs-msn-session
  * @short_description: A  MSN session in a #FsMsnConference
  *
+ * There can be only one stream per session.
  *
+ * The direction is chosen when creating the stream using the direction
+ * parameter in the fs_session_new_stream() function.
+ * It can afterwards be modified to pause sending (or receiving) by modifying
+ * the #FsMsnStream::direction property.
+ *
+ * The transmitter parameters to the fs_session_new_stream() function are
+ * used to set the initial value of the construct properties of the stream
+ * object. This plugin does not use transmitter plugins, so the transmitter
+ * parameter itself is ignored.
+ *
+ * The codecs preferences can not be modified and the codec is a fixed value.
+ * It is always "MIMIC".
  */
 
 #ifdef HAVE_CONFIG_H

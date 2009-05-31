@@ -27,6 +27,19 @@
  * SECTION:fs-msn-stream
  * @short_description: A MSN stream in a #FsMsnSession in a #FsMsnConference
  *
+ * The #FsMsnStream::direction property can be used to pause the stream, but not
+ * to change the direction between sending and receiving since this protocol
+ * is unidirectional.
+ *
+ * The "foundation" field of the local #FsCandidate contains the "recipient-id"
+ * that must be transmitted to the peer.
+ *
+ * The session id can either be retrieved as a property, but it is also
+ * put into every #FsCandidate in the "username" field.
+ *
+ * If the peer started the webcam session, it picks the session-id, it can then
+ * be set either in the transmitter parameters field of fs_session_new_stream()
+ * or by putting it in the "username" field of the remote #FsCandidate.
  */
 
 #ifdef HAVE_CONFIG_H
