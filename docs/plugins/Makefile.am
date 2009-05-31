@@ -59,6 +59,7 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/transmitters/rawudp/librawudp-transmitter.la \
 	$(top_builddir)/transmitters/nice/libnice-transmitter.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
+	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \
 	$(top_builddir)/gst/funnel/libfsfunnel.la \
 	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la 
 
@@ -81,6 +82,10 @@ EXTRA_HFILES = \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-session.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-stream.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-participant.h \
+	$(top_srcdir)/gst/fsmsnconference/fs-msn-conference.h \
+	$(top_srcdir)/gst/fsmsnconference/fs-msn-session.h \
+	$(top_srcdir)/gst/fsmsnconference/fs-msn-stream.h \
+	$(top_srcdir)/gst/fsmsnconference/fs-msn-participant.h \
 	$(top_srcdir)/transmitters/rawudp/fs-rawudp-transmitter.h \
 	$(top_srcdir)/transmitters/rawudp/fs-rawudp-stream-transmitter.h \
 	$(top_srcdir)/transmitters/multicast/fs-multicast-transmitter.h \
@@ -113,6 +118,7 @@ GTKDOC_CFLAGS = $(GST_BASE_CFLAGS) -I$(top_builddir) -I$(top_builddir)/gst-libs
 GTKDOC_LIBS = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
+	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \
 	$(GST_BASE_LIBS) 
 
 GTKDOC_CC=$(LIBTOOL) --tag=CC --mode=compile $(CC)

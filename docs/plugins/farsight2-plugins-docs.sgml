@@ -32,6 +32,17 @@
   </part>
 
   <part>
+    <title>MSN plugins</title>
+    <chapter>
+      <title>MSN Webcam plugin</title>
+      <xi:include href="xml/element-fsmsnconference.xml"/>
+      <xi:include href="xml/fs-msn-participant.xml"/>
+      <xi:include href="xml/fs-msn-session.xml"/>
+      <xi:include href="xml/fs-msn-stream.xml"/>
+    </chapter>
+  </part>
+
+  <part>
     <title>Utility elements</title>
     <xi:include href="xml/element-fsfunnel.xml"/>
     <xi:include href="xml/element-fsvideoanyrate.xml"/>

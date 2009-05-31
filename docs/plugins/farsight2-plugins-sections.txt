@@ -254,3 +254,83 @@ FS_NICE_STREAM_TRANSMITTER_CLASS
 FS_IS_NICE_STREAM_TRANSMITTER_CLASS
 FS_NICE_STREAM_TRANSMITTER_GET_CLASS
 </SECTION>
+
+
+<SECTION>
+<FILE>element-fsmsnconference</FILE>
+<TITLE>FsMsnConference</TITLE>
+FsMsnConference
+<SUBSECTION Standard>
+FS_MSN_CONFERENCE_CAST
+FsMsnConferencePrivate
+FsMsnConferenceClass
+fs_codec_to_gst_caps
+FS_MSN_CONFERENCE
+FS_IS_MSN_CONFERENCE
+FS_TYPE_MSN_CONFERENCE
+fs_msn_conference_get_type
+FS_MSN_CONFERENCE_CLASS
+FS_IS_MSN_CONFERENCE_CLASS
+FS_MSN_CONFERENCE_GET_CLASS
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-msn-session</FILE>
+<TITLE>FsMsnSession</TITLE>
+FsMsnSession
+<SUBSECTION Standard>
+FS_IS_MSN_SESSION
+FS_IS_MSN_SESSION_CLASS
+FS_MSN_SESSION
+FS_MSN_SESSION_CAST
+FS_MSN_SESSION_CLASS
+FS_MSN_SESSION_GET_CLASS
+FS_TYPE_MSN_SESSION
+FsMsnSessionClass
+FsMsnSessionPrivate
+fs_msn_session_get_type
+<SUBSECTION Private>
+fs_msn_session_new
+fs_msn_session_new_recv_pad
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-msn-stream</FILE>
+<TITLE>FsMsnStream</TITLE>
+FsMsnStream
+<SUBSECTION Standard>
+FS_IS_MSN_STREAM
+FS_IS_MSN_STREAM_CLASS
+FS_MSN_STREAM
+FS_MSN_STREAM_CAST
+FS_MSN_STREAM_CLASS
+FS_MSN_STREAM_GET_CLASS
+FS_TYPE_MSN_STREAM
+FsMsnStreamClass
+FsMsnStreamPrivate
+fs_msn_stream_get_type
+<SUBSECTION Private>
+fs_msn_stream_new
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-msn-participant</FILE>
+<TITLE>FsMsnParticipant</TITLE>
+FsMsnParticipant
+<SUBSECTION Standard>
+FS_IS_MSN_PARTICIPANT
+FS_IS_MSN_PARTICIPANT_CLASS
+FS_MSN_PARTICIPANT
+FS_MSN_PARTICIPANT_CAST
+FS_MSN_PARTICIPANT_CLASS
+FS_MSN_PARTICIPANT_GET_CLASS
+FS_TYPE_MSN_PARTICIPANT
+FsMsnParticipantClass
+FsMsnParticipantPrivate
+fs_msn_participant_get_type
+<SUBSECTION Private>
+fs_msn_participant_new
+</SECTION>
