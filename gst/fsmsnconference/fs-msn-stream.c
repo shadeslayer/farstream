@@ -320,7 +320,8 @@ fs_msn_stream_get_property (GObject *object,
       g_value_set_object (value, self->priv->conference);
       break;
     case PROP_SESSION_ID:
-      g_value_set_uint (value, self->priv->session_id);
+      g_object_get_property (G_OBJECT (self->priv->connection), "session-id",
+          value);
       break;
     case PROP_INITIAL_PORT:
       g_value_set_uint (value, self->priv->initial_port);
