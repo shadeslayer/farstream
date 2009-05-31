@@ -24,10 +24,6 @@ nodist_libfsrtpconference_convenience_la_SOURCES = \
 
 BUILT_SOURCES = $(nodist_libfsrtpconference_convenience_la_SOURCES)
 
-# Build the main plugin
-
-libfsrtpconference_la_SOURCES = gstfsrtpconference.c
-
 noinst_HEADERS = \
 	fs-rtp-conference.h \
 	fs-rtp-participant.h \
@@ -49,6 +45,10 @@ AM_CFLAGS = \
 	$(FS2_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_CFLAGS)
+
+# Build the main plugin
+
+libfsrtpconference_la_SOURCES = gstfsrtpconference.c
 
 libfsrtpconference_la_LIBADD = \
 	libfsrtpconference-convenience.la \
@@ -76,6 +76,8 @@ gstfsrtpconference_doc.c: gstfsrtpconference.c
 
 BUILT_SOURCES += gstfsrtpconference_doc.c
 endif
+
+# Build the build sources
 
 fs-rtp-marshal.list: $(libfsrtpconference_la_SOURCES) Makefile.am
 	( cd $(srcdir) && \

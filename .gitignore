@@ -16,6 +16,7 @@ Makefile.in
 gst/fsrtpconference/fs-rtp-marshal.[ch]
 gst/fsrtpconference/fs-rtp-marshal.list
 gst/fsrtpconference/gstfsrtpconference_doc.c
+gst/fsmsnconference/fs-msn-conference-doc.c
 
 transmitters/rawudp/fs-rawudp-marshal.[ch]
 transmitters/rawudp/fs-rawudp-marshal.list
