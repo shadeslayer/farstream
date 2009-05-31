@@ -61,6 +61,7 @@ static guint signals[N_SIGNALS];
 enum
 {
   PROP_0,
+  PROP_SESSION_ID
 };
 
 
@@ -94,6 +95,14 @@ static GObjectClass *parent_class = NULL;
 
 static void fs_msn_connection_dispose (GObject *object);
 static void fs_msn_connection_finalize (GObject *object);
+static void fs_msn_connection_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
+static void fs_msn_connection_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
 
 
 static gboolean fs_msn_connection_attempt_connection_locked (
@@ -166,8 +175,18 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
+  g_object_class_install_property (gobject_class,
+      PROP_SESSION_ID,
+      g_param_spec_uint ("session-id",
+          "The session-id of the session",
+          "This is the session-id of the MSN session",
+          9000, 9999, 9000,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   gobject_class->dispose = fs_msn_connection_dispose;
   gobject_class->finalize = fs_msn_connection_finalize;
+  gobject_class->get_property = fs_msn_connection_get_property;
+  gobject_class->set_property = fs_msn_connection_set_property;
 }
 
 static void
@@ -249,6 +268,49 @@ fs_msn_connection_new (guint session_id, guint initial_port)
   }
 
   return self;
+}
+
+static void
+fs_msn_connection_get_property (GObject *object,
+                            guint prop_id,
+                            GValue *value,
+                            GParamSpec *pspec)
+{
+  FsMsnConnection *self = FS_MSN_CONNECTION (object);
+
+  FS_MSN_CONNECTION_LOCK (self);
+  switch (prop_id)
+  {
+    case PROP_SESSION_ID:
+      g_value_set_uint (value, self->session_id);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+  FS_MSN_CONNECTION_UNLOCK (self);
+}
+
+static void
+fs_msn_connection_set_property (GObject *object,
+                            guint prop_id,
+                            const GValue *value,
+                            GParamSpec *pspec)
+{
+  FsMsnConnection *self = FS_MSN_CONNECTION (object);
+
+  FS_MSN_CONNECTION_LOCK (self);
+  switch (prop_id)
+  {
+    case PROP_SESSION_ID:
+      self->session_id = g_value_get_uint (value);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+  FS_MSN_CONNECTION_LOCK (self);
+
 }
 
 gboolean
@@ -628,8 +690,10 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           if (recv(pollfd->pollfd.fd, str, 34, 0) != -1)
           {
             GST_DEBUG ("Got %s, checking if it's auth", str);
+            FS_MSN_CONNECTION_LOCK(self);
             snprintf(check, 35, "recipientid=%s&sessionid=%d\r\n\r\n",
                 self->local_recipient_id, self->session_id);
+            FS_MSN_CONNECTION_UNLOCK(self);
             if (strncmp (str, check, 35) == 0)
             {
               GST_DEBUG ("Authentication successful");
@@ -738,8 +802,11 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
       case FS_MSN_STATUS_AUTH:
         if (!pollfd->server)
         {
-          gchar *str = g_strdup_printf("recipientid=%s&sessionid=%d\r\n\r\n",
+          gchar *str;
+          FS_MSN_CONNECTION_LOCK(self);
+          str = g_strdup_printf("recipientid=%s&sessionid=%d\r\n\r\n",
               self->remote_recipient_id, self->session_id);
+          FS_MSN_CONNECTION_UNLOCK(self);
           if (send(pollfd->pollfd.fd, str, strlen (str), 0) != -1)
           {
             GST_DEBUG ("Sent %s", str);

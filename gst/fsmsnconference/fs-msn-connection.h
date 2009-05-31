@@ -69,7 +69,7 @@ struct _FsMsnConnection
 
   gchar *local_recipient_id;
   gchar *remote_recipient_id; /* protected by lock */
-  guint session_id;
+  guint session_id; /* protected by lock */
   guint initial_port;
 
   GThread *polling_thread; /* protected by lock */
