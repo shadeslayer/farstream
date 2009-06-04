@@ -92,6 +92,11 @@ void fs_element_added_notifier_set_properties_from_keyfile (
     FsElementAddedNotifier *notifier,
     GKeyFile *keyfile);
 
+gboolean fs_element_added_notifier_set_properties_from_file (
+    FsElementAddedNotifier *notifier,
+    const gchar *filename,
+    GError **error);
+
 G_END_DECLS
 
 #endif /* __FS_ELEMENT_ADDED_NOTIFIER_H__ */

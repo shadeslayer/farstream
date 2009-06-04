@@ -668,6 +668,16 @@
   )
 )
 
+(define-method set_properties_from_file
+  (of-object "FsElementAddedNotifier")
+  (c-name "fs_element_added_notifier_set_properties_from_file")
+  (return-type "gboolean")
+  (parameters
+    '("const-gchar*" "filename")
+    '("GError**" "error")
+  )
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...

@@ -402,6 +402,36 @@ fs_element_added_notifier_set_properties_from_keyfile (
 }
 
 
+/**
+ * fs_element_added_notifier_set_properties_from_file:
+ * @notifier: a #FsElementAddedNotifier
+ * @filename: The name of the keyfile to use
+ * @error: location of a #GError, or %NULL if no error occured
+ *
+ * Same as fs_element_added_notifier_set_properties_from_keyfile() but using
+ * the name of the file to load instead of the #GKeyFile directly.
+ *
+ * Returns: %TRUE if the file was successfully loaded, %FALSE otherwise
+ */
+gboolean
+fs_element_added_notifier_set_properties_from_file (
+    FsElementAddedNotifier *notifier,
+    const gchar *filename,
+    GError **error)
+{
+  GKeyFile *keyfile = g_key_file_new ();
+
+  if (!g_key_file_load_from_file (keyfile, filename, G_KEY_FILE_NONE, error))
+  {
+    g_key_file_free (keyfile);
+    return FALSE;
+  }
+
+  fs_element_added_notifier_set_properties_from_keyfile(notifier, keyfile);
+
+  return TRUE;
+}
+
 static void
 _element_added_callback (GstBin *parent, GstElement *element,
     gpointer user_data)
