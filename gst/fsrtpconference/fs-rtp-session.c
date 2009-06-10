@@ -475,7 +475,8 @@ fs_rtp_session_dispose (GObject *object)
 
   conferencebin = GST_BIN (self->priv->conference);
 
-  g_object_unref (self->priv->rtpbin_internal_session);
+  if (self->priv->rtpbin_internal_session)
+    g_object_unref (self->priv->rtpbin_internal_session);
   self->priv->rtpbin_internal_session = NULL;
 
   /* Lets stop all of the elements sink to source */
