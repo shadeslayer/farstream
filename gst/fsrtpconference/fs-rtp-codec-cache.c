@@ -122,7 +122,7 @@ read_codec_blueprint_uint (gchar **in, gsize *size, guint *val) {
   if (*size < sizeof (guint))
     return FALSE;
 
-  *val = *((guint *) *in);
+  memcpy (val, *in, sizeof(guint));
   *in += sizeof (guint);
   *size -= sizeof (guint);
   return TRUE;
@@ -133,7 +133,7 @@ read_codec_blueprint_int (gchar **in, gsize *size, gint *val) {
   if (*size < sizeof (gint))
     return FALSE;
 
-  *val = *((gint *) *in);
+  memcpy (val, *in, sizeof(gint));
   *in += sizeof (gint);
   *size -= sizeof (gint);
   return TRUE;
@@ -340,7 +340,7 @@ load_codecs_cache (FsMediaType media_type)
     goto error;
   }
 
-  num_blueprints = *((gint *) in);
+  memcpy (&num_blueprints, in, sizeof(gint));
   in += sizeof (gint);
   size -= sizeof (gint);
 
