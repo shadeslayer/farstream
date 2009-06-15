@@ -1072,6 +1072,11 @@ fs_rtp_sub_stream_new (FsRtpConference *conference,
 }
 
 static void
+do_nothing_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+}
+
+static void
 fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
 {
   FS_RTP_SESSION_LOCK (substream->priv->session);
@@ -1087,6 +1092,9 @@ fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
         substream->priv->rtpbin_unlinked_sig);
     substream->priv->rtpbin_unlinked_sig = 0;
   }
+
+  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE,
+      do_nothing_blocked_callback, NULL);
 
   if (substream->priv->output_ghostpad)
     gst_pad_set_active (substream->priv->output_ghostpad, FALSE);
@@ -1287,11 +1295,6 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   FS_RTP_SESSION_UNLOCK (self->priv->session);
 
   return ret;
-}
-
-static void
-do_nothing_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
-{
 }
 
 static void
