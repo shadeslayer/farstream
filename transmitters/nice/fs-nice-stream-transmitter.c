@@ -1503,14 +1503,13 @@ agent_new_candidate (NiceAgent *agent,
   GST_DEBUG ("New candidate found for stream %u component %u",
       stream_id, component_id);
 
-  candidates = nice_agent_get_local_candidates (agent,
-      self->priv->stream_id, component_id);
+  candidates = nice_agent_get_local_candidates (agent, stream_id, component_id);
 
   for (item = candidates; item; item = g_slist_next (item))
   {
     NiceCandidate *candidate = item->data;
 
-    if (!strcmp (item->data, foundation))
+    if (!strcmp (candidate->foundation, foundation))
     {
       fscandidate = nice_candidate_to_fs_candidate (agent, candidate, TRUE);
       break;
