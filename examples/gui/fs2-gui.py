@@ -31,7 +31,7 @@ try:
     import pygtk
     pygtk.require("2.0")
 
-    import gtk, gtk.glade, gobject, gtk.gdk
+    import gtk, gobject, gtk.gdk
     import gobject
 except ImportError, e:
     raise SystemExit("PyGTK couldn't be found ! (%s)" % (e[0]))
@@ -73,7 +73,7 @@ mycname = "".join((pwd.getpwuid(os.getuid())[0],
                    "@",
                    socket.gethostname()))
 
-gladefile = os.path.join(os.path.dirname(__file__),"fs2-gui.glade")
+builderprefix = os.path.join(os.path.dirname(__file__),"fs2-gui-")
 
 
 def make_video_sink(pipeline, xid, name, async=True):
@@ -606,10 +606,11 @@ class FsUIParticipant:
     def make_widget(self):
         "Make the widget of the participant's video stream."
         gtk.gdk.threads_enter()
-        self.glade = gtk.glade.XML(gladefile, "user_frame")
-        self.userframe = self.glade.get_widget("user_frame")
-        self.glade.get_widget("frame_label").set_text(self.cname)
-        self.glade.signal_autoconnect(self)
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(builderprefix + "user-frame.ui")
+        self.userframe = self.builder.get_object("user_frame")
+        self.builder.get_object("frame_label").set_text(self.cname)
+        self.builder.connect_signals(self)
         self.label = gtk.Label()
         self.label.set_alignment(0,0)
         self.label.show()
@@ -649,7 +650,7 @@ class FsUIParticipant:
         x = buffer.caps[0]["width"]
         y = buffer.caps[0]["height"]
         gtk.gdk.threads_enter()
-        self.glade.get_widget("user_drawingarea").set_size_request(x,y)
+        self.builder.get_object("user_drawingarea").set_size_request(x,y)
         gtk.gdk.threads_leave()
         self.videosink.get_pad("sink").remove_buffer_probe(self.havesize)
         del self.havesize
@@ -679,7 +680,7 @@ class FsUIParticipant:
                 pass
             except AttributeError:
                 pass
-            self.glade.get_widget("user_drawingarea").disconnect_by_func(self.exposed)
+            self.builder.get_object("user_drawingarea").disconnect_by_func(self.exposed)
             self.streams = {}
             self.outcv.acquire()
             self.videosink.set_locked_state(True)
@@ -735,11 +736,12 @@ class FsMainUI:
         self.pipeline = FsUIPipeline()
         self.pipeline.codecs_changed_audio = self.reset_audio_codecs
         self.pipeline.codecs_changed_video = self.reset_video_codecs
-        self.glade = gtk.glade.XML(gladefile, "main_window")
-        self.glade.signal_autoconnect(self)
-        self.mainwindow = self.glade.get_widget("main_window")
-        self.audio_combobox = self.glade.get_widget("audio_combobox")
-        self.video_combobox = self.glade.get_widget("video_combobox")
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(builderprefix + "main-window.ui")
+        self.builder.connect_signals(self)
+        self.mainwindow = self.builder.get_object("main_window")
+        self.audio_combobox = self.builder.get_object("audio_combobox")
+        self.video_combobox = self.builder.get_object("video_combobox")
         liststore = gtk.ListStore(gobject.TYPE_STRING, gobject.TYPE_PYOBJECT)
         self.audio_combobox.set_model(liststore)
         cell = gtk.CellRendererText()
@@ -756,12 +758,12 @@ class FsMainUI:
         if mode == CLIENT:
             self.client = FsUIClient(ip, port, mycname, FsUIParticipant,
                                      self.pipeline, self)
-            self.glade.get_widget("info_label").set_markup(
+            self.builder.get_object("info_label").set_markup(
                 "<b>%s</b>\nConnected to %s:%s" % (mycname, ip, port))
         elif mode == SERVER:
             self.server = FsUIListener(port, FsUIServer, mycname,
                                        FsUIParticipant, self.pipeline, self)
-            self.glade.get_widget("info_label").set_markup(
+            self.builder.get_object("info_label").set_markup(
                 "<b>%s</b>\nExpecting connections on port %s" %
                 (mycname, self.server.port))
 
@@ -817,13 +819,13 @@ class FsMainUI:
                                                             self.newsize)
 
     def newsize (self, x, y):
-        self.glade.get_widget("preview_drawingarea").set_size_request(x,y)
+        self.builder.get_object("preview_drawingarea").set_size_request(x,y)
         
     def shutdown(self, widget=None):
         gtk.main_quit()
         
     def hbox_add(self, widget, label):
-        table = self.glade.get_widget("users_table")
+        table = self.builder.get_object("users_table")
         x = table.get_properties("n-columns")[0]
         table.attach(widget, x, x+1, 0, 1)
         table.attach(label, x, x+1, 1, 3, xpadding=6)
@@ -845,15 +847,17 @@ class FsMainUI:
 
     def show_dtmf(self, button):
         try:
-            self.dtmf.present()
+            self.dtmf_builder.present()
         except AttributeError:
-            self.dtmf =  gtk.glade.XML(gladefile, "dtmf_window")
-            self.dtmf.signal_autoconnect(self)
+            self.dtmf_builder = gtk.Builder()
+            self.dtmf_builder.add_from_file(builderprefix + "dtmf.ui")
+            self.dtmf_builder.connect_signals(self)
+            
 
     def dtmf_start(self, button):
-        if (self.dtmf.get_widget("dtmf_as_event").get_active()):
+        if (self.dtmf_builder.get_object("dtmf_as_event").get_active()):
             self.dtmf_last_method = farsight.DTMF_METHOD_RTP_RFC4733
-        elif (self.dtmf.get_widget("dtmf_as_sound").get_active()):
+        elif (self.dtmf_builder.get_object("dtmf_as_sound").get_active()):
             self.dtmf_last_method = farsight.DTMF_METHOD_IN_BAND
         else:
             print "Invalid DTMF Method"
@@ -868,8 +872,8 @@ class FsMainUI:
         except AttributeError:
             pass
     def dtmf_destroy(self, button):
-        self.dtmf.get_widget("dtmf_window").destroy()
-        del self.dtmf
+        self.dtmf_builder.get_object("dtmf_window").destroy()
+        del self.dtmf_builder
 
 
 
@@ -877,22 +881,23 @@ class FsUIStartup:
     "Displays the startup window and then creates the FsMainUI"
     
     def __init__(self):
-        self.glade = gtk.glade.XML(gladefile, "neworconnect_dialog")
-        self.dialog = self.glade.get_widget("neworconnect_dialog")
-        self.glade.get_widget("newport_spinbutton").set_value(9893)
-        self.glade.signal_autoconnect(self)
+        self.builder = gtk.Builder()
+        self.builder.add_from_file(builderprefix + "startup.ui")
+        self.dialog = self.builder.get_object("neworconnect_dialog")
+        self.builder.get_object("spinbutton_adjustment").set_value(9893)
+        self.builder.connect_signals(self)
         self.dialog.show()
         self.acted = False
 
     def action(self, mode):
-        port = self.glade.get_widget("newport_spinbutton").get_value_as_int()
-        ip = self.glade.get_widget("newip_entry").get_text()
+        port = int(self.builder.get_object("spinbutton_adjustment").get_value())
+        ip = self.builder.get_object("newip_entry").get_text()
         try:
             self.ui = FsMainUI(mode, ip, port)
             self.acted = True
             self.dialog.destroy()
-            del self.glade
             del self.dialog
+            del self.builder
         except socket.error, e:
             dialog = gtk.MessageDialog(self.dialog,
                                        gtk.DIALOG_MODAL,
