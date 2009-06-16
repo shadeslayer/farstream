@@ -1350,7 +1350,8 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       "candidate-gathering-done", G_CALLBACK (agent_gathering_done), self);
   self->priv->new_selected_pair_handler_id = g_signal_connect (agent->agent,
       "new-selected-pair", G_CALLBACK (agent_new_selected_pair), self);
-
+  self->priv->new_candidate_handler_id = g_signal_connect (agent->agent,
+      "new-candidate", G_CALLBACK (agent_new_candidate), self);
 
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,
@@ -1499,14 +1500,6 @@ agent_new_candidate (NiceAgent *agent,
   if (stream_id != self->priv->stream_id)
     return;
 
-  FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-  if (!self->priv->gathered)
-  {
-    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    return;
-  }
-  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-
   GST_DEBUG ("New candidate found for stream %u component %u",
       stream_id, component_id);
 
@@ -1530,14 +1523,18 @@ agent_new_candidate (NiceAgent *agent,
     g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
     fs_candidate_destroy (fscandidate);
   }
+  else
+  {
+    GST_WARNING ("Could not find local candidate with foundation %s"
+        " for component_ %d in stream %d", foundation, component_id,
+        stream_id);
+  }
 }
 
 static void
 agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
-  GSList *candidates, *item;
-  gint c;
   GList *remote_candidates = NULL;
   gboolean forced_candidates;
 
@@ -1558,30 +1555,7 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
 
-  for (c = 1; c <= self->priv->transmitter->components; c++)
-  {
-    candidates = nice_agent_get_local_candidates (agent,
-        self->priv->stream_id, c);
-
-    for (item = candidates; item; item = g_slist_next (item))
-    {
-      NiceCandidate *candidate = item->data;
-      FsCandidate *fscandidate;
-
-      fscandidate = nice_candidate_to_fs_candidate (agent, candidate, TRUE);
-      g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
-      fs_candidate_destroy (fscandidate);
-    }
-
-
-    g_slist_foreach (candidates, (GFunc)nice_candidate_free, NULL);
-    g_slist_free (candidates);
-  }
   g_signal_emit_by_name (self, "local-candidates-prepared");
-
-  if (!self->priv->new_candidate_handler_id)
-    self->priv->new_candidate_handler_id = g_signal_connect (agent,
-        "new-candidate", G_CALLBACK (agent_new_candidate), self);
 
   if (remote_candidates)
   {
