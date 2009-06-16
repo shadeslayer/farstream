@@ -132,6 +132,11 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
 
   parent_class = g_type_class_peek_parent (klass);
 
+  gobject_class->dispose = fs_msn_connection_dispose;
+  gobject_class->finalize = fs_msn_connection_finalize;
+  gobject_class->get_property = fs_msn_connection_get_property;
+  gobject_class->set_property = fs_msn_connection_set_property;
+
   signals[SIGNAL_NEW_LOCAL_CANDIDATE] = g_signal_new
       ("new-local-candidate",
           G_TYPE_FROM_CLASS (klass),
@@ -141,7 +146,6 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
           NULL,
           g_cclosure_marshal_VOID__BOXED,
           G_TYPE_NONE, 1, FS_TYPE_CANDIDATE);
-
 
   signals[SIGNAL_LOCAL_CANDIDATES_PREPARED] = g_signal_new
     ("local-candidates-prepared",
@@ -153,7 +157,6 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
       g_cclosure_marshal_VOID__VOID,
       G_TYPE_NONE, 0);
 
-
   signals[SIGNAL_CONNECTED] = g_signal_new
     ("connected",
       G_TYPE_FROM_CLASS (klass),
@@ -163,7 +166,6 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
       NULL,
       g_cclosure_marshal_VOID__UINT,
         G_TYPE_NONE, 1, G_TYPE_UINT);
-
 
   signals[SIGNAL_CONNECTION_FAILED] = g_signal_new
     ("connection-failed",
@@ -182,11 +184,6 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
           "This is the session-id of the MSN session",
           1000, 9999, 9000,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  gobject_class->dispose = fs_msn_connection_dispose;
-  gobject_class->finalize = fs_msn_connection_finalize;
-  gobject_class->get_property = fs_msn_connection_get_property;
-  gobject_class->set_property = fs_msn_connection_set_property;
 }
 
 static void
