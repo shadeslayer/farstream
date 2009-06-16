@@ -91,8 +91,6 @@ struct _FsMsnPollFD {
 
 G_DEFINE_TYPE(FsMsnConnection, fs_msn_connection, G_TYPE_OBJECT);
 
-static GObjectClass *parent_class = NULL;
-
 static void fs_msn_connection_dispose (GObject *object);
 static void fs_msn_connection_finalize (GObject *object);
 static void fs_msn_connection_get_property (GObject *object,
@@ -129,8 +127,6 @@ static void
 fs_msn_connection_class_init (FsMsnConnectionClass *klass)
 {
   GObjectClass *gobject_class = (GObjectClass *) klass;
-
-  parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->dispose = fs_msn_connection_dispose;
   gobject_class->finalize = fs_msn_connection_finalize;
@@ -215,7 +211,7 @@ fs_msn_connection_dispose (GObject *object)
 
   FS_MSN_CONNECTION_UNLOCK(self);
 
-  parent_class->dispose (object);
+  G_OBJECT_CLASS (fs_msn_connection_parent_class)->dispose (object);
 }
 
 static void
@@ -239,7 +235,7 @@ fs_msn_connection_finalize (GObject *object)
 
   g_static_rec_mutex_free (&self->mutex);
 
-  parent_class->finalize (object);
+  G_OBJECT_CLASS (fs_msn_connection_parent_class)->finalize (object);
 }
 
 /**

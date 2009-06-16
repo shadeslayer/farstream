@@ -141,8 +141,6 @@ static void
 _connection_failed (FsMsnConnection *connection, FsMsnStream *self);
 
 
-static GObjectClass *parent_class = NULL;
-
 static void
 fs_msn_stream_class_init (FsMsnStreamClass *klass)
 {
@@ -150,7 +148,6 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
   FsStreamClass *stream_class = FS_STREAM_CLASS (klass);
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->set_property = fs_msn_stream_set_property;
   gobject_class->get_property = fs_msn_stream_get_property;
@@ -288,7 +285,7 @@ fs_msn_stream_dispose (GObject *object)
   gst_object_unref (conference);
   gst_object_unref (conference);
 
-  parent_class->dispose (object);
+  G_OBJECT_CLASS (fs_msn_stream_parent_class)->dispose (object);
 }
 
 static void
@@ -298,7 +295,7 @@ fs_msn_stream_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
-  parent_class->finalize (object);
+  G_OBJECT_CLASS (fs_msn_stream_parent_class)->finalize (object);
 }
 
 
@@ -514,8 +511,8 @@ fs_msn_stream_constructed (GObject *object)
           &self->priv->construction_error))
     return;
 
-
-  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
+  if (G_OBJECT_CLASS (fs_msn_stream_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_msn_stream_parent_class)->constructed (object);
 }
 
 

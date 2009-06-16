@@ -128,8 +128,6 @@ fs_msn_session_get_stream_transmitter_type (FsSession *session,
 static void _remove_stream (gpointer user_data,
                             GObject *where_the_object_was);
 
-static GObjectClass *parent_class = NULL;
-
 static void
 fs_msn_session_class_init (FsMsnSessionClass *klass)
 {
@@ -137,7 +135,6 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
   FsSessionClass *session_class;
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
   session_class = FS_SESSION_CLASS (klass);
 
   gobject_class->set_property = fs_msn_session_set_property;
@@ -254,7 +251,7 @@ fs_msn_session_dispose (GObject *object)
 
  out:
 
-  parent_class->dispose (object);
+  G_OBJECT_CLASS (fs_msn_session_parent_class)->dispose (object);
 }
 
 static void
@@ -264,7 +261,7 @@ fs_msn_session_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
-  parent_class->finalize (object);
+  G_OBJECT_CLASS (fs_msn_session_parent_class)->finalize (object);
 }
 
 static void
@@ -406,7 +403,8 @@ fs_msn_session_constructed (GObject *object)
 
   gst_element_sync_state_with_parent (self->valve);
 
-  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
+  if (G_OBJECT_CLASS (fs_msn_session_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_msn_session_parent_class)->constructed (object);
 }
 
 
