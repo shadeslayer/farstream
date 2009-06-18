@@ -298,6 +298,7 @@
     '("no-codecs-left" "FS_ERROR_NO_CODECS_LEFT")
     '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
     '("disposed" "FS_ERROR_DISPOSED")
+    '("already-exists" "FS_ERROR_ALREADY_EXISTS")
   )
 )
 
@@ -469,6 +470,16 @@
     '("gint" "error_no")
     '("const-gchar*" "error_msg")
     '("const-gchar*" "debug_msg")
+  )
+)
+
+(define-method get_stream_transmitter_type
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_get_stream_transmitter_type")
+  (return-type "GType")
+  (parameters
+    '("const-gchar*" "transmitter")
   )
 )
 
