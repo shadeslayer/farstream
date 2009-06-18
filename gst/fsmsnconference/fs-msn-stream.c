@@ -182,7 +182,7 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
       g_param_spec_uint ("session-id",
           "The session-id of the session",
           "This is the session-id of the MSN session",
-          1, 9999, 9000,
+          1000, 9999, 9000,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
       PROP_INITIAL_PORT,
