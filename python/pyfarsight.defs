@@ -571,6 +571,16 @@
   )
 )
 
+(define-method add_id
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_add_id")
+  (return-type "none")
+  (parameters
+    '("guint" "id")
+  )
+)
+
 (define-method emit_error
   (of-object "FsStream")
   (unblock-threads t)
