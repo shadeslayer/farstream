@@ -27,6 +27,8 @@ G_BEGIN_DECLS
 
 gchar *find_multicast_capable_address (void);
 
+gchar *get_fullpath (const gchar *filename);
+
 G_END_DECLS
 
 #endif /* __UTILS_H__ */

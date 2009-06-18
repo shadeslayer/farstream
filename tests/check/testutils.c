@@ -80,3 +80,12 @@ find_multicast_capable_address (void)
   return NULL;
 #endif
 }
+
+gchar *
+get_fullpath (const gchar *filename)
+{
+  if (g_getenv ("SRCDIR"))
+    return g_strdup_printf ("%s/%s", g_getenv ("SRCDIR"), filename);
+  else
+    return g_strdup (filename);
+}

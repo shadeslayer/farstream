@@ -64,6 +64,12 @@ LDADD = \
 	$(GST_CHECK_LIBS) \
 	$(GST_LIBS)
 
+base_fscodec_SOURCES = \
+	testutils.c \
+	testutils.h \
+	base/fscodec.c
+
+
 transmitter_rawudp_CFLAGS = $(AM_CFLAGS) $(GUPNP_CFLAGS) $(NICE_CFLAGS)
 transmitter_rawudp_LDADD = $(LDADD) \
 	$(GUPNP_LIBS) \
@@ -127,6 +133,8 @@ msn_conference_SOURCES = \
 
 utils_binadded_CFLAGS = $(AM_CFLAGS)
 utils_binadded_SOURCES = \
+	testutils.c \
+	testutils.h \
 	utils/binadded.c
 
 elements_rtcpfilter_CFLAGS = $(AM_CFLAGS)

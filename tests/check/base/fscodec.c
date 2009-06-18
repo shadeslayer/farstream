@@ -25,6 +25,7 @@
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-codec.h>
 
+#include "testutils.h"
 
 GST_START_TEST (test_fscodec_new)
 {
@@ -197,15 +198,6 @@ GST_START_TEST (test_fscodec_null)
   fail_unless (fs_codec_are_equal (NULL,NULL), "NULL codecs are not equal");
 }
 GST_END_TEST;
-
-static gchar *
-get_fullpath (const gchar *filename)
-{
-  if (g_getenv ("SRCDIR"))
-    return g_strdup_printf ("%s/%s", g_getenv ("SRCDIR"), filename);
-  else
-    return g_strdup (filename);
-}
 
 GST_START_TEST (test_fscodec_keyfile)
 {

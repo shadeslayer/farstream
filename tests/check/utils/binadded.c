@@ -244,7 +244,6 @@ GST_START_TEST (test_bin_keyfile)
 }
 GST_END_TEST;
 
-
 GST_START_TEST (test_bin_errors)
 {
   FsElementAddedNotifier *notifier = NULL;
