@@ -251,13 +251,14 @@ fs_msn_connection_finalize (GObject *object)
  */
 
 FsMsnConnection *
-fs_msn_connection_new (guint session_id, guint initial_port)
+fs_msn_connection_new (guint session_id, gboolean producer, guint initial_port)
 {
   FsMsnConnection *self = g_object_new (FS_TYPE_MSN_CONNECTION, NULL);
 
   if (self) {
     self->session_id = session_id;
     self->initial_port = initial_port;
+    self->producer = producer;
   }
 
   return self;
@@ -731,7 +732,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
             }
             else
             {
-              GST_WARNING ("Authentication failed");
+              GST_WARNING ("Authentication failed check=%s", check);
               goto error;
             }
           }
@@ -753,15 +754,22 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
         {
           gchar str[14] = {0};
 
-          if (recv(pollfd->pollfd.fd, str, 13, 0) != -1)
+          if (recv(pollfd->pollfd.fd, str, 13, MSG_PEEK) != -1)
           {
             GST_DEBUG ("Got %s, checking if it's connected", str);
             if (strcmp (str, "connected\r\n\r\n") == 0)
             {
               GST_DEBUG ("connection successful");
+              recv(pollfd->pollfd.fd, str, 13, 0);
               pollfd->status = FS_MSN_STATUS_CONNECTED2;
               pollfd->want_write = TRUE;
               gst_poll_fd_ctl_write (self->poll, &pollfd->pollfd, TRUE);
+            }
+            else if (!self->producer)
+            {
+              GST_DEBUG ("connection successful");
+              pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
+              success = TRUE;
             }
             else
             {
@@ -786,10 +794,17 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
         {
           gchar str[14] = {0};
 
-          if (recv(pollfd->pollfd.fd, str, 13, 0) != -1)
+          if (recv(pollfd->pollfd.fd, str, 13, MSG_PEEK) != -1)
           {
             GST_DEBUG ("Got %s, checking if it's connected", str);
             if (strcmp (str, "connected\r\n\r\n") == 0)
+            {
+              GST_DEBUG ("connection successful");
+              recv(pollfd->pollfd.fd, str, 13, 0);
+              pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
+              success = TRUE;
+            }
+            else if (!self->producer)
             {
               GST_DEBUG ("connection successful");
               pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
@@ -859,7 +874,15 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           if (send(pollfd->pollfd.fd, "connected\r\n\r\n", 13, 0) != -1)
           {
             GST_DEBUG ("sent connected");
-            pollfd->status = FS_MSN_STATUS_CONNECTED2;
+            if (self->producer)
+            {
+              pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
+              success = TRUE;
+            }
+            else
+            {
+              pollfd->status = FS_MSN_STATUS_CONNECTED2;
+            }
           }
           else
           {

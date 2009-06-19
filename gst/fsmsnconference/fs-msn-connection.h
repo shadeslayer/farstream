@@ -71,6 +71,7 @@ struct _FsMsnConnection
   gchar *remote_recipient_id; /* protected by lock */
   guint session_id; /* protected by lock */
   guint initial_port;
+  gboolean producer;
 
   GThread *polling_thread; /* protected by lock */
   GstClockTime poll_timeout; /* protected by lock */
@@ -81,7 +82,8 @@ struct _FsMsnConnection
 
 GType fs_msn_connection_get_type (void);
 
-FsMsnConnection *fs_msn_connection_new (guint session_id, guint initial_port);
+FsMsnConnection *fs_msn_connection_new (guint session_id, gboolean producer,
+	                                guint initial_port);
 
 gboolean fs_msn_connection_gather_local_candidates (FsMsnConnection *connection,
                                                     GError **error);

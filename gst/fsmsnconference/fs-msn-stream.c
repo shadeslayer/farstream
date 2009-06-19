@@ -449,11 +449,13 @@ static void
 fs_msn_stream_constructed (GObject *object)
 {
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
+  gboolean producer = FALSE;
 
   if (self->priv->direction == FS_DIRECTION_SEND)
   {
     GstElementFactory *fact = NULL;
 
+    producer = TRUE;
     fact = gst_element_factory_find ("mimenc");
     if (fact)
     {
@@ -469,8 +471,9 @@ fs_msn_stream_constructed (GObject *object)
   }
   else if (self->priv->direction == FS_DIRECTION_RECV)
   {
-   GstElementFactory *fact = NULL;
+    GstElementFactory *fact = NULL;
 
+    producer = FALSE;
     fact = gst_element_factory_find ("mimdec");
     if (fact)
     {
@@ -492,7 +495,7 @@ fs_msn_stream_constructed (GObject *object)
   }
 
   self->priv->connection = fs_msn_connection_new (self->priv->session_id,
-      self->priv->initial_port);
+      producer, self->priv->initial_port);
 
   g_signal_connect (self->priv->connection,
       "new-local-candidate",
