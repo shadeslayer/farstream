@@ -35,4 +35,4 @@ sed -e "/of-object \"FsSession\"/ a \
       \  (unblock-threads t)" \
     -e "/define-method new_/ a \
       \  (caller-owns-return t)" \
-    -i pyfarsight.defs
+    -i $output
