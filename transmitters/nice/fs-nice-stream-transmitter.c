@@ -408,18 +408,21 @@ fs_nice_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
 {
   FsNiceStreamTransmitter *self =
     FS_NICE_STREAM_TRANSMITTER (streamtransmitter);
+  NiceGstStream *gststream;
+  guint stream_id;
+
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-  if (self->priv->gststream)
-    fs_nice_transmitter_free_gst_stream (self->priv->transmitter,
-        self->priv->gststream);
+  gststream = self->priv->gststream;
   self->priv->gststream = NULL;
-
-  if (self->priv->stream_id)
-    nice_agent_remove_stream (self->priv->agent->agent,
-        self->priv->stream_id);
+  stream_id = self->priv->stream_id;
   self->priv->stream_id = 0;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+  if (gststream)
+    fs_nice_transmitter_free_gst_stream (self->priv->transmitter, gststream);
+  if (stream_id)
+    nice_agent_remove_stream (self->priv->agent->agent, stream_id);
 }
 
 
