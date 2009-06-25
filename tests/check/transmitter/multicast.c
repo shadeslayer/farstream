@@ -64,7 +64,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   buffer_count[component_id-1]++;
 
   /*
-  g_debug ("Buffer %d component: %d size: %u", buffer_count[component_id-1],
+  GST_DEBUG ("Buffer %d component: %d size: %u", buffer_count[component_id-1],
     component_id, GST_BUFFER_SIZE (buffer));
   */
 
@@ -88,7 +88,7 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   ts_fail_unless (local->component_id == remote->component_id,
     "Local and remote candidates dont have the same component id");
 
-  g_debug ("New active candidate pair for component %d", local->component_id);
+  GST_DEBUG ("New active candidate pair for component %d", local->component_id);
 
   if (!src_setup[local->component_id-1])
     setup_fakesrc (user_data, pipeline, local->component_id);
@@ -100,7 +100,7 @@ _start_pipeline (gpointer user_data)
 {
   GstElement *pipeline = user_data;
 
-  g_debug ("Starting pipeline");
+  GST_DEBUG ("Starting pipeline");
 
   ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");

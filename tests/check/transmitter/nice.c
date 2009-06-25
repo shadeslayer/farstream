@@ -62,7 +62,7 @@ static void
 _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   gpointer user_data)
 {
-  g_debug ("Has local candidate %s:%u of type %d",
+  GST_DEBUG ("Has local candidate %s:%u of type %d",
     candidate->ip, candidate->port, candidate->type);
 
   ts_fail_if (candidate == NULL, "Passed NULL candidate");
@@ -86,9 +86,9 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   ts_fail_if (candidate->username == NULL, "Candidate doenst have a username");
   ts_fail_if (candidate->password == NULL, "Candidate doenst have a password");
 
-  g_debug ("New local candidate %s:%d of type %d for component %d",
+  GST_DEBUG ("New local candidate %s:%d of type %d for component %d",
     candidate->ip, candidate->port, candidate->type, candidate->component_id);
-  g_debug ("username: %s password: %s", candidate->username,
+  GST_DEBUG ("username: %s password: %s", candidate->username,
       candidate->password);
 
   if (is_address_local)
@@ -163,7 +163,7 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
   ts_fail_if (g_list_length (candidates) < 2,
       "We don't have at least 2 candidates");
 
-  g_debug ("Local Candidates Prepared");
+  GST_DEBUG ("Local Candidates Prepared");
 
   g_object_set_data (G_OBJECT (st2), "candidates-set", candidates);
 
@@ -181,7 +181,7 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   ts_fail_unless (local->component_id == remote->component_id,
     "Local and remote candidates dont have the same component id");
 
-  g_debug ("New active candidate pair");
+  GST_DEBUG ("New active candidate pair");
 }
 
 static void
@@ -199,10 +199,10 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count[stream][component_id-1] % 10 == 0)
   {
-    g_debug ("Buffer %d stream: %u component: %d size: %u",
+    GST_DEBUG ("Buffer %d stream: %u component: %d size: %u",
         buffer_count[stream][component_id-1], stream,
         component_id, GST_BUFFER_SIZE (buffer));
-    g_debug ("Received %d %d %d %d",
+    GST_DEBUG ("Received %d %d %d %d",
         buffer_count[0][0], buffer_count[0][1],
         buffer_count[1][0], buffer_count[1][1]);
   }
@@ -289,7 +289,7 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
   enumclass = g_type_class_ref (FS_TYPE_STREAM_STATE);
   enumvalue = g_enum_get_value (enumclass, state);
 
-  g_debug ("%p: Stream state for component %u is now %s (%u)", st,
+  GST_DEBUG ("%p: Stream state for component %u is now %s (%u)", st,
       component, enumvalue->value_nick, state);
 
   ts_fail_if (state == FS_STREAM_STATE_FAILED,
@@ -322,12 +322,12 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
   {
     GstElement *pipeline = GST_ELEMENT (
         g_object_get_data (G_OBJECT (trans), "pipeline"));
-    g_debug ("%p: Setting up fakesrc for component %u", st, component);
+    GST_DEBUG ("%p: Setting up fakesrc for component %u", st, component);
     setup_fakesrc (trans, pipeline, component);
     g_object_set_data (G_OBJECT (trans), prop, "");
   }
   else
-    g_debug ("FAKESRC ALREADY SETUP for component %u", component);
+    GST_DEBUG ("FAKESRC ALREADY SETUP for component %u", component);
 }
 
 

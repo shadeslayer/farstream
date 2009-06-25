@@ -46,7 +46,7 @@ _start_pipeline (gpointer user_data)
 {
   struct SimpleTestConference *dat = user_data;
 
-  g_debug ("%d: Starting pipeline", dat->id);
+  GST_DEBUG ("%d: Starting pipeline", dat->id);
 
   ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
@@ -134,7 +134,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         gchar *debug = NULL;
         gst_message_parse_warning (message, &error, &debug);
 
-        g_debug ("%d: Got a warning on the BUS (%d): %s (%s)", dat->id,
+        GST_WARNING ("%d: Got a warning on the BUS (%d): %s (%s)", dat->id,
             error->code,
             error->message, debug);
         g_error_free (error);
@@ -277,7 +277,7 @@ one_way (GCallback havedata_handler, gpointer data)
 
   recv_pipeline = build_recv_pipeline (havedata_handler, NULL, &port);
 
-  g_debug ("port is %d", port);
+  GST_DEBUG ("port is %d", port);
 
   candidates = g_list_prepend (NULL,
       fs_candidate_new ("1", FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,

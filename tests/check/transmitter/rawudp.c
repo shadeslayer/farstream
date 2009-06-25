@@ -98,7 +98,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
   GList *item = NULL;
   gboolean ret;
 
-  g_debug ("Has local candidate %s:%u of type %d",
+  GST_DEBUG ("Has local candidate %s:%u of type %d",
     candidate->ip, candidate->port, candidate->type);
 
   ts_fail_if (candidate == NULL, "Passed NULL candidate");
@@ -137,7 +137,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 
   candidates[candidate->component_id-1] = 1;
 
-  g_debug ("New local candidate %s:%d of type %d for component %d",
+  GST_DEBUG ("New local candidate %s:%d of type %d for component %d",
     candidate->ip, candidate->port, candidate->type, candidate->component_id);
 
   item = g_list_prepend (NULL, candidate);
@@ -160,7 +160,7 @@ _local_candidates_prepared (FsStreamTransmitter *st, gpointer user_data)
   ts_fail_if (candidates[0] == 0, "candidates-prepared with no RTP candidate");
   ts_fail_if (candidates[1] == 0, "candidates-prepared with no RTCP candidate");
 
-  g_debug ("Local Candidates Prepared");
+  GST_DEBUG ("Local Candidates Prepared");
 
   /*
    * This doesn't work on my router
@@ -184,7 +184,7 @@ _new_active_candidate_pair (FsStreamTransmitter *st, FsCandidate *local,
   ts_fail_unless (local->component_id == remote->component_id,
     "Local and remote candidates dont have the same component id");
 
-  g_debug ("New active candidate pair for component %d", local->component_id);
+  GST_DEBUG ("New active candidate pair for component %d", local->component_id);
 
   g_static_mutex_lock (&pipeline_mod_mutex);
   if (!pipeline_done && !src_setup[local->component_id-1])
@@ -205,10 +205,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
   buffer_count[component_id-1]++;
 
-  /*
-  g_debug ("Buffer %d component: %d size: %u", buffer_count[component_id-1],
+  GST_LOG ("Buffer %d component: %d size: %u", buffer_count[component_id-1],
     component_id, GST_BUFFER_SIZE (buffer));
-  */
 
   ts_fail_if (buffer_count[component_id-1] > 20,
     "Too many buffers %d > 20 for component",
@@ -332,7 +330,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
         error->code == FS_ERROR_NETWORK &&
         error->message && strstr (error->message, "unreachable"))
     {
-      g_debug ("Skipping stunserver test, we have no network");
+      GST_WARNING ("Skipping stunserver test, we have no network");
       goto skip;
     }
     else
@@ -548,12 +546,12 @@ _bus_stop_stream_cb (GstBus *bus, GstMessage *message, gpointer user_data)
   if (pending != GST_STATE_VOID_PENDING)
     ts_fail ("New state playing, but pending is %d", pending);
 
-  g_debug ("Stopping stream transmitter");
+  GST_DEBUG ("Stopping stream transmitter");
 
   fs_stream_transmitter_stop (st);
   g_object_unref (st);
 
-  g_debug ("Stopped stream transmitter");
+  GST_DEBUG ("Stopped stream transmitter");
 
   g_atomic_int_set(&running, FALSE);
   g_main_loop_quit (loop);
@@ -884,7 +882,7 @@ setup_stunalternd_valid (void)
       "127.0.0.1", 3478, 3480);
 
   if (!stun_alternd_data)
-    g_debug ("Could not spawn stunalternd,"
+    GST_WARNING ("Could not spawn stunalternd,"
         " skipping stun alternate server testing");
 }
 
@@ -895,7 +893,7 @@ setup_stunalternd_loop (void)
       "127.0.0.1", 3478, 3478);
 
   if (!stun_alternd_data)
-    g_debug ("Could not spawn stunalternd,"
+    GST_WARNING ("Could not spawn stunalternd,"
         " skipping stun alternate server testing");
 }
 

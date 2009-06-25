@@ -126,7 +126,7 @@ setup_fakesrc (struct SimpleTestConference *dat)
 {
   GstPad *sinkpad = NULL, *srcpad = NULL;
 
-  g_debug ("Adding fakesrc");
+  GST_DEBUG ("Adding fakesrc");
 
 
   g_object_get (dat->session, "sink-pad", &sinkpad, NULL);

@@ -142,7 +142,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   if (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp)
     return;
 
-  g_debug ("%d:%d: Setting remote candidate for component %d",
+  GST_DEBUG ("%d:%d: Setting remote candidate for component %d",
       other_st->dat->id,
       other_st->target->id,
       candidate->component_id);
@@ -171,7 +171,7 @@ _current_send_codec_changed (FsSession *session, FsCodec *codec)
   gst_object_unref (conf);
 
   str = fs_codec_to_string (codec);
-  g_debug ("%d: New send codec: %s", dat->id, str);
+  GST_DEBUG ("%d: New send codec: %s", dat->id, str);
   g_free (str);
 }
 
@@ -339,7 +339,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         gchar *debug = NULL;
         gst_message_parse_warning (message, &error, &debug);
 
-        g_debug ("%d: Got a warning on the BUS (%d): %s (%s)", dat->id,
+        GST_WARNING ("%d: Got a warning on the BUS (%d): %s (%s)", dat->id,
             error->code,
             error->message, debug);
         g_error_free (error);
@@ -377,7 +377,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       st->flags &= ~WAITING_ON_LAST_CODEC;
       st->flags |= SHOULD_BE_LAST_CODEC;
       max_buffer_count += st->buffer_count;
-      g_debug ("We HAVE last codec");
+      GST_DEBUG ("We HAVE last codec");
     }
     else
     {
@@ -385,7 +385,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       gchar *str = fs_codec_to_string (
           g_object_get_data (G_OBJECT (element), "codec"));
       gchar *str2 = fs_codec_to_string (g_list_last (codecs)->data);
-      g_debug ("not yet the last codec, skipping (we have %s, we want %s)",
+      GST_DEBUG ("not yet the last codec, skipping (we have %s, we want %s)",
           str, str2);
       g_free (str);
       g_free (str2);
@@ -420,11 +420,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 
   st->buffer_count++;
-  /*
-    Disabled because it outputs too much stuff
-  if (st->buffer_count % 10 == 0)
-    g_debug ("%d:%d: Buffer %d", st->dat->id, st->target->id, st->buffer_count);
-  */
+  GST_LOG ("%d:%d: Buffer %d", st->dat->id, st->target->id, st->buffer_count);
+
 
   /*
   ts_fail_if (dat->buffer_count > max_buffer_count,
@@ -465,7 +462,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       ts_fail_if (g_list_length (nego_codecs) < 2, "Only one negotiated codec");
 
       str = fs_codec_to_string (g_list_last (nego_codecs)->data);
-      g_debug ("Setting codec to: %s", str);
+      GST_DEBUG ("Setting codec to: %s", str);
       g_free (str);
 
       ts_fail_unless (fs_session_set_send_codec (st->target->session,
@@ -478,7 +475,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
       st->flags |= HAS_BEEN_RESET | WAITING_ON_LAST_CODEC;
 
-      g_debug ("RESET TO LAST CODEC");
+      GST_DEBUG ("RESET TO LAST CODEC");
 
     } else {
       g_main_loop_quit (loop);
@@ -526,7 +523,7 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
       GST_STATE_CHANGE_FAILURE, "Could not set the fakesink to playing");
 
   str = fs_codec_to_string (codec);
-  g_debug ("%d:%d: Added Fakesink for codec %s", st->dat->id, st->target->id,
+  GST_DEBUG ("%d:%d: Added Fakesink for codec %s", st->dat->id, st->target->id,
            str);
   g_free (str);
 }
@@ -570,7 +567,7 @@ _start_pipeline (gpointer user_data)
 {
   struct SimpleTestConference *dat = user_data;
 
-  g_debug ("%d: Starting pipeline", dat->id);
+  GST_DEBUG ("%d: Starting pipeline", dat->id);
 
   ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the pipeline to playing");
@@ -606,7 +603,7 @@ _negotiated_codecs_notify (GObject *object, GParamSpec *paramspec,
   GError *error = NULL;
   GList *item = NULL;
 
-  g_debug ("%d: New negotiated codecs", dat->id);
+  GST_DEBUG ("%d: New negotiated codecs", dat->id);
 
   ts_fail_if (session != dat->session, "Got signal from the wrong object");
 
@@ -621,7 +618,7 @@ _negotiated_codecs_notify (GObject *object, GParamSpec *paramspec,
     struct SimpleTestStream *st2 = find_pointback_stream (st->target, dat);
     GList *rcodecs2;
 
-    g_debug ("Setting negotiated remote codecs on %d:%d from %d",st2->dat->id,
+    GST_DEBUG ("Setting negotiated remote codecs on %d:%d from %d",st2->dat->id,
         st2->target->id, dat->id);
     if (!fs_stream_set_remote_codecs (st2->stream, codecs, &error))
     {
@@ -682,7 +679,7 @@ set_initial_codecs (
       " you must install gst-plugins-good");
 
 
-  g_debug ("Setting initial remote codecs on %d:%d from %d",
+  GST_DEBUG ("Setting initial remote codecs on %d:%d from %d",
       to->dat->id, to->target->id,
       from->id);
 

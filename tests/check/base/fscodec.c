@@ -231,7 +231,7 @@ GST_START_TEST (test_fscodec_keyfile)
     GList *item;
     for(item = codecs; item ; item= item->next)
     {
-      g_debug ("%s", fs_codec_to_string (item->data));
+      GST_DEBUG ("%s", fs_codec_to_string (item->data));
     }
   }
 #endif

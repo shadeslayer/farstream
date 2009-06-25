@@ -22,6 +22,8 @@
 # include <config.h>
 #endif
 
+#include <gst/check/gstcheck.h>
+
 #include "testutils.h"
 
 #ifdef HAVE_GETIFADDRS
@@ -56,13 +58,13 @@ find_multicast_capable_address (void)
     {
       g_free (retval);
       retval = NULL;
-      g_debug ("Disabling test, more than one multicast capable interface");
+      GST_DEBUG ("Disabling test, more than one multicast capable interface");
       break;
     }
 
     retval = g_strdup (
         inet_ntoa (((struct sockaddr_in *) ifa->ifa_addr)->sin_addr));
-    g_debug ("Sending from %s on interface %s", retval, ifa->ifa_name);
+    GST_DEBUG ("Sending from %s on interface %s", retval, ifa->ifa_name);
   }
 
   freeifaddrs (results);

@@ -160,7 +160,7 @@ bus_error_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         gchar *debug = NULL;
         gst_message_parse_warning (message, &error, &debug);
 
-        g_debug ("Got a warning on the BUS (%d): %s (%s)",
+        GST_WARNING ("Got a warning on the BUS (%d): %s (%s)",
             error->code,
             error->message, debug);
         g_error_free (error);
@@ -222,7 +222,7 @@ setup_stund (void)
           G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
           NULL, NULL, &stund_pid, &error))
   {
-    g_debug ("Could not spawn stund, skipping stun testing: %s",
+    GST_WARNING ("Could not spawn stund, skipping stun testing: %s",
         error->message);
     g_clear_error (&error);
     return;
