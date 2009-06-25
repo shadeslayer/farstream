@@ -32,7 +32,7 @@ For the python module:
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.7
- - gst-plugins-bad 0.10.12
+ - gst-plugins-bad 0.10.13
 
 For the GUI example:
  - PyGTK 2.10
