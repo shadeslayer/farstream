@@ -209,6 +209,8 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
       READ_CHECK (read_codec_blueprint_string (in, size, &(tmp)));
       fact = gst_element_factory_find (tmp);
       g_free (tmp);
+      if (!fact)
+        goto error;
       tmplist = g_list_append (tmplist, fact);
     }
     codec_blueprint->send_pipeline_factory =
@@ -226,6 +228,8 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
       READ_CHECK (read_codec_blueprint_string (in, size, &(tmp)));
       fact = gst_element_factory_find (tmp);
       g_free (tmp);
+      if (!fact)
+        goto error;
       tmplist = g_list_append (tmplist, fact);
     }
     codec_blueprint->receive_pipeline_factory =
