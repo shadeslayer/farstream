@@ -283,128 +283,21 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config)
 {
   FsCodec *negotiated_codec = NULL;
-  GList *mylistitem = NULL, *negotiated_param_list = NULL;
-  gboolean has_mode = FALSE;
+  FsCodec *remote_codec_copy = NULL;
 
   GST_DEBUG ("Using ilbc negotiation function");
 
-  if (remote_codec->clock_rate &&
-      local_codec->clock_rate != remote_codec->clock_rate)
-  {
-    GST_LOG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
-        remote_codec->clock_rate);
-    return NULL;
-  }
+  remote_codec_copy = fs_codec_copy (remote_codec);
 
-  if (local_codec->channels && remote_codec->channels &&
-      local_codec->channels != remote_codec->channels)
-  {
-    GST_LOG ("Channel counts differ local=%u remote=%u",
-        local_codec->channels,
-        remote_codec->channels);
-    return NULL;
-  }
+  if (!fs_codec_get_optional_parameter (remote_codec_copy, "mode", NULL))
+    fs_codec_add_optional_parameter (remote_codec_copy, "mode", "30");
 
-  negotiated_codec = fs_codec_copy (remote_codec);
+  negotiated_codec =  sdp_is_compat_default (local_codec, remote_codec_copy,
+      validate_config);
 
-  /* Lets fix here missing clock rates and channels counts */
-  if (negotiated_codec->channels == 0 && local_codec->channels)
-    negotiated_codec->channels = local_codec->channels;
-  if (negotiated_codec->clock_rate == 0)
-    negotiated_codec->clock_rate = local_codec->clock_rate;
-
-  for (mylistitem = local_codec->optional_params;
-       mylistitem;
-       mylistitem = g_list_next (mylistitem))
-  {
-    FsCodecParameter *local_param = mylistitem->data;
-
-    for (negotiated_param_list = negotiated_codec->optional_params;
-         negotiated_param_list;
-         negotiated_param_list = g_list_next (negotiated_param_list))
-    {
-      FsCodecParameter *negotiated_param = negotiated_param_list->data;
-
-      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name))
-      {
-        if (!g_ascii_strcasecmp (local_param->name, "mode"))
-        {
-          gint local_mode = atoi (local_param->value);
-          gint remote_mode = atoi (negotiated_param->value);
-
-          has_mode = TRUE;
-
-          if (remote_mode != 20 && remote_mode != 30)
-          {
-            GST_WARNING ("Invalid mode on ilbc");
-            goto failure;
-          }
-          if (local_mode != remote_mode)
-          {
-            g_free (negotiated_param->value);
-            negotiated_param->value = g_strdup ("30");
-            break;
-          }
-        }
-        else
-        {
-          if (!strcmp (local_param->value, negotiated_param->value))
-          {
-            break;
-          }
-          else
-          {
-            GST_LOG ("Different values for %s, local=%s remote=%s",
-                local_param->name, local_param->value, negotiated_param->value);
-            goto failure;
-          }
-        }
-      }
-    }
-
-    /* Let's add the local param to the negotiated codec if it does not exist in
-     * the remote codec */
-    if (!negotiated_param_list)
-    {
-      fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
-          local_param->value);
-
-      if (!g_ascii_strcasecmp (local_param->name, "mode"))
-      {
-        has_mode = TRUE;
-      }
-    }
-  }
-
-  /* If more has not be found in the local codec, let's check if it's in the
-   * remote codec */
-  if (!has_mode)
-  {
-    for (negotiated_param_list = negotiated_codec->optional_params;
-         negotiated_param_list;
-         negotiated_param_list = g_list_next (negotiated_param_list))
-    {
-      FsCodecParameter *negotiated_param = negotiated_param_list->data;
-      if (!g_ascii_strcasecmp (negotiated_param->name, "mode"))
-      {
-        has_mode = TRUE;
-        break;
-      }
-    }
-  }
-
-  /* If we still can't find the mode anywhere, let's add it since it's
-   *  mandatory and use default value of 30 ms */
-  if (!has_mode)
-    fs_codec_add_optional_parameter (negotiated_codec, "mode", "30");
+  fs_codec_destroy (remote_codec_copy);
 
   return negotiated_codec;
-
- failure:
-  if (negotiated_codec)
-    fs_codec_destroy (negotiated_codec);
-  return NULL;
-
 }
 
 
