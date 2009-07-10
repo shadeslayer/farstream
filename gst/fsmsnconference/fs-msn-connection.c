@@ -945,7 +945,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
 
   FS_MSN_CONNECTION_LOCK (self);
   success = (self->pollfds->len > 1);
-  FS_MSN_CONNECTION_LOCK (self);
+  FS_MSN_CONNECTION_UNLOCK (self);
 
   if (!success)
     g_signal_emit (self, signals[SIGNAL_CONNECTION_FAILED], 0);
