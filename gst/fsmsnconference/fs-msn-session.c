@@ -3,8 +3,9 @@
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *  @author: Youness Alaoui <youness.alaoui@collabora.co.uk>
  *
  * fs-msn-session.c - A Farsight Msn Session gobject
  *

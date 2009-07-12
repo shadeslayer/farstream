@@ -3,8 +3,7 @@
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
- * Copyright 2007 Collabora Ltd.
- *  @author: Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * fs-msn-conference.c - MSN implementation for Farsight Conference Gstreamer
@@ -65,7 +64,8 @@ static GstElementDetails fs_msn_conference_details =
   "Generic/Bin/MSN",
   "A Farsight MSN Conference",
   "Richard Spiers <richard.spiers@gmail.com>, "
-  "Youness Alaoui <youness.alaoui@collabora.co.uk"
+  "Youness Alaoui <youness.alaoui@collabora.co.uk>, "
+  "Olivier Crete <olivier.crete@collabora.co.uk>"
 };
 
 
