@@ -285,7 +285,7 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
 
 static gboolean plugin_init (GstPlugin * plugin)
 {
-  return gst_element_register (plugin, "fsmsnconference",
+  return gst_element_register (plugin, "fsmsncamconference",
                                GST_RANK_NONE, FS_TYPE_MSN_CONFERENCE);
 }
 
