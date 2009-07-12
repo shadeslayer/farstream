@@ -560,7 +560,7 @@ _connected (
         "fdsrc name=fdsrc ! mimdec ! valve name=recv_valve", TRUE, &error);
   else
     codecbin = gst_parse_bin_from_description (
-        "ffmpegcolorspace ! videoscale ! mimenc ! fdsink name=fdsink",
+        "ffmpegcolorspace ! videoscale ! mimenc name=enc ! fdsink name=fdsink",
         TRUE, &error);
 
   if (!codecbin)
@@ -569,6 +569,16 @@ _connected (
         "Could not build codecbin", error->message);
     g_clear_error (&error);
     goto error;
+  }
+
+  /* So we don't require an unlreased gst-plugins-bad mimenc */
+  if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
+  {
+    GstElement *mimenc = gst_bin_get_by_name (GST_BIN (codecbin), "enc");
+    if (g_object_class_find_property (
+            G_OBJECT_GET_CLASS (mimenc), "paused-mode"))
+      g_object_set (mimenc, "paused-mode", TRUE, NULL);
+    gst_object_unref (mimenc);
   }
 
   if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
