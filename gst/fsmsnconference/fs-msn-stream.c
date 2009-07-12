@@ -450,50 +450,14 @@ static void
 fs_msn_stream_constructed (GObject *object)
 {
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
-  gboolean producer = FALSE;
+  gboolean producer;
 
-  if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
-  {
-    GstElementFactory *fact = NULL;
-
-    producer = TRUE;
-    fact = gst_element_factory_find ("mimenc");
-    if (fact)
-    {
-      gst_object_unref (fact);
-    }
-    else
-    {
-      g_set_error (&self->priv->construction_error,
-          FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "mimenc missing");
-      return;
-    }
-  }
-  else if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
-  {
-    GstElementFactory *fact = NULL;
-
+  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
     producer = FALSE;
-    fact = gst_element_factory_find ("mimdec");
-    if (fact)
-    {
-      gst_object_unref (fact);
-    }
-    else
-    {
-      g_set_error (&self->priv->construction_error,
-          FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "mimdec missing");
-      return;
-    }
-  }
+  else if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
+    producer = TRUE;
   else
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_INVALID_ARGUMENTS,
-        "Direction must be sending OR receiving");
-  }
+    g_assert_not_reached ();
 
   self->priv->connection = fs_msn_connection_new (self->priv->session_id,
       producer, self->priv->initial_port);

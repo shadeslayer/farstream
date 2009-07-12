@@ -97,9 +97,18 @@ fs_msn_cam_send_conference_init (FsMsnCamSendConference *self,
                         FsMsnCamSendConferenceClass *bclass)
 {
   FsMsnConference *conf = FS_MSN_CONFERENCE (self);
+  GstElementFactory *fact = NULL;
 
   GST_DEBUG_OBJECT (conf, "fs_msn_cam_send_conference_init");
 
   conf->max_direction = FS_DIRECTION_SEND;
+
+  fact = gst_element_factory_find ("mimenc");
+  if (fact)
+    gst_object_unref (fact);
+  else
+    g_set_error (&conf->missing_element_error,
+        FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "mimenc missing");
 }
 

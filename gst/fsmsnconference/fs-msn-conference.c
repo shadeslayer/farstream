@@ -132,6 +132,8 @@ fs_msn_conference_dispose (GObject * object)
 
   self->priv->disposed = TRUE;
 
+  g_clear_error (&self->missing_element_error);
+
   G_OBJECT_CLASS (parent_class)->dispose (object);
 }
 
@@ -206,6 +208,13 @@ fs_msn_conference_new_session (FsBaseConference *conf,
   FsMsnConference *self = FS_MSN_CONFERENCE (conf);
   FsMsnSession *new_session = NULL;
 
+  if (self->missing_element_error)
+  {
+    if (error)
+      *error = g_error_copy (self->missing_element_error);
+    return NULL;
+  }
+
   if (media_type != FS_MEDIA_TYPE_VIDEO)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -245,6 +254,13 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
 {
   FsMsnConference *self = FS_MSN_CONFERENCE (conf);
   FsMsnParticipant *new_participant = NULL;
+
+  if (self->missing_element_error)
+  {
+    if (error)
+      *error = g_error_copy (self->missing_element_error);
+    return NULL;
+  }
 
   GST_OBJECT_LOCK (self);
   if (self->priv->participant)

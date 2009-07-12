@@ -56,6 +56,8 @@ struct _FsMsnConference
   FsMsnConferencePrivate *priv;
 
   FsStreamDirection max_direction;
+
+  GError *missing_element_error;
 };
 
 struct _FsMsnConferenceClass
