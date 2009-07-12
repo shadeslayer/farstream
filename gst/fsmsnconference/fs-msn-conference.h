@@ -54,6 +54,8 @@ struct _FsMsnConference
 {
   FsBaseConference parent;
   FsMsnConferencePrivate *priv;
+
+  FsStreamDirection max_direction;
 };
 
 struct _FsMsnConferenceClass

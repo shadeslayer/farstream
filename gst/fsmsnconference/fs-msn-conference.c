@@ -25,8 +25,8 @@
  */
 
 /**
- * SECTION:element-fsmsnconference
- * @short_description: Farsight MSN Conference Gstreamer Elements
+ * SECTION:fs-msn-conference
+ * @short_description: Farsight MSN Conference Gstreamer Elements Base class
  *
  * This element implements the unidirection webcam feature found in various
  * version of MSN Messenger (tm) and Windows Live Messenger (tm).
@@ -42,6 +42,9 @@
 #include "fs-msn-stream.h"
 #include "fs-msn-participant.h"
 
+#include "fs-msn-cam-send-conference.h"
+#include "fs-msn-cam-recv-conference.h"
+
 GST_DEBUG_CATEGORY (fsmsnconference_debug);
 #define GST_CAT_DEFAULT fsmsnconference_debug
 
@@ -56,18 +59,6 @@ enum
 {
   PROP_0
 };
-
-
-static GstElementDetails fs_msn_conference_details =
-{
-  "Farsight MSN Conference",
-  "Generic/Bin/MSN",
-  "A Farsight MSN Conference",
-  "Richard Spiers <richard.spiers@gmail.com>, "
-  "Youness Alaoui <youness.alaoui@collabora.co.uk>, "
-  "Olivier Crete <olivier.crete@collabora.co.uk>"
-};
-
 
 
 static GstStaticPadTemplate fs_msn_conference_sink_template =
@@ -171,8 +162,6 @@ fs_msn_conference_base_init (gpointer g_class)
       gst_static_pad_template_get (&fs_msn_conference_sink_template));
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&fs_msn_conference_src_template));
-
-  gst_element_class_set_details (gstelement_class, &fs_msn_conference_details);
 }
 
 static void
@@ -285,8 +274,10 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
 
 static gboolean plugin_init (GstPlugin * plugin)
 {
-  return gst_element_register (plugin, "fsmsncamconference",
-                               GST_RANK_NONE, FS_TYPE_MSN_CONFERENCE);
+  return gst_element_register (plugin, "fsmsncamsendconference",
+      GST_RANK_NONE, FS_TYPE_MSN_CAM_SEND_CONFERENCE) &&
+    gst_element_register (plugin, "fsmsncamrecvconference",
+        GST_RANK_NONE, FS_TYPE_MSN_CAM_RECV_CONFERENCE);
 }
 
 GST_PLUGIN_DEFINE (

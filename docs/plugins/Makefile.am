@@ -82,6 +82,8 @@ EXTRA_HFILES = \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-session.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-stream.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-participant.h \
+	$(top_srcdir)/gst/fsmsnconference/fs-msn-cam-recv-conference.h \
+	$(top_srcdir)/gst/fsmsnconference/fs-msn-cam-send-conference.h \
 	$(top_srcdir)/gst/fsmsnconference/fs-msn-conference.h \
 	$(top_srcdir)/gst/fsmsnconference/fs-msn-session.h \
 	$(top_srcdir)/gst/fsmsnconference/fs-msn-stream.h \

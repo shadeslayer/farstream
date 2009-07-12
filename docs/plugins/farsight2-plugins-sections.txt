@@ -257,7 +257,7 @@ FS_NICE_STREAM_TRANSMITTER_GET_CLASS
 
 
 <SECTION>
-<FILE>element-fsmsnconference</FILE>
+<FILE>fs-msn-conference</FILE>
 <TITLE>FsMsnConference</TITLE>
 FsMsnConference
 <SUBSECTION Standard>
@@ -333,4 +333,38 @@ FsMsnParticipantPrivate
 fs_msn_participant_get_type
 <SUBSECTION Private>
 fs_msn_participant_new
+</SECTION>
+
+<SECTION>
+<FILE>element-fsmsncamrecvconference</FILE>
+<TITLE>FsMsnCamCamRecvConference</TITLE>
+FsMsnCamRecvConference
+<SUBSECTION Private>
+FS_IS_MSN_CAM_RECV_CONFERENCE
+FS_IS_MSN_CAM_RECV_CONFERENCE_CLASS
+FS_MSN_CAM_RECV_CONFERENCE
+FS_MSN_CAM_RECV_CONFERENCE_CAST
+FS_MSN_CAM_RECV_CONFERENCE_CLASS
+FS_MSN_CAM_RECV_CONFERENCE_GET_CLASS
+FS_TYPE_MSN_CAM_RECV_CONFERENCE
+FsMsnCamRecvConferenceClass
+FsMsnCamRecvConferencePrivate
+fs_msn_cam_recv_conference_get_type
+</SECTION>
+
+<SECTION>
+<FILE>element-fsmsncamsendconference</FILE>
+<TITLE>FsMsnCamSendConference</TITLE>
+FsMsnCamSendConference
+<SUBSECTION Private>
+FS_IS_MSN_CAM_SEND_CONFERENCE
+FS_IS_MSN_CAM_SEND_CONFERENCE_CLASS
+FS_MSN_CAM_SEND_CONFERENCE
+FS_MSN_CAM_SEND_CONFERENCE_CAST
+FS_MSN_CAM_SEND_CONFERENCE_CLASS
+FS_MSN_CAM_SEND_CONFERENCE_GET_CLASS
+FS_TYPE_MSN_CAM_SEND_CONFERENCE
+FsMsnCamSendConferenceClass
+FsMsnCamSendConferencePrivate
+fs_msn_cam_send_conference_get_type
 </SECTION>

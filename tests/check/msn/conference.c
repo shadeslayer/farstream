@@ -220,8 +220,12 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   gst_bus_add_watch (bus, bus_watch, dat);
   gst_object_unref (bus);
 
-  dat->conf = FS_CONFERENCE (
-      gst_element_factory_make ("fsmsnconference", NULL));
+  if (dir == FS_DIRECTION_SEND)
+    dat->conf = FS_CONFERENCE (
+        gst_element_factory_make ("fsmsncamsendconference", NULL));
+  else
+    dat->conf = FS_CONFERENCE (
+        gst_element_factory_make ("fsmsncamrecvconference", NULL));
   ts_fail_unless (dat->conf != NULL);
 
   ts_fail_unless (gst_bin_add (GST_BIN (dat->pipeline),
@@ -412,6 +416,5 @@ fsmsnconference_suite (void)
 
   return s;
 }
-
 
 GST_CHECK_MAIN (fsmsnconference);

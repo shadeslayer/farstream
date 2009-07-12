@@ -85,7 +85,6 @@ struct _FsMsnStreamPrivate
   FsMsnConference *conference;
   FsMsnSession *session;
   FsMsnParticipant *participant;
-  FsStreamDirection orig_direction;
   FsStreamDirection direction;
   GstElement *codecbin;
   GstElement *recv_valve;
@@ -205,7 +204,6 @@ fs_msn_stream_init (FsMsnStream *self)
   self->priv->participant = NULL;
 
   self->priv->direction = FS_DIRECTION_NONE;
-  self->priv->orig_direction = FS_DIRECTION_NONE;
 
   self->priv->session_id = g_random_int_range (9000, 9999);
 
@@ -374,24 +372,26 @@ fs_msn_stream_set_property (GObject *object,
       self->priv->participant = FS_MSN_PARTICIPANT (g_value_dup_object (value));
       break;
     case PROP_DIRECTION:
-      if (self->priv->orig_direction == FS_DIRECTION_NONE)
-      {
-        self->priv->orig_direction = g_value_get_flags (value);
-        self->priv->direction = g_value_get_flags (value);
-        break;
-      }
-
       if (g_value_get_flags (value) != self->priv->direction)
       {
         GstElement *recv_valve = NULL;
         GstElement *session_valve = NULL;
+
+        if (!conference ||
+            !self->priv->recv_valve ||
+            !self->priv->session)
+        {
+          self->priv->direction = g_value_get_flags (value);
+          break;
+        }
+
         if (self->priv->recv_valve)
           recv_valve = gst_object_ref (self->priv->recv_valve);
         if (self->priv->session->valve)
           session_valve = gst_object_ref (self->priv->session->valve);
 
         self->priv->direction =
-          g_value_get_flags (value) & self->priv->orig_direction;
+          g_value_get_flags (value) & conference->max_direction;
 
         if (self->priv->direction == FS_DIRECTION_NONE)
         {
@@ -452,7 +452,7 @@ fs_msn_stream_constructed (GObject *object)
   FsMsnStream *self = FS_MSN_STREAM_CAST (object);
   gboolean producer = FALSE;
 
-  if (self->priv->direction == FS_DIRECTION_SEND)
+  if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
   {
     GstElementFactory *fact = NULL;
 
@@ -470,7 +470,7 @@ fs_msn_stream_constructed (GObject *object)
       return;
     }
   }
-  else if (self->priv->direction == FS_DIRECTION_RECV)
+  else if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
   {
     GstElementFactory *fact = NULL;
 
@@ -591,7 +591,7 @@ _connected (
               "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_READY,
               NULL)));
 
-  if (self->priv->orig_direction == FS_DIRECTION_RECV)
+  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
     codecbin = gst_parse_bin_from_description (
         "fdsrc name=fdsrc ! mimdec ! valve name=recv_valve", TRUE, &error);
   else
@@ -607,7 +607,7 @@ _connected (
     goto error;
   }
 
-  if (self->priv->orig_direction == FS_DIRECTION_RECV)
+  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
     fdelem = gst_bin_get_by_name (GST_BIN (codecbin), "fdsrc");
   else
     fdelem = gst_bin_get_by_name (GST_BIN (codecbin), "fdsink");
@@ -631,7 +631,7 @@ _connected (
     goto error;
   }
 
-  if (self->priv->orig_direction == FS_DIRECTION_RECV)
+  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
     pad = gst_element_get_static_pad (codecbin, "src");
   else
     pad = gst_element_get_static_pad (codecbin, "sink");
@@ -657,7 +657,7 @@ _connected (
   self->priv->codecbin = gst_object_ref (codecbin);
   GST_OBJECT_UNLOCK (conference);
 
-  if (self->priv->orig_direction == FS_DIRECTION_RECV)
+  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
   {
     FsCodec *mimic_codec;
     GstPad *src_pad;
@@ -754,7 +754,7 @@ _connected (
     goto error;
   }
 
-  if (self->priv->orig_direction == FS_DIRECTION_SEND)
+  if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
   {
     GST_OBJECT_LOCK (conference);
     drop = !(self->priv->direction & FS_DIRECTION_SEND);

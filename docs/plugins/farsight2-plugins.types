@@ -2,6 +2,5 @@
 fs_rtp_participant_get_type
 fs_rtp_session_get_type
 fs_rtp_stream_get_type
+fs_msn_conference_get_type
 fs_msn_participant_get_type
-fs_msn_session_get_type
-fs_msn_stream_get_type

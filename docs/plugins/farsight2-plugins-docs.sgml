@@ -35,7 +35,9 @@
     <title>MSN plugins</title>
     <chapter>
       <title>MSN Webcam plugin</title>
-      <xi:include href="xml/element-fsmsnconference.xml"/>
+      <xi:include href="xml/element-fsmsncamsendconference.xml"/>
+      <xi:include href="xml/element-fsmsncamrecvconference.xml"/>
+      <xi:include href="xml/fs-msn-conference.xml"/>
       <xi:include href="xml/fs-msn-participant.xml"/>
       <xi:include href="xml/fs-msn-session.xml"/>
       <xi:include href="xml/fs-msn-stream.xml"/>

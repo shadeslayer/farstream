@@ -30,8 +30,6 @@
  *
  * There can be only one stream per session.
  *
- * The direction is chosen when creating the stream using the direction
- * parameter in the fs_session_new_stream() function.
  * It can afterwards be modified to pause sending (or receiving) by modifying
  * the #FsMsnStream::direction property.
  *
