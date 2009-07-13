@@ -182,7 +182,7 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
       g_param_spec_uint ("session-id",
           "The session-id of the session",
           "This is the session-id of the MSN session",
-          1, 9999, 1,
+          0, 9999, 0,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
       PROP_INITIAL_PORT,
@@ -204,8 +204,6 @@ fs_msn_stream_init (FsMsnStream *self)
   self->priv->participant = NULL;
 
   self->priv->direction = FS_DIRECTION_NONE;
-
-  self->priv->session_id = g_random_int_range (9000, 9999);
 
   self->priv->mutex = g_mutex_new ();
 }
@@ -430,6 +428,8 @@ fs_msn_stream_set_property (GObject *object,
       break;
     case PROP_SESSION_ID:
       self->priv->session_id = g_value_get_uint (value);
+      if (self->priv->session_id == 0)
+        self->priv->session_id = g_random_int_range (9000, 9999);
       break;
     case PROP_INITIAL_PORT:
       self->priv->initial_port = g_value_get_uint (value);
