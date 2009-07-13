@@ -178,7 +178,7 @@ fs_msn_connection_class_init (FsMsnConnectionClass *klass)
       g_param_spec_uint ("session-id",
           "The session-id of the session",
           "This is the session-id of the MSN session",
-          1000, 9999, 9000,
+          1, 9999, 1,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
@@ -390,10 +390,10 @@ fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
     {
       gint sid = atoi (candidate->username);
 
-      if (sid < 1000 || sid > 9999)
+      if (sid < 1 || sid > 9999)
       {
           g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-              "The session ID (in the username) must be between 1000 and 9999,"
+              "The session ID (in the username) must be between 1 and 9999,"
               " %d is invalid", sid);
           goto out;
       }
