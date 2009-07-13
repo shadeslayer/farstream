@@ -1318,7 +1318,7 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
 }
 
 /**
- * fs_rtp_sub_stream_verify_codec:
+ * fs_rtp_sub_stream_verify_codec_locked:
  * @substream: A #FsRtpSubStream
  *
  * This function will start the process that invalidates the codec
@@ -1328,7 +1328,7 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
  */
 
 void
-fs_rtp_sub_stream_verify_codec (FsRtpSubStream *substream)
+fs_rtp_sub_stream_verify_codec_locked (FsRtpSubStream *substream)
 {
   GST_LOG ("Starting codec verification process for substream with"
       " SSRC:%x pt:%d", substream->ssrc, substream->pt);

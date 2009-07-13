@@ -2039,7 +2039,7 @@ fs_rtp_session_verify_recv_codecs_locked (FsRtpSession *session)
   for (item = g_list_first (session->priv->free_substreams);
        item;
        item = g_list_next (item))
-    fs_rtp_sub_stream_verify_codec (item->data);
+    fs_rtp_sub_stream_verify_codec_locked (item->data);
 
   for (item = g_list_first (session->priv->streams);
        item;
@@ -2050,7 +2050,7 @@ fs_rtp_session_verify_recv_codecs_locked (FsRtpSession *session)
     for (item2 = g_list_first (stream->substreams);
          item2;
          item2 = g_list_next (item2))
-      fs_rtp_sub_stream_verify_codec (item2->data);
+      fs_rtp_sub_stream_verify_codec_locked (item2->data);
 
   }
 }
@@ -2530,7 +2530,7 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   }
   else
   {
-    fs_rtp_sub_stream_verify_codec (substream);
+    fs_rtp_sub_stream_verify_codec_locked (substream);
     FS_RTP_SESSION_UNLOCK (session);
   }
 
