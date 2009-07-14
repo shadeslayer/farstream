@@ -514,7 +514,9 @@ rtpbin_pad_unlinked (GstPad *pad, GstPad *peer, gpointer user_data)
 {
   FsRtpSubStream *self = user_data;
 
+  g_object_ref (self->priv->session);
   g_signal_emit (self, signals[UNLINKED], 0);
+  g_object_unref (self->priv->session);
 }
 
 static void
@@ -1301,11 +1303,24 @@ static void
 _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 {
   FsRtpSubStream *substream = user_data;
+  FsRtpStream *stream = NULL;
+
+  g_object_ref (substream->priv->session);
+
+  FS_RTP_SESSION_LOCK (substream->priv->session);
+  if (substream->priv->stream)
+    stream = g_object_ref (substream->priv->stream);
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   g_signal_emit (substream, signals[BLOCKED], 0, substream->priv->stream);
 
   gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE,
       do_nothing_blocked_callback, NULL);
+
+  if (stream)
+    g_object_unref (stream);
+
+  g_object_unref (substream->priv->session);
 }
 
 static void
