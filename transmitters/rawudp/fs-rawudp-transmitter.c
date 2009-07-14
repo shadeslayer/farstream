@@ -53,7 +53,7 @@
 #else /*G_OS_WIN32*/
 # include <netdb.h>
 # include <sys/socket.h>
-# include <netinet/in.h>
+# include <netinet/ip.h>
 # include <arpa/inet.h>
 #endif /*G_OS_WIN32*/
 
@@ -548,6 +548,7 @@ _bind_port (
   int sock;
   struct sockaddr_in address;
   int retval;
+  int tos, prio;
 
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
@@ -596,6 +597,14 @@ _bind_port (
   } while (retval != 0);
 
   *used_port = port;
+
+  tos = IPTOS_LOWDELAY;
+  if (setsockopt (sock, IPPROTO_IP, IP_TOS, &tos, sizeof (tos)) < 0)
+    GST_WARNING ( "could not set TOS: %s", g_strerror (errno));
+
+  prio = 6;
+  if (setsockopt (sock, SOL_SOCKET, SO_PRIORITY, &prio, sizeof (tos)) < 0)
+    GST_WARNING ( "could not set socket priority: %s", g_strerror (errno));
 
   return sock;
 }
