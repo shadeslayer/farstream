@@ -102,7 +102,8 @@ simple_conference_add_stream (
 void
 cleanup_simple_stream (struct SimpleTestStream *st)
 {
-  g_object_unref (st->stream);
+  if (st->stream)
+    g_object_unref (st->stream);
   g_object_unref (st->participant);
   g_free (st);
 }
@@ -114,7 +115,8 @@ cleanup_simple_conference (struct SimpleTestConference *dat)
   g_list_foreach (dat->streams, (GFunc) cleanup_simple_stream, NULL);
   g_list_free (dat->streams);
 
-  g_object_unref (dat->session);
+  if (dat->session)
+    g_object_unref (dat->session);
   gst_object_unref (dat->pipeline);
   g_free (dat->cname);
   g_free (dat);

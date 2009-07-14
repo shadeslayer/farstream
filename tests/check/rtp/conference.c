@@ -362,6 +362,9 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gboolean stop = TRUE;
   GList *codecs = NULL;
 
+  if (st->dat->session == NULL)
+    return;
+
   g_object_get (st->dat->session,
       "codecs", &codecs,
       NULL);
@@ -1352,6 +1355,41 @@ min_timeout (TCase *tc_chain, guint min)
   tcase_set_timeout (tc_chain, MAX (min, tmp));
 }
 
+static void unref_session_on_src_pad_added (FsStream *stream,
+    GstPad *pad, FsCodec *codec, struct SimpleTestStream *st)
+{
+  g_object_unref (st->dat->session);
+  st->dat->session = NULL;
+  g_object_unref (st->stream);
+  st->stream = NULL;
+
+  g_main_loop_quit (loop);
+}
+
+static void unref_session_init (void)
+{
+  gint i;
+
+  for (i=0 ; i < 2; i++)
+  {
+    GList *item;
+
+    for (item = dats[i]->streams; item; item = item->next)
+    {
+      struct SimpleTestStream *st = item->data;
+
+      g_signal_connect (st->stream, "src-pad-added",
+          G_CALLBACK (unref_session_on_src_pad_added), st);
+    }
+  }
+}
+
+GST_START_TEST (test_rtpconference_unref_session_in_pad_added)
+{
+  nway_test (2, unref_session_init, "rawudp", 0, NULL);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -1430,6 +1468,10 @@ fsrtpconference_suite (void)
 
   tc_chain = tcase_create ("fsrtpconference_multicast_three_way_ssrc_assoc");
   tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_ssrc_assoc);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconference_unref_session_in_pad_added");
+  tcase_add_test (tc_chain, test_rtpconference_unref_session_in_pad_added);
   suite_add_tcase (s, tc_chain);
 
   return s;
