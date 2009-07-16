@@ -1390,6 +1390,65 @@ GST_START_TEST (test_rtpconference_unref_session_in_pad_added)
 }
 GST_END_TEST;
 
+
+static GstBusSyncReply
+unref_stream_sync_handler (GstBus *bus, GstMessage *message,
+    gpointer data)
+{
+  struct SimpleTestConference *dat = data;
+  const GstStructure *s;
+  FsStream *stream;
+  const GValue *v;
+  GList *item;
+
+  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_ELEMENT)
+    return GST_BUS_PASS;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_name (s, "farsight-local-candidates-prepared"))
+    return GST_BUS_PASS;
+
+  v = gst_structure_get_value (s, "stream");
+  ts_fail_unless (G_VALUE_HOLDS (v, FS_TYPE_STREAM));
+  stream = g_value_get_object (v);
+
+  for (item = dat->streams; item; item = item->next)
+  {
+    struct SimpleTestStream *st = item->data;
+    if (st->stream == stream)
+    {
+      g_object_unref (stream);
+      st->stream = NULL;
+      gst_message_unref (message);
+      g_main_loop_quit (loop);
+      return GST_BUS_DROP;
+    }
+  }
+
+  gst_message_unref (message);
+  return GST_BUS_DROP;
+}
+
+static void unref_stream_init (void)
+{
+  gint i;
+
+  for (i=0 ; i < 2; i++)
+  {
+    GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (dats[i]->pipeline));
+
+    gst_bus_set_sync_handler (bus, unref_stream_sync_handler, dats[i]);
+    gst_object_unref (bus);
+  }
+}
+
+GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread)
+{
+  nway_test (2, unref_stream_init, "nice", 0, NULL);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpconference_suite (void)
 {
@@ -1473,6 +1532,11 @@ fsrtpconference_suite (void)
   tc_chain = tcase_create ("fsrtpconference_unref_session_in_pad_added");
   tcase_add_test (tc_chain, test_rtpconference_unref_session_in_pad_added);
   suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpconference_unref_stream_in_nice_thread");
+  tcase_add_test (tc_chain, test_rtpconference_unref_stream_in_nice_thread);
+  suite_add_tcase (s, tc_chain);
+
 
   return s;
 }
