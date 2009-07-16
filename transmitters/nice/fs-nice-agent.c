@@ -281,16 +281,17 @@ fs_nice_agent_stop_thread (FsNiceAgent *self)
 {
   GSource *idle_source;
 
+  g_main_loop_quit (self->priv->main_loop);
+
   FS_NICE_AGENT_LOCK(self);
 
-  if (self->priv->thread == NULL)
+  if (self->priv->thread == NULL ||
+      self->priv->thread == g_thread_self ())
   {
     FS_NICE_AGENT_UNLOCK (self);
     return;
   }
   FS_NICE_AGENT_UNLOCK (self);
-
-  g_main_loop_quit (self->priv->main_loop);
 
   idle_source = g_idle_source_new ();
   g_source_set_priority (idle_source, G_PRIORITY_HIGH);
