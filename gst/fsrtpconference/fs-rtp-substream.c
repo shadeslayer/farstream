@@ -536,8 +536,9 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  self->priv->rtpbin_unlinked_sig = g_signal_connect (self->priv->rtpbin_pad,
-      "unlinked", G_CALLBACK (rtpbin_pad_unlinked), self);
+  self->priv->rtpbin_unlinked_sig = g_signal_connect_object (
+      self->priv->rtpbin_pad, "unlinked", G_CALLBACK (rtpbin_pad_unlinked),
+      self, 0);
 
   tmp = g_strdup_printf ("output_recv_valve_%d_%d_%d", self->priv->session->id,
       self->ssrc, self->pt);
@@ -1314,8 +1315,7 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 
   g_signal_emit (substream, signals[BLOCKED], 0, substream->priv->stream);
 
-  gst_pad_set_blocked_async (substream->priv->rtpbin_pad, FALSE,
-      do_nothing_blocked_callback, NULL);
+  gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
 
   if (stream)
     g_object_unref (stream);

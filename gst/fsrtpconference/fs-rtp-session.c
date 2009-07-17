@@ -2491,11 +2491,11 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
-  g_signal_connect (substream, "blocked", G_CALLBACK (_substream_blocked),
-      session);
+  g_signal_connect_object (substream, "blocked",
+      G_CALLBACK (_substream_blocked), session, 0);
 
-  g_signal_connect (substream, "unlinked", G_CALLBACK (_substream_unlinked),
-      session);
+  g_signal_connect_object (substream, "unlinked",
+      G_CALLBACK (_substream_unlinked), session, 0);
 
   /* Lets find the FsRtpStream for this substream, if no Stream claims it
    * then we just store it
@@ -2523,13 +2523,13 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
       session->priv->free_substreams =
         g_list_prepend (session->priv->free_substreams, substream);
 
-      g_signal_connect (substream, "error", G_CALLBACK (_substream_error),
-          session);
+      g_signal_connect_object (substream, "error",
+          G_CALLBACK (_substream_error), session, 0);
 
       if (no_rtcp_timeout > 0)
       {
-        g_signal_connect (substream, "no-rtcp-timedout",
-            G_CALLBACK (_substream_no_rtcp_timedout_cb), session);
+        g_signal_connect_object (substream, "no-rtcp-timedout",
+            G_CALLBACK (_substream_no_rtcp_timedout_cb), session, 0);
         GST_DEBUG ("No stream for SSRC %x, waiting for %d ms before associating"
             "in session %u", ssrc, no_rtcp_timeout, session->id);
       }
@@ -4254,8 +4254,8 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
 
     pad = gst_element_get_static_pad (session->priv->discovery_capsfilter,
         "src");
-    g_signal_connect (pad, "notify::caps", G_CALLBACK (_discovery_caps_changed),
-        session);
+    g_signal_connect_object (pad, "notify::caps",
+        G_CALLBACK (_discovery_caps_changed), session, 0);
     gst_object_unref (pad);
   }
 

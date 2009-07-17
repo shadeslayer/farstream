@@ -1347,14 +1347,15 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     }
   }
 
-  self->priv->state_changed_handler_id = g_signal_connect (agent->agent,
-      "component-state-changed", G_CALLBACK (agent_state_changed), self);
-  self->priv->gathering_done_handler_id = g_signal_connect (agent->agent,
-      "candidate-gathering-done", G_CALLBACK (agent_gathering_done), self);
-  self->priv->new_selected_pair_handler_id = g_signal_connect (agent->agent,
-      "new-selected-pair", G_CALLBACK (agent_new_selected_pair), self);
-  self->priv->new_candidate_handler_id = g_signal_connect (agent->agent,
-      "new-candidate", G_CALLBACK (agent_new_candidate), self);
+  self->priv->state_changed_handler_id = g_signal_connect_object (agent->agent,
+      "component-state-changed", G_CALLBACK (agent_state_changed), self, 0);
+  self->priv->gathering_done_handler_id = g_signal_connect_object (agent->agent,
+      "candidate-gathering-done", G_CALLBACK (agent_gathering_done), self, 0);
+  self->priv->new_selected_pair_handler_id = g_signal_connect_object (
+      agent->agent, "new-selected-pair", G_CALLBACK (agent_new_selected_pair),
+      self, 0);
+  self->priv->new_candidate_handler_id = g_signal_connect_object (agent->agent,
+      "new-candidate", G_CALLBACK (agent_new_candidate), self, 0);
 
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,

@@ -494,30 +494,30 @@ fs_rtp_stream_constructed (GObject *object)
   g_object_set (self->priv->stream_transmitter, "sending",
     self->priv->direction & FS_DIRECTION_SEND, NULL);
 
-  g_signal_connect (self->priv->stream_transmitter,
+  g_signal_connect_object (self->priv->stream_transmitter,
       "local-candidates-prepared",
       G_CALLBACK (_local_candidates_prepared),
-      self);
-  g_signal_connect (self->priv->stream_transmitter,
+      self, 0);
+  g_signal_connect_object (self->priv->stream_transmitter,
       "new-active-candidate-pair",
       G_CALLBACK (_new_active_candidate_pair),
-      self);
-  g_signal_connect (self->priv->stream_transmitter,
+      self, 0);
+  g_signal_connect_object (self->priv->stream_transmitter,
       "new-local-candidate",
       G_CALLBACK (_new_local_candidate),
-      self);
-  g_signal_connect (self->priv->stream_transmitter,
+      self, 0);
+  g_signal_connect_object (self->priv->stream_transmitter,
       "error",
       G_CALLBACK (_transmitter_error),
-      self);
-  g_signal_connect (self->priv->stream_transmitter,
+      self, 0);
+  g_signal_connect_object (self->priv->stream_transmitter,
       "known-source-packet-received",
       G_CALLBACK (_known_source_packet_received),
-      self);
-  g_signal_connect (self->priv->stream_transmitter,
+      self, 0);
+  g_signal_connect_object (self->priv->stream_transmitter,
       "state-changed",
       G_CALLBACK (_state_changed),
-      self);
+      self, 0);
 
   if (!fs_stream_transmitter_gather_local_candidates (
           self->priv->stream_transmitter,
@@ -948,14 +948,14 @@ fs_rtp_stream_add_substream_unlock (FsRtpStream *stream,
       "receiving", ((stream->priv->direction & FS_DIRECTION_RECV) != 0),
       NULL);
 
-  g_signal_connect (substream, "unlinked",
-      G_CALLBACK (_substream_unlinked), stream);
-  g_signal_connect (substream, "src-pad-added",
-                    G_CALLBACK (_substream_src_pad_added), stream);
-  g_signal_connect (substream, "codec-changed",
-                    G_CALLBACK (_substream_codec_changed), stream);
-  g_signal_connect (substream, "error",
-                    G_CALLBACK (_substream_error), stream);
+  g_signal_connect_object (substream, "unlinked",
+      G_CALLBACK (_substream_unlinked), stream, 0);
+  g_signal_connect_object (substream, "src-pad-added",
+      G_CALLBACK (_substream_src_pad_added), stream, 0);
+  g_signal_connect_object (substream, "codec-changed",
+      G_CALLBACK (_substream_codec_changed), stream, 0);
+  g_signal_connect_object (substream, "error",
+      G_CALLBACK (_substream_error), stream, 0);
 
   fs_rtp_sub_stream_verify_codec_locked (substream);
 
