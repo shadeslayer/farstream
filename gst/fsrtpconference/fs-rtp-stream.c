@@ -77,6 +77,13 @@ struct _FsRtpStreamPrivate
   stream_ssrc_added_cb ssrc_added_cb;
   gpointer user_data_for_cb;
 
+  gulong local_candidates_prepared_handler_id;
+  gulong new_active_candidate_pair_handler_id;
+  gulong new_local_candidate_handler_id;
+  gulong error_handler_id;
+  gulong known_source_packet_received_handler_id;
+  gulong state_changed_handler_id;
+
   GMutex *mutex;
 };
 
@@ -291,6 +298,19 @@ fs_rtp_stream_dispose (GObject *object)
 
   if (st)
   {
+    g_signal_handler_disconnect (st,
+        self->priv->local_candidates_prepared_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->new_active_candidate_pair_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->new_local_candidate_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->error_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->known_source_packet_received_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->state_changed_handler_id);
+
     FS_RTP_SESSION_UNLOCK (session);
     fs_stream_transmitter_stop (st);
     g_object_unref (st);
@@ -494,30 +514,36 @@ fs_rtp_stream_constructed (GObject *object)
   g_object_set (self->priv->stream_transmitter, "sending",
     self->priv->direction & FS_DIRECTION_SEND, NULL);
 
-  g_signal_connect_object (self->priv->stream_transmitter,
-      "local-candidates-prepared",
-      G_CALLBACK (_local_candidates_prepared),
-      self, 0);
-  g_signal_connect_object (self->priv->stream_transmitter,
-      "new-active-candidate-pair",
-      G_CALLBACK (_new_active_candidate_pair),
-      self, 0);
-  g_signal_connect_object (self->priv->stream_transmitter,
-      "new-local-candidate",
-      G_CALLBACK (_new_local_candidate),
-      self, 0);
-  g_signal_connect_object (self->priv->stream_transmitter,
-      "error",
-      G_CALLBACK (_transmitter_error),
-      self, 0);
-  g_signal_connect_object (self->priv->stream_transmitter,
-      "known-source-packet-received",
-      G_CALLBACK (_known_source_packet_received),
-      self, 0);
-  g_signal_connect_object (self->priv->stream_transmitter,
-      "state-changed",
-      G_CALLBACK (_state_changed),
-      self, 0);
+  self->priv->local_candidates_prepared_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "local-candidates-prepared",
+        G_CALLBACK (_local_candidates_prepared),
+        self, 0);
+  self->priv->new_active_candidate_pair_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "new-active-candidate-pair",
+        G_CALLBACK (_new_active_candidate_pair),
+        self, 0);
+  self->priv->new_local_candidate_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "new-local-candidate",
+        G_CALLBACK (_new_local_candidate),
+        self, 0);
+  self->priv->error_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "error",
+        G_CALLBACK (_transmitter_error),
+        self, 0);
+  self->priv->known_source_packet_received_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "known-source-packet-received",
+        G_CALLBACK (_known_source_packet_received),
+        self, 0);
+  self->priv->state_changed_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "state-changed",
+        G_CALLBACK (_state_changed),
+        self, 0);
 
   if (!fs_stream_transmitter_gather_local_candidates (
           self->priv->stream_transmitter,
