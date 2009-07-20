@@ -87,6 +87,9 @@ FsNiceAgent *fs_nice_agent_new (guint compatibility_mode,
     GList *preferred_local_candidates,
     GError **error);
 
+void fs_nice_agent_add_idle (FsNiceAgent *agent, GSourceFunc func,
+    gpointer data, GDestroyNotify destroy_notify);
+
 
 GType
 fs_nice_agent_register_type (FsPlugin *module);

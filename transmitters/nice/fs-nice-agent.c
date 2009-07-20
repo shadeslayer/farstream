@@ -431,3 +431,19 @@ fs_nice_agent_new (guint compatibility_mode,
 
   return self;
 }
+
+
+void
+fs_nice_agent_add_idle (FsNiceAgent *agent, GSourceFunc func,
+    gpointer data, GDestroyNotify destroy_notify)
+{
+  GSource *source;
+
+  g_return_if_fail (func != NULL);
+
+  source = g_idle_source_new ();
+  g_source_set_priority (source, G_PRIORITY_HIGH);
+  g_source_set_callback (source, func, data, destroy_notify);
+  g_source_attach (source, agent->priv->main_context);
+  g_source_unref (source);
+}
