@@ -1411,6 +1411,31 @@ nice_component_state_to_fs_stream_state (NiceComponentState state)
   }
 }
 
+struct state_changed_signal_data
+{
+  FsNiceStreamTransmitter *self;
+  guint component_id;
+  FsStreamState fs_state;
+};
+
+static void
+free_state_changed_signal_data (gpointer user_data)
+{
+  struct state_changed_signal_data *data = user_data;
+  g_object_unref (data->self);
+  g_slice_free (struct state_changed_signal_data, data);
+}
+
+static gboolean
+state_changed_signal_idle (gpointer userdata)
+{
+  struct state_changed_signal_data *data = userdata;
+
+  g_signal_emit_by_name (data->self, "state-changed", data->component_id,
+      data->fs_state);
+  return FALSE;
+}
+
 static void
 agent_state_changed (NiceAgent *agent,
     guint stream_id,
@@ -1420,6 +1445,8 @@ agent_state_changed (NiceAgent *agent,
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
   FsStreamState fs_state = nice_component_state_to_fs_stream_state (state);
+  struct state_changed_signal_data *data =
+    g_slice_new (struct state_changed_signal_data);
 
   if (stream_id != self->priv->stream_id)
     return;
@@ -1427,7 +1454,11 @@ agent_state_changed (NiceAgent *agent,
   GST_DEBUG ("Stream: %u Component %u has state %u",
       self->priv->stream_id, component_id, state);
 
-  g_signal_emit_by_name (self, "state-changed", component_id, fs_state);
+  data->self = g_object_ref (self);
+  data->component_id = component_id;
+  data->fs_state = fs_state;
+  fs_nice_agent_add_idle (self->priv->agent, state_changed_signal_idle,
+      data, free_state_changed_signal_data);
 }
 
 
