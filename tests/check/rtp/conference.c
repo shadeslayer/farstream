@@ -667,6 +667,9 @@ set_initial_codecs (
   GList *rcodecs2 = NULL;
   GError *error = NULL;
 
+  if (to->stream == NULL || from->session == NULL)
+    return;
+
   g_object_get (from->session, "codecs", &codecs, NULL);
 
   ts_fail_if (codecs == NULL, "Could not get the codecs");
@@ -1390,6 +1393,7 @@ GST_START_TEST (test_rtpconference_unref_session_in_pad_added)
 }
 GST_END_TEST;
 
+static const gchar *signal_name;
 
 static GstBusSyncReply
 unref_stream_sync_handler (GstBus *bus, GstMessage *message,
@@ -1406,7 +1410,7 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
 
   s = gst_message_get_structure (message);
 
-  if (!gst_structure_has_name (s, "farsight-local-candidates-prepared"))
+  if (!gst_structure_has_name (s, signal_name))
     return GST_BUS_PASS;
 
   v = gst_structure_get_value (s, "stream");
@@ -1443,8 +1447,23 @@ static void unref_stream_init (void)
   }
 }
 
-GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread)
+GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_prepared)
 {
+  signal_name = "farsight-local-candidates-prepared";
+  nway_test (2, unref_stream_init, "nice", 0, NULL);
+}
+GST_END_TEST;
+
+GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_new_active)
+{
+  signal_name = "farsight-new-active-candidate-pair";
+  nway_test (2, unref_stream_init, "nice", 0, NULL);
+}
+GST_END_TEST;
+
+GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_state_changed)
+{
+  signal_name = "farsight-component-state-changed";
   nway_test (2, unref_stream_init, "nice", 0, NULL);
 }
 GST_END_TEST;
@@ -1533,8 +1552,22 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_unref_session_in_pad_added);
   suite_add_tcase (s, tc_chain);
 
-  tc_chain = tcase_create ("fsrtpconference_unref_stream_in_nice_thread");
-  tcase_add_test (tc_chain, test_rtpconference_unref_stream_in_nice_thread);
+  tc_chain = tcase_create (
+      "fsrtpconference_unref_stream_in_nice_thread_prepared");
+  tcase_add_test (tc_chain,
+      test_rtpconference_unref_stream_in_nice_thread_prepared);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create (
+      "fsrtpconference_unref_stream_in_nice_thread_new_active");
+  tcase_add_test (tc_chain,
+      test_rtpconference_unref_stream_in_nice_thread_new_active);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create (
+      "fsrtpconference_unref_stream_in_nice_thread_state_changed");
+  tcase_add_test (tc_chain,
+      test_rtpconference_unref_stream_in_nice_thread_state_changed);
   suite_add_tcase (s, tc_chain);
 
   return s;
