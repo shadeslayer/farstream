@@ -1431,6 +1431,36 @@ agent_state_changed (NiceAgent *agent,
 }
 
 
+struct candidate_signal_data
+{
+  FsNiceStreamTransmitter *self;
+  const gchar *signal_name;
+  FsCandidate *candidate1;
+  FsCandidate *candidate2;
+};
+
+static void
+free_candidate_signal_data (gpointer user_data)
+{
+  struct candidate_signal_data *data = user_data;
+  fs_candidate_destroy (data->candidate1);
+  if (data->candidate2)
+    fs_candidate_destroy (data->candidate2);
+  g_object_unref (data->self);
+  g_slice_free (struct candidate_signal_data, data);
+}
+
+static gboolean
+agent_candidate_signal_idle (gpointer userdata)
+{
+  struct candidate_signal_data *data = userdata;
+
+  g_signal_emit_by_name (data->self, data->signal_name, data->candidate1,
+                         data->candidate2);
+  return FALSE;
+}
+
+
 static void
 agent_new_selected_pair (NiceAgent *agent,
     guint stream_id,
@@ -1481,14 +1511,24 @@ agent_new_selected_pair (NiceAgent *agent,
 
 
   if (local && remote)
-    g_signal_emit_by_name (self, "new-active-candidate-pair", local, remote);
-
-  if (local)
-    fs_candidate_destroy (local);
-  if (remote)
-    fs_candidate_destroy (remote);
+  {
+    struct candidate_signal_data *data =
+      g_slice_new (struct candidate_signal_data);
+    data->self = g_object_ref (self);
+    data->signal_name = "new-active-candidate-pair";
+    data->candidate1 = local;
+    data->candidate2 = remote;
+    fs_nice_agent_add_idle (self->priv->agent, agent_candidate_signal_idle,
+        data, free_candidate_signal_data);
+  }
+  else
+  {
+    if (local)
+      fs_candidate_destroy (local);
+    if (remote)
+      fs_candidate_destroy (remote);
+  }
 }
-
 
 static void
 agent_new_candidate (NiceAgent *agent,
@@ -1523,8 +1563,14 @@ agent_new_candidate (NiceAgent *agent,
 
   if (fscandidate)
   {
-    g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
-    fs_candidate_destroy (fscandidate);
+    struct candidate_signal_data *data =
+      g_slice_new (struct candidate_signal_data);
+    data->self = g_object_ref (self);
+    data->signal_name = "new-local-candidate";
+    data->candidate1 = fscandidate;
+    data->candidate2 = NULL;
+    fs_nice_agent_add_idle (self->priv->agent, agent_candidate_signal_idle,
+        data, free_candidate_signal_data);
   }
   else
   {
