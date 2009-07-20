@@ -1534,22 +1534,21 @@ agent_new_candidate (NiceAgent *agent,
   }
 }
 
-static void
-agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
+
+static gboolean
+agent_gathering_done_idle (gpointer data)
 {
-  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
+  FsNiceStreamTransmitter *self = data;
   GList *remote_candidates = NULL;
   gboolean forced_candidates;
-
-  if (stream_id != self->priv->stream_id)
-    return;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   if (self->priv->gathered)
   {
     FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    return;
+    return FALSE;
   }
+
   self->priv->gathered = TRUE;
   remote_candidates = self->priv->remote_candidates;
   self->priv->remote_candidates = NULL;
@@ -1579,14 +1578,15 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
       if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
           self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
       {
-        if (!nice_agent_set_remote_credentials (agent, self->priv->stream_id,
-                self->priv->username, self->priv->password))
+        if (!nice_agent_set_remote_credentials (self->priv->agent->agent,
+                self->priv->stream_id, self->priv->username,
+                self->priv->password))
         {
           fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
               FS_ERROR_INTERNAL, "Error setting delayed remote candidates",
               "Could not set the security credentials");
           fs_candidate_list_destroy (remote_candidates);
-          return;
+          return FALSE;
         }
       }
 
@@ -1604,6 +1604,21 @@ agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
 
     fs_candidate_list_destroy (remote_candidates);
   }
+
+  return FALSE;
+}
+
+
+static void
+agent_gathering_done (NiceAgent *agent, guint stream_id, gpointer user_data)
+{
+  FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
+
+  if (stream_id != self->priv->stream_id)
+    return;
+
+  fs_nice_agent_add_idle (self->priv->agent, agent_gathering_done_idle,
+      g_object_ref (self), g_object_unref);
 }
 
 
