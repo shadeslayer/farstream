@@ -528,6 +528,9 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
 
   g_main_loop_run (loop);
 
+  fs_stream_transmitter_stop (st);
+  fs_stream_transmitter_stop (st2);
+
   gst_element_set_state (pipeline, GST_STATE_NULL);
   gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
