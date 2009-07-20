@@ -772,7 +772,6 @@ remove_sink (FsNiceTransmitter *self, NiceGstStream *ns, guint component_id)
           ns->nicesinks[component_id]))
     GST_ERROR ("Could not remove nicesink element from transmitter"
         " sink");
-  gst_element_set_locked_state (ns->nicesinks[component_id], FALSE);
 }
 
 
@@ -885,6 +884,7 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
           GstStateChangeReturn ret;
           GstPad *elempad;
 
+          gst_element_set_locked_state (ns->nicesinks[c], FALSE);
           if (!gst_bin_add (GST_BIN (self->priv->gst_sink), ns->nicesinks[c]))
             GST_ERROR ("Could not add nicesink element to the transmitter"
                 " sink");
