@@ -1537,7 +1537,6 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_unref_stream_in_nice_thread);
   suite_add_tcase (s, tc_chain);
 
-
   return s;
 }
 
