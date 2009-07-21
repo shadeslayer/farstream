@@ -294,6 +294,8 @@ fs_multicast_stream_transmitter_finalize (GObject *object)
   g_free (self->priv->udpsocks);
   self->priv->udpsocks = NULL;
 
+  g_mutex_free (self->priv->mutex);
+
   parent_class->finalize (object);
 }
 
