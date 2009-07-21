@@ -1590,6 +1590,7 @@ agent_new_candidate (NiceAgent *agent,
       break;
     }
   }
+  g_slist_foreach (candidates, (GFunc) nice_candidate_free, NULL);
   g_slist_free (candidates);
 
   if (fscandidate)
