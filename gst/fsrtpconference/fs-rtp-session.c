@@ -3368,9 +3368,7 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
-        codec_without_config,
-        GST_ELEMENT (self->priv->conference),
-        self->priv->rtpmuxer);
+        codec_without_config);
 
   return TRUE;
 }

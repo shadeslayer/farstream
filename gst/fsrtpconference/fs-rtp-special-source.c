@@ -445,8 +445,6 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
  * #CodecAssociation
  * @mutex: the mutex protecting the last two things
  * @send_codec: A pointer to the currently selected send codec
- * @bin: The #GstBin to add the stuff to
- * @rtpmuxer: The rtpmux element
  *
  * This function removes any special source that are not compatible with the
  * currently selected send codec.
@@ -456,9 +454,7 @@ fs_rtp_special_sources_remove (
     GList **extra_sources,
     GList **negotiated_codecs,
     GMutex *mutex,
-    FsCodec *send_codec,
-    GstElement *bin,
-    GstElement *rtpmuxer)
+    FsCodec *send_codec)
 {
   GList *klass_item = NULL;
 
