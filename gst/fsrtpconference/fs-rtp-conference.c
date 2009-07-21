@@ -340,6 +340,25 @@ fs_rtp_conference_init (FsRtpConference *conf,
 }
 
 static void
+rtpbin_get_sdes (FsRtpConference *self, const gchar *prop, GValue *val)
+{
+  if (g_object_class_find_property (G_OBJECT_GET_CLASS (self->gstrtpbin),
+          "sdes"))
+  {
+    GstStructure *s;
+    g_object_get (self->gstrtpbin, "sdes", &s, NULL);
+    g_value_copy (gst_structure_get_value (s, prop), val);
+    gst_structure_free (s);
+  }
+  else
+  {
+    gchar *str = g_strdup_printf ("sdes-%s", prop);
+    g_object_get_property (G_OBJECT (self->gstrtpbin), str, val);
+    g_free (str);
+  }
+}
+
+static void
 fs_rtp_conference_get_property (GObject *object,
     guint prop_id,
     GValue *value,
@@ -353,32 +372,52 @@ fs_rtp_conference_get_property (GObject *object,
   switch (prop_id)
   {
     case PROP_SDES_CNAME:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-cname", value);
+      rtpbin_get_sdes (self, "cname", value);
       break;
     case PROP_SDES_NAME:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-name", value);
+      rtpbin_get_sdes (self, "name", value);
       break;
     case PROP_SDES_EMAIL:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-email", value);
+      rtpbin_get_sdes (self, "email", value);
       break;
     case PROP_SDES_PHONE:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-phone", value);
+      rtpbin_get_sdes (self, "phone", value);
       break;
     case PROP_SDES_LOCATION:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-location",
-          value);
+      rtpbin_get_sdes (self, "location", value);
       break;
     case PROP_SDES_TOOL:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-tool", value);
+      rtpbin_get_sdes (self, "tool", value);
       break;
     case PROP_SDES_NOTE:
-      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes-note", value);
+      rtpbin_get_sdes (self, "note", value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 }
+
+static void
+rtpbin_set_sdes (FsRtpConference *self, const gchar *prop, const GValue *val)
+{
+  if (g_object_class_find_property (G_OBJECT_GET_CLASS (self->gstrtpbin),
+          "sdes"))
+  {
+    GstStructure *s;
+    g_object_get (self->gstrtpbin, "sdes", &s, NULL);
+    gst_structure_set_value (s, prop, val);
+    g_object_set (self->gstrtpbin, "sdes", s, NULL);
+    gst_structure_free (s);
+  }
+  else
+  {
+    gchar *str = g_strdup_printf ("sdes-%s", prop);
+    g_object_set_property (G_OBJECT (self->gstrtpbin), str, val);
+    g_free (str);
+  }
+}
+
 static void
 fs_rtp_conference_set_property (GObject *object,
     guint prop_id,
@@ -393,26 +432,25 @@ fs_rtp_conference_set_property (GObject *object,
   switch (prop_id)
   {
     case PROP_SDES_CNAME:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-cname", value);
+      rtpbin_set_sdes (self, "cname", value);
       break;
     case PROP_SDES_NAME:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-name", value);
+      rtpbin_set_sdes (self, "name", value);
       break;
     case PROP_SDES_EMAIL:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-email", value);
+      rtpbin_set_sdes (self, "email", value);
       break;
     case PROP_SDES_PHONE:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-phone", value);
+      rtpbin_set_sdes (self, "phone", value);
       break;
     case PROP_SDES_LOCATION:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-location",
-          value);
+      rtpbin_set_sdes (self, "location", value);
       break;
     case PROP_SDES_TOOL:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-tool", value);
+      rtpbin_set_sdes (self, "tool", value);
       break;
     case PROP_SDES_NOTE:
-      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes-note", value);
+      rtpbin_set_sdes (self, "note", value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
