@@ -265,13 +265,16 @@ GST_START_TEST (test_bin_file)
 
   notifier = fs_element_added_notifier_new ();
 
-  fail_if (fs_element_added_notifier_set_properties_from_file (notifier, "invalid-filename", &error));
+  fail_if (fs_element_added_notifier_set_properties_from_file (notifier,
+          "invalid-filename", &error));
   fail_if (error == NULL);
   fail_unless (error->domain == G_FILE_ERROR);
   g_clear_error (&error);
 
   filename = get_fullpath ("utils/gstelements.conf");
-  fs_element_added_notifier_set_properties_from_file (notifier, filename, &error);
+  fs_element_added_notifier_set_properties_from_file (notifier, filename,
+      &error);
+  g_free (filename);
 
   fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
@@ -319,13 +322,15 @@ GST_START_TEST (test_bin_errors)
 
   ASSERT_CRITICAL (fs_element_added_notifier_add (NULL, NULL));
   ASSERT_CRITICAL (fs_element_added_notifier_remove (NULL, NULL));
-  ASSERT_CRITICAL (fs_element_added_notifier_set_properties_from_keyfile (NULL, NULL));
+  ASSERT_CRITICAL (fs_element_added_notifier_set_properties_from_keyfile (
+          NULL, NULL));
 
   notifier = fs_element_added_notifier_new ();
 
   ASSERT_CRITICAL (fs_element_added_notifier_add (notifier, NULL));
   ASSERT_CRITICAL (fs_element_added_notifier_remove (notifier, NULL));
-  ASSERT_CRITICAL (fs_element_added_notifier_set_properties_from_keyfile (notifier, NULL));
+  ASSERT_CRITICAL (fs_element_added_notifier_set_properties_from_keyfile (
+          notifier, NULL));
 
   g_object_unref (notifier);
 }
