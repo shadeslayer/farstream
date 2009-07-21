@@ -84,6 +84,11 @@ add_port_mapping_cb (GUPnPService *service,
   ts_fail_unless (enabled == TRUE, "enable is not true");
   ts_fail_unless (desc != NULL, "no desc");
 
+  g_free (remote_host);
+  g_free (proto);
+  g_free (internal_client);
+  g_free (desc);
+
   gupnp_service_action_return (action);
   added_mapping = TRUE;
 }
