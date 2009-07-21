@@ -116,7 +116,7 @@ struct _FsRtpSubStreamPrivate {
    */
   gboolean receiving;
 
-  /* Both of these are session mutex protected */
+  /* Both of these are sub-stream mutex protected */
   /* This is TRUE while someone is modifying the recv pipeline */
   gboolean modifying;
   /* This becomes true when the substream is stopped */
@@ -877,8 +877,11 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   GstPad *pad;
   gboolean codec_changed = TRUE;
 
+  FS_RTP_SUB_STREAM_LOCK (substream);
+
   if (substream->priv->stopped)
   {
+    FS_RTP_SUB_STREAM_UNLOCK (substream);
     FS_RTP_SESSION_UNLOCK (substream->priv->session);
     gst_object_unref (codecbin);
     fs_codec_destroy (codec);
@@ -886,6 +889,7 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
     return TRUE;
   }
   substream->priv->modifying = TRUE;
+  FS_RTP_SUB_STREAM_UNLOCK (substream);
 
   if (substream->codec)
   {
@@ -908,7 +912,9 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
           "Could not set the codec bin for ssrc %u"
           " and payload type %d to the state NULL", substream->ssrc,
           substream->pt);
+      FS_RTP_SUB_STREAM_LOCK (substream);
       substream->priv->modifying = FALSE;
+      FS_RTP_SUB_STREAM_UNLOCK (substream);
       FS_RTP_SESSION_UNLOCK (substream->priv->session);
       gst_object_unref (codecbin);
       fs_codec_destroy (codec);
@@ -941,7 +947,9 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
     gst_object_unref (codecbin);
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
       "Could not add the codec bin to the conference");
+    FS_RTP_SUB_STREAM_LOCK (substream);
     substream->priv->modifying = FALSE;
+    FS_RTP_SUB_STREAM_UNLOCK (substream);
     fs_rtp_sub_stream_try_stop (substream);
     return FALSE;
   }
@@ -1008,7 +1016,9 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   substream->priv->caps = caps;
   substream->priv->codecbin = codecbin;
   substream->codec = codec;
+  FS_RTP_SUB_STREAM_LOCK (substream);
   substream->priv->modifying = FALSE;
+  FS_RTP_SUB_STREAM_UNLOCK (substream);
 
   if (substream->priv->stream && !substream->priv->output_ghostpad)
   {
@@ -1029,7 +1039,9 @@ fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
   return TRUE;
 
  error:
+  FS_RTP_SUB_STREAM_LOCK (substream);
   substream->priv->modifying = FALSE;
+  FS_RTP_SUB_STREAM_UNLOCK (substream);
 
 
   gst_element_set_locked_state (codecbin, TRUE);
@@ -1080,13 +1092,13 @@ do_nothing_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 static void
 fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
 {
-  FS_RTP_SESSION_LOCK (substream->priv->session);
+  FS_RTP_SUB_STREAM_LOCK (substream);
   if (!substream->priv->stopped || substream->priv->modifying)
   {
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
+    FS_RTP_SUB_STREAM_UNLOCK (substream);
     return;
   }
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
+  FS_RTP_SUB_STREAM_UNLOCK (substream);
 
   if (substream->priv->rtpbin_unlinked_sig) {
     g_signal_handler_disconnect (substream->priv->rtpbin_pad,
@@ -1134,9 +1146,9 @@ fs_rtp_sub_stream_try_stop (FsRtpSubStream *substream)
 void
 fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
 {
-  FS_RTP_SESSION_LOCK (substream->priv->session);
+  FS_RTP_SUB_STREAM_LOCK (substream);
   substream->priv->stopped = TRUE;
-  FS_RTP_SESSION_UNLOCK (substream->priv->session);
+  FS_RTP_SUB_STREAM_UNLOCK (substream);
 
   fs_rtp_sub_stream_try_stop (substream);
 }
