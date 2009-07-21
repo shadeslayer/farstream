@@ -1010,6 +1010,7 @@ GST_START_TEST (test_rtpconference_no_rtcp)
 }
 GST_END_TEST;
 
+#if 0
 static void
 associate_cnames_init (void)
 {
@@ -1040,6 +1041,8 @@ GST_START_TEST (test_rtpconference_three_way_cname_assoc)
   nway_test (3, associate_cnames_init, "rawudp", 1, &param);
 }
 GST_END_TEST;
+
+#endif
 
 
 static void
@@ -1277,6 +1280,8 @@ multicast_init(void)
   fs_candidate_list_destroy (candidates);
 }
 
+#if 0
+
 static void
 multicast_cname_init(void)
 {
@@ -1297,6 +1302,8 @@ GST_START_TEST (test_rtpconference_multicast_three_way_cname_assoc)
   nway_test (mcast_confs, multicast_cname_init, "multicast", 0, NULL);
 }
 GST_END_TEST;
+
+#endif
 
 static void
 add_ssrc_cb (GObject *session, GParamSpec *pspec, FsStream *stream)
@@ -1345,7 +1352,7 @@ GST_START_TEST (test_rtpconference_multicast_three_way_ssrc_assoc)
 }
 GST_END_TEST;
 
-
+#if 0
 static void
 min_timeout (TCase *tc_chain, guint min)
 {
@@ -1357,6 +1364,7 @@ min_timeout (TCase *tc_chain, guint min)
 
   tcase_set_timeout (tc_chain, MAX (min, tmp));
 }
+#endif
 
 static void unref_session_on_src_pad_added (FsStream *stream,
     GstPad *pad, FsCodec *codec, struct SimpleTestStream *st)
@@ -1523,9 +1531,11 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_no_rtcp);
   suite_add_tcase (s, tc_chain);
 
+#if 0
   tc_chain = tcase_create ("fsrtpconference_three_way_cname_assoc");
   tcase_add_test (tc_chain, test_rtpconference_three_way_cname_assoc);
   //suite_add_tcase (s, tc_chain);
+#endif
 
   tc_chain = tcase_create ("fsrtpconference_simple_profile");
   tcase_add_test (tc_chain, test_rtpconference_simple_profile);
@@ -1539,10 +1549,12 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_dispose);
   suite_add_tcase (s, tc_chain);
 
+#if 0
   tc_chain = tcase_create ("fsrtpconference_multicast_three_way_cname_assoc");
   min_timeout (tc_chain, 30);
   tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_cname_assoc);
-  //suite_add_tcase (s, tc_chain);
+  suite_add_tcase (s, tc_chain);
+#endif
 
   tc_chain = tcase_create ("fsrtpconference_multicast_three_way_ssrc_assoc");
   tcase_add_test (tc_chain, test_rtpconference_multicast_three_way_ssrc_assoc);
