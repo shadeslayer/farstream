@@ -188,15 +188,7 @@ stop_source_thread (gpointer data)
   FS_RTP_SPECIAL_SOURCE_LOCK (self);
   if (self->priv->muxer_request_pad)
   {
-    GstElement *parent =
-      gst_pad_get_parent_element (self->priv->muxer_request_pad);
-
-    if (parent)
-    {
-      gst_element_release_request_pad (parent, self->priv->muxer_request_pad);
-      gst_object_unref (parent);
-    }
-
+    gst_element_release_request_pad (self->priv->rtpmuxer, self->priv->muxer_request_pad);
     gst_object_unref (self->priv->muxer_request_pad);
   }
   self->priv->muxer_request_pad = NULL;
