@@ -196,6 +196,8 @@ stop_source_thread (gpointer data)
       gst_element_release_request_pad (parent, self->priv->muxer_request_pad);
       gst_object_unref (parent);
     }
+
+    gst_object_unref (self->priv->muxer_request_pad);
   }
   self->priv->muxer_request_pad = NULL;
 
