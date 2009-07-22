@@ -242,11 +242,8 @@ fs_funnel_chain (GstPad * pad, GstBuffer * buffer)
   GST_OBJECT_UNLOCK (funnel);
 
   if (event) {
-    if (!gst_pad_push_event (funnel->srcpad, event)) {
+    if (!gst_pad_push_event (funnel->srcpad, event))
       GST_WARNING_OBJECT (funnel, "Could not push out newsegment event");
-      res = GST_FLOW_ERROR;
-      goto out;
-    }
   }
 
 
