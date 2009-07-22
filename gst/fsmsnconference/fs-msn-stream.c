@@ -557,7 +557,7 @@ _connected (
 
   if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
     codecbin = gst_parse_bin_from_description (
-        "fdsrc name=fdsrc ! mimdec ! valve name=recv_valve", TRUE, &error);
+        "fdsrc name=fdsrc do-timestamp=true ! mimdec ! valve name=recv_valve", TRUE, &error);
   else
     codecbin = gst_parse_bin_from_description (
         "ffmpegcolorspace ! videoscale ! mimenc name=enc ! fdsink name=fdsink",
