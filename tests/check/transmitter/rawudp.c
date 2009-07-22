@@ -297,7 +297,7 @@ run_rawudp_transmitter_test (gint n_parameters, GParameter *params,
   }
 
   loop = g_main_loop_new (NULL, FALSE);
-  trans = fs_transmitter_new ("rawudp", 2, &error);
+  trans = fs_transmitter_new ("rawudp", 2, 0, &error);
 
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
@@ -586,7 +586,7 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
   has_stun = FALSE;
 
   loop = g_main_loop_new (NULL, FALSE);
-  trans = fs_transmitter_new ("rawudp", 2, &error);
+  trans = fs_transmitter_new ("rawudp", 2, 0, &error);
 
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
@@ -637,8 +637,6 @@ GST_START_TEST (test_rawudptransmitter_stop_stream)
   g_main_loop_run (loop);
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
-
-  gst_element_get_state (pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
 
   g_object_unref (trans);
 

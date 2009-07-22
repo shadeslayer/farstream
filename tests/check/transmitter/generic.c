@@ -183,7 +183,7 @@ test_transmitter_creation (gchar *transmitter_name)
   GstElement *pipeline;
   GstElement *trans_sink, *trans_src;
 
-  trans = fs_transmitter_new (transmitter_name, 2, &error);
+  trans = fs_transmitter_new (transmitter_name, 2, 0, &error);
 
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",

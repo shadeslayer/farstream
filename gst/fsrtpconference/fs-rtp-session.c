@@ -1913,7 +1913,7 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
   }
   FS_RTP_SESSION_UNLOCK (self);
 
-  transmitter = fs_transmitter_new (transmitter_name, 2, error);
+  transmitter = fs_transmitter_new (transmitter_name, 2, 0, error);
   if (!transmitter)
     return NULL;
 

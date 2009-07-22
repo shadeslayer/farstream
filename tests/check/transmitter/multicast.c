@@ -139,7 +139,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
     fail_unless (fs_fake_filter_register ());
 
   loop = g_main_loop_new (NULL, FALSE);
-  trans = fs_transmitter_new ("multicast", 2, &error);
+  trans = fs_transmitter_new ("multicast", 2, 0, &error);
 
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",

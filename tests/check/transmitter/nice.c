@@ -398,7 +398,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
 
   loop = g_main_loop_new (NULL, FALSE);
 
-  trans = fs_transmitter_new ("nice", 2, &error);
+  trans = fs_transmitter_new ("nice", 2, 0, &error);
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
@@ -409,7 +409,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
     ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
             G_CALLBACK (_get_recvonly_filter), NULL));
 
-  trans2 = fs_transmitter_new ("nice", 2, &error);
+  trans2 = fs_transmitter_new ("nice", 2, 0, &error);
   if (error) {
     ts_fail ("Error creating transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
@@ -641,7 +641,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
 
   memset (params, 0, sizeof(GParameter) * 1);
 
-  trans = fs_transmitter_new ("nice", 3, &error);
+  trans = fs_transmitter_new ("nice", 3, 0, &error);
   ts_fail_if (trans == NULL);
   ts_fail_unless (error == NULL);
 

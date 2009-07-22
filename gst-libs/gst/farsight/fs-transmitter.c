@@ -283,6 +283,7 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
  * fs_transmitter_new:
  * @type: The type of transmitter to create
  * @components: The number of components to create
+ * @tos: The Type of Service of the socket, max is 255
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function creates a new transmitter of the requested type.
@@ -293,14 +294,20 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
  */
 
 FsTransmitter *
-fs_transmitter_new (const gchar *type, guint components, GError **error)
+fs_transmitter_new (const gchar *type,
+    guint components,
+    guint tos,
+    GError **error)
 {
   FsTransmitter *self = NULL;
 
   g_return_val_if_fail (type != NULL, NULL);
+  g_return_val_if_fail (tos >= 0 && tos <= 255, NULL);
 
   self = FS_TRANSMITTER (fs_plugin_create (type, "transmitter", error,
-      "components", components, NULL));
+          "components", components,
+          "tos", tos,
+          NULL));
 
   if (!self)
     return NULL;
