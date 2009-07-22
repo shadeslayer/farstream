@@ -1144,8 +1144,7 @@ create_codec_cap_list (GstElementFactory *factory,
       CodecCap *entry = NULL;
       GList *found_item = NULL;
       GstStructure *structure = gst_caps_get_structure (caps, i);
-      GstCaps *cur_caps =
-          gst_caps_new_full (gst_structure_copy (structure), NULL);
+      GstCaps *cur_caps = NULL;
 
       /* FIXME fix this in gstreamer! The rtpdepay element is bogus, it claims to
        * be a depayloader yet has application/x-rtp on both sides and does
@@ -1160,6 +1159,8 @@ create_codec_cap_list (GstElementFactory *factory,
             gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)));
         continue;
       }
+
+      cur_caps = gst_caps_new_full (gst_structure_copy (structure), NULL);
 
       /* let's check if this caps is already in the list, if so let's replace
        * that CodecCap list instead of creating a new one */
