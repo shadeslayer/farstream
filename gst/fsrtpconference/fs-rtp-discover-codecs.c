@@ -917,8 +917,10 @@ codec_cap_list_intersect (GList *list1, GList *list2)
               copy_element_list (codec_cap2->element_list2));
 
           intersection_list = g_list_append (intersection_list, item);
-          if (rtp_intersection)
+          if (rtp_intersection) {
+            gst_caps_unref (intersection);
             break;
+          }
         }
       } else {
         if (rtp_intersection)
