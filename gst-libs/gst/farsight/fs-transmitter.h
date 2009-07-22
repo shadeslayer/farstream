@@ -28,6 +28,7 @@
 #include <gst/gst.h>
 
 #include <gst/farsight/fs-participant.h>
+#include <gst/farsight/fs-session.h>
 #include <gst/farsight/fs-stream-transmitter.h>
 
 G_BEGIN_DECLS

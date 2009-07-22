@@ -62,7 +62,8 @@ enum
   PROP_0,
   PROP_GST_SINK,
   PROP_GST_SRC,
-  PROP_COMPONENTS
+  PROP_COMPONENTS,
+  PROP_TYPE_OF_SERVICE
 };
 
 /*
@@ -151,6 +152,19 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         "The number of components to create",
         1, 255, 1,
         G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * FsTransmitter:tos:
+   *
+   * Sets the IP ToS field (and if possible the IPv6 TCLASS field
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_TYPE_OF_SERVICE,
+      g_param_spec_uint ("tos",
+          "IP Type of Service",
+          "The IP Type of Service to set on sent packets",
+          0, 255, 0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsTransmitter::error:
