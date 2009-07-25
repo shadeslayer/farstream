@@ -536,7 +536,7 @@
 ; object definitions ...
 (define-object Stream
   (in-module "Fs")
-  (parent "GObject")
+  (parent "GstObject")
   (c-name "FsStream")
   (gtype-id "FS_TYPE_STREAM")
 )

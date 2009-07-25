@@ -145,7 +145,7 @@ struct _FsStreamPrivate
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_STREAM, FsStreamPrivate))
 
 
-G_DEFINE_ABSTRACT_TYPE(FsStream, fs_stream, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE(FsStream, fs_stream, GST_TYPE_OBJECT);
 
 static void fs_stream_get_property (GObject *object,
                                     guint prop_id,
