@@ -56,18 +56,12 @@ static gchar **search_paths = NULL;
 
 static GList *plugins = NULL;
 
-static GObjectClass *parent_class = NULL;
-
 struct _FsPluginPrivate
 {
   GModule *handle;
-  gboolean disposed;
 };
 
 G_DEFINE_TYPE(FsPlugin, fs_plugin, G_TYPE_TYPE_MODULE);
-
-static void fs_plugin_dispose (GObject * object);
-static void fs_plugin_finalize (GObject * object);
 
 static void
 fs_plugin_search_path_init (void)
@@ -99,13 +93,7 @@ fs_plugin_search_path_init (void)
 static void
 fs_plugin_class_init (FsPluginClass * klass)
 {
-  GObjectClass *gobject_class = G_OBJECT_CLASS(klass);
   GTypeModuleClass *module_class = G_TYPE_MODULE_CLASS (klass);
-
-  gobject_class->dispose = fs_plugin_dispose;
-  gobject_class->finalize = fs_plugin_finalize;
-
-  parent_class = g_type_class_peek_parent (klass);
 
   module_class->load = fs_plugin_load;
 
@@ -123,30 +111,6 @@ fs_plugin_init (FsPlugin * plugin)
   /* member init */
   plugin->priv = FS_PLUGIN_GET_PRIVATE (plugin);
   plugin->priv->handle = NULL;
-  plugin->priv->disposed = FALSE;
-}
-
-
-static void
-fs_plugin_dispose (GObject * object)
-{
-  FsPlugin *plugin = FS_PLUGIN (object);
-
-  if (plugin->priv->disposed) {
-    /* If dispose did already run, return. */
-    return;
-  }
-
-  /* Make sure dispose does not run twice. */
-  plugin->priv->disposed = TRUE;
-
-  parent_class->dispose (object);
-}
-
-static void
-fs_plugin_finalize (GObject * object)
-{
-  parent_class->finalize (object);
 }
 
 static gboolean fs_plugin_load (GTypeModule *module)

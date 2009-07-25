@@ -56,8 +56,6 @@ enum
 
 struct _FsParticipantPrivate
 {
-  gboolean disposed;
-
   gchar *cname;
 };
 
@@ -67,7 +65,6 @@ G_DEFINE_ABSTRACT_TYPE(FsParticipant, fs_participant, G_TYPE_OBJECT);
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \
    FsParticipantPrivate))
 
-static void fs_participant_dispose (GObject *object);
 static void fs_participant_finalize (GObject *object);
 
 static void fs_participant_get_property (GObject *object,
@@ -79,7 +76,6 @@ static void fs_participant_set_property (GObject *object,
                                          const GValue *value,
                                          GParamSpec *pspec);
 
-static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
@@ -88,7 +84,6 @@ fs_participant_class_init (FsParticipantClass *klass)
   GObjectClass *gobject_class;
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->set_property = fs_participant_set_property;
   gobject_class->get_property = fs_participant_get_property;
@@ -128,7 +123,6 @@ fs_participant_class_init (FsParticipantClass *klass)
       G_TYPE_NONE, 4, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING,
       G_TYPE_STRING);
 
-  gobject_class->dispose = fs_participant_dispose;
   gobject_class->finalize = fs_participant_finalize;
 
   g_type_class_add_private (klass, sizeof (FsParticipantPrivate));
@@ -139,25 +133,8 @@ fs_participant_init (FsParticipant *self)
 {
   /* member init */
   self->priv = FS_PARTICIPANT_GET_PRIVATE (self);
-  self->priv->disposed = FALSE;
 
   self->mutex = g_mutex_new ();
-}
-
-static void
-fs_participant_dispose (GObject *object)
-{
-  FsParticipant *self = FS_PARTICIPANT (object);
-
-  if (self->priv->disposed) {
-    /* If dispose did already run, return. */
-    return;
-  }
-
-  /* Make sure dispose does not run twice. */
-  self->priv->disposed = TRUE;
-
-  parent_class->dispose (object);
 }
 
 static void
@@ -172,7 +149,7 @@ fs_participant_finalize (GObject *object)
 
   g_mutex_free (self->mutex);
 
-  parent_class->finalize (object);
+  G_OBJECT_CLASS (fs_participant_parent_class)->finalize (object);
 }
 
 static void

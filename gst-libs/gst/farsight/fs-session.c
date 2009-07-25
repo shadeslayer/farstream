@@ -125,7 +125,6 @@ static void fs_session_set_property (GObject *object,
                                      const GValue *value,
                                      GParamSpec *pspec);
 
-static GObjectClass *parent_class = NULL;
 static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
@@ -134,7 +133,6 @@ fs_session_class_init (FsSessionClass *klass)
   GObjectClass *gobject_class;
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->set_property = fs_session_set_property;
   gobject_class->get_property = fs_session_get_property;

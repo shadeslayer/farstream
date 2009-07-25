@@ -96,7 +96,6 @@ fs_base_conference_base_init (gpointer g_class)
 static void
 fs_base_conference_class_init (FsBaseConferenceClass * klass)
 {
-  parent_class = g_type_class_peek_parent (klass);
 }
 
 static void

@@ -67,15 +67,12 @@ G_DEFINE_TYPE(FsElementAddedNotifier, fs_element_added_notifier, G_TYPE_OBJECT);
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
-static GObjectClass *parent_class = NULL;
-
 static void
 fs_element_added_notifier_class_init (FsElementAddedNotifierClass *klass)
 {
   GObjectClass *gobject_class;
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->finalize = fs_element_added_notifier_finalize;
 
