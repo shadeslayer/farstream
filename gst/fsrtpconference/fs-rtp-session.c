@@ -97,7 +97,8 @@ enum
   PROP_CODECS_READY,
   PROP_CONFERENCE,
   PROP_NO_RTCP_TIMEOUT,
-  PROP_SSRC
+  PROP_SSRC,
+  PROP_TOS
 };
 
 #define DEFAULT_NO_RTCP_TIMEOUT (7000)
@@ -194,6 +195,9 @@ struct _FsRtpSessionPrivate
 
   GMutex *send_pad_blocked_mutex;
   GMutex *discovery_pad_blocked_mutex;
+
+  /* IP Type of Service, protext by session mutex */
+  guint tos;
 
   /* Can only be used while using the lock */
   GStaticRWLock disposed_lock;
@@ -342,6 +346,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
   g_object_class_override_property (gobject_class,
     PROP_CODECS_READY, "codecs-ready");
+  g_object_class_override_property (gobject_class,
+    PROP_TOS, "tos");
 
   g_object_class_install_property (gobject_class,
     PROP_CONFERENCE,
@@ -827,12 +833,26 @@ fs_rtp_session_get_property (GObject *object,
       g_object_get_property (G_OBJECT (self->priv->rtpbin_internal_session),
           "internal-ssrc", value);
       break;
+    case PROP_TOS:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_uint (value, self->priv->tos);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 
   fs_rtp_session_has_disposed_exit (self);
+}
+
+static void
+set_tos (gpointer key, gpointer val, gpointer user_data)
+{
+  FsTransmitter *trans = val;
+  guint tos = GPOINTER_TO_UINT (user_data);
+
+  g_object_set (trans, "tos", tos, NULL);
 }
 
 static void
@@ -865,6 +885,13 @@ fs_rtp_session_set_property (GObject *object,
     case PROP_SSRC:
       g_object_set_property (G_OBJECT (self->priv->rtpbin_internal_session),
           "internal-ssrc", value);
+      break;
+    case PROP_TOS:
+      FS_RTP_SESSION_LOCK (self);
+      self->priv->tos = g_value_get_uint (value);
+      g_hash_table_foreach (self->priv->transmitters, set_tos,
+          GUINT_TO_POINTER (self->priv->tos));
+      FS_RTP_SESSION_UNLOCK (self);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -1900,6 +1927,7 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
   FsTransmitter *transmitter;
   GstElement *src;
   gboolean sink_add_later = FALSE;
+  guint tos;
 
   FS_RTP_SESSION_LOCK (self);
   transmitter = g_hash_table_lookup (self->priv->transmitters,
@@ -1911,9 +1939,10 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
     FS_RTP_SESSION_UNLOCK (self);
     return transmitter;
   }
+  tos = self->priv->tos;
   FS_RTP_SESSION_UNLOCK (self);
 
-  transmitter = fs_transmitter_new (transmitter_name, 2, 0, error);
+  transmitter = fs_transmitter_new (transmitter_name, 2, tos, error);
   if (!transmitter)
     return NULL;
 
