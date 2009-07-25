@@ -1098,8 +1098,7 @@ fs_raw_session_update_direction (FsRawSession *self,
     if (!transmitter_sink)
     {
       fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
-          "Unable to get the sink element from the FsTransmitter",
-          "Unable to add transmitter sink");
+          "Unable to get the sink element from the FsTransmitter");
       goto out;
     }
 

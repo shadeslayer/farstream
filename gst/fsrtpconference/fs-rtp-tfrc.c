@@ -1206,7 +1206,6 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     {
       fs_session_emit_error (FS_SESSION (self->fsrtpsession),
           FS_ERROR_CONSTRUCTION,
-          "Could not add tfrc packet modder",
           "Could not add tfrc packet modder to the pipeline");
       goto adding_failed;
     }
@@ -1221,7 +1220,6 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     {
       fs_session_emit_error (FS_SESSION (self->fsrtpsession),
           FS_ERROR_CONSTRUCTION,
-          "Could not link tfrc packet modder",
           "Could not link tfrc packet modder to rtp muxer");
       goto linking_failed;
     }
@@ -1233,7 +1231,6 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     {
       fs_session_emit_error (FS_SESSION (self->fsrtpsession),
           FS_ERROR_CONSTRUCTION,
-          "Could not link tfrc packet modder",
           "Could not link tfrc packet modder to the rtpbin");
       goto linking_failed;
     }
@@ -1243,7 +1240,6 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     {
       fs_session_emit_error (FS_SESSION (self->fsrtpsession),
           FS_ERROR_CONSTRUCTION,
-          "Could not start tfrc packet modder",
           "Could not set the TFRC packet modder to playing");
       goto linking_failed;
     }
@@ -1266,7 +1262,6 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     if (GST_PAD_LINK_FAILED (linkret))
       fs_session_emit_error (FS_SESSION (self->fsrtpsession),
           FS_ERROR_CONSTRUCTION,
-          "Could not re-link after removing tfrc packet modder",
           "Could not re-link after removing tfrc packet modder");
   }
 

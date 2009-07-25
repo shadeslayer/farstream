@@ -193,7 +193,7 @@ _component_new_active_candidate_pair (FsRawUdpComponent *component,
     FsCandidate *local, FsCandidate *remote, gpointer user_data);
 static void
 _component_error (FsRawUdpComponent *component,
-    FsError error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data);
+    FsError error_no, gchar *error_msg, gpointer user_data);
 static void
 _component_known_source_packet_received (FsRawUdpComponent *component,
     guint component_id, GstBuffer *buffer, gpointer user_data);
@@ -891,12 +891,12 @@ _component_new_active_candidate_pair (FsRawUdpComponent *component,
 
 static void
 _component_error (FsRawUdpComponent *component,
-    FsError error_no, gchar *error_msg, gchar *debug_msg, gpointer user_data)
+    FsError error_no, gchar *error_msg, gpointer user_data)
 {
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
 
   fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self), error_no,
-      error_msg, debug_msg);
+      error_msg, NULL);
 }
 
 static void

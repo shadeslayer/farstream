@@ -209,8 +209,7 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
 static void
 fs_rawudp_component_emit_error (FsRawUdpComponent *self,
     gint error_no,
-    gchar *error_msg,
-    gchar *debug_msg);
+    gchar *error_msg);
 static void
 fs_rawudp_component_maybe_new_active_candidate_pair (FsRawUdpComponent *self);
 static void
@@ -490,8 +489,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
    * FsRawUdpComponent::error:
    * @self: #FsStreamTransmitter that emitted the signal
    * @errorno: The number of the error
-   * @error_msg: Error message to be displayed to user
-   * @debug_msg: Debugging error message
+   * @error_msg: Error message
    *
    * This signal is emitted in any error condition
    *
@@ -502,8 +500,8 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       0,
       NULL,
       NULL,
-      _fs_rawudp_marshal_VOID__ENUM_STRING_STRING,
-      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_rawudp_marshal_VOID__ENUM_STRING,
+      G_TYPE_NONE, 2, FS_TYPE_ERROR, G_TYPE_STRING);
 
 
   g_type_class_add_private (klass, sizeof (FsRawUdpComponentPrivate));
@@ -1070,10 +1068,10 @@ fs_rawudp_component_maybe_emit_local_candidates (FsRawUdpComponent *self)
   {
     if (error->domain == FS_ERROR)
       fs_rawudp_component_emit_error (self, error->code,
-          error->message, error->message);
+          error->message);
     else
       fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
-          "Error emitting local candidates", NULL);
+          "Error emitting local candidates");
   }
   g_clear_error (&error);
 
@@ -1481,7 +1479,7 @@ stun_timeout_func (gpointer user_data)
   if (sysclock == NULL)
   {
     fs_rawudp_component_emit_error (self, FS_ERROR_INTERNAL,
-        "Could not obtain gst system clock", NULL);
+        "Could not obtain gst system clock");
     FS_RAWUDP_COMPONENT_LOCK(self);
     goto interrupt;
   }
@@ -1505,8 +1503,7 @@ stun_timeout_func (gpointer user_data)
         !fs_rawudp_component_send_stun_locked (self, &error))
     {
       FS_RAWUDP_COMPONENT_UNLOCK(self);
-      fs_rawudp_component_emit_error (self, error->code, "Could not send stun",
-          error->message);
+      fs_rawudp_component_emit_error (self, error->code, error->message);
       g_clear_error (&error);
       FS_RAWUDP_COMPONENT_LOCK (self);
       fs_rawudp_component_stop_stun_locked (self);
@@ -1567,11 +1564,9 @@ stun_timeout_func (gpointer user_data)
 static void
 fs_rawudp_component_emit_error (FsRawUdpComponent *self,
     gint error_no,
-    gchar *error_msg,
-    gchar *debug_msg)
+    gchar *error_msg)
 {
-  g_signal_emit (self, signals[ERROR_SIGNAL], 0, error_no, error_msg,
-      debug_msg);
+  g_signal_emit (self, signals[ERROR_SIGNAL], 0, error_no, error_msg);
 }
 
 
