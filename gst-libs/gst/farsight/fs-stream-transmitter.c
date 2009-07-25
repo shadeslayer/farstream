@@ -153,8 +153,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
    * FsStreamTransmitter::error:
    * @self: #FsStreamTransmitter that emitted the signal
    * @errorno: The number of the error
-   * @error_msg: Error message to be displayed to user
-   * @debug_msg: Debugging error message
+   * @error_msg: Error message (for the programmer)
    *
    * This signal is emitted in any error condition
    *
@@ -165,8 +164,8 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__ENUM_STRING_STRING,
-      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_marshal_VOID__ENUM_STRING,
+      G_TYPE_NONE, 2, FS_TYPE_ERROR, G_TYPE_STRING);
 
     /**
    * FsStreamTransmitter::new-active-candidate-pair:
@@ -439,8 +438,7 @@ fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
  * fs_stream_transmitter_emit_error:
  * @streamtransmitter: #FsStreamTransmitter on which to emit the error signal
  * @error_no: The number of the error
- * @error_msg: Error message to be displayed to user
- * @debug_msg: Debugging error message
+ * @error_msg: Error message (for the programmer)
  *
  * This function emit the "error" signal on a #FsStreamTransmitter, it should
  * only be called by subclasses.
@@ -448,9 +446,8 @@ fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
 void
 fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg)
+    const gchar *error_msg)
 {
   g_signal_emit (streamtransmitter, signals[ERROR_SIGNAL], 0, error_no,
-      error_msg, debug_msg);
+      error_msg);
 }

@@ -1741,7 +1741,7 @@ agent_gathering_done_idle (gpointer data)
               remote_candidates))
       {
         fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-            FS_ERROR_INTERNAL, "Could not set forced candidates",
+            FS_ERROR_INTERNAL,
             "Error setting delayed forced remote candidates");
       }
     }
@@ -1758,7 +1758,7 @@ agent_gathering_done_idle (gpointer data)
                 self->priv->password))
         {
           fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-              FS_ERROR_INTERNAL, "Error setting delayed remote candidates",
+              FS_ERROR_INTERNAL,
               "Could not set the security credentials");
           fs_candidate_list_destroy (remote_candidates);
           return FALSE;
@@ -1771,8 +1771,7 @@ agent_gathering_done_idle (gpointer data)
               remote_candidates, &error))
       {
         fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-            error->code, error->message, "Error setting delayed remote"
-            " candidates");
+            error->code, error->message);
       }
       g_clear_error (&error);
     }

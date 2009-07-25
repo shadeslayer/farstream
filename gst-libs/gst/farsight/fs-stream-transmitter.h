@@ -119,8 +119,7 @@ void fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter);
 
 void fs_stream_transmitter_emit_error (FsStreamTransmitter *streamtransmitter,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg);
+    const gchar *error_msg);
 
 G_END_DECLS
 

@@ -896,7 +896,7 @@ _component_error (FsRawUdpComponent *component,
   FsRawUdpStreamTransmitter *self = FS_RAWUDP_STREAM_TRANSMITTER (user_data);
 
   fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self), error_no,
-      error_msg, NULL);
+      error_msg);
 }
 
 static void

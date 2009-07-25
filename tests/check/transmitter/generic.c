@@ -42,10 +42,10 @@ _transmitter_error (FsTransmitter *transmitter, gint errorno, gchar *error_msg,
 
 void
 stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
-  gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data)
+  gint errorno, gchar *error_msg, gpointer user_data)
 {
-  ts_fail ("StreamTransmitter(%x) error(%d) msg:%s debug:%s", streamtransmitter,
-    errorno, error_msg, debug_msg);
+  ts_fail ("StreamTransmitter(%x) error(%d) msg:%s", streamtransmitter,
+    errorno, error_msg);
 }
 
 void

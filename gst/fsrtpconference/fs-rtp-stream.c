@@ -146,7 +146,6 @@ static void _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
-    gchar *debug_msg,
     gpointer user_data);
 static void _substream_codec_changed (FsRtpSubStream *substream,
     FsRtpStream *stream);
@@ -883,12 +882,11 @@ _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
-    gchar *debug_msg,
     gpointer user_data)
 {
   FsStream *stream = FS_STREAM (user_data);
 
-  fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
+  fs_stream_emit_error (stream, errorno, error_msg, NULL);
 }
 
 static void

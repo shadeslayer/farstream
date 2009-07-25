@@ -31,7 +31,7 @@ void setup_fakesrc (FsTransmitter *trans, GstElement *pipeline,
   guint component_id);
 
 void stream_transmitter_error (FsStreamTransmitter *streamtransmitter,
-  gint errorno, gchar *error_msg, gchar *debug_msg, gpointer user_data);
+  gint errorno, gchar *error_msg, gpointer user_data);
 
 gboolean bus_error_callback (GstBus *bus, GstMessage *message,
     gpointer user_data);
