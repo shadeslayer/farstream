@@ -76,7 +76,7 @@ struct _FsPlugin
 
   FsPluginPrivate *priv;
 
-  gpointer unused[4];
+  gpointer unused[8];
 };
 
 struct _FsPluginClass
@@ -85,7 +85,7 @@ struct _FsPluginClass
 
   /*< private >*/
 
-  gpointer unused[4];
+  gpointer unused[8];
 };
 
 GType fs_plugin_get_type (void);

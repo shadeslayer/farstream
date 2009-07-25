@@ -128,7 +128,7 @@ struct _FsStreamClass
                   guint id);
 
   /*< private >*/
-  gpointer _padding[7];
+  gpointer _padding[8];
 };
 
 /**

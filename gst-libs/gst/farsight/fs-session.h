@@ -148,7 +148,7 @@ struct _FsSessionClass
       GList *new_codecs);
 
   /*< private >*/
-  gpointer _padding[6];
+  gpointer _padding[8];
 };
 
 /**
