@@ -43,7 +43,6 @@
 /* Signals */
 enum
 {
-  ERROR_SIGNAL,
   LAST_SIGNAL
 };
 
@@ -68,7 +67,7 @@ G_DEFINE_ABSTRACT_TYPE(FsParticipant, fs_participant, G_TYPE_OBJECT);
 static void fs_participant_finalize (GObject *object);
 
 
-static guint signals[LAST_SIGNAL] = { 0 };
+// static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
 fs_participant_class_init (FsParticipantClass *klass)
@@ -78,26 +77,6 @@ fs_participant_class_init (FsParticipantClass *klass)
   gobject_class = (GObjectClass *) klass;
 
   gobject_class->finalize = fs_participant_finalize;
-
-  /**
-   * FsParticipant::error:
-   * @self: #FsParticipant that emitted the signal
-   * @object: The #Gobject that emitted the signal
-   * @errorno: The number of the error
-   * @error_msg: Error message to be displayed to user
-   * @dbg_msg: Debugging error message
-   *
-   * This signal is emitted in any error condition
-   */
-  signals[ERROR_SIGNAL] = g_signal_new ("error",
-      G_TYPE_FROM_CLASS (klass),
-      G_SIGNAL_RUN_LAST,
-      0,
-      NULL,
-      NULL,
-      _fs_marshal_VOID__OBJECT_ENUM_STRING_STRING,
-      G_TYPE_NONE, 4, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING,
-      G_TYPE_STRING);
 
   // g_type_class_add_private (klass, sizeof (FsParticipantPrivate));
 }
