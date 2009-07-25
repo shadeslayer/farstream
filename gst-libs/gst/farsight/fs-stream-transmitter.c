@@ -75,7 +75,7 @@ struct _FsStreamTransmitterPrivate
 };
 
 G_DEFINE_ABSTRACT_TYPE(FsStreamTransmitter, fs_stream_transmitter,
-    G_TYPE_OBJECT);
+    GST_TYPE_OBJECT);
 
 
 #define FS_STREAM_TRANSMITTER_GET_PRIVATE(o)  \

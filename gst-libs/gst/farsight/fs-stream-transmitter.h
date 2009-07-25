@@ -25,8 +25,7 @@
 #ifndef __FS_STREAM_TRANSMITTER_H__
 #define __FS_STREAM_TRANSMITTER_H__
 
-#include <glib.h>
-#include <glib-object.h>
+#include <gst/gst.h>
 
 #include <gst/farsight/fs-candidate.h>
 
@@ -68,7 +67,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
 
 struct _FsStreamTransmitterClass
 {
-  GObjectClass parent_class;
+  GstObjectClass parent_class;
 
   /*virtual functions */
   gboolean (*set_remote_candidates) (FsStreamTransmitter *streamtransmitter,
@@ -92,7 +91,7 @@ struct _FsStreamTransmitterClass
  */
 struct _FsStreamTransmitter
 {
-  GObject parent;
+  GstObject parent;
 
   /*< private >*/
   FsStreamTransmitterPrivate *priv;
