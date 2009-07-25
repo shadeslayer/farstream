@@ -36,6 +36,7 @@ setup_simple_conference (
 {
   struct SimpleTestConference *dat = g_new0 (struct SimpleTestConference, 1);
   GError *error = NULL;
+  guint tos;
 
   dat->id = id;
   dat->cname = g_strdup (cname);
@@ -56,6 +57,11 @@ setup_simple_conference (
     fail ("Error while creating new session (%d): %s",
         error->code, error->message);
   fail_if (dat->session == NULL, "Could not make session, but no GError!");
+
+  g_object_set (dat->session, "tos", 2, NULL);
+  g_object_get (dat->session, "tos", &tos, NULL);
+  fail_unless (tos == 2);
+
 
   g_object_set_data (G_OBJECT (dat->conference), "dat", dat);
 

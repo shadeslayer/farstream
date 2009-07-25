@@ -128,6 +128,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
   FsCandidate *tmpcand = NULL;
   GList *candidates = NULL;
   GstBus *bus = NULL;
+  guint tos;
 
   buffer_count[0] = 0;
   buffer_count[1] = 0;
@@ -147,6 +148,10 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
   }
 
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
+
+  g_object_set (trans, "tos", 2, NULL);
+  g_object_get (trans, "tos", &tos, NULL);
+  ts_fail_unless (tos == 2);
 
   if (flags & FLAG_RECVONLY_FILTER)
     ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
