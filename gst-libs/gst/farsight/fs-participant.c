@@ -58,7 +58,7 @@ struct _FsParticipantPrivate
 };
 */
 
-G_DEFINE_ABSTRACT_TYPE(FsParticipant, fs_participant, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE(FsParticipant, fs_participant, GST_TYPE_OBJECT);
 
 #define FS_PARTICIPANT_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_PARTICIPANT, \

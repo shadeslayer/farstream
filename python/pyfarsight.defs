@@ -516,7 +516,7 @@
 ; object definitions ...
 (define-object Participant
   (in-module "Fs")
-  (parent "GObject")
+  (parent "GstObject")
   (c-name "FsParticipant")
   (gtype-id "FS_TYPE_PARTICIPANT")
 )

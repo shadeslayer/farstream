@@ -25,8 +25,7 @@
 #ifndef __FS_PARTICIPANT_H__
 #define __FS_PARTICIPANT_H__
 
-#include <glib.h>
-#include <glib-object.h>
+#include <gst/gst.h>
 
 G_BEGIN_DECLS
 
@@ -59,7 +58,7 @@ typedef struct _FsParticipantPrivate FsParticipantPrivate;
 
 struct _FsParticipantClass
 {
-  GObjectClass parent_class;
+  GstObjectClass parent_class;
 
   /* virtual functions */
 
@@ -75,7 +74,7 @@ struct _FsParticipantClass
  */
 struct _FsParticipant
 {
-  GObject parent;
+  GstObject parent;
 
   /*< private >*/
 
