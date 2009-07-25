@@ -180,7 +180,7 @@ class FsUIPipeline:
                 
                 
             elif message.structure.has_name("farsight-error"):
-                print "Async error ("+ str(message.structure["error-no"]) +"): " + message.structure["error-msg"] +" --- "+ message.structure["debug-msg"]
+                print "Async error ("+ str(message.structure["error-no"]) +"): " + message.structure["error-msg"]
             else:
                 print message.src.get_name(), ": ", message.structure.get_name()
         elif message.type != gst.MESSAGE_STATE_CHANGED \
@@ -586,7 +586,7 @@ class FsUIParticipant:
         self.cname = cname
         self.pipeline = pipeline
         self.mainui = mainui
-        self.fsparticipant = pipeline.conf.new_participant(cname)
+        self.fsparticipant = pipeline.conf.new_participant()
         self.outcv = threading.Condition()
         self.funnel = None
         self.make_widget()

@@ -202,17 +202,14 @@ async_bus_cb (GstBus *bus, GstMessage *message, gpointer user_data)
         {
           gint error;
           const gchar *error_msg = gst_structure_get_string (s, "error-msg");
-          const gchar *debug_msg = gst_structure_get_string (s, "debug-msg");
 
           g_assert (gst_structure_get_enum (s, "error-no", FS_TYPE_ERROR,
                   &error));
 
           if (FS_ERROR_IS_FATAL (error))
-            g_error ("Farsight fatal error: %d %s %s", error, error_msg,
-                debug_msg);
+            g_error ("Farsight fatal error: %d %s", error, error_msg);
           else
-            g_warning ("Farsight non-fatal error: %d %s %s", error, error_msg,
-                debug_msg);
+            g_warning ("Farsight non-fatal error: %d %s", error, error_msg);
         }
         else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
         {
