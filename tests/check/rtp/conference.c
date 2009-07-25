@@ -235,7 +235,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         {
           const GValue *value;
           FsError errorno;
-          const gchar *error, *debug;
+          const gchar *error;
 
           ts_fail_unless (
               gst_implements_interface_check (GST_MESSAGE_SRC (message),
@@ -251,16 +251,12 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (
               gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
               "farsight-error structure has no src-object field");
-          ts_fail_unless (
-              gst_structure_has_field_typed (s, "debug-msg", G_TYPE_STRING),
-              "farsight-error structure has no src-object field");
 
           value = gst_structure_get_value (s, "error-no");
           errorno = g_value_get_enum (value);
           error = gst_structure_get_string (s, "error-msg");
-          debug = gst_structure_get_string (s, "debug-msg");
 
-          ts_fail ("Error on BUS (%d) %s .. %s", errorno, error, debug);
+          ts_fail ("Error on BUS (%d) %s", errorno, error);
         }
         else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
         {

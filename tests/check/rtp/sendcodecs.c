@@ -76,7 +76,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
         {
           const GValue *value;
           FsError errorno;
-          const gchar *error, *debug;
+          const gchar *error;
           GEnumClass *enumclass = NULL;
           GEnumValue *enumvalue = NULL;
 
@@ -94,21 +94,16 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (
               gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
               "farsight-error structure has no src-object field");
-          ts_fail_unless (
-              gst_structure_has_field_typed (s, "debug-msg", G_TYPE_STRING),
-              "farsight-error structure has no src-object field");
 
           value = gst_structure_get_value (s, "error-no");
           errorno = g_value_get_enum (value);
           error = gst_structure_get_string (s, "error-msg");
-          debug = gst_structure_get_string (s, "debug-msg");
-
 
           enumclass = g_type_class_ref (FS_TYPE_ERROR);
           enumvalue = g_enum_get_value (enumclass, errorno);
-          ts_fail ("Error on BUS %s (%d, %s) %s .. %s",
+          ts_fail ("Error on BUS %s (%d, %s) %s",
               enumvalue->value_name, errorno, enumvalue->value_nick,
-              error, debug);
+              error);
           g_type_class_unref (enumclass);
         }
         else if (gst_structure_has_name (s, "farsight-send-codec-changed"))
