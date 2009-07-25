@@ -204,7 +204,7 @@ codec_cap_list_free (GList *list)
  * network  -> rtp depayloader -> N* -> output (soundcard)
  * media_type defines if we want audio or video codecs
  *
- * Returns : a #GList of #CodecBlueprint or NULL on error
+ * Returns: a #GList of #CodecBlueprint or NULL on error
  */
 GList *
 fs_rtp_blueprints_get (FsMediaType media_type, GError **error)

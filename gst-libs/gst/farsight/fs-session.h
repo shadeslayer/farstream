@@ -108,6 +108,7 @@ typedef enum
  * @set_send_codec: Forces sending with a specific codec
  * @set_codec_preferences: Specifies the codec preferences
  * @list_transmitters: Returns a list of the available transmitters
+ * @get_stream_transmitter_type: Returns the GType of the stream transmitter
  *
  * You must override at least new_stream in a subclass.
  */

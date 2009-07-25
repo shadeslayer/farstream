@@ -256,7 +256,7 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
  *
  * Will load the codecs blueprints from the cache.
  *
- * Returns : TRUE if successful, FALSE if error, or cache outdated
+ * Returns: TRUE if successful, FALSE if error, or cache outdated
  *
  */
 GList *

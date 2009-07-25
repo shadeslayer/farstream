@@ -68,6 +68,7 @@ struct _FsNiceTransmitterClass
 
 /**
  * FsNiceTransmitter:
+ * @parent: Parent object
  *
  * All members are private, access them using methods and properties
  */

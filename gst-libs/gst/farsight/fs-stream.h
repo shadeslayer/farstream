@@ -102,6 +102,7 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
  * @set_remote_candidates: Set sthe remote candidates
  * @force_remote_candidates: Forces certain remote candidates
  * @set_remote_codecs: Sets the list of remote codecs
+ * @add_id: Add a known id to be associated with this stream
  *
  * You must override add_remote_candidate in a subclass.
  * If you have to negotiate codecs, then you must override set_remote_codecs too
