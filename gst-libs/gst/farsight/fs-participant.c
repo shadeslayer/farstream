@@ -50,14 +50,14 @@ enum
 /* props */
 enum
 {
-  PROP_0,
-  PROP_CNAME
+  PROP_0
 };
 
+/*
 struct _FsParticipantPrivate
 {
-  gchar *cname;
 };
+*/
 
 G_DEFINE_ABSTRACT_TYPE(FsParticipant, fs_participant, G_TYPE_OBJECT);
 
@@ -67,14 +67,6 @@ G_DEFINE_ABSTRACT_TYPE(FsParticipant, fs_participant, G_TYPE_OBJECT);
 
 static void fs_participant_finalize (GObject *object);
 
-static void fs_participant_get_property (GObject *object,
-                                         guint prop_id,
-                                         GValue *value,
-                                         GParamSpec *pspec);
-static void fs_participant_set_property (GObject *object,
-                                         guint prop_id,
-                                         const GValue *value,
-                                         GParamSpec *pspec);
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
@@ -85,23 +77,7 @@ fs_participant_class_init (FsParticipantClass *klass)
 
   gobject_class = (GObjectClass *) klass;
 
-  gobject_class->set_property = fs_participant_set_property;
-  gobject_class->get_property = fs_participant_get_property;
-
-  /**
-   * FsParticipant:cname:
-   *
-   * A string representing the cname of the current participant.
-   * User must free the string after getting it.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_CNAME,
-      g_param_spec_string ("cname",
-        "The cname of the participant",
-        "A string of the cname of the participant",
-        NULL,
-        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  gobject_class->finalize = fs_participant_finalize;
 
   /**
    * FsParticipant::error:
@@ -123,17 +99,13 @@ fs_participant_class_init (FsParticipantClass *klass)
       G_TYPE_NONE, 4, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING,
       G_TYPE_STRING);
 
-  gobject_class->finalize = fs_participant_finalize;
-
-  g_type_class_add_private (klass, sizeof (FsParticipantPrivate));
+  // g_type_class_add_private (klass, sizeof (FsParticipantPrivate));
 }
 
 static void
 fs_participant_init (FsParticipant *self)
 {
-  /* member init */
-  self->priv = FS_PARTICIPANT_GET_PRIVATE (self);
-
+  //self->priv = FS_PARTICIPANT_GET_PRIVATE (self);
   self->mutex = g_mutex_new ();
 }
 
@@ -141,49 +113,7 @@ static void
 fs_participant_finalize (GObject *object)
 {
   FsParticipant *self = FS_PARTICIPANT (object);
-
-  if (self->priv->cname) {
-    g_free (self->priv->cname);
-    self->priv->cname = NULL;
-  }
-
   g_mutex_free (self->mutex);
 
   G_OBJECT_CLASS (fs_participant_parent_class)->finalize (object);
-}
-
-static void
-fs_participant_get_property (GObject *object,
-                             guint prop_id,
-                             GValue *value,
-                             GParamSpec *pspec)
-{
-  FsParticipant *self = FS_PARTICIPANT (object);
-
-  switch (prop_id) {
-    case PROP_CNAME:
-      g_value_set_string (value, self->priv->cname);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
-}
-
-static void
-fs_participant_set_property (GObject *object,
-                             guint prop_id,
-                             const GValue *value,
-                             GParamSpec *pspec)
-{
-  FsParticipant *self = FS_PARTICIPANT (object);
-
-  switch (prop_id) {
-    case PROP_CNAME:
-      self->priv->cname = g_value_dup_string (value);
-      break;
-    default:
-      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-      break;
-  }
 }
