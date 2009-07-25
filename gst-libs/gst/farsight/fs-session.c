@@ -102,7 +102,8 @@ enum
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
-  PROP_CODECS_READY
+  PROP_CODECS_READY,
+  PROP_TYPE_OF_SERVICE
 };
 
 /*
@@ -302,6 +303,20 @@ fs_session_class_init (FsSessionClass *klass)
           " still being discovered",
           TRUE,
           G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * FsSession:tos
+   *
+   * Sets the IP ToS field (and if possible the IPv6 TCLASS field
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_TYPE_OF_SERVICE,
+      g_param_spec_uint ("tos",
+          "IP Type of Service",
+          "The IP Type of Service to set on sent packets",
+          0, 255, 0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
 
   /**
    * FsSession::error:
