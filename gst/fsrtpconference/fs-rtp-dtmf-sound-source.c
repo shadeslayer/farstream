@@ -51,8 +51,6 @@ struct _FsRtpDtmfSoundSourcePrivate {
   gboolean disposed;
 };
 
-static FsRtpSpecialSourceClass *parent_class = NULL;
-
 G_DEFINE_TYPE(FsRtpDtmfSoundSource, fs_rtp_dtmf_sound_source,
     FS_TYPE_RTP_SPECIAL_SOURCE);
 
@@ -76,7 +74,6 @@ static void
 fs_rtp_dtmf_sound_source_class_init (FsRtpDtmfSoundSourceClass *klass)
 {
   FsRtpSpecialSourceClass *spsource_class = FS_RTP_SPECIAL_SOURCE_CLASS (klass);
-  parent_class = fs_rtp_dtmf_sound_source_parent_class;
 
   spsource_class->build = fs_rtp_dtmf_sound_source_build;
   spsource_class->want_source = fs_rtp_dtmf_sound_source_class_want_source;

@@ -69,8 +69,6 @@ struct _FsRtpSpecialSourcePrivate {
   GMutex *mutex;
 };
 
-static GObjectClass *parent_class = NULL;
-
 static GList *classes = NULL;
 
 G_DEFINE_ABSTRACT_TYPE(FsRtpSpecialSource, fs_rtp_special_source,
@@ -120,8 +118,6 @@ static void
 fs_rtp_special_source_class_init (FsRtpSpecialSourceClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
-
-  parent_class = fs_rtp_special_source_parent_class;
 
   gobject_class->dispose = fs_rtp_special_source_dispose;
   gobject_class->finalize = fs_rtp_special_source_finalize;

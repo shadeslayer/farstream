@@ -150,8 +150,6 @@ static void _state_changed (FsStreamTransmitter *stream_transmitter,
     FsStreamState state,
     gpointer user_data);
 
-
-static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
@@ -161,7 +159,6 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   FsStreamClass *stream_class = FS_STREAM_CLASS (klass);
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
 
   gobject_class->set_property = fs_rtp_stream_set_property;
   gobject_class->get_property = fs_rtp_stream_get_property;
@@ -332,7 +329,7 @@ fs_rtp_stream_dispose (GObject *object)
   g_object_unref (session);
   g_object_unref (session);
 
-  parent_class->dispose (object);
+  G_OBJECT_CLASS (fs_rtp_stream_parent_class)->dispose (object);
 }
 
 static void
@@ -345,7 +342,7 @@ fs_rtp_stream_finalize (GObject *object)
 
   g_mutex_free (self->priv->mutex);
 
-  parent_class->finalize (object);
+  G_OBJECT_CLASS (fs_rtp_stream_parent_class)->finalize (object);
 }
 
 static gboolean
@@ -556,7 +553,8 @@ fs_rtp_stream_constructed (GObject *object)
     return;
   }
 
-  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
+  if (G_OBJECT_CLASS (fs_rtp_stream_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_rtp_stream_parent_class)->constructed(object);
 }
 
 

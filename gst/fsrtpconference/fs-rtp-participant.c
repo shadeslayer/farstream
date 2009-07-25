@@ -59,7 +59,6 @@ struct _FsRtpParticipantPrivate
    FsRtpParticipantPrivate))
 */
 
-static GObjectClass *parent_class = NULL;
 // static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
@@ -68,7 +67,6 @@ fs_rtp_participant_class_init (FsRtpParticipantClass *klass)
   GObjectClass *gobject_class;
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
 
   // g_type_class_add_private (klass, sizeof (FsRtpParticipantPrivate));
 }

@@ -301,8 +301,6 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
     gpointer user_data);
 
 
-static GObjectClass *parent_class = NULL;
-
 //static guint signals[LAST_SIGNAL] = { 0 };
 
 static void
@@ -312,7 +310,6 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   FsSessionClass *session_class;
 
   gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
   session_class = FS_SESSION_CLASS (klass);
 
   gobject_class->set_property = fs_rtp_session_set_property;
@@ -686,7 +683,7 @@ fs_rtp_session_dispose (GObject *object)
   /* MAKE sure dispose does not run twice. */
   self->priv->disposed = TRUE;
 
-  parent_class->dispose (object);
+  G_OBJECT_CLASS (fs_rtp_session_parent_class)->dispose (object);
 }
 
 static void
@@ -724,7 +721,7 @@ fs_rtp_session_finalize (GObject *object)
 
   g_static_rw_lock_free (&self->priv->disposed_lock);
 
-  parent_class->finalize (object);
+  G_OBJECT_CLASS (fs_rtp_session_parent_class)->finalize (object);
 }
 
 static gboolean
@@ -1359,7 +1356,8 @@ fs_rtp_session_constructed (GObject *object)
   fs_rtp_session_start_codec_param_gathering_locked (self);
   FS_RTP_SESSION_UNLOCK (self);
 
-  GST_CALL_PARENT (G_OBJECT_CLASS, constructed, (object));
+  if (G_OBJECT_CLASS (fs_rtp_session_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_rtp_session_parent_class)->constructed(object);
 }
 
 static void
