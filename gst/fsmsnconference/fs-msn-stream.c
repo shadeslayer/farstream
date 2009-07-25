@@ -96,6 +96,9 @@ struct _FsMsnStreamPrivate
   guint session_id;
   guint initial_port;
 
+  gint fd;
+  gint tos;
+
   GMutex *mutex; /* protects the conference */
 };
 
@@ -202,6 +205,7 @@ fs_msn_stream_init (FsMsnStream *self)
 
   self->priv->session = NULL;
   self->priv->participant = NULL;
+  self->priv->fd = -1;
 
   self->priv->direction = FS_DIRECTION_NONE;
 
@@ -605,6 +609,7 @@ _connected (
     goto error;
   }
 
+
   if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
     pad = gst_element_get_static_pad (codecbin, "src");
   else
@@ -628,6 +633,7 @@ _connected (
   }
 
   GST_OBJECT_LOCK (conference);
+  self->priv->fd = fd;
   self->priv->codecbin = gst_object_ref (codecbin);
   GST_OBJECT_UNLOCK (conference);
 
@@ -731,6 +737,7 @@ _connected (
   if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
   {
     GST_OBJECT_LOCK (conference);
+    fs_msn_stream_set_tos_locked (self, self->priv->tos);
     drop = !(self->priv->direction & FS_DIRECTION_SEND);
     GST_OBJECT_UNLOCK (conference);
     g_object_set (send_valve, "drop", drop, NULL);
@@ -755,6 +762,10 @@ _connection_failed (FsMsnConnection *connection, FsMsnStream *self)
 
   if (!conference)
     return;
+
+  GST_OBJECT_LOCK (conference);
+  self->priv->fd = -1;
+  GST_OBJECT_UNLOCK (conference);
 
   gst_element_post_message (GST_ELEMENT (conference),
       gst_message_new_element (GST_OBJECT (conference),
@@ -869,5 +880,23 @@ fs_msn_stream_new (FsMsnSession *session,
   }
 
   return self;
+}
+
+void
+fs_msn_stream_set_tos_locked (FsMsnStream *self, gint tos)
+{
+  self->priv->tos = tos;
+
+  if (self->priv->fd < 0)
+    return;
+
+  if (setsockopt (self->priv->fd, IPPROTO_IP, IP_TOS, &tos, sizeof (tos)) < 0)
+    GST_WARNING ( "could not set socket ToS: %s", g_strerror (errno));
+
+#ifdef IPV6_TCLASS
+  if (setsockopt (self->priv->fd, IPPROTO_IPV6, IPV6_TCLASS,
+          &tos, sizeof (tos)) < 0)
+    GST_WARNING ("could not set TCLASS: %s", g_strerror (errno));
+#endif
 }
 

@@ -313,6 +313,7 @@ FsMsnStreamPrivate
 fs_msn_stream_get_type
 <SUBSECTION Private>
 fs_msn_stream_new
+fs_msn_stream_set_tos_locked
 </SECTION>
 
 

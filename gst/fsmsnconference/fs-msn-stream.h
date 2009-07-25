@@ -81,6 +81,8 @@ FsMsnStream *fs_msn_stream_new (FsMsnSession *session,
     GParameter *parameters,
     GError **error);
 
+void fs_msn_stream_set_tos_locked (FsMsnStream *self, gint tos);
+
 
 G_END_DECLS
 

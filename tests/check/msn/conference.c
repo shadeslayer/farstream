@@ -210,6 +210,7 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   GstBus *bus;
   GParameter param = {NULL, {0}};
   gint n_params = 0;
+  guint tos;
 
   dat->target = target;
   dat->direction = dir;
@@ -240,6 +241,10 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   ts_fail_unless (dat->session != NULL, "Session create error: %s:",
       error ? error->message : "No GError");
   ts_fail_unless (error == NULL);
+
+  g_object_set (dat->session, "tos", 2, NULL);
+  g_object_get (dat->session, "tos", &tos, NULL);
+  ts_fail_unless (tos == 2);
 
   if (dir == FS_DIRECTION_SEND)
   {

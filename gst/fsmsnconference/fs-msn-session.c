@@ -74,7 +74,8 @@ enum
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
   PROP_CODECS_READY,
-  PROP_CONFERENCE
+  PROP_CONFERENCE,
+  PROP_TOS
 };
 
 
@@ -89,6 +90,8 @@ struct _FsMsnSessionPrivate
   GError *construction_error;
 
   GstPad *media_sink_pad;
+
+  guint tos; /* Protected by conf lock */
 
   GMutex *mutex; /* protects the conference */
 };
@@ -161,6 +164,8 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
   g_object_class_override_property (gobject_class,
     PROP_CODECS_READY, "codecs-ready");
+  g_object_class_override_property (gobject_class,
+    PROP_TOS, "tos");
 
   g_object_class_install_property (gobject_class,
       PROP_CONFERENCE,
@@ -312,6 +317,11 @@ fs_msn_session_get_property (GObject *object,
         g_value_take_boxed (value, send_codec);
         break;
       }
+    case PROP_TOS:
+      GST_OBJECT_LOCK (conference);
+      g_value_set_uint (value, self->priv->tos);
+      GST_OBJECT_UNLOCK (conference);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -342,6 +352,13 @@ fs_msn_session_set_property (GObject *object,
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_MSN_CONFERENCE (g_value_dup_object (value));
+      break;
+    case PROP_TOS:
+      GST_OBJECT_LOCK (conference);
+      self->priv->tos = g_value_get_uint (value);
+      if (self->priv->stream)
+        fs_msn_stream_set_tos_locked (self->priv->stream, self->priv->tos);
+      GST_OBJECT_UNLOCK (conference);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -483,9 +500,13 @@ fs_msn_session_new_stream (FsSession *session,
     }
     self->priv->stream = (FsMsnStream *) new_stream;
     g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+
+    if (self->priv->tos)
+      fs_msn_stream_set_tos_locked (self->priv->stream, self->priv->tos);
     GST_OBJECT_UNLOCK (conference);
   }
   gst_object_unref (conference);
+
 
   return new_stream;
 
