@@ -145,8 +145,6 @@ fs_msn_conference_class_init (FsMsnConferenceClass * klass)
 
   g_type_class_add_private (klass, sizeof (FsMsnConferencePrivate));
 
-  parent_class = g_type_class_peek_parent (klass);
-
   baseconf_class->new_session =
     GST_DEBUG_FUNCPTR (fs_msn_conference_new_session);
   baseconf_class->new_participant =

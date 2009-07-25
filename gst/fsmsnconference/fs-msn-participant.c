@@ -48,18 +48,9 @@ enum
 
 G_DEFINE_TYPE(FsMsnParticipant, fs_msn_participant, FS_TYPE_PARTICIPANT);
 
-
-static GObjectClass *parent_class = NULL;
-
-
 static void
 fs_msn_participant_class_init (FsMsnParticipantClass *klass)
 {
-  GObjectClass *gobject_class;
-
-  gobject_class = (GObjectClass *) klass;
-  parent_class = g_type_class_peek_parent (klass);
-
 }
 
 static void
