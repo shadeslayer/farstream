@@ -171,7 +171,6 @@ static void _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
-    gchar *debug_msg,
     gpointer user_data);
 static void _state_changed (FsStreamTransmitter *stream_transmitter,
     guint component,
@@ -629,7 +628,6 @@ _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
-    gchar *debug_msg,
     gpointer user_data)
 {
   FsStream *stream = FS_STREAM (user_data);

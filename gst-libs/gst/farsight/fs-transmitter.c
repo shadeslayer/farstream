@@ -71,7 +71,7 @@ struct _FsTransmitterPrivate
 };
 */
 
-G_DEFINE_ABSTRACT_TYPE(FsTransmitter, fs_transmitter, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE(FsTransmitter, fs_transmitter, GST_TYPE_OBJECT);
 
 #define FS_TRANSMITTER_GET_PRIVATE(o)  \
   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_TRANSMITTER, FsTransmitterPrivate))
