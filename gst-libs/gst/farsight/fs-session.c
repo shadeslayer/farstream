@@ -118,7 +118,7 @@ struct _FsSessionPrivate
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_SESSION, FsSessionPrivate))
 */
 
-G_DEFINE_ABSTRACT_TYPE(FsSession, fs_session, G_TYPE_OBJECT);
+G_DEFINE_ABSTRACT_TYPE(FsSession, fs_session, GST_TYPE_OBJECT);
 
 static void fs_session_get_property (GObject *object,
                                      guint prop_id,

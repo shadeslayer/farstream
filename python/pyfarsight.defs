@@ -372,7 +372,7 @@
 ; object definitions ...
 (define-object Session
   (in-module "Fs")
-  (parent "GObject")
+  (parent "GstObject")
   (c-name "FsSession")
   (gtype-id "FS_TYPE_SESSION")
 )
