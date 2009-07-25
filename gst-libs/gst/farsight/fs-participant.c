@@ -106,7 +106,7 @@ fs_participant_class_init (FsParticipantClass *klass)
         "The cname of the participant",
         "A string of the cname of the participant",
         NULL,
-        G_PARAM_CONSTRUCT | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsParticipant::error:

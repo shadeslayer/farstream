@@ -112,7 +112,7 @@ fs_fake_filter_class_init (FsFakeFilterClass *klass)
           "Sending RTP?",
           "If set to FALSE, it assumes that all RTP has been dropped",
           FALSE,
-          G_PARAM_READWRITE));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 static void

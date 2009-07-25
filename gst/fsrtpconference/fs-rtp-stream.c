@@ -207,7 +207,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
         "The transmitter use by the stream",
         "An FsStreamTransmitter used by this stream",
         FS_TYPE_STREAM_TRANSMITTER,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
 }
 

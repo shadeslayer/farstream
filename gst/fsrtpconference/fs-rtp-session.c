@@ -352,7 +352,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
       "The Conference this stream refers to",
       "This is a convience pointer for the Conference",
       FS_TYPE_RTP_CONFERENCE,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_NO_RTCP_TIMEOUT,
@@ -364,7 +364,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
           " attach it immediataly to the FsStream and prohibit the creation"
           " of a second FsStream",
           -1, G_MAXINT, DEFAULT_NO_RTCP_TIMEOUT,
-          G_PARAM_READWRITE));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_SSRC,
@@ -372,7 +372,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
           "The SSRC of the sent data",
           "This is the current SSRC used to send data"
           " (defaults to a random value)",
-          0, G_MAXUINT, 0, G_PARAM_READWRITE));
+          0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gobject_class->dispose = fs_rtp_session_dispose;
   gobject_class->finalize = fs_rtp_session_finalize;

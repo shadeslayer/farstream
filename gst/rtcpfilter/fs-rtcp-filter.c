@@ -130,7 +130,7 @@ fs_rtcp_filter_class_init (FsRtcpFilterClass *klass)
           "Sending RTP?",
           "If set to FALSE, it assumes that all RTP has been dropped",
           FALSE,
-          G_PARAM_READWRITE));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 static void

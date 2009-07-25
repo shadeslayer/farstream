@@ -122,7 +122,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
         "Whether to send from this transmitter",
         "If set to FALSE, the transmitter will stop sending to this person",
         TRUE,
-        G_PARAM_READWRITE));
+        G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsStreamTransmitter:preferred-local-candidate:
@@ -137,7 +137,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
         "The preferred candidates",
         "A GList of FsCandidates",
         FS_TYPE_CANDIDATE_LIST,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsStreamTransmitter:associate-on-source
@@ -153,7 +153,7 @@ fs_stream_transmitter_class_init (FsStreamTransmitterClass *klass)
         "Associate incoming data based on the source address",
         "Whether to associate incoming data stream based on the source address",
         TRUE,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsStreamTransmitter::error:

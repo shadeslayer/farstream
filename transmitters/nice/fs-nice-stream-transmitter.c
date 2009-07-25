@@ -245,7 +245,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "STUN server",
           "The STUN server used to obtain server-reflexive candidates",
           NULL,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_STUN_PORT,
       g_param_spec_uint (
@@ -254,7 +254,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The STUN server used to obtain server-reflexive candidates",
           1, 65536,
           3478,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_CONTROLLING_MODE,
       g_param_spec_boolean (
@@ -262,7 +262,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "ICE controlling mode",
           "Whether the agent is in controlling mode",
           TRUE,
-          G_PARAM_READWRITE | G_PARAM_CONSTRUCT));
+          G_PARAM_READWRITE | G_PARAM_CONSTRUCT | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_STREAM_ID,
       g_param_spec_uint (
@@ -271,7 +271,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The id of the stream according to libnice",
           0, G_MAXINT,
           0,
-          G_PARAM_READABLE));
+          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_COMPATIBILITY_MODE,
       g_param_spec_uint (
@@ -280,7 +280,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "The id of the stream according to libnice",
           NICE_COMPATIBILITY_DRAFT19, NICE_COMPATIBILITY_LAST,
           NICE_COMPATIBILITY_DRAFT19,
-          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsNiceStreamTransmitter:relay-info:
@@ -335,7 +335,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "ip/port/username/password/relay-type/component of the TURN servers"
           " in a GValueArray of GstStructures",
           NULL,
-          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY));
+          G_PARAM_WRITABLE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_DEBUG,
       g_param_spec_boolean (
@@ -343,7 +343,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "Enable debug messages",
           "Whether the agent should enable libnice and stun debug messages",
           FALSE,
-          G_PARAM_WRITABLE));
+          G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
 }
 

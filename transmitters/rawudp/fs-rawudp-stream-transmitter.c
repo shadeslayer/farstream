@@ -265,7 +265,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "The IP address of the STUN server",
           "The IPv4 address of the STUN server as a x.x.x.x string",
           NULL,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_STUN_PORT,
@@ -273,7 +273,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "The port of the STUN server",
           "The IPv4 UDP port of the STUN server as a ",
           1, 65535, 3478,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_STUN_TIMEOUT,
@@ -281,7 +281,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "The timeout for the STUN reply",
           "How long to wait for for the STUN reply (in seconds) before giving up",
           1, MAX_STUN_TIMEOUT, DEFAULT_STUN_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_MAPPING,
@@ -295,7 +295,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "Tries to map ports using UPnP if enabled",
           FALSE,
 #endif
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_DISCOVERY,
@@ -310,7 +310,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           FALSE,
 #endif
 
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_MAPPING_TIMEOUT,
@@ -319,7 +319,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "The UPnP port mappings expire after this period if the app has"
           " crashed (in seconds)",
           0, G_MAXUINT32, DEFAULT_UPNP_MAPPING_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_DISCOVERY_TIMEOUT,
@@ -328,7 +328,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "After this period, UPnP discovery is considered to have failed"
           " and the local IP is returned",
           0, G_MAXUINT32, DEFAULT_UPNP_DISCOVERY_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_REQUEST_TIMEOUT,
@@ -336,7 +336,7 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           "Timeout after which UPnP requests timeout",
           "After this delay, UPnP requests fails",
           1, 600, DEFAULT_UPNP_REQUEST_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_stream_transmitter_finalize;

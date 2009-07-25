@@ -188,7 +188,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The FsRtpConference this substream stream refers to",
       "This is a convience pointer for the Conference",
       FS_TYPE_RTP_CONFERENCE,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
     PROP_SESSION,
@@ -196,7 +196,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The FsRtpSession this substream stream refers to",
       "This is a convience pointer for the parent FsRtpSession",
       FS_TYPE_RTP_SESSION,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -205,7 +205,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The FsRtpStream this substream stream refers to",
       "This is a convience pointer for the parent FsRtpStream",
       FS_TYPE_RTP_STREAM,
-      G_PARAM_READWRITE));
+      G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -214,7 +214,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The GstPad this substrea is linked to",
       "This is the pad on which this substream will attach itself",
       GST_TYPE_PAD,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -223,7 +223,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The ssrc this stream is used for",
       "This is the SSRC from the pad",
       0, G_MAXUINT32, 0,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
     PROP_PT,
@@ -231,7 +231,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The payload type this stream is used for",
       "This is the payload type from the pad",
       0, 128, 0,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
     PROP_CODEC,
@@ -239,7 +239,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       "The FsCodec this substream is received",
       "The FsCodec currently received from this substream",
       FS_TYPE_CODEC,
-      G_PARAM_READABLE));
+      G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_RECEIVING,
@@ -247,7 +247,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
           "Whether this substream will receive any data",
           "A toggle that prevents the substream from outputting any data",
           TRUE,
-          G_PARAM_READWRITE));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_OUTPUT_GHOSTPAD,
@@ -256,7 +256,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
           "The GstPad which is on the outside of the fsrtpconference element"
           " for this substream",
           GST_TYPE_PAD,
-          G_PARAM_READABLE));
+          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_NO_RTCP_TIMEOUT,
@@ -266,7 +266,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
           " is attached the FsStream, this only works if there is only one"
           " FsStream. <=0 will do nothing",
           -1, G_MAXINT, DEFAULT_NO_RTCP_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 
   /**

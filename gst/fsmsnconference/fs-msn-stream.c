@@ -176,7 +176,7 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
           "The Conference this stream refers to",
           "This is a conveniance pointer for the Conference",
           FS_TYPE_MSN_CONFERENCE,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
   g_object_class_install_property (gobject_class,
       PROP_SESSION_ID,
       g_param_spec_uint ("session-id",

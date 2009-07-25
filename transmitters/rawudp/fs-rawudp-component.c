@@ -289,7 +289,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The component id",
           "The id of this component",
           1, G_MAXUINT, 1,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -298,7 +298,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "Whether to send from this transmitter",
           "If set to FALSE, the transmitter will stop sending to this person",
           TRUE,
-          G_PARAM_READWRITE));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_IP,
@@ -306,7 +306,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The local IP of this component",
           "The IPv4 address as a x.x.x.x string",
           NULL,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_PORT,
@@ -314,7 +314,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The local port requested for this component",
           "The IPv4 UDP port",
           1, 65535, 7078,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -323,7 +323,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The IP address of the STUN server",
           "The IPv4 address of the STUN server as a x.x.x.x string",
           NULL,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_STUN_PORT,
@@ -331,7 +331,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The port of the STUN server",
           "The IPv4 UDP port of the STUN server as a ",
           1, 65535, 3478,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_STUN_TIMEOUT,
@@ -339,7 +339,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The timeout for the STUN reply",
           "How long to wait for for the STUN reply (in seconds) before giving up",
           1,  MAX_STUN_TIMEOUT, DEFAULT_STUN_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -348,7 +348,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The transmitter object",
           "The rawudp transmitter object",
           FS_TYPE_RAWUDP_TRANSMITTER,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
 
   g_object_class_install_property (gobject_class,
@@ -357,7 +357,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "A Forced candidate",
           "This candidate is built from a user preference",
           FS_TYPE_CANDIDATE,
-          G_PARAM_WRITABLE));
+          G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_ASSOCIATE_ON_SOURCE,
@@ -366,7 +366,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "Whether to associate incoming data stream based on the"
           " source address",
           TRUE,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
 #ifdef HAVE_GUPNP
     g_object_class_install_property (gobject_class,
@@ -375,7 +375,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "Try to map ports using UPnP",
           "Tries to map ports using UPnP if enabled",
           TRUE,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_DISCOVERY,
@@ -383,7 +383,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "Try to use UPnP to find the external IP address",
           "Tries to discovery the external IP with UPnP if stun fails",
           TRUE,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_MAPPING_TIMEOUT,
@@ -392,7 +392,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The UPnP port mappings expire after this period if the app has"
           " crashed (in seconds)",
           0, G_MAXUINT32, DEFAULT_UPNP_MAPPING_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_DISCOVERY_TIMEOUT,
@@ -401,7 +401,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "After this period, UPnP discovery is considered to have failed"
           " and the local IP is returned",
           0, G_MAXUINT32, DEFAULT_UPNP_DISCOVERY_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_UPNP_IGD,
@@ -409,7 +409,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
           "The GUPnPSimpleIgdThread object",
           "This is the GUPnP IGD abstraction object",
           GUPNP_TYPE_SIMPLE_IGD_THREAD,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE));
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 #endif
 
    /**

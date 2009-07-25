@@ -122,7 +122,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         "The network source",
         "A source GstElement to be used by a FsSession",
         GST_TYPE_ELEMENT,
-        G_PARAM_READABLE));
+        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsTransmitter:gst-sink:
@@ -141,7 +141,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         "The network source",
         "A source GstElement to be used by a FsSession",
         GST_TYPE_ELEMENT,
-        G_PARAM_READABLE));
+        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsTransmitter:components:
@@ -154,7 +154,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
         "Number of componnets",
         "The number of components to create",
         1, 255, 1,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsTransmitter::error:

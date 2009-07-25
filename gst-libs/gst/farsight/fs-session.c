@@ -153,7 +153,7 @@ fs_session_class_init (FsSessionClass *klass)
         "An enum that specifies the media type of the session",
         FS_TYPE_MEDIA_TYPE,
         FS_MEDIA_TYPE_AUDIO,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:id:
@@ -168,7 +168,7 @@ fs_session_class_init (FsSessionClass *klass)
         "The ID of the session",
         "This ID is used on pad related to this session",
         0, G_MAXUINT, 0,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE));
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:sink-pad:
@@ -183,7 +183,7 @@ fs_session_class_init (FsSessionClass *klass)
         "A gstreamer sink pad for this session",
         "A pad used for sending data on this session",
         GST_TYPE_PAD,
-        G_PARAM_READABLE));
+        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:codec-preferences:
@@ -206,7 +206,7 @@ fs_session_class_init (FsSessionClass *klass)
         "A GList of FsCodecs that allows user to set his codec options and"
         " priorities",
         FS_TYPE_CODEC_LIST,
-        G_PARAM_READABLE));
+        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:codecs:
@@ -235,7 +235,7 @@ fs_session_class_init (FsSessionClass *klass)
         "List of codecs",
         "A GList of FsCodecs indicating the codecs for this session",
         FS_TYPE_CODEC_LIST,
-        G_PARAM_READABLE));
+        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:codecs-without-config:
@@ -265,7 +265,7 @@ fs_session_class_init (FsSessionClass *klass)
           "A GList of FsCodecs indicating the codecs for this session without "
           "any configuration data",
           FS_TYPE_CODEC_LIST,
-          G_PARAM_READABLE));
+          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:current-send-codec:
@@ -283,7 +283,7 @@ fs_session_class_init (FsSessionClass *klass)
         "Current active send codec",
         "An FsCodec indicating the currently active send codec",
         FS_TYPE_CODEC,
-        G_PARAM_READABLE));
+        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:codecs-ready
@@ -303,7 +303,7 @@ fs_session_class_init (FsSessionClass *klass)
           "Indicates if the codecs are ready or if their configuration is"
           " still being discovered",
           TRUE,
-          G_PARAM_READABLE));
+          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession::error:

@@ -251,37 +251,37 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
   g_object_class_install_property (gobject_class, PROP_SDES_CNAME,
       g_param_spec_string ("sdes-cname", "Canonical name",
           "The CNAME for the RTP sessions",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SDES_NAME,
       g_param_spec_string ("sdes-name", "SDES NAME",
           "The NAME to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SDES_EMAIL,
       g_param_spec_string ("sdes-email", "SDES EMAIL",
           "The EMAIL to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SDES_PHONE,
       g_param_spec_string ("sdes-phone", "SDES PHONE",
           "The PHONE to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SDES_LOCATION,
       g_param_spec_string ("sdes-location", "SDES LOCATION",
           "The LOCATION to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SDES_TOOL,
       g_param_spec_string ("sdes-tool", "SDES TOOL",
           "The TOOL to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_SDES_NOTE,
       g_param_spec_string ("sdes-note", "SDES NOTE",
           "The NOTE to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE));
+          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 static void
