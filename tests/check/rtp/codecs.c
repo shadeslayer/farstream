@@ -482,8 +482,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  p = fs_conference_new_participant (FS_CONFERENCE (dat->conference),
-      "aa", NULL);
+  p = fs_conference_new_participant (FS_CONFERENCE (dat->conference),  NULL);
   fail_if (p == NULL, "Could not add participant");
 
   s = fs_session_new_stream (dat->session, p,
@@ -724,7 +723,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   /* Add a second stream */
 
   p2 = fs_conference_new_participant (FS_CONFERENCE (cd->dat->conference),
-      "name2", &error);
+      &error);
   if (!p2)
     fail ("Could not add second participant to conference %s", error->message);
 
@@ -824,7 +823,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 
 
   cd.participant = fs_conference_new_participant (
-      FS_CONFERENCE (cd.dat->conference), "name", NULL);
+      FS_CONFERENCE (cd.dat->conference), NULL);
 
   fail_if (cd.participant == NULL, "Could not add participant to conference");
 
@@ -1174,7 +1173,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
   fs_codec_list_destroy (codecs);
 
   participant = fs_conference_new_participant (
-      FS_CONFERENCE (dat->conference), "name", NULL);
+      FS_CONFERENCE (dat->conference),  NULL);
   fail_if (participant == NULL, "Could not add participant to conference");
 
   stream = fs_session_new_stream (dat->session, participant,
@@ -1271,7 +1270,7 @@ setup_codec_tests (struct SimpleTestConference **dat,
       mediatype);
 
   *participant = fs_conference_new_participant (
-      FS_CONFERENCE ((*dat)->conference), "name", NULL);
+      FS_CONFERENCE ((*dat)->conference), NULL);
   fail_if (participant == NULL, "Could not add participant to conference");
 
   bus = gst_pipeline_get_bus (GST_PIPELINE ((*dat)->pipeline));
@@ -2269,7 +2268,7 @@ GST_START_TEST (test_rtpcodecs_nego_hdrext)
       FS_MEDIA_TYPE_AUDIO);
 
   participant = fs_conference_new_participant (
-      FS_CONFERENCE (dat->conference), "name", NULL);
+      FS_CONFERENCE (dat->conference), NULL);
   fail_if (participant == NULL, "Could not add participant to conference");
 
   bus = gst_pipeline_get_bus (GST_PIPELINE (dat->pipeline));

@@ -10,7 +10,7 @@ conference.set_property ("sdes-cname", sys.argv[1] + "@1.2.3.4")
 pipeline.add (conference)
 
 session = conference.new_session (farsight.MEDIA_TYPE_VIDEO)
-participant = conference.new_participant (sys.argv[2]+"@1.2.3.4")
+participant = conference.new_participant ()
 stream = session.new_stream (participant, farsight.DIRECTION_BOTH, "multicast")
 
 stream.set_remote_codecs([farsight.Codec(96, "H263-1998",

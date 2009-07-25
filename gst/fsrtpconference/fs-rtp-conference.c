@@ -654,7 +654,6 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);
   FsParticipant *new_participant = NULL;
-  GList *item = NULL;
 
   if (!self->gstrtpbin)
   {

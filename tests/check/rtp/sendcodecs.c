@@ -290,7 +290,7 @@ one_way (GstElement *recv_pipeline, gint port)
   g_idle_add (_start_pipeline, dat);
 
   participant = fs_conference_new_participant (
-      FS_CONFERENCE (dat->conference), "blob@blob.com", &error);
+      FS_CONFERENCE (dat->conference), &error);
   if (error)
     ts_fail ("Error while creating new participant (%d): %s",
         error->code, error->message);

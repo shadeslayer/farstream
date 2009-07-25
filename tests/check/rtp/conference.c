@@ -925,7 +925,6 @@ GST_START_TEST (test_rtpconference_errors)
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
   participant = fs_conference_new_participant (FS_CONFERENCE (dat->conference),
-      "bob2@127.0.0.1",
       NULL);
   ts_fail_if (participant == NULL, "Could not create participant");
 
@@ -1233,7 +1232,7 @@ GST_START_TEST (test_rtpconference_dispose)
   session = fs_conference_new_session (conf, FS_MEDIA_TYPE_AUDIO, &error);
   fail_if (session == NULL || error != NULL);
 
-  part = fs_conference_new_participant (conf, "name@1.2.3.4", &error);
+  part = fs_conference_new_participant (conf, &error);
   fail_if (part == NULL || error != NULL);
 
   stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, "rawudp",

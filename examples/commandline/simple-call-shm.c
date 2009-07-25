@@ -340,8 +340,7 @@ int main (int argc, char **argv)
   conf = gst_element_factory_make ("fsrtpconference", NULL);
   g_assert (conf);
 
-  part = fs_conference_new_participant (FS_CONFERENCE (conf), "test@ignore",
-      &error);
+  part = fs_conference_new_participant (FS_CONFERENCE (conf), &error);
   print_error (error);
   g_assert (part);
 

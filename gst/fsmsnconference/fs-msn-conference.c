@@ -99,7 +99,6 @@ static FsSession *fs_msn_conference_new_session (FsBaseConference *conf,
     GError **error);
 
 static FsParticipant *fs_msn_conference_new_participant (FsBaseConference *conf,
-    const gchar *cname,
     GError **error);
 
 static void _remove_session (gpointer user_data,

@@ -234,7 +234,7 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   ts_fail_unless (gst_bin_add (GST_BIN (dat->pipeline),
           GST_ELEMENT (dat->conf)));
 
-  dat->part = fs_conference_new_participant (dat->conf, "", &error);
+  dat->part = fs_conference_new_participant (dat->conf, &error);
   ts_fail_unless (error == NULL, "Error: %s", error ? error->message: "");
   ts_fail_unless (dat->part != NULL);
 
@@ -366,7 +366,7 @@ GST_START_TEST (test_msnconference_error)
   GError *error = NULL;
 
   ts_fail_unless (
-      fs_conference_new_participant (dat->conf, "", &error) == NULL);
+      fs_conference_new_participant (dat->conf, &error) == NULL);
   ts_fail_unless (error->domain == FS_ERROR &&
       error->code == FS_ERROR_ALREADY_EXISTS);
   g_clear_error (&error);

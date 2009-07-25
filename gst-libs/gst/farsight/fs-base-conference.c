@@ -75,7 +75,6 @@ static FsSession *fs_base_conference_new_session (FsConference *conf,
                                                   FsMediaType media_type,
                                                   GError **error);
 static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
-    const gchar *cname,
     GError **error);
 
 void fs_base_conference_error (GObject *signal_src, GObject *error_src,
@@ -181,7 +180,6 @@ fs_base_conference_error (GObject *signal_src, GObject *error_src,
 
 static FsParticipant *
 fs_base_conference_new_participant (FsConference *conf,
-    const gchar *cname,
     GError **error)
 {
   FsBaseConference *baseconf;
@@ -193,5 +191,5 @@ fs_base_conference_new_participant (FsConference *conf,
   klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
   g_return_val_if_fail (klass->new_participant, NULL);
 
-  return klass->new_participant (baseconf, cname, error);
+  return klass->new_participant (baseconf, error);
 }
