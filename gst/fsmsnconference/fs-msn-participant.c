@@ -58,7 +58,7 @@ fs_msn_participant_init (FsMsnParticipant *self)
 {
 }
 
-FsMsnParticipant *fs_msn_participant_new (const gchar *cname)
+FsMsnParticipant *fs_msn_participant_new (void)
 {
-  return g_object_new (FS_TYPE_MSN_PARTICIPANT, "cname", cname, NULL);
+  return g_object_new (FS_TYPE_MSN_PARTICIPANT, NULL);
 }

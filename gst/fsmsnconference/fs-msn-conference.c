@@ -250,7 +250,6 @@ fs_msn_conference_new_session (FsBaseConference *conf,
 
 static FsParticipant *
 fs_msn_conference_new_participant (FsBaseConference *conf,
-                                   const gchar *cname,
                                    GError **error)
 {
   FsMsnConference *self = FS_MSN_CONFERENCE (conf);
@@ -274,7 +273,7 @@ fs_msn_conference_new_participant (FsBaseConference *conf,
 
   GST_OBJECT_UNLOCK (self);
 
-  new_participant = fs_msn_participant_new (cname);
+  new_participant = fs_msn_participant_new ();
 
   if (new_participant)
   {

@@ -134,7 +134,6 @@ static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
                                                  FsMediaType media_type,
                                                  GError **error);
 static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
-    const gchar *cname,
     GError **error);
 
 static FsRtpSession *fs_rtp_conference_get_session_by_id_locked (
@@ -651,7 +650,6 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
 
 static FsParticipant *
 fs_rtp_conference_new_participant (FsBaseConference *conf,
-    const gchar *cname,
     GError **error)
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);
@@ -665,34 +663,7 @@ fs_rtp_conference_new_participant (FsBaseConference *conf,
     return NULL;
   }
 
-  if (cname)
-  {
-    GST_OBJECT_LOCK (self);
-    for (item = g_list_first (self->priv->participants);
-         item;
-         item = g_list_next (item))
-    {
-      gchar *lcname;
-
-      g_object_get (item->data, "cname", &lcname, NULL);
-      if (lcname && !strcmp (lcname, cname))
-      {
-        g_free (lcname);
-        break;
-      }
-      g_free (lcname);
-    }
-    GST_OBJECT_UNLOCK (self);
-
-    if (item)
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "There is already a participant with this cname");
-      return NULL;
-    }
-  }
-
-  new_participant = FS_PARTICIPANT_CAST (fs_rtp_participant_new (cname));
+  new_participant = FS_PARTICIPANT_CAST (fs_rtp_participant_new ());
 
 
   GST_OBJECT_LOCK (self);

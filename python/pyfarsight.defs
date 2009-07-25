@@ -323,7 +323,6 @@
     '("not-implemented" "FS_ERROR_NOT_IMPLEMENTED")
     '("negotiation-failed" "FS_ERROR_NEGOTIATION_FAILED")
     '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
-    '("unknown-cname" "FS_ERROR_UNKNOWN_CNAME")
     '("no-codecs" "FS_ERROR_NO_CODECS")
     '("no-codecs-left" "FS_ERROR_NO_CODECS_LEFT")
     '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
@@ -364,7 +363,6 @@
   (c-name "fs_conference_new_participant")
   (return-type "FsParticipant*")
   (parameters
-    '("const-gchar*" "cname")
     '("GError**" "error")
   )
 )

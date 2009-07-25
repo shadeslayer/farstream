@@ -74,7 +74,7 @@ struct _FsRtpParticipant
 
 GType fs_rtp_participant_get_type (void);
 
-FsRtpParticipant *fs_rtp_participant_new (const gchar *cname);
+FsRtpParticipant *fs_rtp_participant_new (void);
 
 G_END_DECLS
 

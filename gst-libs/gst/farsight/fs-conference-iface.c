@@ -132,7 +132,6 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
 /**
  * fs_conference_new_participant
  * @conference: #FsConference interface of a #GstElement
- * @cname: The cname of the participant
  * @error: location of a #GError, or %NULL if no error occured
  *
  * Create a new Farsight Participant for the type of the given conference.
@@ -142,8 +141,7 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * done with it.
  */
 FsParticipant *
-fs_conference_new_participant (FsConference *conference, const gchar *cname,
-    GError **error)
+fs_conference_new_participant (FsConference *conference, GError **error)
 {
   FsConferenceClass *iface;
 
@@ -152,5 +150,5 @@ fs_conference_new_participant (FsConference *conference, const gchar *cname,
   g_return_val_if_fail (iface, NULL);
   g_return_val_if_fail (iface->new_participant, NULL);
 
-  return iface->new_participant (conference, cname, error);
+  return iface->new_participant (conference, error);
 }

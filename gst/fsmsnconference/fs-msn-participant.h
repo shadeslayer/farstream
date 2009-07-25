@@ -71,7 +71,7 @@ struct _FsMsnParticipant
 
 GType fs_msn_participant_get_type (void);
 
-FsMsnParticipant *fs_msn_participant_new (const gchar *cname);
+FsMsnParticipant *fs_msn_participant_new (void);
 
 G_END_DECLS
 

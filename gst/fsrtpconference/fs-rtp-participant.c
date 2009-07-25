@@ -74,7 +74,7 @@ fs_rtp_participant_init (FsRtpParticipant *self)
   // self->priv = FS_RTP_PARTICIPANT_GET_PRIVATE (self);
 }
 
-FsRtpParticipant *fs_rtp_participant_new (const gchar *cname)
+FsRtpParticipant *fs_rtp_participant_new (void)
 {
-  return g_object_new (FS_TYPE_RTP_PARTICIPANT, "cname", cname, NULL);
+  return g_object_new (FS_TYPE_RTP_PARTICIPANT, NULL);
 }
