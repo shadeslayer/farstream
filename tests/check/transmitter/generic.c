@@ -34,10 +34,10 @@
 
 static void
 _transmitter_error (FsTransmitter *transmitter, gint errorno, gchar *error_msg,
-  gchar *debug_msg, gpointer user_data)
+    gpointer user_data)
 {
   ts_fail ("Transmitter(%x) error(%d) msg:%s debug:%s", transmitter, errorno,
-    error_msg, debug_msg);
+    error_msg);
 }
 
 void

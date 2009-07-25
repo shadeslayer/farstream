@@ -113,8 +113,7 @@ GType fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter);
 
 void fs_transmitter_emit_error (FsTransmitter *transmitter,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg);
+    const gchar *error_msg);
 
 char **fs_transmitter_list_available (void);
 

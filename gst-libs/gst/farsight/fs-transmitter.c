@@ -170,7 +170,6 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
    * @self: #FsTransmitter that emitted the signal
    * @errorno: The number of the error
    * @error_msg: Error message to be displayed to user
-   * @debug_msg: Debugging error message
    *
    * This signal is emitted in any error condition
    *
@@ -182,7 +181,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
       NULL,
       NULL,
       _fs_marshal_VOID__ENUM_STRING_STRING,
-      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
+      G_TYPE_NONE, 2, FS_TYPE_ERROR, G_TYPE_STRING);
 
   /**
    * FsTransmitter::get-recvonly-filter
@@ -354,7 +353,6 @@ fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter)
  * @transmitter: #FsTransmitter on which to emit the error signal
  * @error_no: The number of the error
  * @error_msg: Error message to be displayed to user
- * @debug_msg: Debugging error message
  *
  * This function emit the "error" signal on a #FsTransmitter, it should
  * only be called by subclasses.
@@ -362,11 +360,10 @@ fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter)
 void
 fs_transmitter_emit_error (FsTransmitter *transmitter,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg)
+    const gchar *error_msg)
 {
   g_signal_emit (transmitter, signals[ERROR_SIGNAL], 0, error_no,
-      error_msg, debug_msg);
+      error_msg);
 }
 
 /**

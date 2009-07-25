@@ -2162,12 +2162,11 @@ _transmitter_error (
     FsStreamTransmitter *stream_transmitter,
     gint errorno,
     gchar *error_msg,
-    gchar *debug_msg,
     gpointer user_data)
 {
   FsSession *session = FS_SESSION (user_data);
 
-  fs_session_emit_error (session, errorno, error_msg, debug_msg);
+  fs_session_emit_error (session, errorno, error_msg, NULL);
 }
 
 static GstElement *
