@@ -1386,17 +1386,23 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 
  error:
   {
-    gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
-        " ssrc %u and payload type %d to the state NULL", substream->ssrc,
-        substream->pt);
-
     if (substream->priv->stream)
+    {
+      g_prefix_error (&error, "Could not add the new recv codec bin for"
+          " ssrc %u and payload type %d to the state NULL", substream->ssrc,
+          substream->pt);
       fs_stream_emit_error (FS_STREAM (substream->priv->stream),
-          FS_ERROR_CONSTRUCTION, str, error->message);
+          FS_ERROR_CONSTRUCTION, error->message);
+    }
     else
+    {
+      gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
+          " ssrc %u and payload type %d to the state NULL", substream->ssrc,
+          substream->pt);
       fs_session_emit_error (FS_SESSION (substream->priv->session),
           FS_ERROR_CONSTRUCTION, str, error->message);
-    g_free (str);
+      g_free (str);
+    }
   }
 
   goto out;

@@ -396,12 +396,12 @@ fs_session_set_property (GObject *object,
 static void
 fs_session_error_forward (GObject *signal_src,
                           FsError error_no, gchar *error_msg,
-                          gchar *debug_msg, FsSession *session)
+                          FsSession *session)
 {
   /* We just need to forward the error signal including a ref to the stream
    * object (signal_src) */
   g_signal_emit (session, signals[ERROR_SIGNAL], 0, signal_src, error_no,
-      error_msg, debug_msg);
+      error_msg, NULL);
 }
 
 /**

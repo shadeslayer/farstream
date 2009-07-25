@@ -573,8 +573,9 @@ _connected (
 
   if (!codecbin)
   {
+    g_prefix_error (&error, "Error creating codecbin: ");
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-        "Could not build codecbin", error->message);
+        error->message);
     g_clear_error (&error);
     goto error;
   }
@@ -597,7 +598,6 @@ _connected (
   if (!fdelem)
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-        "Could not get fd element",
         "Could not get fd element");
     goto error;
   }
@@ -609,7 +609,7 @@ _connected (
   if (fd != checkfd)
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_INTERNAL,
-        "Could not set file descriptor", "Could not set fd");
+        "Could not set file descriptor");
     goto error;
   }
 
@@ -622,7 +622,6 @@ _connected (
   if (!pad)
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-        "Could not get codecbin pad",
         "Could not get codecbin pad");
     goto error;
   }
@@ -631,7 +630,6 @@ _connected (
   {
     gst_object_unref (pad);
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-        "Could not add codecbin to the conference",
         "Could not add codecbin to the conference");
     goto error;
   }
@@ -657,7 +655,6 @@ _connected (
     if (!gst_element_add_pad (GST_ELEMENT (conference), src_pad))
     {
       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-          "Could not add src_1_1_1 pad",
           "Could not add src_1_1_1 pad");
       gst_object_unref (src_pad);
       goto error;
@@ -668,7 +665,6 @@ _connected (
     if (!recv_valve)
     {
        fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-           "Could not get recv_valve",
            "Could not get recv_valve");
        gst_object_unref (src_pad);
        goto error;
@@ -701,7 +697,6 @@ _connected (
     if (!send_valve)
     {
       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_DISPOSED,
-          "Session was disposed",
           "Session was disposed");
       goto error;
     }
@@ -712,7 +707,6 @@ _connected (
     {
       gst_object_unref (pad);
       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-          "Could not get valve sink pad",
           "Could not get valve sink pad");
       goto error;
     }
@@ -722,7 +716,6 @@ _connected (
       gst_object_unref (valvepad);
       gst_object_unref (pad);
       fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-          "Could not link valve to codec bin",
           "Could not link valve to codec bin");
       goto error;
     }
@@ -733,7 +726,6 @@ _connected (
   if (!gst_element_sync_state_with_parent (codecbin))
   {
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONSTRUCTION,
-        "Could not start codec bin",
         "Could not start codec bin");
     goto error;
   }
@@ -780,7 +772,6 @@ _connection_failed (FsMsnConnection *connection, FsMsnStream *self)
               NULL)));
 
   fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONNECTION_FAILED,
-      "Could not establish streaming connection",
       "Could not establish streaming connection");
 
   gst_object_unref (conference);

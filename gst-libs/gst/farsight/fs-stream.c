@@ -289,7 +289,6 @@ fs_stream_class_init (FsStreamClass *klass)
    * @self: #FsStream that emitted the signal
    * @errorno: The number of the error
    * @error_msg: Error message to be displayed to user
-   * @debug_msg: Debugging error message
    *
    * This signal is emitted in any error condition
    *
@@ -300,8 +299,8 @@ fs_stream_class_init (FsStreamClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__ENUM_STRING_STRING,
-      G_TYPE_NONE, 3, FS_TYPE_ERROR, G_TYPE_STRING, G_TYPE_STRING);
+      _fs_marshal_VOID__ENUM_STRING,
+      G_TYPE_NONE, 2, FS_TYPE_ERROR, G_TYPE_STRING);
 
   /**
    * FsStream::src-pad-added:
@@ -519,7 +518,6 @@ fs_stream_add_id (FsStream *stream,
  * @stream: #FsStream on which to emit the error signal
  * @error_no: The number of the error
  * @error_msg: Error message to be displayed to user
- * @debug_msg: Debugging error message
  *
  * This function emits the #FsStream::error" signal, it should only be
  * called by subclasses.
@@ -527,11 +525,9 @@ fs_stream_add_id (FsStream *stream,
 void
 fs_stream_emit_error (FsStream *stream,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg)
+    const gchar *error_msg)
 {
-  g_signal_emit (stream, signals[ERROR_SIGNAL], 0, error_no, error_msg,
-      debug_msg);
+  g_signal_emit (stream, signals[ERROR_SIGNAL], 0, error_no, error_msg);
 }
 
 

@@ -164,8 +164,7 @@ void fs_stream_add_id (FsStream *stream, guint id);
 
 void fs_stream_emit_error (FsStream *stream,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg);
+    const gchar *error_msg);
 
 void fs_stream_emit_src_pad_added (FsStream *stream,
     GstPad *pad,

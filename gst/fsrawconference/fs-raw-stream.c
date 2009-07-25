@@ -632,7 +632,7 @@ _transmitter_error (
 {
   FsStream *stream = FS_STREAM (user_data);
 
-  fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
+  fs_stream_emit_error (stream, errorno, error_msg);
 }
 
 static void
@@ -659,7 +659,7 @@ _state_changed (FsStreamTransmitter *stream_transmitter,
 
   if (component == 1 && state == FS_STREAM_STATE_FAILED)
     fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONNECTION_FAILED,
-        "Could not establish connection", "Could not establish connection");
+        "Could not establish connection");
 }
 
 /**
