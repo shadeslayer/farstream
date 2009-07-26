@@ -143,8 +143,8 @@ fs_base_conference_new_session (FsConference *conf,
     return NULL;
 
   /* Let's catch all session errors and send them over the GstBus */
-  g_signal_connect (new_session, "error",
-      G_CALLBACK (fs_base_conference_error), base_conf);
+  g_signal_connect_object (new_session, "error",
+      G_CALLBACK (fs_base_conference_error), base_conf, 0);
 
   return new_session;
 }

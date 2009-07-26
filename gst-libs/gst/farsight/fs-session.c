@@ -420,8 +420,8 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
     return NULL;
 
   /* Let's catch all stream errors and forward them */
-  g_signal_connect (new_stream, "error",
-        G_CALLBACK (fs_session_error_forward), session);
+  g_signal_connect_object (new_stream, "error",
+      G_CALLBACK (fs_session_error_forward), session, 0);
 
   return new_stream;
 }
