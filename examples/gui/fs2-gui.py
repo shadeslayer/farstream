@@ -507,7 +507,10 @@ class FsUIStream:
         self.candidates.append(candidate)
     def candidates_done(self):
         "Callback for the network object."
-        self.fsstream.set_remote_candidates(self.candidates)
+        if TRANSMITTER == "rawudp":
+            self.fsstream.force_remote_candidates(self.candidates)
+        else:
+            self.fsstream.set_remote_candidates(self.candidates)
         self.candidates = []
     def codecs(self, codecs):
         "Callback for the network object. Set the codecs"

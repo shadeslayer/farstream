@@ -168,7 +168,7 @@ static void fs_rawudp_stream_transmitter_set_property (GObject *object,
 static void
 fs_rawudp_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter);
 
-static gboolean fs_rawudp_stream_transmitter_set_remote_candidates (
+static gboolean fs_rawudp_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
     GList *candidates,
     GError **error);
@@ -244,8 +244,8 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
   gobject_class->set_property = fs_rawudp_stream_transmitter_set_property;
   gobject_class->get_property = fs_rawudp_stream_transmitter_get_property;
 
-  streamtransmitterclass->set_remote_candidates =
-    fs_rawudp_stream_transmitter_set_remote_candidates;
+  streamtransmitterclass->force_remote_candidates =
+    fs_rawudp_stream_transmitter_force_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
     fs_rawudp_stream_transmitter_gather_local_candidates;
   streamtransmitterclass->stop = fs_rawudp_stream_transmitter_stop;
@@ -711,12 +711,8 @@ fs_rawudp_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
 }
 
 
-/**
- * fs_rawudp_stream_transmitter_set_remote_candidates
- */
-
 static gboolean
-fs_rawudp_stream_transmitter_set_remote_candidates (
+fs_rawudp_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error)
 {

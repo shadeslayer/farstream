@@ -304,7 +304,8 @@ one_way (GstElement *recv_pipeline, gint port)
   candidates = g_list_prepend (NULL,
       fs_candidate_new ("1", FS_COMPONENT_RTP, FS_CANDIDATE_TYPE_HOST,
           FS_NETWORK_PROTOCOL_UDP, "127.0.0.1", port));
-  ts_fail_unless (fs_stream_set_remote_candidates (stream, candidates, &error),
+  ts_fail_unless (fs_stream_force_remote_candidates (stream, candidates,
+          &error),
       "Could not set remote candidate");
   fs_candidate_list_destroy (candidates);
 

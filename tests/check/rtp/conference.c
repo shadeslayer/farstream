@@ -178,6 +178,13 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
 
   candidates = g_list_prepend (NULL, candidate);
   ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
+  if (ret == FALSE && error &&
+      error->domain == FS_ERROR && error->code == FS_ERROR_NOT_IMPLEMENTED)
+  {
+    g_clear_error (&error);
+    ret = fs_stream_force_remote_candidates (other_st->stream, candidates,
+        &error);
+  }
   g_list_free (candidates);
 
   if (error)

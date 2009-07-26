@@ -143,7 +143,7 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 
   item = g_list_prepend (NULL, candidate);
 
-  ret = fs_stream_transmitter_set_remote_candidates (st, item, &error);
+  ret = fs_stream_transmitter_force_remote_candidates (st, item, &error);
 
   g_list_free (item);
 
@@ -901,7 +901,7 @@ GST_START_TEST (test_rawudptransmitter_strange_arguments)
   cand = fs_candidate_new ("abc", 1,
       FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, "1.2.3.4", 0);
   list = g_list_prepend (NULL, cand);
-  ts_fail_unless (fs_stream_transmitter_set_remote_candidates (st, list,
+  ts_fail_unless (fs_stream_transmitter_force_remote_candidates (st, list,
           &error));
   ts_fail_unless (error == NULL);
   fs_candidate_list_destroy (list);
