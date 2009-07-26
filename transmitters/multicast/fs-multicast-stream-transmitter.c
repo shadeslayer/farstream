@@ -149,7 +149,7 @@ static void fs_multicast_stream_transmitter_set_property (GObject *object,
                                                 const GValue *value,
                                                 GParamSpec *pspec);
 
-static gboolean fs_multicast_stream_transmitter_set_remote_candidates (
+static gboolean fs_multicast_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error);
 
@@ -198,8 +198,8 @@ fs_multicast_stream_transmitter_class_init (FsMulticastStreamTransmitterClass *k
   gobject_class->set_property = fs_multicast_stream_transmitter_set_property;
   gobject_class->get_property = fs_multicast_stream_transmitter_get_property;
 
-  streamtransmitterclass->set_remote_candidates =
-    fs_multicast_stream_transmitter_set_remote_candidates;
+  streamtransmitterclass->force_remote_candidates =
+    fs_multicast_stream_transmitter_force_remote_candidates;
 
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
@@ -522,12 +522,8 @@ fs_multicast_stream_transmitter_add_remote_candidate (
   return TRUE;
 }
 
-/**
- * fs_multicast_stream_transmitter_set_remote_candidates
- */
-
 static gboolean
-fs_multicast_stream_transmitter_set_remote_candidates (
+fs_multicast_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error)
 {

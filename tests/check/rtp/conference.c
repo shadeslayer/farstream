@@ -1316,7 +1316,7 @@ multicast_init (struct SimpleTestStream *st, guint confid, guint streamid)
   candidates = g_list_prepend (candidates, cand);
 
 
-  ts_fail_unless (fs_stream_set_remote_candidates (st->stream, candidates,
+  ts_fail_unless (fs_stream_force_remote_candidates (st->stream, candidates,
           &error), "Error %s", error ? error->message : "No GError");
 
   fs_candidate_list_destroy (candidates);

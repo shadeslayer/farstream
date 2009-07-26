@@ -199,7 +199,7 @@ run_multicast_transmitter_test (gint n_parameters, GParameter *params,
 
   candidates = g_list_prepend (candidates, tmpcand);
 
-  if (!fs_stream_transmitter_set_remote_candidates (st, candidates, &error))
+  if (!fs_stream_transmitter_force_remote_candidates (st, candidates, &error))
     ts_fail ("Error setting the remote candidates: %p %s", error,
         error ? error->message : "NO ERROR SET");
   ts_fail_unless (error == NULL, "Error is not null after successful candidate"
