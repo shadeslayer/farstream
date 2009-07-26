@@ -49,7 +49,6 @@
  * "src-object"       #GObject           The object (#FsConference, #FsSession or #FsStream) that emitted the error
  * "error-no"         #FsError           The Error number
  * "error-msg"        #gchar*            The error message
- * "debug-msg"        #gchar*            The debug string
  * ]|
  * <para>
  * The message is sent on asynchronous errors.
