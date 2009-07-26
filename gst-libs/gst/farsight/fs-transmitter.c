@@ -180,7 +180,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__ENUM_STRING_STRING,
+      _fs_marshal_VOID__ENUM_STRING,
       G_TYPE_NONE, 2, FS_TYPE_ERROR, G_TYPE_STRING);
 
   /**

@@ -194,8 +194,7 @@ gchar **fs_session_list_transmitters (FsSession *session);
 
 void fs_session_emit_error (FsSession *session,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg);
+    const gchar *error_msg);
 
 GType fs_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter);

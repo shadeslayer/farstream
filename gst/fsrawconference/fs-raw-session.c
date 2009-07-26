@@ -920,12 +920,10 @@ _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
 
 error:
   if (error != NULL)
-    fs_session_emit_error (FS_SESSION (self), error->code, error->message,
-          "Unable to change transform bin");
+    fs_session_emit_error (FS_SESSION (self), error->code, error->message);
   else
     fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
-          "Unable to change transform bin",
-          "Unknown error");
+        "Unable to change transform bin");
 
   if (conference != NULL)
     gst_object_unref (conference);
@@ -1073,8 +1071,7 @@ fs_raw_session_update_direction (FsRawSession *self,
 
   if (!conference)
   {
-    fs_session_emit_error (FS_SESSION (self), error->code, error->message,
-        "Unable to add transmitter sink");
+    fs_session_emit_error (FS_SESSION (self), error->code, error->message);
     g_clear_error (&error);
     return;
   }
@@ -1105,8 +1102,7 @@ fs_raw_session_update_direction (FsRawSession *self,
     if (!_add_transmitter_sink (self, transmitter_sink, &error))
     {
       gst_object_unref (transmitter_sink);
-      fs_session_emit_error (FS_SESSION (self), error->code, error->message,
-          "Unable to add transmitter sink");
+      fs_session_emit_error (FS_SESSION (self), error->code, error->message);
       g_clear_error (&error);
       goto out;
     }

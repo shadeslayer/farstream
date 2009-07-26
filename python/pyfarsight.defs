@@ -497,7 +497,6 @@
   (parameters
     '("gint" "error_no")
     '("const-gchar*" "error_msg")
-    '("const-gchar*" "debug_msg")
   )
 )
 

@@ -335,8 +335,7 @@ fs_session_class_init (FsSessionClass *klass)
    * @self: #FsSession that emitted the signal
    * @object: The #Gobject that emitted the signal
    * @error_no: The number of the error
-   * @error_msg: Error message to be displayed to user
-   * @debug_msg: Debugging error message
+   * @error_msg: Error message
    *
    * This signal is emitted in any error condition, it can be emitted on any
    * thread. Applications should listen to the GstBus for errors.
@@ -348,9 +347,8 @@ fs_session_class_init (FsSessionClass *klass)
       0,
       NULL,
       NULL,
-      _fs_marshal_VOID__OBJECT_ENUM_STRING_STRING,
-      G_TYPE_NONE, 4, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING,
-      G_TYPE_STRING);
+      _fs_marshal_VOID__OBJECT_ENUM_STRING,
+      G_TYPE_NONE, 3, G_TYPE_OBJECT, FS_TYPE_ERROR, G_TYPE_STRING);
 }
 
 static void
@@ -401,7 +399,7 @@ fs_session_error_forward (GObject *signal_src,
   /* We just need to forward the error signal including a ref to the stream
    * object (signal_src) */
   g_signal_emit (session, signals[ERROR_SIGNAL], 0, signal_src, error_no,
-      error_msg, NULL);
+      error_msg);
 }
 
 /**
@@ -603,8 +601,7 @@ fs_session_set_codec_preferences (FsSession *session,
  * fs_session_emit_error:
  * @session: #FsSession on which to emit the error signal
  * @error_no: The number of the error of type #FsError
- * @error_msg: Error message to be displayed to user
- * @debug_msg: Debugging error message
+ * @error_msg: Error message
  *
  * This function emit the "error" signal on a #FsSession, it should only be
  * called by subclasses.
@@ -612,11 +609,10 @@ fs_session_set_codec_preferences (FsSession *session,
 void
 fs_session_emit_error (FsSession *session,
     gint error_no,
-    const gchar *error_msg,
-    const gchar *debug_msg)
+    const gchar *error_msg)
 {
   g_signal_emit (session, signals[ERROR_SIGNAL], 0, session, error_no,
-      error_msg, debug_msg);
+      error_msg);
 }
 
 /**

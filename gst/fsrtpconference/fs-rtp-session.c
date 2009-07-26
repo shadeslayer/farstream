@@ -2166,7 +2166,7 @@ _transmitter_error (
 {
   FsSession *session = FS_SESSION (user_data);
 
-  fs_session_emit_error (session, errorno, error_msg, NULL);
+  fs_session_emit_error (session, errorno, error_msg);
 }
 
 static GstElement *
@@ -2754,7 +2754,7 @@ _substream_error (FsRtpSubStream *substream,
 {
   FsSession *session = FS_SESSION (user_data);
 
-  fs_session_emit_error (session, errorno, error_msg, debug_msg);
+  fs_session_emit_error (session, errorno, error_msg);
 }
 
 static void
@@ -2881,14 +2881,10 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   if (substream == NULL)
   {
-    if (error && error->domain == FS_ERROR)
-      fs_session_emit_error (FS_SESSION (session), error->code,
-        "Could not create a substream for the new pad", error->message);
-    else
-      fs_session_emit_error (FS_SESSION (session), FS_ERROR_CONSTRUCTION,
-        "Could not create a substream for the new pad",
-        "No error details returned");
-
+    g_prefix_error (&error, "Could not create a substream for the new pad: ");
+    fs_session_emit_error (FS_SESSION (session),
+        error ? error->code : FS_ERROR_CONSTRUCTION,
+        error ? error->message : "No error details returned");
     g_clear_error (&error);
     fs_rtp_session_has_disposed_exit (session);
     return;
@@ -2958,9 +2954,12 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   if (stream)
   {
     if (!fs_rtp_stream_add_substream_unlock (stream, substream, &error))
+    {
+      g_prefix_error (&error,
+          "Could not add the output ghostpad to the new substream: ");
       fs_session_emit_error (FS_SESSION (session), error->code,
-          "Could not add the output ghostpad to the new substream",
           error->message);
+    }
 
     g_clear_error (&error);
   }
@@ -3486,8 +3485,7 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
           " succeed");
       if (error_emit)
         fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
-            "Could not stop the codec bin",
-            "Setting the codec bin to NULL did not succeed" );
+            "Setting the codec bin to NULL did not succeed");
       return FALSE;
     }
 
@@ -3772,8 +3770,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   if (!ca)
   {
-    fs_session_emit_error (FS_SESSION (self), error->code,
-        "Could not select a new send codec", error->message);
+    g_prefix_error (&error, "Could not select a new send codec: ");
+    fs_session_emit_error (FS_SESSION (self), error->code, error->message);
     goto done_locked;
   }
 
@@ -3814,8 +3812,9 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   if (!ca)
   {
+    g_prefix_error (&error, "Could not select a new send codec: ");
     fs_session_emit_error (FS_SESSION (self), error->code,
-        "Could not select a new send codec", error->message);
+        error->message);
     goto done_locked;
   }
 
@@ -3827,8 +3826,9 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   if (!fs_rtp_session_add_send_codec_bin_unlock (self, ca, &other_codecs,
           &error))
   {
+    g_prefix_error (&error, "Could not build a new send codec bin: ");
     fs_session_emit_error (FS_SESSION (self), error->code,
-        "Could not build a new send codec bin", error->message);
+        error->message);
   }
 
   changed = TRUE;
@@ -3998,8 +3998,9 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
     {
       GST_ERROR ("Could not associate a substream with its stream : %s",
           error->message);
+      g_prefix_error (&error,
+          "Could not associate a substream with its stream: ");
       fs_session_emit_error (FS_SESSION (session), error->code,
-          "Could not associate a substream with its stream",
           error->message);
     }
     g_clear_error (&error);
@@ -4118,10 +4119,13 @@ _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
   first_stream = g_list_first (session->priv->streams)->data;
   g_object_ref (first_stream);
   if (!fs_rtp_stream_add_substream_unlock (first_stream, substream, &error))
+  {
+    g_prefix_error (&error,
+        "Could not link the substream to a stream: ");
     fs_session_emit_error (FS_SESSION (session),
         error ? error->code : FS_ERROR_INTERNAL,
-        "Could not link the substream to a stream",
         error ? error->message : "No error message");
+  }
   g_clear_error (&error);
   g_object_unref (first_stream);
 
@@ -4626,8 +4630,9 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
   {
     FS_RTP_SESSION_LOCK (session);
     fs_rtp_session_stop_codec_param_gathering_unlock (session);
+    g_prefix_error (&error,
+        "Error while discovering codec data, discovery cancelled: ");
     fs_session_emit_error (FS_SESSION (session), error->code,
-        "Error while discovering codec data, discovery cancelled",
         error->message);
   }
 

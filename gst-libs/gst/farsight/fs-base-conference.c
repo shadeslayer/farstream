@@ -77,9 +77,11 @@ static FsSession *fs_base_conference_new_session (FsConference *conf,
 static FsParticipant *fs_base_conference_new_participant (FsConference *conf,
     GError **error);
 
-void fs_base_conference_error (GObject *signal_src, GObject *error_src,
-                               FsError error_no, gchar *error_msg,
-                               gchar *debug_msg, FsBaseConference *conf);
+static void fs_base_conference_error (GObject *signal_src,
+    GObject *error_src,
+    FsError error_no,
+    gchar *error_msg,
+    FsBaseConference *conf);
 
 void
 _fs_base_conference_init_debug (void)
@@ -151,30 +153,26 @@ fs_base_conference_new_session (FsConference *conf,
   return new_session;
 }
 
-void
-fs_base_conference_error (GObject *signal_src, GObject *error_src,
-                          FsError error_no, gchar *error_msg,
-                          gchar *debug_msg, FsBaseConference *conf)
+static void
+fs_base_conference_error (GObject *signal_src,
+    GObject *error_src,
+    FsError error_no,
+    gchar *error_msg,
+    FsBaseConference *conf)
 {
   GstMessage *gst_msg = NULL;
   GstStructure *error_struct = NULL;
-
-  if (debug_msg == NULL)
-    debug_msg = error_msg;
 
   error_struct = gst_structure_new ("farsight-error",
       "src-object", G_TYPE_OBJECT, error_src,
       "error-no", FS_TYPE_ERROR, error_no,
       "error-msg", G_TYPE_STRING, error_msg,
-      "debug-msg", G_TYPE_STRING, debug_msg,
       NULL);
 
   gst_msg = gst_message_new_element (GST_OBJECT (conf), error_struct);
 
   if (!gst_element_post_message (GST_ELEMENT (conf), gst_msg))
-  {
     GST_WARNING_OBJECT (conf, "Could not post error on bus");
-  }
 }
 
 
