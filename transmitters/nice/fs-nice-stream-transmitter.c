@@ -96,6 +96,8 @@ struct _FsNiceStreamTransmitterPrivate
   gulong new_selected_pair_handler_id;
   gulong new_candidate_handler_id;
 
+  gulong tos_changed_handler_id;
+
   GValueArray *relay_info;
 
   volatile gint associate_on_source;
@@ -386,6 +388,11 @@ fs_nice_stream_transmitter_dispose (GObject *object)
     g_signal_handler_disconnect (self->priv->agent->agent,
         self->priv->new_candidate_handler_id);
   self->priv->new_candidate_handler_id = 0;
+
+  if (self->priv->tos_changed_handler_id)
+    g_signal_handler_disconnect (self->priv->transmitter,
+        self->priv->tos_changed_handler_id);
+  self->priv->tos_changed_handler_id = 0;
 
   if (self->priv->agent)
   {
@@ -1098,6 +1105,19 @@ fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
   return TRUE;
 }
 
+
+
+static void
+tos_changed (GObject *transmitter, GParamSpec *param,
+    FsNiceStreamTransmitter *self)
+{
+  guint tos;
+
+  g_object_get (transmitter, "tos", &tos, NULL);
+  nice_agent_set_stream_tos (self->priv->agent->agent, self->priv->stream_id,
+      tos);
+}
+
 static gboolean
 fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
     FsParticipant *participant,
@@ -1356,6 +1376,11 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
       self, 0);
   self->priv->new_candidate_handler_id = g_signal_connect_object (agent->agent,
       "new-candidate", G_CALLBACK (agent_new_candidate), self, 0);
+  self->priv->tos_changed_handler_id = g_signal_connect_object (
+      self->priv->transmitter, "notify::tos", G_CALLBACK (tos_changed), self,
+      0);
+
+  tos_changed (G_OBJECT (self->priv->transmitter), NULL, self);
 
   self->priv->gststream = fs_nice_transmitter_add_gst_stream (
       self->priv->transmitter,
