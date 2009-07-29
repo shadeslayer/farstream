@@ -711,7 +711,7 @@ fs_rtp_conference_handle_message (
   FsRtpConference *self = FS_RTP_CONFERENCE (bin);
 
   if (!self->gstrtpbin)
-    return;
+    goto out;
 
   switch (GST_MESSAGE_TYPE (message)) {
     case GST_MESSAGE_ELEMENT:
@@ -757,14 +757,13 @@ fs_rtp_conference_handle_message (
               session_id, ssrc, cname);
         }
       }
-      /* fallthrough to forward the modified message to the parent */
     }
     default:
-    {
-      GST_BIN_CLASS (parent_class)->handle_message (bin, message);
       break;
-    }
   }
+
+ out:
+  GST_BIN_CLASS (parent_class)->handle_message (bin, message);
 }
 
 static GstStateChangeReturn
