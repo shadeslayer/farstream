@@ -107,6 +107,9 @@ struct _FsRtpConferencePrivate
   guint max_session_id;
 
   GList *participants;
+
+  /* Array of all internal threads, as GThreads */
+  GPtrArray *threads;
 };
 
 static void fs_rtp_conference_do_init (GType type);
@@ -218,8 +221,12 @@ fs_rtp_conference_dispose (GObject * object)
 static void
 fs_rtp_conference_finalize (GObject * object)
 {
+  FsRtpConference *self = FS_RTP_CONFERENCE (object);
+
   /* Peek will always succeed here because we 'refed the class in the _init */
   g_type_class_unref (g_type_class_peek (FS_TYPE_RTP_SUB_STREAM));
+
+  g_ptr_array_free (self->priv->threads, TRUE);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -311,6 +318,8 @@ fs_rtp_conference_init (FsRtpConference *conf,
 
   conf->priv->disposed = FALSE;
   conf->priv->max_session_id = 1;
+
+  conf->priv->threads = g_ptr_array_new ();
 
   conf->gstrtpbin = gst_element_factory_make ("gstrtpbin", "rtpbin");
 
@@ -769,11 +778,48 @@ fs_rtp_conference_handle_message (
         }
       }
     }
+    break;
+    case GST_MESSAGE_STREAM_STATUS:
+    {
+      GstStreamStatusType type;
+      guint i;
+
+      gst_message_parse_stream_status (message, &type, NULL);
+
+      switch (type)
+      {
+        case GST_STREAM_STATUS_TYPE_ENTER:
+          GST_OBJECT_LOCK (self);
+          for (i = 0; i < self->priv->threads->len; i++)
+          {
+            if (g_ptr_array_index (self->priv->threads, i) ==
+                g_thread_self ())
+              goto done;
+          }
+          g_ptr_array_add (self->priv->threads, g_thread_self ());
+        done:
+          GST_OBJECT_UNLOCK (self);
+          break;
+
+        case GST_STREAM_STATUS_TYPE_LEAVE:
+          GST_OBJECT_LOCK (self);
+          while (g_ptr_array_remove_fast (self->priv->threads,
+                  g_thread_self ()));
+          GST_OBJECT_UNLOCK (self);
+          break;
+
+        default:
+          /* Do nothing */
+          break;
+      }
+    }
+      break;
     default:
       break;
   }
 
  out:
+  /* forward all messages to the parent */
   GST_BIN_CLASS (parent_class)->handle_message (bin, message);
 }
 
@@ -919,4 +965,24 @@ _rtpbin_on_ssrc_validated (GstElement *rtpbin,
 
     g_object_unref (session);
   }
+}
+
+gboolean
+fs_rtp_conference_is_internal_thread (FsRtpConference *self)
+{
+  guint i;
+  gboolean ret = FALSE;
+
+  GST_OBJECT_LOCK (self);
+  for (i = 0; i < self->priv->threads->len; i++)
+  {
+    if (g_ptr_array_index (self->priv->threads, i))
+    {
+      ret = TRUE;
+      break;
+    }
+  }
+  GST_OBJECT_UNLOCK (self);
+
+  return ret;
 }
