@@ -272,9 +272,10 @@ GST_START_TEST (test_bin_file)
   g_clear_error (&error);
 
   filename = get_fullpath ("utils/gstelements.conf");
-  fs_element_added_notifier_set_properties_from_file (notifier, filename,
-      &error);
+  fail_unless (fs_element_added_notifier_set_properties_from_file (notifier,
+          filename, &error));
   g_free (filename);
+  fail_if (error != NULL);
 
   fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
