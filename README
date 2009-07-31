@@ -19,7 +19,7 @@ Build time:
  - gst-plugins-base 0.10.23
  - glib 2.16
  - Python 2.4
- - libnice 0.0.6
+ - libnice 0.0.9
 
 For UPnP support:
  - GUPnP-IGD
