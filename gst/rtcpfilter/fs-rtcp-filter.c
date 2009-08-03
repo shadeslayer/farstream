@@ -208,8 +208,8 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
           GstRTCPPacket nextpacket = packet;
 
           modified = TRUE;
-          gst_rtcp_packet_move_to_next (&nextpacket);
-          if (gst_rtcp_packet_get_type (&nextpacket) == GST_RTCP_TYPE_RR)
+          if (gst_rtcp_packet_move_to_next (&nextpacket) &&
+              gst_rtcp_packet_get_type (&nextpacket) == GST_RTCP_TYPE_RR)
           {
             if (!gst_rtcp_packet_remove (&packet))
               break;
@@ -226,7 +226,8 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
             memmove (GST_BUFFER_DATA (buf) + packet.offset + 8,
                 GST_BUFFER_DATA (buf) + nextpacket.offset,
                 GST_BUFFER_SIZE (buf) - nextpacket.offset);
-            gst_rtcp_buffer_get_first_packet (buf, &packet);
+            if (!gst_rtcp_buffer_get_first_packet (buf, &packet))
+              break;
           }
 
         }
