@@ -1236,11 +1236,26 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 static gboolean
 fs_rawudp_component_send_stun_locked (FsRawUdpComponent *self, GError **error)
 {
+  socklen_t socklen = 0;
+
+  switch (self->priv->stun_sockaddr.ss_family)
+  {
+    case AF_INET:
+      socklen = sizeof(struct sockaddr_in);
+      break;
+    case AF_INET6:
+      socklen = sizeof(struct sockaddr_in6);
+      break;
+    default:
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "Unknown address family for stun server");
+      return FALSE;
+  }
+
   return fs_rawudp_transmitter_udpport_sendto (self->priv->udpport,
       (gchar*) self->priv->stun_buffer,
       stun_message_length (&self->priv->stun_message),
-      (const struct sockaddr *)&self->priv->stun_sockaddr,
-      sizeof (self->priv->stun_sockaddr), error);
+      (const struct sockaddr *)&self->priv->stun_sockaddr, socklen, error);
 }
 
 static gboolean
