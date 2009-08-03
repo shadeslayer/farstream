@@ -3784,7 +3784,7 @@ fs_rtp_session_associate_free_substreams (FsRtpSession *session,
     }
     else
     {
-      GST_ERROR ("Could not associate a substream with its stream",
+      GST_ERROR ("Could not associate a substream with its stream : %s",
           error->message);
       fs_session_emit_error (FS_SESSION (session), error->code,
           "Could not associate a substream with its stream",

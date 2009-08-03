@@ -327,7 +327,7 @@ fs_plugin_list_available (const gchar *type_suffix)
     if (!dir)
     {
       GST_WARNING ("Could not open path %s to look for plugins: %s",
-          search_path, error ? error->message : "Unknown error");
+          *search_path, error ? error->message : "Unknown error");
       g_clear_error (&error);
       continue;
     }
