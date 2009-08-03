@@ -232,8 +232,8 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
           GST_ELEMENT (dat->conf)));
 
   dat->part = fs_conference_new_participant (dat->conf, "", &error);
+  ts_fail_unless (error == NULL, "Error: %s", error ? error->message: "");
   ts_fail_unless (dat->part != NULL);
-  ts_fail_unless (error == NULL);
 
   dat->session = fs_conference_new_session (dat->conf, FS_MEDIA_TYPE_VIDEO,
       &error);
