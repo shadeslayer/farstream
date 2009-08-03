@@ -115,13 +115,16 @@ int listen_socket (int fam, int type, int proto, unsigned int port)
   {
     switch (fam)
     {
+#ifdef IP_RECVERR
       case AF_INET:
         setsockopt (fd, SOL_IP, IP_RECVERR, &yes, sizeof (yes));
         break;
-
+#endif
+#ifdef IPV6_RECVERR
       case AF_INET6:
         setsockopt (fd, SOL_IPV6, IPV6_RECVERR, &yes, sizeof (yes));
         break;
+#endif
     }
   }
   else
@@ -145,8 +148,10 @@ error:
 static int recv_err (int fd)
 {
   struct msghdr hdr;
+#ifdef MSG_ERRQUEUE
   memset (&hdr, 0, sizeof (hdr));
   return recvmsg (fd, &hdr, MSG_ERRQUEUE) >= 0;
+#endif
 }
 
 
