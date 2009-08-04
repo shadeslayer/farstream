@@ -269,104 +269,27 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
   for (i = 0; keys[i]; i++)
   {
     GParamSpec *param_spec;
-    GValue key_value = { 0 };
     GValue prop_value = { 0 };
-
-    gchar *str_key_value;
-    gboolean bool_key_value;
-    gint int_key_value;
-    gdouble double_key_value;
-    glong long_key_value;
-    gulong ulong_key_value;
+    gchar *str_value;
 
     DEBUG ("getting %s", keys[i]);
-    param_spec = g_object_class_find_property
-      (G_OBJECT_GET_CLASS(element), keys[i]);
-
-    /* If the paremeter does not exist, or is one of those,
-     * then lets skip it
-     * TODO: What if we want to pass GstCaps as strings?
-     */
-    if (!param_spec ||
-        g_type_is_a (param_spec->value_type, G_TYPE_OBJECT) ||
-        g_type_is_a (param_spec->value_type, GST_TYPE_MINI_OBJECT) ||
-        g_type_is_a (param_spec->value_type, G_TYPE_INTERFACE) ||
-        g_type_is_a (param_spec->value_type, G_TYPE_BOXED) ||
-        g_type_is_a (param_spec->value_type, G_TYPE_GTYPE) ||
-        g_type_is_a (param_spec->value_type, G_TYPE_POINTER))
-    {
-      continue;
-    }
+    param_spec = g_object_class_find_property (G_OBJECT_GET_CLASS(element),
+        keys[i]);
 
     g_value_init (&prop_value, param_spec->value_type);
 
-    switch (param_spec->value_type)
+    str_value = g_key_file_get_value (keyfile, name, keys[i], NULL);
+    if (str_value && gst_value_deserialize (&prop_value, str_value))
     {
-      case G_TYPE_STRING:
-        str_key_value = g_key_file_get_value (keyfile, name,
-            keys[i], NULL);
-        g_value_init (&key_value, G_TYPE_STRING);
-        g_value_set_string (&key_value, str_key_value);
-        DEBUG ("%s is a string: %s", keys[i], str_key_value);
-        g_free (str_key_value);
-        break;
-      case G_TYPE_BOOLEAN:
-        bool_key_value = g_key_file_get_boolean (keyfile, name,
-            keys[i], NULL);
-        g_value_init (&key_value, G_TYPE_BOOLEAN);
-        g_value_set_boolean (&key_value, bool_key_value);
-        DEBUG ("%s is a boolean: %d", keys[i], bool_key_value);
-        break;
-      case G_TYPE_UINT64:
-      case G_TYPE_INT64:
-      case G_TYPE_DOUBLE:
-        double_key_value = g_key_file_get_double (keyfile, name,
-            keys[i], NULL);
-        g_value_init (&key_value, G_TYPE_DOUBLE);
-        g_value_set_double (&key_value, double_key_value);
-        DEBUG ("%s is a uint64", keys[i]);
-        DEBUG ("%s is a int64", keys[i]);
-        DEBUG ("%s is a double: %f", keys[i], double_key_value);
-        break;
-      case G_TYPE_ULONG:
-        str_key_value = g_key_file_get_value (keyfile, name, keys[i],
-            NULL);
-        ulong_key_value = strtoul (str_key_value, NULL, 10);
-        g_value_init (&key_value, G_TYPE_ULONG);
-        g_value_set_ulong (&key_value, ulong_key_value);
-        DEBUG ("%s is a ulong: %lu", keys[i], ulong_key_value);
-        break;
-      case G_TYPE_LONG:
-        str_key_value = g_key_file_get_value (keyfile, name, keys[i],
-            NULL);
-        long_key_value = strtol (str_key_value, NULL, 10);
-        g_value_init (&key_value, G_TYPE_LONG);
-        g_value_set_long (&key_value, long_key_value);
-        DEBUG ("%s is a long: %ld", keys[i], long_key_value);
-        break;
-      case G_TYPE_INT:
-      case G_TYPE_UINT:
-      case G_TYPE_ENUM:
-      default:
-        int_key_value = g_key_file_get_integer (keyfile, name,
-            keys[i], NULL);
-        g_value_init (&key_value, G_TYPE_INT);
-        g_value_set_int (&key_value, int_key_value);
-        DEBUG ("%s is a int: %d", keys[i], int_key_value);
-        DEBUG ("%s is a uint", keys[i]);
-        DEBUG ("%s is an enum", keys[i]);
-        DEBUG ("%s is something else, attempting to int conv", keys[i]);
-        break;
+      DEBUG ("Setting %s to on %s", keys[i], name);
+      g_object_set_property (G_OBJECT (element), keys[i], &prop_value);
     }
-
-    if (!g_value_transform (&key_value, &prop_value))
+    else
     {
-      DEBUG ("Could not transform gvalue pair");
-      continue;
+      DEBUG ("Could not read value for property %s", keys[i]);
     }
-
-    DEBUG ("Setting %s to on %s", keys[i], name);
-    g_object_set_property (G_OBJECT (element), keys[i], &prop_value);
+    g_free (str_value);
+    g_value_unset (&prop_value);
   }
 
   g_strfreev (keys);
