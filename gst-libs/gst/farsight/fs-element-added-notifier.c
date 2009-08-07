@@ -178,6 +178,7 @@ _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
       case GST_ITERATOR_OK:
         if (GST_IS_BIN (item))
           _bin_unparented_cb (GST_OBJECT (item), object, user_data);
+        gst_object_unref (item);
         break;
       case GST_ITERATOR_RESYNC:
         // We don't rollback anything, we just ignore already processed ones
