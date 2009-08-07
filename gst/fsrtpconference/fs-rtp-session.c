@@ -447,6 +447,8 @@ _stop_transmitter_elem (gpointer key, gpointer value, gpointer elem_name)
 
   gst_element_set_locked_state (elem, TRUE);
   gst_element_set_state (elem, GST_STATE_NULL);
+
+  gst_object_unref (elem);
 }
 
 static void
