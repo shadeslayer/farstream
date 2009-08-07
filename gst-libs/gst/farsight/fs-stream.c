@@ -27,10 +27,11 @@
  * @short_description: A stream in a session in a conference
  *
  * This object is the base implementation of a Farsight Stream. It
- * needs to be derived and implemented by a farsight conference gstreamer
- * element. A Farsight Stream is a media stream originating from a participant
- * inside a session. In fact, a FarsightStream instance is obtained by adding a
- * participant into a session using #fs_session_add_participant.
+ * needs to be derived and implemented by a Farsight conference GStreamer
+ * element. A Farsight Stream is a media stream originating from a
+ * #FsParticipant inside a #FsSession. In fact, a #FsStream instance is
+ * obtained by adding a participant into a session using
+ * fs_session_new_stream().
  *
  *
  * This will communicate asynchronous events to the user through #GstMessage
