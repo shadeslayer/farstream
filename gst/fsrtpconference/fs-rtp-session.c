@@ -1927,7 +1927,7 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
     GError **error)
 {
   FsTransmitter *transmitter;
-  GstElement *src;
+  GstElement *src = NULL;
   gboolean sink_add_later = FALSE;
   guint tos;
 
