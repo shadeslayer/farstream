@@ -559,7 +559,6 @@ fs_msn_connection_attempt_connection_locked (FsMsnConnection *connection,
     GError **error)
 {
   FsMsnConnection *self = FS_MSN_CONNECTION (connection);
-  FsMsnPollFD *pollfd;
   gint fd = -1;
   gint ret;
   struct sockaddr_in theiraddr;
@@ -597,8 +596,7 @@ fs_msn_connection_attempt_connection_locked (FsMsnConnection *connection,
   }
 
   FS_MSN_CONNECTION_LOCK (self);
-  pollfd = add_pollfd_locked (self, fd, successful_connection_cb, TRUE, TRUE,
-      FALSE);
+  add_pollfd_locked (self, fd, successful_connection_cb, TRUE, TRUE, FALSE);
   FS_MSN_CONNECTION_UNLOCK (self);
 
   return TRUE;
@@ -610,7 +608,6 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   struct sockaddr_in in;
   int fd = -1;
   socklen_t n = sizeof (in);
-  FsMsnPollFD *newpollfd = NULL;
 
   if (gst_poll_fd_has_error (self->poll, &pollfd->pollfd) ||
       gst_poll_fd_has_closed (self->poll, &pollfd->pollfd))
@@ -627,7 +624,7 @@ accept_connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
   }
 
   FS_MSN_CONNECTION_LOCK (self);
-  newpollfd = add_pollfd_locked (self, fd, connection_cb, TRUE, FALSE, TRUE);
+  add_pollfd_locked (self, fd, connection_cb, TRUE, FALSE, TRUE);
   FS_MSN_CONNECTION_UNLOCK (self);
 
   return;
