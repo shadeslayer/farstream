@@ -713,7 +713,7 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
           gchar str[35] = {0};
           gchar check[35] = {0};
 
-          if (recv(pollfd->pollfd.fd, str, 34, 0) != -1)
+          if (recv (pollfd->pollfd.fd, str, 34, 0) == 34)
           {
             GST_DEBUG ("Got %s, checking if it's auth", str);
             FS_MSN_CONNECTION_LOCK(self);
@@ -750,14 +750,16 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
         if (!pollfd->server)
         {
           gchar str[14] = {0};
+          ssize_t size;
 
-          if (recv(pollfd->pollfd.fd, str, 13, MSG_PEEK) != -1)
+          size = recv (pollfd->pollfd.fd, str, 13, MSG_PEEK);
+          if (size > 0)
           {
             GST_DEBUG ("Got %s, checking if it's connected", str);
-            if (strcmp (str, "connected\r\n\r\n") == 0)
+            if (size == 13 && strcmp (str, "connected\r\n\r\n") == 0)
             {
               GST_DEBUG ("connection successful");
-              recv(pollfd->pollfd.fd, str, 13, 0);
+              recv (pollfd->pollfd.fd, str, 13, 0);
               pollfd->status = FS_MSN_STATUS_CONNECTED2;
               pollfd->want_write = TRUE;
               gst_poll_fd_ctl_write (self->poll, &pollfd->pollfd, TRUE);
@@ -790,14 +792,16 @@ connection_cb (FsMsnConnection *self, FsMsnPollFD *pollfd)
         if (pollfd->server)
         {
           gchar str[14] = {0};
+          ssize_t size;
 
-          if (recv(pollfd->pollfd.fd, str, 13, MSG_PEEK) != -1)
+          size = recv (pollfd->pollfd.fd, str, 13, MSG_PEEK);
+          if (size > 0)
           {
             GST_DEBUG ("Got %s, checking if it's connected", str);
-            if (strcmp (str, "connected\r\n\r\n") == 0)
+            if (size == 13 && strcmp (str, "connected\r\n\r\n") == 0)
             {
               GST_DEBUG ("connection successful");
-              recv(pollfd->pollfd.fd, str, 13, 0);
+              recv (pollfd->pollfd.fd, str, 13, 0);
               pollfd->status = FS_MSN_STATUS_SEND_RECEIVE;
               success = TRUE;
             }
