@@ -277,7 +277,7 @@ fs_msn_session_get_property (GObject *object,
   FsMsnSession *self = FS_MSN_SESSION (object);
   FsMsnConference *conference = fs_msn_session_get_conference (self, NULL);
 
-  if (!conference && !(pspec->flags & G_PARAM_CONSTRUCT_ONLY))
+  if (!conference)
     return;
 
   switch (prop_id)
@@ -327,8 +327,7 @@ fs_msn_session_get_property (GObject *object,
       break;
   }
 
-  if (conference)
-    gst_object_unref (conference);
+  gst_object_unref (conference);
 }
 
 static void
