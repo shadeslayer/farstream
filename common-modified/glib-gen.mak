@@ -26,7 +26,7 @@ enum_headers=$(foreach h,$(glib_enum_headers),\n\#include \"$(h)\")
 	$^ > $@
 
 %-enum-types.c: $(glib_enum_headers) Makefile
-	@if test "x$(glib_enum_headers)" == "x"; then echo "ERROR: glib_enum_headers is empty, please fix Makefile"; exit 1; fi
+	@if test "x$(glib_enum_headers)" = "x"; then echo "ERROR: glib_enum_headers is empty, please fix Makefile"; exit 1; fi
 	glib-mkenums \
 	--fhead "#include \"$*-enum-types.h\"\n$(enum_headers)" \
 	--fprod "\n/* enumerations from \"@filename@\" */" \
