@@ -1220,6 +1220,12 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
         FS_RAWUDP_COMPONENT_UNLOCK (self);
       }
     }
+    else
+    {
+      FS_RAWUDP_COMPONENT_LOCK (self);
+      fs_rawudp_component_stop_upnp_discovery_locked (self);
+      FS_RAWUDP_COMPONENT_UNLOCK (self);
+    }
 
     /* free list of ips */
     g_list_foreach (ips, (GFunc) g_free, NULL);
@@ -1231,7 +1237,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
   if (self->priv->stun_ip && self->priv->stun_port)
     return fs_rawudp_component_start_stun (self, error);
 #ifdef HAVE_GUPNP
-  else if (!self->priv->upnp_igd || !self->priv->upnp_discovery)
+  else if (!self->priv->upnp_signal_id)
     return fs_rawudp_component_emit_local_candidates (self, error);
   else
     return TRUE;
