@@ -1111,6 +1111,10 @@ _upnp_mapped_external_port (GUPnPSimpleIgdThread *igd, gchar *proto,
       external_ip,
       external_port);
 
+  GST_DEBUG ("Got UPnP Candidate c:%d ext-ip:%s ext-port:%u"
+      " int-ip:%s int-port:%u", self->priv->component, external_ip,
+      external_port, local_ip, local_port);
+
   FS_RAWUDP_COMPONENT_UNLOCK (self);
 
   fs_rawudp_component_maybe_emit_local_candidates (self);
@@ -1120,6 +1124,8 @@ static gboolean
 _upnp_discovery_timeout (gpointer user_data)
 {
   FsRawUdpComponent *self = user_data;
+
+  GST_DEBUG ("UPnP timed out on component %d", self->priv->component);
 
   FS_RAWUDP_COMPONENT_LOCK (self);
   g_source_unref (self->priv->upnp_discovery_timeout_src);
@@ -1194,6 +1200,8 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
             G_CALLBACK (_upnp_mapped_external_port), self);
         FS_RAWUDP_COMPONENT_UNLOCK (self);
       }
+
+      GST_DEBUG ("Doing UPnP Discovery for local ip:%s port:%s", ip, port);
 
       gupnp_simple_igd_add_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
