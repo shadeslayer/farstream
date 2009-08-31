@@ -159,7 +159,6 @@ static void
 _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
 {
   GstIterator *iter = NULL;
-  FsElementAddedNotifier *notifier = FS_ELEMENT_ADDED_NOTIFIER (user_data);
   gboolean done;
 
   /* Return if there was no handler connected */
@@ -195,10 +194,6 @@ _bin_unparented_cb (GstObject *object, GstObject *parent, gpointer user_data)
   }
 
   gst_iterator_free (iter);
-
-  g_object_weak_unref (G_OBJECT (object), (GWeakNotify) g_object_unref,
-      notifier);
-  g_object_unref (notifier);
 }
 
 
@@ -363,15 +358,12 @@ _element_added_callback (GstBin *parent, GstElement *element,
     GstIterator *iter = NULL;
     gboolean done;
 
-    g_object_ref (notifier);
-    g_object_weak_ref (G_OBJECT (element), (GWeakNotify) g_object_unref,
-        notifier);
-    g_signal_connect (element, "element-added",
-        G_CALLBACK (_element_added_callback), notifier);
+    g_signal_connect_object (element, "element-added",
+        G_CALLBACK (_element_added_callback), notifier, 0);
 
     if (parent)
-      g_signal_connect (element, "parent-unset",
-          G_CALLBACK (_bin_unparented_cb), notifier);
+      g_signal_connect_object (element, "parent-unset",
+          G_CALLBACK (_bin_unparented_cb), notifier, 0);
 
     iter = gst_bin_iterate_elements (GST_BIN (element));
 
