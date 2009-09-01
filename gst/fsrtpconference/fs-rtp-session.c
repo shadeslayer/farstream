@@ -3557,7 +3557,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
           (GFunc) g_object_unref, NULL);
       g_list_free (session->priv->transmitters_add_sink);
       session->priv->transmitters_add_sink = NULL;
-      goto error;
+      goto error_locked;
     }
 
     g_object_unref (transmitter);
@@ -3590,9 +3590,12 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
  error:
   fs_rtp_session_remove_send_codec_bin (session, NULL, FALSE);
   fs_codec_list_destroy (codecs);
-  FS_RTP_SESSION_UNLOCK (session);
-
   return NULL;
+
+ error_locked:
+
+  FS_RTP_SESSION_UNLOCK (session);
+  goto error;
 }
 
 static void
