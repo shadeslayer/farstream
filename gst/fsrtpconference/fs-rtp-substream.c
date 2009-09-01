@@ -1170,7 +1170,6 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
   GstPad *valve_srcpad;
   gchar *padname = NULL;
   GstPad *ghostpad = NULL;
-  gboolean receiving;
   FsCodec *codec = NULL;
 
   if (substream->priv->adding_output_ghostpad)
@@ -1238,7 +1237,6 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
       substream->ssrc, substream->pt,
       FS_CODEC_ARGS (substream->codec));
 
-  receiving = substream->priv->receiving;
   codec = fs_codec_copy (substream->codec);
 
   FS_RTP_SESSION_UNLOCK (substream->priv->session);
