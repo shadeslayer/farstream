@@ -1707,11 +1707,13 @@ fs_rtp_session_set_codec_preferences (FsSession *session,
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
   GList *old_codec_prefs = NULL;
-  GList *new_codec_prefs = fs_codec_list_copy (codec_preferences);
+  GList *new_codec_prefs = NULL;
   gboolean ret;
 
   if (fs_rtp_session_has_disposed_enter (self, error))
     return FALSE;
+
+  new_codec_prefs = fs_codec_list_copy (codec_preferences);
 
   new_codec_prefs =
     validate_codecs_configuration (
