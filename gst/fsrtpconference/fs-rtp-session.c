@@ -4051,7 +4051,10 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
 
   if (fs_rtp_session_has_disposed_enter (session, NULL))
+  {
+    gst_caps_unref (caps);
     return;
+  }
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -4122,7 +4125,10 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
   g_return_if_fail (GST_CAPS_IS_SIMPLE(caps));
 
   if (fs_rtp_session_has_disposed_enter (session, NULL))
+  {
+    gst_caps_unref (caps);
     return;
+  }
 
   FS_RTP_SESSION_LOCK (session);
 
