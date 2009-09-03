@@ -3888,9 +3888,12 @@ fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
     g_hash_table_insert (session->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
         stream);
 
+  g_object_ref (stream);
   FS_RTP_SESSION_UNLOCK (session);
 
   fs_rtp_session_associate_free_substreams (session, stream, ssrc);
+  g_object_unref (stream);
+
   fs_rtp_session_has_disposed_exit (session);
 }
 
