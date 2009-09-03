@@ -34,6 +34,9 @@ Run time for the RTP plugin:
  - gst-plugins-good 0.10.7
  - gst-plugins-bad 0.10.12
 
+Run time for the MSN plugin:
+ - gst-plugins-bad 0.10.14
+
 For the GUI example:
  - PyGTK 2.10
 
