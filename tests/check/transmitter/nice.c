@@ -304,7 +304,7 @@ _stream_state_changed (FsStreamTransmitter *st, guint component,
 
   oldstate = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (st), prop));
 
-  fail_if (state < FS_STREAM_STATE_CONNECTED && state < oldstate,
+  ts_fail_if (state < FS_STREAM_STATE_CONNECTED && state < oldstate,
       "State went in wrong direction %d -> %d for component %u",
       oldstate, state, component);
 
@@ -386,7 +386,7 @@ run_nice_transmitter_test (gint n_parameters, GParameter *params,
   force_candidates = (flags & FLAG_FORCE_CANDIDATES);
 
   if (flags & FLAG_RECVONLY_FILTER)
-    fail_unless (fs_fake_filter_register ());
+    ts_fail_unless (fs_fake_filter_register ());
 
   if (flags & FLAG_NOT_SENDING)
   {

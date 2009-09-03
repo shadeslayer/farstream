@@ -196,8 +196,8 @@ test_transmitter_creation (gchar *transmitter_name)
 
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
 
-  fail_if (trans_sink == NULL, "Sink is NULL");
-  fail_if (trans_src == NULL, "Src is NULL");
+  ts_fail_if (trans_sink == NULL, "Sink is NULL");
+  ts_fail_if (trans_src == NULL, "Src is NULL");
 
   gst_object_unref (trans_sink);
   gst_object_unref (trans_src);
