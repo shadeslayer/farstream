@@ -83,10 +83,11 @@ setup_fakesrc (FsTransmitter *trans, GstElement *pipeline, guint component_id)
     "Could not link the fakesrc to %s", padname);
   g_free (padname);
 
+  gst_element_set_locked_state (src, FALSE);
+
   ts_fail_if (gst_element_set_state (src, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE, "Could not set the fakesrc to playing");
 
-  gst_element_set_locked_state (src, FALSE);
   gst_element_sync_state_with_parent (src);
 
   gst_object_unref (trans_sink);
