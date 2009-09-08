@@ -3736,13 +3736,8 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
   guint32 ssrc;
   guint pt;
 
-  g_object_ref (session);
-
   if (fs_rtp_session_has_disposed_enter (session, NULL))
-  {
-    g_object_unref (session);
     return;
-  }
 
   FS_RTP_SESSION_LOCK (session);
 
@@ -3769,7 +3764,6 @@ _substream_blocked (FsRtpSubStream *substream, FsRtpStream *stream,
 
   g_clear_error (&error);
   fs_rtp_session_has_disposed_exit (session);
-  g_object_unref (session);
 }
 
 static void
