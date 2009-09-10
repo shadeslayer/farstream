@@ -234,6 +234,18 @@ fs_rtp_special_source_finalize (GObject *object)
 {
   FsRtpSpecialSource *self = FS_RTP_SPECIAL_SOURCE (object);
 
+  if (self->priv->rtpmuxer)
+  {
+    gst_object_unref (self->priv->rtpmuxer);
+    self->priv->rtpmuxer = NULL;
+  }
+
+  if (self->priv->outer_bin)
+  {
+    gst_object_unref (self->priv->outer_bin);
+    self->priv->outer_bin = NULL;
+  }
+
   if (self->priv->mutex)
     g_mutex_free (self->priv->mutex);
   self->priv->mutex = NULL;
