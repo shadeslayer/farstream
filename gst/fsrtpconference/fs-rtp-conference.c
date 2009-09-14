@@ -344,8 +344,11 @@ rtpbin_get_sdes (FsRtpConference *self, const gchar *prop, GValue *val)
           "sdes"))
   {
     GstStructure *s;
+    const GValue *sval;
     g_object_get (self->gstrtpbin, "sdes", &s, NULL);
-    g_value_copy (gst_structure_get_value (s, prop), val);
+    sval = gst_structure_get_value (s, prop);
+    if (sval)
+      g_value_copy (gst_structure_get_value (s, prop), val);
     gst_structure_free (s);
   }
   else
