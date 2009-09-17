@@ -272,6 +272,13 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
     param_spec = g_object_class_find_property (G_OBJECT_GET_CLASS(element),
         keys[i]);
 
+    if (!param_spec)
+    {
+      DEBUG ("Property %s does not exist in element %s, ignoring",
+          keys[i], name);
+      continue;
+    }
+
     g_value_init (&prop_value, param_spec->value_type);
 
     str_value = g_key_file_get_value (keyfile, name, keys[i], NULL);
