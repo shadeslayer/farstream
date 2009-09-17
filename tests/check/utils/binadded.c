@@ -196,6 +196,7 @@ GST_START_TEST (test_bin_keyfile)
   gboolean sync;
 
   g_key_file_set_boolean (keyfile, "identity", "sync", TRUE);
+  g_key_file_set_boolean (keyfile, "identity", "invalid-property", TRUE);
 
   pipeline = gst_pipeline_new (NULL);
 
