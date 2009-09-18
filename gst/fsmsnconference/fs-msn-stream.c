@@ -564,7 +564,8 @@ _connected (
         "fdsrc name=fdsrc do-timestamp=true ! mimdec ! valve name=recv_valve", TRUE, &error);
   else
     codecbin = gst_parse_bin_from_description (
-        "ffmpegcolorspace ! videoscale ! mimenc name=enc ! fdsink name=fdsink",
+        "ffmpegcolorspace ! videoscale ! mimenc name=enc !"
+        " fdsink name=fdsink sync=false async=false",
         TRUE, &error);
 
   if (!codecbin)
