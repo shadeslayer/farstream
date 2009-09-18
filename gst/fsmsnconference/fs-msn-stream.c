@@ -791,16 +791,22 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
 {
   FsMsnStream *self = FS_MSN_STREAM (stream);
   FsMsnConference *conference = fs_msn_stream_get_conference (self, error);
-  gboolean ret;
+  FsMsnConnection *conn = NULL;
+  gboolean ret = FALSE;
 
   if (!conference)
     return FALSE;
 
   GST_OBJECT_LOCK (conference);
-  ret = fs_msn_connection_set_remote_candidates (self->priv->connection,
-      candidates, error);
+  if (self->priv->connection)
+    conn = g_object_ref (self->priv->connection);
   GST_OBJECT_UNLOCK (conference);
 
+  if (conn)
+  {
+    ret = fs_msn_connection_set_remote_candidates (conn, candidates, error);
+    g_object_unref (conn);
+  }
 
   if (ret)
     gst_element_post_message (GST_ELEMENT (conference),
