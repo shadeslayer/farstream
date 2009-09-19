@@ -1201,7 +1201,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
         FS_RAWUDP_COMPONENT_UNLOCK (self);
       }
 
-      GST_DEBUG ("Doing UPnP Discovery for local ip:%s port:%s", ip, port);
+      GST_DEBUG ("Doing UPnP Discovery for local ip:%s port:%u", ip, port);
 
       gupnp_simple_igd_add_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
