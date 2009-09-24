@@ -144,7 +144,7 @@ _check_element_factory (gchar *name)
 
   g_return_val_if_fail (name, FALSE);
 
-  fact = gst_element_factory_find ("dtmfsrc");
+  fact = gst_element_factory_find (name);
   if (fact)
     gst_object_unref (fact);
 
@@ -178,7 +178,7 @@ fs_rtp_dtmf_sound_source_class_want_source (FsRtpSpecialSourceClass *klass,
   if (!_check_element_factory (encoder_name))
     return FALSE;
   if (!_check_element_factory (payloader_name))
-      return FALSE;
+    return FALSE;
 
   return TRUE;
 }
