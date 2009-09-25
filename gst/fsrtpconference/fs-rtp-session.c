@@ -3347,16 +3347,20 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
 static gboolean
 fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
     FsCodec *codec_without_config,
+    GstElement *send_codecbin,
     gboolean error_emit)
 {
   FS_RTP_SESSION_LOCK (self);
 
-  if (self->priv->send_codecbin)
+  if (self->priv->send_codecbin || send_codecbin)
   {
     GstElement *codecbin = self->priv->send_codecbin;
     self->priv->send_codecbin = NULL;
 
     FS_RTP_SESSION_UNLOCK (self);
+
+    if (!codecbin)
+      codecbin = send_codecbin;
 
     gst_element_set_locked_state (codecbin, TRUE);
     if (gst_element_set_state (codecbin, GST_STATE_NULL) !=
@@ -3601,7 +3605,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   return codecbin;
 
  error:
-  fs_rtp_session_remove_send_codec_bin (session, NULL, FALSE);
+  fs_rtp_session_remove_send_codec_bin (session, NULL, codecbin, FALSE);
   fs_codec_list_destroy (codecs);
   return NULL;
 
@@ -3661,7 +3665,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   g_object_set (self->priv->media_sink_valve, "drop", TRUE, NULL);
 
-  if (!fs_rtp_session_remove_send_codec_bin (self, codec_without_config,
+  if (!fs_rtp_session_remove_send_codec_bin (self, codec_without_config, NULL,
           TRUE))
     goto done;
 
