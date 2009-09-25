@@ -458,8 +458,21 @@ stop_and_remove (GstBin *conf, GstElement **element, gboolean unref)
     return;
 
   gst_element_set_locked_state (*element, TRUE);
-  gst_element_set_state (*element, GST_STATE_NULL);
-  gst_bin_remove (conf, *element);
+  if (gst_element_set_state (*element, GST_STATE_NULL) !=
+      GST_STATE_CHANGE_SUCCESS)
+  {
+    gchar *elemname = gst_element_get_name (*element);
+    GST_WARNING ("Could not set %s to GST_STATE_NULL", elemname);
+    g_free (elemname);
+  }
+  if (!gst_bin_remove (conf, *element))
+  {
+    gchar *binname = gst_element_get_name (conf);
+    gchar *elemname = gst_element_get_name (*element);
+    GST_WARNING ("Could not remove %s from %s", binname, elemname);
+    g_free (binname);
+    g_free (elemname);
+  }
   if (unref)
     gst_object_unref (*element);
   *element = NULL;
