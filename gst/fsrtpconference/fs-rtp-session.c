@@ -3511,7 +3511,8 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not iterate over the src pads of the send codec bin to link"
         " the main pad for pt %d", codec->id);
-    goto error;
+    gst_iterator_free (iter);
+   goto error;
   }
 
   gst_caps_unref (sendcaps);
