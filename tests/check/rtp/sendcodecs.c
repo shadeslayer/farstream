@@ -192,6 +192,7 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
   GList *filtered_codecs = NULL;
   GList *item = NULL;
   GError *error = NULL;
+  FsCodec *dtmf_codec = NULL;
 
   g_object_get (dat->session, "codecs", &codecs, NULL);
 
@@ -207,8 +208,9 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
     else if (codec->clock_rate == 8000 &&
         !g_ascii_strcasecmp (codec->encoding_name, "telephone-event"))
     {
-      ts_fail_unless (dtmf_id == 0, "More than one copy of telephone-event");
-      dtmf_id = codec->id;
+      ts_fail_unless (dtmf_codec == NULL,
+          "More than one copy of telephone-event");
+      dtmf_codec = codec;
       filtered_codecs = g_list_append (filtered_codecs, codec);
     }
   }
@@ -216,6 +218,8 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
   ts_fail_if (filtered_codecs == NULL, "PCMA and PCMU are not in the codecs"
       " you must install gst-plugins-good");
 
+  ts_fail_unless (dtmf_codec != NULL);
+  dtmf_codec->id = dtmf_id;
 
   if (!fs_stream_set_remote_codecs (stream, filtered_codecs, &error))
   {
@@ -243,7 +247,7 @@ one_way (GCallback havedata_handler, gpointer data)
   GList *candidates = NULL;
   GstBus *bus = NULL;
 
-  dtmf_id = 0;
+  dtmf_id = 96;
   digit = 0;
   sending = FALSE;
   received = FALSE;
