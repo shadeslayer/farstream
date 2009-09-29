@@ -3591,16 +3591,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   session->priv->current_send_codec = fs_codec_copy (codec);
   FS_RTP_SESSION_UNLOCK (session);
 
-  g_object_notify (G_OBJECT (session), "current-send-codec");
-
-  gst_element_post_message (GST_ELEMENT (session->priv->conference),
-      gst_message_new_element (GST_OBJECT (session->priv->conference),
-          gst_structure_new ("farsight-send-codec-changed",
-              "session", FS_TYPE_SESSION, session,
-              "codec", FS_TYPE_CODEC, codec,
-              NULL)));
-
-
   fs_codec_list_destroy (codecs);
 
   return codecbin;
@@ -3701,6 +3691,18 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       codec_without_config,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
+
+  if (!error)
+  {
+    g_object_notify (G_OBJECT (self), "current-send-codec");
+
+    gst_element_post_message (GST_ELEMENT (self->priv->conference),
+        gst_message_new_element (GST_OBJECT (self->priv->conference),
+            gst_structure_new ("farsight-send-codec-changed",
+                "session", FS_TYPE_SESSION, self,
+                "codec", FS_TYPE_CODEC, codec_without_config,
+                NULL)));
+  }
 
  done:
   g_clear_error (&error);
