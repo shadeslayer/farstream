@@ -243,7 +243,6 @@ one_way (GCallback havedata_handler, gpointer data)
   GList *candidates = NULL;
   GstBus *bus = NULL;
 
-  method = FS_DTMF_METHOD_AUTO;
   dtmf_id = 0;
   digit = 0;
   sending = FALSE;
