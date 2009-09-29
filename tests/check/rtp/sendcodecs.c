@@ -357,7 +357,6 @@ start_stop_sending_dtmf (gpointer data)
 
     ts_fail_unless (received == TRUE, "Did not receive any buffer for digit %d",
         digit);
-    received = FALSE;
 
     if (digit > FS_DTMF_EVENT_D)
     {
@@ -369,6 +368,7 @@ start_stop_sending_dtmf (gpointer data)
   {
     digit++;
 
+    received = FALSE;
     ts_fail_unless (fs_session_start_telephony_event (dat->session,
             digit, digit, method),
         "Could not start telephony event");
