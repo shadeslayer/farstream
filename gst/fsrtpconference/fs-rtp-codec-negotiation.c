@@ -1233,7 +1233,7 @@ codec_associations_list_are_equal (GList *list1, GList *list2)
 
 
 /**
- * lookup_codec_association_by_codec:
+ * lookup_codec_association_by_codec_without_config:
  * @codec_associations: a #GList of #CodecAssociation
  * @codec: The #FsCodec to look for
  *
