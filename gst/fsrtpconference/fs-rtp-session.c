@@ -3650,7 +3650,21 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   g_clear_error (&error);
 
   if (fs_codec_are_equal (codec_without_config, self->priv->current_send_codec))
-    goto done_locked;
+  {
+    FS_RTP_SESSION_UNLOCK (self);
+
+    /* If the main codec has not changed, the special codecs could still
+     * have changed, so lets try to see if it is necessary to do something
+     * about it.
+     */
+
+    fs_rtp_special_sources_remove (
+        &self->priv->extra_sources,
+        &self->priv->codec_associations,
+        FS_RTP_SESSION_GET_LOCK (self),
+        codec_without_config);
+    goto skip_main_codec;
+  }
 
   FS_RTP_SESSION_UNLOCK (self);
 
@@ -3684,6 +3698,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         "Could not build a new send codec bin", error->message);
   }
 
+ skip_main_codec:
+
   fs_rtp_special_sources_create (
       &self->priv->extra_sources,
       &self->priv->codec_associations,
@@ -3695,7 +3711,6 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   if (!error)
   {
     g_object_notify (G_OBJECT (self), "current-send-codec");
-
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
         gst_message_new_element (GST_OBJECT (self->priv->conference),
             gst_structure_new ("farsight-send-codec-changed",
