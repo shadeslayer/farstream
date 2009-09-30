@@ -63,6 +63,8 @@ struct _FsRtpSpecialSourcePrivate {
   GstPad *muxer_request_pad;
   GstElement *src;
 
+  FsCodec *codec;
+
   GThread *stop_thread;
 
   /* Protects the content of this struct after object has been disposed of */
@@ -352,15 +354,6 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
   return codec_associations;
 }
 
-static gboolean
-_source_order_compare_func (gconstpointer item1,gconstpointer item2)
-{
-  FsRtpSpecialSource *src1 = FS_RTP_SPECIAL_SOURCE_CAST (item1);
-  FsRtpSpecialSource *src2 = FS_RTP_SPECIAL_SOURCE_CAST (item2);
-
-  return src1->order - src2->order;
-}
-
 /**
  * fs_rtp_special_sources_remove:
  * @extra_sources: A pointer to the #GList returned by previous calls to this
@@ -421,6 +414,14 @@ fs_rtp_special_sources_remove (
   }
 }
 
+static gboolean
+_source_order_compare_func (gconstpointer item1,gconstpointer item2)
+{
+  FsRtpSpecialSource *src1 = FS_RTP_SPECIAL_SOURCE_CAST (item1);
+  FsRtpSpecialSource *src2 = FS_RTP_SPECIAL_SOURCE_CAST (item2);
+
+  return src1->order - src2->order;
+}
 
 /**
  * fs_rtp_special_sources_create:
