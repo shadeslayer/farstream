@@ -108,6 +108,8 @@ struct _FsRtpSpecialSource
    */
   guint order;
 
+  FsCodec *codec;
+
   FsRtpSpecialSourcePrivate *priv;
 };
 

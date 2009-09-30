@@ -94,9 +94,11 @@ fs_rtp_dtmf_sound_source_init (FsRtpDtmfSoundSource *self)
 static gboolean
 _is_law_codec (CodecAssociation *ca, gpointer user_data)
 {
-  if (ca->codec->id == 0 || ca->codec->id == 8)
+  if (codec_association_is_valid_for_sending (ca, FALSE) &&
+      (ca->codec->id == 0 || ca->codec->id == 8))
     return TRUE;
-  else return FALSE;
+  else
+    return FALSE;
 }
 
 /**
@@ -204,6 +206,11 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
       &encoder_name, &payloader_name);
 
   g_return_val_if_fail (telephony_codec, NULL);
+
+  source->codec = fs_codec_copy (telephony_codec);
+
+  GST_DEBUG ("Creating dtmf sound source for " FS_CODEC_FORMAT,
+      FS_CODEC_ARGS (telephony_codec));
 
   bin = gst_bin_new (NULL);
 

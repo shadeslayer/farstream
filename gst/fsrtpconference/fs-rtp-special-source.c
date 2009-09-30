@@ -30,6 +30,7 @@
 #include <gst/farsight/fs-base-conference.h>
 
 #include "fs-rtp-conference.h"
+#include "fs-rtp-codec-negotiation.h"
 
 #include "fs-rtp-special-source.h"
 
@@ -62,8 +63,6 @@ struct _FsRtpSpecialSourcePrivate {
 
   GstPad *muxer_request_pad;
   GstElement *src;
-
-  FsCodec *codec;
 
   GThread *stop_thread;
 
@@ -249,6 +248,10 @@ fs_rtp_special_source_finalize (GObject *object)
     self->priv->outer_bin = NULL;
   }
 
+  if (self->codec)
+    fs_codec_destroy (self->codec);
+  self->codec = NULL;
+
   if (self->priv->mutex)
     g_mutex_free (self->priv->mutex);
   self->priv->mutex = NULL;
@@ -354,6 +357,28 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
   return codec_associations;
 }
 
+/*
+ * Call with session lock held
+ */
+
+static gboolean
+fs_rtp_special_source_is_valid (FsRtpSpecialSource *self,
+    GList *negotiated_codecs)
+{
+  GList *item;
+
+  for (item = negotiated_codecs; item; item = g_list_next (item))
+  {
+    CodecAssociation *ca = item->data;
+
+    if (fs_codec_are_equal (self->codec, ca->codec) &&
+        codec_association_is_valid_for_sending (ca, FALSE))
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
 /**
  * fs_rtp_special_sources_remove:
  * @extra_sources: A pointer to the #GList returned by previous calls to this
@@ -400,7 +425,8 @@ fs_rtp_special_sources_remove (
 
     if (obj_item)
     {
-      if (!fs_rtp_special_source_class_want_source (klass, *negotiated_codecs,
+      if (!fs_rtp_special_source_is_valid (obj, *negotiated_codecs) ||
+          !fs_rtp_special_source_class_want_source (klass, *negotiated_codecs,
               send_codec))
       {
         *extra_sources = g_list_remove (*extra_sources, obj);
@@ -477,7 +503,10 @@ fs_rtp_special_sources_create (
       obj = fs_rtp_special_source_new (klass, negotiated_codecs, mutex,
           send_codec, bin, rtpmuxer);
       if (!obj)
+      {
+        GST_WARNING ("Failed to make new special source");
         return;
+      }
 
       g_mutex_lock (mutex);
 

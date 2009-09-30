@@ -197,7 +197,8 @@ _is_telephony_codec (CodecAssociation *ca, gpointer user_data)
 {
   guint clock_rate = GPOINTER_TO_UINT (user_data);
 
-  if (ca->codec->media_type == FS_MEDIA_TYPE_AUDIO &&
+  if (codec_association_is_valid_for_sending (ca, FALSE) &&
+      ca->codec->media_type == FS_MEDIA_TYPE_AUDIO &&
       !g_ascii_strcasecmp (ca->codec->encoding_name, "telephone-event") &&
       ca->codec->clock_rate == clock_rate)
     return TRUE;
@@ -261,7 +262,12 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
 
   g_return_val_if_fail (telephony_codec, NULL);
 
+  source->codec = fs_codec_copy (telephony_codec);
+
   bin = gst_bin_new (NULL);
+
+  GST_DEBUG ("Creating telephone-event source for " FS_CODEC_FORMAT,
+      FS_CODEC_ARGS (telephony_codec));
 
   dtmfsrc = gst_element_factory_make ("rtpdtmfsrc", NULL);
   if (!dtmfsrc)
