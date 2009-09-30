@@ -96,7 +96,8 @@ lookup_codec_association_by_codec_without_config (GList *codec_associations,
     FsCodec *codec);
 
 gboolean
-codec_association_is_valid_for_sending (CodecAssociation *ca);
+codec_association_is_valid_for_sending (CodecAssociation *ca,
+    gboolean needs_codecbin);
 
 GList *
 codec_associations_to_codecs (GList *codec_associations,

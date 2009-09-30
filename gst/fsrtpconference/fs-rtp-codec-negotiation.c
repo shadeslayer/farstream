@@ -502,12 +502,12 @@ dup_param_value (FsCodec *codec, const gchar *param_name)
 static GList *
 list_insert_local_ca (GList *list, CodecAssociation *ca)
 {
-  if (codec_association_is_valid_for_sending (ca))
+  if (codec_association_is_valid_for_sending (ca, TRUE))
   {
     GList *item;
 
     for (item = list; item; item = item->next)
-      if (!codec_association_is_valid_for_sending (item->data))
+      if (!codec_association_is_valid_for_sending (item->data, TRUE))
         break;
     if (item)
       return g_list_insert_before (list, item, ca);
@@ -905,7 +905,7 @@ negotiate_stream_codecs (
   {
     CodecAssociation *ca = item->data;
 
-    if (codec_association_is_valid_for_sending (ca))
+    if (codec_association_is_valid_for_sending (ca, TRUE))
       return new_codec_associations;
   }
 
@@ -1132,12 +1132,14 @@ codec_associations_to_codecs (GList *codec_associations,
 }
 
 gboolean
-codec_association_is_valid_for_sending (CodecAssociation *ca)
+codec_association_is_valid_for_sending (CodecAssociation *ca,
+    gboolean needs_codecbin)
 {
   if (!ca->disable &&
       !ca->reserved &&
       !ca->recv_only &&
-      ((ca->blueprint && ca->blueprint->send_pipeline_factory) ||
+      (!needs_codecbin ||
+          (ca->blueprint && ca->blueprint->send_pipeline_factory) ||
           ca->send_profile))
     return TRUE;
   else

@@ -3105,7 +3105,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
         session->priv->requested_send_codec);
     if (ca)
     {
-      if (!codec_association_is_valid_for_sending (ca))
+      if (!codec_association_is_valid_for_sending (ca, TRUE))
       {
         fs_codec_destroy (session->priv->requested_send_codec);
         session->priv->requested_send_codec = NULL;
@@ -3139,7 +3139,7 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
        ca_e;
        ca_e = g_list_next (ca_e))
   {
-    if (codec_association_is_valid_for_sending (ca_e->data))
+    if (codec_association_is_valid_for_sending (ca_e->data, TRUE))
     {
       ca = ca_e->data;
       break;
