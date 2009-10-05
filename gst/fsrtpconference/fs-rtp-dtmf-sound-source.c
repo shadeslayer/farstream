@@ -70,6 +70,12 @@ static gboolean fs_rtp_dtmf_sound_source_class_want_source (
     GList *negotiated_codecs,
     FsCodec *selected_codec);
 
+static FsCodec *fs_rtp_dtmf_sound_source_get_codec (
+    FsRtpSpecialSourceClass *klass,
+    GList *negotiated_codecs,
+    FsCodec *selected_codec);
+
+
 static void
 fs_rtp_dtmf_sound_source_class_init (FsRtpDtmfSoundSourceClass *klass)
 {
@@ -77,6 +83,7 @@ fs_rtp_dtmf_sound_source_class_init (FsRtpDtmfSoundSourceClass *klass)
 
   spsource_class->build = fs_rtp_dtmf_sound_source_build;
   spsource_class->want_source = fs_rtp_dtmf_sound_source_class_want_source;
+  spsource_class->get_codec = fs_rtp_dtmf_sound_source_get_codec;
 
   g_type_class_add_private (klass, sizeof (FsRtpDtmfSoundSourcePrivate));
 }
@@ -153,8 +160,8 @@ _check_element_factory (gchar *name)
   return (fact != NULL);
 }
 
-static gboolean
-fs_rtp_dtmf_sound_source_class_want_source (FsRtpSpecialSourceClass *klass,
+static FsCodec *
+fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec)
 {
@@ -163,26 +170,37 @@ fs_rtp_dtmf_sound_source_class_want_source (FsRtpSpecialSourceClass *klass,
   gchar *payloader_name = NULL;
 
   if (selected_codec->media_type != FS_MEDIA_TYPE_AUDIO)
-    return FALSE;
+    return NULL;
 
   if (selected_codec->clock_rate != 8000)
-    return FALSE;
+    return NULL;
 
   codec = get_pcm_law_sound_codec (negotiated_codecs,
       &encoder_name, &payloader_name);
   if (!codec)
-    return FALSE;
-
+    return NULL;
 
   if (!_check_element_factory ("dtmfsrc"))
-    return FALSE;
+    return NULL;
 
   if (!_check_element_factory (encoder_name))
-    return FALSE;
+    return NULL;
   if (!_check_element_factory (payloader_name))
-    return FALSE;
+    return NULL;
 
-  return TRUE;
+  return codec;
+}
+
+static gboolean
+fs_rtp_dtmf_sound_source_class_want_source (FsRtpSpecialSourceClass *klass,
+    GList *negotiated_codecs,
+    FsCodec *selected_codec)
+{
+  if (fs_rtp_dtmf_sound_source_get_codec (klass, negotiated_codecs,
+          selected_codec))
+    return TRUE;
+  else
+    return FALSE;
 }
 
 static GstElement *
