@@ -95,7 +95,7 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GstElement *rtpmuxer);
 
 
-FsCodec* fs_rtp_special_source_class_get_codec (FsRtpSpecialSource *source,
+FsCodec* fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec);
 
@@ -277,18 +277,6 @@ fs_rtp_special_source_class_add_blueprint (FsRtpSpecialSourceClass *klass,
   return blueprints;
 }
 
-static gboolean
-fs_rtp_special_source_class_want_source (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec)
-{
-  if (klass->want_source)
-    return klass->want_source (klass, negotiated_codecs, selected_codec);
-
-  return FALSE;
-}
-
-
 static GList*
 fs_rtp_special_source_class_negotiation_filter (FsRtpSpecialSourceClass *klass,
     GList *codec_associations)
@@ -362,28 +350,6 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
   return codec_associations;
 }
 
-/*
- * Call with session lock held
- */
-
-static gboolean
-fs_rtp_special_source_is_valid (FsRtpSpecialSource *self,
-    GList *negotiated_codecs)
-{
-  GList *item;
-
-  for (item = negotiated_codecs; item; item = g_list_next (item))
-  {
-    CodecAssociation *ca = item->data;
-
-    if (fs_codec_are_equal (self->codec, ca->codec) &&
-        codec_association_is_valid_for_sending (ca, FALSE))
-      return TRUE;
-  }
-
-  return FALSE;
-}
-
 /**
  * fs_rtp_special_sources_remove:
  * @extra_sources: A pointer to the #GList returned by previous calls to this
@@ -430,9 +396,10 @@ fs_rtp_special_sources_remove (
 
     if (obj_item)
     {
-      if (!fs_rtp_special_source_is_valid (obj, *negotiated_codecs) ||
-          !fs_rtp_special_source_class_want_source (klass, *negotiated_codecs,
-              send_codec))
+      FsCodec *telephony_codec =  fs_rtp_special_source_class_get_codec (klass,
+          *negotiated_codecs, send_codec);
+
+      if (!telephony_codec || !fs_codec_are_equal (telephony_codec, obj->codec))
       {
         *extra_sources = g_list_remove (*extra_sources, obj);
         g_mutex_unlock (mutex);
@@ -501,7 +468,7 @@ fs_rtp_special_sources_create (
     }
 
     if (!obj_item &&
-        fs_rtp_special_source_class_want_source (klass, *negotiated_codecs,
+        fs_rtp_special_source_class_get_codec (klass, *negotiated_codecs,
             send_codec))
     {
       g_mutex_unlock (mutex);
@@ -786,7 +753,7 @@ fs_rtp_special_sources_destroy (GList *current_extra_sources)
  * Returns: The codec or %NULL. This returns the codec, not a copy
  */
 FsCodec*
-fs_rtp_special_source_get_codec (FsRtpSpecialSourceClass *klass,
+fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec)
 {

@@ -58,8 +58,6 @@ typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
  * FsRtpSpecialSourceClass:
  * @build: The method builds the source #GstElement from the list of negotiated
  *  codecs and selected codecs, it returns %NULL on error
- * @want_source: Returns %TRUE if a source of this type should be created
- *  according to the selected codec and the negotiated codecs
  * @add_blueprint: Adds #CodecBlueprint structs to the list if the proper
  *  elements are installed, the result should always be the same if the elements
  *  installed don't change. It must fill the #CodecBlueprint completely except
@@ -69,7 +67,7 @@ typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
  *  to the special source specific rules.
  * @get_codec: Gets the codec used by this source
  *
- * Class structure for #FsRtpSpecialSource, the build() and want_source()
+ * Class structure for #FsRtpSpecialSource, the build() and get_codec()
  * methods are required.
  */
 
@@ -84,10 +82,6 @@ struct _FsRtpSpecialSourceClass
       FsCodec *selected_codec);
 
    /* Class methods */
-  gboolean (*want_source) (FsRtpSpecialSourceClass *klass,
-      GList *negotiated_codecs,
-      FsCodec *selected_codec);
-
   GList* (*add_blueprint) (FsRtpSpecialSourceClass *klass,
       GList *blueprints);
 

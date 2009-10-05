@@ -65,10 +65,6 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
     FsCodec *selected_codec);
 
 
-static gboolean fs_rtp_dtmf_event_source_class_want_source (
-    FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec);
 static GList *fs_rtp_dtmf_event_source_class_add_blueprint (
     FsRtpSpecialSourceClass *klass,
     GList *blueprints);
@@ -86,7 +82,6 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   FsRtpSpecialSourceClass *spsource_class = FS_RTP_SPECIAL_SOURCE_CLASS (klass);
 
   spsource_class->build = fs_rtp_dtmf_event_source_build;
-  spsource_class->want_source = fs_rtp_dtmf_event_source_class_want_source;
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
   spsource_class->negotiation_filter =
     fs_rtp_dtmf_event_source_negotiation_filter;
@@ -237,18 +232,6 @@ fs_rtp_dtmf_event_source_get_codec (FsRtpSpecialSourceClass *klass,
     return ca->codec;
   else
     return NULL;
-}
-
-static gboolean
-fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec)
-{
-  if (fs_rtp_dtmf_event_source_get_codec (klass, negotiated_codecs,
-          selected_codec))
-    return TRUE;
-  else
-    return FALSE;
 }
 
 static GstElement *

@@ -65,11 +65,6 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
     FsCodec *selected_codec);
 
 
-static gboolean fs_rtp_dtmf_sound_source_class_want_source (
-    FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec);
-
 static FsCodec *fs_rtp_dtmf_sound_source_get_codec (
     FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
@@ -82,7 +77,6 @@ fs_rtp_dtmf_sound_source_class_init (FsRtpDtmfSoundSourceClass *klass)
   FsRtpSpecialSourceClass *spsource_class = FS_RTP_SPECIAL_SOURCE_CLASS (klass);
 
   spsource_class->build = fs_rtp_dtmf_sound_source_build;
-  spsource_class->want_source = fs_rtp_dtmf_sound_source_class_want_source;
   spsource_class->get_codec = fs_rtp_dtmf_sound_source_get_codec;
 
   g_type_class_add_private (klass, sizeof (FsRtpDtmfSoundSourcePrivate));
@@ -189,18 +183,6 @@ fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
     return NULL;
 
   return codec;
-}
-
-static gboolean
-fs_rtp_dtmf_sound_source_class_want_source (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
-    FsCodec *selected_codec)
-{
-  if (fs_rtp_dtmf_sound_source_get_codec (klass, negotiated_codecs,
-          selected_codec))
-    return TRUE;
-  else
-    return FALSE;
 }
 
 static GstElement *
