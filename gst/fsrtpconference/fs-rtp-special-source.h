@@ -67,6 +67,7 @@ typedef struct _FsRtpSpecialSourcePrivate FsRtpSpecialSourcePrivate;
  *  class, this method is not required.
  * @negotiation_filter: This filters out the invalid CodecAssociation according
  *  to the special source specific rules.
+ * @get_codec: Gets the codec used by this source
  *
  * Class structure for #FsRtpSpecialSource, the build() and want_source()
  * methods are required.
@@ -92,6 +93,10 @@ struct _FsRtpSpecialSourceClass
 
   GList* (*negotiation_filter) (FsRtpSpecialSourceClass *klass,
       GList *codec_associations);
+
+  FsCodec* (*get_codec) (FsRtpSpecialSourceClass *klass,
+      GList *negotiated_codecs,
+      FsCodec *selected_codec);
 };
 
 /**

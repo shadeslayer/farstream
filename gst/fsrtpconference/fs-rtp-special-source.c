@@ -94,6 +94,11 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GstElement *bin,
     GstElement *rtpmuxer);
 
+
+FsCodec* fs_rtp_special_source_class_get_codec (FsRtpSpecialSource *source,
+    GList *negotiated_codecs,
+    FsCodec *selected_codec);
+
 static gpointer
 register_classes (gpointer data)
 {
@@ -769,6 +774,24 @@ fs_rtp_special_sources_destroy (GList *current_extra_sources)
 {
   g_list_foreach (current_extra_sources, (GFunc) g_object_unref, NULL);
   g_list_free (current_extra_sources);
+
+  return NULL;
+}
+
+/**
+ * fs_rtp_special_source_class_get_codec:
+ *
+ * Returns the codec that will be selected by this source if it is used
+ *
+ * Returns: The codec or %NULL. This returns the codec, not a copy
+ */
+FsCodec*
+fs_rtp_special_source_get_codec (FsRtpSpecialSourceClass *klass,
+    GList *negotiated_codecs,
+    FsCodec *selected_codec)
+{
+  if (klass->get_codec)
+    return klass->get_codec (klass, negotiated_codecs, selected_codec);
 
   return NULL;
 }
