@@ -75,6 +75,10 @@ static GList *fs_rtp_dtmf_event_source_class_add_blueprint (
 static GList *fs_rtp_dtmf_event_source_negotiation_filter (
     FsRtpSpecialSourceClass *klass,
     GList *codec_associations);
+static  FsCodec *fs_rtp_dtmf_event_source_get_codec (
+    FsRtpSpecialSourceClass *klass,
+    GList *negotiated_codecs,
+    FsCodec *codec);
 
 static void
 fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
@@ -86,6 +90,7 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
   spsource_class->add_blueprint = fs_rtp_dtmf_event_source_class_add_blueprint;
   spsource_class->negotiation_filter =
     fs_rtp_dtmf_event_source_negotiation_filter;
+  spsource_class->get_codec = fs_rtp_dtmf_event_source_get_codec;
 
   g_type_class_add_private (klass, sizeof (FsRtpDtmfEventSourcePrivate));
 }
@@ -207,22 +212,26 @@ _is_telephony_codec (CodecAssociation *ca, gpointer user_data)
 }
 
 /**
- * get_telephone_event_codec:
- * @codecs: a #GList of #FsCodec
- * @clock_rate: The clock rate to look for
+ * fs_rtp_dtmf_event_source_get_codec:
+ * @negotiated_codecs: a #GList of currently negotiated #FsCodec
+ * @selected_codec: The current #FsCodec
  *
  * Find the telephone-event codec with the proper clock rate in the list
  *
  * Returns: The #FsCodec of type "telephone-event" with the requested clock-rate
  *   from the list, or %NULL
  */
-static FsCodec *
-get_telephone_event_codec (GList *codecs, guint clock_rate)
+static  FsCodec *
+fs_rtp_dtmf_event_source_get_codec (FsRtpSpecialSourceClass *klass,
+    GList *negotiated_codecs, FsCodec *selected_codec)
 {
   CodecAssociation *ca = NULL;
 
-  ca = lookup_codec_association_custom (codecs, _is_telephony_codec,
-      GUINT_TO_POINTER (clock_rate));
+  if (selected_codec->media_type != FS_MEDIA_TYPE_AUDIO)
+    return NULL;
+
+  ca = lookup_codec_association_custom (negotiated_codecs, _is_telephony_codec,
+      GUINT_TO_POINTER (selected_codec->clock_rate));
 
   if (ca)
     return ca->codec;
@@ -235,10 +244,8 @@ fs_rtp_dtmf_event_source_class_want_source (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codecs,
     FsCodec *selected_codec)
 {
-  if (selected_codec->media_type != FS_MEDIA_TYPE_AUDIO)
-    return FALSE;
-
-  if (get_telephone_event_codec (negotiated_codecs, selected_codec->clock_rate))
+  if (fs_rtp_dtmf_event_source_get_codec (klass, negotiated_codecs,
+          selected_codec))
     return TRUE;
   else
     return FALSE;
@@ -257,8 +264,9 @@ fs_rtp_dtmf_event_source_build (FsRtpSpecialSource *source,
   GstPad *ghostpad = NULL;
   GstElement *bin = NULL;
 
-  telephony_codec = get_telephone_event_codec (negotiated_codecs,
-      selected_codec->clock_rate);
+  telephony_codec = fs_rtp_dtmf_event_source_get_codec (
+      FS_RTP_SPECIAL_SOURCE_GET_CLASS(source), negotiated_codecs,
+      selected_codec);
 
   g_return_val_if_fail (telephony_codec, NULL);
 
