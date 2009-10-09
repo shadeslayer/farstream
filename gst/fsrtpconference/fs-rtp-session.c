@@ -3484,7 +3484,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
           codecbin, "sink"))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not get the valve sink for the send codec bin");
+        "Could not link the send codec bin sink pad");
     gst_bin_remove (GST_BIN (session->priv->conference), (codecbin));
     fs_codec_list_destroy (codecs);
     return NULL;
