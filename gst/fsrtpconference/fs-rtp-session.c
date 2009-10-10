@@ -2717,96 +2717,14 @@ validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
  */
 
 static GstElement *
-_create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
-    const gchar *name, gboolean is_send, GList *codecs,
-    GError **error)
+create_codec_bin_from_factory (const FsCodec *codec, GList *pipeline_factory,
+    const gchar *name, gboolean is_send, GError **error)
 {
-  GList *pipeline_factory = NULL;
-  GList *walk = NULL;
   GstElement *codec_bin = NULL;
+  gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
+  GList *walk = NULL;
   GstElement *current_element = NULL;
   GstElement *previous_element = NULL;
-  gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
-  gchar *profile = NULL;
-
-  if (is_send)
-    profile = ca->send_profile;
-  else
-    profile = ca->recv_profile;
-
-  if (ca->blueprint)
-  {
-    if (is_send)
-      pipeline_factory = ca->blueprint->send_pipeline_factory;
-    else
-      pipeline_factory = ca->blueprint->receive_pipeline_factory;
-  }
-
-  if (profile)
-  {
-    GError *tmperror = NULL;
-    guint src_pad_count = 0, sink_pad_count = 0;
-
-    codec_bin = gst_parse_bin_from_description (profile, TRUE, &tmperror);
-    codec_bin = parse_bin_from_description_all_linked (profile,
-        &src_pad_count, &sink_pad_count, &tmperror);
-
-    if (codec_bin)
-    {
-      if (sink_pad_count != 1 || src_pad_count == 0)
-      {
-        GST_ERROR ("Invalid pad count (src:%u sink:%u)"
-            " from codec profile: %s", src_pad_count, sink_pad_count, profile);
-        gst_object_unref (codec_bin);
-        codec_bin = NULL;
-        goto try_factory;
-      }
-
-      if (codecs && src_pad_count > 1)
-      {
-        GstIterator *iter;
-        GValue valid = {0};
-        GstIteratorResult res;
-
-        iter = gst_element_iterate_src_pads (codec_bin);
-        g_value_init (&valid, G_TYPE_BOOLEAN);
-        g_value_set_boolean (&valid, TRUE);
-        res = gst_iterator_fold (iter, validate_src_pads, &valid,
-            codecs);
-        gst_iterator_free (iter);
-
-        if (!g_value_get_boolean (&valid) || res == GST_ITERATOR_ERROR)
-        {
-          gst_object_unref (codec_bin);
-          codec_bin = NULL;
-          goto try_factory;
-        }
-      }
-
-      GST_DEBUG ("creating %s codec bin for id %d, profile: %s",
-          direction_str, codec->id, profile);
-      gst_element_set_name (codec_bin, name);
-      return codec_bin;
-    }
-    else if (!pipeline_factory)
-    {
-      g_propagate_error (error, tmperror);
-      return NULL;
-    }
-  }
-
- try_factory:
-
-  if (!pipeline_factory)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
-        "The %s codec %s does not have a pipeline,"
-        " its probably a special codec",
-        fs_media_type_to_string (codec->media_type),
-        codec->encoding_name);
-    return NULL;
-  }
-
 
   GST_DEBUG ("creating %s codec bin for id %d, pipeline_factory %p",
     direction_str, codec->id, pipeline_factory);
@@ -2932,6 +2850,97 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
  error:
   gst_object_unref (codec_bin);
   return NULL;
+}
+
+static GstElement *
+_create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
+    const gchar *name, gboolean is_send, GList *codecs, GError **error)
+{
+  GList *pipeline_factory = NULL;
+  GstElement *codec_bin = NULL;
+  gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
+  gchar *profile = NULL;
+
+  if (is_send)
+    profile = ca->send_profile;
+  else
+    profile = ca->recv_profile;
+
+  if (ca->blueprint)
+  {
+    if (is_send)
+      pipeline_factory = ca->blueprint->send_pipeline_factory;
+    else
+      pipeline_factory = ca->blueprint->receive_pipeline_factory;
+  }
+
+  if (profile)
+  {
+    GError *tmperror = NULL;
+    guint src_pad_count = 0, sink_pad_count = 0;
+
+    codec_bin = gst_parse_bin_from_description (profile, TRUE, &tmperror);
+    codec_bin = parse_bin_from_description_all_linked (profile,
+        &src_pad_count, &sink_pad_count, &tmperror);
+
+    if (codec_bin)
+    {
+      if (sink_pad_count != 1 || src_pad_count == 0)
+      {
+        GST_ERROR ("Invalid pad count (src:%u sink:%u)"
+            " from codec profile: %s", src_pad_count, sink_pad_count, profile);
+        gst_object_unref (codec_bin);
+        codec_bin = NULL;
+        goto try_factory;
+      }
+
+      if (codecs && src_pad_count > 1)
+      {
+        GstIterator *iter;
+        GValue valid = {0};
+        GstIteratorResult res;
+
+        iter = gst_element_iterate_src_pads (codec_bin);
+        g_value_init (&valid, G_TYPE_BOOLEAN);
+        g_value_set_boolean (&valid, TRUE);
+        res = gst_iterator_fold (iter, validate_src_pads, &valid,
+            codecs);
+        gst_iterator_free (iter);
+
+        if (!g_value_get_boolean (&valid) || res == GST_ITERATOR_ERROR)
+        {
+          gst_object_unref (codec_bin);
+          codec_bin = NULL;
+          goto try_factory;
+        }
+      }
+
+      GST_DEBUG ("creating %s codec bin for id %d, profile: %s",
+          direction_str, codec->id, profile);
+      gst_element_set_name (codec_bin, name);
+      return codec_bin;
+    }
+    else if (!pipeline_factory)
+    {
+      g_propagate_error (error, tmperror);
+      return NULL;
+    }
+  }
+
+ try_factory:
+
+  if (!pipeline_factory)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
+        "The %s codec %s does not have a pipeline,"
+        " its probably a special codec",
+        fs_media_type_to_string (codec->media_type),
+        codec->encoding_name);
+    return NULL;
+  }
+
+  return create_codec_bin_from_factory (codec, pipeline_factory, name, is_send,
+      error);
 }
 
 /**
