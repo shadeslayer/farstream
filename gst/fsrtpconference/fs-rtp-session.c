@@ -2766,12 +2766,6 @@ create_codec_bin_from_factory (const FsCodec *codec, GList *pipeline_factory,
       goto error;
     }
 
-    /* queue delay to 0 on all depayloaders until I remove that property
-     * all-together */
-
-    if (_g_object_has_property (G_OBJECT (current_element), "queue-delay"))
-      g_object_set (G_OBJECT (current_element), "queue-delay", 0, NULL);
-
     if (_g_object_has_property (G_OBJECT (current_element), "pt"))
       g_object_set (current_element, "pt", codec->id,
         NULL);
