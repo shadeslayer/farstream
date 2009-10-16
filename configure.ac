@@ -137,7 +137,8 @@ dnl these are all the transmitter plug-ins
 FS2_TRANSMITTER_PLUGINS_ALL=" \
 	rawudp \
 	multicast \
-	nice
+	nice \
+	shm
 	"
 AC_SUBST(FS2_TRANSMITTER_PLUGINS_ALL)
 
@@ -399,6 +400,7 @@ transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile
 transmitters/nice/Makefile
+transmitters/shm/Makefile
 dnl pkgconfig/Makefile
 dnl pkgconfig/farsight2.pc
 dnl pkgconfig/farsight2-uninstalled.pc
