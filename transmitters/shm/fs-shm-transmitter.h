@@ -75,7 +75,7 @@ struct _FsShmTransmitter
 {
   FsTransmitter parent;
 
-  /* The number of components (READONLY)*/
+  /* The number of components (READONLY) */
   gint components;
 
   /*< private >*/
@@ -83,6 +83,40 @@ struct _FsShmTransmitter
 };
 
 GType fs_shm_transmitter_get_type (void);
+
+typedef struct _ShmSrc ShmSrc;
+typedef struct _ShmSink ShmSink;
+
+typedef void (*got_buffer) (GstBuffer *buffer, guint component, gpointer data);
+typedef void (*ready) (guint component, gchar *path, gpointer data);
+typedef void (*connected) (guint component, gint id, gpointer data);
+
+ShmSrc *fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
+    guint component,
+    const gchar *path,
+    got_buffer got_buffer_func,
+    gpointer cb_data,
+    GError **error);
+
+gboolean fs_shm_transmitter_check_shm_src (FsShmTransmitter *self,
+    ShmSrc *shm,
+    const gchar *path);
+
+ShmSink *fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
+    guint component,
+    const gchar *path,
+    ready ready_func,
+    connected connected_func,
+    gpointer cb_data,
+    GError **error);
+
+gboolean fs_shm_transmitter_check_shm_sink (FsShmTransmitter *self,
+    ShmSink *shm,
+    const gchar *path);
+
+void fs_shm_transmitter_sink_set_sending (FsShmTransmitter *self,
+    ShmSink *shm, gboolean sending);
+
 
 
 G_END_DECLS
