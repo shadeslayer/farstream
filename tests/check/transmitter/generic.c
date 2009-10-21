@@ -110,7 +110,7 @@ setup_pipeline (FsTransmitter *trans, GCallback cb)
   g_object_get (trans, "gst-sink", &trans_sink, "gst-src", &trans_src, NULL);
 
 
-  g_object_set (rtpfakesink, "signal-handoffs", TRUE, "sync", FALSE, NULL);
+  g_object_set (rtpfakesink, "signal-handoffs", TRUE, "sync", FALSE, "async", FALSE, NULL);
   g_object_set (rtcpfakesink, "signal-handoffs", TRUE, "sync", FALSE,
     "async", FALSE, NULL);
 

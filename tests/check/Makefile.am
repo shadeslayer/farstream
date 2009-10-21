@@ -12,7 +12,7 @@ TESTS_ENVIRONMENT = \
 	$(REGISTRY_ENVIRONMENT)					\
 	GST_PLUGIN_LOADING_WHITELIST=gstreamer:gst-plugins-base:gst-plugins-good:libnice:valve:siren:autoconvert:rtpmux:dtmf:mimic:farsight2@$(top_builddir)/gst \
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
-	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs \
+	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs:$(top_builddir)/transmitters/shm/.libs \
 	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH} \
 	UPNP_XML_PATH=$(srcdir)/upnp \
 	SRCDIR=$(srcdir) \
@@ -48,6 +48,7 @@ check_PROGRAMS = \
 	transmitter/rawudp \
 	transmitter/multicast \
 	transmitter/nice \
+	transmitter/shm \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
@@ -109,6 +110,17 @@ transmitter_nice_SOURCES = \
 	transmitter/fake-filter.c \
 	transmitter/fake-filter.h \
 	transmitter/nice.c 
+
+
+transmitter_shm_CFLAGS = $(AM_CFLAGS) $(GUPNP_CFLAGS) $(NICE_CFLAGS)
+transmitter_shm_LDADD = $(LDADD) \
+	$(GUPNP_LIBS) \
+	$(NICE_LIBS)
+transmitter_shm_SOURCES = \
+	check-threadsafe.h  \
+	transmitter/generic.c \
+	transmitter/generic.h \
+	transmitter/shm.c
 
 rtp_conference_CFLAGS = $(AM_CFLAGS)
 rtp_conference_SOURCES = \
