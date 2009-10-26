@@ -158,6 +158,9 @@ GST_START_TEST (test_rtpcodecs_codec_preferences)
     codec->id = FS_CODEC_ID_DISABLE;
   }
 
+  codecs = g_list_prepend (codecs, fs_codec_new (116, "reserve-pt",
+          FS_MEDIA_TYPE_AUDIO, 0));
+
   fail_if (fs_session_set_codec_preferences (dat->session, codecs,
           &error),
       "Disabling all codecs did not fail");
