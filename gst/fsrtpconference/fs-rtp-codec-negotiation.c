@@ -539,6 +539,7 @@ create_local_codec_associations (
   GList *bp_e = NULL;
   GList *codec_pref_e = NULL;
   GList *lca_e = NULL;
+  gboolean has_valid_codec = FALSE;
 
   if (blueprints == NULL)
     return NULL;
@@ -792,8 +793,16 @@ create_local_codec_associations (
       ca->need_config = FALSE;
     else
       ca->need_config = codec_needs_config (ca->codec);
+
+    if (codec_association_is_valid_for_sending (ca, TRUE))
+      has_valid_codec = TRUE;
   }
 
+  if (!has_valid_codec)
+  {
+    GST_WARNING ("All codecs disabled by preferences");
+    goto error;
+  }
 
   return codec_associations;
 
