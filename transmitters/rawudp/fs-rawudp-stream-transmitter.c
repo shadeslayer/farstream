@@ -81,7 +81,7 @@
 #define GST_CAT_DEFAULT fs_rawudp_transmitter_debug
 
 #define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
-#define DEFAULT_UPNP_DISCOVERY_TIMEOUT (10)
+#define DEFAULT_UPNP_DISCOVERY_TIMEOUT (2)
 #define DEFAULT_UPNP_REQUEST_TIMEOUT (10)
 
 /* Signals */
