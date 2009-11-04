@@ -95,7 +95,8 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
     GstElement *rtpmuxer);
 
 
-FsCodec* fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
+static FsCodec* fs_rtp_special_source_class_get_codec (
+    FsRtpSpecialSourceClass *klass,
     GList *negotiated_codec_associations,
     FsCodec *selected_codec);
 
@@ -753,7 +754,7 @@ fs_rtp_special_sources_destroy (GList *current_extra_sources)
  *
  * Returns: The codec or %NULL. This returns the codec, not a copy
  */
-FsCodec*
+static FsCodec*
 fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
     GList *negotiated_codec_associations,
     FsCodec *selected_codec)
