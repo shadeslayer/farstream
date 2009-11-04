@@ -1148,7 +1148,8 @@ codec_association_is_valid_for_sending (CodecAssociation *ca,
       !ca->reserved &&
       !ca->recv_only &&
       (!needs_codecbin ||
-          (ca->blueprint && ca->blueprint->send_pipeline_factory) ||
+          (ca->blueprint &&
+              codec_blueprint_has_factory (ca->blueprint, TRUE)) ||
           ca->send_profile))
     return TRUE;
   else

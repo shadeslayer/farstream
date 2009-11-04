@@ -2614,60 +2614,6 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
   fs_rtp_session_has_disposed_exit (session);
 }
 
-
-
-static gboolean
-_g_object_has_property (GObject *object, const gchar *property)
-{
- GObjectClass *klass;
-
-  klass = G_OBJECT_GET_CLASS (object);
-  return NULL != g_object_class_find_property (klass, property);
-}
-
-
-static gboolean
-_create_ghost_pad (GstElement *current_element, const gchar *padname, GstElement
-  *codec_bin, GError **error)
-{
-  GstPad *ghostpad;
-  GstPad *pad = gst_element_get_static_pad (current_element, padname);
-  gboolean ret = FALSE;
-
-  if (!pad)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not find the %s pad on the element", padname);
-      return FALSE;
-  }
-
-  ghostpad = gst_ghost_pad_new (padname, pad);
-  if (!ghostpad)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not create a ghost pad for pad %s", padname);
-    goto done;
-  }
-
-  if (!gst_pad_set_active (ghostpad, TRUE))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not active ghostpad %s", padname);
-    gst_object_unref (ghostpad);
-    goto done;
-  }
-
-  if (!gst_element_add_pad (codec_bin, ghostpad))
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-      "Could not add ghostpad %s to the codec bin", padname);
-
-  ret = TRUE;
- done:
-  gst_object_unref (pad);
-
-  return ret;
-}
-
 static gboolean
 validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
 {
@@ -2711,146 +2657,11 @@ validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
   return FALSE;
 }
 
-/*
- * Builds a codec bin in the specified direction for the specified codec
- * using the specified blueprint
- */
-
-static GstElement *
-create_codec_bin_from_factory (const FsCodec *codec, GList *pipeline_factory,
-    const gchar *name, gboolean is_send, GError **error)
-{
-  GstElement *codec_bin = NULL;
-  gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
-  GList *walk = NULL;
-  GstElement *current_element = NULL;
-  GstElement *previous_element = NULL;
-
-  GST_DEBUG ("creating %s codec bin for id %d, pipeline_factory %p",
-    direction_str, codec->id, pipeline_factory);
-  codec_bin = gst_bin_new (name);
-
-  for (walk = g_list_first (pipeline_factory); walk; walk = g_list_next (walk))
-  {
-    if (g_list_next (g_list_first (walk->data)))
-    {
-      /* We have to check some kind of configuration to see if we have a
-         favorite */
-      current_element = gst_element_factory_make ("autoconvert", NULL);
-
-      if (!current_element)
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not create autoconvert element");
-        goto error;
-      }
-
-      g_object_set (current_element, "factories", walk->data, NULL);
-    } else {
-      current_element =
-        gst_element_factory_create (
-            GST_ELEMENT_FACTORY (g_list_first (walk->data)->data), NULL);
-      if (!current_element)
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not create element for pt %d", codec->id);
-        goto error;
-      }
-    }
-
-    if (!gst_bin_add (GST_BIN (codec_bin), current_element))
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add new element to %s codec_bin for pt %d",
-        direction_str, codec->id);
-      goto error;
-    }
-
-    if (_g_object_has_property (G_OBJECT (current_element), "pt"))
-      g_object_set (current_element, "pt", codec->id,
-        NULL);
-
-    /* Lets create the ghost pads on the codec bin */
-
-    if (g_list_previous (walk) == NULL)
-      /* if its the first element of the codec bin */
-      if (!_create_ghost_pad (current_element,
-              is_send ? "src" : "sink", codec_bin, error))
-        goto error;
-
-    if (g_list_next (walk) == NULL)
-      /* if its the last element of the codec bin */
-      if (!_create_ghost_pad (current_element,
-              is_send ? "sink" : "src" , codec_bin, error))
-        goto error;
-
-
-    /* let's link them together using the specified media_caps if any
-     * this will ensure that multi-codec encoders/decoders will select the
-     * appropriate codec based on caps negotiation */
-    if (previous_element)
-    {
-      GstPad *sinkpad;
-      GstPad *srcpad;
-      GstPadLinkReturn ret;
-
-      if (is_send)
-        sinkpad = gst_element_get_static_pad (previous_element, "sink");
-      else
-        sinkpad = gst_element_get_static_pad (current_element, "sink");
-
-      if (!sinkpad)
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not get the sink pad one of the elements in the %s codec bin"
-          " for pt %d", direction_str, codec->id);
-        goto error;
-      }
-
-
-      if (is_send)
-        srcpad = gst_element_get_static_pad (current_element, "src");
-      else
-        srcpad = gst_element_get_static_pad (previous_element, "src");
-
-      if (!srcpad)
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not get the src pad one of the elements in the %s codec bin"
-          " for pt %d", direction_str, codec->id);
-        gst_object_unref (sinkpad);
-        goto error;
-      }
-
-      ret = gst_pad_link (srcpad, sinkpad);
-
-      gst_object_unref (srcpad);
-      gst_object_unref (sinkpad);
-
-      if (GST_PAD_LINK_FAILED (ret))
-      {
-        g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-          "Could not link element inside the %s codec bin for pt %d",
-          direction_str, codec->id);
-        goto error;
-      }
-    }
-
-    previous_element = current_element;
-  }
-
-  return codec_bin;
-
- error:
-  gst_object_unref (codec_bin);
-  return NULL;
-}
 
 static GstElement *
 _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
     const gchar *name, gboolean is_send, GList *codecs, GError **error)
 {
-  GList *pipeline_factory = NULL;
   GstElement *codec_bin = NULL;
   gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
   gchar *profile = NULL;
@@ -2859,14 +2670,6 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
     profile = ca->send_profile;
   else
     profile = ca->recv_profile;
-
-  if (ca->blueprint)
-  {
-    if (is_send)
-      pipeline_factory = ca->blueprint->send_pipeline_factory;
-    else
-      pipeline_factory = ca->blueprint->receive_pipeline_factory;
-  }
 
   if (profile)
   {
@@ -2914,7 +2717,7 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
       gst_element_set_name (codec_bin, name);
       return codec_bin;
     }
-    else if (!pipeline_factory)
+    else if (!codec_blueprint_has_factory (ca->blueprint, is_send))
     {
       g_propagate_error (error, tmperror);
       return NULL;
@@ -2923,18 +2726,8 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
 
  try_factory:
 
-  if (!pipeline_factory)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_UNKNOWN_CODEC,
-        "The %s codec %s does not have a pipeline,"
-        " its probably a special codec",
-        fs_media_type_to_string (codec->media_type),
-        codec->encoding_name);
-    return NULL;
-  }
-
-  return create_codec_bin_from_factory (codec, pipeline_factory, name, is_send,
-      error);
+  return create_codec_bin_from_blueprint (codec, ca->blueprint, name,
+      is_send, error);
 }
 
 /**

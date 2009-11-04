@@ -53,6 +53,13 @@ typedef struct _CodecBlueprint
 GList *fs_rtp_blueprints_get (FsMediaType media_type, GError **error);
 void fs_rtp_blueprints_unref (FsMediaType media_type);
 
+gboolean codec_blueprint_has_factory (CodecBlueprint *blueprint,
+    gboolean is_send);
+
+GstElement * create_codec_bin_from_blueprint (const FsCodec *codec,
+    CodecBlueprint *blueprint, const gchar *name, gboolean is_send,
+    GError **error);
+
 
 /*
  * Only exported for the caching stuff
