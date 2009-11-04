@@ -88,7 +88,7 @@ static void fs_rtp_special_source_finalize (GObject *object);
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
-    GList **negotiated_codecs,
+    GList **negotiated_codec_associations,
     GMutex *mutex,
     FsCodec *selected_codec,
     GstElement *bin,
@@ -96,7 +96,7 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
 
 
 FsCodec* fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
+    GList *negotiated_codec_associations,
     FsCodec *selected_codec);
 
 static gpointer
@@ -354,7 +354,7 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
  * fs_rtp_special_sources_remove:
  * @extra_sources: A pointer to the #GList returned by previous calls to this
  *  function
- * @negotiated_codecs: A pointer to the #GList of current negotiated
+ * @negotiated_codec_associations: A pointer to the #GList of current negotiated
  * #CodecAssociation
  * @mutex: the mutex protecting the last two things
  * @send_codec: A pointer to the currently selected send codec
@@ -365,7 +365,7 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
 void
 fs_rtp_special_sources_remove (
     GList **extra_sources,
-    GList **negotiated_codecs,
+    GList **negotiated_codec_associations,
     GMutex *mutex,
     FsCodec *send_codec)
 {
@@ -397,7 +397,7 @@ fs_rtp_special_sources_remove (
     if (obj_item)
     {
       FsCodec *telephony_codec =  fs_rtp_special_source_class_get_codec (klass,
-          *negotiated_codecs, send_codec);
+          *negotiated_codec_associations, send_codec);
 
       if (!telephony_codec || !fs_codec_are_equal (telephony_codec, obj->codec))
       {
@@ -425,7 +425,7 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
  * fs_rtp_special_sources_create:
  * @current_extra_sources: A pointer to the #GList returned by previous calls
  * to this function
- * @negotiated_codecs: A pointer to the #GList of current negotiated
+ * @negotiated_codec_associations: A pointer to the #GList of current negotiated
  * #CodecAssociation
  * @mutex: the mutex protecting the last two things
  * @send_codec: The currently selected send codec
@@ -437,7 +437,7 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
 void
 fs_rtp_special_sources_create (
     GList **extra_sources,
-    GList **negotiated_codecs,
+    GList **negotiated_codec_associations,
     GMutex *mutex,
     FsCodec *send_codec,
     GstElement *bin,
@@ -468,12 +468,12 @@ fs_rtp_special_sources_create (
     }
 
     if (!obj_item &&
-        fs_rtp_special_source_class_get_codec (klass, *negotiated_codecs,
-            send_codec))
+        fs_rtp_special_source_class_get_codec (klass,
+            *negotiated_codec_associations, send_codec))
     {
       g_mutex_unlock (mutex);
-      obj = fs_rtp_special_source_new (klass, negotiated_codecs, mutex,
-          send_codec, bin, rtpmuxer);
+      obj = fs_rtp_special_source_new (klass, negotiated_codec_associations,
+          mutex, send_codec, bin, rtpmuxer);
       if (!obj)
       {
         GST_WARNING ("Failed to make new special source");
@@ -507,7 +507,7 @@ fs_rtp_special_sources_create (
 
 static FsRtpSpecialSource *
 fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
-    GList **negotiated_codecs,
+    GList **negotiated_codec_associations,
     GMutex *mutex,
     FsCodec *selected_codec,
     GstElement *bin,
@@ -529,7 +529,8 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
 
   source->priv->rtpmuxer = gst_object_ref (rtpmuxer);
   source->priv->outer_bin = gst_object_ref (bin);
-  source->priv->src = klass->build (source, *negotiated_codecs, selected_codec);
+  source->priv->src = klass->build (source, *negotiated_codec_associations,
+      selected_codec);
 
   g_mutex_unlock (mutex);
 
@@ -754,11 +755,12 @@ fs_rtp_special_sources_destroy (GList *current_extra_sources)
  */
 FsCodec*
 fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
+    GList *negotiated_codec_associations,
     FsCodec *selected_codec)
 {
   if (klass->get_codec)
-    return klass->get_codec (klass, negotiated_codecs, selected_codec);
+    return klass->get_codec (klass, negotiated_codec_associations,
+        selected_codec);
 
   return NULL;
 }

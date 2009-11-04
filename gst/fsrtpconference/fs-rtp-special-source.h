@@ -78,7 +78,7 @@ struct _FsRtpSpecialSourceClass
   /* Object methods */
 
   GstElement* (*build) (FsRtpSpecialSource *source,
-      GList *negotiated_codecs,
+      GList *negotiated_codec_associations,
       FsCodec *selected_codec);
 
    /* Class methods */
@@ -89,7 +89,7 @@ struct _FsRtpSpecialSourceClass
       GList *codec_associations);
 
   FsCodec* (*get_codec) (FsRtpSpecialSourceClass *klass,
-      GList *negotiated_codecs,
+      GList *negotiated_codec_associations,
       FsCodec *selected_codec);
 };
 
@@ -117,14 +117,14 @@ GType fs_rtp_special_source_get_type (void);
 void
 fs_rtp_special_sources_remove (
     GList **current_extra_sources,
-    GList **negotiated_codecs,
+    GList **negotiated_codec_associations,
     GMutex *mutex,
     FsCodec *send_codec);
 
 void
 fs_rtp_special_sources_create (
     GList **extra_sources,
-    GList **negotiated_codecs,
+    GList **negotiated_codec_associations,
     GMutex *mutex,
     FsCodec *send_codec,
     GstElement *bin,

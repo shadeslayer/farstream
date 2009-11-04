@@ -61,13 +61,13 @@ G_DEFINE_TYPE(FsRtpDtmfSoundSource, fs_rtp_dtmf_sound_source,
 
 static GstElement *
 fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
-    GList *negotiated_codecs,
+    GList *negotiated_codec_associations,
     FsCodec *selected_codec);
 
 
 static FsCodec *fs_rtp_dtmf_sound_source_get_codec (
     FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
+    GList *negotiated_codec_associations,
     FsCodec *selected_codec);
 
 
@@ -156,7 +156,7 @@ _check_element_factory (gchar *name)
 
 static FsCodec *
 fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
-    GList *negotiated_codecs,
+    GList *negotiated_codec_associations,
     FsCodec *selected_codec)
 {
   FsCodec *codec = NULL;
@@ -169,7 +169,7 @@ fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
   if (selected_codec->clock_rate != 8000)
     return NULL;
 
-  codec = get_pcm_law_sound_codec (negotiated_codecs,
+  codec = get_pcm_law_sound_codec (negotiated_codec_associations,
       &encoder_name, &payloader_name);
   if (!codec)
     return NULL;
@@ -187,7 +187,7 @@ fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
 
 static GstElement *
 fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
-    GList *negotiated_codecs,
+    GList *negotiated_codec_associations,
     FsCodec *selected_codec)
 {
   FsCodec *telephony_codec = NULL;
@@ -202,7 +202,7 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
   gchar *encoder_name = NULL;
   gchar *payloader_name = NULL;
 
-  telephony_codec = get_pcm_law_sound_codec (negotiated_codecs,
+  telephony_codec = get_pcm_law_sound_codec (negotiated_codec_associations,
       &encoder_name, &payloader_name);
 
   g_return_val_if_fail (telephony_codec, NULL);
