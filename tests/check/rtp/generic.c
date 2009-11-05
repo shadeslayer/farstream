@@ -147,6 +147,7 @@ setup_fakesrc (struct SimpleTestConference *dat)
   g_object_set (dat->fakesrc,
       "blocksize", 10,
       "is-live", TRUE,
+      "volume", 0.3,
       NULL);
 
   srcpad = gst_element_get_static_pad (dat->fakesrc, "src");

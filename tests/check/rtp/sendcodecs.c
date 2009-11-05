@@ -203,7 +203,7 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    if (codec->id == 0 || codec->id == 8)
+    if (codec->id == 0)
     {
       filtered_codecs = g_list_append (filtered_codecs, codec);
     }
@@ -316,7 +316,7 @@ send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 
   if (data[0] < digit)
   {
-    /* Still on previou digit */
+    /* Still on previous digit */
     return;
   }
 
@@ -353,26 +353,29 @@ start_stop_sending_dtmf (gpointer data)
     ts_fail_unless (fs_session_stop_telephony_event (dat->session, method),
         "Could not stop telephony event");
     sending = FALSE;
-
-    ts_fail_unless (received == TRUE, "Did not receive any buffer for digit %d",
-        digit);
-
-    if (digit >= FS_DTMF_EVENT_D && !change_codec)
-    {
-      g_main_loop_quit (loop);
-      return FALSE;
-    }
   }
   else
   {
+    if (digit)
+      ts_fail_unless (received == TRUE,
+          "Did not receive any buffer for digit %d", digit);
+
     if (digit >= FS_DTMF_EVENT_D)
     {
-      digit = 0;
-      dtmf_id++;
-      ready_to_send = FALSE;
-      change_codec = FALSE;
-      set_codecs (dat, stream);
-      return TRUE;
+      if (change_codec)
+      {
+        digit = 0;
+        dtmf_id++;
+        ready_to_send = FALSE;
+        change_codec = FALSE;
+        set_codecs (dat, stream);
+        return TRUE;
+      }
+      else
+      {
+        g_main_loop_quit (loop);
+        return FALSE;
+      }
     }
     digit++;
 
@@ -410,6 +413,72 @@ GST_START_TEST (test_senddtmf_auto)
   one_way (recv_pipeline, port);
 }
 GST_END_TEST;
+
+
+static gboolean
+dtmf_bus_watch (GstBus *bus, GstMessage *message, gpointer data)
+{
+  const GstStructure *s;
+  int d;
+
+  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_ELEMENT)
+    return TRUE;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_name (s, "dtmf-event"))
+    return TRUE;
+
+
+  if (gst_structure_get_int (s, "number", &d)) {
+    GST_LOG ("Got digit %d", d);
+    if (digit == d)
+      received = TRUE;
+  }
+
+
+  return TRUE;
+}
+
+static GstElement *
+build_dtmf_sound_recv_pipeline (gint *port)
+{
+  GstElement *pipeline;
+  GstElement *src;
+  GstBus *bus;
+
+  pipeline = gst_parse_launch (
+      "udpsrc name=src caps=\"application/x-rtp, payload=0\" !"
+      " rtppcmudepay ! mulawdec ! dtmfdetect ! fakesink sync=0", NULL);
+  fail_if (pipeline == NULL);
+
+  bus = gst_element_get_bus (pipeline);
+  gst_bus_add_watch (bus, dtmf_bus_watch, NULL);
+  gst_object_unref (bus);
+
+  ts_fail_if (gst_element_set_state (pipeline, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE, "Could not start recv pipeline");
+
+  src = gst_bin_get_by_name (GST_BIN (pipeline), "src");
+  fail_if (src == NULL);
+  g_object_get (G_OBJECT (src), "port", port, NULL);
+  gst_object_unref (src);
+
+  return pipeline;
+}
+
+
+GST_START_TEST (test_senddtmf_sound)
+{
+  gint port = 0;
+  GstElement *recv_pipeline = build_dtmf_sound_recv_pipeline (&port);
+
+  method = FS_DTMF_METHOD_IN_BAND;
+  g_timeout_add (200, start_stop_sending_dtmf, NULL);
+  one_way (recv_pipeline, port);
+}
+GST_END_TEST;
+
 
 GST_START_TEST (test_senddtmf_change_auto)
 {
@@ -493,6 +562,10 @@ fsrtpsendcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpsenddtmf_auto");
   tcase_add_test (tc_chain, test_senddtmf_auto);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpsenddtmf_sound");
+  tcase_add_test (tc_chain, test_senddtmf_sound);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrtpsenddtmf_change_auto");
