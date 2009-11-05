@@ -239,12 +239,10 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
 }
 
 static void
-one_way (GCallback havedata_handler, gpointer data)
+one_way (GstElement *recv_pipeline, gint port)
 {
   FsParticipant *participant = NULL;
   GError *error = NULL;
-  gint port = 0;
-  GstElement *recv_pipeline;
   GList *candidates = NULL;
   GstBus *bus = NULL;
 
@@ -278,8 +276,6 @@ one_way (GCallback havedata_handler, gpointer data)
     ts_fail ("Error while creating new stream (%d): %s",
         error->code, error->message);
   ts_fail_if (stream == NULL, "Could not make stream, but no GError!");
-
-  recv_pipeline = build_recv_pipeline (havedata_handler, NULL, &port);
 
   GST_DEBUG ("port is %d", port);
 
@@ -323,6 +319,8 @@ send_dmtf_havedata_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
     /* Still on previou digit */
     return;
   }
+
+  GST_LOG ("Got digit %d", data[0]);
 
   ts_fail_if (data[0] != digit, "Not sending the right digit"
       " (sending %d, should be %d", data[0], digit);
@@ -390,27 +388,39 @@ start_stop_sending_dtmf (gpointer data)
 
 GST_START_TEST (test_senddtmf_event)
 {
+  gint port;
+  GstElement *recv_pipeline = build_recv_pipeline (
+      G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
+
   method = FS_DTMF_METHOD_RTP_RFC4733;
   g_timeout_add (200, start_stop_sending_dtmf, NULL);
-  one_way (G_CALLBACK (send_dmtf_havedata_handler), NULL);
+  one_way (recv_pipeline, port);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_senddtmf_auto)
 {
+  gint port;
+  GstElement *recv_pipeline = build_recv_pipeline (
+      G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
+
   method = FS_DTMF_METHOD_AUTO;
   g_timeout_add (200, start_stop_sending_dtmf, NULL);
-  one_way (G_CALLBACK (send_dmtf_havedata_handler), NULL);
+  one_way (recv_pipeline, port);
 }
 GST_END_TEST;
 
 GST_START_TEST (test_senddtmf_change_auto)
 {
+  gint port;
+  GstElement *recv_pipeline = build_recv_pipeline (
+      G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
+
   method = FS_DTMF_METHOD_AUTO;
   change_codec = TRUE;
   g_timeout_add (200, start_stop_sending_dtmf, NULL);
-  one_way (G_CALLBACK (send_dmtf_havedata_handler), NULL);
+  one_way (recv_pipeline, port);
 }
 GST_END_TEST;
 
@@ -455,8 +465,12 @@ change_ssrc_handler (GstPad *pad, GstBuffer *buf, gpointer user_data)
 
 GST_START_TEST (test_change_ssrc)
 {
+  gint port;
+  GstElement *recv_pipeline = build_recv_pipeline (
+      G_CALLBACK (change_ssrc_handler), NULL, &port);
+
   checked = FALSE;
-  one_way (G_CALLBACK (change_ssrc_handler), NULL);
+  one_way (recv_pipeline, port);
 }
 GST_END_TEST;
 
