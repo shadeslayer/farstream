@@ -225,6 +225,9 @@ fs_msn_session_dispose (GObject *object)
   self->priv->conference = NULL;
   g_mutex_unlock (self->priv->mutex);
 
+  if (conference)
+    goto out;
+
   conferencebin = GST_BIN (conference);
 
   if (!conferencebin)
