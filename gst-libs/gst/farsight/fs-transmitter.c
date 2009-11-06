@@ -302,7 +302,7 @@ fs_transmitter_new (const gchar *type,
   FsTransmitter *self = NULL;
 
   g_return_val_if_fail (type != NULL, NULL);
-  g_return_val_if_fail (tos >= 0 && tos <= 255, NULL);
+  g_return_val_if_fail (tos <= 255, NULL);
 
   self = FS_TRANSMITTER (fs_plugin_create (type, "transmitter", error,
           "components", components,
