@@ -157,7 +157,7 @@ _check_element_factory (gchar *name)
 static CodecAssociation *
 _get_main_codec_association (GList *codec_associations, FsCodec *codec)
 {
-  CodecAssociation *ca = lookup_codec_association_by_codec_without_config (
+  CodecAssociation *ca = lookup_codec_association_by_codec_for_sending (
       codec_associations, codec);
 
   if (ca && codec_association_is_valid_for_sending (ca, TRUE) &&

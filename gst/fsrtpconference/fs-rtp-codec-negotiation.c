@@ -1245,18 +1245,18 @@ codec_associations_list_are_equal (GList *list1, GList *list2)
 
 
 /**
- * lookup_codec_association_by_codec_without_config:
+ * lookup_codec_association_by_codec_for_sending
  * @codec_associations: a #GList of #CodecAssociation
  * @codec: The #FsCodec to look for
  *
- * Finds the first #CodecAssociation that matches the #FsCodec, the config data
- * inside both are removed.
+ * Finds the first #CodecAssociation that matches the #FsCodec and that is
+ * valid for sending, the config data inside both are ignored.
  *
  * Returns: a #CodecAssociation
  */
 
 CodecAssociation *
-lookup_codec_association_by_codec_without_config (GList *codec_associations,
+lookup_codec_association_by_codec_for_sending (GList *codec_associations,
     FsCodec *codec)
 {
   FsCodec *lookup_codec = codec_copy_without_config (codec);
@@ -1265,7 +1265,12 @@ lookup_codec_association_by_codec_without_config (GList *codec_associations,
   while (codec_associations)
   {
     CodecAssociation *tmpca = codec_associations->data;
-    FsCodec *tmpcodec = codec_copy_without_config (tmpca->codec);
+    FsCodec *tmpcodec;
+
+    if (!codec_association_is_valid_for_sending (tmpca, FALSE))
+      continue;
+
+    tmpcodec = codec_copy_without_config (tmpca->codec);
 
     if (fs_codec_are_equal (tmpcodec, lookup_codec))
       ca = tmpca;

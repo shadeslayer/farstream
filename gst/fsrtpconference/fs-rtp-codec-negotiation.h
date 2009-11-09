@@ -92,7 +92,7 @@ CodecAssociation *
 lookup_codec_association_by_codec (GList *codec_associations, FsCodec *codec);
 
 CodecAssociation *
-lookup_codec_association_by_codec_without_config (GList *codec_associations,
+lookup_codec_association_by_codec_for_sending (GList *codec_associations,
     FsCodec *codec);
 
 gboolean

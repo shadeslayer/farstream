@@ -1690,7 +1690,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 
   FS_RTP_SESSION_LOCK (self);
 
-  if (lookup_codec_association_by_codec_without_config (
+  if (lookup_codec_association_by_codec_for_sending (
           self->priv->codec_associations, send_codec))
   {
     if (self->priv->requested_send_codec)
@@ -2896,25 +2896,13 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
 
   if (session->priv->requested_send_codec)
   {
-    ca = lookup_codec_association_by_codec_without_config (
+    ca = lookup_codec_association_by_codec_for_sending (
         session->priv->codec_associations,
         session->priv->requested_send_codec);
     if (ca)
     {
-      if (!codec_association_is_valid_for_sending (ca, TRUE))
-      {
-        fs_codec_destroy (session->priv->requested_send_codec);
-        session->priv->requested_send_codec = NULL;
-        ca = NULL;
-        GST_DEBUG_OBJECT (session->priv->conference,
-            "The current requested codec is not a valid main send codec,"
-            " ignoring");
-      }
-      else
-      {
-        /* We have a valid codec, lets use it */
-        goto out;
-      }
+      /* We have a valid codec, lets use it */
+      goto out;
     }
     else
     {
