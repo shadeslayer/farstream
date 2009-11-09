@@ -160,7 +160,8 @@ _get_main_codec_association (GList *codec_associations, FsCodec *codec)
   CodecAssociation *ca = lookup_codec_association_by_codec_without_config (
       codec_associations, codec);
 
-  if (ca && codec_association_is_valid_for_sending (ca, TRUE))
+  if (ca && codec_association_is_valid_for_sending (ca, TRUE) &&
+      codec_blueprint_has_factory (ca->blueprint, TRUE))
     return ca;
   else
     return NULL;
