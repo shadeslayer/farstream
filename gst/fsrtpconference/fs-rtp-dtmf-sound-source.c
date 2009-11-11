@@ -183,7 +183,7 @@ fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
   if (!_check_element_factory ("dtmfsrc"))
     return NULL;
 
-  if (selected_codec->clock_rate != 8000)
+  if (selected_codec->clock_rate == 8000)
   {
     codec = get_pcm_law_sound_codec (negotiated_codec_associations,
         &encoder_name, &payloader_name);
