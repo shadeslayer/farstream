@@ -125,28 +125,24 @@ start_upnp_server (void)
   GUPnPServiceInfo *service;
   GUPnPDeviceInfo *subdev1;
   GUPnPDeviceInfo *subdev2;
+  const gchar *upnp_xml_path;
 
   context = gupnp_context_new (NULL, NULL, 0, NULL);
   ts_fail_if (context == NULL, "Can't get gupnp context");
 
   if (g_getenv ("UPNP_XML_PATH"))
-  {
-    gchar **paths = g_strsplit (g_getenv ("UPNP_XML_PATH"), ":", 0);
-    gint i;
-
-    for (i=0; paths[i]; i++)
-    {
-      gupnp_context_host_path (context, paths[i], "");
-    }
-    g_strfreev (paths);
-  }
+    upnp_xml_path = g_getenv ("UPNP_XML_PATH");
   else
-  {
-    gupnp_context_host_path (context, "upnp/InternetGatewayDevice.xml", "/InternetGatewayDevice.xml");
-    gupnp_context_host_path (context, "upnp/WANIPConnection.xml", "/WANIPConnection.xml");
-  }
+    upnp_xml_path  = ".";
 
+  gupnp_context_host_path (context, upnp_xml_path, "");
+
+#ifdef HAVE_GUPNP_013
+  dev = gupnp_root_device_new (context, "InternetGatewayDevice.xml",
+      upnp_xml_path);
+#else
   dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
+#endif
   ts_fail_if (dev == NULL, "could not get root dev");
 
   subdev1 = gupnp_device_info_get_device (GUPNP_DEVICE_INFO (dev),
