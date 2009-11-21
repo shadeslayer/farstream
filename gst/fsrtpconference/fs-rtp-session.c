@@ -1584,13 +1584,16 @@ fs_rtp_session_new_stream (FsSession *session,
           _stream_ssrc_added_cb,
           self, error));
 
-  FS_RTP_SESSION_LOCK (self);
-  self->priv->streams = g_list_append (self->priv->streams, new_stream);
-  self->priv->streams_cookie++;
-  FS_RTP_SESSION_UNLOCK (self);
 
-  g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+  if (new_stream)
+  {
+    FS_RTP_SESSION_LOCK (self);
+    self->priv->streams = g_list_append (self->priv->streams, new_stream);
+    self->priv->streams_cookie++;
+    FS_RTP_SESSION_UNLOCK (self);
 
+    g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+  }
   fs_rtp_session_has_disposed_exit (self);
   return new_stream;
 }
