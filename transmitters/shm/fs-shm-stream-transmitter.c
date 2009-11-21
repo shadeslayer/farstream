@@ -368,20 +368,20 @@ fs_shm_stream_transmitter_add_remote_candidate (
   if (!fs_shm_stream_transmitter_add_sink (self, candidate, error))
     return FALSE;
 
-  if (candidate->base_ip)
+  if (candidate->username)
   {
 
     if (self->priv->shm_src[candidate->component_id])
     {
       if (fs_shm_transmitter_check_shm_src (self->priv->transmitter,
-              self->priv->shm_src[candidate->component_id], candidate->base_ip))
+              self->priv->shm_src[candidate->component_id], candidate->username))
         return TRUE;
       self->priv->shm_src[candidate->component_id] = NULL;
     }
 
     self->priv->shm_src[candidate->component_id] =
       fs_shm_transmitter_get_shm_src (self->priv->transmitter,
-          candidate->component_id, candidate->base_ip, got_buffer_func, self,
+          candidate->component_id, candidate->username, got_buffer_func, self,
           error);
 
     if (self->priv->shm_src[candidate->component_id] == NULL)
@@ -416,11 +416,11 @@ fs_shm_stream_transmitter_set_remote_candidates (
       return FALSE;
     }
 
-    if (!candidate->ip && !candidate->base_ip)
+    if (!candidate->ip && !candidate->username)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The candidate does not have a SINK shm segment in its ip"
-          " or a SRC shm segment in its base_ip");
+          " or a SRC shm segment in its username");
       return FALSE;
     }
   }

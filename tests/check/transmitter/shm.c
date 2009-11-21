@@ -324,11 +324,11 @@ run_shm_transmitter_test (gint flags)
 
   cand = fs_candidate_new (NULL, 1,
           FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, NULL, 0);
-  cand->base_ip = g_strdup ("/tmp/src1");
+  cand->username = g_strdup ("/tmp/src1");
   remote_cands = g_list_prepend (remote_cands, cand);
   cand = fs_candidate_new (NULL, 2,
           FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, NULL, 0);
-  cand->base_ip = g_strdup ("/tmp/src2");
+  cand->username = g_strdup ("/tmp/src2");
   remote_cands = g_list_prepend (remote_cands, cand);
   ret = fs_stream_transmitter_set_remote_candidates (st, remote_cands, &error);
   fs_candidate_list_destroy (remote_cands);

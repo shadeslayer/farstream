@@ -288,7 +288,7 @@ skipped_cb (GObject *istream, GAsyncResult *result, gpointer user_data)
 
   cand = fs_candidate_new ("", FS_COMPONENT_RTP,
       FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, ses->send_socket, 0);
-  cand->base_ip = g_strdup (ses->recv_socket);
+  cand->username = g_strdup (ses->recv_socket);
   cands = g_list_prepend (NULL, cand);
 
   res = fs_stream_set_remote_candidates (ses->stream, cands, &error);
