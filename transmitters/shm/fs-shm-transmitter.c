@@ -618,8 +618,12 @@ fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
     shm->buffer_probe = gst_pad_add_buffer_probe (shm->funnelpad,
         G_CALLBACK (src_buffer_probe_cb), shm);
 
-  gst_element_sync_state_with_parent (shm->src);
-
+  if (!gst_element_sync_state_with_parent (shm->src))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the new shmsrc with its parent");
+    goto error;
+  }
 
   return shm;
 
@@ -796,13 +800,26 @@ fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
   }
   gst_object_unref (pad);
 
-  gst_element_sync_state_with_parent (shm->sink);
-  gst_element_sync_state_with_parent (shm->recvonly_filter);
+
+  if (!gst_element_sync_state_with_parent (shm->sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the new shmsink with its parent");
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (shm->recvonly_filter))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the new recvonly filter  with its parent");
+    goto error;
+  }
 
   return shm;
 
  error:
   fs_shm_transmitter_check_shm_sink (self, shm, NULL);
+
   return NULL;
 }
 
