@@ -27,8 +27,29 @@
  * SECTION:fs-shm-stream-transmitter
  * @short_description: A stream transmitter object for Shared Memory
  *
- *
  * The name of this transmitter is "shm".
+ *
+ * This transmitter is meant to send and received the data from another process
+ * on the same system while minimizing the memory pressure associated with the
+ * use of sockets.
+ *
+ * Two sockets are used to control the shared memory areas. One is used to
+ * send data and one to receive data. The receiver always connects to the
+ * sender. The sender socket must exist before the receiver connects to it.
+ *
+ * The sender socket can be created by giving the transmitter a candidate
+ * with the path of the socket in the "ip" field of the #FsCandidate. This
+ * #FsCandidate can be given to the #FsStreamTransmitter in two ways, either
+ * by setting the #FsStreamTransmitter:preferred-local-candidates property
+ * or by calling the fs_stream_transmitter_set_remote_candidates() function.
+ * There can be only one single send socket per stream. When the send socket
+ * is ready to be connected to, #FsStreamTransmitter::new-local-candidate signal
+ * will be emitted.
+ *
+ * To connect the receive side to the other application, one must create a
+ * #FsCandidate with the path of the sender's socket in the "username" field.
+ * If the receiver can not connect to the sender,
+ * the fs_stream_transmitter_set_remote_candidates() call will fail.
  */
 
 #ifdef HAVE_CONFIG_H
