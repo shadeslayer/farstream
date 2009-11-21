@@ -335,7 +335,7 @@ static gboolean
 fs_shm_stream_transmitter_add_sink (FsShmStreamTransmitter *self,
     FsCandidate *candidate, GError **error)
 {
-  if (!candidate->ip)
+  if (!candidate->ip || !candidate->ip[0])
     return TRUE;
 
   if (self->priv->shm_sink[candidate->component_id])
@@ -368,13 +368,14 @@ fs_shm_stream_transmitter_add_remote_candidate (
   if (!fs_shm_stream_transmitter_add_sink (self, candidate, error))
     return FALSE;
 
-  if (candidate->username)
+  if (candidate->username && candidate->username[0])
   {
 
     if (self->priv->shm_src[candidate->component_id])
     {
       if (fs_shm_transmitter_check_shm_src (self->priv->transmitter,
-              self->priv->shm_src[candidate->component_id], candidate->username))
+              self->priv->shm_src[candidate->component_id],
+              candidate->username))
         return TRUE;
       self->priv->shm_src[candidate->component_id] = NULL;
     }
@@ -416,7 +417,8 @@ fs_shm_stream_transmitter_set_remote_candidates (
       return FALSE;
     }
 
-    if (!candidate->ip && !candidate->username)
+    if ((!candidate->ip || !candidate->ip[0]) &&
+        (!candidate->username || !candidate->username[0]))
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The candidate does not have a SINK shm segment in its ip"
@@ -476,7 +478,7 @@ fs_shm_stream_transmitter_gather_local_candidates (
   {
     FsCandidate *candidate = item->data;
 
-    if (candidate->ip)
+    if (candidate->ip && candidate->ip[0])
       if (!fs_shm_stream_transmitter_add_sink (self, candidate, error))
         return FALSE;
   }
