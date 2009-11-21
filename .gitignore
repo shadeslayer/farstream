@@ -86,6 +86,7 @@ tests/check/elements/rtcpfilter
 tests/check/elements/funnel
 tests/rtp/codec-discovery
 examples/commandline/simple-call
+examples/commandline/simple-call-shm
 examples/gui/*.pyo
 examples/gui/*.pyc
 

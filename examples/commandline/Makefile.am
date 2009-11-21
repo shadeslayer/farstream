@@ -1,5 +1,5 @@
 
-noinst_PROGRAMS = simple-call
+noinst_PROGRAMS = simple-call simple-call-shm
 
 
 AM_CFLAGS = \
@@ -12,3 +12,12 @@ AM_CFLAGS = \
 LDADD = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
 	$(GST_LIBS) 
+
+
+simple_call_shm_CFLAGS = \
+	$(AM_CFLAGS) \
+	$(GIO_UNIX_CFLAGS)
+
+simple_call_shm_LDADD = \
+	$(LDADD) \
+	$(GIO_UNIX_LIBS)
