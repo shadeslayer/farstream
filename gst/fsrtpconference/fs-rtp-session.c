@@ -4336,3 +4336,18 @@ fs_rtp_session_get_stream_transmitter_type (FsSession *session,
 
   return st_type;
 }
+
+
+void
+fs_rtp_session_ssrc_validated (FsRtpSession *session,
+    guint32 ssrc)
+{
+  if (fs_rtp_session_has_disposed_enter (session, NULL))
+    return;
+
+  gst_element_send_event (session->priv->rtpmuxer,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+          gst_structure_new ("GstForceKeyUnit", NULL)));
+
+  fs_rtp_session_has_disposed_exit (session);
+}

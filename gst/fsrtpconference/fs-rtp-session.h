@@ -124,6 +124,9 @@ void fs_rtp_session_associate_ssrc_cname (FsRtpSession *session,
 void fs_rtp_session_bye_ssrc (FsRtpSession *session,
     guint32 ssrc);
 
+void fs_rtp_session_ssrc_validated (FsRtpSession *session,
+    guint32 ssrc);
+
 
 G_END_DECLS
 

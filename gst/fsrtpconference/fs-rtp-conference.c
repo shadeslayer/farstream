@@ -146,6 +146,10 @@ static void _rtpbin_on_bye_ssrc (GstElement *rtpbin,
     guint session_id,
     guint ssrc,
     gpointer user_data);
+static void _rtpbin_on_ssrc_validated (GstElement *rtpbin,
+    guint session_id,
+    guint ssrc,
+    gpointer user_data);
 
 static void
 _remove_session (gpointer user_data,
@@ -328,6 +332,8 @@ fs_rtp_conference_init (FsRtpConference *conf,
                     G_CALLBACK (_rtpbin_pad_added), conf);
   g_signal_connect (conf->gstrtpbin, "on-bye-ssrc",
                     G_CALLBACK (_rtpbin_on_bye_ssrc), conf);
+  g_signal_connect (conf->gstrtpbin, "on-ssrc-validated",
+                    G_CALLBACK (_rtpbin_on_ssrc_validated), conf);
 
   /* We have to ref the class here because the class initialization
    * in GLib is not thread safe
@@ -866,7 +872,6 @@ fs_codec_to_gst_caps (const FsCodec *codec)
   return caps;
 }
 
-
 /**
  * fs_codec_to_gst_caps_with_ptime
  * @codec: A #FsCodec to be converted
@@ -894,4 +899,22 @@ fs_codec_to_gst_caps_with_ptime (const FsCodec *codec)
   }
 
   return caps;
+}
+
+static void
+_rtpbin_on_ssrc_validated (GstElement *rtpbin,
+    guint session_id,
+    guint ssrc,
+    gpointer user_data)
+{
+  FsRtpConference *self = FS_RTP_CONFERENCE (user_data);
+  FsRtpSession *session =
+    fs_rtp_conference_get_session_by_id (self, session_id);
+
+  if (session)
+  {
+    fs_rtp_session_ssrc_validated (session, ssrc);
+
+    g_object_unref (session);
+  }
 }
