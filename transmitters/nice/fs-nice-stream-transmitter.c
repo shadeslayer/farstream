@@ -1484,6 +1484,10 @@ agent_state_changed (NiceAgent *agent,
   data->fs_state = fs_state;
   fs_nice_agent_add_idle (self->priv->agent, state_changed_signal_idle,
       data, free_state_changed_signal_data);
+
+  if (state == NICE_COMPONENT_STATE_READY)
+    fs_nice_transmitter_request_keyunit (self->priv->transmitter,
+        self->priv->gststream, component_id);
 }
 
 

@@ -103,6 +103,10 @@ void fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
 void fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
     NiceGstStream *ns, gboolean sending);
 
+void fs_nice_transmitter_request_keyunit (FsNiceTransmitter *self,
+    NiceGstStream *ns, guint component);
+
+
 G_END_DECLS
 
 #endif /* __FS_NICE_TRANSMITTER_H__ */
