@@ -366,7 +366,11 @@ load_codecs_cache (FsMediaType media_type)
 
  error:
   if (mapped) {
+#if GLIB_CHECK_VERSION(2,22,0)
+    g_mapped_file_unref (mapped);
+#else
     g_mapped_file_free (mapped);
+#endif
   } else {
     g_free (contents);
   }
