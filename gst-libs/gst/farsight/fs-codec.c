@@ -158,6 +158,7 @@ fs_codec_copy (const FsCodec * codec)
   copy->media_type = codec->media_type;
   copy->clock_rate = codec->clock_rate;
   copy->channels = codec->channels;
+  copy->ABI.ABI.maxptime = codec->ABI.ABI.maxptime;
 
   copy->encoding_name = g_strdup (codec->encoding_name);
 
@@ -356,6 +357,13 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
           goto keyerror;
         }
 
+      } else if (!g_ascii_strcasecmp ("maxptime", keys[j])) {
+        codec->ABI.ABI.maxptime = g_key_file_get_integer (keyfile, groups[i],
+            keys[j], &gerror);
+        if (gerror) {
+          codec->ABI.ABI.maxptime = 0;
+          goto keyerror;
+        }
       } else {
         FsCodecParameter *param = g_slice_new (FsCodecParameter);
 
@@ -450,6 +458,9 @@ fs_codec_to_string (const FsCodec *codec)
       codec->id, fs_media_type_to_string (codec->media_type),
       codec->encoding_name, codec->clock_rate, codec->channels);
 
+  if (codec->ABI.ABI.maxptime)
+    g_string_append_printf (string, " maxptime=%u", codec->ABI.ABI.maxptime);
+
   for (item = codec->optional_params;
        item;
        item = g_list_next (item)) {
@@ -522,6 +533,7 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
       codec1->media_type != codec2->media_type ||
       codec1->clock_rate != codec2->clock_rate ||
       codec1->channels != codec2->channels ||
+      codec1->ABI.ABI.maxptime != codec2->ABI.ABI.maxptime ||
       codec1->encoding_name == NULL ||
       codec2->encoding_name == NULL ||
       g_ascii_strcasecmp (codec1->encoding_name, codec2->encoding_name))
