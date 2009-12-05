@@ -82,7 +82,6 @@
 
 #define DEFAULT_UPNP_MAPPING_TIMEOUT (600)
 #define DEFAULT_UPNP_DISCOVERY_TIMEOUT (2)
-#define DEFAULT_UPNP_REQUEST_TIMEOUT (10)
 
 /* Signals */
 enum
@@ -103,8 +102,7 @@ enum
   PROP_UPNP_MAPPING,
   PROP_UPNP_DISCOVERY,
   PROP_UPNP_MAPPING_TIMEOUT,
-  PROP_UPNP_DISCOVERY_TIMEOUT,
-  PROP_UPNP_REQUEST_TIMEOUT
+  PROP_UPNP_DISCOVERY_TIMEOUT
 };
 
 struct _FsRawUdpStreamTransmitterPrivate
@@ -136,7 +134,6 @@ struct _FsRawUdpStreamTransmitterPrivate
   gboolean upnp_mapping;
   guint upnp_mapping_timeout;
   guint upnp_discovery_timeout;
-  guint upnp_request_timeout;
 
   GUPnPSimpleIgdThread *upnp_igd;
 #endif
@@ -330,14 +327,6 @@ fs_rawudp_stream_transmitter_class_init (FsRawUdpStreamTransmitterClass *klass)
           0, G_MAXUINT32, DEFAULT_UPNP_DISCOVERY_TIMEOUT,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  g_object_class_install_property (gobject_class,
-      PROP_UPNP_REQUEST_TIMEOUT,
-      g_param_spec_uint ("upnp-request-timeout",
-          "Timeout after which UPnP requests timeout",
-          "After this delay, UPnP requests fails",
-          1, 600, DEFAULT_UPNP_REQUEST_TIMEOUT,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
   gobject_class->dispose = fs_rawudp_stream_transmitter_dispose;
   gobject_class->finalize = fs_rawudp_stream_transmitter_finalize;
 
@@ -356,7 +345,6 @@ fs_rawudp_stream_transmitter_init (FsRawUdpStreamTransmitter *self)
 
 #ifdef HAVE_GUPNP
   self->priv->upnp_mapping = TRUE;
-  self->priv->upnp_request_timeout = DEFAULT_UPNP_REQUEST_TIMEOUT;
   self->priv->upnp_discovery_timeout = DEFAULT_UPNP_DISCOVERY_TIMEOUT;
   self->priv->upnp_mapping_timeout = DEFAULT_UPNP_MAPPING_TIMEOUT;
   self->priv->upnp_discovery = TRUE;
@@ -465,9 +453,6 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
     case PROP_UPNP_DISCOVERY_TIMEOUT:
       g_value_set_uint (value, self->priv->upnp_discovery_timeout);
       break;
-    case PROP_UPNP_REQUEST_TIMEOUT:
-      g_value_set_uint (value, self->priv->upnp_request_timeout);
-      break;
 #else
     case PROP_UPNP_MAPPING:
     case PROP_UPNP_DISCOVERY:
@@ -475,8 +460,6 @@ fs_rawudp_stream_transmitter_get_property (GObject *object,
       break;
     case PROP_UPNP_MAPPING_TIMEOUT:
     case PROP_UPNP_DISCOVERY_TIMEOUT:
-    case PROP_UPNP_REQUEST_TIMEOUT:
-      g_value_set_uint (value, 0);
       break;
 #endif
    default:
@@ -536,15 +519,11 @@ fs_rawudp_stream_transmitter_set_property (GObject *object,
     case PROP_UPNP_DISCOVERY_TIMEOUT:
       self->priv->upnp_discovery_timeout = g_value_get_uint (value);
       break;
-    case PROP_UPNP_REQUEST_TIMEOUT:
-      self->priv->upnp_request_timeout = g_value_get_uint (value);
-      break;
 #else
     case PROP_UPNP_MAPPING:
     case PROP_UPNP_DISCOVERY:
     case PROP_UPNP_MAPPING_TIMEOUT:
     case PROP_UPNP_DISCOVERY_TIMEOUT:
-    case PROP_UPNP_REQUEST_TIMEOUT:
       break;
 #endif
     default:
@@ -569,12 +548,7 @@ fs_rawudp_stream_transmitter_build (FsRawUdpStreamTransmitter *self,
   if (self->priv->upnp_mapping ||
       (self->priv->upnp_discovery &&
           (!self->priv->stun_ip || !self->priv->stun_port)))
-  {
     self->priv->upnp_igd = gupnp_simple_igd_thread_new ();
-    g_object_set (self->priv->upnp_igd,
-        "request-timeout", self->priv->upnp_request_timeout,
-        NULL);
-  }
 #endif
 
   self->priv->component = g_new0 (FsRawUdpComponent *,
