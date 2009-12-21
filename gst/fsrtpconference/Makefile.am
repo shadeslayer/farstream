@@ -79,7 +79,7 @@ endif
 
 # Build the build sources
 
-fs-rtp-marshal.list: $(libfsrtpconference_la_SOURCES) Makefile.am
+fs-rtp-marshal.list: $(libfsrtpconference_convenience_la_SOURCES) Makefile.am
 	( cd $(srcdir) && \
 	sed -n -e 's/.*fs_rtp_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
 	$(libfsrtpconference_convenience_la_SOURCES) ) \
