@@ -36,6 +36,7 @@
 #endif
 
 #include "fs-rtp-stream.h"
+#include "fs-rtp-marshal.h"
 
 #include <gst/gst.h>
 

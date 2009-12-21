@@ -32,8 +32,6 @@
 #include "fs-rtp-session.h"
 #include "fs-rtp-substream.h"
 
-#include "fs-rtp-marshal.h"
-
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
