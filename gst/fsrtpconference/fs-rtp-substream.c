@@ -1,9 +1,9 @@
 /*
  * Farsight2 - Farsight RTP Sub Stream
  *
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- * Copyright 2007 Nokia Corp.
+ * Copyright 2007-2009 Nokia Corp.
  *
  * fs-rtp-substream.c - A Farsight RTP Substream gobject
  *
@@ -53,7 +53,7 @@ enum
   SRC_PAD_ADDED,
   CODEC_CHANGED,
   ERROR_SIGNAL,
-  BLOCKED,
+  GET_CODEC_BIN_LOCKED,
   UNLINKED,
   LAST_SIGNAL
 };
@@ -352,21 +352,27 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       G_TYPE_NONE, 0);
 
  /**
-   * FsRtpSubStream:blocked
+   * FsRtpSubStream:get-codec-bin-locked
    * @self: #FsRtpSubStream that emitted the signal
    * @stream: the #FsRtpStream this substream is attached to if any (or %NULL)
+   * @current_codec: The current codec
+   * @new_codec: A pointer to a location where the codec can be stored
+   * @error: The location of a GError where an error can be stored
    *
-   * This signal is emitted after the substream has been blocked because its
-   * codec has been invalidated OR because no codecbin was set on its creation.
+   * This emitted when the substream want to get a codecbin or replace
+   * the current one.
+   *
+   * Returns: The Codec Bin
    */
-  signals[BLOCKED] = g_signal_new ("blocked",
+  signals[GET_CODEC_BIN_LOCKED] = g_signal_new ("get-codec-bin-locked",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
       NULL,
       NULL,
-      g_cclosure_marshal_VOID__POINTER,
-      G_TYPE_NONE, 1, G_TYPE_POINTER);
+      _fs_rtp_marshal_POINTER__POINTER_POINTER_POINTER_POINTER,
+      G_TYPE_POINTER, 4, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER,
+      G_TYPE_POINTER);
 
 
  /**
@@ -866,7 +872,7 @@ fs_rtp_sub_stream_get_property (GObject *object,
  * Returns: TRUE on success
  */
 
-gboolean
+static gboolean
 fs_rtp_sub_stream_set_codecbin_unlock (FsRtpSubStream *substream,
     FsCodec *codec,
     GstElement *codecbin,
@@ -1314,10 +1320,55 @@ static void
 _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 {
   FsRtpSubStream *substream = user_data;
+  GstElement *codecbin = NULL;
+  FsCodec *codec = NULL;
+  GError *error = NULL;
 
-  g_signal_emit (substream, signals[BLOCKED], 0, substream->priv->stream);
+  FS_RTP_SESSION_LOCK (substream->priv->session);
+
+  GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
+      substream->priv->session->id, substream->ssrc, substream->pt);
+
+  g_signal_emit (substream, signals[GET_CODEC_BIN_LOCKED], 0,
+      substream->priv->stream, substream->codec, &codec, &error, &codecbin);
+
+  if (!codecbin)
+  {
+    if (error)
+      goto error;
+    else
+      goto out;
+  }
+
+  if (!fs_rtp_sub_stream_set_codecbin_unlock (substream,
+          codec, codecbin, &error))
+    goto error;
+
+ out:
+
+  fs_codec_destroy (codec);
+
+  g_clear_error (&error);
 
   gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
+
+  return;
+
+ error:
+  {
+    gchar *str = g_strdup_printf ("Could not add the new recv codec bin for"
+        " ssrc %u and payload type %d to the state NULL", substream->ssrc,
+        substream->pt);
+
+    if (substream->priv->stream)
+      fs_stream_emit_error (FS_STREAM (substream->priv->stream),
+          FS_ERROR_CONSTRUCTION, str, error->message);
+    else
+      fs_session_emit_error (FS_SESSION (substream->priv->session),
+          FS_ERROR_CONSTRUCTION, str, error->message);
+    g_free (str);
+  }
+  goto out;
 }
 
 static void
