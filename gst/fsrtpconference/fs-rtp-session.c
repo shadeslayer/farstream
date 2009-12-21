@@ -250,7 +250,7 @@ static GType fs_rtp_session_get_stream_transmitter_type (FsSession *session,
 
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
-static GstElement *_substream_get_codec_bin_locked (FsRtpSubStream *substream,
+static GstElement *_substream_get_codec_bin (FsRtpSubStream *substream,
     FsRtpStream *stream, FsCodec *current_codec, FsCodec **new_codec,
     GError **error, FsRtpSession *session);
 
@@ -2531,8 +2531,8 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
     return;
   }
 
-  g_signal_connect_object (substream, "get-codec-bin-locked",
-      G_CALLBACK (_substream_get_codec_bin_locked), session, 0);
+  g_signal_connect_object (substream, "get-codec-bin",
+      G_CALLBACK (_substream_get_codec_bin), session, 0);
 
   g_signal_connect_object (substream, "unlinked",
       G_CALLBACK (_substream_unlinked), session, 0);
@@ -3479,12 +3479,14 @@ fs_rtp_session_verify_send_codec_bin (FsRtpSession *self)
 
 /*
  * This callback is called when the pad of a substream has been locked because
- * the codec needs to be changed. It will see if there is a new codec to be set,
- * if there is, it will change the codec bin.
+ * the codec needs to be changed.
+ *
+ * It will return a new codecbin if it needs changing. If there is an error,
+ * the GError * will be set.
  */
 
 static GstElement *
-_substream_get_codec_bin_locked (FsRtpSubStream *substream,
+_substream_get_codec_bin (FsRtpSubStream *substream,
     FsRtpStream *stream, FsCodec *current_codec, FsCodec **new_codec,
     GError **error, FsRtpSession *session)
 {
@@ -3494,6 +3496,8 @@ _substream_get_codec_bin_locked (FsRtpSubStream *substream,
 
   if (fs_rtp_session_has_disposed_enter (session, NULL))
     return NULL;
+
+  FS_RTP_SESSION_LOCK (session);
 
   ca = fs_rtp_session_get_recv_codec_locked (session, substream->pt, stream,
       new_codec, error);
@@ -3515,6 +3519,8 @@ _substream_get_codec_bin_locked (FsRtpSubStream *substream,
  out:
 
   fs_rtp_session_has_disposed_exit (session);
+
+  FS_RTP_SESSION_UNLOCK (session);
 
   return codecbin;
 }

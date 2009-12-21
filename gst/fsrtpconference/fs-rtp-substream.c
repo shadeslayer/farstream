@@ -53,7 +53,7 @@ enum
   SRC_PAD_ADDED,
   CODEC_CHANGED,
   ERROR_SIGNAL,
-  GET_CODEC_BIN_LOCKED,
+  GET_CODEC_BIN,
   UNLINKED,
   LAST_SIGNAL
 };
@@ -364,7 +364,7 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
    *
    * Returns: The Codec Bin
    */
-  signals[GET_CODEC_BIN_LOCKED] = g_signal_new ("get-codec-bin-locked",
+  signals[GET_CODEC_BIN] = g_signal_new ("get-codec-bin",
       G_TYPE_FROM_CLASS (klass),
       G_SIGNAL_RUN_LAST,
       0,
@@ -1288,10 +1288,8 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 
   for (;;)
   {
-    FS_RTP_SESSION_LOCK (substream->priv->session);
-    g_signal_emit (substream, signals[GET_CODEC_BIN_LOCKED], 0,
+    g_signal_emit (substream, signals[GET_CODEC_BIN], 0,
         substream->priv->stream, substream->codec, &codec, &error, &codecbin);
-    FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
    if (!codecbin)
     {
