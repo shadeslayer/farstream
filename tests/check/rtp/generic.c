@@ -28,6 +28,22 @@
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-conference-iface.h>
 
+
+static GstBusSyncReply
+default_sync_handler (GstBus *bus, GstMessage *message, gpointer data)
+{
+  struct SimpleTestConference *dat = data;
+  gboolean ready;
+
+  /* Get the codecs-ready property which takes the session lock to make sure
+   * it is not held across signal emissions
+   */
+  if (dat->session)
+    g_object_get (dat->session, "codecs-ready", &ready, NULL);
+
+  return GST_BUS_PASS;
+}
+
 struct SimpleTestConference *
 setup_simple_conference (
     gint id,
@@ -37,12 +53,18 @@ setup_simple_conference (
   struct SimpleTestConference *dat = g_new0 (struct SimpleTestConference, 1);
   GError *error = NULL;
   guint tos;
+  GstBus *bus;
 
   dat->id = id;
   dat->cname = g_strdup (cname);
 
   dat->pipeline = gst_pipeline_new ("pipeline");
   fail_if (dat->pipeline == NULL);
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE (dat->pipeline));
+  fail_if (bus == NULL);
+  gst_bus_set_sync_handler (bus, default_sync_handler, dat);
+  gst_object_unref (bus);
 
   dat->conference = gst_element_factory_make (conference_elem, NULL);
   fail_if (dat->conference == NULL, "Could not build %s", conference_elem);

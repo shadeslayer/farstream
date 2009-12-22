@@ -1450,6 +1450,7 @@ static void unref_stream_init (void)
   {
     GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (dats[i]->pipeline));
 
+    gst_bus_set_sync_handler (bus, NULL, NULL);
     gst_bus_set_sync_handler (bus, unref_stream_sync_handler, dats[i]);
     gst_object_unref (bus);
   }
