@@ -168,6 +168,7 @@ fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
 static gboolean
 fs_rtp_sub_stream_has_stopped_enter (FsRtpSubStream *self)
 {
+  g_object_ref (self);
   g_static_rw_lock_reader_lock (&self->priv->stopped_lock);
 
   if (self->priv->stopped)
@@ -184,6 +185,7 @@ static void
 fs_rtp_sub_stream_has_stopped_exit (FsRtpSubStream *self)
 {
   g_static_rw_lock_reader_unlock (&self->priv->stopped_lock);
+  g_object_unref (self);
 }
 
 
