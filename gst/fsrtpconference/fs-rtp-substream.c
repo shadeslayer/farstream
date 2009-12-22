@@ -1287,8 +1287,6 @@ static void
 _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 {
   FsRtpSubStream *substream = user_data;
-  GstElement *codecbin = NULL;
-  FsCodec *codec = NULL;
   GError *error = NULL;
 
   if (fs_rtp_sub_stream_has_stopped_enter (substream))
@@ -1299,6 +1297,9 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 
   for (;;)
   {
+    GstElement *codecbin = NULL;
+    FsCodec *codec = NULL;
+
     g_signal_emit (substream, signals[GET_CODEC_BIN], 0,
         substream->priv->stream, substream->codec, &codec, &error, &codecbin);
 
@@ -1319,8 +1320,6 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   }
 
  out:
-
-  fs_codec_destroy (codec);
 
   g_clear_error (&error);
 
@@ -1344,6 +1343,7 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
           FS_ERROR_CONSTRUCTION, str, error->message);
     g_free (str);
   }
+
   goto out;
 }
 
