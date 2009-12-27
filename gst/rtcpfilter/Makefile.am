@@ -7,12 +7,14 @@ noinst_HEADERS = fs-rtcp-filter.h
 libfsrtcpfilter_la_CFLAGS = \
 	$(FS2_CFLAGS) \
 	$(GST_BASE_CFLAGS) \
+	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_CFLAGS)
 libfsrtcpfilter_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrtcpfilter_la_LIBADD = \
 	$(FS2_LIBS) \
 	-lgstrtp-@GST_MAJORMINOR@ \
 	$(GST_BASE_LIBS) \
+	$(GST_PLUGINS_BASE_LIBS) \
 	$(GST_LIBS)
 
 
