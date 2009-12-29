@@ -1023,6 +1023,142 @@ GST_START_TEST (test_rtpcodecs_dynamic_pt)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_rtpcodecs_ptime)
+{
+  struct SimpleTestConference *dat = NULL;
+  GList *codecs = NULL, *item = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *prefcodec = NULL;
+  GError *error = NULL;
+  FsParticipant *participant;
+  FsStream *stream;
+  GstBus *bus;
+  GstMessage *message;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *tmpcodec = item->data;
+
+    if (tmpcodec->id == 0 || tmpcodec->id == 8)
+    {
+      if (!prefcodec)
+      {
+        prefcodec = fs_codec_copy (tmpcodec);
+        break;
+      }
+    }
+  }
+  fs_codec_list_destroy (codecs);
+
+  fail_unless (prefcodec->ABI.ABI.ptime == 0);
+  fail_unless (prefcodec->ABI.ABI.maxptime == 0);
+
+  codec = fs_codec_copy (prefcodec);
+  codec->ABI.ABI.ptime = 10;
+  codec->ABI.ABI.maxptime = 20;
+  codecs = g_list_append (NULL, codec);
+  fail_unless (fs_session_set_codec_preferences (dat->session, codecs, &error));
+  fail_unless (error == NULL);
+  fs_codec_list_destroy (codecs);
+  codecs = NULL;
+
+  g_object_get (dat->session, "current-send-codec", &codec, NULL);
+  fail_unless (codec == NULL);
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  codec = codecs->data;
+  fail_unless (codec->id == prefcodec->id);
+  fail_unless (codec->ABI.ABI.ptime == 10);
+  fail_unless (codec->ABI.ABI.maxptime == 20);
+  fs_codec_list_destroy (codecs);
+
+  participant = fs_conference_new_participant (
+      FS_CONFERENCE (dat->conference), "name", NULL);
+  fail_if (participant == NULL, "Could not add participant to conference");
+
+  stream = fs_session_new_stream (dat->session, participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (stream == NULL, "Could not add stream to session");
+
+  codecs = g_list_append (NULL, fs_codec_copy (prefcodec));
+  fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
+  fail_unless (error == NULL);
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  fail_unless (g_list_length (codecs) == 1);
+  codec = codecs->data;
+  fail_unless (codec->id == prefcodec->id);
+  fail_unless (codec->ABI.ABI.ptime == 10);
+  fail_unless (codec->ABI.ABI.maxptime == 20);
+  fs_codec_list_destroy (codecs);
+
+  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
+      GST_STATE_CHANGE_FAILURE);
+  dat->started = TRUE;
+
+  setup_fakesrc (dat);
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE (dat->pipeline));
+
+  codec = NULL;
+  while ((message = gst_bus_poll (bus, GST_MESSAGE_ELEMENT, 3 * GST_SECOND)))
+  {
+    const GstStructure *s = gst_message_get_structure (message);
+
+    if (gst_structure_has_name (s, "farsight-send-codec-changed"))
+    {
+      const GValue *val;
+      val = gst_structure_get_value (s, "codec");
+      codec = g_value_get_boxed (val);
+      fail_unless (codec->ABI.ABI.ptime == 0);
+      fail_unless (codec->ABI.ABI.maxptime == 0);
+      gst_message_unref (message);
+      break;
+    }
+    gst_message_unref (message);
+  }
+  g_assert (codec != NULL);
+
+  codec = fs_codec_copy (prefcodec);
+  codec->ABI.ABI.ptime = 30;
+  codec->ABI.ABI.maxptime = 40;
+  codecs = g_list_append (NULL, codec);
+  fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
+  fail_unless (error == NULL);
+
+  while ((message = gst_bus_poll (bus, GST_MESSAGE_ELEMENT, 3 * GST_SECOND)))
+  {
+    const GstStructure *s = gst_message_get_structure (message);
+
+    if (gst_structure_has_name (s, "farsight-send-codec-changed"))
+    {
+      const GValue *val;
+      val = gst_structure_get_value (s, "codec");
+      codec = g_value_get_boxed (val);
+      fail_unless (codec->ABI.ABI.ptime == 30);
+      fail_unless (codec->ABI.ABI.maxptime == 40);
+      gst_message_unref (message);
+      break;
+    }
+    gst_message_unref (message);
+  }
+
+
+  gst_object_unref (bus);
+
+  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) ==
+      GST_STATE_CHANGE_SUCCESS);
+
+  g_object_unref (stream);
+  g_object_unref (participant);
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -1031,7 +1167,8 @@ fsrtpcodecs_suite (void)
   GLogLevelFlags fatal_mask;
 
 
-  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
+  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
+  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
 
@@ -1065,6 +1202,11 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_dynamic_pt");
   tcase_add_test (tc_chain, test_rtpcodecs_dynamic_pt);
+  suite_add_tcase (s, tc_chain);
+
+
+  tc_chain = tcase_create ("fsrtpcodecs_ptime");
+  tcase_add_test (tc_chain, test_rtpcodecs_ptime);
   suite_add_tcase (s, tc_chain);
 
   return s;
