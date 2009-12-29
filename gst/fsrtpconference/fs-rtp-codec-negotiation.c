@@ -1102,20 +1102,9 @@ codec_association_copy (CodecAssociation *ca)
   return newca;
 }
 
-/**
- * codec_associations_to_codecs:
- * @codec_associations: a #GList of #CodecAssociation
- * @include_config: whether to include the config data
- *
- * Returns a #GList of the #FsCodec that are inside the list of associations
- * excluding those that are disabled or otherwise receive-only. It copies
- * the #FsCodec structures.
- *
- * Returns: a #GList of #FsCodec
- */
 GList *
-codec_associations_to_codecs (GList *codec_associations,
-    gboolean include_config)
+codec_associations_to_codecs_internal (GList *codec_associations,
+    gboolean include_config, gboolean with_ptime)
 {
   GList *codecs = NULL;
   GList *item = NULL;
@@ -1133,11 +1122,57 @@ codec_associations_to_codecs (GList *codec_associations,
         codec = fs_codec_copy (ca->codec);
       else
         codec = codec_copy_without_config (ca->codec);
+      if (with_ptime)
+      {
+        codec->ABI.ABI.ptime = ca->ptime;
+        codec->ABI.ABI.maxptime = ca->maxptime;
+      }
       codecs = g_list_append (codecs, codec);
     }
   }
 
   return codecs;
+}
+
+
+/**
+ * codec_associations_to_codecs:
+ * @codec_associations: a #GList of #CodecAssociation
+ * @include_config: whether to include the config data
+ *
+ * Returns a #GList of the #FsCodec that are inside the list of associations
+ * excluding those that are disabled or otherwise receive-only. It copies
+ * the #FsCodec structures.
+ *
+ * Returns: a #GList of #FsCodec
+ */
+GList *
+codec_associations_to_codecs (GList *codec_associations,
+    gboolean include_config)
+{
+  return codec_associations_to_codecs_internal (codec_associations,
+      include_config, FALSE);
+}
+
+
+
+/**
+ * codec_associations_to_codecs_with_ptime:
+ * @codec_associations: a #GList of #CodecAssociation
+ *
+ * Returns a #GList of the #FsCodec that are inside the list of associations
+ * excluding those that are disabled or otherwise receive-only. It copies
+ * the #FsCodec structures, but takes the ptime and maxptime from the
+ * CodecAssociation. So it includes the ptime and maxptime that must be used
+ * for sending.
+ *
+ * Returns: a #GList of #FsCodec
+ */
+GList *
+codec_associations_to_codecs_with_ptime (GList *codec_associations)
+{
+  return codec_associations_to_codecs_internal (codec_associations,
+      FALSE, TRUE);
 }
 
 gboolean
