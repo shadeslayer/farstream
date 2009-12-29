@@ -2806,6 +2806,8 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
 /**
  * fs_rtp_session_select_send_codec_locked:
  * @session: the #FsRtpSession
+ * @codec: The codec from the selected codec association without the config
+ * and with the right ptime/maxptime.
  *
  * This function selects the codec to send using either the user preference
  * or the remote preference (from the negotiation).
@@ -2816,7 +2818,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
  */
 
 static CodecAssociation *
-fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
+fs_rtp_session_select_send_codec_locked (FsRtpSession *session, FsCodec **codec,
     GError **error)
 {
   CodecAssociation *ca = NULL;
@@ -2871,6 +2873,13 @@ fs_rtp_session_select_send_codec_locked (FsRtpSession *session,
         "Could not get a valid send codec");
 
 out:
+
+  if (ca && codec)
+  {
+    *codec = codec_copy_without_config (ca->codec);
+    (*codec)->ABI.ABI.ptime = ca->ptime;
+    (*codec)->ABI.ABI.maxptime = ca->maxptime;
+  }
 
   return ca;
 }
@@ -2971,7 +2980,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
     FsCodec *codec = listitem->data;
     GstCaps *intersect;
 
-    filter_caps = fs_codec_to_gst_caps (codec);
+    filter_caps = fs_codec_to_gst_caps_with_ptime (codec);
     intersect = gst_caps_intersect (filter_caps, caps);
 
     if (!gst_caps_is_empty (intersect))
@@ -3175,8 +3184,8 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
       FS_CODEC_ARGS (codec));
 
   name = g_strdup_printf ("send_%d_%d", session->id, codec->id);
-  codecs = codec_associations_to_codecs (session->priv->codec_associations,
-      FALSE);
+  codecs = codec_associations_to_codecs_with_ptime (
+      session->priv->codec_associations);
   codecbin = _create_codec_bin (ca, codec, name, TRUE, codecs, error);
   g_free (name);
 
@@ -3210,7 +3219,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
     return NULL;
   }
 
-  sendcaps = fs_codec_to_gst_caps (codec);
+  sendcaps = fs_codec_to_gst_caps_with_ptime (codec);
 
   g_object_set (G_OBJECT (session->priv->send_capsfilter),
       "caps", sendcaps, NULL);
@@ -3356,7 +3365,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   g_mutex_lock (self->priv->send_pad_blocked_mutex);
 
   FS_RTP_SESSION_LOCK (self);
-  ca = fs_rtp_session_select_send_codec_locked (self, &error);
+  ca = fs_rtp_session_select_send_codec_locked (self, &codec_without_config,
+      &error);
 
   if (!ca)
   {
@@ -3364,8 +3374,6 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         "Could not select a new send codec", error->message);
     goto done_locked;
   }
-
-  codec_without_config = codec_copy_without_config (ca->codec);
 
   g_clear_error (&error);
 
@@ -3397,7 +3405,9 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   FS_RTP_SESSION_LOCK (self);
   /* We have to re-fetch the ca because we lifted the lock */
-  ca = fs_rtp_session_select_send_codec_locked (self, &error);
+  fs_codec_destroy (codec_without_config);
+  ca = fs_rtp_session_select_send_codec_locked (self, &codec_without_config,
+      &error);
 
   if (!ca)
   {
@@ -3405,9 +3415,6 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         "Could not select a new send codec", error->message);
     goto done_locked;
   }
-
-  fs_codec_destroy (codec_without_config);
-  codec_without_config = codec_copy_without_config (ca->codec);
 
   g_clear_error (&error);
 
