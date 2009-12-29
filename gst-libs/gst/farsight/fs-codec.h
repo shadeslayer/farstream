@@ -81,7 +81,8 @@ typedef enum
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
  * @optional_params: key pairs of param name to param data
- * @maxptime: The maximum size (in ms) of a sent buffer
+ * @ptime: The preferred duration (in ms) of a packet
+ * @maxptime: The maximum duration (in ms) of a packet
  *
  * This structure reprensents one codec that can be offered or received
  */
@@ -97,6 +98,7 @@ struct _FsCodec
   /*< private >*/
   union {
     struct {
+      guint ptime;
       guint maxptime;
     } ABI;
     gpointer _padding[4];         /* padding for binary-compatible
