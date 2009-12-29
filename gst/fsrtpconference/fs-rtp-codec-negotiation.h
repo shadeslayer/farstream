@@ -53,6 +53,9 @@ typedef struct _CodecAssociation {
   gchar *send_profile;
   gchar *recv_profile;
 
+  guint ptime;
+  guint maxptime;
+
   /*< private >*/
 
   gboolean reserved;

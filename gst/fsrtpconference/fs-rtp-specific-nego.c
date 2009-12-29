@@ -235,6 +235,9 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
 
   negotiated_codec = codec_copy_without_config (remote_codec);
 
+  negotiated_codec->ABI.ABI.ptime = local_codec->ABI.ABI.ptime;
+  negotiated_codec->ABI.ABI.maxptime = local_codec->ABI.ABI.maxptime;
+
   /* Lets fix here missing clock rates and channels counts */
   if (negotiated_codec->channels == 0 && local_codec->channels)
     negotiated_codec->channels = local_codec->channels;

@@ -613,6 +613,8 @@ create_local_codec_associations (
           memcpy (ca, oldca, sizeof (CodecAssociation));
           codec_remove_parameter (codec, SEND_PROFILE_ARG);
           codec_remove_parameter (codec, RECV_PROFILE_ARG);
+          codec->ABI.ABI.maxptime = codec_pref->ABI.ABI.maxptime;
+          codec->ABI.ABI.ptime = codec_pref->ABI.ABI.ptime;
           ca->codec = codec;
 
           ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
@@ -884,6 +886,19 @@ negotiate_stream_codecs (
       new_ca->blueprint = old_ca->blueprint;
       new_ca->send_profile = g_strdup (old_ca->send_profile);
       new_ca->recv_profile = g_strdup (old_ca->recv_profile);
+      if (remote_codec->ABI.ABI.ptime && old_ca->ptime)
+        new_ca->ptime = MIN (remote_codec->ABI.ABI.ptime, old_ca->ptime);
+      else if (remote_codec->ABI.ABI.ptime)
+        new_ca->ptime = remote_codec->ABI.ABI.ptime;
+      else if (old_ca->ptime)
+        new_ca->ptime = old_ca->ptime;
+      if (remote_codec->ABI.ABI.maxptime && old_ca->maxptime)
+        new_ca->maxptime = MIN (remote_codec->ABI.ABI.maxptime,
+            old_ca->maxptime);
+      else if (remote_codec->ABI.ABI.maxptime)
+        new_ca->maxptime = remote_codec->ABI.ABI.maxptime;
+      else if (old_ca->maxptime)
+        new_ca->maxptime = old_ca->maxptime;
       tmp = fs_codec_to_string (nego_codec);
       GST_DEBUG ("Negotiated codec %s", tmp);
       g_free (tmp);
