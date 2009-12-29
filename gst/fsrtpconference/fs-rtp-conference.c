@@ -866,3 +866,32 @@ fs_codec_to_gst_caps (const FsCodec *codec)
   return caps;
 }
 
+
+/**
+ * fs_codec_to_gst_caps_with_ptime
+ * @codec: A #FsCodec to be converted
+ *
+ * This function converts a #FsCodec to a fixed #GstCaps with media type
+ * application/x-rtp. This will also add the ptime/maxptime from the codec
+ * into the #GstCaps.
+ *
+ * Return value: A newly-allocated #GstCaps or %NULL if the codec was %NULL
+ */
+
+GstCaps *
+fs_codec_to_gst_caps_with_ptime (const FsCodec *codec)
+{
+  GstCaps *caps = fs_codec_to_gst_caps (codec);
+
+  if (caps)
+  {
+    if (codec->ABI.ABI.ptime)
+      gst_caps_set_simple (caps,
+          "ptime", G_TYPE_UINT, codec->ABI.ABI.ptime, NULL);
+    if (codec->ABI.ABI.maxptime)
+      gst_caps_set_simple (caps,
+          "maxptime", G_TYPE_UINT, codec->ABI.ABI.maxptime, NULL);
+  }
+
+  return caps;
+}

@@ -75,6 +75,7 @@ GST_DEBUG_CATEGORY_EXTERN (fsrtpconference_nego);
 
 
 GstCaps *fs_codec_to_gst_caps (const FsCodec *codec);
+GstCaps *fs_codec_to_gst_caps_with_ptime (const FsCodec *codec);
 
 
 G_END_DECLS
