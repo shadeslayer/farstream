@@ -64,6 +64,9 @@ sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
 static FsCodec *
 sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config);
+static FsCodec *
+sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
@@ -77,6 +80,8 @@ static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_VIDEO, "H264", sdp_is_compat_default,
    {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
     "sprop-init-buf-time", "sprop-max-don-diff", NULL}},
+  {FS_MEDIA_TYPE_AUDIO, "telephone-event", sdp_is_compat_telephone_event,
+   {NULL}},
   {0, NULL, NULL}
 };
 
@@ -396,4 +401,228 @@ gboolean validate_config)
     return NULL;
 
   return sdp_is_compat_default (local_codec, remote_codec, validate_config);
+}
+
+struct event_range {
+  int first;
+  int last;
+};
+
+static gint
+event_range_cmp (gconstpointer a, gconstpointer b)
+{
+  const struct event_range *era = a;
+  const struct event_range *erb = b;
+
+  return era->first - erb->first;
+}
+
+static GList *
+parse_events (const gchar *events)
+{
+  gchar **ranges_strv;
+  GList *ranges = NULL;
+  int i;
+
+  ranges_strv = g_strsplit (events, ",", 0);
+
+  for (i = 0; ranges_strv[i]; i++)
+  {
+    struct event_range *er = g_slice_new (struct event_range);
+
+    er->first = atoi (ranges_strv[i]);
+    if (index (ranges_strv[i], '-'))
+      er->last = atoi (index (ranges_strv[i], '-') + 1);
+
+    ranges = g_list_insert_sorted (ranges, er, event_range_cmp);
+  }
+
+  g_strfreev (ranges_strv);
+
+  return ranges;
+}
+
+static void
+event_range_free (gpointer data)
+{
+  g_slice_free (struct event_range, data);
+}
+
+static gchar *
+event_intersection (const gchar *remote_events, const gchar *local_events)
+{
+  GList *remote_ranges = NULL;
+  GList *local_ranges = NULL;
+  GList *intersected_ranges = NULL;
+  GList *item;
+  struct event_range *new_er = NULL;
+  GString *intersection_gstr;
+
+  if (!g_regex_match_simple ("^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$",
+          remote_events, 0, 0))
+  {
+    GST_DEBUG ("Invalid remote events (events=%s)", remote_events);
+    return NULL;
+  }
+
+  if (!g_regex_match_simple ("^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$",
+          local_events, 0, 0))
+  {
+    GST_DEBUG ("Invalid local events (events=%s)", local_events);
+    return NULL;
+  }
+
+  remote_ranges = parse_events (remote_events);
+  local_ranges = parse_events (local_events);
+
+  while ((item = remote_ranges) != NULL)
+  {
+    struct event_range *er1 = item->data;
+    GList *item2;
+
+    while ((item2 = local_ranges) != NULL)
+    {
+      struct event_range *er2 = item2->data;
+
+      if (er1->last < er2->first)
+        break;
+
+      if (er1->first < er2->last)
+      {
+        int new_first = MAX (er1->first, er2->first);
+        int new_last = MIN (er1->last, er2->last);
+
+        if (new_er && new_er->last == new_first)
+        {
+          new_er->last = new_last;
+        }
+        else
+        {
+          new_er = g_slice_new (struct event_range);
+          new_er->first = new_first;
+          new_er->last = new_last;
+          intersected_ranges = g_list_append (intersected_ranges, new_er);
+        }
+      }
+      local_ranges = g_list_delete_link (local_ranges, item2);
+      event_range_free (er2);
+    }
+
+    remote_ranges = g_list_delete_link (remote_ranges, item);
+    event_range_free (er1);
+  }
+
+  if (!intersected_ranges)
+  {
+    GST_DEBUG ("There is no intersection before the events %s and %s",
+        remote_events, local_events);
+    return NULL;
+  }
+
+  intersection_gstr = g_string_new ("");
+
+  while ((item = intersected_ranges) != NULL)
+  {
+    struct event_range *er = item->data;
+
+    if (intersection_gstr->len)
+      g_string_append_c (intersection_gstr, ',');
+
+    if (er->first == er->last)
+      g_string_append_printf (intersection_gstr, "%d", er->first);
+    else
+      g_string_append_printf (intersection_gstr, "%d-%d", er->first, er->last);
+
+    intersected_ranges = g_list_delete_link (intersected_ranges, item);
+    event_range_free (er);
+  }
+
+  return g_string_free (intersection_gstr, FALSE);
+}
+
+static FsCodec *
+sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec,
+    gboolean validate_config)
+{
+  FsCodec *negotiated_codec = NULL;
+  GList *local_param_list = NULL, *negotiated_param_list = NULL;
+
+  GST_LOG ("Using telephone-event codec negotiation function");
+
+  if ((local_codec->clock_rate || validate_config) &&
+      remote_codec->clock_rate &&
+      local_codec->clock_rate != remote_codec->clock_rate)
+  {
+    GST_LOG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
+        remote_codec->clock_rate);
+    return NULL;
+  }
+
+  negotiated_codec = codec_copy_without_config (remote_codec);
+
+  negotiated_codec->ABI.ABI.ptime = local_codec->ABI.ABI.ptime;
+  negotiated_codec->ABI.ABI.maxptime = local_codec->ABI.ABI.maxptime;
+
+  /* Lets fix here missing clock rates and channels counts */
+  if (negotiated_codec->channels == 0 && local_codec->channels)
+    negotiated_codec->channels = local_codec->channels;
+  if (negotiated_codec->clock_rate == 0)
+    negotiated_codec->clock_rate = local_codec->clock_rate;
+
+  for (local_param_list = local_codec->optional_params;
+       local_param_list;
+       local_param_list = g_list_next (local_param_list))
+  {
+    FsCodecParameter *local_param = local_param_list->data;
+
+    for (negotiated_param_list = negotiated_codec->optional_params;
+         negotiated_param_list;
+         negotiated_param_list = g_list_next (negotiated_param_list))
+    {
+      FsCodecParameter *negotiated_param = negotiated_param_list->data;
+
+      if (!strcmp (negotiated_param->name, ""))
+      {
+        g_free (negotiated_param->name);
+        negotiated_param->name = g_strdup ("events");
+      }
+
+      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name))
+      {
+        if (!strcmp (local_param->value, negotiated_param->value))
+        {
+          break;
+        }
+        else if (!g_ascii_strcasecmp (negotiated_param->name, "events"))
+        {
+          gchar *events = event_intersection (negotiated_param->value,
+              local_param->value);
+          if (!events)
+          {
+            GST_LOG ("Non-intersecting values for %s, local=%s remote=%s",
+                local_param->name, local_param->value, negotiated_param->value);
+            fs_codec_destroy (negotiated_codec);
+            return NULL;
+          }
+          g_free (negotiated_param->value);
+          negotiated_param->value = events;
+        }
+        else
+        {
+          GST_LOG ("Different values for %s, local=%s remote=%s",
+              local_param->name, local_param->value, negotiated_param->value);
+          fs_codec_destroy (negotiated_codec);
+          return NULL;
+        }
+      }
+    }
+
+    /* Let's add the local param to the negotiated codec if it does not exist in
+     * the remote codec */
+    if (!negotiated_param_list)
+      fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
+          local_param->value);
+  }
+
+  return negotiated_codec;
 }
