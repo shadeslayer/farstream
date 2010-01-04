@@ -107,6 +107,14 @@ set_the_candidates (gpointer user_data)
   gboolean ret;
   GError *error = NULL;
 
+  if (!candidates)
+  {
+    g_debug ("Skipping libnice check because it found NO local candidates");
+    g_atomic_int_set(&running, FALSE);
+    g_main_loop_quit (loop);
+    return FALSE;
+  }
+
   if (force_candidates)
   {
     GList *item = NULL;
