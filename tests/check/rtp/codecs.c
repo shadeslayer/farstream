@@ -1158,6 +1158,156 @@ GST_START_TEST (test_rtpcodecs_ptime)
 }
 GST_END_TEST;
 
+static void
+test_one_telephone_event_codec (FsSession *session, FsStream *stream,
+    FsCodec *prefcodec, FsCodec *incodec, FsCodec *outcodec)
+{
+  GList *codecs = NULL;
+  FsCodec *codec = NULL;
+  GError *error = NULL;
+
+  codecs = g_list_append (NULL, fs_codec_copy (prefcodec));
+  codecs = g_list_append (codecs, incodec);
+  fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
+  fail_unless (error == NULL);
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (session, "codecs", &codecs, NULL);
+  if (outcodec)
+  {
+    fail_unless (g_list_length (codecs) == 2);
+    codec = codecs->data;
+    fail_unless (codec->id == prefcodec->id);
+    codec = codecs->next->data;
+    fail_unless (fs_codec_are_equal (codec, outcodec));
+    fs_codec_destroy (outcodec);
+  }
+  else
+  {
+    fail_unless (g_list_length (codecs) == 1);
+  }
+
+  fs_codec_list_destroy (codecs);
+}
+
+GST_START_TEST (test_rtpcodecs_telephone_event_nego)
+{
+  struct SimpleTestConference *dat = NULL;
+  GList *codecs = NULL, *item = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsParticipant *participant;
+  FsStream *stream;
+  gboolean has_telephone_event_codec = FALSE;
+
+  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  for (item = g_list_first (codecs); item; item = g_list_next (item))
+  {
+    FsCodec *tmpcodec = item->data;
+
+    if (tmpcodec->id == 0 || tmpcodec->id == 8)
+    {
+      if (!prefcodec)
+      {
+        prefcodec = fs_codec_copy (tmpcodec);
+      }
+    } else if (!strcmp (tmpcodec->encoding_name, "telephone-event")) {
+      has_telephone_event_codec = TRUE;
+      if (fs_codec_get_optional_parameter (tmpcodec, "telephone-event", NULL) &&
+          !fs_codec_get_optional_parameter (tmpcodec, "telephone-event", "0-16"))
+      {
+        g_debug ("Telephone-event does no have the expected events=0-16");
+        has_telephone_event_codec = FALSE;
+      }
+    }
+  }
+  fs_codec_list_destroy (codecs);
+
+  if (!has_telephone_event_codec) {
+    g_debug ("telephone-event elements not detected, skipping test");
+    return;
+  }
+
+  participant = fs_conference_new_participant (
+      FS_CONFERENCE (dat->conference), "name", NULL);
+  fail_if (participant == NULL, "Could not add participant to conference");
+
+  stream = fs_session_new_stream (dat->session, participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (stream == NULL, "Could not add stream to session");
+
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0-16");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "0-16");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0,2-16");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "0,2-16");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0,2-16");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "0,2-16");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "2");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "2");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "2-3");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "2-3");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0,10-26,32");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "0,10-16");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0,10");
+  fs_codec_add_optional_parameter (codec, "events", "1,2");
+  outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "events", "0,10");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0,2-16-2");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      NULL);
+
+  codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "events", "0,,3");
+  test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
+      NULL);
+
+
+  g_object_unref (stream);
+  g_object_unref (participant);
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
 
 static Suite *
 fsrtpcodecs_suite (void)
@@ -1204,9 +1354,12 @@ fsrtpcodecs_suite (void)
   tcase_add_test (tc_chain, test_rtpcodecs_dynamic_pt);
   suite_add_tcase (s, tc_chain);
 
-
   tc_chain = tcase_create ("fsrtpcodecs_ptime");
   tcase_add_test (tc_chain, test_rtpcodecs_ptime);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_telephone_event-nego");
+  tcase_add_test (tc_chain, test_rtpcodecs_telephone_event_nego);
   suite_add_tcase (s, tc_chain);
 
   return s;
