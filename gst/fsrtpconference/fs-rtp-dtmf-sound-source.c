@@ -1,9 +1,9 @@
 /*
  * Farsight2 - Farsight RTP DTMF Sound Source
  *
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
- * Copyright 2007 Nokia Corp.
+ * Copyright 2007-2009 Nokia Corp.
  *
  * fs-rtp-dtmf-sound-source.c - A Farsight RTP Sound Source gobject
  *
@@ -32,6 +32,7 @@
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-codec-negotiation.h"
+#include "fs-rtp-specific-nego.h"
 
 #include "fs-rtp-dtmf-sound-source.h"
 
@@ -113,7 +114,8 @@ _is_law_codec (CodecAssociation *ca, gpointer user_data)
 static FsCodec *
 get_pcm_law_sound_codec (GList *codecs,
     gchar **encoder_name,
-    gchar **payloader_name)
+    gchar **payloader_name,
+    CodecAssociation **out_ca)
 {
   CodecAssociation *ca = NULL;
 
@@ -136,6 +138,9 @@ get_pcm_law_sound_codec (GList *codecs,
     if (payloader_name)
       *payloader_name = "rtppcmapay";
   }
+
+  if (out_ca)
+    *out_ca = ca;
 
   return ca->codec;
 }
@@ -186,7 +191,7 @@ fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
   if (selected_codec->clock_rate == 8000)
   {
     codec = get_pcm_law_sound_codec (negotiated_codec_associations,
-        &encoder_name, &payloader_name);
+        &encoder_name, &payloader_name, NULL);
     if (codec) {
       if (!_check_element_factory (encoder_name))
         return NULL;
@@ -226,7 +231,7 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
 
   if (selected_codec->clock_rate == 8000)
     telephony_codec = get_pcm_law_sound_codec (negotiated_codec_associations,
-        &encoder_name, &payloader_name);
+        &encoder_name, &payloader_name, &ca);
 
   if (!telephony_codec)
   {
@@ -239,6 +244,11 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
   g_return_val_if_fail (telephony_codec, NULL);
 
   source->codec = fs_codec_copy (telephony_codec);
+
+  telephony_codec = codec_copy_without_config (telephony_codec);
+
+  telephony_codec->ABI.ABI.ptime = ca->ptime;
+  telephony_codec->ABI.ABI.maxptime = ca->maxptime;
 
   GST_DEBUG ("Creating dtmf sound source for " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (telephony_codec));
@@ -271,7 +281,7 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
     goto error;
   }
 
-  caps = fs_codec_to_gst_caps (telephony_codec);
+  caps = fs_codec_to_gst_caps_with_ptime (telephony_codec);
   g_object_set (capsfilter, "caps", caps, NULL);
   {
     gchar *str = gst_caps_to_string (caps);
