@@ -142,6 +142,8 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   if (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp)
     return;
 
+  st->got_candidates = TRUE;
+
   GST_DEBUG ("%d:%d: Setting remote candidate for component %d",
       other_st->dat->id,
       other_st->target->id,
@@ -173,6 +175,20 @@ _current_send_codec_changed (FsSession *session, FsCodec *codec)
   str = fs_codec_to_string (codec);
   GST_DEBUG ("%d: New send codec: %s", dat->id, str);
   g_free (str);
+}
+
+static void
+_local_candidates_prepared (FsStream *stream)
+{
+  struct SimpleTestStream *st = g_object_get_data (G_OBJECT (stream),
+      "SimpleTestStream");
+
+  if (!st->got_candidates)
+  {
+    g_debug ("Skipping test because there are no candidates");
+    g_main_loop_quit (loop);
+  }
+
 }
 
 
@@ -296,7 +312,8 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (
               gst_implements_interface_check (GST_MESSAGE_SRC (message),
                   FS_TYPE_CONFERENCE),
-              "Received farsight-error from non-farsight element");
+              "Received farsight-current-send-codec-change from non-farsight"
+              " element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "session", FS_TYPE_SESSION),
@@ -317,6 +334,28 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
               session, codec);
 
           _current_send_codec_changed (session, codec);
+        }
+        else if (gst_structure_has_name (s,
+                "farsight-local-candidates-prepared"))
+        {
+          FsStream *stream;
+          const GValue *value;
+
+          ts_fail_unless (
+              gst_implements_interface_check (GST_MESSAGE_SRC (message),
+                  FS_TYPE_CONFERENCE),
+              "Received farsight-local-candidates-prepared from non-farsight"
+              " element");
+
+          ts_fail_unless (
+              gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
+              "farsight-local-candidates-prepared structure"
+              " has no stream field");
+
+          value = gst_structure_get_value (s, "stream");
+          stream = g_value_get_object (value);
+
+          _local_candidates_prepared (stream);
         }
 
        }

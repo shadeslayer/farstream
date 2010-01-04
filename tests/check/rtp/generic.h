@@ -51,6 +51,8 @@ struct SimpleTestStream {
 
   GCallback handoff_handler;
 
+  gboolean got_candidates;
+
   gint flags;
 };
 
