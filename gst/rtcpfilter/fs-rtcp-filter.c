@@ -226,6 +226,8 @@ fs_rtcp_filter_transform_ip (GstBaseTransform *transform, GstBuffer *buf)
             memmove (GST_BUFFER_DATA (buf) + packet.offset + 8,
                 GST_BUFFER_DATA (buf) + nextpacket.offset,
                 GST_BUFFER_SIZE (buf) - nextpacket.offset);
+            GST_BUFFER_SIZE (buf) -= nextpacket.offset - packet.offset - 8;
+
             if (!gst_rtcp_buffer_get_first_packet (buf, &packet))
               break;
           }
