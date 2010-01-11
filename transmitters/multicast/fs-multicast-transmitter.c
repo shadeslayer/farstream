@@ -1134,7 +1134,9 @@ fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock)
 
     gst_element_send_event (udpsock->udpsink,
         gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
-            gst_structure_new ("GstForceKeyUnit", NULL)));
+            gst_structure_new ("GstForceKeyUnit",
+                "all-headers", G_TYPE_BOOLEAN, TRUE,
+                NULL)));
   }
 }
 

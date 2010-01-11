@@ -4408,7 +4408,9 @@ fs_rtp_session_ssrc_validated (FsRtpSession *session,
 
   gst_element_send_event (session->priv->rtpmuxer,
       gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
-          gst_structure_new ("GstForceKeyUnit", NULL)));
+          gst_structure_new ("GstForceKeyUnit",
+              "all-headers", G_TYPE_BOOLEAN, TRUE,
+              NULL)));
 
   fs_rtp_session_has_disposed_exit (session);
 }

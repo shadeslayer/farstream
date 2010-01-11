@@ -939,5 +939,7 @@ fs_nice_transmitter_request_keyunit (FsNiceTransmitter *self,
 
   gst_element_send_event (ns->nicesinks[component],
       gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
-          gst_structure_new ("GstForceKeyUnit", NULL)));
+          gst_structure_new ("GstForceKeyUnit",
+              "all-headers", G_TYPE_BOOLEAN, TRUE,
+              NULL)));
 }
