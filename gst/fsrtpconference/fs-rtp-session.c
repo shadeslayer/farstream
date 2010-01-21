@@ -1405,6 +1405,12 @@ fs_rtp_session_constructed (GObject *object)
       "notify::internal-ssrc",
       G_CALLBACK (_rtpbin_internal_session_notify_internal_ssrc), self);
 
+  if (g_object_class_find_property (
+          G_OBJECT_GET_CLASS (self->priv->rtpbin_internal_session),
+          "favor-new"))
+    g_object_set (self->priv->rtpbin_internal_session, "favor-new", TRUE,
+        NULL);
+
   FS_RTP_SESSION_LOCK (self);
   fs_rtp_session_start_codec_param_gathering_locked (self);
   FS_RTP_SESSION_UNLOCK (self);
