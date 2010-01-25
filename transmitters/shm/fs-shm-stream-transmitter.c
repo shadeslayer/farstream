@@ -339,6 +339,7 @@ static void ready_cb (guint component, gchar *path, gpointer data)
       FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, path, 0);
 
   g_signal_emit_by_name (self, "new-local-candidate", candidate);
+  g_signal_emit_by_name (self, "local-candidates-prepared");
 
   fs_candidate_destroy (candidate);
 }
