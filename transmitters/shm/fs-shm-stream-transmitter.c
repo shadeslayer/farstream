@@ -260,21 +260,12 @@ fs_shm_stream_transmitter_get_property (GObject *object,
                                            GParamSpec *pspec)
 {
   FsShmStreamTransmitter *self = FS_SHM_STREAM_TRANSMITTER (object);
-  gint c;
 
   switch (prop_id)
   {
     case PROP_SENDING:
       FS_SHM_STREAM_TRANSMITTER_LOCK (self);
       g_value_set_boolean (value, self->priv->sending);
-      for (c = 1; c <= self->priv->transmitter->components; c++)
-      {
-        if (self->priv->shm_sink[c])
-        {
-          fs_shm_transmitter_sink_set_sending (self->priv->transmitter,
-              self->priv->shm_sink[c], self->priv->sending);
-        }
-      }
       FS_SHM_STREAM_TRANSMITTER_UNLOCK (self);
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
@@ -293,14 +284,21 @@ fs_shm_stream_transmitter_set_property (GObject *object,
                                            GParamSpec *pspec)
 {
   FsShmStreamTransmitter *self = FS_SHM_STREAM_TRANSMITTER (object);
+  gint c;
 
   switch (prop_id) {
     case PROP_SENDING:
+      FS_SHM_STREAM_TRANSMITTER_LOCK (self);
+      self->priv->sending = g_value_get_boolean (value);
+      for (c = 1; c <= self->priv->transmitter->components; c++)
       {
-        FS_SHM_STREAM_TRANSMITTER_LOCK (self);
-        self->priv->sending = g_value_get_boolean (value);
-        FS_SHM_STREAM_TRANSMITTER_UNLOCK (self);
+        if (self->priv->shm_sink[c])
+        {
+          fs_shm_transmitter_sink_set_sending (self->priv->transmitter,
+              self->priv->shm_sink[c], self->priv->sending);
+        }
       }
+      FS_SHM_STREAM_TRANSMITTER_UNLOCK (self);
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       self->priv->preferred_local_candidates = g_value_dup_boxed (value);
