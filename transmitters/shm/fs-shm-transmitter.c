@@ -581,7 +581,11 @@ fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
     goto error;
   }
 
-  g_object_set (elem, "socket-path", path, NULL);
+  g_object_set (elem,
+      "socket-path", path,
+      "do-timestamp", TRUE,
+      "is-live", TRUE,
+      NULL);
 
   if (!gst_bin_add (GST_BIN (self->priv->gst_src), elem))
   {
@@ -704,6 +708,8 @@ fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
   ShmSink *shm = g_slice_new0 (ShmSink);
   GstElement *elem;
   GstPad *pad;
+
+  GST_DEBUG ("Trying to add shm sink for c:%u path %s", component, path);
 
   shm->component = component;
 
