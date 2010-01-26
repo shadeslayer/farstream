@@ -683,10 +683,14 @@ struct _ShmSink {
 static void
 ready_cb (GstBin *bin, GstElement *elem, ShmSink *shm)
 {
+  gchar *path = NULL;
+
   if (elem != shm->sink)
     return;
 
-  shm->ready_func (shm->component, shm->path, shm->cb_data);
+  g_object_get (elem, "socket-path", &path, NULL);
+  shm->ready_func (shm->component, path, shm->cb_data);
+  g_free (path);
 }
 
 
