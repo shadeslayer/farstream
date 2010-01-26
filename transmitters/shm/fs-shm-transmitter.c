@@ -840,6 +840,11 @@ fs_shm_transmitter_check_shm_sink (FsShmTransmitter *self, ShmSink *shm,
   if (path && !strcmp (path, shm->path))
     return TRUE;
 
+  if (path)
+    GST_DEBUG ("Replacing shm socket %s with %s", shm->path, path);
+  else
+    GST_DEBUG ("Freeing shm socket %s", shm->path);
+
   if (shm->teepad)
   {
     gst_element_release_request_pad (self->priv->tees[shm->component],

@@ -336,6 +336,8 @@ static void ready_cb (guint component, gchar *path, gpointer data)
   FsCandidate *candidate = fs_candidate_new (NULL, component,
       FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, path, 0);
 
+  GST_DEBUG ("Emitting new local candidate with path %s", path);
+
   g_signal_emit_by_name (self, "new-local-candidate", candidate);
   g_signal_emit_by_name (self, "local-candidates-prepared");
 
