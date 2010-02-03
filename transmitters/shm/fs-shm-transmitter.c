@@ -840,6 +840,14 @@ fs_shm_transmitter_check_shm_sink (FsShmTransmitter *self, ShmSink *shm,
   if (path && !strcmp (path, shm->path))
     return TRUE;
 
+  if (shm->teepad)
+  {
+    gst_element_release_request_pad (self->priv->tees[shm->component],
+        shm->teepad);
+    gst_object_unref (shm->teepad);
+  }
+  shm->teepad = NULL;
+
   if (shm->sink)
   {
     gst_element_set_locked_state (shm->sink, TRUE);
@@ -855,14 +863,6 @@ fs_shm_transmitter_check_shm_sink (FsShmTransmitter *self, ShmSink *shm,
     gst_bin_remove (GST_BIN (self->priv->gst_sink), shm->recvonly_filter);
   }
   shm->recvonly_filter = NULL;
-
-  if (shm->teepad)
-  {
-    gst_element_release_request_pad (self->priv->tees[shm->component],
-        shm->teepad);
-    gst_object_unref (shm->teepad);
-  }
-  shm->teepad = NULL;
 
   g_free (shm->path);
   g_slice_free (ShmSink, shm);
