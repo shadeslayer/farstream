@@ -790,6 +790,20 @@ fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
     goto error;
   }
 
+  if (!gst_element_sync_state_with_parent (shm->sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the new shmsink with its parent");
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (shm->recvonly_filter))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the state of the new recvonly filter  with its parent");
+    goto error;
+  }
+
   shm->teepad = gst_element_get_request_pad (self->priv->tees[component],
       "src%d");
 
@@ -809,21 +823,6 @@ fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
     goto error;
   }
   gst_object_unref (pad);
-
-
-  if (!gst_element_sync_state_with_parent (shm->sink))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not sync the state of the new shmsink with its parent");
-    goto error;
-  }
-
-  if (!gst_element_sync_state_with_parent (shm->recvonly_filter))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not sync the state of the new recvonly filter  with its parent");
-    goto error;
-  }
 
   return shm;
 
