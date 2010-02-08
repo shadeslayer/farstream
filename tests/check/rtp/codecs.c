@@ -1149,7 +1149,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
 
   gst_object_unref (bus);
 
-  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) ==
+  fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) !=
       GST_STATE_CHANGE_SUCCESS);
 
   g_object_unref (stream);
