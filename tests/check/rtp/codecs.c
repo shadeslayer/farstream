@@ -1215,13 +1215,9 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
         prefcodec = fs_codec_copy (tmpcodec);
       }
     } else if (!strcmp (tmpcodec->encoding_name, "telephone-event")) {
+      fail_unless (
+          fs_codec_get_optional_parameter (tmpcodec, "events", "0-15") != NULL);
       has_telephone_event_codec = TRUE;
-      if (fs_codec_get_optional_parameter (tmpcodec, "telephone-event", NULL) &&
-          !fs_codec_get_optional_parameter (tmpcodec, "telephone-event", "0-16"))
-      {
-        g_debug ("Telephone-event does no have the expected events=0-16");
-        has_telephone_event_codec = FALSE;
-      }
     }
   }
   fs_codec_list_destroy (codecs);
@@ -1241,23 +1237,23 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
 
 
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (codec, "events", "0-16");
+  fs_codec_add_optional_parameter (codec, "events", "0-15");
   outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (outcodec, "events", "0-16");
+  fs_codec_add_optional_parameter (outcodec, "events", "0-15");
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       outcodec);
 
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (codec, "events", "0,2-16");
+  fs_codec_add_optional_parameter (codec, "events", "0,2-15");
   outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (outcodec, "events", "0,2-16");
+  fs_codec_add_optional_parameter (outcodec, "events", "0,2-15");
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       outcodec);
 
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (codec, "events", "0,2-16");
+  fs_codec_add_optional_parameter (codec, "events", "0,2-15");
   outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (outcodec, "events", "0,2-16");
+  fs_codec_add_optional_parameter (outcodec, "events", "0,2-15");
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       outcodec);
 
@@ -1278,7 +1274,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
   fs_codec_add_optional_parameter (codec, "events", "0,10-26,32");
   outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (outcodec, "events", "0,10-16");
+  fs_codec_add_optional_parameter (outcodec, "events", "0,10-15");
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       outcodec);
 
@@ -1292,7 +1288,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
       outcodec);
 
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
-  fs_codec_add_optional_parameter (codec, "events", "0,2-16-2");
+  fs_codec_add_optional_parameter (codec, "events", "0,2-15-2");
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       NULL);
 
