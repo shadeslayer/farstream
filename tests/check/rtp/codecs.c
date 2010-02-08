@@ -1284,6 +1284,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   fs_codec_add_optional_parameter (codec, "events", "1,2");
   outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
   fs_codec_add_optional_parameter (outcodec, "events", "0,10");
+  fs_codec_add_optional_parameter (outcodec, "events", "1,2");
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       outcodec);
 
