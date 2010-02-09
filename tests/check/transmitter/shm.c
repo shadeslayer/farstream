@@ -35,9 +35,9 @@
 #include "check-threadsafe.h"
 #include "generic.h"
 
-
 gint buffer_count[2] = {0, 0};
-gint candidates[2] = {0, 0};
+gboolean got_candidates[2];
+gboolean got_prepared[2];
 GstElement *pipeline = NULL;
 gboolean src_setup[2] = {FALSE, FALSE};
 guint received_known[2] = {0, 0};
@@ -58,7 +58,6 @@ enum {
 
 #define RTP_PORT 9828
 #define RTCP_PORT 9829
-
 
 GST_START_TEST (test_shmtransmitter_new)
 {
@@ -95,10 +94,25 @@ _new_local_candidate (FsStreamTransmitter *st, FsCandidate *candidate,
 
   ts_fail_unless (candidate->type == FS_CANDIDATE_TYPE_HOST,
       "Candidate is not host");
-  candidates[candidate->component_id-1] = 1;
+  ts_fail_unless (got_candidates[candidate->component_id-1] == FALSE);
+  got_candidates[candidate->component_id-1] = TRUE;
 
   GST_DEBUG ("New local candidate %s of type %d for component %d",
       candidate->ip, candidate->type, candidate->component_id);
+}
+
+
+static void
+_candidate_prepared (FsStreamTransmitter *st,gpointer user_data)
+{
+  GST_DEBUG ("Local candidates prepared");
+
+  fail_unless (got_candidates[0] == TRUE || got_candidates[1] == TRUE);
+
+  if (got_candidates[0])
+    got_prepared[0] = TRUE;
+  if (got_candidates[1])
+    got_prepared[1] = TRUE;
 }
 
 static void
@@ -212,6 +226,11 @@ run_shm_transmitter_test (gint flags)
   received_known[0] = 0;
   received_known[1] = 0;
 
+  got_candidates[0] = FALSE;
+  got_candidates[1] = FALSE;
+  got_prepared[0] = FALSE;
+  got_prepared[1] = FALSE;
+
   if (unlink ("/tmp/src1") < 0 && errno != ENOENT)
     fail ("Could not unlink /tmp/src1: %s", strerror (errno));
   if (unlink ("/tmp/src2") < 0 && errno != ENOENT)
@@ -285,6 +304,9 @@ run_shm_transmitter_test (gint flags)
   ts_fail_unless (g_signal_connect (st, "new-local-candidate",
       G_CALLBACK (_new_local_candidate), trans),
     "Could not connect new-local-candidate signal");
+  ts_fail_unless (g_signal_connect (st, "local-candidates-prepared",
+      G_CALLBACK (_candidate_prepared), NULL),
+    "Could not connect local-candidates-prepared signal");
   ts_fail_unless (g_signal_connect (st, "error",
       G_CALLBACK (stream_transmitter_error), NULL),
     "Could not connect error signal");
@@ -349,6 +371,11 @@ run_shm_transmitter_test (gint flags)
   while (!done)
     g_cond_wait (cond, mutex);
   g_mutex_unlock (mutex);
+
+  fail_unless (got_prepared[0] == TRUE);
+  fail_unless (got_prepared[1] == TRUE);
+  fail_unless (got_candidates[0] == TRUE);
+  fail_unless (got_candidates[1] == TRUE);
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
 
