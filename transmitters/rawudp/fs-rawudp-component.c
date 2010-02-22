@@ -1205,7 +1205,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 
       gupnp_simple_igd_add_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
-          "Farsight Raw UDP transmitter");
+          "Farsight Raw UDP transmitter " PACKAGE_VERSION);
 
 
       if (self->priv->upnp_discovery)
