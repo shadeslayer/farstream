@@ -1320,6 +1320,9 @@ lookup_codec_association_by_codec_for_sending (GList *codec_associations,
     {
       FsCodec *tmpcodec = codec_copy_without_config (tmpca->codec);
 
+      tmpcodec->ABI.ABI.ptime = tmpca->ptime;
+      tmpcodec->ABI.ABI.maxptime = tmpca->maxptime;
+
       if (fs_codec_are_equal (tmpcodec, lookup_codec))
         ca = tmpca;
       fs_codec_destroy (tmpcodec);
