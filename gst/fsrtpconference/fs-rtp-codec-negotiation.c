@@ -1315,16 +1315,16 @@ lookup_codec_association_by_codec_for_sending (GList *codec_associations,
   while (codec_associations)
   {
     CodecAssociation *tmpca = codec_associations->data;
-    FsCodec *tmpcodec;
 
-    if (!codec_association_is_valid_for_sending (tmpca, FALSE))
-      continue;
+    if (codec_association_is_valid_for_sending (tmpca, FALSE))
+    {
+      FsCodec *tmpcodec = codec_copy_without_config (tmpca->codec);
 
-    tmpcodec = codec_copy_without_config (tmpca->codec);
+      if (fs_codec_are_equal (tmpcodec, lookup_codec))
+        ca = tmpca;
+      fs_codec_destroy (tmpcodec);
+    }
 
-    if (fs_codec_are_equal (tmpcodec, lookup_codec))
-      ca = tmpca;
-    fs_codec_destroy (tmpcodec);
     if (ca)
       break;
 
