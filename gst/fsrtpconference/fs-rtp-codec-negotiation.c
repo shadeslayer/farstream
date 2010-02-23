@@ -617,6 +617,10 @@ create_local_codec_associations (
           codec->ABI.ABI.ptime = codec_pref->ABI.ABI.ptime;
           ca->codec = codec;
 
+          /* ptime/maxptime in the CA come from the negotiation */
+          ca->ptime = 0;
+          ca->maxptime = 0;
+
           ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
           ca->recv_profile = dup_param_value (codec_pref, RECV_PROFILE_ARG);
 
