@@ -82,6 +82,7 @@ tests/check/rtp/recvcodecs
 tests/check/msn/conference
 tests/check/utils/binadded
 tests/check/elements/rtcpfilter
+tests/check/elements/funnel
 tests/rtp/codec-discovery
 examples/commandline/simple-call
 examples/gui/*.pyo
