@@ -2672,7 +2672,6 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
     GError *tmperror = NULL;
     guint src_pad_count = 0, sink_pad_count = 0;
 
-    codec_bin = gst_parse_bin_from_description (profile, TRUE, &tmperror);
     codec_bin = parse_bin_from_description_all_linked (profile,
         &src_pad_count, &sink_pad_count, &tmperror);
 
