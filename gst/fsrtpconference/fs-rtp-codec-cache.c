@@ -348,6 +348,13 @@ load_codecs_cache (FsMediaType media_type)
   in += sizeof (gint);
   size -= sizeof (gint);
 
+  if (num_blueprints > 50)
+  {
+    GST_WARNING ("Impossible number of blueprints in cache %d, ignoring",
+        num_blueprints);
+    goto error;
+  }
+
   for (i = 0; i < num_blueprints; i++) {
     CodecBlueprint *blueprint = load_codec_blueprint (media_type, &in, &size);
     if (!blueprint) {
