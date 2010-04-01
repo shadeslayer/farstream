@@ -170,13 +170,11 @@ fs_rtp_sub_stream_emit_error (FsRtpSubStream *substream,
 static gboolean
 fs_rtp_sub_stream_has_stopped_enter (FsRtpSubStream *self)
 {
-  g_object_ref (self);
   g_static_rw_lock_reader_lock (&self->priv->stopped_lock);
 
   if (self->priv->stopped)
   {
     g_static_rw_lock_reader_unlock (&self->priv->stopped_lock);
-    g_object_unref (self);
     return TRUE;
   }
 
@@ -188,7 +186,6 @@ static void
 fs_rtp_sub_stream_has_stopped_exit (FsRtpSubStream *self)
 {
   g_static_rw_lock_reader_unlock (&self->priv->stopped_lock);
-  g_object_unref (self);
 }
 
 
@@ -1248,9 +1245,19 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
   gboolean ret = TRUE;
   gboolean remove = FALSE;
+  FsRtpSession *session;
+
+  if (fs_rtp_session_has_disposed_enter (self->priv->session, NULL))
+    return FALSE;
 
   if (fs_rtp_sub_stream_has_stopped_enter (self))
+  {
+    fs_rtp_session_has_disposed_exit (self->priv->session);
     return FALSE;
+  }
+
+  g_object_ref (self);
+  session = g_object_ref (self->priv->session);
 
   FS_RTP_SESSION_LOCK (self->priv->session);
 
@@ -1282,6 +1289,11 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   fs_rtp_sub_stream_has_stopped_exit (self);
 
+  fs_rtp_session_has_disposed_exit (self->priv->session);
+
+  g_object_unref (self);
+  g_object_unref (session);
+
   return ret;
 }
 
@@ -1292,9 +1304,23 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   GError *error = NULL;
   GstElement *codecbin = NULL;
   FsCodec *codec = NULL;
+  FsRtpSession *session;
+
+  if (fs_rtp_session_has_disposed_enter (substream->priv->session, NULL))
+  {
+    gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
+    return;
+  }
 
   if (fs_rtp_sub_stream_has_stopped_enter (substream))
+  {
+    gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
+    fs_rtp_session_has_disposed_exit (substream->priv->session);
     return;
+  }
+
+  g_object_ref (substream);
+  session = g_object_ref (substream->priv->session);
 
   GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
       substream->priv->session->id, substream->ssrc, substream->pt);
@@ -1317,6 +1343,11 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   g_clear_error (&error);
 
   fs_rtp_sub_stream_has_stopped_exit (substream);
+
+  fs_rtp_session_has_disposed_exit (substream->priv->session);
+
+  g_object_unref (substream);
+  g_object_unref (session);
 
   return;
 

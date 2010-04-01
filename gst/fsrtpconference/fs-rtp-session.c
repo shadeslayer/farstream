@@ -738,7 +738,7 @@ fs_rtp_session_finalize (GObject *object)
   G_OBJECT_CLASS (fs_rtp_session_parent_class)->finalize (object);
 }
 
-static gboolean
+gboolean
 fs_rtp_session_has_disposed_enter (FsRtpSession *self, GError **error)
 {
   g_static_rw_lock_reader_lock (&self->priv->disposed_lock);
@@ -755,7 +755,7 @@ fs_rtp_session_has_disposed_enter (FsRtpSession *self, GError **error)
 }
 
 
-static void
+void
 fs_rtp_session_has_disposed_exit (FsRtpSession *self)
 {
   g_static_rw_lock_reader_unlock (&self->priv->disposed_lock);

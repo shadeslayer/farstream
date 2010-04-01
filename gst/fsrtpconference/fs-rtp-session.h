@@ -127,6 +127,12 @@ void fs_rtp_session_bye_ssrc (FsRtpSession *session,
 void fs_rtp_session_ssrc_validated (FsRtpSession *session,
     guint32 ssrc);
 
+/* Those two functions are for the EXCLUSIVE use of the other users
+ * of the rtp session lock */
+gboolean fs_rtp_session_has_disposed_enter (FsRtpSession *self, GError **error);
+void fs_rtp_session_has_disposed_exit (FsRtpSession *self);
+
+
 
 G_END_DECLS
 
