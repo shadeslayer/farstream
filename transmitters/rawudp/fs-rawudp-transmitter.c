@@ -568,6 +568,7 @@ _bind_port (
   struct sockaddr_in address;
   int retval;
 
+  memset (&address, 0, sizeof(struct sockaddr_in));
   address.sin_family = AF_INET;
   address.sin_addr.s_addr = INADDR_ANY;
 
