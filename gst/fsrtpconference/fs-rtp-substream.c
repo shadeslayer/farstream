@@ -174,6 +174,7 @@ fs_rtp_sub_stream_has_stopped_enter (FsRtpSubStream *self)
   if (self->priv->stopped)
   {
     g_static_rw_lock_reader_unlock (&self->priv->stopped_lock);
+    g_object_unref (self);
     return TRUE;
   }
 
