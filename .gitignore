@@ -78,6 +78,7 @@ tests/check/transmitter/nice
 tests/check/rtp/conference
 tests/check/rtp/codecs
 tests/check/rtp/sendcodecs
+tests/check/rtp/recvcodecs
 tests/check/msn/conference
 tests/check/utils/binadded
 tests/check/elements/rtcpfilter

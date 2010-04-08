@@ -50,6 +50,7 @@ check_PROGRAMS = \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
+	rtp/recvcodecs \
 	msn/conference \
 	utils/binadded \
 	elements/rtcpfilter
