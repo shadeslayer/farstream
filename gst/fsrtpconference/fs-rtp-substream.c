@@ -1001,6 +1001,8 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     goto error;
   }
 
+  GST_DEBUG ("New recv codec accepted");
+
   gst_object_unref (pad);
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
@@ -1288,6 +1290,8 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
 {
   FsRtpSubStream *substream = user_data;
   GError *error = NULL;
+  GstElement *codecbin = NULL;
+  FsCodec *codec = NULL;
 
   if (fs_rtp_sub_stream_has_stopped_enter (substream))
     return;
@@ -1295,35 +1299,22 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
       substream->priv->session->id, substream->ssrc, substream->pt);
 
-  for (;;)
-  {
-    GstElement *codecbin = NULL;
-    FsCodec *codec = NULL;
 
-    g_signal_emit (substream, signals[GET_CODEC_BIN], 0,
-        substream->priv->stream, substream->codec, &codec, &error, &codecbin);
+  gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
 
-   if (!codecbin)
-    {
-      if (error)
-        goto error;
-      else
-        goto out;
-    }
+  g_signal_emit (substream, signals[GET_CODEC_BIN], 0,
+      substream->priv->stream, substream->codec, &codec, &error, &codecbin);
 
-    if (!fs_rtp_sub_stream_set_codecbin (substream,
-            codec, codecbin, &error))
+  if (error)
+    goto error;
+
+  if (codecbin)
+    if (!fs_rtp_sub_stream_set_codecbin (substream, codec, codecbin, &error))
       goto error;
-
-    if (substream->priv->stopped)
-      goto out;
-  }
 
  out:
 
   g_clear_error (&error);
-
-  gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
 
   fs_rtp_sub_stream_has_stopped_exit (substream);
 
