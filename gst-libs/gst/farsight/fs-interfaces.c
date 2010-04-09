@@ -325,8 +325,11 @@ fs_interfaces_get_local_ips (gboolean include_loopback)
 gchar *
 fs_interfaces_get_ip_for_interface (gchar *interface_name)
 {
+  union  {
+    struct sockaddr  s_addr;
+    struct sockaddr_in sin_addr;
+  } sockaddr_union;
   struct ifreq ifr;
-  struct sockaddr_in *sa;
   gint sockfd;
 
 
@@ -347,9 +350,10 @@ fs_interfaces_get_ip_for_interface (gchar *interface_name)
   }
 
   close (sockfd);
-  sa = (struct sockaddr_in *) &ifr.ifr_addr;
-  GST_DEBUG ("Address for %s: %s", interface_name, inet_ntoa (sa->sin_addr));
-  return g_strdup (inet_ntoa (sa->sin_addr));
+  sockaddr_union.s_addr = ifr.ifr_addr;
+  GST_DEBUG ("Address for %s: %s", interface_name,
+      inet_ntoa (sockaddr_union.sin_addr.sin_addr));
+  return g_strdup (inet_ntoa (sockaddr_union.sin_addr.sin_addr));
 }
 
 #else /* G_OS_UNIX */
