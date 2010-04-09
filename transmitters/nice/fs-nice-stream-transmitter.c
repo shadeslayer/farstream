@@ -46,8 +46,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <udp-bsd.h>
-
 #define GST_CAT_DEFAULT fs_nice_transmitter_debug
 
 /* Signals */
