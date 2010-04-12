@@ -35,7 +35,6 @@ FsRtpConference
 FS_RTP_CONFERENCE_CAST
 FsRtpConferencePrivate
 FsRtpConferenceClass
-fs_codec_to_gst_caps
 FS_RTP_CONFERENCE
 FS_IS_RTP_CONFERENCE
 FS_TYPE_RTP_CONFERENCE
@@ -43,6 +42,9 @@ fs_rtp_conference_get_type
 FS_RTP_CONFERENCE_CLASS
 FS_IS_RTP_CONFERENCE_CLASS
 FS_RTP_CONFERENCE_GET_CLASS
+<SUBSECTION Private>
+fs_codec_to_gst_caps
+fs_codec_to_gst_caps_with_ptime
 </SECTION>
 
 <SECTION>
@@ -88,6 +90,7 @@ fs_rawudp_stream_transmitter_register_type
 fs_rawudp_stream_transmitter_newv
 stream_known_source_packet_receive_cb
 stream_new_remote_codecs_cb
+fs_rawudp_stream_transmitter_set_remote_candidates
 <SUBSECTION Standard>
 FS_RAWUDP_STREAM_TRANSMITTER_CAST
 FsRawUdpStreamTransmitterClass
@@ -122,6 +125,7 @@ fs_multicast_transmitter_put_udpsock
 fs_multicast_transmitter_udpsock_inc_sending
 fs_multicast_transmitter_udpsock_dec_sending
 fs_multicast_transmitter_udpsock_ref
+fs_multicast_stream_transmitter_set_remote_candidates
 </SECTION>
 
 <SECTION>
@@ -168,6 +172,7 @@ fs_rtp_session_bye_ssrc
 fs_rtp_session_new
 fs_rtp_session_new_recv_pad
 fs_rtp_session_request_pt_map
+fs_rtp_session_ssrc_validated
 </SECTION>
 
 <SECTION>
@@ -233,6 +238,7 @@ NiceGstStream
 fs_nice_transmitter_add_gst_stream
 fs_nice_transmitter_free_gst_stream
 fs_nice_transmitter_set_sending
+fs_nice_transmitter_request_keyunit
 </SECTION>
 
 
@@ -264,7 +270,6 @@ FsMsnConference
 FS_MSN_CONFERENCE_CAST
 FsMsnConferencePrivate
 FsMsnConferenceClass
-fs_codec_to_gst_caps
 FS_MSN_CONFERENCE
 FS_IS_MSN_CONFERENCE
 FS_TYPE_MSN_CONFERENCE
@@ -314,6 +319,7 @@ fs_msn_stream_get_type
 <SUBSECTION Private>
 fs_msn_stream_new
 fs_msn_stream_set_tos_locked
+fs_msn_stream_set_remote_candidate
 </SECTION>
 
 
