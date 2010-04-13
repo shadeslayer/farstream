@@ -45,37 +45,29 @@
 struct SdpCompatCheck {
   FsMediaType media_type;
   const gchar *encoding_name;
-  FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec,
-      gboolean validate_config);
+  FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec);
   gchar *config_param[MAX_CONFIG_PARAMS];
 };
 
 
 static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config);
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
 
 static FsCodec *
-sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config);
+sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
-sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config);
+sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
-sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config);
-static FsCodec *
-sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config);
+sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
    {NULL}},
   {FS_MEDIA_TYPE_VIDEO, "H263-2000", sdp_is_compat_h263_2000,
    {NULL}},
-  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_theora_vorbis,
+  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_default,
    {"configuration", NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_theora_vorbis,
+  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_default,
    {"configuration", NULL}},
   {FS_MEDIA_TYPE_VIDEO, "H264", sdp_is_compat_default,
    {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
@@ -185,8 +177,7 @@ codec_copy_without_config (FsCodec *codec)
  */
 
 FsCodec *
-sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config)
+sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
 {
   gint i;
 
@@ -213,25 +204,22 @@ sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec,
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             remote_codec->encoding_name))
     {
-      return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec,
-          validate_config);
+      return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec);
     }
   }
 
-  return sdp_is_compat_default (local_codec, remote_codec, validate_config);
+  return sdp_is_compat_default (local_codec, remote_codec);
 }
 
 static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config)
+sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *local_param_list = NULL, *negotiated_param_list = NULL;
 
   GST_LOG ("Using default codec negotiation function");
 
-  if ((local_codec->clock_rate || validate_config) &&
-      remote_codec->clock_rate &&
+  if (local_codec->clock_rate && remote_codec->clock_rate &&
       local_codec->clock_rate != remote_codec->clock_rate)
   {
     GST_LOG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
@@ -305,8 +293,7 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
  */
 
 static FsCodec *
-sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config)
+sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   FsCodec *remote_codec_copy = NULL;
@@ -318,8 +305,7 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
   if (!fs_codec_get_optional_parameter (remote_codec_copy, "mode", NULL))
     fs_codec_add_optional_parameter (remote_codec_copy, "mode", "30");
 
-  negotiated_codec =  sdp_is_compat_default (local_codec, remote_codec_copy,
-      validate_config);
+  negotiated_codec =  sdp_is_compat_default (local_codec, remote_codec_copy);
 
   fs_codec_destroy (remote_codec_copy);
 
@@ -336,8 +322,7 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
  */
 
 static FsCodec *
-sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config)
+sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec)
 {
   GList *mylistitem = NULL, *remote_param_list = NULL;
   FsCodecParameter *profile = NULL;
@@ -412,28 +397,6 @@ sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
 
 
   return fs_codec_copy (remote_codec);
-}
-
-/**
- * sdp_is_compat_theora_vorbis:
- *
- * Only accepts the codec with the "configuration" parameter if we are asked
- * to validate the configuration.
- */
-
-
-static FsCodec *
-sdp_is_compat_theora_vorbis (FsCodec *local_codec, FsCodec *remote_codec,
-gboolean validate_config)
-{
-
-  GST_DEBUG ("Using THEORA/VORBIS negotiation function");
-
-  if (validate_config &&
-      !fs_codec_get_optional_parameter (remote_codec, "configuration", NULL))
-    return NULL;
-
-  return sdp_is_compat_default (local_codec, remote_codec, validate_config);
 }
 
 struct event_range {
@@ -589,16 +552,14 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
  */
 
 static FsCodec *
-sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec,
-    gboolean validate_config)
+sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *local_param_list = NULL, *negotiated_param_list = NULL;
 
   GST_LOG ("Using telephone-event codec negotiation function");
 
-  if ((local_codec->clock_rate || validate_config) &&
-      remote_codec->clock_rate &&
+  if (local_codec->clock_rate && remote_codec->clock_rate &&
       local_codec->clock_rate != remote_codec->clock_rate)
   {
     GST_LOG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
