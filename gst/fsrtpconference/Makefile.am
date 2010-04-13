@@ -66,14 +66,14 @@ if ENABLE_GTK_DOC
 noinst_LTLIBRARIES += libfsrtpconference_doc.la
 
 nodist_libfsrtpconference_doc_la_SOURCES = \
-	fs-rtp-conference-plugin_doc.c  \
+	fs-rtp-conference-plugin.doc.c  \
 	$(nodist_libfsrtpconference_la_SOURCES)
 libfsrtpconference_doc_la_LIBADD = $(libfsrtpconference_la_LIBADD)
 
-fs-rtp-conference-plugin_doc.c: fs-rtp-conference-plugin.c
+%.doc.c: %.c
 	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' $< > $@
 
-BUILT_SOURCES += fs-rtp-conference-plugin_doc.c
+BUILT_SOURCES += fs-rtp-conference-plugin.doc.c
 endif
 
 # Build the build sources

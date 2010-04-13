@@ -50,14 +50,13 @@ if ENABLE_GTK_DOC
 noinst_LTLIBRARIES += libfsmsnconference_doc.la
 
 nodist_libfsmsnconference_doc_la_SOURCES = \
-	fs-msn-cam-recv-conference-doc.c \
-	fs-msn-cam-send-conference-doc.c
+	fs-msn-cam-recv-conference.doc.c \
+	fs-msn-cam-send-conference.doc.c
 
 libfsmsnconference_doc_la_LIBADD = $(libfsmsnconference_la_LIBADD)
 
-%-doc.c: %.c
-	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' \
-		$< > $@
+%.doc.c: %.c
+	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' 	$< > $@
 
 BUILT_SOURCES = $(nodist_libfsmsnconference_doc_la_SOURCES)
 
