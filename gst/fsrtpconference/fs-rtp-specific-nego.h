@@ -32,7 +32,7 @@
 G_BEGIN_DECLS
 
 FsCodec *
-sdp_is_compat (FsCodec *local_recv_codec, FsCodec *remote_codec);
+sdp_negotiate_codec (FsCodec *local_recv_codec, FsCodec *remote_codec);
 
 gboolean
 codec_needs_config (FsCodec *codec);

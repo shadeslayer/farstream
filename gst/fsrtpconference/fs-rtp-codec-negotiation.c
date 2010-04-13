@@ -460,7 +460,7 @@ match_original_codec_and_codec_pref (CodecAssociation *ca, gpointer user_data)
   FsCodec *codec_pref = user_data;
   FsCodec *tmpcodec = NULL;
 
-  tmpcodec = sdp_is_compat (codec_pref, ca->codec);
+  tmpcodec = sdp_negotiate_codec (codec_pref, ca->codec);
 
   if (tmpcodec)
     fs_codec_destroy (tmpcodec);
@@ -606,7 +606,7 @@ create_local_codec_associations (
       /* In this case, we have a matching codec association, lets keep it */
       if (oldca)
       {
-        FsCodec *codec = sdp_is_compat (codec_pref, oldca->codec);
+        FsCodec *codec = sdp_negotiate_codec (codec_pref, oldca->codec);
         if (codec)
         {
           ca = g_slice_new (CodecAssociation);
@@ -859,7 +859,7 @@ negotiate_stream_codecs (
 
     if (old_ca) {
       GST_DEBUG ("Have local codec in the same PT, lets try it first");
-      nego_codec = sdp_is_compat (old_ca->codec, remote_codec);
+      nego_codec = sdp_negotiate_codec (old_ca->codec, remote_codec);
     }
 
     if (!nego_codec) {
@@ -870,7 +870,7 @@ negotiate_stream_codecs (
       {
         old_ca = item->data;
 
-        nego_codec = sdp_is_compat (old_ca->codec, remote_codec);
+        nego_codec = sdp_negotiate_codec (old_ca->codec, remote_codec);
 
         if (nego_codec)
         {

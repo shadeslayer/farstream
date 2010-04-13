@@ -45,34 +45,36 @@
 struct SdpCompatCheck {
   FsMediaType media_type;
   const gchar *encoding_name;
-  FsCodec * (* sdp_is_compat) (FsCodec *local_codec, FsCodec *remote_codec);
+  FsCodec * (* sdp_negotiate_codec) (FsCodec *local_codec,
+      FsCodec *remote_codec);
   gchar *config_param[MAX_CONFIG_PARAMS];
 };
 
 
 static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec);
 
 static FsCodec *
-sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_negotiate_codec_ilbc (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
-sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_negotiate_codec_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec);
 static FsCodec *
-sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec);
+sdp_negotiate_codec_telephone_event (FsCodec *local_codec,
+    FsCodec *remote_codec);
 
 static struct SdpCompatCheck sdp_compat_checks[] = {
-  {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_is_compat_ilbc,
+  {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_negotiate_codec_ilbc,
    {NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "H263-2000", sdp_is_compat_h263_2000,
+  {FS_MEDIA_TYPE_VIDEO, "H263-2000", sdp_negotiate_codec_h263_2000,
    {NULL}},
-  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_is_compat_default,
+  {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_negotiate_codec_default,
    {"configuration", NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_is_compat_default,
+  {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_negotiate_codec_default,
    {"configuration", NULL}},
-  {FS_MEDIA_TYPE_VIDEO, "H264", sdp_is_compat_default,
+  {FS_MEDIA_TYPE_VIDEO, "H264", sdp_negotiate_codec_default,
    {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
     "sprop-init-buf-time", "sprop-max-don-diff", NULL}},
-  {FS_MEDIA_TYPE_AUDIO, "telephone-event", sdp_is_compat_telephone_event,
+  {FS_MEDIA_TYPE_AUDIO, "telephone-event", sdp_negotiate_codec_telephone_event,
    {NULL}},
   {0, NULL, NULL}
 };
@@ -90,7 +92,7 @@ codec_needs_config (FsCodec *codec)
 
   g_return_val_if_fail (codec, FALSE);
 
-  for (i = 0; sdp_compat_checks[i].sdp_is_compat; i++)
+  for (i = 0; sdp_compat_checks[i].sdp_negotiate_codec; i++)
     if (sdp_compat_checks[i].media_type == codec->media_type &&
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             codec->encoding_name))
@@ -121,7 +123,7 @@ codec_has_config_data_named (FsCodec *codec, const gchar *name)
 
   g_return_val_if_fail (codec, FALSE);
 
-  for (i = 0; sdp_compat_checks[i].sdp_is_compat; i++)
+  for (i = 0; sdp_compat_checks[i].sdp_negotiate_codec; i++)
     if (sdp_compat_checks[i].media_type == codec->media_type &&
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             codec->encoding_name))
@@ -165,7 +167,7 @@ codec_copy_without_config (FsCodec *codec)
 }
 
 /**
- * sdp_is_compat:
+ * sdp_negotiate_codec:
  *
  * This function performs SDP offer-answer negotiation on a codec, it compares
  * the local codec (the one that would be sent in an offer) and the remote
@@ -177,7 +179,7 @@ codec_copy_without_config (FsCodec *codec)
  */
 
 FsCodec *
-sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_negotiate_codec (FsCodec *local_codec, FsCodec *remote_codec)
 {
   gint i;
 
@@ -199,20 +201,21 @@ sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec)
     return NULL;
   }
 
-  for (i = 0; sdp_compat_checks[i].sdp_is_compat; i++) {
+  for (i = 0; sdp_compat_checks[i].sdp_negotiate_codec; i++) {
     if (sdp_compat_checks[i].media_type == remote_codec->media_type &&
         !g_ascii_strcasecmp (sdp_compat_checks[i].encoding_name,
             remote_codec->encoding_name))
     {
-      return sdp_compat_checks[i].sdp_is_compat (local_codec, remote_codec);
+      return sdp_compat_checks[i].sdp_negotiate_codec (local_codec,
+          remote_codec);
     }
   }
 
-  return sdp_is_compat_default (local_codec, remote_codec);
+  return sdp_negotiate_codec_default (local_codec, remote_codec);
 }
 
 static FsCodec *
-sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *local_param_list = NULL, *negotiated_param_list = NULL;
@@ -285,7 +288,7 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
 }
 
 /**
- * sdp_is_compat_ilbc:
+ * sdp_negotiate_codec_ilbc:
  *
  * For iLBC, the mode is 20 is both sides agree on 20, otherwise it is 30.
  *
@@ -293,7 +296,7 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec)
  */
 
 static FsCodec *
-sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_negotiate_codec_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   FsCodec *remote_codec_copy = NULL;
@@ -305,7 +308,8 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
   if (!fs_codec_get_optional_parameter (remote_codec_copy, "mode", NULL))
     fs_codec_add_optional_parameter (remote_codec_copy, "mode", "30");
 
-  negotiated_codec =  sdp_is_compat_default (local_codec, remote_codec_copy);
+  negotiated_codec =  sdp_negotiate_codec_default (local_codec,
+      remote_codec_copy);
 
   fs_codec_destroy (remote_codec_copy);
 
@@ -313,7 +317,7 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 }
 
 /*
- * sdp_is_compat_h263_2000:
+ * sdp_negotiate_codec_h263_2000:
  *
  * For H263-2000, the "profile" must be exactly the same. If it is not,
  * it must be rejected.
@@ -322,7 +326,7 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
  */
 
 static FsCodec *
-sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_negotiate_codec_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec)
 {
   GList *mylistitem = NULL, *remote_param_list = NULL;
   FsCodecParameter *profile = NULL;
@@ -542,7 +546,7 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
 }
 
 /**
- * sdp_is_compat_telephone_event:
+ * sdp_negotiate_codec_telephone_event:
  *
  * For telephone events, it finds the list of events that are the same.
  * So it tried to intersect both lists to come up with a list of events that
@@ -552,7 +556,8 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
  */
 
 static FsCodec *
-sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_negotiate_codec_telephone_event (FsCodec *local_codec,
+    FsCodec *remote_codec)
 {
   FsCodec *negotiated_codec = NULL;
   GList *local_param_list = NULL, *negotiated_param_list = NULL;
