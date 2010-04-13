@@ -8,7 +8,7 @@ codec_discovery_SOURCES = codec-discovery.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-dtmf-event-source.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-dtmf-sound-source.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-codec-negotiation.c \
-		$(top_srcdir)/gst/fsrtpconference/fs-rtp-specific-nego.c \
+		$(top_srcdir)/gst/fsrtpconference/fs-rtp-codec-specific.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-conference.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-session.c \
 		$(top_srcdir)/gst/fsrtpconference/fs-rtp-stream.c \

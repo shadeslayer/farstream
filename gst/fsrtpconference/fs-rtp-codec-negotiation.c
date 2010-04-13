@@ -27,7 +27,7 @@
 #endif
 
 #include "fs-rtp-codec-negotiation.h"
-#include "fs-rtp-specific-nego.h"
+#include "fs-rtp-codec-specific.h"
 #include "fs-rtp-conference.h"
 
 #include <string.h>

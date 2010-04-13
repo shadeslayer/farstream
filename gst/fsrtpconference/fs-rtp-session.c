@@ -73,7 +73,7 @@
 #include "fs-rtp-codec-negotiation.h"
 #include "fs-rtp-substream.h"
 #include "fs-rtp-special-source.h"
-#include "fs-rtp-specific-nego.h"
+#include "fs-rtp-codec-specific.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 

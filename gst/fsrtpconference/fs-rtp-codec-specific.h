@@ -1,9 +1,9 @@
 /*
- * fs-rtp-specific-nego.h - Per-codec SDP negotiation
+ * fs-rtp-codec-specific.h - Per-codec SDP negotiation
  *
  * Farsight RTP/AVP/SAVP/AVPF Module
- * Copyright (C) 2007 Collabora Ltd.
- * Copyright (C) 2007 Nokia Corporation
+ * Copyright (C) 2007-2010 Collabora Ltd.
+ * Copyright (C) 2007-2010 Nokia Corporation
  *   @author Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
