@@ -48,15 +48,18 @@
 #endif
 
 #include "fs-msn-stream.h"
-#include "fs-msn-connection.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <fcntl.h>
 
-#include <string.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <string.h>
 #include <unistd.h>
+
 #include <gst/gst.h>
+
+#include "fs-msn-connection.h"
+
 
 #define GST_CAT_DEFAULT fsmsnconference_debug
 

@@ -38,6 +38,7 @@
 #endif
 
 #include "fs-msn-cam-recv-conference.h"
+
 #include "fs-msn-conference.h"
 #include "fs-msn-session.h"
 #include "fs-msn-stream.h"

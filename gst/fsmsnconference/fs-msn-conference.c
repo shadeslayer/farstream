@@ -38,6 +38,7 @@
 #endif
 
 #include "fs-msn-conference.h"
+
 #include "fs-msn-session.h"
 #include "fs-msn-stream.h"
 #include "fs-msn-participant.h"
