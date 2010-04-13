@@ -40,11 +40,13 @@
 #endif
 
 #include "fs-rtp-conference.h"
+
+#include <string.h>
+
 #include "fs-rtp-session.h"
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
 
-#include <string.h>
 
 GST_DEBUG_CATEGORY (fsrtpconference_debug);
 GST_DEBUG_CATEGORY (fsrtpconference_disco);

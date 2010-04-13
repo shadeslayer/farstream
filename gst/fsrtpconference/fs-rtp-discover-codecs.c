@@ -34,13 +34,15 @@
 
 #include "fs-rtp-discover-codecs.h"
 
+#include <string.h>
+
+#include <gst/farsight/fs-conference-iface.h>
+
 #include "fs-rtp-conference.h"
 #include "fs-rtp-codec-cache.h"
 #include "fs-rtp-special-source.h"
 
-#include <gst/farsight/fs-conference-iface.h>
 
-#include <string.h>
 
 #define GST_CAT_DEFAULT fsrtpconference_disco
 

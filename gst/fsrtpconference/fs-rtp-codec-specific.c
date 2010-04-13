@@ -25,13 +25,13 @@
 #include "config.h"
 #endif
 
+#include "fs-rtp-codec-specific.h"
+
 #include <string.h>
 #include <stdlib.h>
 
 #include <glib.h>
 #include <gst/gst.h>
-
-#include "fs-rtp-codec-specific.h"
 
 #include "fs-rtp-conference.h"
 

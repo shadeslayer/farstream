@@ -57,16 +57,16 @@
 #include "config.h"
 #endif
 
+#include "fs-rtp-session.h"
+
 #include <string.h>
 
 #include <gst/gst.h>
-
 #include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
 
 #include <gst/farsight/fs-transmitter.h>
 
-#include "fs-rtp-session.h"
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
 #include "fs-rtp-discover-codecs.h"

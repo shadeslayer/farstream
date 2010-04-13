@@ -27,13 +27,13 @@
 #include "config.h"
 #endif
 
+#include "fs-rtp-dtmf-event-source.h"
+
 #include <gst/farsight/fs-base-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-codec-negotiation.h"
-
-#include "fs-rtp-dtmf-event-source.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 

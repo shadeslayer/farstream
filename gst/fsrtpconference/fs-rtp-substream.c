@@ -28,11 +28,13 @@
 #endif
 
 #include "fs-rtp-substream.h"
-#include "fs-rtp-stream.h"
-#include "fs-rtp-marshal.h"
 
 #include <gst/farsight/fs-stream.h>
 #include <gst/farsight/fs-session.h>
+
+#include "fs-rtp-stream.h"
+#include "fs-rtp-marshal.h"
+
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 

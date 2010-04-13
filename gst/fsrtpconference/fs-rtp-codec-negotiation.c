@@ -27,10 +27,12 @@
 #endif
 
 #include "fs-rtp-codec-negotiation.h"
+
+#include <string.h>
+
 #include "fs-rtp-codec-specific.h"
 #include "fs-rtp-conference.h"
 
-#include <string.h>
 
 #define GST_CAT_DEFAULT fsrtpconference_nego
 

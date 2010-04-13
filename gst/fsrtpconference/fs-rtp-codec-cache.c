@@ -23,21 +23,21 @@
  */
 
 
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
 #include "fs-rtp-codec-cache.h"
 
-#include "fs-rtp-conference.h"
-
-#include <gst/farsight/fs-conference-iface.h>
-
 #include <string.h>
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
 #endif
+
+#include <gst/farsight/fs-conference-iface.h>
+
+#include "fs-rtp-conference.h"
+
 
 /* Because of annoying CRTs */
 #if defined (_MSC_VER) && _MSC_VER >= 1400

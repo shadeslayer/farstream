@@ -27,12 +27,12 @@
 #include "config.h"
 #endif
 
+#include "fs-rtp-special-source.h"
+
 #include <gst/farsight/fs-base-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-codec-negotiation.h"
-
-#include "fs-rtp-special-source.h"
 
 #include "fs-rtp-dtmf-event-source.h"
 #include "fs-rtp-dtmf-sound-source.h"
