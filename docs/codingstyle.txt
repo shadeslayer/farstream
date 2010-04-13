@@ -92,6 +92,18 @@ switch (var)
 
 FarsightRTPStream *self = (FarsightRTPStream *) stream;
 
+==== #includes ====
+
+If you're going to #include "config.h", do that first, in case it defines things like "inline".
+
+Next, #include the header in which this .c file's API is declared. This guarantees that all public headers are self-contained.
+
+Next, #define any libc feature-test macros you need (_GNU_SOURCE etc.) and #include any C/POSIX standard library headers you need, in alphabetical order.
+
+Next, #include any headers you need from non-standard libraries (GLib, Gtk, GStreamer, ...) in alphabetical order.
+
+Finally, #include any private (non-installed) headers from the library or program you're writing.
+
 ==== Emacs mode ====
 
 (defun farsight2-c-mode ()
