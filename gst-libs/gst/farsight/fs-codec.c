@@ -31,9 +31,9 @@
 
 #include "fs-codec.h"
 
-#include "fs-private.h"
-
 #include <string.h>
+
+#include "fs-private.h"
 
 #define GST_CAT_DEFAULT fs_base_conference_debug
 

@@ -38,15 +38,14 @@
 #include "config.h"
 #endif
 
-#include "fs-marshal.h"
 #include "fs-transmitter.h"
 
-#include "fs-plugin.h"
+#include <gst/gst.h>
 
+#include "fs-marshal.h"
+#include "fs-plugin.h"
 #include "fs-conference-iface.h"
 #include "fs-private.h"
-
-#include <gst/gst.h>
 
 /* Signals */
 enum

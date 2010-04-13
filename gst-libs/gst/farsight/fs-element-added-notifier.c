@@ -36,9 +36,10 @@
 # include <config.h>
 #endif
 
+#include "fs-element-added-notifier.h"
+
 #include <stdlib.h>
 
-#include "fs-element-added-notifier.h"
 #include "fs-marshal.h"
 
 

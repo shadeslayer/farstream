@@ -102,6 +102,8 @@
 
 #include "fs-stream.h"
 
+#include <gst/gst.h>
+
 #include "fs-session.h"
 #include "fs-marshal.h"
 #include "fs-codec.h"
@@ -110,8 +112,6 @@
 #include "fs-conference-iface.h"
 #include "fs-enum-types.h"
 #include "fs-private.h"
-
-#include <gst/gst.h>
 
 /* Signals */
 enum

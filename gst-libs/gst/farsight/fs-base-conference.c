@@ -37,7 +37,9 @@
 #endif
 
 #include "fs-base-conference.h"
+
 #include "fs-session.h"
+
 #include "fs-private.h"
 
 GST_DEBUG_CATEGORY (fs_base_conference_debug);

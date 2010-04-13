@@ -31,10 +31,10 @@
 
 #include "fs-plugin.h"
 
+#include <string.h>
+
 #include "fs-conference-iface.h"
 #include "fs-private.h"
-
-#include <string.h>
 
 #define GST_CAT_DEFAULT fs_base_conference_debug
 

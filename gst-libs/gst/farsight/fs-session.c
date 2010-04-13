@@ -73,14 +73,15 @@
 #include "config.h"
 #endif
 
-#include "fs-conference-iface.h"
 #include "fs-session.h"
+
+#include <gst/gst.h>
+
+#include "fs-conference-iface.h"
 #include "fs-codec.h"
 #include "fs-marshal.h"
 #include "fs-enum-types.h"
 #include "fs-private.h"
-
-#include <gst/gst.h>
 
 #define GST_CAT_DEFAULT fs_base_conference_debug
 

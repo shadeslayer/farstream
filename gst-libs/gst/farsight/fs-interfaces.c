@@ -28,27 +28,24 @@
 
 #include "fs-interfaces.h"
 
-#include <gst/gst.h>
-
-GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
-#define GST_CAT_DEFAULT fs_base_conference_debug
-
 #ifdef G_OS_UNIX
 
+#include <arpa/inet.h>
+#include <errno.h>
+#include <net/if.h>
+#include <net/if_arp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <unistd.h>
 #ifdef HAVE_GETIFADDRS
  #include <sys/socket.h>
  #include <ifaddrs.h>
 #endif
-#include <net/if.h>
-#include <net/if_arp.h>
-#include <arpa/inet.h>
+
+#include <gst/gst.h>
 
 /**
  * SECTION:fs-interfaces
@@ -58,6 +55,10 @@ GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
  * in a portable manner, they also allow finding the local ip addresses or
  * the address allocated to a network interface.
  */
+
+GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
+#define GST_CAT_DEFAULT fs_base_conference_debug
+
 
 /**
  * fs_interfaces_get_local_interfaces:
