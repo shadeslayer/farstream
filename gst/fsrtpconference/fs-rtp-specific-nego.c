@@ -172,7 +172,17 @@ codec_copy_without_config (FsCodec *codec)
   return copy;
 }
 
-
+/**
+ * sdp_is_compat:
+ *
+ * This function performs SDP offer-answer negotiation on a codec, it compares
+ * the local codec (the one that would be sent in an offer) and the remote
+ * codec (the one that would be received from the other side)  and tries to see
+ * if they can be negotiated into a new codec (what would be sent in a reply).
+ * If such a codec can be created, it returns it, otherwise it returns NULL.
+ *
+ * RFC 3264
+ */
 
 FsCodec *
 sdp_is_compat (FsCodec *local_codec, FsCodec *remote_codec,
@@ -286,6 +296,14 @@ sdp_is_compat_default (FsCodec *local_codec, FsCodec *remote_codec,
   return negotiated_codec;
 }
 
+/**
+ * sdp_is_compat_ilbc:
+ *
+ * For iLBC, the mode is 20 is both sides agree on 20, otherwise it is 30.
+ *
+ * RFC 3952
+ */
+
 static FsCodec *
 sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
     gboolean validate_config)
@@ -308,6 +326,14 @@ sdp_is_compat_ilbc (FsCodec *local_codec, FsCodec *remote_codec,
   return negotiated_codec;
 }
 
+/*
+ * sdp_is_compat_h263_2000:
+ *
+ * For H263-2000, the "profile" must be exactly the same. If it is not,
+ * it must be rejected.
+ *
+ * RFC 4629
+ */
 
 static FsCodec *
 sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
@@ -387,6 +413,13 @@ sdp_is_compat_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
 
   return fs_codec_copy (remote_codec);
 }
+
+/**
+ * sdp_is_compat_theora_vorbis:
+ *
+ * Only accepts the codec with the "configuration" parameter if we are asked
+ * to validate the configuration.
+ */
 
 
 static FsCodec *
@@ -544,6 +577,16 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
 
   return g_string_free (intersection_gstr, FALSE);
 }
+
+/**
+ * sdp_is_compat_telephone_event:
+ *
+ * For telephone events, it finds the list of events that are the same.
+ * So it tried to intersect both lists to come up with a list of events that
+ * both sides support.
+ *
+ * RFC  4733
+ */
 
 static FsCodec *
 sdp_is_compat_telephone_event (FsCodec *local_codec, FsCodec *remote_codec,
