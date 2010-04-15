@@ -320,7 +320,7 @@ sdp_negotiate_codec_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
  * sdp_negotiate_codec_h263_2000:
  *
  * For H263-2000, the "profile" must be exactly the same. If it is not,
- * it must be rejected.
+ * it must be rejected. If there is none, we assume its 0.
  *
  * RFC 4629
  */
@@ -328,79 +328,23 @@ sdp_negotiate_codec_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 static FsCodec *
 sdp_negotiate_codec_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec)
 {
-  GList *mylistitem = NULL, *remote_param_list = NULL;
-  FsCodecParameter *profile = NULL;
+  FsCodec *negotiated_codec = NULL;
+  FsCodec *remote_codec_copy = NULL;
+
 
   GST_DEBUG ("Using H263-2000 negotiation function");
 
-  if (remote_codec->clock_rate != 90000)
-  {
-    GST_WARNING ("Remote clock rate is %d which is not 90000",
-        remote_codec->clock_rate);
-    return NULL;
-  }
+  remote_codec_copy = fs_codec_copy (remote_codec);
 
+  if (!fs_codec_get_optional_parameter (remote_codec_copy, "profile", NULL))
+    fs_codec_add_optional_parameter (remote_codec_copy, "profile", "0");
 
-  if (remote_codec->channels > 1)
-  {
-    GST_WARNING ("Channel count  %d > 1", remote_codec->channels);
-    return NULL;
-  }
+  negotiated_codec =  sdp_negotiate_codec_default (local_codec,
+      remote_codec_copy);
 
-  /* First lets check if there is a profile, it MUST be the same
-   * as ours
-   */
+  fs_codec_destroy (remote_codec_copy);
 
-  for (remote_param_list = remote_codec->optional_params;
-       remote_param_list;
-       remote_param_list = g_list_next (remote_param_list))
-  {
-    FsCodecParameter *remote_param = remote_param_list->data;
-
-    if (!g_ascii_strcasecmp (remote_param->name, "profile"))
-    {
-
-      if (profile)
-      {
-        GST_WARNING ("The remote codecs contain the profile item more than"
-            " once, ignoring");
-        return NULL;
-      }
-      else
-      {
-        profile = remote_param;
-      }
-
-      for (mylistitem = local_codec->optional_params;
-           mylistitem;
-           mylistitem = g_list_next (mylistitem))
-      {
-        FsCodecParameter *local_param = mylistitem->data;
-
-        if (!g_ascii_strcasecmp (local_param->name, "profile"))
-        {
-
-          if (g_ascii_strcasecmp (local_param->value, remote_param->value))
-          {
-            GST_LOG ("Local (%s) and remote (%s) profiles are different",
-                local_param->value, remote_param->value);
-            return NULL;
-          }
-          else
-          {
-            GST_LOG ("We have the same profile, lets return the remote codec");
-            return fs_codec_copy (local_codec);
-          }
-        }
-      }
-        GST_DEBUG ("Profile (%s) is unknown locally, rejecting",
-            remote_param->value);
-            return NULL;
-    }
-  }
-
-
-  return fs_codec_copy (remote_codec);
+  return negotiated_codec;
 }
 
 struct event_range {
