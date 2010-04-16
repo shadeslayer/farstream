@@ -298,20 +298,52 @@ sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec)
 static FsCodec *
 sdp_negotiate_codec_ilbc (FsCodec *local_codec, FsCodec *remote_codec)
 {
-  FsCodec *negotiated_codec = NULL;
+  FsCodecParameter *param;
+  FsCodec *local_codec_copy = NULL;
   FsCodec *remote_codec_copy = NULL;
+  FsCodec *negotiated_codec;
 
-  GST_DEBUG ("Using ilbc negotiation function");
+  GST_DEBUG ("Using iLBC negotiation function");
 
-  remote_codec_copy = fs_codec_copy (remote_codec);
+  param = fs_codec_get_optional_parameter (local_codec, "mode", NULL);
+  if (param && strcmp (param->value, "20") && strcmp (param->value, "30"))
+  {
+    GST_DEBUG ("local iLBC has mode that is not 20 or 30 but %s",
+        param->value);
+    return NULL;
+  }
 
-  if (!fs_codec_get_optional_parameter (remote_codec_copy, "mode", NULL))
-    fs_codec_add_optional_parameter (remote_codec_copy, "mode", "30");
+  param = fs_codec_get_optional_parameter (remote_codec, "mode", NULL);
+  if (param && strcmp (param->value, "20") && strcmp (param->value, "30"))
+  {
+    GST_DEBUG ("remote iLBC has mode that is not 20 or 30 but %s",
+        param->value);
+    return NULL;
+  }
 
-  negotiated_codec =  sdp_negotiate_codec_default (local_codec,
-      remote_codec_copy);
+  if (fs_codec_get_optional_parameter (local_codec, "mode", "20") &&
+      !fs_codec_get_optional_parameter (remote_codec, "mode", "20"))
 
-  fs_codec_destroy (remote_codec_copy);
+  {
+    local_codec = local_codec_copy = fs_codec_copy (local_codec);
+    fs_codec_remove_optional_parameter (local_codec_copy,
+        fs_codec_get_optional_parameter (local_codec_copy, "mode", "20"));
+  }
+
+  if (fs_codec_get_optional_parameter (remote_codec, "mode", "20") &&
+      !fs_codec_get_optional_parameter (local_codec, "mode", "20"))
+  {
+    remote_codec = remote_codec_copy = fs_codec_copy (remote_codec);
+    fs_codec_remove_optional_parameter (remote_codec_copy,
+        fs_codec_get_optional_parameter (remote_codec_copy, "mode", "20"));
+  }
+
+  negotiated_codec = sdp_negotiate_codec_default (local_codec, remote_codec);
+
+  if (remote_codec_copy)
+    fs_codec_destroy (remote_codec_copy);
+  if (local_codec_copy)
+    fs_codec_destroy (local_codec_copy);
 
   return negotiated_codec;
 }
