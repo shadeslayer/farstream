@@ -48,7 +48,7 @@ static CodecAssociation *
 codec_association_copy (CodecAssociation *ca);
 
 static CodecAssociation *
-lookup_codec_association_custom_intern (GList *codec_associations,
+lookup_codec_association_custom_internal (GList *codec_associations,
     gboolean want_disabled, CAFindFunc func, gpointer user_data);
 
 static gboolean
@@ -577,7 +577,7 @@ create_local_codec_associations (
 
       if (codec_pref->id == FS_CODEC_ID_ANY)
       {
-        oldca = lookup_codec_association_custom_intern (
+        oldca = lookup_codec_association_custom_internal (
             current_codec_associations, TRUE,
             match_original_codec_and_codec_pref, codec_pref);
       }
@@ -1198,7 +1198,7 @@ codec_association_is_valid_for_sending (CodecAssociation *ca,
 
 
 static CodecAssociation *
-lookup_codec_association_custom_intern (GList *codec_associations,
+lookup_codec_association_custom_internal (GList *codec_associations,
     gboolean want_disabled, CAFindFunc func, gpointer user_data)
 {
   GList *item;
@@ -1226,7 +1226,7 @@ lookup_codec_association_custom (GList *codec_associations,
     CAFindFunc func, gpointer user_data)
 {
 
-  return lookup_codec_association_custom_intern (codec_associations, FALSE,
+  return lookup_codec_association_custom_internal (codec_associations, FALSE,
       func, user_data);
 }
 
