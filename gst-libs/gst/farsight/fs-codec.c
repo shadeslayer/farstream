@@ -621,13 +621,20 @@ fs_codec_add_optional_parameter (FsCodec *codec,
  * @codec: a #FsCodec
  * @param: a pointer to the #FsCodecParameter to remove
  *
- * Removes an optional parameter from a codec
+ * Removes an optional parameter from a codec.
+ *
+ * NULL param will do nothing.
  */
 
 void
 fs_codec_remove_optional_parameter (FsCodec *codec,
     FsCodecParameter *param)
 {
+  g_return_if_fail (codec);
+
+  if (!param)
+    return;
+
   g_free (param->name);
   g_free (param->value);
   g_slice_free (FsCodecParameter, param);
