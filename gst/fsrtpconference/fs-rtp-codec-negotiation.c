@@ -254,7 +254,7 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
          blueprint_e = g_list_next (blueprint_e))
     {
       CodecBlueprint *blueprint = blueprint_e->data;
-      GList *codecparam_e = NULL;
+      FsCodec *nego_codec = NULL;
 
       /* First, lets check the encoding name */
       if (g_ascii_strcasecmp (blueprint->codec->encoding_name,
@@ -268,34 +268,12 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
       else if (!blueprint->codec->clock_rate && !codec->clock_rate)
         continue;
 
-      /* Now lets check that all params that are present in both
-       * match
-       */
-      for (codecparam_e = codec->optional_params;
-           codecparam_e;
-           codecparam_e = g_list_next (codecparam_e))
+      nego_codec = sdp_negotiate_codec (blueprint->codec, codec);
+      if (nego_codec)
       {
-        FsCodecParameter *codecparam = codecparam_e->data;
-        GList *bpparam_e = NULL;
-        for (bpparam_e = blueprint->codec->optional_params;
-             bpparam_e;
-             bpparam_e = g_list_next (bpparam_e))
-        {
-          FsCodecParameter *bpparam = bpparam_e->data;
-          if (!g_ascii_strcasecmp (codecparam->name, bpparam->name))
-          {
-            /* If the blueprint and the codec specify the value
-             * of a parameter, they should be the same
-             */
-            if (g_ascii_strcasecmp (codecparam->value, bpparam->value))
-              goto next_blueprint;
-            break;
-          }
-        }
+        fs_codec_destroy (nego_codec);
+        break;
       }
-      break;
-    next_blueprint:
-      continue;
     }
 
     /* If there are send and/or recv profiles, lets test them */
