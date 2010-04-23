@@ -177,6 +177,7 @@ struct _FsRtpSessionPrivate
   GList *blueprints;
 
   GList *codec_preferences;
+  guint codec_preferences_generation;
 
   /* These are protected by the session mutex */
   GList *codec_associations;
@@ -799,7 +800,9 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_object (value, self->priv->media_sink_pad);
       break;
     case PROP_CODEC_PREFERENCES:
+      FS_RTP_SESSION_LOCK (self);
       g_value_set_boxed (value, self->priv->codec_preferences);
+      FS_RTP_SESSION_UNLOCK (self);
       break;
     case PROP_CODECS:
       {
@@ -1733,6 +1736,7 @@ fs_rtp_session_set_codec_preferences (FsSession *session,
   GList *old_codec_prefs = NULL;
   GList *new_codec_prefs = NULL;
   gboolean ret;
+  guint current_generation;
 
   if (fs_rtp_session_has_disposed_enter (self, error))
     return FALSE;
@@ -1751,6 +1755,8 @@ fs_rtp_session_set_codec_preferences (FsSession *session,
   FS_RTP_SESSION_LOCK (self);
   old_codec_prefs = self->priv->codec_preferences;
   self->priv->codec_preferences = new_codec_prefs;
+  current_generation = self->priv->codec_preferences_generation;
+  self->priv->codec_preferences_generation++;
   FS_RTP_SESSION_UNLOCK (self);
 
   ret = fs_rtp_session_update_codecs (self, NULL, NULL, error);
@@ -1763,12 +1769,17 @@ fs_rtp_session_set_codec_preferences (FsSession *session,
   }
   else
   {
-    fs_codec_list_destroy (new_codec_prefs);
     FS_RTP_SESSION_LOCK (self);
-    if (self->priv->codec_preferences == new_codec_prefs)
+    if (self->priv->codec_preferences_generation == current_generation)
+    {
+      fs_codec_list_destroy (self->priv->codec_preferences);
       self->priv->codec_preferences = old_codec_prefs;
+      self->priv->codec_preferences_generation++;
+    }
     else
+    {
       fs_codec_list_destroy (old_codec_prefs);
+    }
     FS_RTP_SESSION_UNLOCK (self);
     GST_WARNING ("Invalid new codec preferences");
   }
