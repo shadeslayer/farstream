@@ -534,8 +534,8 @@ check_vorbis_and_configuration (const gchar *text, GList *codecs,
     {
       if (config)
         fail_if (strcmp (param->value, config),
-            "%s: The value of the configuration param on the stream in not"
-            "what it was set to", text);
+            "%s: The value of the configuration param is not"
+            " what it was set to", text);
       break;
     }
   }
