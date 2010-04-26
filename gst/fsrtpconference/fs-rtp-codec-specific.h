@@ -31,6 +31,13 @@
 
 G_BEGIN_DECLS
 
+typedef enum {
+  FS_PARAM_TYPE_SEND = 1 << 0,
+  FS_PARAM_TYPE_RECV = 1 << 1,
+  FS_PARAM_TYPE_BOTH = FS_PARAM_TYPE_SEND | FS_PARAM_TYPE_RECV,
+  FS_PARAM_TYPE_CONFIG = 1 << 2,
+} FsParamType;
+
 FsCodec *
 sdp_negotiate_codec (FsCodec *local_recv_codec, FsCodec *remote_codec);
 
