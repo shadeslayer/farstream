@@ -84,12 +84,6 @@ sdp_negotiate_codec_h263_2000 (
     FsCodec *local_codec, FsParamType local_paramtypes,
     FsCodec *remote_codec, FsParamType remote_paramtypes,
     const struct SdpNegoFunction *nf);
-static FsCodec *
-sdp_negotiate_codec_telephone_event (
-    FsCodec *local_codec, FsParamType local_paramtypes,
-    FsCodec *remote_codec, FsParamType remote_paramtypes,
-    const struct SdpNegoFunction *nf);
-
 
 /* Generic param negotiation functions */
 
@@ -129,6 +123,10 @@ static gboolean param_h263_1998_custom (const struct SdpParam *sdp_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
     FsCodec *negotiated_codec);
 static gboolean param_h263_1998_cpcf (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec);
+static gboolean param_telephone_events (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
     FsCodec *negotiated_codec);
@@ -213,8 +211,12 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
    {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
     "sprop-init-buf-time", "sprop-max-don-diff", NULL}},
 #endif
-  {FS_MEDIA_TYPE_AUDIO, "telephone-event", sdp_negotiate_codec_telephone_event,
-   {{NULL, 0, NULL}}
+  {FS_MEDIA_TYPE_AUDIO, "telephone-event", sdp_negotiate_codec_default,
+    {
+      {"", FS_PARAM_TYPE_SEND, param_telephone_events},
+      {"events", FS_PARAM_TYPE_SEND, param_telephone_events},
+      {NULL, 0, NULL}
+    }
   },
   {0, NULL, NULL}
 };
@@ -556,7 +558,7 @@ sdp_negotiate_codec_default (FsCodec *local_codec, FsParamType local_paramtypes,
 
     if (!param_negotiate (nf, local_param->name,
             local_codec, local_param, local_paramtypes,
-            NULL, NULL, 0, negotiated_codec))
+            remote_codec, NULL, remote_paramtypes, negotiated_codec))
       goto non_matching_codec;
   }
 
@@ -693,7 +695,7 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
         break;
       }
 
-      if (er1->first < er2->last)
+      if (er1->first <= er2->last)
       {
         struct event_range *new_er = g_slice_new (struct event_range);
 
@@ -703,7 +705,7 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
       }
 
       item2 = item2->next;
-      if (er2->last <= er1->last)
+      if (er2->last < er1->last)
       {
         local_ranges = g_list_remove (local_ranges, er2);
         event_range_free (er2);
@@ -750,7 +752,7 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
 
 
 /**
- * sdp_negotiate_codec_telephone_event:
+ * param_telephone_events:
  *
  * For telephone events, it finds the list of events that are the same.
  * So it tried to intersect both lists to come up with a list of events that
@@ -759,94 +761,55 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
  * RFC  4733
  */
 
-static FsCodec *
-sdp_negotiate_codec_telephone_event (
-    FsCodec *local_codec, FsParamType local_paramtypes,
-    FsCodec *remote_codec, FsParamType remote_paramtypes,
-    const struct SdpNegoFunction *nf)
+static gboolean
+param_telephone_events (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec)
 {
-  FsCodec *negotiated_codec = NULL;
-  GList *local_param_e = NULL, *negotiated_param_e = NULL;
+  gchar *events;
 
-  GST_LOG ("Using telephone-event codec negotiation function");
+  if (fs_codec_get_optional_parameter (negotiated_codec, "", NULL) ||
+      fs_codec_get_optional_parameter (negotiated_codec, "events", NULL))
+    return TRUE;
 
-  if (local_codec->clock_rate && remote_codec->clock_rate &&
-      local_codec->clock_rate != remote_codec->clock_rate)
+  if (!local_param)
+    local_param = fs_codec_get_optional_parameter (local_codec, "", NULL);
+  if (!local_param)
+    local_param = fs_codec_get_optional_parameter (local_codec, "events", NULL);
+
+  if (!remote_param)
+    remote_param = fs_codec_get_optional_parameter (remote_codec, "", NULL);
+  if (!remote_param)
+    remote_param = fs_codec_get_optional_parameter (remote_codec, "events",
+        NULL);
+
+  if (!local_param)
   {
-    GST_LOG ("Clock rates differ local=%u remote=%u", local_codec->clock_rate,
-        remote_codec->clock_rate);
-    return NULL;
+    fs_codec_add_optional_parameter (negotiated_codec, "events",
+        remote_param->value);
+    return TRUE;
   }
 
-  negotiated_codec = codec_copy_without_config (remote_codec);
-
-  negotiated_codec->ABI.ABI.ptime = local_codec->ABI.ABI.ptime;
-  negotiated_codec->ABI.ABI.maxptime = local_codec->ABI.ABI.maxptime;
-
-  /* Lets fix here missing clock rates and channels counts */
-  if (negotiated_codec->channels == 0 && local_codec->channels)
-    negotiated_codec->channels = local_codec->channels;
-  if (negotiated_codec->clock_rate == 0)
-    negotiated_codec->clock_rate = local_codec->clock_rate;
-
-  for (local_param_e = local_codec->optional_params;
-       local_param_e;
-       local_param_e = g_list_next (local_param_e))
+  if (!remote_param)
   {
-    FsCodecParameter *local_param = local_param_e->data;
-    gboolean got_events = FALSE;
-
-    for (negotiated_param_e = negotiated_codec->optional_params;
-         negotiated_param_e;
-         negotiated_param_e = g_list_next (negotiated_param_e))
-    {
-      FsCodecParameter *negotiated_param = negotiated_param_e->data;
-
-      if (!strcmp (negotiated_param->name, ""))
-      {
-        g_free (negotiated_param->name);
-        negotiated_param->name = g_strdup ("events");
-      }
-
-      if (!g_ascii_strcasecmp (local_param->name, negotiated_param->name))
-      {
-        if (!strcmp (local_param->value, negotiated_param->value))
-        {
-          break;
-        }
-        else if (!g_ascii_strcasecmp (negotiated_param->name, "events"))
-        {
-          gchar *events = event_intersection (negotiated_param->value,
-              local_param->value);
-          if (!events)
-          {
-            GST_LOG ("Non-intersecting values for %s, local=%s remote=%s",
-                local_param->name, local_param->value, negotiated_param->value);
-            fs_codec_destroy (negotiated_codec);
-            return NULL;
-          }
-          g_free (negotiated_param->value);
-          negotiated_param->value = events;
-          got_events = TRUE;
-        }
-        else
-        {
-          GST_LOG ("Different values for %s, local=%s remote=%s",
-              local_param->name, local_param->value, negotiated_param->value);
-          fs_codec_destroy (negotiated_codec);
-          return NULL;
-        }
-      }
-    }
-
-    /* Let's add the local param to the negotiated codec if it does not exist in
-     * the remote codec */
-    if (!negotiated_param_e && !got_events)
-      fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
-          local_param->value);
+    fs_codec_add_optional_parameter (negotiated_codec, "events",
+        local_param->value);
+    return TRUE;
   }
 
-  return negotiated_codec;
+  events = event_intersection (local_param->value, remote_param->value);
+  if (!events)
+  {
+    GST_LOG ("Non-intersecting values for \"events\" local=%s remote=%s",
+       local_param->value, remote_param->value);
+    return FALSE;
+  }
+
+  fs_codec_add_optional_parameter (negotiated_codec, "events", events);
+  g_free (events);
+
+  return TRUE;
 }
 
 /**
