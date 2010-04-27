@@ -781,8 +781,7 @@ create_local_codec_associations (
  * negotiate_stream_codecs:
  * @remote_codecs: Remote codecs for the stream
  * @current_codec_assocations: The current list of #CodecAssociation
- * @use_local_ids: Whether to use local or remote PTs if they dont match (%TRUE
- *  for local, %FALSE for remote)
+ * @multi_stream: %TRUE if there is more than one stream.
  *
  * This function performs codec negotiation for a single stream. It does an
  * intersection of the current codecs and the remote codecs.
@@ -794,14 +793,14 @@ GList *
 negotiate_stream_codecs (
     const GList *remote_codecs,
     GList *current_codec_associations,
-    gboolean use_local_ids)
+    gboolean multi_stream)
 {
   GList *new_codec_associations = NULL;
   const GList *rcodec_e = NULL;
   GList *item = NULL;
 
-  GST_DEBUG ("Negotiating stream codecs (using %s ids)",
-      use_local_ids ? "local" : "remote");
+  GST_DEBUG ("Negotiating stream codecs (for %s)",
+      multi_stream ? "a single stream" : "multiple streams");
 
   for (rcodec_e = remote_codecs;
        rcodec_e;
@@ -836,7 +835,9 @@ negotiate_stream_codecs (
 
         if (nego_codec)
         {
-          if (use_local_ids)
+          /* If we have multiple streams with codecs,
+           * then priorize the local IDs */
+          if (multi_stream)
             nego_codec->id = old_ca->codec->id;
           break;
         }

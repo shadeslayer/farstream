@@ -81,7 +81,7 @@ GList *
 negotiate_stream_codecs (
     const GList *remote_codecs,
     GList *current_codec_associations,
-    gboolean use_local_ids);
+    gboolean multi_stream);
 
 GList *
 finish_codec_negotiation (
