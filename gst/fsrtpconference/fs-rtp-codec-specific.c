@@ -397,11 +397,26 @@ sdp_negotiate_codec (FsCodec *local_codec, FsCodec *remote_codec)
 static const struct SdpParam *
 get_sdp_param (const struct SdpNegoFunction *nf, const gchar *param_name)
 {
+  static const struct SdpParam ptime_params = {
+    "ptime", FS_PARAM_TYPE_SEND_AVOID_NEGO, param_minimum
+  };
+  static const struct SdpParam maxptime_params = {
+    "maxptime", FS_PARAM_TYPE_SEND_AVOID_NEGO, param_minimum
+  };
   gint i;
 
   for (i = 0; nf->params[i].name; i++)
     if (!g_ascii_strcasecmp (param_name, nf->params[i].name))
       return &nf->params[i];
+
+  if (nf->media_type != FS_MEDIA_TYPE_AUDIO)
+    return NULL;
+
+  if (!g_ascii_strcasecmp (param_name, "ptime"))
+    return &ptime_params;
+
+  if (!g_ascii_strcasecmp (param_name, "maxptime"))
+    return &maxptime_params;
 
   return NULL;
 }
