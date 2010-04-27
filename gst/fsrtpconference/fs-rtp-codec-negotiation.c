@@ -508,6 +508,8 @@ create_local_codec_associations (
   if (blueprints == NULL)
     return NULL;
 
+  GST_DEBUG ("Creating local codec associations");
+
   /* First, lets create the original table by looking at our preferred codecs */
   for (codec_pref_e = codec_prefs;
        codec_pref_e;
@@ -571,6 +573,7 @@ create_local_codec_associations (
       if (oldca)
       {
         FsCodec *codec = sdp_negotiate_codec (codec_pref, oldca->codec);
+
         if (codec)
         {
           ca = g_slice_new (CodecAssociation);
@@ -796,6 +799,9 @@ negotiate_stream_codecs (
   GList *new_codec_associations = NULL;
   const GList *rcodec_e = NULL;
   GList *item = NULL;
+
+  GST_DEBUG ("Negotiating stream codecs (using %s ids)",
+      use_local_ids ? "local" : "remote");
 
   for (rcodec_e = remote_codecs;
        rcodec_e;
