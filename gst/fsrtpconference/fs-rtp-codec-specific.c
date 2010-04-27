@@ -58,8 +58,9 @@ struct SdpNegoFunction {
   FsMediaType media_type;
   const gchar *encoding_name;
   FsCodec * (* sdp_negotiate_codec) (FsCodec *local_codec,
+      FsParamType local_paramtypes,
       FsCodec *remote_codec,
-      FsParamType paramtype,
+      FsParamType remote_paramtypes,
       const struct SdpNegoFunction *nf);
   const struct SdpParam params[MAX_PARAMS];
 };
@@ -73,20 +74,20 @@ struct SdpParamMinMax {
 
 
 static FsCodec *
-sdp_negotiate_codec_default (FsCodec *local_codec,
-    FsCodec *remote_codec,
-    FsParamType paramtype,
+sdp_negotiate_codec_default (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
     const struct SdpNegoFunction *nf);
 
 static FsCodec *
-sdp_negotiate_codec_h263_2000 (FsCodec *local_codec,
-    FsCodec *remote_codec,
-    FsParamType paramtype,
+sdp_negotiate_codec_h263_2000 (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
     const struct SdpNegoFunction *nf);
 static FsCodec *
-sdp_negotiate_codec_telephone_event (FsCodec *local_codec,
-    FsCodec *remote_codec,
-    FsParamType paramtype,
+sdp_negotiate_codec_telephone_event (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
     const struct SdpNegoFunction *nf);
 
 
@@ -351,7 +352,9 @@ codec_copy_without_config (FsCodec *codec)
 FsCodec *
 sdp_negotiate_codec (FsCodec *local_codec, FsCodec *remote_codec)
 {
-  FsParamType paramtype = FS_PARAM_TYPE_BOTH;
+  FsParamType local_paramtypes =
+    FS_PARAM_TYPE_BOTH | FS_PARAM_TYPE_SEND_AVOID_NEGO | FS_PARAM_TYPE_CONFIG;
+  FsParamType remote_paramtypes = FS_PARAM_TYPE_BOTH | FS_PARAM_TYPE_CONFIG;
   const struct SdpNegoFunction *nf;
 
   g_return_val_if_fail (local_codec, NULL);
@@ -384,11 +387,11 @@ sdp_negotiate_codec (FsCodec *local_codec, FsCodec *remote_codec)
       local_codec->encoding_name);
 
   if (nf)
-    return nf->sdp_negotiate_codec (local_codec, remote_codec, paramtype,
-        nf);
+    return nf->sdp_negotiate_codec (local_codec, local_paramtypes,
+        remote_codec, remote_paramtypes, nf);
   else
-    return sdp_negotiate_codec_default (local_codec, remote_codec, paramtype,
-        NULL);
+    return sdp_negotiate_codec_default (local_codec, local_paramtypes,
+        remote_codec, remote_paramtypes, NULL);
 }
 
 static const struct SdpParam *
@@ -403,11 +406,13 @@ get_sdp_param (const struct SdpNegoFunction *nf, const gchar *param_name)
   return NULL;
 }
 
+
 static gboolean
-param_negotiate (const struct SdpNegoFunction *nf,
-    FsParamType paramtype, const gchar *param_name,
+param_negotiate (const struct SdpNegoFunction *nf, const gchar *param_name,
     FsCodec *local_codec, FsCodecParameter *local_param,
+    FsParamType local_paramtypes,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsParamType remote_paramtypes,
     FsCodec *negotiated_codec)
 {
   const struct SdpParam *sdp_param = NULL;
@@ -417,7 +422,15 @@ param_negotiate (const struct SdpNegoFunction *nf,
 
   if (sdp_param)
   {
-    if (sdp_param->paramtype & paramtype)
+    if ((sdp_param->paramtype & FS_PARAM_TYPE_BOTH) != FS_PARAM_TYPE_BOTH)
+    {
+      if (!(sdp_param->paramtype & local_paramtypes))
+        local_param = NULL;
+      if (!(sdp_param->paramtype & remote_paramtypes))
+        remote_param = NULL;
+    }
+
+    if (local_param || remote_param)
       return sdp_param->negotiate_param (sdp_param,
           local_codec, local_param, remote_codec,
           remote_param, negotiated_codec);
@@ -426,11 +439,14 @@ param_negotiate (const struct SdpNegoFunction *nf,
   }
   else
   {
-    if (! (paramtype & FS_PARAM_TYPE_SEND))
+    /* Assume unknown parameters are of type SEND */
+    if (!((remote_paramtypes | local_paramtypes) & FS_PARAM_TYPE_SEND))
       return TRUE;
 
     if (local_param && remote_param)
     {
+      /* Only accept codecs where unknown parameters are IDENTICAL if
+       * they are present on both sides */
       if (!g_ascii_strcasecmp (local_param->value, remote_param->value))
         fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
             local_param->value);
@@ -453,14 +469,16 @@ param_negotiate (const struct SdpNegoFunction *nf,
 }
 
 static FsCodec *
-sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec,
-    FsParamType paramtype, const struct SdpNegoFunction *nf)
+sdp_negotiate_codec_default (FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
+    const struct SdpNegoFunction *nf)
 {
   FsCodec *negotiated_codec = NULL;
   FsCodec *local_codec_copy = NULL;
   GList *local_param_e = NULL, *remote_param_e = NULL;
 
-  GST_LOG ("Using default codec negotiation function");
+  GST_LOG ("Using default codec negotiation function for %s",
+      local_codec->encoding_name);
 
   if (local_codec->channels && remote_codec->channels &&
       local_codec->channels != remote_codec->channels)
@@ -484,17 +502,16 @@ sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec,
     negotiated_codec->clock_rate = local_codec->clock_rate;
 
 
-  if (paramtype & FS_PARAM_TYPE_RECV)
+  if (local_paramtypes & FS_PARAM_TYPE_SEND_AVOID_NEGO)
   {
     negotiated_codec->ABI.ABI.ptime = local_codec->ABI.ABI.ptime;
     negotiated_codec->ABI.ABI.maxptime = local_codec->ABI.ABI.maxptime;
   }
-  else if (paramtype & FS_PARAM_TYPE_SEND)
+  else if (remote_paramtypes & FS_PARAM_TYPE_SEND_AVOID_NEGO)
   {
     negotiated_codec->ABI.ABI.ptime = remote_codec->ABI.ABI.ptime;
     negotiated_codec->ABI.ABI.maxptime = remote_codec->ABI.ABI.maxptime;
   }
-
 
   local_codec_copy = fs_codec_copy (local_codec);
 
@@ -506,9 +523,10 @@ sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec,
     FsCodecParameter *local_param =  fs_codec_get_optional_parameter (
         local_codec_copy, remote_param->name, NULL);
 
-    if (!param_negotiate (nf, paramtype, remote_param->name,
-            local_codec, local_param,
-            remote_codec, remote_param, negotiated_codec))
+    if (!param_negotiate (nf, remote_param->name,
+            local_codec, local_param, local_paramtypes,
+            remote_codec, remote_param, remote_paramtypes,
+            negotiated_codec))
       goto non_matching_codec;
 
     if (local_param)
@@ -521,9 +539,10 @@ sdp_negotiate_codec_default (FsCodec *local_codec, FsCodec *remote_codec,
   {
     FsCodecParameter *local_param = local_param_e->data;
 
-    param_negotiate (nf, paramtype, local_param->name,
-        local_codec, local_param,
-        NULL, NULL, negotiated_codec);
+    if (!param_negotiate (nf, local_param->name,
+            local_codec, local_param, local_paramtypes,
+            NULL, NULL, 0, negotiated_codec))
+      goto non_matching_codec;
   }
 
   fs_codec_destroy (local_codec_copy);
@@ -550,8 +569,10 @@ non_matching_codec:
  */
 
 static FsCodec *
-sdp_negotiate_codec_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
-    FsParamType paramtype, const struct SdpNegoFunction *nf)
+sdp_negotiate_codec_h263_2000 (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
+    const struct SdpNegoFunction *nf)
 {
   const struct SdpNegoFunction *h263_1998_nf;
   GST_DEBUG ("Using H263-2000 negotiation function");
@@ -560,14 +581,14 @@ sdp_negotiate_codec_h263_2000 (FsCodec *local_codec, FsCodec *remote_codec,
           fs_codec_get_optional_parameter (remote_codec, "level", NULL)) &&
       (fs_codec_get_optional_parameter (local_codec, "profile", NULL) ||
           fs_codec_get_optional_parameter (local_codec, "level", NULL)))
-    return sdp_negotiate_codec_default (local_codec, remote_codec, paramtype,
-        nf);
+    return sdp_negotiate_codec_default (local_codec, local_paramtypes,
+        remote_codec, remote_paramtypes, nf);
 
 
   h263_1998_nf = get_sdp_nego_function (FS_MEDIA_TYPE_VIDEO, "H263-1998");
 
-  return sdp_negotiate_codec_default (local_codec, remote_codec, paramtype,
-      h263_1998_nf);
+  return sdp_negotiate_codec_default (local_codec, local_paramtypes,
+      remote_codec, remote_paramtypes, h263_1998_nf);
 }
 
 struct event_range {
@@ -724,8 +745,9 @@ event_intersection (const gchar *remote_events, const gchar *local_events)
  */
 
 static FsCodec *
-sdp_negotiate_codec_telephone_event (FsCodec *local_codec,
-    FsCodec *remote_codec, FsParamType paramtype,
+sdp_negotiate_codec_telephone_event (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
     const struct SdpNegoFunction *nf)
 {
   FsCodec *negotiated_codec = NULL;
