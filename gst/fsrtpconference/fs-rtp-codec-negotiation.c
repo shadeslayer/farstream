@@ -622,17 +622,9 @@ create_local_codec_associations (
            bp_param_e;
            bp_param_e = g_list_next (bp_param_e))
       {
-        GList *pref_param_e = NULL;
         FsCodecParameter *bp_param = bp_param_e->data;
-        for (pref_param_e = ca->codec->optional_params;
-             pref_param_e;
-             pref_param_e = g_list_next (pref_param_e))
-        {
-          FsCodecParameter *pref_param = pref_param_e->data;
-          if (!g_ascii_strcasecmp (bp_param->name, pref_param->name))
-            break;
-        }
-        if (!pref_param_e)
+
+        if (fs_codec_get_optional_parameter (ca->codec, bp_param->name, NULL))
           fs_codec_add_optional_parameter (ca->codec, bp_param->name,
               bp_param->value);
       }
