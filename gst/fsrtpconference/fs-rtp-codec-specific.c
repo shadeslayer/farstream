@@ -271,8 +271,8 @@ codec_needs_config (FsCodec *codec)
 
 
 static gboolean
-codec_has_config_data_named_internal (const struct SdpNegoFunction *nf,
-    const gchar *param_name)
+codec_param_check_type (const struct SdpNegoFunction *nf,
+    const gchar *param_name, FsParamType paramtypes)
 {
   gint i;
 
@@ -280,7 +280,7 @@ codec_has_config_data_named_internal (const struct SdpNegoFunction *nf,
     return FALSE;
 
   for (i = 0; nf->params[i].name; i++)
-    if (nf->params[i].paramtype & FS_PARAM_TYPE_CONFIG &&
+    if (nf->params[i].paramtype & paramtypes &&
         !g_ascii_strcasecmp (nf->params[i].name, param_name))
       return TRUE;
 
@@ -299,22 +299,24 @@ codec_has_config_data_named (FsCodec *codec, const gchar *param_name)
   nf = get_sdp_nego_function (codec->media_type, codec->encoding_name);
 
   if (nf)
-    return codec_has_config_data_named_internal (nf, param_name);
+    return codec_param_check_type (nf, param_name, FS_PARAM_TYPE_CONFIG);
   else
     return FALSE;
 }
 
 /**
- * codec_copy_without_config:
+ * codec_copy_filtered
  * @codec: a #FsCodec
+ * @paramtypes: bitmask of types of parameters to remove
  *
- * Makes a copy of a #FsCodec, but removes all configuration parameters
+ * Makes a copy of a #FsCodec, but removes all parameters that match
+ * of the bits from the paramtypes element
  *
  * Returns: the newly-allocated #FsCodec
  */
 
 FsCodec *
-codec_copy_without_config (FsCodec *codec)
+codec_copy_filtered (FsCodec *codec, FsParamType paramtypes)
 {
   FsCodec *copy = fs_codec_copy (codec);
   GList *item = NULL;
@@ -329,7 +331,7 @@ codec_copy_without_config (FsCodec *codec)
       FsCodecParameter *param = item->data;
       GList *next = g_list_next (item);
 
-      if (codec_has_config_data_named_internal (nf, param->name))
+      if (codec_param_check_type (nf, param->name, FS_PARAM_TYPE_CONFIG))
         fs_codec_remove_optional_parameter (copy, param);
 
       item = next;
@@ -1254,3 +1256,4 @@ param_h263_1998_cpcf (const struct SdpParam *sdp_param,
 
   return TRUE;
 }
+

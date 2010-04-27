@@ -245,7 +245,7 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
 
   source->codec = fs_codec_copy (telephony_codec);
 
-  telephony_codec = codec_copy_without_config (telephony_codec);
+  telephony_codec = codec_copy_filtered (telephony_codec, FS_PARAM_TYPE_CONFIG);
 
   telephony_codec->ABI.ABI.ptime = ca->ptime;
   telephony_codec->ABI.ABI.maxptime = ca->maxptime;

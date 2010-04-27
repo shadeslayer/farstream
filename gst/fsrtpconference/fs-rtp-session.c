@@ -1825,7 +1825,7 @@ fs_rtp_session_request_pt_map (FsRtpSession *session, guint pt)
 
   if (ca)
   {
-    FsCodec *tmpcodec = codec_copy_without_config (ca->codec);
+    FsCodec *tmpcodec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
     caps = fs_codec_to_gst_caps (tmpcodec);
     fs_codec_destroy (tmpcodec);
   }
@@ -2820,7 +2820,7 @@ fs_rtp_session_get_recv_codec_locked (FsRtpSession *session,
   }
   else
   {
-    *recv_codec = codec_copy_without_config (ca->codec);
+    *recv_codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
     GST_DEBUG ("Receiving on session codec " FS_CODEC_FORMAT,
         FS_CODEC_ARGS (ca->codec));
   }
@@ -2901,7 +2901,7 @@ out:
 
   if (ca && codec)
   {
-    *codec = codec_copy_without_config (ca->codec);
+    *codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
     (*codec)->ABI.ABI.ptime = ca->ptime;
     (*codec)->ABI.ABI.maxptime = ca->maxptime;
   }

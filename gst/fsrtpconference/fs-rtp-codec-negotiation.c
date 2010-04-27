@@ -974,7 +974,8 @@ finish_codec_negotiation (
 
     if (old_ca)
     {
-      FsCodec *old_without_config = codec_copy_without_config (old_ca->codec);
+      FsCodec *old_without_config = codec_copy_filtered (old_ca->codec,
+          FS_PARAM_TYPE_CONFIG);
 
       if (fs_codec_are_equal (new_ca->codec, old_without_config))
       {
@@ -1103,7 +1104,7 @@ codec_associations_to_codecs_internal (GList *codec_associations,
       if (include_config)
         codec = fs_codec_copy (ca->codec);
       else
-        codec = codec_copy_without_config (ca->codec);
+        codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
       if (with_ptime)
       {
         codec->ABI.ABI.ptime = ca->ptime;
@@ -1276,7 +1277,7 @@ CodecAssociation *
 lookup_codec_association_by_codec_for_sending (GList *codec_associations,
     FsCodec *codec)
 {
-  FsCodec *lookup_codec = codec_copy_without_config (codec);
+  FsCodec *lookup_codec = codec_copy_filtered (codec, FS_PARAM_TYPE_CONFIG);
   CodecAssociation *ca = NULL;
 
   while (codec_associations)
@@ -1285,7 +1286,8 @@ lookup_codec_association_by_codec_for_sending (GList *codec_associations,
 
     if (codec_association_is_valid_for_sending (tmpca, FALSE))
     {
-      FsCodec *tmpcodec = codec_copy_without_config (tmpca->codec);
+      FsCodec *tmpcodec = codec_copy_filtered (tmpca->codec,
+          FS_PARAM_TYPE_CONFIG);
 
       tmpcodec->ABI.ABI.ptime = tmpca->ptime;
       tmpcodec->ABI.ABI.maxptime = tmpca->maxptime;
