@@ -136,6 +136,15 @@ static gboolean param_telephone_events (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
     FsCodec *negotiated_codec);
+static gboolean param_h264_profile_level_id (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec);
+static gboolean param_h264_min_req_profile (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec);
+
 
 const static struct SdpParamMinMax sdp_min_max_params[] = {
   {"H261", "qcif", 1, 4},
@@ -221,13 +230,25 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
   },
   {FS_MEDIA_TYPE_VIDEO, "H264", sdp_negotiate_codec_default,
    {
+     {"profile-level-id", FS_PARAM_TYPE_SEND, param_h264_profile_level_id},
+     {"max-mbps", FS_PARAM_TYPE_SEND, param_h264_min_req_profile},
+     {"max-fs", FS_PARAM_TYPE_SEND, param_h264_min_req_profile},
+     {"max-cpb", FS_PARAM_TYPE_SEND, param_h264_min_req_profile},
+     {"max-dpb", FS_PARAM_TYPE_SEND, param_h264_min_req_profile},
+     {"max-br", FS_PARAM_TYPE_SEND, param_h264_min_req_profile},
+     {"redundant-pic-cap", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
+     {"parameter-add", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
+     {"packetization-mode", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
+     {"deint-buf-cap", FS_PARAM_TYPE_SEND, param_minimum},
+     {"max-rcmd-nalu-size", FS_PARAM_TYPE_SEND, param_minimum},
+     {"sprop-parameter-sets", FS_PARAM_TYPE_CONFIG, param_copy},
+     {"sprop-interleaving-depth",  FS_PARAM_TYPE_CONFIG, param_copy},
+     {"sprop-deint-buf-req", FS_PARAM_TYPE_CONFIG, param_copy},
+     {"sprop-init-buf-time",  FS_PARAM_TYPE_CONFIG, param_copy},
+     {"sprop-max-don-diff",  FS_PARAM_TYPE_CONFIG, param_copy},
      {NULL, 0, NULL}
    }
   },
-#if 0
-   {"sprop-parameter-sets", "sprop-interleaving-depth", "sprop-deint-buf-req",
-    "sprop-init-buf-time", "sprop-max-don-diff", NULL}},
-#endif
   {FS_MEDIA_TYPE_AUDIO, "telephone-event", sdp_negotiate_codec_default,
     {
       {"", FS_PARAM_TYPE_SEND, param_telephone_events},
@@ -1315,3 +1336,87 @@ param_h263_1998_cpcf (const struct SdpParam *sdp_param,
   return TRUE;
 }
 
+
+static gboolean
+param_h264_profile_level_id (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec)
+{
+  guint remote_value;
+  guint local_value;
+  guint remote_profile_idc;
+  guint local_profile_idc;
+  guint remote_profile_iop;
+  guint local_profile_iop;
+  guint nego_profile_iop;
+  guint remote_level_idc;
+  guint local_level_idc;
+  guint nego_level_idc;
+  gchar buf[4];
+
+  /* If either of them is not present, then we can only do baseline profile
+   * with the minimum level */
+
+  if (!remote_param || !local_param)
+    return TRUE;
+
+  remote_value = strtol (remote_param->value, NULL, 16);
+  if (remote_value == 0 && errno == EINVAL)
+      return TRUE;
+
+  local_value = strtol (local_param->value, NULL, 16);
+  if (local_value == 0 && errno == EINVAL)
+    return TRUE;
+
+  remote_profile_idc = 0xFF & remote_value;
+  local_profile_idc = 0xFF & local_value;
+
+  if (remote_profile_idc != local_profile_idc)
+    return TRUE;
+
+  remote_profile_iop = 0xFF & (remote_value>>8);
+  local_profile_iop = 0xFF & (local_value>>8);
+  nego_profile_iop = remote_profile_iop | local_profile_iop;
+
+  remote_level_idc = 0xFF & (remote_value>>8);
+  local_level_idc = 0xFF & (local_value>>8);
+  nego_level_idc = MIN (remote_level_idc, local_level_idc);
+
+
+  snprintf (buf, 4, "%02hhX%02hhX%02hhX", local_profile_idc, nego_profile_iop,
+      nego_level_idc);
+
+  fs_codec_add_optional_parameter (negotiated_codec, sdp_param->name, buf);
+
+  return TRUE;
+}
+
+static gboolean
+param_h264_min_req_profile (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec)
+{
+  if (!fs_codec_get_optional_parameter (negotiated_codec, "profile-level-id",
+          NULL))
+  {
+    FsCodecParameter *local_profile =
+      fs_codec_get_optional_parameter (local_codec, "profile-level-id", NULL);
+    FsCodecParameter *remote_profile =
+      fs_codec_get_optional_parameter (remote_codec, "profile-level-id", NULL);
+
+    if (!local_profile || !remote_profile)
+      return TRUE;
+
+    param_h264_profile_level_id (NULL, local_codec, local_profile,
+        remote_codec, remote_profile, negotiated_codec);
+
+    if (!fs_codec_get_optional_parameter (negotiated_codec, "profile-level-id",
+            NULL))
+      return TRUE;
+  }
+
+  return param_minimum (sdp_param, local_codec, local_param,
+      remote_codec, remote_param, negotiated_codec);
+}
