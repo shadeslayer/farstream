@@ -68,8 +68,8 @@ struct SdpNegoFunction {
 struct SdpParamMinMax {
   const gchar *encoding_name;
   const gchar *param_name;
-  gint min;
-  gint max;
+  guint min;
+  guint max;
 };
 
 
@@ -81,6 +81,12 @@ sdp_negotiate_codec_default (
 
 static FsCodec *
 sdp_negotiate_codec_h263_2000 (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
+    const struct SdpNegoFunction *nf);
+
+static FsCodec *
+sdp_negotiate_codec_mandatory (
     FsCodec *local_codec, FsParamType local_paramtypes,
     FsCodec *remote_codec, FsParamType remote_paramtypes,
     const struct SdpNegoFunction *nf);
@@ -227,6 +233,16 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
       {"", FS_PARAM_TYPE_SEND, param_telephone_events},
       {"events", FS_PARAM_TYPE_SEND, param_telephone_events},
       {NULL, 0, NULL}
+    }
+  },
+  /* JPEG2000: RFC 5371 */
+  {FS_MEDIA_TYPE_VIDEO, "JPEG2000", sdp_negotiate_codec_mandatory,
+    {
+      {"sampling", FS_PARAM_TYPE_BOTH | FS_PARAM_TYPE_MANDATORY,
+          param_equal_or_reject},
+      {"interlace", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
+      {"width", FS_PARAM_TYPE_SEND, param_minimum},
+      {"height", FS_PARAM_TYPE_SEND, param_minimum}
     }
   },
   {0, NULL, NULL}
@@ -617,6 +633,39 @@ sdp_negotiate_codec_h263_2000 (
   return sdp_negotiate_codec_default (local_codec, local_paramtypes,
       remote_codec, remote_paramtypes, h263_1998_nf);
 }
+
+static FsCodec *
+sdp_negotiate_codec_mandatory (
+    FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes,
+    const struct SdpNegoFunction *nf)
+{
+  gint i;
+
+  for (i = 0; nf->params[i].name; i++)
+  {
+    if (nf->params[i].paramtype & FS_PARAM_TYPE_MANDATORY)
+    {
+      if ((nf->params[i].paramtype & local_paramtypes) ||
+          ((nf->params[i].paramtype & FS_PARAM_TYPE_BOTH) ==
+              FS_PARAM_TYPE_BOTH))
+        if (!fs_codec_get_optional_parameter (local_codec, nf->params[i].name,
+                NULL))
+          return NULL;
+
+      if ((nf->params[i].paramtype & remote_paramtypes) ||
+          ((nf->params[i].paramtype & FS_PARAM_TYPE_BOTH) ==
+              FS_PARAM_TYPE_BOTH))
+        if (!fs_codec_get_optional_parameter (remote_codec, nf->params[i].name,
+                NULL))
+          return NULL;
+    }
+  }
+
+  return sdp_negotiate_codec_default (local_codec, local_paramtypes,
+      remote_codec, remote_paramtypes, nf);
+}
+
 
 struct event_range {
   int first;
