@@ -132,6 +132,8 @@ static gboolean param_telephone_events (const struct SdpParam *sdp_param,
     FsCodec *negotiated_codec);
 
 const static struct SdpParamMinMax sdp_min_max_params[] = {
+  {"H261", "qcif", 1, 4},
+  {"H261", "cif", 1, 4},
   {"H263-1998", "sqcif", 1, 32},
   {"H263-1998", "qcif", 1, 32},
   {"H263-1998", "cif", 1, 32},
@@ -147,6 +149,15 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
   {FS_MEDIA_TYPE_AUDIO, "iLBC", sdp_negotiate_codec_default,
    {
      {"mode", FS_PARAM_TYPE_BOTH, param_ilbc_mode},
+     {NULL, 0, NULL}
+   }
+  },
+  /* H261: RFC 4587 */
+  {FS_MEDIA_TYPE_VIDEO, "H261", sdp_negotiate_codec_default,
+   {
+     {"qcif", FS_PARAM_TYPE_SEND, param_maximum},
+     {"cif", FS_PARAM_TYPE_SEND, param_maximum},
+     {"d", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
      {NULL, 0, NULL}
    }
   },
