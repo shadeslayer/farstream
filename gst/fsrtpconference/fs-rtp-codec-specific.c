@@ -331,7 +331,7 @@ codec_copy_filtered (FsCodec *codec, FsParamType paramtypes)
       FsCodecParameter *param = item->data;
       GList *next = g_list_next (item);
 
-      if (codec_param_check_type (nf, param->name, FS_PARAM_TYPE_CONFIG))
+      if (codec_param_check_type (nf, param->name, paramtypes))
         fs_codec_remove_optional_parameter (copy, param);
 
       item = next;
@@ -340,6 +340,7 @@ codec_copy_filtered (FsCodec *codec, FsParamType paramtypes)
 
   return copy;
 }
+
 
 /**
  * sdp_negotiate_codec:
@@ -354,11 +355,9 @@ codec_copy_filtered (FsCodec *codec, FsParamType paramtypes)
  */
 
 FsCodec *
-sdp_negotiate_codec (FsCodec *local_codec, FsCodec *remote_codec)
+sdp_negotiate_codec (FsCodec *local_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes)
 {
-  FsParamType local_paramtypes =
-    FS_PARAM_TYPE_BOTH | FS_PARAM_TYPE_SEND_AVOID_NEGO | FS_PARAM_TYPE_CONFIG;
-  FsParamType remote_paramtypes = FS_PARAM_TYPE_BOTH | FS_PARAM_TYPE_CONFIG;
   const struct SdpNegoFunction *nf;
 
   g_return_val_if_fail (local_codec, NULL);
@@ -407,14 +406,18 @@ get_sdp_param (const struct SdpNegoFunction *nf, const gchar *param_name)
   static const struct SdpParam maxptime_params = {
     "maxptime", FS_PARAM_TYPE_SEND_AVOID_NEGO, param_minimum
   };
-  gint i;
 
-  for (i = 0; nf->params[i].name; i++)
-    if (!g_ascii_strcasecmp (param_name, nf->params[i].name))
-      return &nf->params[i];
+  if (nf)
+  {
+    gint i;
 
-  if (nf->media_type != FS_MEDIA_TYPE_AUDIO)
-    return NULL;
+    for (i = 0; nf->params[i].name; i++)
+      if (!g_ascii_strcasecmp (param_name, nf->params[i].name))
+        return &nf->params[i];
+
+    if (nf->media_type != FS_MEDIA_TYPE_AUDIO)
+      return NULL;
+  }
 
   if (!g_ascii_strcasecmp (param_name, "ptime"))
     return &ptime_params;
@@ -436,8 +439,7 @@ param_negotiate (const struct SdpNegoFunction *nf, const gchar *param_name,
 {
   const struct SdpParam *sdp_param = NULL;
 
-  if (nf)
-    sdp_param = get_sdp_param (nf, param_name);
+  sdp_param = get_sdp_param (nf, param_name);
 
   if (sdp_param)
   {
@@ -467,10 +469,17 @@ param_negotiate (const struct SdpNegoFunction *nf, const gchar *param_name,
       /* Only accept codecs where unknown parameters are IDENTICAL if
        * they are present on both sides */
       if (!g_ascii_strcasecmp (local_param->value, remote_param->value))
+      {
         fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
             local_param->value);
+      }
       else
+      {
+        GST_LOG ("Codec %s has different values for %s (\"%s\" and \"%s\")",
+            local_codec->encoding_name, param_name,
+            local_param->value, remote_param->value);
         return FALSE;
+      }
     }
     else if (local_param)
     {
@@ -519,18 +528,6 @@ sdp_negotiate_codec_default (FsCodec *local_codec, FsParamType local_paramtypes,
     negotiated_codec->channels = local_codec->channels;
   if (negotiated_codec->clock_rate == 0)
     negotiated_codec->clock_rate = local_codec->clock_rate;
-
-
-  if (local_paramtypes & FS_PARAM_TYPE_SEND_AVOID_NEGO)
-  {
-    negotiated_codec->ABI.ABI.ptime = local_codec->ABI.ABI.ptime;
-    negotiated_codec->ABI.ABI.maxptime = local_codec->ABI.ABI.maxptime;
-  }
-  else if (remote_paramtypes & FS_PARAM_TYPE_SEND_AVOID_NEGO)
-  {
-    negotiated_codec->ABI.ABI.ptime = remote_codec->ABI.ABI.ptime;
-    negotiated_codec->ABI.ABI.maxptime = remote_codec->ABI.ABI.maxptime;
-  }
 
   local_codec_copy = fs_codec_copy (local_codec);
 
@@ -852,10 +849,6 @@ param_min_max (const struct SdpParam *sdp_param,
       remote_valid = TRUE;
   }
 
-  /* If the remote value is invalid, lets ignore it entirely */
-  if (!remote_valid)
-    return TRUE;
-
   /* Validate values against min/max from table */
   for (i = 0; sdp_min_max_params[i].encoding_name; i++)
   {
@@ -884,10 +877,15 @@ param_min_max (const struct SdpParam *sdp_param,
     fs_codec_add_optional_parameter (negotiated_codec, param_name, tmp);
     g_free (tmp);
   }
-  else if (remote_valid && !local_valid)
+  else if (remote_valid)
   {
     fs_codec_add_optional_parameter (negotiated_codec, param_name,
         remote_param->value);
+  }
+  else if (local_valid)
+  {
+    fs_codec_add_optional_parameter (negotiated_codec, param_name,
+        local_param->value);
   }
 
   return TRUE;

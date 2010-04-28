@@ -230,7 +230,7 @@ fs_rtp_dtmf_event_source_get_codec (FsRtpSpecialSourceClass *klass,
       _is_telephony_codec, GUINT_TO_POINTER (selected_codec->clock_rate));
 
   if (ca)
-    return ca->codec;
+    return ca->send_codec;
   else
     return NULL;
 }

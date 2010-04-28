@@ -142,7 +142,7 @@ get_pcm_law_sound_codec (GList *codecs,
   if (out_ca)
     *out_ca = ca;
 
-  return ca->codec;
+  return ca->send_codec;
 }
 
 static gboolean
@@ -205,7 +205,7 @@ fs_rtp_dtmf_sound_source_get_codec (FsRtpSpecialSourceClass *klass,
       selected_codec);
 
   if (ca)
-    return ca->codec;
+    return ca->send_codec;
   else
     return NULL;
 }
@@ -238,17 +238,12 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
     ca = _get_main_codec_association (negotiated_codec_associations,
         selected_codec);
     if (ca)
-      telephony_codec = ca->codec;
+      telephony_codec = ca->send_codec;
   }
 
   g_return_val_if_fail (telephony_codec, NULL);
 
   source->codec = fs_codec_copy (telephony_codec);
-
-  telephony_codec = codec_copy_filtered (telephony_codec, FS_PARAM_TYPE_CONFIG);
-
-  telephony_codec->ABI.ABI.ptime = ca->ptime;
-  telephony_codec->ABI.ABI.maxptime = ca->maxptime;
 
   GST_DEBUG ("Creating dtmf sound source for " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (telephony_codec));
@@ -281,7 +276,7 @@ fs_rtp_dtmf_sound_source_build (FsRtpSpecialSource *source,
     goto error;
   }
 
-  caps = fs_codec_to_gst_caps_with_ptime (telephony_codec);
+  caps = fs_codec_to_gst_caps (telephony_codec);
   g_object_set (capsfilter, "caps", caps, NULL);
   {
     gchar *str = gst_caps_to_string (caps);

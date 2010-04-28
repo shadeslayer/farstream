@@ -77,6 +77,8 @@ GST_DEBUG_CATEGORY_EXTERN (fsrtpconference_nego);
 GstCaps *fs_codec_to_gst_caps (const FsCodec *codec);
 GstCaps *fs_codec_to_gst_caps_with_ptime (const FsCodec *codec);
 
+GList *codecs_copy_with_new_ptime (GList *codecs);
+
 gboolean fs_rtp_conference_is_internal_thread (FsRtpConference *self);
 
 G_END_DECLS

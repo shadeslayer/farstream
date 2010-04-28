@@ -36,11 +36,14 @@ typedef enum {
   FS_PARAM_TYPE_RECV = 1 << 1,
   FS_PARAM_TYPE_BOTH = FS_PARAM_TYPE_SEND | FS_PARAM_TYPE_RECV,
   FS_PARAM_TYPE_CONFIG = 1 << 2,
-  FS_PARAM_TYPE_SEND_AVOID_NEGO = 1 << 3
+  FS_PARAM_TYPE_SEND_AVOID_NEGO = 1 << 3,
+  FS_PARAM_TYPE_ALL = FS_PARAM_TYPE_BOTH | FS_PARAM_TYPE_CONFIG
+  | FS_PARAM_TYPE_SEND_AVOID_NEGO
 } FsParamType;
 
 FsCodec *
-sdp_negotiate_codec (FsCodec *local_recv_codec, FsCodec *remote_codec);
+sdp_negotiate_codec (FsCodec *local_recv_codec, FsParamType local_paramtypes,
+    FsCodec *remote_codec, FsParamType remote_paramtypes);
 
 gboolean
 codec_needs_config (FsCodec *codec);

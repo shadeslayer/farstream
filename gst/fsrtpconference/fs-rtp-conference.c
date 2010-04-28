@@ -920,35 +920,6 @@ fs_codec_to_gst_caps (const FsCodec *codec)
   return caps;
 }
 
-/**
- * fs_codec_to_gst_caps_with_ptime
- * @codec: A #FsCodec to be converted
- *
- * This function converts a #FsCodec to a fixed #GstCaps with media type
- * application/x-rtp. This will also add the ptime/maxptime from the codec
- * into the #GstCaps.
- *
- * Return value: A newly-allocated #GstCaps or %NULL if the codec was %NULL
- */
-
-GstCaps *
-fs_codec_to_gst_caps_with_ptime (const FsCodec *codec)
-{
-  GstCaps *caps = fs_codec_to_gst_caps (codec);
-
-  if (caps)
-  {
-    if (codec->ABI.ABI.ptime)
-      gst_caps_set_simple (caps,
-          "ptime", G_TYPE_UINT, codec->ABI.ABI.ptime, NULL);
-    if (codec->ABI.ABI.maxptime)
-      gst_caps_set_simple (caps,
-          "maxptime", G_TYPE_UINT, codec->ABI.ABI.maxptime, NULL);
-  }
-
-  return caps;
-}
-
 static void
 _rtpbin_on_ssrc_validated (GstElement *rtpbin,
     guint session_id,
@@ -985,4 +956,37 @@ fs_rtp_conference_is_internal_thread (FsRtpConference *self)
   GST_OBJECT_UNLOCK (self);
 
   return ret;
+}
+
+GList *
+codecs_copy_with_new_ptime (GList *codecs)
+{
+  GList *copy = fs_codec_list_copy (codecs);
+  GList *item;
+
+  for (item = copy; item ; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+
+    if (codec->ABI.ABI.ptime &&
+        !fs_codec_get_optional_parameter (codec, "ptime", NULL))
+    {
+      gchar *tmp = g_strdup_printf ("%u", codec->ABI.ABI.ptime);
+      fs_codec_add_optional_parameter (codec, "ptime", tmp);
+      g_free (tmp);
+    }
+
+    if (codec->ABI.ABI.maxptime &&
+        !fs_codec_get_optional_parameter (codec, "maxptime", NULL))
+    {
+      gchar *tmp = g_strdup_printf ("%u", codec->ABI.ABI.maxptime);
+      fs_codec_add_optional_parameter (codec, "maxptime", tmp);
+      g_free (tmp);
+    }
+
+    codec->ABI.ABI.ptime = 0;
+    codec->ABI.ABI.maxptime = 0;
+  }
+
+  return copy;
 }

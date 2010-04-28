@@ -1053,12 +1053,14 @@ GST_START_TEST (test_rtpcodecs_ptime)
   }
   fs_codec_list_destroy (codecs);
 
-  fail_unless (prefcodec->ABI.ABI.ptime == 0);
-  fail_unless (prefcodec->ABI.ABI.maxptime == 0);
+  fail_unless (
+      fs_codec_get_optional_parameter (prefcodec, "ptime", NULL) == NULL);
+  fail_unless (
+      fs_codec_get_optional_parameter (prefcodec, "maxptime", NULL) == NULL);
 
   codec = fs_codec_copy (prefcodec);
-  codec->ABI.ABI.ptime = 10;
-  codec->ABI.ABI.maxptime = 20;
+  fs_codec_add_optional_parameter (codec, "ptime", "10");
+  fs_codec_add_optional_parameter (codec, "maxptime", "20");
   codecs = g_list_append (NULL, codec);
   fail_unless (fs_session_set_codec_preferences (dat->session, codecs, &error));
   fail_unless (error == NULL);
@@ -1071,8 +1073,10 @@ GST_START_TEST (test_rtpcodecs_ptime)
   g_object_get (dat->session, "codecs", &codecs, NULL);
   codec = codecs->data;
   fail_unless (codec->id == prefcodec->id);
-  fail_unless (codec->ABI.ABI.ptime == 10);
-  fail_unless (codec->ABI.ABI.maxptime == 20);
+  fail_unless (
+      fs_codec_get_optional_parameter (codec, "ptime", "10") != NULL);
+  fail_unless (
+      fs_codec_get_optional_parameter (codec, "maxptime", "20") != NULL);
   fs_codec_list_destroy (codecs);
 
   participant = fs_conference_new_participant (
@@ -1091,8 +1095,10 @@ GST_START_TEST (test_rtpcodecs_ptime)
   fail_unless (g_list_length (codecs) == 1);
   codec = codecs->data;
   fail_unless (codec->id == prefcodec->id);
-  fail_unless (codec->ABI.ABI.ptime == 10);
-  fail_unless (codec->ABI.ABI.maxptime == 20);
+  fail_unless (
+      fs_codec_get_optional_parameter (codec, "ptime", "10") != NULL);
+  fail_unless (
+      fs_codec_get_optional_parameter (codec, "maxptime", "20") != NULL);
   fs_codec_list_destroy (codecs);
 
   fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
@@ -1113,8 +1119,10 @@ GST_START_TEST (test_rtpcodecs_ptime)
       const GValue *val;
       val = gst_structure_get_value (s, "codec");
       codec = g_value_get_boxed (val);
-      fail_unless (codec->ABI.ABI.ptime == 0);
-      fail_unless (codec->ABI.ABI.maxptime == 0);
+      fail_unless (
+          fs_codec_get_optional_parameter (prefcodec, "ptime", NULL) == NULL);
+      fail_unless (
+          fs_codec_get_optional_parameter (prefcodec, "maxptime", NULL) == NULL);
       gst_message_unref (message);
       break;
     }
@@ -1123,8 +1131,8 @@ GST_START_TEST (test_rtpcodecs_ptime)
   g_assert (codec != NULL);
 
   codec = fs_codec_copy (prefcodec);
-  codec->ABI.ABI.ptime = 30;
-  codec->ABI.ABI.maxptime = 40;
+  fs_codec_add_optional_parameter (codec, "ptime", "30");
+  fs_codec_add_optional_parameter (codec, "maxptime", "40");
   codecs = g_list_append (NULL, codec);
   fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
   fail_unless (error == NULL);
@@ -1138,8 +1146,10 @@ GST_START_TEST (test_rtpcodecs_ptime)
       const GValue *val;
       val = gst_structure_get_value (s, "codec");
       codec = g_value_get_boxed (val);
-      fail_unless (codec->ABI.ABI.ptime == 30);
-      fail_unless (codec->ABI.ABI.maxptime == 40);
+      fail_unless (
+          fs_codec_get_optional_parameter (codec, "ptime", "30") != NULL);
+      fail_unless (
+          fs_codec_get_optional_parameter (codec, "maxptime", "40") != NULL);
       gst_message_unref (message);
       break;
     }
