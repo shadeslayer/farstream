@@ -1170,26 +1170,19 @@ GST_END_TEST;
 
 static void
 setup_codec_tests (struct SimpleTestConference **dat,
-    FsParticipant **participant,
-    FsStream **stream)
+    FsParticipant **participant)
 {
   *dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
   *participant = fs_conference_new_participant (
       FS_CONFERENCE ((*dat)->conference), "name", NULL);
   fail_if (participant == NULL, "Could not add participant to conference");
-
-  *stream = fs_session_new_stream ((*dat)->session, *participant,
-      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
-  fail_if (stream == NULL, "Could not add stream to session");
 }
 
 static void
 cleanup_codec_tests (struct SimpleTestConference *dat,
-    FsParticipant *participant,
-    FsStream *stream)
+    FsParticipant *participant)
 {
-  g_object_unref (stream);
   g_object_unref (participant);
   cleanup_simple_conference (dat);
 }
@@ -1237,7 +1230,10 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   FsStream *stream;
   gboolean has_telephone_event_codec = FALSE;
 
-  setup_codec_tests (&dat, &participant, &stream);
+  setup_codec_tests (&dat, &participant);
+  stream = fs_session_new_stream (dat->session, participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (stream == NULL, "Could not add stream to session");
 
   g_object_get (dat->session, "codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
@@ -1323,7 +1319,184 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
       NULL);
 
   fs_codec_destroy (prefcodec);
-  cleanup_codec_tests (dat, participant, stream);
+  g_object_unref (stream);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
+
+#define test_one_codec(session, part, prefcodec, outprefcodec, incodec, \
+    outcodec)                                                           \
+  test_one_codec_internal (G_STRLOC, session, part, prefcodec,        \
+      outprefcodec, incodec, outcodec)
+
+static void
+test_one_codec_internal (const gchar *addr,
+    FsSession *session, FsParticipant *participant,
+    FsCodec *prefcodec, FsCodec *outprefcodec,
+    FsCodec *incodec, FsCodec *outcodec)
+{
+  GList *codecs = NULL;
+  FsCodec *codec = NULL;
+  GError *error = NULL;
+  FsStream *stream;
+
+  stream = fs_session_new_stream (session, participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (stream == NULL, "Could not add stream to session");
+
+  codecs = g_list_append (NULL, prefcodec);
+  fail_unless (fs_session_set_codec_preferences (session, codecs, &error),
+      "%s: Could not set codec preferences", addr);
+  fail_unless (error == NULL, "%s: Non-NULL error from codec prefs", addr);
+  g_list_free (codecs);
+
+  if (outprefcodec)
+  {
+    FsCodec *copy;
+
+    g_object_get (session, "codecs", &codecs, NULL);
+    codec = codecs->data;
+    copy = fs_codec_copy (outprefcodec);
+    copy->id = codec->id;
+    fail_unless (fs_codec_are_equal (codec, copy),
+        "%s: Codec prefs didn't give expected results: " FS_CODEC_FORMAT
+        " (expected: " FS_CODEC_FORMAT ")", addr, FS_CODEC_ARGS (codec),
+        FS_CODEC_ARGS (copy));
+    fs_codec_destroy (copy);
+    fs_codec_list_destroy (codecs);
+  }
+
+  codecs = g_list_append (NULL, incodec);
+  if (outcodec)
+  {
+    fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error),
+        "%s: Could not set remote codecs", addr);
+    fail_unless (error == NULL, "%s: Non-NULL error from codec prefs", addr);
+  }
+  else
+  {
+    fail_if (fs_stream_set_remote_codecs (stream, codecs, &error),
+        "%s: Could set unacceptable remote codecs", addr);
+    fail_unless (error != NULL,
+        "%s: Unacceptable remote codecs didnt give out a GError", addr);
+    g_clear_error (&error);
+  }
+  fs_codec_list_destroy (codecs);
+
+  if (outcodec)
+  {
+    g_object_get (session, "codecs", &codecs, NULL);
+    fail_unless (g_list_length (codecs) == 1,
+        "%s: Negotiation gives more than one codec", addr);
+    codec = codecs->data;
+    fail_unless (fs_codec_are_equal (codec, outcodec),
+        "%s: Negotiation doesn't give the expected codec: " FS_CODEC_FORMAT
+        " (expected: " FS_CODEC_FORMAT ")", addr, FS_CODEC_ARGS (codec),
+        FS_CODEC_ARGS (outcodec));
+    fs_codec_list_destroy (codecs);
+    fs_codec_destroy (outcodec);
+  }
+
+  g_object_unref (stream);
+}
+
+
+GST_START_TEST (test_rtpcodecs_nego_ilbc)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+
+  setup_codec_tests (&dat, &participant);
+
+  /* First we test with  mode=20 in the prefs */
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "ILBC", FS_MEDIA_TYPE_AUDIO,
+      8000);
+  fs_codec_add_optional_parameter (outprefcodec, "mode", "20");
+
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "rtpilbcdepay ! identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity ! rtpilbcpay");
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "mode", "30");
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "mode", "30");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "mode", "20");
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "mode", "20");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  /* Second we test with  mode=30 in the prefs */
+
+  fs_codec_remove_optional_parameter (prefcodec,
+      fs_codec_get_optional_parameter (prefcodec, "mode", NULL));
+  fs_codec_remove_optional_parameter (outprefcodec,
+      fs_codec_get_optional_parameter (outprefcodec, "mode", NULL));
+  fs_codec_add_optional_parameter (prefcodec, "mode", "30");
+  fs_codec_add_optional_parameter (outprefcodec, "mode", "30");
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "mode", "30");
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "mode", "30");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "mode", "20");
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "mode", "30");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  /* third with test with no mode in the prefs */
+  fs_codec_remove_optional_parameter (prefcodec,
+      fs_codec_get_optional_parameter (prefcodec, "mode", NULL));
+  fs_codec_remove_optional_parameter (outprefcodec,
+      fs_codec_get_optional_parameter (outprefcodec, "mode", NULL));
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "mode", "30");
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec, codec,
+      outcodec);
+
+  codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "mode", "20");
+  outcodec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec, codec,
+      outcodec);
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
 }
 GST_END_TEST;
 
@@ -1379,6 +1552,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_telephone_event-nego");
   tcase_add_test (tc_chain, test_rtpcodecs_telephone_event_nego);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_ilbc");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_ilbc);
   suite_add_tcase (s, tc_chain);
 
   return s;
