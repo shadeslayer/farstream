@@ -1322,6 +1322,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       NULL);
 
+  fs_codec_destroy (prefcodec);
   cleanup_codec_tests (dat, participant, stream);
 }
 GST_END_TEST;
