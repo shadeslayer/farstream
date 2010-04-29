@@ -299,7 +299,6 @@ validate_codecs_configuration (FsMediaType media_type, GList *blueprints,
     {
       /* Accept codecs with no blueprints if they have a valid profile */
       if (fs_codec_get_optional_parameter (codec, RECV_PROFILE_ARG, NULL) &&
-          codec->id >= 0 && codec->id < 128 &&
           codec->encoding_name && codec->clock_rate)
         goto accept_codec;
 
