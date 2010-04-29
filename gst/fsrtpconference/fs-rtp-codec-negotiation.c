@@ -570,7 +570,9 @@ create_local_codec_associations (
         oldca = NULL;
     }
 
-    /* In this case, we have a matching codec association, lets keep it */
+    /* In this case, we have a matching codec association, lets keep the
+     * payload type from it
+     */
     if (oldca)
     {
       FsCodec *codec = sdp_negotiate_codec (
@@ -580,43 +582,30 @@ create_local_codec_associations (
 
       if (codec)
       {
+        fs_codec_destroy (codec);
+
         send_codec = sdp_negotiate_codec (
             oldca->send_codec, FS_PARAM_TYPE_SEND,
             codec_pref, FS_PARAM_TYPE_SEND | FS_PARAM_TYPE_SEND_AVOID_NEGO);
-        if (!send_codec)
-        {
-          fs_codec_destroy (codec);
-          codec = NULL;
-        }
+        if (send_codec)
+          fs_codec_destroy (send_codec);
+        else
+          oldca = NULL;
       }
-
-      if (codec)
+      else
       {
-        send_codec->id = codec->id = oldca->codec->id;
-
-        ca = g_slice_new (CodecAssociation);
-        memcpy (ca, oldca, sizeof (CodecAssociation));
-        codec_remove_parameter (codec, SEND_PROFILE_ARG);
-        codec_remove_parameter (codec, RECV_PROFILE_ARG);
-        ca->codec = codec;
-        ca->send_codec = send_codec;
-
-        ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
-        ca->recv_profile = dup_param_value (codec_pref, RECV_PROFILE_ARG);
-
-        codec_associations = list_insert_local_ca (codec_associations, ca);
-        continue;
+        oldca = NULL;
       }
     }
 
     ca = g_slice_new0 (CodecAssociation);
     ca->blueprint = bp;
     ca->codec = fs_codec_copy (codec_pref);
-    ca->send_codec = codec_copy_filtered (codec_pref, FS_PARAM_TYPE_CONFIG);
-
     codec_remove_parameter (ca->codec, SEND_PROFILE_ARG);
     codec_remove_parameter (ca->codec, RECV_PROFILE_ARG);
-
+    ca->send_codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
+    if (oldca)
+      ca->send_codec->id = ca->codec->id = oldca->codec->id;
     ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
     ca->recv_profile = dup_param_value (codec_pref, RECV_PROFILE_ARG);
 
