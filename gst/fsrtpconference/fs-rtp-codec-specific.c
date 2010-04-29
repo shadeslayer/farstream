@@ -105,6 +105,10 @@ static gboolean param_equal_or_ignore (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
     FsCodec *negotiated_codec);
+static gboolean param_equal_or_not_default (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec);
 static gboolean param_equal_or_reject (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
@@ -224,7 +228,7 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
   },
   {FS_MEDIA_TYPE_AUDIO, "G729", sdp_negotiate_codec_default,
    {
-     {"annexb", FS_PARAM_TYPE_SEND, param_equal_or_ignore, "yes"},
+     {"annexb", FS_PARAM_TYPE_SEND, param_equal_or_not_default, "yes"},
      {NULL, 0, NULL}
    }
   },
@@ -989,6 +993,37 @@ param_equal_or_ignore (const struct SdpParam *sdp_param,
       !strcmp (local_param->value, remote_param->value))
     fs_codec_add_optional_parameter (negotiated_codec, remote_param->name,
         remote_param->value);
+
+  return TRUE;
+}
+
+
+
+/**
+ * param_equal_or_not_default:
+ *
+ * If both params are equal, it is the result. Otherwise, if one is not equal to
+ * the default, the result is this param.
+ */
+
+static gboolean
+param_equal_or_not_default (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec)
+{
+  if (local_param && remote_param &&
+      !strcmp (local_param->value, remote_param->value))
+    fs_codec_add_optional_parameter (negotiated_codec, remote_param->name,
+        remote_param->value);
+  else if (remote_param &&
+      g_ascii_strcasecmp (remote_param->value, sdp_param->default_value))
+    fs_codec_add_optional_parameter (negotiated_codec, remote_param->name,
+        remote_param->value);
+  else if (local_param &&
+      g_ascii_strcasecmp (local_param->value, sdp_param->default_value))
+    fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
+        local_param->value);
 
   return TRUE;
 }
