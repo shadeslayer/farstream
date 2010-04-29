@@ -1169,6 +1169,32 @@ GST_START_TEST (test_rtpcodecs_ptime)
 GST_END_TEST;
 
 static void
+setup_codec_tests (struct SimpleTestConference **dat,
+    FsParticipant **participant,
+    FsStream **stream)
+{
+  *dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+
+  *participant = fs_conference_new_participant (
+      FS_CONFERENCE ((*dat)->conference), "name", NULL);
+  fail_if (participant == NULL, "Could not add participant to conference");
+
+  *stream = fs_session_new_stream ((*dat)->session, *participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (stream == NULL, "Could not add stream to session");
+}
+
+static void
+cleanup_codec_tests (struct SimpleTestConference *dat,
+    FsParticipant *participant,
+    FsStream *stream)
+{
+  g_object_unref (stream);
+  g_object_unref (participant);
+  cleanup_simple_conference (dat);
+}
+
+static void
 test_one_telephone_event_codec (FsSession *session, FsStream *stream,
     FsCodec *prefcodec, FsCodec *incodec, FsCodec *outcodec)
 {
@@ -1211,7 +1237,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   FsStream *stream;
   gboolean has_telephone_event_codec = FALSE;
 
-  dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+  setup_codec_tests (&dat, &participant, &stream);
 
   g_object_get (dat->session, "codecs", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
@@ -1236,15 +1262,6 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
     g_debug ("telephone-event elements not detected, skipping test");
     return;
   }
-
-  participant = fs_conference_new_participant (
-      FS_CONFERENCE (dat->conference), "name", NULL);
-  fail_if (participant == NULL, "Could not add participant to conference");
-
-  stream = fs_session_new_stream (dat->session, participant,
-      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
-  fail_if (stream == NULL, "Could not add stream to session");
-
 
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
   fs_codec_add_optional_parameter (codec, "events", "0-15");
@@ -1288,7 +1305,6 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       outcodec);
 
-
   codec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
   fs_codec_add_optional_parameter (codec, "events", "0,10");
   outcodec = fs_codec_new (100, "telephone-event", FS_MEDIA_TYPE_AUDIO, 8000);
@@ -1306,10 +1322,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   test_one_telephone_event_codec (dat->session, stream, prefcodec, codec,
       NULL);
 
-
-  g_object_unref (stream);
-  g_object_unref (participant);
-  cleanup_simple_conference (dat);
+  cleanup_codec_tests (dat, participant, stream);
 }
 GST_END_TEST;
 
