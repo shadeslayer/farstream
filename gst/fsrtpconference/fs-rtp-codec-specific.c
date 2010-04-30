@@ -212,7 +212,7 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
    {
      /* Add H263-1998 params here */
      {"profile", FS_PARAM_TYPE_BOTH, param_equal_or_reject, "0"},
-     {"level", FS_PARAM_TYPE_SEND, param_minimum},
+     {"level", FS_PARAM_TYPE_SEND, param_minimum, "0"},
      {NULL, 0, NULL}
    }
   },
@@ -647,6 +647,7 @@ sdp_negotiate_codec_h263_2000 (
     const struct SdpNegoFunction *nf)
 {
   const struct SdpNegoFunction *h263_1998_nf;
+
   GST_DEBUG ("Using H263-2000 negotiation function");
 
   if (fs_codec_get_optional_parameter (remote_codec, "profile", NULL) &&
@@ -663,10 +664,10 @@ sdp_negotiate_codec_h263_2000 (
     return NULL;
   }
 
-  if ((fs_codec_get_optional_parameter (remote_codec, "profile", NULL) ||
-          fs_codec_get_optional_parameter (remote_codec, "level", NULL)) &&
-      (fs_codec_get_optional_parameter (local_codec, "profile", NULL) ||
-          fs_codec_get_optional_parameter (local_codec, "level", NULL)))
+  if (fs_codec_get_optional_parameter (remote_codec, "profile", NULL) ||
+      fs_codec_get_optional_parameter (remote_codec, "level", NULL) ||
+      fs_codec_get_optional_parameter (local_codec, "profile", NULL) ||
+      fs_codec_get_optional_parameter (local_codec, "level", NULL))
     return sdp_negotiate_codec_default (local_codec, local_paramtypes,
         remote_codec, remote_paramtypes, nf);
 
@@ -944,6 +945,12 @@ param_min_max (const struct SdpParam *sdp_param,
     if (local_value || errno != EINVAL)
       local_valid = TRUE;
   }
+  else if (sdp_param->default_value)
+  {
+    local_value = strtol (sdp_param->default_value, NULL, 10);
+    if (local_value || errno != EINVAL)
+      local_valid = TRUE;
+  }
 
   if (remote_param)
   {
@@ -951,6 +958,13 @@ param_min_max (const struct SdpParam *sdp_param,
     if (remote_value || errno != EINVAL)
       remote_valid = TRUE;
   }
+  else if (sdp_param->default_value)
+  {
+    remote_value = strtol (sdp_param->default_value, NULL, 10);
+    if (remote_value || errno != EINVAL)
+      remote_valid = TRUE;
+  }
+
 
   /* Validate values against min/max from table */
   for (i = 0; sdp_min_max_params[i].encoding_name; i++)
@@ -1129,7 +1143,11 @@ param_equal_or_reject (const struct SdpParam *sdp_param,
   else if (sdp_param->default_value)
     remote_value = sdp_param->default_value;
 
-  g_return_val_if_fail (local_value && remote_value, FALSE);
+  if (!local_value || !remote_value)
+  {
+    GST_DEBUG ("Missed a remote or a local value and don't have a default");
+    return FALSE;
+  }
 
   if (strcmp (local_value, remote_value))
   {
@@ -1141,9 +1159,13 @@ param_equal_or_reject (const struct SdpParam *sdp_param,
   if (remote_param)
     fs_codec_add_optional_parameter (negotiated_codec, remote_param->name,
         remote_param->value);
+  else if (local_param)
+    fs_codec_add_optional_parameter (negotiated_codec, local_param->name,
+        local_param->value);
 
   return TRUE;
 }
+
 
 /**
  * param_list_commas:

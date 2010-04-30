@@ -1843,6 +1843,94 @@ GST_START_TEST (test_rtpcodecs_nego_h263_1998)
 }
 GST_END_TEST;
 
+
+
+GST_START_TEST (test_rtpcodecs_nego_h263_2000)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_VIDEO);
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H263-2000",
+      FS_MEDIA_TYPE_VIDEO, 90000);
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity");
+
+  codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile", "3");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, NULL);
+
+  codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile", "0");
+  fs_codec_add_optional_parameter (codec, "level", "50");
+  outcodec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "profile", "0");
+  fs_codec_add_optional_parameter (outcodec, "level", "0");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_add_optional_parameter (prefcodec, "profile", "3");
+  fs_codec_add_optional_parameter (prefcodec, "level", "50");
+  fs_codec_add_optional_parameter (outprefcodec, "profile", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "level", "50");
+
+  codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, NULL);
+
+  codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile", "3");
+  fs_codec_add_optional_parameter (codec, "level", "30");
+  outcodec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "profile", "3");
+  fs_codec_add_optional_parameter (outcodec, "level", "30");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  fs_codec_remove_optional_parameter (prefcodec,
+      fs_codec_get_optional_parameter (prefcodec, "profile", NULL));
+  fs_codec_remove_optional_parameter (outprefcodec,
+      fs_codec_get_optional_parameter (outprefcodec, "profile", NULL));
+  fs_codec_remove_optional_parameter (prefcodec,
+      fs_codec_get_optional_parameter (prefcodec, "level", NULL));
+  fs_codec_remove_optional_parameter (outprefcodec,
+      fs_codec_get_optional_parameter (outprefcodec, "level", NULL));
+
+  codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "sqcif", "3");
+  fs_codec_add_optional_parameter (codec, "qcif", "3");
+  fs_codec_add_optional_parameter (codec, "cif", "3");
+  fs_codec_add_optional_parameter (codec, "cif4", "3");
+  fs_codec_add_optional_parameter (codec, "cif16", "3");
+  fs_codec_add_optional_parameter (codec, "custom", "3,3,4");
+  outcodec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "sqcif", "3");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "3");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -1910,6 +1998,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_h263_1998");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_h263_1998);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_h263_2000");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_h263_2000);
   suite_add_tcase (s, tc_chain);
 
   return s;
