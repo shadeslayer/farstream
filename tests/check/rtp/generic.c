@@ -45,10 +45,11 @@ default_sync_handler (GstBus *bus, GstMessage *message, gpointer data)
 }
 
 struct SimpleTestConference *
-setup_simple_conference (
+setup_simple_conference_full (
     gint id,
     gchar *conference_elem,
-    gchar *cname)
+    gchar *cname,
+    FsMediaType mediatype)
 {
   struct SimpleTestConference *dat = g_new0 (struct SimpleTestConference, 1);
   GError *error = NULL;
@@ -74,7 +75,7 @@ setup_simple_conference (
   g_object_set (dat->conference, "sdes-cname", cname, NULL);
 
   dat->session = fs_conference_new_session (FS_CONFERENCE (dat->conference),
-      FS_MEDIA_TYPE_AUDIO, &error);
+      mediatype, &error);
   if (error)
     fail ("Error while creating new session (%d): %s",
         error->code, error->message);
@@ -90,6 +91,16 @@ setup_simple_conference (
   return dat;
 }
 
+
+struct SimpleTestConference *
+setup_simple_conference (
+    gint id,
+    gchar *conference_elem,
+    gchar *cname)
+{
+  return setup_simple_conference_full (id, conference_elem, cname,
+      FS_MEDIA_TYPE_AUDIO);
+}
 
 struct SimpleTestStream *
 simple_conference_add_stream (

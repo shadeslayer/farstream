@@ -1170,9 +1170,10 @@ GST_END_TEST;
 
 static void
 setup_codec_tests (struct SimpleTestConference **dat,
-    FsParticipant **participant)
+    FsParticipant **participant, FsMediaType mediatype)
 {
-  *dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
+  *dat = setup_simple_conference_full (1, "fsrtpconference", "bob@127.0.0.1",
+      mediatype);
 
   *participant = fs_conference_new_participant (
       FS_CONFERENCE ((*dat)->conference), "name", NULL);
@@ -1230,7 +1231,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
   FsStream *stream;
   gboolean has_telephone_event_codec = FALSE;
 
-  setup_codec_tests (&dat, &participant);
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_AUDIO);
   stream = fs_session_new_stream (dat->session, participant,
       FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
   fail_if (stream == NULL, "Could not add stream to session");
@@ -1410,7 +1411,7 @@ GST_START_TEST (test_rtpcodecs_nego_ilbc)
   FsCodec *outprefcodec = NULL;
   FsParticipant *participant;
 
-  setup_codec_tests (&dat, &participant);
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_AUDIO);
 
   /* First we test with  mode=20 in the prefs */
 
@@ -1510,7 +1511,7 @@ GST_START_TEST (test_rtpcodecs_nego_g729)
   FsCodec *outprefcodec = NULL;
   FsParticipant *participant;
 
-  setup_codec_tests (&dat, &participant);
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_AUDIO);
 
 
   outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "G729", FS_MEDIA_TYPE_AUDIO,
@@ -1601,6 +1602,80 @@ GST_START_TEST (test_rtpcodecs_nego_g729)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpcodecs_nego_h261)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_VIDEO);
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H261", FS_MEDIA_TYPE_VIDEO,
+      90000);
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity");
+
+  codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "cif", "3");
+  fs_codec_add_optional_parameter (codec, "qcif", "2");
+  fs_codec_add_optional_parameter (codec, "d", "1");
+  outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "cif", "3");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "2");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_add_optional_parameter (prefcodec, "d", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "d", "1");
+
+  codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "cif", "3");
+  fs_codec_add_optional_parameter (codec, "qcif", "2");
+  fs_codec_add_optional_parameter (codec, "d", "1");
+  outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "cif", "3");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "2");
+  fs_codec_add_optional_parameter (outcodec, "d", "1");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  fs_codec_add_optional_parameter (prefcodec, "cif", "3");
+  fs_codec_add_optional_parameter (prefcodec, "qcif", "2");
+  fs_codec_add_optional_parameter (outprefcodec, "cif", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "qcif", "2");
+
+
+  codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "cif", "4");
+  fs_codec_add_optional_parameter (codec, "qcif", "1");
+  outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "cif", "4");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "2");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -1660,6 +1735,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_g729");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_g729);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_h261");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_h261);
   suite_add_tcase (s, tc_chain);
 
   return s;

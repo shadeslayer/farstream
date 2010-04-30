@@ -61,6 +61,13 @@ struct SimpleTestConference *setup_simple_conference (
     gchar *conference_elem,
     gchar *cname);
 
+struct SimpleTestConference *setup_simple_conference_full (
+    gint id,
+    gchar *conference_elem,
+    gchar *cname,
+    FsMediaType mediatype);
+
+
 struct SimpleTestStream *simple_conference_add_stream (
     struct SimpleTestConference *dat,
     struct SimpleTestConference *target,
