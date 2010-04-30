@@ -645,6 +645,20 @@ sdp_negotiate_codec_h263_2000 (
   const struct SdpNegoFunction *h263_1998_nf;
   GST_DEBUG ("Using H263-2000 negotiation function");
 
+  if (fs_codec_get_optional_parameter (remote_codec, "profile", NULL) &&
+      !fs_codec_get_optional_parameter (remote_codec, "level", NULL))
+  {
+    GST_WARNING ("Can not accept a profile without a level");
+    return NULL;
+  }
+
+  if (fs_codec_get_optional_parameter (local_codec, "profile", NULL) &&
+      !fs_codec_get_optional_parameter (local_codec, "level", NULL))
+  {
+    GST_WARNING ("Can not accept a profile without a level");
+    return NULL;
+  }
+
   if ((fs_codec_get_optional_parameter (remote_codec, "profile", NULL) ||
           fs_codec_get_optional_parameter (remote_codec, "level", NULL)) &&
       (fs_codec_get_optional_parameter (local_codec, "profile", NULL) ||
