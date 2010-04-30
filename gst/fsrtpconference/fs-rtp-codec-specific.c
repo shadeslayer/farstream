@@ -101,6 +101,10 @@ static gboolean param_maximum (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
     FsCodec *negotiated_codec);
+static gboolean param_both_maximum (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec);
 static gboolean param_equal_or_ignore (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
@@ -175,7 +179,7 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
   {FS_MEDIA_TYPE_VIDEO, "H261", sdp_negotiate_codec_default,
    {
      {"qcif", FS_PARAM_TYPE_SEND, param_maximum},
-     {"cif", FS_PARAM_TYPE_SEND, param_maximum},
+     {"cif", FS_PARAM_TYPE_SEND, param_both_maximum},
      {"d", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
      {NULL, 0, NULL}
    }
@@ -185,9 +189,9 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
    {
      {"sqcif", FS_PARAM_TYPE_SEND, param_maximum},
      {"qcif", FS_PARAM_TYPE_SEND, param_maximum},
-     {"cif", FS_PARAM_TYPE_SEND, param_maximum},
-     {"cif4", FS_PARAM_TYPE_SEND, param_maximum},
-     {"cif16", FS_PARAM_TYPE_SEND, param_maximum},
+     {"cif", FS_PARAM_TYPE_SEND, param_both_maximum},
+     {"cif4", FS_PARAM_TYPE_SEND, param_both_maximum},
+     {"cif16", FS_PARAM_TYPE_SEND, param_both_maximum},
      {"custom", FS_PARAM_TYPE_SEND, param_h263_1998_custom},
      {"f", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
      {"i", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
@@ -922,7 +926,7 @@ static gboolean
 param_min_max (const struct SdpParam *sdp_param,
     FsCodec *local_codec, FsCodecParameter *local_param,
     FsCodec *remote_codec, FsCodecParameter *remote_param,
-    FsCodec *negotiated_codec, gboolean min)
+    FsCodec *negotiated_codec, gboolean min, gboolean keep_single)
 {
   guint local_value = 0;
   gboolean local_valid = FALSE;
@@ -976,12 +980,12 @@ param_min_max (const struct SdpParam *sdp_param,
     fs_codec_add_optional_parameter (negotiated_codec, param_name, tmp);
     g_free (tmp);
   }
-  else if (remote_valid)
+  else if (remote_valid && keep_single)
   {
     fs_codec_add_optional_parameter (negotiated_codec, param_name,
         remote_param->value);
   }
-  else if (local_valid)
+  else if (local_valid && keep_single)
   {
     fs_codec_add_optional_parameter (negotiated_codec, param_name,
         local_param->value);
@@ -1057,7 +1061,7 @@ param_minimum (const struct SdpParam *sdp_param,
     FsCodec *negotiated_codec)
 {
   return param_min_max (sdp_param, local_codec, local_param, remote_codec,
-      remote_param, negotiated_codec, TRUE);
+      remote_param, negotiated_codec, TRUE, TRUE);
 }
 
 /**
@@ -1075,7 +1079,27 @@ param_maximum (const struct SdpParam *sdp_param,
     FsCodec *negotiated_codec)
 {
   return param_min_max (sdp_param, local_codec, local_param, remote_codec,
-      remote_param, negotiated_codec, FALSE);
+      remote_param, negotiated_codec, FALSE, TRUE);
+}
+
+/**
+ * param_both_maximum:
+ *
+ * Expects both parameters to have numerical values.
+ * If the type is known, verifies that is is valid. If it is, puts the
+ * maximum value in the result.
+ *
+ * Only gives a result if both sides have a value
+ */
+
+static gboolean
+param_both_maximum (const struct SdpParam *sdp_param,
+    FsCodec *local_codec, FsCodecParameter *local_param,
+    FsCodec *remote_codec, FsCodecParameter *remote_param,
+    FsCodec *negotiated_codec)
+{
+  return param_min_max (sdp_param, local_codec, local_param, remote_codec,
+      remote_param, negotiated_codec, FALSE, FALSE);
 }
 
 /**

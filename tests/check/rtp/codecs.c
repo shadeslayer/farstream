@@ -1633,7 +1633,6 @@ GST_START_TEST (test_rtpcodecs_nego_h261)
   fs_codec_add_optional_parameter (codec, "qcif", "2");
   fs_codec_add_optional_parameter (codec, "d", "1");
   outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
-  fs_codec_add_optional_parameter (outcodec, "cif", "3");
   fs_codec_add_optional_parameter (outcodec, "qcif", "2");
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
       codec, outcodec);
@@ -1646,7 +1645,6 @@ GST_START_TEST (test_rtpcodecs_nego_h261)
   fs_codec_add_optional_parameter (codec, "qcif", "2");
   fs_codec_add_optional_parameter (codec, "d", "1");
   outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
-  fs_codec_add_optional_parameter (outcodec, "cif", "3");
   fs_codec_add_optional_parameter (outcodec, "qcif", "2");
   fs_codec_add_optional_parameter (outcodec, "d", "1");
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
@@ -1657,6 +1655,13 @@ GST_START_TEST (test_rtpcodecs_nego_h261)
   fs_codec_add_optional_parameter (prefcodec, "qcif", "2");
   fs_codec_add_optional_parameter (outprefcodec, "cif", "3");
   fs_codec_add_optional_parameter (outprefcodec, "qcif", "2");
+
+
+  codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "qcif", "2");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
 
 
   codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
