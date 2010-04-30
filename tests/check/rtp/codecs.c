@@ -1501,6 +1501,106 @@ GST_START_TEST (test_rtpcodecs_nego_ilbc)
 GST_END_TEST;
 
 
+GST_START_TEST (test_rtpcodecs_nego_g729)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+
+  setup_codec_tests (&dat, &participant);
+
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "G729", FS_MEDIA_TYPE_AUDIO,
+      8000);
+
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "rtpg729depay ! identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity ! rtpg729pay");
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  /* Lets try adding other misc params */
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "p1", "v1");
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "p1", "v1");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_add_optional_parameter (prefcodec, "p2", "v2");
+  fs_codec_add_optional_parameter (outprefcodec, "p2", "v2");
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "p2", "v2");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "p2", "v2-2");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, NULL);
+
+  fs_codec_remove_optional_parameter (prefcodec,
+      fs_codec_get_optional_parameter (prefcodec, "p2", NULL));
+  fs_codec_remove_optional_parameter (outprefcodec,
+      fs_codec_get_optional_parameter (outprefcodec, "p2", NULL));
+
+  /* Now test annexb= */
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "annexb", "yes");
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "annexb", "no");
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "annexb", "no");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_add_optional_parameter (prefcodec, "annexb", "no");
+  fs_codec_add_optional_parameter (outprefcodec, "annexb", "no");
+
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "annexb", "no");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "annexb", "yes");
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "annexb", "no");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (codec, "annexb", "no");
+  outcodec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
+  fs_codec_add_optional_parameter (outcodec, "annexb", "no");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -1556,6 +1656,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_ilbc");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_ilbc);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_g729");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_g729);
   suite_add_tcase (s, tc_chain);
 
   return s;
