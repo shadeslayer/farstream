@@ -1681,6 +1681,168 @@ GST_START_TEST (test_rtpcodecs_nego_h261)
 GST_END_TEST;
 
 
+GST_START_TEST (test_rtpcodecs_nego_h263_1998)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_VIDEO);
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H263-1998",
+      FS_MEDIA_TYPE_VIDEO, 90000);
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity");
+
+  codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "sqcif", "3");
+  fs_codec_add_optional_parameter (codec, "qcif", "3");
+  fs_codec_add_optional_parameter (codec, "cif", "3");
+  fs_codec_add_optional_parameter (codec, "cif4", "3");
+  fs_codec_add_optional_parameter (codec, "cif16", "3");
+  fs_codec_add_optional_parameter (codec, "custom", "3,3,4");
+  outcodec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "sqcif", "3");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "3");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "cif16", "3");
+  fs_codec_add_optional_parameter (codec, "f", "1");
+  fs_codec_add_optional_parameter (codec, "i", "1");
+  fs_codec_add_optional_parameter (codec, "j", "1");
+  fs_codec_add_optional_parameter (codec, "k", "1");
+  fs_codec_add_optional_parameter (codec, "n", "1");
+  fs_codec_add_optional_parameter (codec, "p", "1,2,3");
+  fs_codec_add_optional_parameter (codec, "t", "1");
+  fs_codec_add_optional_parameter (codec, "bpp", "1");
+  fs_codec_add_optional_parameter (codec, "hrd", "1");
+  fs_codec_add_optional_parameter (codec, "interlace", "1");
+  fs_codec_add_optional_parameter (codec, "cpcf", "1,2,3,4,5,6,7,8");
+  fs_codec_add_optional_parameter (codec, "par", "1,2");
+  outcodec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "bpp", "1");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  fs_codec_add_optional_parameter (prefcodec, "sqcif", "3");
+  fs_codec_add_optional_parameter (prefcodec, "qcif", "3");
+  fs_codec_add_optional_parameter (prefcodec, "cif", "3");
+  fs_codec_add_optional_parameter (prefcodec, "cif4", "3");
+  fs_codec_add_optional_parameter (prefcodec, "cif16", "3");
+  fs_codec_add_optional_parameter (prefcodec, "custom", "3,3,4");
+  fs_codec_add_optional_parameter (outprefcodec, "sqcif", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "qcif", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "cif", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "cif4", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "cif16", "3");
+  fs_codec_add_optional_parameter (outprefcodec, "custom", "3,3,4");
+
+
+  codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "sqcif", "3");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "3");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "sqcif", "5");
+  fs_codec_add_optional_parameter (codec, "qcif", "5");
+  fs_codec_add_optional_parameter (codec, "cif4", "5");
+  fs_codec_add_optional_parameter (codec, "cif16", "2");
+  fs_codec_add_optional_parameter (codec, "custom", "3,3,5");
+  outcodec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "sqcif", "5");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "5");
+  fs_codec_add_optional_parameter (outcodec, "cif4", "5");
+  fs_codec_add_optional_parameter (outcodec, "cif16", "3");
+  fs_codec_add_optional_parameter (outcodec, "custom", "3,3,5");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_add_optional_parameter (prefcodec, "f", "1");
+  fs_codec_add_optional_parameter (prefcodec, "i", "1");
+  fs_codec_add_optional_parameter (prefcodec, "j", "1");
+  fs_codec_add_optional_parameter (prefcodec, "k", "1");
+  fs_codec_add_optional_parameter (prefcodec, "n", "1");
+  fs_codec_add_optional_parameter (prefcodec, "p", "1,2,3");
+  fs_codec_add_optional_parameter (prefcodec, "t", "1");
+  fs_codec_add_optional_parameter (prefcodec, "bpp", "1");
+  fs_codec_add_optional_parameter (prefcodec, "hrd", "1");
+  fs_codec_add_optional_parameter (prefcodec, "interlace", "1");
+  fs_codec_add_optional_parameter (prefcodec, "cpcf", "1,2,3,4,5,6,7,8");
+  fs_codec_add_optional_parameter (prefcodec, "par", "1,2");
+
+  fs_codec_add_optional_parameter (outprefcodec, "f", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "i", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "j", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "k", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "n", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "p", "1,2,3");
+  fs_codec_add_optional_parameter (outprefcodec, "t", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "bpp", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "hrd", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "interlace", "1");
+  fs_codec_add_optional_parameter (outprefcodec, "cpcf", "1,2,3,4,5,6,7,8");
+  fs_codec_add_optional_parameter (outprefcodec, "par", "1,2");
+
+
+  codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "cif16", "4");
+  fs_codec_add_optional_parameter (codec, "cif", "5");
+  fs_codec_add_optional_parameter (codec, "f", "1");
+  fs_codec_add_optional_parameter (codec, "i", "1");
+  fs_codec_add_optional_parameter (codec, "j", "1");
+  fs_codec_add_optional_parameter (codec, "k", "1");
+  fs_codec_add_optional_parameter (codec, "n", "1");
+  fs_codec_add_optional_parameter (codec, "p", "1,2,3");
+  fs_codec_add_optional_parameter (codec, "t", "1");
+  fs_codec_add_optional_parameter (codec, "bpp", "1");
+  fs_codec_add_optional_parameter (codec, "hrd", "1");
+  fs_codec_add_optional_parameter (codec, "interlace", "1");
+  fs_codec_add_optional_parameter (codec, "cpcf", "1,2,13,14,15,16,17,18");
+  fs_codec_add_optional_parameter (codec, "par", "1,2");
+  outcodec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "cif16", "4");
+  fs_codec_add_optional_parameter (outcodec, "cif", "5");
+  fs_codec_add_optional_parameter (outcodec, "f", "1");
+  fs_codec_add_optional_parameter (outcodec, "i", "1");
+  fs_codec_add_optional_parameter (outcodec, "j", "1");
+  fs_codec_add_optional_parameter (outcodec, "k", "1");
+  fs_codec_add_optional_parameter (outcodec, "n", "1");
+  fs_codec_add_optional_parameter (outcodec, "p", "1,2,3");
+  fs_codec_add_optional_parameter (outcodec, "t", "1");
+  fs_codec_add_optional_parameter (outcodec, "bpp", "1");
+  fs_codec_add_optional_parameter (outcodec, "hrd", "1");
+  fs_codec_add_optional_parameter (outcodec, "interlace", "1");
+  fs_codec_add_optional_parameter (outcodec, "cpcf", "1,2,13,14,15,16,17,18");
+  fs_codec_add_optional_parameter (outcodec, "par", "1,2");
+  fs_codec_add_optional_parameter (outcodec, "sqcif", "3");
+  fs_codec_add_optional_parameter (outcodec, "qcif", "3");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -1744,6 +1906,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_h261");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_h261);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_h263_1998");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_h263_1998);
   suite_add_tcase (s, tc_chain);
 
   return s;
