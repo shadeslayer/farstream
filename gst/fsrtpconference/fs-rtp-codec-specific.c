@@ -1464,8 +1464,8 @@ param_h264_profile_level_id (const struct SdpParam *sdp_param,
   if (local_value == 0 && errno == EINVAL)
     return TRUE;
 
-  remote_profile_idc = 0xFF & remote_value;
-  local_profile_idc = 0xFF & local_value;
+  remote_profile_idc = 0xFF & (remote_value>>16);
+  local_profile_idc = 0xFF & (local_value>>16);
 
   if (remote_profile_idc != local_profile_idc)
     return TRUE;
@@ -1474,8 +1474,8 @@ param_h264_profile_level_id (const struct SdpParam *sdp_param,
   local_profile_iop = 0xFF & (local_value>>8);
   nego_profile_iop = remote_profile_iop | local_profile_iop;
 
-  remote_level_idc = 0xFF & (remote_value>>8);
-  local_level_idc = 0xFF & (local_value>>8);
+  remote_level_idc = 0xFF & remote_value;
+  local_level_idc = 0xFF & local_value;
   nego_level_idc = MIN (remote_level_idc, local_level_idc);
 
   snprintf (buf, 7, "%02hhX%02hhX%02hhX", local_profile_idc, nego_profile_iop,
