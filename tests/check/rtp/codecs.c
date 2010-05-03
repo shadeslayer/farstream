@@ -1930,6 +1930,106 @@ GST_START_TEST (test_rtpcodecs_nego_h263_2000)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_rtpcodecs_nego_h264)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_VIDEO);
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H264",
+      FS_MEDIA_TYPE_VIDEO, 90000);
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity");
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile-level-id",
+      "42A01E");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "deint-buf-cap", "2");
+  fs_codec_add_optional_parameter (codec, "max-rcmd-nalu-size", "2");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "deint-buf-cap", "2");
+  fs_codec_add_optional_parameter (outcodec, "max-rcmd-nalu-size", "2");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_add_optional_parameter (prefcodec, "profile-level-id", "42E015");
+  fs_codec_add_optional_parameter (outprefcodec, "profile-level-id", "42E015");
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile-level-id", "42E015");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "profile-level-id", "42E015");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile-level-id", "42E010");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "profile-level-id", "42E010");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile-level-id", "43E010");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile-level-id", "420014");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "profile-level-id", "42E014");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (codec, "profile-level-id", "42E015");
+  fs_codec_add_optional_parameter (codec, "max-mbps", "1234");
+  fs_codec_add_optional_parameter (codec, "max-fs", "1234");
+  fs_codec_add_optional_parameter (codec, "max-cpb", "!234");
+  fs_codec_add_optional_parameter (codec, "max-dpb", "1234");
+  fs_codec_add_optional_parameter (codec, "max-br", "1234");
+  fs_codec_add_optional_parameter (codec, "sprop-parameter-sets", "12dsakd");
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_optional_parameter (outcodec, "profile-level-id", "42E015");
+  fs_codec_add_optional_parameter (outcodec, "max-mbps", "1234");
+  fs_codec_add_optional_parameter (outcodec, "max-fs", "1234");
+  fs_codec_add_optional_parameter (outcodec, "max-cpb", "!234");
+  fs_codec_add_optional_parameter (outcodec, "max-dpb", "1234");
+  fs_codec_add_optional_parameter (outcodec, "max-br", "1234");
+  fs_codec_add_optional_parameter (outcodec, "profile-level-id", "42E015");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
 
 static Suite *
 fsrtpcodecs_suite (void)
@@ -2002,6 +2102,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_h263_2000");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_h263_2000);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_h264");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_h264);
   suite_add_tcase (s, tc_chain);
 
   return s;
