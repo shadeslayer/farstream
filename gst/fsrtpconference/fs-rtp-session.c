@@ -2619,7 +2619,7 @@ validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
   GList *listitem = NULL;
   gboolean retval = FALSE;
 
-  caps = gst_pad_get_caps (pad);
+  caps = gst_pad_get_caps_reffed (pad);
 
   if (gst_caps_is_empty (caps))
   {
@@ -2906,7 +2906,7 @@ link_main_pad (gpointer item, GValue *ret, gpointer user_data)
   GstCaps *caps;
   GstPad *other_pad;
 
-  caps = gst_pad_get_caps (pad);
+  caps = gst_pad_get_caps_reffed (pad);
 
   if (!gst_caps_can_intersect (caps, data->caps))
   {
@@ -2964,7 +2964,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
     return TRUE;
   }
 
-  caps = gst_pad_get_caps (pad);
+  caps = gst_pad_get_caps_reffed (pad);
 
   if (gst_caps_is_empty (caps))
   {

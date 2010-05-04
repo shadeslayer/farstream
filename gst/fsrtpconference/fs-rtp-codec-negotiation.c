@@ -130,7 +130,7 @@ find_matching_pad (gconstpointer a, gconstpointer b)
   GstCaps *padcaps = NULL;
   gint ret = 1;
 
-  padcaps = gst_pad_get_caps (pad);
+  padcaps = gst_pad_get_caps_reffed (pad);
 
   if (gst_caps_can_intersect (caps, padcaps))
     ret = 0;

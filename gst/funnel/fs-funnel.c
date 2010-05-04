@@ -193,7 +193,7 @@ fs_funnel_getcaps (GstPad * pad)
   FsFunnel *funnel = FS_FUNNEL (gst_pad_get_parent (pad));
   GstCaps *caps;
 
-  caps = gst_pad_peer_get_caps (funnel->srcpad);
+  caps = gst_pad_peer_get_caps_reffed (funnel->srcpad);
   if (caps == NULL)
     caps = gst_caps_copy (gst_pad_get_pad_template_caps (pad));
 
