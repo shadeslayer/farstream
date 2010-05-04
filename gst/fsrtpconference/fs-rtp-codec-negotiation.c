@@ -128,16 +128,13 @@ find_matching_pad (gconstpointer a, gconstpointer b)
   GstPad *pad = GST_PAD (a);
   GstCaps *caps = GST_CAPS (b);
   GstCaps *padcaps = NULL;
-  GstCaps *intersect = NULL;
   gint ret = 1;
 
   padcaps = gst_pad_get_caps (pad);
-  intersect = gst_caps_intersect (caps, padcaps);
 
-  if (intersect && !gst_caps_is_empty (intersect))
+  if (gst_caps_can_intersect (caps, padcaps))
     ret = 0;
 
-  gst_caps_unref (intersect);
   gst_caps_unref (padcaps);
   gst_object_unref (pad);
 
@@ -375,17 +372,8 @@ _find_matching_blueprint (FsCodec *codec, GList *blueprints)
   for (item = g_list_first (blueprints); item; item = g_list_next (item))
   {
     CodecBlueprint *bp = item->data;
-    GstCaps *intersectedcaps = NULL;
-    gboolean ok = FALSE;
 
-    intersectedcaps = gst_caps_intersect (caps, bp->rtp_caps);
-
-    if (!gst_caps_is_empty (intersectedcaps))
-      ok = TRUE;
-
-    gst_caps_unref (intersectedcaps);
-
-    if (ok)
+    if (gst_caps_can_intersect (caps, bp->rtp_caps))
       break;
   }
 
@@ -424,7 +412,6 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
   for (item = g_list_first (codec_prefs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
-    GstCaps *intersectedcaps = NULL;
     GstCaps *caps = NULL;
     gboolean ok = FALSE;
 
@@ -436,12 +423,9 @@ _is_disabled (GList *codec_prefs, CodecBlueprint *bp)
     if (!caps)
       continue;
 
-    intersectedcaps = gst_caps_intersect (caps, bp->rtp_caps);
-
-    if (!gst_caps_is_empty (intersectedcaps))
+    if (gst_caps_can_intersect (caps, bp->rtp_caps))
       ok = TRUE;
 
-    gst_caps_unref (intersectedcaps);
     gst_caps_unref (caps);
 
     if (ok)

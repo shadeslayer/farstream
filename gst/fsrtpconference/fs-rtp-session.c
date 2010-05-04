@@ -2617,6 +2617,7 @@ validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
   GList *codecs = user_data;
   GstCaps *caps;
   GList *listitem = NULL;
+  gboolean retval = FALSE;
 
   caps = gst_pad_get_caps (pad);
 
@@ -2630,27 +2631,26 @@ validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
   {
     FsCodec *codec = listitem->data;
     GstCaps *tmpcaps = fs_codec_to_gst_caps (codec);
-    GstCaps *intersect = gst_caps_intersect (tmpcaps, caps);
-    gst_caps_unref (tmpcaps);
 
-    if (!gst_caps_is_empty (intersect))
+    if (gst_caps_can_intersect (tmpcaps, caps))
     {
       GST_LOG_OBJECT (pad, "Pad matches " FS_CODEC_FORMAT,
           FS_CODEC_ARGS (codec));
-      gst_object_unref (pad);
-      gst_caps_unref (caps);
-      gst_caps_unref (intersect);
-      return TRUE;
+      retval = TRUE;
     }
-    gst_caps_unref (intersect);
+    gst_caps_unref (tmpcaps);
+
+    if (retval)
+      break;
   }
 
  error:
 
   gst_object_unref (pad);
   gst_caps_unref (caps);
-  g_value_set_boolean (ret, FALSE);
-  return FALSE;
+  if (!retval)
+    g_value_set_boolean (ret, FALSE);
+  return retval;
 }
 
 
@@ -2903,20 +2903,18 @@ link_main_pad (gpointer item, GValue *ret, gpointer user_data)
 {
   GstPad *pad = item;
   struct link_data *data = user_data;
-  GstCaps *caps, *intersect;
+  GstCaps *caps;
   GstPad *other_pad;
 
   caps = gst_pad_get_caps (pad);
-  intersect = gst_caps_intersect (caps, data->caps);
-  gst_caps_unref (caps);
 
-  if (gst_caps_is_empty (intersect))
+  if (!gst_caps_can_intersect (caps, data->caps))
   {
-    gst_caps_unref (intersect);
+    gst_caps_unref (caps);
     gst_object_unref (pad);
     return TRUE;
   }
-  gst_caps_unref (intersect);
+  gst_caps_unref (caps);
 
   other_pad = gst_element_get_static_pad (data->session->priv->send_capsfilter,
       "sink");
@@ -2977,20 +2975,17 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   for (listitem = data->all_codecs; listitem; listitem = g_list_next (listitem))
   {
     FsCodec *codec = listitem->data;
-    GstCaps *intersect;
 
     filter_caps = fs_codec_to_gst_caps_with_ptime (codec);
-    intersect = gst_caps_intersect (filter_caps, caps);
 
-    if (!gst_caps_is_empty (intersect))
+    if (gst_caps_can_intersect (filter_caps, caps))
     {
       GST_LOG_OBJECT (pad, "Pad matches " FS_CODEC_FORMAT,
           FS_CODEC_ARGS (codec));
-      gst_caps_unref (intersect);
       break;
     }
+
     gst_caps_unref (filter_caps);
-    gst_caps_unref (intersect);
   }
 
   gst_caps_unref (caps);
