@@ -67,12 +67,6 @@ SERVER=2
 
 TRANSMITTER="nice"
 
-mycname = "".join((pwd.getpwuid(os.getuid())[0],
-                   "-" ,
-                   str(os.getpid()),
-                   "@",
-                   socket.gethostname()))
-
 builderprefix = os.path.join(os.path.dirname(__file__),"fs2-gui-")
 
 
@@ -113,8 +107,7 @@ class FsUIPipeline:
         self.pipeline.get_bus().set_sync_handler(self.sync_handler)
         self.pipeline.get_bus().add_watch(self.async_handler)
         self.conf = gst.element_factory_make(elementname)
-        # Sets lets our own cname
-        self.conf.set_property("sdes-cname", mycname)
+
         self.pipeline.add(self.conf)
         if VIDEO:
             self.videosource = FsUIVideoSource(self.pipeline)
@@ -583,10 +576,9 @@ class FsUIStream:
 class FsUIParticipant:
     "Wraps one FsParticipant, is one user remote contact"
     
-    def __init__(self, connect, id, cname, pipeline, mainui):
+    def __init__(self, connect, id, pipeline, mainui):
         self.connect = connect
         self.id = id
-        self.cname = cname
         self.pipeline = pipeline
         self.mainui = mainui
         self.fsparticipant = pipeline.conf.new_participant()
@@ -623,7 +615,7 @@ class FsUIParticipant:
         self.builder = gtk.Builder()
         self.builder.add_from_file(builderprefix + "user-frame.ui")
         self.userframe = self.builder.get_object("user_frame")
-        self.builder.get_object("frame_label").set_text(self.cname)
+        #self.builder.get_object("frame_label").set_text(self.cname)
         self.builder.connect_signals(self)
         self.label = gtk.Label()
         self.label.set_alignment(0,0)
@@ -770,16 +762,16 @@ class FsMainUI:
         self.reset_video_codecs()
 
         if mode == CLIENT:
-            self.client = FsUIClient(ip, port, mycname, FsUIParticipant,
+            self.client = FsUIClient(ip, port, FsUIParticipant,
                                      self.pipeline, self)
             self.builder.get_object("info_label").set_markup(
-                "<b>%s</b>\nConnected to %s:%s" % (mycname, ip, port))
+                "Connected to %s:%s" % (ip, port))
         elif mode == SERVER:
-            self.server = FsUIListener(port, FsUIServer, mycname,
-                                       FsUIParticipant, self.pipeline, self)
+            self.server = FsUIListener(port, FsUIServer, FsUIParticipant,
+                                       self.pipeline, self)
             self.builder.get_object("info_label").set_markup(
-                "<b>%s</b>\nExpecting connections on port %s" %
-                (mycname, self.server.port))
+                "Expecting connections on port %s" %
+                (self.server.port))
 
         
         self.mainwindow.show()
