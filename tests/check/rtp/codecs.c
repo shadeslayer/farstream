@@ -1146,12 +1146,12 @@ GST_START_TEST (test_rtpcodecs_ptime)
       const GValue *val;
       val = gst_structure_get_value (s, "codec");
       codec = g_value_get_boxed (val);
-      fail_unless (
-          fs_codec_get_optional_parameter (codec, "ptime", "30") != NULL);
-      fail_unless (
-          fs_codec_get_optional_parameter (codec, "maxptime", "40") != NULL);
-      gst_message_unref (message);
-      break;
+      if (fs_codec_get_optional_parameter (codec, "ptime", "30") &&
+          fs_codec_get_optional_parameter (codec, "maxptime", "40"))
+      {
+        gst_message_unref (message);
+        break;
+      }
     }
     gst_message_unref (message);
   }
