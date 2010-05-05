@@ -55,6 +55,7 @@ setup_simple_conference_full (
   GError *error = NULL;
   guint tos;
   GstBus *bus;
+  GstStructure *s;
 
   dat->id = id;
   dat->cname = g_strdup (cname);
@@ -72,7 +73,10 @@ setup_simple_conference_full (
   fail_unless (gst_bin_add (GST_BIN (dat->pipeline), dat->conference),
       "Could not add conference to the pipeline");
 
-  g_object_set (dat->conference, "sdes-cname", cname, NULL);
+  g_object_get (dat->conference, "sdes", &s, NULL);
+  gst_structure_set (s, "cname", G_TYPE_STRING, cname, NULL);
+  g_object_set (dat->conference, "sdes", s, NULL);
+  gst_structure_free (s);
 
   dat->session = fs_conference_new_session (FS_CONFERENCE (dat->conference),
       mediatype, &error);

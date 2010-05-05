@@ -73,13 +73,16 @@ GST_START_TEST (test_rtpconference_new)
   FsSession *sess = NULL;
   FsParticipant *part = NULL;
   FsStreamDirection dir;
+  GstStructure *s;
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
   st = simple_conference_add_stream (dat, dat, "rawudp", 0, NULL);
 
-  g_object_get (dat->conference, "sdes-cname", &str, NULL);
-  ts_fail_unless (!strcmp (str, "bob@127.0.0.1"), "Conference CNAME is wrong");
-  g_free (str);
+  g_object_get (dat->conference, "sdes", &s, NULL);
+  ts_fail_unless (gst_structure_get_string (s, "cname") &&
+      !strcmp (gst_structure_get_string (s, "cname"),
+          "bob@127.0.0.1"), "Conference CNAME is wrong");
+  gst_structure_free (s);
 
   g_object_get (st->participant, "cname", &str, NULL);
   ts_fail_unless (str == NULL);

@@ -31,7 +31,7 @@
  * to your pipeline before anything else is done. Then you create the session,
  * participants and streams according to the #FsConference interface.
  *
- * The various sdes-* properties allow you to set the content of the SDES packet
+ * The various sdes property allow you to set the content of the SDES packet
  * in the sent RTCP reports.
  */
 
@@ -65,14 +65,7 @@ enum
 enum
 {
   PROP_0,
-  PROP_SDES_CNAME,
-  PROP_SDES_NAME,
-  PROP_SDES_EMAIL,
-  PROP_SDES_PHONE,
-  PROP_SDES_LOCATION,
-  PROP_SDES_TOOL,
-  PROP_SDES_NOTE,
-
+  PROP_SDES,
 };
 
 
@@ -260,40 +253,10 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
   gobject_class->get_property =
     GST_DEBUG_FUNCPTR (fs_rtp_conference_get_property);
 
-  g_object_class_install_property (gobject_class, PROP_SDES_CNAME,
-      g_param_spec_string ("sdes-cname", "Canonical name",
-          "The CNAME for the RTP sessions",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_SDES_NAME,
-      g_param_spec_string ("sdes-name", "SDES NAME",
-          "The NAME to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_SDES_EMAIL,
-      g_param_spec_string ("sdes-email", "SDES EMAIL",
-          "The EMAIL to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_SDES_PHONE,
-      g_param_spec_string ("sdes-phone", "SDES PHONE",
-          "The PHONE to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_SDES_LOCATION,
-      g_param_spec_string ("sdes-location", "SDES LOCATION",
-          "The LOCATION to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_SDES_TOOL,
-      g_param_spec_string ("sdes-tool", "SDES TOOL",
-          "The TOOL to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_SDES_NOTE,
-      g_param_spec_string ("sdes-note", "SDES NOTE",
-          "The NOTE to put in SDES messages of this session",
-          NULL, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_install_property (gobject_class, PROP_SDES,
+      g_param_spec_boxed ("sdes", "SDES Items for this conference",
+          "SDES items to use for sessions in this conference",
+          GST_TYPE_STRUCTURE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -356,18 +319,6 @@ fs_rtp_conference_init (FsRtpConference *conf,
 }
 
 static void
-rtpbin_get_sdes (FsRtpConference *self, const gchar *prop, GValue *val)
-{
-  GstStructure *s;
-  const GValue *sval;
-  g_object_get (self->gstrtpbin, "sdes", &s, NULL);
-  sval = gst_structure_get_value (s, prop);
-  if (sval)
-    g_value_copy (gst_structure_get_value (s, prop), val);
-  gst_structure_free (s);
-}
-
-static void
 fs_rtp_conference_get_property (GObject *object,
     guint prop_id,
     GValue *value,
@@ -380,41 +331,13 @@ fs_rtp_conference_get_property (GObject *object,
 
   switch (prop_id)
   {
-    case PROP_SDES_CNAME:
-      rtpbin_get_sdes (self, "cname", value);
-      break;
-    case PROP_SDES_NAME:
-      rtpbin_get_sdes (self, "name", value);
-      break;
-    case PROP_SDES_EMAIL:
-      rtpbin_get_sdes (self, "email", value);
-      break;
-    case PROP_SDES_PHONE:
-      rtpbin_get_sdes (self, "phone", value);
-      break;
-    case PROP_SDES_LOCATION:
-      rtpbin_get_sdes (self, "location", value);
-      break;
-    case PROP_SDES_TOOL:
-      rtpbin_get_sdes (self, "tool", value);
-      break;
-    case PROP_SDES_NOTE:
-      rtpbin_get_sdes (self, "note", value);
+    case PROP_SDES:
+      g_object_get_property (G_OBJECT (self->gstrtpbin), "sdes", value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
-}
-
-static void
-rtpbin_set_sdes (FsRtpConference *self, const gchar *prop, const GValue *val)
-{
-  GstStructure *s;
-  g_object_get (self->gstrtpbin, "sdes", &s, NULL);
-  gst_structure_set_value (s, prop, val);
-  g_object_set (self->gstrtpbin, "sdes", s, NULL);
-  gst_structure_free (s);
 }
 
 static void
@@ -430,26 +353,8 @@ fs_rtp_conference_set_property (GObject *object,
 
   switch (prop_id)
   {
-    case PROP_SDES_CNAME:
-      rtpbin_set_sdes (self, "cname", value);
-      break;
-    case PROP_SDES_NAME:
-      rtpbin_set_sdes (self, "name", value);
-      break;
-    case PROP_SDES_EMAIL:
-      rtpbin_set_sdes (self, "email", value);
-      break;
-    case PROP_SDES_PHONE:
-      rtpbin_set_sdes (self, "phone", value);
-      break;
-    case PROP_SDES_LOCATION:
-      rtpbin_set_sdes (self, "location", value);
-      break;
-    case PROP_SDES_TOOL:
-      rtpbin_set_sdes (self, "tool", value);
-      break;
-    case PROP_SDES_NOTE:
-      rtpbin_set_sdes (self, "note", value);
+    case PROP_SDES:
+      g_object_set_property (G_OBJECT (self->gstrtpbin), "sdes", value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
