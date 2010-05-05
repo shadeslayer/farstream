@@ -1137,28 +1137,6 @@ GST_START_TEST (test_rtpcodecs_ptime)
   fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
   fail_unless (error == NULL);
 
-  while ((message = gst_bus_poll (bus, GST_MESSAGE_ELEMENT, 3 * GST_SECOND)))
-  {
-    const GstStructure *s = gst_message_get_structure (message);
-
-    if (gst_structure_has_name (s, "farsight-send-codec-changed"))
-    {
-      const GValue *val;
-      val = gst_structure_get_value (s, "codec");
-      codec = g_value_get_boxed (val);
-      if (fs_codec_get_optional_parameter (codec, "ptime", "30") &&
-          fs_codec_get_optional_parameter (codec, "maxptime", "40"))
-      {
-        gst_message_unref (message);
-        break;
-      }
-    }
-    gst_message_unref (message);
-  }
-
-
-  gst_object_unref (bus);
-
   fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) !=
       GST_STATE_CHANGE_SUCCESS);
 
