@@ -940,36 +940,3 @@ fs_rtp_conference_is_internal_thread (FsRtpConference *self)
 
   return ret;
 }
-
-GList *
-codecs_copy_with_new_ptime (GList *codecs)
-{
-  GList *copy = fs_codec_list_copy (codecs);
-  GList *item;
-
-  for (item = copy; item ; item = g_list_next (item))
-  {
-    FsCodec *codec = item->data;
-
-    if (codec->ABI.ABI.ptime &&
-        !fs_codec_get_optional_parameter (codec, "ptime", NULL))
-    {
-      gchar *tmp = g_strdup_printf ("%u", codec->ABI.ABI.ptime);
-      fs_codec_add_optional_parameter (codec, "ptime", tmp);
-      g_free (tmp);
-    }
-
-    if (codec->ABI.ABI.maxptime &&
-        !fs_codec_get_optional_parameter (codec, "maxptime", NULL))
-    {
-      gchar *tmp = g_strdup_printf ("%u", codec->ABI.ABI.maxptime);
-      fs_codec_add_optional_parameter (codec, "maxptime", tmp);
-      g_free (tmp);
-    }
-
-    codec->ABI.ABI.ptime = 0;
-    codec->ABI.ABI.maxptime = 0;
-  }
-
-  return copy;
-}

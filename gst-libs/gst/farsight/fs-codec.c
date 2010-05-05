@@ -182,8 +182,6 @@ fs_codec_copy (const FsCodec * codec)
       codec->clock_rate);
 
   copy->channels = codec->channels;
-  copy->ABI.ABI.maxptime = codec->ABI.ABI.maxptime;
-  copy->ABI.ABI.ptime = codec->ABI.ABI.ptime;
   copy->ABI.ABI.minimum_reporting_interval =
       codec->ABI.ABI.minimum_reporting_interval;
 
@@ -410,21 +408,6 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
           codec->channels = 0;
           goto keyerror;
         }
-
-      } else if (!g_ascii_strcasecmp ("maxptime", keys[j])) {
-        codec->ABI.ABI.maxptime = g_key_file_get_integer (keyfile, groups[i],
-            keys[j], &gerror);
-        if (gerror) {
-          codec->ABI.ABI.maxptime = 0;
-          goto keyerror;
-        }
-      } else if (!g_ascii_strcasecmp ("ptime", keys[j])) {
-        codec->ABI.ABI.ptime = g_key_file_get_integer (keyfile, groups[i],
-            keys[j], &gerror);
-        if (gerror) {
-          codec->ABI.ABI.ptime = 0;
-          goto keyerror;
-        }
       } else if (!g_ascii_strcasecmp ("trr-int", keys[j])) {
         codec->ABI.ABI.minimum_reporting_interval =
             g_key_file_get_integer (keyfile, groups[i], keys[j], &gerror);
@@ -541,12 +524,6 @@ fs_codec_to_string (const FsCodec *codec)
       codec->id, fs_media_type_to_string (codec->media_type),
       codec->encoding_name, codec->clock_rate, codec->channels);
 
-  if (codec->ABI.ABI.maxptime)
-    g_string_append_printf (string, " maxptime=%u", codec->ABI.ABI.maxptime);
-
-  if (codec->ABI.ABI.ptime)
-    g_string_append_printf (string, " ptime=%u", codec->ABI.ABI.ptime);
-
   if (codec->ABI.ABI.minimum_reporting_interval != G_MAXUINT)
     g_string_append_printf (string, " trr-int=%u",
         codec->ABI.ABI.minimum_reporting_interval);
@@ -657,8 +634,6 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
       codec1->media_type != codec2->media_type ||
       codec1->clock_rate != codec2->clock_rate ||
       codec1->channels != codec2->channels ||
-      codec1->ABI.ABI.maxptime != codec2->ABI.ABI.maxptime ||
-      codec1->ABI.ABI.ptime != codec2->ABI.ABI.ptime ||
       codec1->ABI.ABI.minimum_reporting_interval !=
       codec2->ABI.ABI.minimum_reporting_interval ||
       codec1->encoding_name == NULL ||

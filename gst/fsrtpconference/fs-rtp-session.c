@@ -2012,7 +2012,7 @@ fs_rtp_session_set_codec_preferences (FsSession *session,
   if (fs_rtp_session_has_disposed_enter (self, error))
     return FALSE;
 
-  new_codec_prefs = codecs_copy_with_new_ptime (codec_preferences);
+  new_codec_prefs = fs_codec_list_copy (codec_preferences);
 
   new_codec_prefs =
     validate_codecs_configuration (

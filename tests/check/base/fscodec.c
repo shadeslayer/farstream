@@ -100,9 +100,6 @@ init_codec_with_three_params (void)
   fs_codec_add_feedback_parameter (codec, "aa2", "bb2", "cc2");
   fs_codec_add_feedback_parameter (codec, "aa3", "bb3", "cc3");
 
-  codec->ABI.ABI.ptime = 12;
-  codec->ABI.ABI.maxptime = 12;
-
   return codec;
 }
 
@@ -285,8 +282,6 @@ GST_START_TEST (test_fscodec_keyfile)
 
   codec = fs_codec_new (123, "TEST2", FS_MEDIA_TYPE_VIDEO, 8002);
   codec->channels = 6;
-  codec->ABI.ABI.maxptime = 12;
-  codec->ABI.ABI.ptime = 13;
   fs_codec_add_optional_parameter (codec, "test5", "test6");
   comparison = g_list_append (comparison, codec);
 
