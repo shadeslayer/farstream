@@ -362,8 +362,10 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
  *
  * This function removes any special source that are not compatible with the
  * currently selected send codec.
+ *
+ * Returns: %TRUE if a source was removed
  */
-void
+gboolean
 fs_rtp_special_sources_remove (
     GList **extra_sources,
     GList **negotiated_codec_associations,
@@ -371,6 +373,7 @@ fs_rtp_special_sources_remove (
     FsCodec *send_codec)
 {
   GList *klass_item = NULL;
+  gboolean changed = FALSE;
 
   fs_rtp_special_sources_init ();
 
@@ -403,6 +406,7 @@ fs_rtp_special_sources_remove (
       if (!telephony_codec || !fs_codec_are_equal (telephony_codec, obj->codec))
       {
         *extra_sources = g_list_remove (*extra_sources, obj);
+        changed = TRUE;
         g_mutex_unlock (mutex);
         g_object_unref (obj);
         goto restart;
@@ -411,6 +415,8 @@ fs_rtp_special_sources_remove (
 
     g_mutex_unlock (mutex);
   }
+
+  return changed;
 }
 
 static gboolean
@@ -434,8 +440,10 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
  * @rtpmuxer: The rtpmux element
  *
  * This function add special sources that don't already exist but are needed
+ *
+ * Returns: %TRUE if at least one source was added
  */
-void
+gboolean
 fs_rtp_special_sources_create (
     GList **extra_sources,
     GList **negotiated_codec_associations,
@@ -445,6 +453,7 @@ fs_rtp_special_sources_create (
     GstElement *rtpmuxer)
 {
   GList *klass_item = NULL;
+  gboolean changed = FALSE;
 
   fs_rtp_special_sources_init ();
 
@@ -478,7 +487,7 @@ fs_rtp_special_sources_create (
       if (!obj)
       {
         GST_WARNING ("Failed to make new special source");
-        return;
+        return changed;
       }
 
       g_mutex_lock (mutex);
@@ -499,11 +508,14 @@ fs_rtp_special_sources_create (
       {
         *extra_sources = g_list_insert_sorted (*extra_sources,
             obj, _source_order_compare_func);
+        changed = TRUE;
       }
     }
   }
 
   g_mutex_unlock (mutex);
+
+  return changed;
 }
 
 static FsRtpSpecialSource *

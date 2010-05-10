@@ -3376,6 +3376,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
   FsRtpSession *self = FS_RTP_SESSION (user_data);
   CodecAssociation *ca = NULL;
   GError *error = NULL;
+  gboolean changed = FALSE;
 
   if (fs_rtp_session_has_disposed_enter (self, NULL))
   {
@@ -3406,7 +3407,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
      * about it.
      */
 
-    fs_rtp_special_sources_remove (
+    changed |= fs_rtp_special_sources_remove (
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
@@ -3441,9 +3442,11 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         "Could not build a new send codec bin", error->message);
   }
 
+  changed = TRUE;
+
  skip_main_codec:
 
-  fs_rtp_special_sources_create (
+  changed |= fs_rtp_special_sources_create (
       &self->priv->extra_sources,
       &self->priv->codec_associations,
       FS_RTP_SESSION_GET_LOCK (self),
@@ -3451,7 +3454,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
 
-  if (!error)
+  if (changed && !error)
   {
     g_object_notify (G_OBJECT (self), "current-send-codec");
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
