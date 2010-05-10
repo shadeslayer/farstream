@@ -244,6 +244,8 @@ class FsUIPipeline:
         convert1.set_state(gst.STATE_PLAYING)
 
     def element_added_cb(self, notifier, bin, element):
+        if not element.get_factory():
+            return
         if element.get_factory().get_name() == "x264enc":
             element.set_property("byte-stream", True)
             element.set_property("bitrate", 128)
