@@ -1380,7 +1380,7 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->send_capsfilter = gst_object_ref (capsfilter);
 
-  if (!gst_element_link_pads (capsfilter, "src", muxer, NULL))
+  if (!gst_element_link_pads (capsfilter, "src", muxer, "sink_%d"))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -3052,7 +3052,8 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   gst_object_unref (pad);
   pad = NULL;
 
-  if (!gst_element_link (capsfilter, data->session->priv->rtpmuxer))
+  if (!gst_element_link_pads (capsfilter, NULL,
+          data->session->priv->rtpmuxer, "sink_%d"))
   {
     g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not an extra capsfilter to the muxer");
