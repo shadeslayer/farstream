@@ -603,7 +603,9 @@ create_local_codec_associations (
     ca->codec = fs_codec_copy (codec_pref);
     codec_remove_parameter (ca->codec, SEND_PROFILE_ARG);
     codec_remove_parameter (ca->codec, RECV_PROFILE_ARG);
-    ca->send_codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
+    ca->send_codec = codec_copy_filtered (codec_pref, FS_PARAM_TYPE_CONFIG);
+    codec_remove_parameter (ca->send_codec, SEND_PROFILE_ARG);
+    codec_remove_parameter (ca->send_codec, RECV_PROFILE_ARG);
     if (oldca)
       ca->send_codec->id = ca->codec->id = oldca->codec->id;
     ca->send_profile = dup_param_value (codec_pref, SEND_PROFILE_ARG);
@@ -676,6 +678,7 @@ create_local_codec_associations (
     CodecAssociation *ca = NULL;
     GList *tmpca_e = NULL;
     gboolean next = FALSE;
+    FsCodec *codec;
 
     /* Lets skip codecs that dont have all of the required informations */
     if (bp->codec->clock_rate == 0)
@@ -711,6 +714,7 @@ create_local_codec_associations (
          tmpca_e = g_list_next (tmpca_e))
     {
       CodecAssociation *tmpca = tmpca_e->data;
+
       if (tmpca->blueprint == bp)
       {
         /* Ignore reserved (we've just regenerated them )*/
@@ -722,11 +726,18 @@ create_local_codec_associations (
                 tmpca->codec->id, TRUE))
           continue;
 
+        /* Can't keep this codec, for some reason its wrong */
+        codec = sdp_negotiate_codec (tmpca->codec, FS_PARAM_TYPE_CONFIG,
+            bp->codec, FS_PARAM_TYPE_ALL);
+        if (!codec)
+          continue;
+        fs_codec_destroy (codec);
+
         ca = g_slice_new0 (CodecAssociation);
         ca->blueprint = bp;
         ca->codec = fs_codec_copy (bp->codec);
-        ca->codec->id = tmpca->codec->id;
-        ca->send_codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
+        ca->send_codec = codec_copy_filtered (bp->codec, FS_PARAM_TYPE_CONFIG);
+        ca->codec->id = ca->send_codec->id = tmpca->codec->id;
 
         codec_associations = list_insert_local_ca (codec_associations, ca);
         next = TRUE;
@@ -734,6 +745,14 @@ create_local_codec_associations (
     }
     if (next)
       continue;
+
+    codec = sdp_negotiate_codec (bp->codec, FS_PARAM_TYPE_ALL,
+        bp->codec, FS_PARAM_TYPE_ALL);
+
+    /* If it does not negotiate against itself, there must be something wrong */
+    if (!codec)
+      continue;
+    fs_codec_destroy (codec);
 
     ca = g_slice_new0 (CodecAssociation);
     ca->blueprint = bp;
@@ -760,11 +779,6 @@ create_local_codec_associations (
        lca_e = g_list_next (lca_e))
   {
     CodecAssociation *ca = lca_e->data;
-
-    if (ca->reserved || ca->disable)
-      ca->need_config = FALSE;
-    else
-      ca->need_config = codec_needs_config (ca->codec);
 
     if (codec_association_is_valid_for_sending (ca, TRUE))
       has_valid_codec = TRUE;
@@ -938,6 +952,45 @@ negotiate_stream_codecs (
   return NULL;
 }
 
+static void
+keep_config_from_old_codec (FsCodec *new_codec, FsCodec *old_codec)
+{
+  GList *item;
+
+  for (item = old_codec->optional_params; item; item = item->next)
+  {
+    FsCodecParameter *oldparam = item->data;
+    if (!fs_codec_get_optional_parameter (new_codec, oldparam->name, NULL)
+        && codec_has_config_data_named (new_codec, oldparam->name))
+      fs_codec_add_optional_parameter (new_codec, oldparam->name,
+          oldparam->value);
+  }
+}
+
+static gboolean
+match_send_codec_no_pt (CodecAssociation *old_ca, gpointer user_data)
+{
+  FsCodec *old_codec;
+  FsCodec *tmpcodec = NULL;
+  CodecAssociation *new_ca = user_data;
+  gboolean ret;
+
+  if (new_ca->send_codec->id == old_ca->send_codec->id)
+  {
+    old_codec = old_ca->send_codec;
+  }
+  else
+  {
+    tmpcodec = old_codec = fs_codec_copy (old_ca->send_codec);
+    old_codec->id = new_ca->codec->id;
+  }
+
+  ret = fs_codec_are_equal (old_codec, new_ca->codec);
+  fs_codec_destroy (tmpcodec);
+
+  return ret;
+}
+
 /**
  * finish_codec_negotiation:
  * @old_codec_associations: The previous list of negotiated #CodecAssociation
@@ -1001,23 +1054,13 @@ finish_codec_negotiation (
       continue;
     }
 
-    old_ca = lookup_codec_association_by_pt (old_codec_associations,
-        new_ca->codec->id);
+    old_ca = lookup_codec_association_custom_internal (old_codec_associations,
+        TRUE, match_send_codec_no_pt, new_ca);
+    if (old_ca && old_ca->send_codec &&
+        fs_codec_are_equal (new_ca->send_codec, old_ca->send_codec))
+      keep_config_from_old_codec (new_ca->codec, old_ca->codec);
 
-    if (old_ca)
-    {
-      FsCodec *old_without_config = codec_copy_filtered (old_ca->codec,
-          FS_PARAM_TYPE_CONFIG);
-
-      if (fs_codec_are_equal (new_ca->codec, old_without_config))
-      {
-        fs_codec_destroy (new_ca->codec);
-        new_ca->codec = fs_codec_copy (old_ca->codec);
-        new_ca->need_config = codec_needs_config (new_ca->codec);
-      }
-
-      fs_codec_destroy (old_without_config);
-    }
+    new_ca->need_config = codec_needs_config (new_ca->codec);
   }
 
   return new_codec_associations;
