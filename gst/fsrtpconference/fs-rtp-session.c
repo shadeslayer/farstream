@@ -3927,12 +3927,11 @@ _discovery_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
       session->priv->codec_associations,
       session->priv->discovery_codec);
 
-
   if (ca && ca->need_config)
   {
     gather_caps_parameters (ca, caps);
     fs_codec_destroy (session->priv->discovery_codec);
-    session->priv->discovery_codec = fs_codec_copy (ca->send_codec);
+    session->priv->discovery_codec = fs_codec_copy (ca->codec);
     block = !ca->need_config;
   }
 
@@ -3965,7 +3964,8 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
   GstPad *pad = NULL;
   gchar *tmp;
   GstCaps *caps;
-  FsCodec *discovery_codec = fs_codec_copy (ca->send_codec);
+  FsCodec *discovery_codec = fs_codec_copy (ca->codec);
+  FsCodec *send_codec = fs_codec_copy (ca->send_codec);
   GstElement *codecbin = NULL;
 
   GST_LOG ("Gathering params for codec " FS_CODEC_FORMAT,
@@ -4100,7 +4100,7 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
     goto error;
   }
 
-  caps = fs_codec_to_gst_caps (discovery_codec);
+  caps = fs_codec_to_gst_caps (send_codec);
   g_object_set (session->priv->discovery_capsfilter,
       "caps", caps,
       NULL);
@@ -4128,13 +4128,14 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
 
   gst_object_unref (pad);
 
-
+  fs_codec_destroy (send_codec);
   session->priv->discovery_codec = discovery_codec;
 
   return TRUE;
 
  error:
 
+  fs_codec_destroy (send_codec);
   fs_codec_destroy (discovery_codec);
 
   if (codecbin)
@@ -4215,7 +4216,7 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
     goto out_unlocked;
   }
 
-  if (fs_codec_are_equal (ca->send_codec, session->priv->discovery_codec))
+  if (fs_codec_are_equal (ca->codec, session->priv->discovery_codec))
     goto out_locked;
 
   if (!fs_rtp_session_get_codec_params_unlock (session, ca, &error))
