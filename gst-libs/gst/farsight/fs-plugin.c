@@ -52,8 +52,8 @@
 static gboolean fs_plugin_load (GTypeModule *module);
 
 
+static GStaticMutex mutex = G_STATIC_MUTEX_INIT;
 static gchar **search_paths = NULL;
-
 static GList *plugins = NULL;
 
 struct _FsPluginPrivate
@@ -171,7 +171,7 @@ static gboolean fs_plugin_load (GTypeModule *module)
 }
 
 static FsPlugin *
-fs_plugin_get_by_name (const gchar * name, const gchar * type_suffix)
+fs_plugin_get_by_name_locked (const gchar * name, const gchar * type_suffix)
 {
   gchar *fullname;
   FsPlugin *plugin = NULL;
@@ -229,7 +229,9 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
 
   fs_base_conference_init_debug ();
 
-  plugin = fs_plugin_get_by_name (name, type_suffix);
+  g_static_mutex_lock (&mutex);
+
+  plugin = fs_plugin_get_by_name_locked (name, type_suffix);
 
   if (!plugin) {
     plugin = g_object_new (FS_TYPE_PLUGIN, NULL);
@@ -251,6 +253,9 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
       return NULL;
     }
   }
+
+  g_static_mutex_unlock (&mutex);
+
   object = g_object_new_valist (plugin->type, first_property_name, var_args);
 
   return object;
@@ -306,6 +311,8 @@ fs_plugin_list_available (const gchar *type_suffix)
   GRegex *matcher;
   GError *error = NULL;
   gchar *tmp1, *tmp2, *tmp3;
+
+  g_static_mutex_lock (&mutex);
 
   fs_plugin_search_path_init ();
 
@@ -373,6 +380,8 @@ fs_plugin_list_available (const gchar *type_suffix)
   {
     g_ptr_array_free (list, TRUE);
   }
+
+  g_static_mutex_unlock (&mutex);
 
   return retval;
 }
