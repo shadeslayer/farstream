@@ -29,6 +29,11 @@ AM_CONFIG_HEADER([config.h])
 dnl sets host_* variables
 AC_CANONICAL_HOST
 
+dnl use pretty build output with automake >= 1.11
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])],
+  [AM_DEFAULT_VERBOSITY=1
+   AC_SUBST(AM_DEFAULT_VERBOSITY)])
+
 dnl our libraries and install dirs use major.minor as a version
 FS2_MAJORMINOR=$PACKAGE_VERSION_MAJOR.$PACKAGE_VERSION_MINOR
 AC_SUBST(FS2_MAJORMINOR)
@@ -373,8 +378,6 @@ if test "x$HAVE_GUPNP" = "xyes"; then
 	 [true])
 fi
 
-SHAVE_INIT([common],[enable])
-
 dnl *** output files ***
 
 AC_CONFIG_FILES(
@@ -383,8 +386,6 @@ farsight2.pc
 common/Makefile
 common/m4/Makefile
 common-modified/Makefile
-common/shave
-common/shave-libtool
 gst/Makefile
 gst/fsrtpconference/Makefile
 gst/fsmsnconference/Makefile
