@@ -194,3 +194,42 @@ setup_fakesrc (struct SimpleTestConference *dat)
   if (dat->started)
     gst_element_set_state (dat->pipeline, GST_STATE_PLAYING);
 }
+
+static gboolean
+pad_count_fold (gpointer pad, GValue *val, gpointer user_data)
+{
+  g_value_set_uint (val, g_value_get_uint (val) + 1);
+
+  gst_object_unref (pad);
+}
+
+guint
+count_stream_pads (FsStream *stream)
+{
+  GstIterator *iter = fs_stream_get_src_pads_iterator (stream);
+  guint count = 0;
+
+  fail_if (iter == NULL);
+
+  for (;;)
+  {
+    GstIteratorResult res;
+    GValue val = {0};
+
+    g_value_init (&val, G_TYPE_UINT);
+
+    res = gst_iterator_fold (iter, pad_count_fold, &val, NULL);
+
+    fail_if (res == GST_ITERATOR_ERROR);
+
+    if (res != GST_ITERATOR_RESYNC)
+    {
+      count = g_value_get_uint (&val);
+      break;
+    }
+  }
+
+  gst_iterator_free (iter);
+
+  return count;
+}

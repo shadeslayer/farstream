@@ -79,5 +79,7 @@ void setup_fakesrc (struct SimpleTestConference *dat);
 
 void cleanup_simple_conference (struct SimpleTestConference *dat);
 
+guint count_stream_pads (FsStream *stream);
+
 
 #endif /* __GENERIC_H__ */

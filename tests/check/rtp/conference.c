@@ -52,6 +52,10 @@ gboolean no_rtcp = FALSE;
 
 gint max_buffer_count = 20;
 
+guint max_src_pads = 1;
+
+
+
 GST_START_TEST (test_rtpconference_new)
 {
   struct SimpleTestConference *dat = NULL;
@@ -119,6 +123,7 @@ GST_START_TEST (test_rtpconference_new)
   g_object_unref (sess);
   ts_fail_unless (dir == FS_DIRECTION_BOTH, "The direction is not both");
 
+  ts_fail_unless (count_stream_pads (st->stream) == 0);
   g_object_set (st->stream, "direction", FS_DIRECTION_NONE, NULL);
   g_object_get (st->stream, "direction", &dir, NULL);
   ts_fail_unless (dir == FS_DIRECTION_NONE, "The direction is not both");
@@ -526,7 +531,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 }
 
 static void
-_src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
+_src_pad_added (FsStream *stream, GstPad *pad, FsCodec *codec,
+    gpointer user_data)
 {
   struct SimpleTestStream *st = user_data;
   GstElement *fakesink = gst_element_factory_make ("fakesink", NULL);
@@ -568,6 +574,11 @@ _src_pad_added (FsStream *self, GstPad *pad, FsCodec *codec, gpointer user_data)
   GST_DEBUG ("%d:%d: Added Fakesink for codec %s", st->dat->id, st->target->id,
            str);
   g_free (str);
+
+  if (max_src_pads > 1)
+    ts_fail_unless (count_stream_pads (stream) <= max_src_pads);
+  else
+    ts_fail_unless (count_stream_pads (stream) == 1);
 }
 
 
@@ -857,7 +868,9 @@ GST_END_TEST;
 
 GST_START_TEST (test_rtpconference_three_way)
 {
+  max_src_pads = 2;
   nway_test (3, NULL, "rawudp", 0, NULL);
+  max_src_pads = 1;
 }
 GST_END_TEST;
 
@@ -906,8 +919,10 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
+  max_src_pads = 2;
   nway_test (2, NULL, "rawudp", 0, NULL);
   select_last_codec = FALSE;
+  max_src_pads = 1;
 }
 GST_END_TEST;
 
@@ -915,8 +930,10 @@ GST_END_TEST;
 GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
+  max_src_pads = 2;
   nway_test (2, NULL, "rawudp", 0, NULL);
   reset_to_last_codec = FALSE;
+  max_src_pads = 1;
 }
 GST_END_TEST;
 
@@ -1201,7 +1218,9 @@ _double_profile_init (void)
 
 GST_START_TEST (test_rtpconference_double_codec_profile)
 {
+  max_src_pads = 2;
   nway_test (2, _double_profile_init, "rawudp", 0, NULL);
+  max_src_pads = 1;
 }
 GST_END_TEST;
 
@@ -1387,7 +1406,9 @@ GST_START_TEST (test_rtpconference_multicast_three_way_ssrc_assoc)
   g_free (mcast_addr);
 
   mcast_confs = 3;
+  max_src_pads = 3;
   nway_test (mcast_confs, multicast_ssrc_init, "multicast", 0, NULL);
+  max_src_pads = 1;
 }
 GST_END_TEST;
 
