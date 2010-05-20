@@ -137,14 +137,17 @@ enum
   PROP_SESSION
 };
 
-/*
+
 struct _FsStreamPrivate
 {
+  GMutex *mutex;
+  GList *src_pads;
+  guint32 src_pads_cookie;
 };
 
 #define FS_STREAM_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_STREAM, FsStreamPrivate))
-*/
+
 
 G_DEFINE_ABSTRACT_TYPE(FsStream, fs_stream, G_TYPE_OBJECT);
 
@@ -158,6 +161,9 @@ static void fs_stream_set_property (GObject *object,
                                     GParamSpec *pspec);
 
 static guint signals[LAST_SIGNAL] = { 0 };
+
+#define FS_STREAM_LOCK(self)   g_mutex_lock((self)->priv->mutex)
+#define FS_STREAM_UNLOCK(self) g_mutex_unlock((self)->priv->mutex)
 
 static void
 fs_stream_class_init (FsStreamClass *klass)
@@ -333,14 +339,24 @@ fs_stream_class_init (FsStreamClass *klass)
       _fs_marshal_VOID__BOXED_BOXED,
       G_TYPE_NONE, 2, GST_TYPE_PAD, FS_TYPE_CODEC);
 
-  // g_type_class_add_private (klass, sizeof (FsStreamPrivate));
+  g_type_class_add_private (klass, sizeof (FsStreamPrivate));
 }
 
 static void
 fs_stream_init (FsStream *self)
 {
   /* member init */
-  // self->priv = FS_STREAM_GET_PRIVATE (self);
+  self->priv = FS_STREAM_GET_PRIVATE (self);
+  self->priv->mutex = g_mutex_new ();
+}
+
+static void
+fs_stream_finalize (GObject *obj)
+{
+  FsStream *stream = FS_STREAM (obj);
+
+  g_warn_if_fail (stream->priv->src_pads == NULL);
+  g_mutex_free (stream->priv->mutex);
 }
 
 static void
@@ -509,6 +525,17 @@ fs_stream_emit_error (FsStream *stream,
 }
 
 
+static void
+src_pad_parent_unset (GstObject *srcpad, GstObject *parent, gpointer user_data)
+{
+  FsStream *stream = FS_STREAM (user_data);
+
+  FS_STREAM_LOCK (stream);
+  stream->priv->src_pads = g_list_remove (stream->priv->src_pads, srcpad);
+  stream->priv->src_pads_cookie++;
+  FS_STREAM_UNLOCK (stream);
+}
+
 /**
  * fs_stream_emit_src_pad_added:
  * @stream: #FsStream on which to emit the src-pad-added signal
@@ -524,5 +551,13 @@ fs_stream_emit_src_pad_added (FsStream *stream,
     GstPad *pad,
     FsCodec *codec)
 {
+  FS_STREAM_LOCK (stream);
+  g_assert (!g_list_find (stream->priv->src_pads, pad));
+  stream->priv->src_pads = g_list_append (stream->priv->src_pads, pad);
+  stream->priv->src_pads_cookie++;
+  g_signal_connect_object (pad, "parent-unset",
+      G_CALLBACK (src_pad_parent_unset), stream, 0);
+  FS_STREAM_UNLOCK (stream);
+
   g_signal_emit (stream, signals[SRC_PAD_ADDED], 0, pad, codec);
 }
