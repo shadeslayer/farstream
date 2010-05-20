@@ -561,3 +561,30 @@ fs_stream_emit_src_pad_added (FsStream *stream,
 
   g_signal_emit (stream, signals[SRC_PAD_ADDED], 0, pad, codec);
 }
+
+static GstIteratorItem
+src_pad_iterator_item_func (GstIterator*iter, gpointer item)
+{
+  gst_object_ref (item);
+
+  return GST_ITERATOR_ITEM_PASS;
+}
+
+/**
+ * fs_stream_get_src_pads_iterator:
+ * @stream: a #FsStream
+ *
+ * Creates a #GstIterator that can be used to iterate the src pads of this
+ * stream. These are the pads that were announced by #FsStream:src-pad-added
+ * and are still valid.
+ *
+ * Returns: The #GstIterator
+ */
+
+GstIterator *
+fs_stream_get_src_pads_iterator (FsStream *stream)
+{
+  return gst_iterator_new_list (GST_TYPE_PAD, stream->priv->mutex,
+      &stream->priv->src_pads_cookie, &stream->priv->src_pads,
+      g_object_ref (stream), src_pad_iterator_item_func, g_object_unref);
+}

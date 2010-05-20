@@ -171,6 +171,9 @@ void fs_stream_emit_src_pad_added (FsStream *stream,
     GstPad *pad,
     FsCodec *codec);
 
+GstIterator *fs_stream_get_src_pads_iterator (FsStream *stream);
+
+
 G_END_DECLS
 
 #endif /* __FS_STREAM_H__ */

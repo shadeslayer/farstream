@@ -30,6 +30,7 @@ fs_stream_set_remote_candidates
 fs_stream_set_remote_codecs
 fs_stream_force_remote_candidates
 fs_stream_add_id
+fs_stream_get_src_pads_iterator
 fs_stream_emit_error
 fs_stream_emit_src_pad_added
 <SUBSECTION Standard>
