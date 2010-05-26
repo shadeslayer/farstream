@@ -780,3 +780,37 @@ fs_rtp_special_source_class_get_codec (FsRtpSpecialSourceClass *klass,
 
   return NULL;
 }
+
+/**
+ * fs_rtp_special_sources_get_codecs_locked:
+ * @special_sources: The #GList of special sources
+ * @codec_associations: The #GList of current codec associations
+ *
+ * Gets the list of the codecs that are used by special sources, excluding
+ * the main codec
+ *
+ * Returns: a #GList of #FsCodec
+ */
+
+GList *
+fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
+    GList *codec_associations, FsCodec *main_codec)
+{
+  GList *result = NULL;
+
+  for (; special_sources; special_sources = special_sources->next)
+  {
+    FsRtpSpecialSource *source = special_sources->data;
+
+    if (main_codec->id != source->codec->id)
+    {
+      CodecAssociation *ca =
+        lookup_codec_association_by_pt (codec_associations, source->codec->id);
+      result = g_list_prepend (result, fs_codec_copy (ca->codec));
+    }
+  }
+
+  result = g_list_reverse (result);
+
+  return result;
+}

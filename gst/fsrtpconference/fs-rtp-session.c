@@ -3470,13 +3470,24 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   if (changed && !error)
   {
+    GList *secondary_codecs;
+
+    FS_RTP_SESSION_LOCK (self);
+    secondary_codecs = fs_rtp_special_sources_get_codecs_locked (
+        self->priv->extra_sources, self->priv->codec_associations,
+        ca->codec);
+    FS_RTP_SESSION_UNLOCK (self);
+
     g_object_notify (G_OBJECT (self), "current-send-codec");
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
         gst_message_new_element (GST_OBJECT (self->priv->conference),
             gst_structure_new ("farsight-send-codec-changed",
                 "session", FS_TYPE_SESSION, self,
                 "codec", FS_TYPE_CODEC, codec_copy,
+                "secondary-codecs", FS_TYPE_CODEC_LIST, secondary_codecs,
                 NULL)));
+
+    fs_codec_list_destroy (secondary_codecs);
   }
 
  done:

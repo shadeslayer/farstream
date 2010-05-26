@@ -149,6 +149,10 @@ fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
 GList *
 fs_rtp_special_sources_negotiation_filter (GList *codec_associations);
 
+GList *
+fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
+    GList *codec_associations, FsCodec *main_codec);
+
 G_END_DECLS
 
 #endif /* __FS_RTP_SPECIAL_SOURCE_H__ */

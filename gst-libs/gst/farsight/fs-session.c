@@ -45,6 +45,8 @@
  * |[
  * "session"          #FsSession          The session that emits the message
  * "codec"            #FsCodec            The new send codec
+ * "secondary-codecs" #GList              A #GList of #FsCodec (to be freed
+ *                                        with fs_codec_list_destroy())
  * ]|
  * <para>
  * This message is sent on the bus when the value of the
