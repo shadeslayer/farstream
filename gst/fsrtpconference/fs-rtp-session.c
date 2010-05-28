@@ -3375,6 +3375,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
   CodecAssociation *ca = NULL;
+  FsCodec *send_codec_copy = NULL;
   GError *error = NULL;
   gboolean changed = FALSE;
 
@@ -3400,6 +3401,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   if (fs_codec_are_equal (ca->codec, self->priv->current_send_codec))
   {
+    send_codec_copy = fs_codec_copy (ca->send_codec);
     FS_RTP_SESSION_UNLOCK (self);
 
     /* If the main codec has not changed, the special codecs could still
@@ -3411,7 +3413,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
-        ca->send_codec);
+        send_codec_copy);
     goto skip_main_codec;
   }
 
@@ -3436,6 +3438,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
   g_clear_error (&error);
 
+  send_codec_copy = fs_codec_copy (ca->send_codec);
+
   if (!fs_rtp_session_add_send_codec_bin_unlock (self, ca, &error))
   {
     fs_session_emit_error (FS_SESSION (self), error->code,
@@ -3450,7 +3454,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       &self->priv->extra_sources,
       &self->priv->codec_associations,
       FS_RTP_SESSION_GET_LOCK (self),
-      ca->send_codec,
+      send_codec_copy,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
 
@@ -3467,6 +3471,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
 
  done:
   g_clear_error (&error);
+  fs_codec_destroy (send_codec_copy);
 
   /* If we have a codec bin, the required/preferred caps may have changed,
    * in this case, we need to drop the current buffer and wait for a buffer
