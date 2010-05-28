@@ -886,6 +886,9 @@ negotiate_stream_codecs (
       {
         old_ca = item->data;
 
+        if (old_ca->disable || old_ca->reserved)
+          continue;
+
         negotiate_stream_codec (old_ca, remote_codec, multi_stream,
             &nego_codec, &nego_send_codec);
 
