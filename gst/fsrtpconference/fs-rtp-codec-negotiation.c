@@ -978,6 +978,9 @@ match_send_codec_no_pt (CodecAssociation *old_ca, gpointer user_data)
   CodecAssociation *new_ca = user_data;
   gboolean ret;
 
+  if (old_ca->disable || old_ca->reserved)
+    return FALSE;
+
   if (new_ca->send_codec->id == old_ca->send_codec->id)
   {
     old_codec = old_ca->send_codec;
