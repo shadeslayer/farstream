@@ -3190,6 +3190,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   struct link_data data;
   GList *item;
   FsCodec *send_codec_copy = fs_codec_copy (ca->send_codec);
+  FsCodec *codec_copy = fs_codec_copy (ca->codec);
 
   GST_DEBUG ("Trying to add send codecbin for " FS_CODEC_FORMAT,
       FS_CODEC_ARGS (ca->send_codec));
@@ -3207,6 +3208,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   if (!codecbin)
   {
     fs_codec_destroy (send_codec_copy);
+    fs_codec_destroy (codec_copy);
     fs_codec_list_destroy (codecs);
     return NULL;
   }
@@ -3221,6 +3223,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
     gst_object_unref (codecbin);
     fs_codec_list_destroy (codecs);
     fs_codec_destroy (send_codec_copy);
+    fs_codec_destroy (codec_copy);
     gst_caps_unref (sendcaps);
     return NULL;
   }
@@ -3233,6 +3236,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
     gst_bin_remove (GST_BIN (session->priv->conference), (codecbin));
     fs_codec_list_destroy (codecs);
     gst_caps_unref (sendcaps);
+    fs_codec_destroy (codec_copy);
     fs_codec_destroy (send_codec_copy);
     return NULL;
   }
@@ -3337,7 +3341,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
   session->priv->send_codecbin = codecbin;
 
-  session->priv->current_send_codec = fs_codec_copy (ca->codec);
+  session->priv->current_send_codec = codec_copy;
   FS_RTP_SESSION_UNLOCK (session);
 
   fs_codec_list_destroy (codecs);
@@ -3348,6 +3352,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
  error:
   fs_rtp_session_remove_send_codec_bin (session, NULL, codecbin, FALSE);
   fs_codec_list_destroy (codecs);
+  fs_codec_destroy (codec_copy);
   fs_codec_destroy (send_codec_copy);
   return NULL;
 
