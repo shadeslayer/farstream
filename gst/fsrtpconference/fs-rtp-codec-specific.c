@@ -219,14 +219,17 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
   /* VORBIS: RFC 5215 */
   {FS_MEDIA_TYPE_AUDIO, "VORBIS", sdp_negotiate_codec_default,
    {
-     {"configuration", FS_PARAM_TYPE_CONFIG, param_copy},
+     {"configuration", FS_PARAM_TYPE_CONFIG | FS_PARAM_TYPE_MANDATORY,
+      param_copy},
      {NULL, 0, NULL}
    }
   },
   /* THEORA: as an extension from vorbis using RFC 5215 */
   {FS_MEDIA_TYPE_VIDEO, "THEORA", sdp_negotiate_codec_default,
    {
-     {"configuration", FS_PARAM_TYPE_CONFIG, param_copy},
+     {"configuration", FS_PARAM_TYPE_CONFIG | FS_PARAM_TYPE_MANDATORY,
+      param_copy},
+     {"delivery-method", FS_PARAM_TYPE_CONFIG, param_copy},
      {NULL, 0, NULL}
    }
   },
@@ -249,7 +252,8 @@ static const struct SdpNegoFunction sdp_nego_functions[] = {
      {"packetization-mode", FS_PARAM_TYPE_SEND, param_equal_or_ignore},
      {"deint-buf-cap", FS_PARAM_TYPE_SEND, param_minimum},
      {"max-rcmd-nalu-size", FS_PARAM_TYPE_SEND, param_minimum},
-     {"sprop-parameter-sets", FS_PARAM_TYPE_CONFIG, param_copy},
+     {"sprop-parameter-sets", FS_PARAM_TYPE_CONFIG | FS_PARAM_TYPE_MANDATORY,
+      param_copy},
      {"sprop-interleaving-depth",  FS_PARAM_TYPE_CONFIG, param_copy},
      {"sprop-deint-buf-req", FS_PARAM_TYPE_CONFIG, param_copy},
      {"sprop-init-buf-time",  FS_PARAM_TYPE_CONFIG, param_copy},
@@ -302,7 +306,6 @@ gboolean
 codec_needs_config (FsCodec *codec)
 {
   const struct SdpNegoFunction *nf;
-  gboolean has_config_param = FALSE;
   int i;
 
   g_return_val_if_fail (codec, FALSE);
@@ -314,15 +317,15 @@ codec_needs_config (FsCodec *codec)
 
   for (i = 0; nf->params[i].name; i++)
   {
-    if (nf->params[i].paramtype & FS_PARAM_TYPE_CONFIG)
+    if (nf->params[i].paramtype & FS_PARAM_TYPE_CONFIG &&
+        nf->params[i].paramtype & FS_PARAM_TYPE_MANDATORY)
     {
-      has_config_param = TRUE;
-      if (fs_codec_get_optional_parameter (codec, nf->params[i].name, NULL))
-        return FALSE;
+      if (!fs_codec_get_optional_parameter (codec, nf->params[i].name, NULL))
+        return TRUE;
     }
   }
 
-  return has_config_param;
+  return FALSE;
 }
 
 
