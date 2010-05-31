@@ -796,13 +796,12 @@ fs_nice_transmitter_free_gst_stream (FsNiceTransmitter *self,
     if (ns->nicesrcs[c])
     {
       GstStateChangeReturn ret;
-      gst_element_set_locked_state (ns->nicesrcs[c], TRUE);
+      if (!gst_bin_remove (GST_BIN (self->priv->gst_src), ns->nicesrcs[c]))
+        GST_ERROR ("Could not remove nicesrc element from transmitter source");
       ret = gst_element_set_state (ns->nicesrcs[c], GST_STATE_NULL);
       if (ret != GST_STATE_CHANGE_SUCCESS)
         GST_ERROR ("Error changing state of nicesrc: %s",
             gst_element_state_change_return_get_name (ret));
-      if (!gst_bin_remove (GST_BIN (self->priv->gst_src), ns->nicesrcs[c]))
-        GST_ERROR ("Could not remove nicesrc element from transmitter source");
       gst_object_unref (ns->nicesrcs[c]);
     }
 
