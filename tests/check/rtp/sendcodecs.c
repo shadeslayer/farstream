@@ -125,8 +125,6 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (codec != NULL);
           ts_fail_unless (secondary_codec_list != NULL);
 
-          g_debug ("changed: "FS_CODEC_FORMAT" %d", FS_CODEC_ARGS (codec), g_list_length(secondary_codec_list));
-
           for (item = secondary_codec_list; item; item = item->next)
           {
             FsCodec *codec = item->data;
@@ -262,8 +260,6 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
       ts_fail ("Could not set the remote codecs on stream"
           " and we did NOT get a GError!!");
   }
-  else
-    g_debug ("set codec %d", dtmf_id);
 
   g_list_free (filtered_codecs);
   fs_codec_list_destroy (codecs);
