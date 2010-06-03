@@ -110,7 +110,7 @@
 #include "fs-candidate.h"
 #include "fs-stream-transmitter.h"
 #include "fs-conference-iface.h"
-#include "fs-enum-types.h"
+#include "fs-enumtypes.h"
 #include "fs-private.h"
 
 /* Signals */

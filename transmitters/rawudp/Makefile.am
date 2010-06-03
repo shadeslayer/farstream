@@ -43,11 +43,11 @@ CLEANFILES = $(BUILT_SOURCES) fs-rawudp-marshal.list
 
 
 fs-rawudp-marshal.list: $(librawudp_transmitter_la_SOURCES) Makefile.am
-	( cd $(srcdir) && \
+	$(AM_V_GEN)( cd $(srcdir) && \
 	sed -n -e 's/.*_fs_rawudp_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
 	$(librawudp_transmitter_la_SOURCES) ) \
 	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
-	if cmp -s $@.tmp $@; then \
+	@if cmp -s $@.tmp $@; then \
 		rm $@.tmp; \
 		touch $@; \
 	else \
@@ -55,7 +55,8 @@ fs-rawudp-marshal.list: $(librawudp_transmitter_la_SOURCES) Makefile.am
 	fi
 
 glib_enum_define=FS_RAWUDP
-glib_enum_prefix=_fs_rawudp
+glib_gen_prefix=_fs_rawudp
+glib_gen_basename=fs-rawudp
 
-include $(top_srcdir)/common-modified/glib-gen.mak
+include $(top_srcdir)/common/gst-glib-gen.mak
 

@@ -37,7 +37,7 @@
 #endif
 
 #include "fs-participant.h"
-#include "fs-enum-types.h"
+#include "fs-enumtypes.h"
 #include "fs-marshal.h"
 
 /* Signals */

@@ -71,7 +71,7 @@ nodist_libfsrtpconference_doc_la_SOURCES = \
 libfsrtpconference_doc_la_LIBADD = $(libfsrtpconference_la_LIBADD)
 
 %.doc.c: %.c
-	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' $< > $@
+	$(AM_V_GEN)sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' $< > $@
 
 BUILT_SOURCES += fs-rtp-conference-plugin.doc.c
 endif
@@ -79,11 +79,11 @@ endif
 # Build the build sources
 
 fs-rtp-marshal.list: $(libfsrtpconference_convenience_la_SOURCES) Makefile.am
-	( cd $(srcdir) && \
+	$(AM_V_GEN)( cd $(srcdir) && \
 	sed -n -e 's/.*fs_rtp_marshal_\([[:upper:][:digit:]]*__[[:upper:][:digit:]_]*\).*/\1/p' \
 	$(libfsrtpconference_convenience_la_SOURCES) ) \
 	| sed -e 's/__/:/' -e 'y/_/,/' | sort -u > $@.tmp
-	if cmp -s $@.tmp $@; then \
+	@if cmp -s $@.tmp $@; then \
 		rm $@.tmp; \
 		touch $@; \
 	else \
@@ -91,6 +91,7 @@ fs-rtp-marshal.list: $(libfsrtpconference_convenience_la_SOURCES) Makefile.am
 	fi
 
 glib_enum_define=FS_RTP
-glib_enum_prefix=_fs_rtp
+glib_gen_prefix=_fs_rtp
+glib_gen_basename=fs-rtp
 
-include $(top_srcdir)/common-modified/glib-gen.mak
+include $(top_srcdir)/common/gst-glib-gen.mak

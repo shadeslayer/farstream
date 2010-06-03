@@ -56,7 +56,7 @@ nodist_libfsmsnconference_doc_la_SOURCES = \
 libfsmsnconference_doc_la_LIBADD = $(libfsmsnconference_la_LIBADD)
 
 %.doc.c: %.c
-	sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' 	$< > $@
+	$(AM_V_GEN)sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' 	$< > $@
 
 BUILT_SOURCES = $(nodist_libfsmsnconference_doc_la_SOURCES)
 
