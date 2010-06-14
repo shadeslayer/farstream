@@ -54,6 +54,10 @@ gint max_buffer_count = 20;
 
 guint max_src_pads = 1;
 
+GStaticMutex testlock = G_STATIC_MUTEX_INIT;
+
+#define TEST_LOCK()   g_static_mutex_lock (&testlock)
+#define TEST_UNLOCK() g_static_mutex_unlock (&testlock)
 
 
 GST_START_TEST (test_rtpconference_new)
@@ -821,6 +825,8 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
           G_CALLBACK (_negotiated_codecs_notify), dats[i]);
   }
 
+  TEST_LOCK ();
+
   for (i = 0; i < count; i++)
     for (j = 0; j < count; j++)
       if (i != j)
@@ -842,6 +848,8 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
     struct SimpleTestStream *st = find_pointback_stream (dats[i], dats[0]);
     set_initial_codecs (dats[0], st);
   }
+
+  TEST_UNLOCK ();
 
   g_main_loop_run (loop);
 
@@ -1429,10 +1437,14 @@ min_timeout (TCase *tc_chain, guint min)
 static void unref_session_on_src_pad_added (FsStream *stream,
     GstPad *pad, FsCodec *codec, struct SimpleTestStream *st)
 {
+  TEST_LOCK ();
+
   g_object_unref (st->dat->session);
   st->dat->session = NULL;
   g_object_unref (st->stream);
   st->stream = NULL;
+
+  TEST_UNLOCK ();
 
   g_main_loop_quit (loop);
 }
@@ -1485,6 +1497,8 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
   ts_fail_unless (G_VALUE_HOLDS (v, FS_TYPE_STREAM));
   stream = g_value_get_object (v);
 
+  TEST_LOCK ();
+
   for (item = dat->streams; item; item = item->next)
   {
     struct SimpleTestStream *st = item->data;
@@ -1497,6 +1511,8 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
       return GST_BUS_DROP;
     }
   }
+
+  TEST_UNLOCK ();
 
   gst_message_unref (message);
   return GST_BUS_DROP;
