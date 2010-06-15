@@ -1267,9 +1267,8 @@ get_plugins_filtered_from_caps (FilterFunc filter,
       gint i;
       for (i = 0; i < gst_caps_get_size (matched_caps); i++)
       {
-        GstStructure *structure = gst_caps_get_structure (matched_caps, i);
         GstCaps *cur_caps =
-            gst_caps_new_full (gst_structure_copy (structure), NULL);
+            gst_caps_copy_nth (matched_caps, i);
 
         list = create_codec_cap_list (factory, direction, list, cur_caps);
         gst_caps_unref (cur_caps);
