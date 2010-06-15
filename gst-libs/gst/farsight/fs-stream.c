@@ -125,10 +125,6 @@ enum
 enum
 {
   PROP_0,
-#if 0
-  /* TODO Do we really need this? */
-  PROP_SOURCE_PADS,
-#endif
   PROP_REMOTE_CODECS,
   PROP_NEGOTIATED_CODECS,
   PROP_CURRENT_RECV_CODECS,
@@ -176,24 +172,6 @@ fs_stream_class_init (FsStreamClass *klass)
   gobject_class->set_property = fs_stream_set_property;
   gobject_class->get_property = fs_stream_get_property;
   gobject_class->finalize = fs_stream_finalize;
-
-#if 0
-  /**
-   * FsStream:source-pads:
-   *
-   * A #GList of #GstPad of source pads being used by this stream to receive the
-   * different codecs.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_SOURCE_PADS,
-      g_param_spec_object ("source-pads",
-        "A list of source pads being used in this stream",
-        "A GList of GstPads representing the source pads being used by this"
-        " stream for the different codecs",
-        ,
-        G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-#endif
 
   /**
    * FsStream:remote-codecs:
