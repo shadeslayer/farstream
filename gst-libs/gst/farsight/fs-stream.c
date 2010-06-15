@@ -159,6 +159,7 @@ static void fs_stream_set_property (GObject *object,
                                     guint prop_id,
                                     const GValue *value,
                                     GParamSpec *pspec);
+static void fs_stream_finalize (GObject *obj);
 
 static guint signals[LAST_SIGNAL] = { 0 };
 
@@ -174,6 +175,7 @@ fs_stream_class_init (FsStreamClass *klass)
 
   gobject_class->set_property = fs_stream_set_property;
   gobject_class->get_property = fs_stream_get_property;
+  gobject_class->finalize = fs_stream_finalize;
 
 #if 0
   /**
