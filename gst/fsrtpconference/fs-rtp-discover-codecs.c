@@ -1282,16 +1282,6 @@ next:
     walk = g_list_next (walk);
   }
 
-  /*
-  walk = result;
-  while (walk)
-  {
-    factory = GST_ELEMENT_FACTORY (walk->data);
-    DEBUG ("new refcnt is %d", GST_OBJECT_REFCOUNT_VALUE (GST_OBJECT (factory)));
-    walk = g_list_next (walk);
-  }
-  */
-
   gst_plugin_feature_list_free (result);
 
   return list;
