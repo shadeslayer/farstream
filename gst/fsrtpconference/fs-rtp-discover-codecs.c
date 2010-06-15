@@ -1240,9 +1240,7 @@ get_plugins_filtered_from_caps (FilterFunc filter,
                                 GstPadDirection direction)
 {
   GList *walk, *result;
-  GstElementFactory *factory;
   GList *list = NULL;
-  gboolean is_valid;
   GstCaps *matched_caps = NULL;
 
   result = gst_registry_get_feature_list (gst_registry_get_default (),
@@ -1253,42 +1251,31 @@ get_plugins_filtered_from_caps (FilterFunc filter,
   walk = result;
   while (walk)
   {
-    factory = GST_ELEMENT_FACTORY (walk->data);
-    is_valid = FALSE;
+    GstElementFactory *factory = GST_ELEMENT_FACTORY (walk->data);
 
     if (!filter (factory))
-    {
       goto next;
-    }
-
-    if (caps)
+    
+    if (caps && !check_caps_compatibility (factory, caps, &matched_caps))
+      goto next;
+    
+    if (!matched_caps)
     {
-      if (check_caps_compatibility (factory, caps, &matched_caps))
-      {
-        is_valid = TRUE;
-      }
+      list = create_codec_cap_list (factory, direction, list, NULL);
     }
-
-    if (is_valid || !caps)
+    else
     {
-      if (!matched_caps)
+      gint i;
+      for (i = 0; i < gst_caps_get_size (matched_caps); i++)
       {
-        list = create_codec_cap_list (factory, direction, list, NULL);
-      }
-      else
-      {
-        gint i;
-        for (i = 0; i < gst_caps_get_size (matched_caps); i++)
-        {
-          GstStructure *structure = gst_caps_get_structure (matched_caps, i);
-          GstCaps *cur_caps =
+        GstStructure *structure = gst_caps_get_structure (matched_caps, i);
+        GstCaps *cur_caps =
             gst_caps_new_full (gst_structure_copy (structure), NULL);
 
-          list = create_codec_cap_list (factory, direction, list, cur_caps);
-          gst_caps_unref (cur_caps);
-        }
-        gst_caps_unref (matched_caps);
+        list = create_codec_cap_list (factory, direction, list, cur_caps);
+        gst_caps_unref (cur_caps);
       }
+      gst_caps_unref (matched_caps);
     }
 
 next:
