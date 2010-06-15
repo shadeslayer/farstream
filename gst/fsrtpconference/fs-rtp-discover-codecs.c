@@ -1248,17 +1248,16 @@ get_plugins_filtered_from_caps (FilterFunc filter,
 
   result = g_list_sort (result, (GCompareFunc) compare_ranks);
 
-  walk = result;
-  while (walk)
+  for (walk = result; walk; walk = walk->next)
   {
     GstElementFactory *factory = GST_ELEMENT_FACTORY (walk->data);
 
     if (!filter (factory))
-      goto next;
+      continue;
     
     if (caps && !check_caps_compatibility (factory, caps, &matched_caps))
-      goto next;
-    
+      continue;
+
     if (!matched_caps)
     {
       list = create_codec_cap_list (factory, direction, list, NULL);
@@ -1277,9 +1276,6 @@ get_plugins_filtered_from_caps (FilterFunc filter,
       }
       gst_caps_unref (matched_caps);
     }
-
-next:
-    walk = g_list_next (walk);
   }
 
   gst_plugin_feature_list_free (result);
