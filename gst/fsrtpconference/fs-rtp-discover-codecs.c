@@ -1135,8 +1135,8 @@ create_codec_cap_list (GstElementFactory *factory,
       const gchar *name = gst_structure_get_name (structure);
       if (g_ascii_strcasecmp (name, "application/x-rtp") == 0)
       {
-        GST_DEBUG ("skipping %s",
-            gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)));
+        GST_DEBUG ("skipping %s : %s",
+            gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory)), name);
         continue;
       }
 
