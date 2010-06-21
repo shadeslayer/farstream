@@ -1086,7 +1086,7 @@ create_codec_cap_list (GstElementFactory *factory,
                        GList *list,
                        GstCaps *rtp_caps)
 {
-  const GList *pads = factory->staticpadtemplates;
+  const GList *pads = gst_element_factory_get_static_pad_templates (factory);
   gint i;
 
 
@@ -1106,7 +1106,7 @@ create_codec_cap_list (GstElementFactory *factory,
       continue;
     }
 
-    caps = gst_static_caps_get (&padtemplate->static_caps);
+    caps = gst_static_pad_template_get_caps (padtemplate);
     /*
       DEBUG ("%s caps are %s", gst_plugin_feature_get_name (GST_PLUGIN_FEATURE
       (factory)), gst_caps_to_string (caps));
