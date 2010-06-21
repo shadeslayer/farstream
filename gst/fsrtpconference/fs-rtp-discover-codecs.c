@@ -1102,7 +1102,7 @@ create_codec_cap_list (GstElementFactory *factory,
     if (padtemplate->direction != direction)
       continue;
 
-    if (GST_PAD_TEMPLATE_PRESENCE (padtemplate) != GST_PAD_ALWAYS) {
+    if (padtemplate->presence != GST_PAD_ALWAYS) {
       continue;
     }
 
