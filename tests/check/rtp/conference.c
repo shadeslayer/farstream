@@ -66,7 +66,7 @@ GST_START_TEST (test_rtpconference_new)
   struct SimpleTestStream *st = NULL;
   guint id = 999;
   GList *codecs = NULL;
-  FsMediaType *media_type;
+  FsMediaType media_type;
   GstPad *sinkpad = NULL;
   gchar *str = NULL;
   GstElement *conf = NULL;
