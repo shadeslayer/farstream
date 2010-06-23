@@ -1146,16 +1146,43 @@ GST_START_TEST (test_rtpcodecs_ptime)
 }
 GST_END_TEST;
 
+
+static GstBusSyncReply
+drop_all_sync_handler (GstBus *bus, GstMessage *message, gpointer data)
+{
+  struct SimpleTestConference *dat = data;
+  gboolean ready;
+
+  /* Get the codecs-ready property which takes the session lock to make sure
+   * it is not held across signal emissions
+   */
+  if (dat->session)
+    g_object_get (dat->session, "codecs-ready", &ready, NULL);
+
+  gst_message_unref (message);
+
+  return GST_BUS_DROP;
+}
+
 static void
 setup_codec_tests (struct SimpleTestConference **dat,
     FsParticipant **participant, FsMediaType mediatype)
 {
+  GstBus *bus;
+
   *dat = setup_simple_conference_full (1, "fsrtpconference", "bob@127.0.0.1",
       mediatype);
 
   *participant = fs_conference_new_participant (
       FS_CONFERENCE ((*dat)->conference), "name", NULL);
   fail_if (participant == NULL, "Could not add participant to conference");
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE ((*dat)->pipeline));
+  fail_if (bus == NULL);
+  gst_bus_set_sync_handler (bus, NULL, NULL);
+  gst_bus_set_sync_handler (bus, drop_all_sync_handler, *dat);
+  gst_object_unref (bus);
+
 }
 
 static void
