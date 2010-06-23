@@ -335,7 +335,7 @@ fs_stream_finalize (GObject *obj)
 {
   FsStream *stream = FS_STREAM (obj);
 
-  g_warn_if_fail (stream->priv->src_pads == NULL);
+  g_list_free (stream->priv->src_pads);
   g_mutex_free (stream->priv->mutex);
 
   G_OBJECT_CLASS (fs_stream_parent_class)->finalize (obj);
