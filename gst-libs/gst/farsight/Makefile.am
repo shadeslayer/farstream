@@ -18,7 +18,7 @@ nodist_libgstfarsightinclude_HEADERS = \
 		fs-enum-types.h
 
 # Don't forget to rename on ABI break
-fs-enum-types.h: fs-enumtypes.h
+fs-enum-types.h:
 	$(AM_V_GEN)$(LN_S) fs-enumtypes.h fs-enum-types.h
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
