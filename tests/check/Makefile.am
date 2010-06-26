@@ -10,6 +10,7 @@ TESTS_ENVIRONMENT = \
 	CK_DEFAULT_TIMEOUT=120					\
 	STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
 	$(REGISTRY_ENVIRONMENT)					\
+	GST_PLUGIN_LOADING_WHITELIST=gstreamer:gst-plugins-base:gst-plugins-good:libnice:valve:siren:autoconvert:rtpmux:dtmf:mimic:farsight2@$(top_builddir)/gst \
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
 	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs \
 	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH} \
