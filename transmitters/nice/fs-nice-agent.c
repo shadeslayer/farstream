@@ -336,7 +336,7 @@ fs_nice_agent_init_agent (FsNiceAgent *self, GError **error)
       if (!nice_agent_add_local_address (self->agent, addr))
       {
         g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-            "Unable to set preferred local candidate");
+            "Unable to set preferred local candidate: %s", cand->ip);
         return FALSE;
       }
       set = TRUE;
@@ -344,7 +344,7 @@ fs_nice_agent_init_agent (FsNiceAgent *self, GError **error)
     else
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "Invalid local address passed");
+          "Invalid local address passed: %s", cand->ip);
       nice_address_free (addr);
       return FALSE;
     }
@@ -352,7 +352,8 @@ fs_nice_agent_init_agent (FsNiceAgent *self, GError **error)
   }
 
   if (!set)
-  {      GList *addresses = fs_interfaces_get_local_ips (FALSE);
+  {
+    GList *addresses = nice_interfaces_get_local_ips (FALSE);
 
     for (item = addresses;
          item;
