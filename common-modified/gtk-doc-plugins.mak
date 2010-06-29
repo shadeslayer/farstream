@@ -5,7 +5,7 @@
 help:
 	@echo
 	@echo "If you are a doc maintainer, run 'make update' to update"
-	@echo "the documentation files maintained in CVS"
+	@echo "the documentation files maintained in git"
 	@echo
 	@echo Other useful make targets:
 	@echo
@@ -132,7 +132,8 @@ INSPECT_REGISTRY=$(top_builddir)/docs/plugins/inspect-registry.xml
 INSPECT_ENVIRONMENT=\
         GST_PLUGIN_SYSTEM_PATH= \
         GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/sys:$(top_builddir)/ext:$(top_builddir)/plugins:$(top_builddir)/src:$(top_builddir)/gnl \
-        GST_REGISTRY=$(INSPECT_REGISTRY)
+        GST_REGISTRY=$(INSPECT_REGISTRY) \
+	$(INSPECT_EXTRA_ENVIRONMENT)
 
 inspect-update: inspect
 	-rm -f $(INSPECT_REGISTRY) inspect-build.stamp
@@ -201,7 +202,7 @@ tmpl.stamp: tmpl-build.stamp
 #### build xml; done on every build ####
 
 ### FIXME: make this error out again when docs are fixed for 0.9
-sgml-build.stamp: tmpl.stamp inspect.stamp $(CFILE_GLOB) $(top_srcdir)/common/plugins.xsl
+sgml-build.stamp: tmpl.stamp inspect.stamp $(CFILE_GLOB) $(top_srcdir)/common/plugins.xsl $(expand_content_files)
 	@echo '*** Building XML ***'
 	@-mkdir -p xml
 	@for a in $(srcdir)/inspect/*.xml; do \
@@ -212,6 +213,7 @@ sgml-build.stamp: tmpl.stamp inspect.stamp $(CFILE_GLOB) $(top_srcdir)/common/pl
 	gtkdoc-mkdb \
 		--module=$(DOC_MODULE) \
 		--source-dir=$(DOC_SOURCE_DIR) \
+                 --expand-content-files="$(expand_content_files)" \
 		--main-sgml-file=$(srcdir)/$(DOC_MAIN_SGML_FILE) \
 		--output-format=xml \
 		--ignore-files="$(IGNORE_HFILES) $(IGNORE_CFILES)" \
@@ -235,11 +237,7 @@ html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
 	@for f in $(content_files); do cp $(srcdir)/$$f html; done
 	cp -pr xml html
 	cp ../version.entities html
-	cd html && gtkdoc-mkhtml $(DOC_MODULE) $(DOC_MAIN_SGML_FILE) \
-	    2>&1 | tee ../html-build.log
-	@if grep "warning:" html-build.log > /dev/null; then \
-		echo "ERROR"; grep "warning:" html-build.log; exit 1; fi
-	@rm html-build.log
+	cd html && gtkdoc-mkhtml $(DOC_MODULE) $(DOC_MAIN_SGML_FILE)
 	mv html/index.sgml html/index.sgml.bak
 	$(SED) "s/ href=\"$(DOC_MODULE)\// href=\"$(DOC_MODULE)-@GST_MAJORMINOR@\//g" html/index.sgml.bak >html/index.sgml
 	rm -f html/index.sgml.bak
@@ -248,8 +246,8 @@ html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
 	rm -f html/version.entities
 	test "x$(HTML_IMAGES)" = "x" || for i in "" $(HTML_IMAGES) ; do \
 	    if test "$$i" != ""; then cp $(srcdir)/$$i html ; fi; done
-	@echo '-- Fixing Crossreferences' 
-	gtkdoc-fixxref --module-dir=html --html-dir=$(HTML_DIR) $(FIXXREF_OPTIONS)
+	@echo '-- Fixing Crossreferences'
+	gtkdoc-fixxref --module=$(DOC_MODULE) --module-dir=html --html-dir=$(HTML_DIR) $(FIXXREF_OPTIONS)
 	touch html-build.stamp
 
 clean-local-gtkdoc:
@@ -268,7 +266,7 @@ clean-local: clean-local-gtkdoc
 	rm -f *~ *.bak
 	rm -rf .libs
 
-distclean-local: clean
+distclean-local:
 	rm -rf tmpl/*.sgml.bak
 	rm -rf *.o
 
@@ -398,7 +396,7 @@ endif
 # FIXME: decide whether we want to dist generated html or not
 dist-hook: dist-check-gtkdoc dist-hook-local
 	mkdir $(distdir)/html
-	cp $(srcdir)/html/* $(distdir)/html
+	cp html/* $(distdir)/html
 	-cp $(srcdir)/$(DOC_MODULE).types $(distdir)/
 	-cp $(srcdir)/$(DOC_MODULE)-sections.txt $(distdir)/
 	-cp $(srcdir)/html/$(DOC_MODULE).devhelp* $(distdir)/html
