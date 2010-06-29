@@ -22,7 +22,8 @@ transmitters/rawudp/fs-rawudp-marshal.list
 
 gst-libs/gst/farsight/fs-marshal.[ch]
 gst-libs/gst/farsight/fs-marshal.list
-gst-libs/gst/farsight/fs-enum-types.[ch]
+gst-libs/gst/farsight/fs-enum-types.h
+gst-libs/gst/farsight/fs-enumtypes.[ch]
 
 docs/libs/farsight2-libs-decl-list.txt
 docs/libs/farsight2-libs-decl-list.txt.bak
