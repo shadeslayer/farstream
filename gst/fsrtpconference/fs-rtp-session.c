@@ -3057,8 +3057,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   {
     g_set_error (data->error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not an extra capsfilter to the muxer");
-    g_value_set_boolean (ret, FALSE);
-    return FALSE;
+    goto error;
   }
 
 
@@ -3252,8 +3251,8 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
   data.session = session;
   data.caps = sendcaps;
-  data.error = NULL;
   data.all_codecs = codecs;
+  data.error = error;
 
   if (gst_iterator_fold (iter, link_main_pad, &link_rv, &data) ==
       GST_ITERATOR_ERROR)
@@ -3269,9 +3268,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
   if (!g_value_get_boolean (&link_rv))
   {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link main pad of codec bin for: " FS_CODEC_FORMAT,
-        FS_CODEC_ARGS (send_codec_copy));
     gst_iterator_free (iter);
     goto error;
   }
@@ -3292,12 +3288,7 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   gst_iterator_free (iter);
 
   if (!g_value_get_boolean (&link_rv))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link all other pads of codec bin for: " FS_CODEC_FORMAT,
-        FS_CODEC_ARGS (send_codec_copy));
     goto error;
-  }
 
   gst_element_set_locked_state (codecbin, FALSE);
 
