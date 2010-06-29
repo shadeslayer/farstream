@@ -11,6 +11,9 @@
       for version &FS2_VERSION;.
       The latest version of this documentation can be found on-line at
       <ulink role="online-location" url="http://farsight.freedesktop.org/apidoc/farsight2-plugins/">http://farsight.freedesktop.org/apidoc/farsight2-plugins/</ulink>.
+      These plugins are to be used with the base classes and other utility
+      objects and functions described in the
+      <ulink url="http://farsight.freedesktop.org/apidoc/farsight2/">Farsight2 Reference Manual</ulink>.
     </releaseinfo>
   </bookinfo>
 
