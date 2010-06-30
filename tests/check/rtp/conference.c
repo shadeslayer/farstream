@@ -876,9 +876,7 @@ GST_END_TEST;
 
 GST_START_TEST (test_rtpconference_three_way)
 {
-  max_src_pads = 2;
   nway_test (3, NULL, "rawudp", 0, NULL);
-  max_src_pads = 1;
 }
 GST_END_TEST;
 
@@ -1074,6 +1072,8 @@ GST_START_TEST (test_rtpconference_no_rtcp)
 }
 GST_END_TEST;
 
+/* Disabled because somehow broken */
+
 #if 0
 static void
 associate_cnames_init (void)
@@ -1095,8 +1095,6 @@ associate_cnames_init (void)
 GST_START_TEST (test_rtpconference_three_way_cname_assoc)
 {
   GParameter param = {0};
-
-  return;
 
   param.name = "associate-on-source";
   g_value_init (&param.value, G_TYPE_BOOLEAN);

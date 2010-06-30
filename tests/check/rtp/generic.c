@@ -227,6 +227,8 @@ count_stream_pads (FsStream *stream)
       count = g_value_get_uint (&val);
       break;
     }
+
+    gst_iterator_resync (iter);
   }
 
   gst_iterator_free (iter);
