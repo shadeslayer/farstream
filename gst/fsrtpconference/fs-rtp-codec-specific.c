@@ -1000,7 +1000,7 @@ param_min_max (const struct SdpParam *sdp_param,
   else if (remote_valid && keep_single)
   {
     fs_codec_add_optional_parameter (negotiated_codec, param_name,
-        remote_param->value);
+        remote_param ? remote_param->value : sdp_param->default_value);
   }
   else if (local_valid && keep_single)
   {
