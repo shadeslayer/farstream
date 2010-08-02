@@ -16,7 +16,8 @@ libfsrtpconference_convenience_la_SOURCES = \
 	fs-rtp-codec-specific.c \
 	fs-rtp-special-source.c \
 	fs-rtp-dtmf-event-source.c \
-	fs-rtp-dtmf-sound-source.c
+	fs-rtp-dtmf-sound-source.c \
+	tfrc.c
 
 nodist_libfsrtpconference_convenience_la_SOURCES = \
 	fs-rtp-marshal.c \
@@ -36,7 +37,8 @@ noinst_HEADERS = \
 	fs-rtp-codec-specific.h \
 	fs-rtp-special-source.h \
 	fs-rtp-dtmf-event-source.h \
-	fs-rtp-dtmf-sound-source.h
+	fs-rtp-dtmf-sound-source.h \
+	tfrc.h
 
 CLEANFILES = $(BUILT_SOURCES) fs-rtp-marshal.list
 
