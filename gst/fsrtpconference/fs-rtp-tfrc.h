@@ -75,6 +75,9 @@ struct _FsRtpTfrc
 
 GType fs_rtp_tfrc_get_type (void);
 
+FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp,
+    GstPad *inrtcp);
+
 
 G_END_DECLS
 
