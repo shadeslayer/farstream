@@ -104,6 +104,14 @@ fs_codec_new (int id, const char *encoding_name,
   return codec;
 }
 
+static void
+free_optional_parameter (FsCodecParameter *param)
+{
+  g_free (param->name);
+  g_free (param->value);
+  g_slice_free (FsCodecParameter, param);
+}
+
 /**
  * fs_codec_destroy:
  * @codec: #FsCodec structure to free
@@ -117,18 +125,10 @@ fs_codec_destroy (FsCodec * codec)
     return;
 
   g_free (codec->encoding_name);
-  if (codec->optional_params) {
-    GList *lp;
-    FsCodecParameter *param;
 
-    for (lp = codec->optional_params; lp; lp = g_list_next (lp)) {
-      param = (FsCodecParameter *) lp->data;
-      g_free (param->name);
-      g_free (param->value);
-      g_slice_free (FsCodecParameter, param);
-    }
-    g_list_free (codec->optional_params);
-  }
+  g_list_foreach (codec->optional_params, (GFunc) free_optional_parameter,
+        NULL);
+  g_list_free (codec->optional_params);
 
   g_slice_free (FsCodec, codec);
 }
@@ -379,20 +379,15 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
         param->value = g_key_file_get_string (keyfile, groups[i], keys[j],
             &gerror);
         if (gerror) {
-          g_free (param->name);
-          g_free (param->value);
-          g_slice_free (FsCodecParameter, param);
+          free_optional_parameter (param);
           goto keyerror;
         }
 
-        if (!param->name || !param->value) {
-          g_free (param->name);
-          g_free (param->value);
-          g_slice_free (FsCodecParameter, param);
-        } else {
+        if (!param->name || !param->value)
+          free_optional_parameter (param);
+        else
           codec->optional_params = g_list_append (codec->optional_params,
               param);
-        }
       }
       continue;
     keyerror:
@@ -635,9 +630,7 @@ fs_codec_remove_optional_parameter (FsCodec *codec,
   if (!param)
     return;
 
-  g_free (param->name);
-  g_free (param->value);
-  g_slice_free (FsCodecParameter, param);
+  free_optional_parameter (param);
   codec->optional_params = g_list_remove (codec->optional_params, param);
 }
 
