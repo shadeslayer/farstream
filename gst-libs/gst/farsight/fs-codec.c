@@ -275,6 +275,11 @@ fs_codec_list_copy (const GList *codec_list)
  * [audio/codec2]
  * one_param=QCIF
  * another_param=WOW
+ *
+ * [video/codec3]
+ * wierd_param=42
+ * feedback:nack/pli=1
+ * feedback:tfrc=
  * ]|
  *
  * Return value: The #GList of #FsCodec or %NULL if the keyfile was empty
@@ -411,6 +416,30 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
           codec->ABI.ABI.minimum_reporting_interval = 0;
           goto keyerror;
         }
+      } else if (g_str_has_prefix (keys[j], "feedback:")) {
+        gchar *type = keys[j] + strlen ("feedback:");
+        gchar *subtype = strchr (type, '/');
+        gchar *extra_params;
+
+        extra_params = g_key_file_get_string (keyfile, groups[i], keys[j],
+            &gerror);
+        if (gerror)
+          goto keyerror;
+
+        /* Replace / with \0 and point to name (the next char) */
+        if (subtype)
+        {
+          *subtype=0;
+          subtype++;
+        }
+        else
+        {
+          subtype = "";
+        }
+
+        fs_codec_add_feedback_parameter (codec, type, subtype,
+            extra_params);
+        g_free (extra_params);
       } else {
         FsCodecParameter *param = g_slice_new (FsCodecParameter);
 
