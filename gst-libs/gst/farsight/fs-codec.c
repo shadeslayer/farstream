@@ -112,6 +112,16 @@ free_optional_parameter (FsCodecParameter *param)
   g_slice_free (FsCodecParameter, param);
 }
 
+
+static void
+free_feedback_parameter (FsFeedbackParameter *param)
+{
+  g_free (param->type);
+  g_free (param->subtype);
+  g_free (param->extra_params);
+  g_slice_free (FsFeedbackParameter, param);
+}
+
 /**
  * fs_codec_destroy:
  * @codec: #FsCodec structure to free
@@ -130,6 +140,10 @@ fs_codec_destroy (FsCodec * codec)
         NULL);
   g_list_free (codec->optional_params);
 
+  g_list_foreach (codec->ABI.ABI.feedback_params,
+      (GFunc) free_feedback_parameter, NULL);
+  g_list_free (codec->ABI.ABI.feedback_params);
+
   g_slice_free (FsCodec, codec);
 }
 
@@ -146,8 +160,6 @@ fs_codec_copy (const FsCodec * codec)
 {
   FsCodec *copy = NULL;
   GList *lp;
-  FsCodecParameter *param;
-  FsCodecParameter *param_copy;
 
   if (codec == NULL)
     return NULL;
@@ -167,8 +179,10 @@ fs_codec_copy (const FsCodec * codec)
 
   for (lp = codec->optional_params; lp; lp = g_list_next (lp))
   {
+    FsCodecParameter *param_copy;
+    FsCodecParameter *param = lp->data;;
+
     param_copy = g_slice_new (FsCodecParameter);
-    param = (FsCodecParameter *) lp->data;
     param_copy->name = g_strdup (param->name);
     param_copy->value = g_strdup (param->value);
     /* prepend then reverse the list for efficiency */
@@ -176,6 +190,22 @@ fs_codec_copy (const FsCodec * codec)
         param_copy);
   }
   copy->optional_params = g_list_reverse (copy->optional_params);
+
+  for (lp = codec->ABI.ABI.feedback_params; lp; lp = g_list_next (lp))
+  {
+    FsFeedbackParameter *param_copy;
+    FsFeedbackParameter *param = lp->data;;
+
+    param_copy = g_slice_new (FsFeedbackParameter);
+    param_copy->type = g_strdup (param->type);
+    param_copy->subtype = g_strdup (param->subtype);
+    param_copy->extra_params = g_strdup (param->extra_params);
+    /* prepend then reverse the list for efficiency */
+    copy->ABI.ABI.feedback_params = g_list_prepend (copy->ABI.ABI.feedback_params,
+        param_copy);
+  }
+  copy->ABI.ABI.feedback_params =
+      g_list_reverse (copy->ABI.ABI.feedback_params);
 
   return copy;
 }
@@ -487,6 +517,14 @@ fs_codec_to_string (const FsCodec *codec)
     g_string_append_printf (string, " %s=%s", param->name, param->value);
   }
 
+  for (item = codec->ABI.ABI.feedback_params;
+       item;
+       item = g_list_next (item)) {
+    FsFeedbackParameter *param = item->data;
+    g_string_append_printf (string, " %s/%s=%s", param->type, param->subtype,
+        param->extra_params);
+  }
+
   charstring = string->str;
   g_string_free (string, FALSE);
 
@@ -494,13 +532,40 @@ fs_codec_to_string (const FsCodec *codec)
 }
 
 
+static gboolean
+compare_optional_params (const gpointer p1, const gpointer p2)
+{
+  const FsCodecParameter *param1 = p1;
+  const FsCodecParameter *param2 = p2;
+
+  if (!g_ascii_strcasecmp (param1->name, param2->name) &&
+      !strcmp (param1->value, param2->value))
+    return TRUE;
+  else
+    return FALSE;
+}
+
+static gboolean
+compare_feedback_params (const gpointer p1, const gpointer p2)
+{
+  const FsFeedbackParameter *param1 = p1;
+  const FsFeedbackParameter *param2 = p2;
+
+  if (!g_ascii_strcasecmp (param1->subtype, param2->subtype) &&
+      !g_ascii_strcasecmp (param1->type, param2->type) &&
+      !g_strcmp0 (param1->extra_params, param2->extra_params))
+    return TRUE;
+  else
+    return FALSE;
+}
 
 /*
  * Check if all of the elements of list1 are in list2
- * It compares GLists of FarsightCodecParameter
+ * It compares GLists of X using the comparison function
  */
 static gboolean
-compare_lists (GList *list1, GList *list2)
+compare_lists (GList *list1, GList *list2,
+    gboolean (*compare_params) (const gpointer p1, const gpointer p2))
 {
   GList *item1;
 
@@ -515,8 +580,7 @@ compare_lists (GList *list1, GList *list2)
          item2 = g_list_next (item2)) {
       FsCodecParameter *param2 = item2->data;
 
-      if (!g_ascii_strcasecmp (param1->name, param2->name) &&
-          !strcmp (param1->value, param2->value))
+      if (compare_params (param1, param2))
         break;
     }
     if (!item2)
@@ -565,8 +629,16 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
   /* Is there a smarter way to compare to un-ordered linked lists
    * to make sure they contain exactly the same elements??
    */
-  if (!compare_lists (codec1->optional_params, codec2->optional_params) ||
-      !compare_lists (codec2->optional_params, codec1->optional_params))
+  if (!compare_lists (codec1->optional_params, codec2->optional_params,
+          compare_optional_params) ||
+      !compare_lists (codec2->optional_params, codec1->optional_params,
+          compare_optional_params))
+    return FALSE;
+
+  if (!compare_lists (codec1->ABI.ABI.feedback_params,
+          codec2->ABI.ABI.feedback_params, compare_feedback_params) ||
+      !compare_lists (codec2->ABI.ABI.feedback_params,
+          codec1->ABI.ABI.feedback_params, compare_feedback_params))
     return FALSE;
 
   return TRUE;
@@ -604,7 +676,7 @@ fs_codec_list_are_equal (GList *list1, GList *list2)
  * fs_codec_add_optional_parameter:
  * @codec: The #FsCodec to add the parameter to
  * @name: The name of the optional parameter
- * @value: The value of the optional parameter
+ * @extra_params: The extra_params of the optional parameter
  *
  * This function adds an new optional parameter to a #FsCodec
  */
@@ -682,3 +754,73 @@ fs_codec_get_optional_parameter (FsCodec *codec, const gchar *name,
 
   return NULL;
 }
+
+/**
+ * fs_codec_add_feedback_parameter:
+ * @codec: The #FsCodec to add the parameter to
+ * @type: The type of the feedback parameter
+ * @subtype: The subtype of the feedback parameter
+ * @extra_params: The extra_params of the feeback parameter
+ *
+ * This function adds an new feedback parameter to a #FsCodec
+ */
+
+void
+fs_codec_add_feedback_parameter (FsCodec *codec, const gchar *type,
+    const gchar *subtype, const gchar *extra_params)
+{
+  FsFeedbackParameter *param;
+
+  g_return_if_fail (type != NULL);
+  g_return_if_fail (subtype != NULL);
+  g_return_if_fail (extra_params != NULL);
+
+  param = g_slice_new (FsFeedbackParameter);
+
+  param->type = g_strdup (type);
+  param->subtype = g_strdup (subtype);
+  param->extra_params = g_strdup (extra_params);
+
+  codec->ABI.ABI.feedback_params =
+      g_list_append (codec->ABI.ABI.feedback_params, param);
+}
+
+
+/**
+ * fs_codec_get_feedback_parameter:
+ * @codec: a #FsCodec
+ * @type: The subtype of the parameter to search for or %NULL for any type
+ * @subtype: The subtype of the parameter to search for or %NULL for any subtype
+ * @extra_params: The extra_params of the parameter to search for or %NULL for
+ *   any extra_params
+ *
+ * Finds the #FsFeedbackParameter in the #FsCodec that has the requested
+ * subtype, type and extra_params. One of which must be non-NULL;
+ *
+ * Returns: the #FsFeedbackParameter from the #FsCodec or %NULL
+ */
+
+FsFeedbackParameter *
+fs_codec_get_feedback_parameter (FsCodec *codec,
+    const gchar *type, const gchar *subtype, const gchar *extra_params)
+{
+  GList *item = NULL;
+
+  g_return_val_if_fail (codec != NULL, NULL);
+  g_return_val_if_fail (type != NULL || subtype != NULL, NULL);
+
+  for (item = g_list_first (codec->ABI.ABI.feedback_params);
+       item;
+       item = g_list_next (item))
+  {
+    FsFeedbackParameter *param = item->data;
+    if (!g_ascii_strcasecmp (param->type, type) &&
+        (subtype == NULL || !g_ascii_strcasecmp (param->subtype, subtype)) &&
+        (extra_params == NULL || !g_ascii_strcasecmp (param->extra_params,
+            extra_params)))
+      return param;
+  }
+
+  return NULL;
+}
+

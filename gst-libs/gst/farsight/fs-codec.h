@@ -34,6 +34,7 @@ G_BEGIN_DECLS
 
 typedef struct _FsCodec FsCodec;
 typedef struct _FsCodecParameter FsCodecParameter;
+typedef struct _FsFeedbackParameter FsFeedbackParameter;
 
 #define FS_TYPE_CODEC \
   (fs_codec_get_type ())
@@ -104,6 +105,7 @@ struct _FsCodec
       guint ptime;
       guint maxptime;
       guint minimum_reporting_interval;
+      GList *feedback_params;
     } ABI;
     gpointer _padding[4];         /* padding for binary-compatible
                                    expansion*/
@@ -120,6 +122,20 @@ struct _FsCodec
 struct _FsCodecParameter {
     gchar *name;
     gchar *value;
+};
+
+/**
+ * FsFeedbackParameter:
+ * @type: the type of feedback, like "ack", "name", "ccm"
+ * @subtype: the subtype of feedback (can be an empty string)
+ * @extra_params: a string containing extra parameters (can be empty)
+ *
+ * Use to store feedback parameters
+ */
+struct _FsFeedbackParameter {
+  gchar *type;
+  gchar *subtype;
+  gchar *extra_params;
 };
 
 
@@ -174,6 +190,14 @@ void fs_codec_remove_optional_parameter (FsCodec *codec,
 
 FsCodecParameter *fs_codec_get_optional_parameter (FsCodec *codec,
     const gchar *name, const gchar *value);
+
+
+void fs_codec_add_feedback_parameter (FsCodec *codec, const gchar *type,
+    const gchar *subtype, const gchar *extra_params);
+
+FsFeedbackParameter *fs_codec_get_feedback_parameter (FsCodec *codec,
+    const gchar *type, const gchar *subtype, const gchar *extra_params);
+
 
 G_END_DECLS
 
