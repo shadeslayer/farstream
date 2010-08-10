@@ -907,7 +907,8 @@ fs_codec_to_gst_caps (const FsCodec *codec)
 
   for (item = codec->optional_params;
        item;
-       item = g_list_next (item)) {
+       item = g_list_next (item))
+  {
     FsCodecParameter *param = item->data;
     gchar *lower_name = g_ascii_strdown (param->name, -1);
 
@@ -918,6 +919,31 @@ fs_codec_to_gst_caps (const FsCodec *codec)
       gst_structure_set (structure, lower_name, G_TYPE_STRING, param->value,
           NULL);
     g_free (lower_name);
+  }
+
+  for (item = codec->ABI.ABI.feedback_params;
+       item;
+       item = g_list_next (item))
+  {
+    FsFeedbackParameter *param = item->data;
+    gchar *lower_type = g_ascii_strdown (param->type, -1);
+    gchar *rtcpfb_name;
+
+    if (param->subtype[0])
+    {
+      gchar *lower_subt = g_ascii_strdown (param->subtype, -1);
+      rtcpfb_name = g_strdup_printf ("rtcp-fb-%s-%s", lower_type, lower_subt);
+      g_free (lower_subt);
+    }
+    else
+    {
+      rtcpfb_name = g_strdup_printf ("rtcp-fb-%s", lower_type);
+    }
+
+    gst_structure_set (structure,
+        rtcpfb_name, G_TYPE_STRING, param->extra_params, NULL);
+    g_free (lower_type);
+    g_free (rtcpfb_name);
   }
 
   caps = gst_caps_new_full (structure, NULL);
