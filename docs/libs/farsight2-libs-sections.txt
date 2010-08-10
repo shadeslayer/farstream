@@ -137,6 +137,7 @@ fs_codec_remove_optional_parameter
 fs_codec_get_optional_parameter
 fs_codec_add_feedback_parameter
 fs_codec_get_feedback_parameter
+fs_codec_remove_feedback_parameter
 FS_CODEC_FORMAT
 FS_CODEC_ARGS
 fs_media_type_to_string

@@ -853,3 +853,28 @@ fs_codec_get_feedback_parameter (FsCodec *codec,
   return NULL;
 }
 
+
+
+/**
+ * fs_codec_remove_optional_parameter:
+ * @codec: a #FsCodec
+ * @item: a pointer to the #GList element to remove that contains a
+ * #FsFeedbackParameter
+ *
+ * Removes an optional parameter from a codec.
+ *
+ * NULL param will do nothing.
+ */
+
+void
+fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item)
+{
+  g_return_if_fail (codec);
+
+  if (!item)
+    return;
+
+  free_feedback_parameter (item->data);
+  codec->ABI.ABI.feedback_params =
+      g_list_delete_link (codec->ABI.ABI.feedback_params, item);
+}

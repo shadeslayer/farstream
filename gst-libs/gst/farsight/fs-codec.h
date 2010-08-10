@@ -198,6 +198,7 @@ void fs_codec_add_feedback_parameter (FsCodec *codec, const gchar *type,
 FsFeedbackParameter *fs_codec_get_feedback_parameter (FsCodec *codec,
     const gchar *type, const gchar *subtype, const gchar *extra_params);
 
+void fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item);
 
 G_END_DECLS
 
