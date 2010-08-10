@@ -799,6 +799,24 @@ create_local_codec_associations (
 }
 
 static void
+intersect_feedback_params (FsCodec *new_codec, FsCodec *orig_codec)
+{
+  GList *item = new_codec->ABI.ABI.feedback_params;
+
+  while (item)
+  {
+    GList *nextitem = item->next;
+    FsFeedbackParameter *param = item->data;
+
+    if (!fs_codec_get_feedback_parameter (orig_codec, param->type,
+            param->subtype, param->extra_params))
+      fs_codec_remove_feedback_parameter (new_codec, item);
+
+    item = nextitem;
+  }
+}
+
+static void
 negotiate_stream_codec (CodecAssociation *old_ca, FsCodec *remote_codec,
     gboolean multi_stream, FsCodec **nego_codec, FsCodec **nego_send_codec)
 {
@@ -827,6 +845,12 @@ negotiate_stream_codec (CodecAssociation *old_ca, FsCodec *remote_codec,
       fs_codec_destroy (*nego_codec);
       *nego_codec = NULL;
     }
+  }
+
+  if (*nego_codec)
+  {
+    intersect_feedback_params (*nego_codec, old_ca->codec);
+    intersect_feedback_params (*nego_send_codec, old_ca->send_codec);
   }
 }
 
