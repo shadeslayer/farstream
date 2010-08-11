@@ -211,7 +211,7 @@ GST_START_TEST (test_fscodec_keyfile)
     GList *item;
     for(item = codecs; item ; item= item->next)
     {
-      GST_DEBUG ("%s", fs_codec_to_string (item->data));
+      g_debug("%s", fs_codec_to_string (item->data));
     }
   }
 #endif
@@ -219,6 +219,8 @@ GST_START_TEST (test_fscodec_keyfile)
   codec = fs_codec_new (122, "TEST1", FS_MEDIA_TYPE_AUDIO, 8001);
   codec->channels = 5;
   fs_codec_add_optional_parameter (codec, "test3", "test4");
+  fs_codec_add_feedback_parameter (codec, "aa", "bb", "cc");
+  fs_codec_add_feedback_parameter (codec, "dd", "ee", "");
   comparison = g_list_append (comparison, codec);
 
   codec = fs_codec_new (123, "TEST2", FS_MEDIA_TYPE_VIDEO, 8002);
