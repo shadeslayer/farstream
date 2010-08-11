@@ -101,15 +101,6 @@ init_codec_with_three_params (void)
   return codec;
 }
 
-static void
-_free_codec_param (gpointer param)
-{
-  FsCodecParameter *p = param;
-  g_free (p->name);
-  g_free (p->value);
-  g_slice_free (FsCodecParameter, p);
-}
-
 GST_START_TEST (test_fscodec_are_equal_opt_params)
 {
   FsCodec *codec1;
@@ -121,19 +112,15 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params) not recognized");
 
-  _free_codec_param (g_list_first (codec1->optional_params)->data);
-  codec1->optional_params = g_list_remove (codec1->optional_params,
+  fs_codec_remove_optional_parameter (codec1,
       g_list_first (codec1->optional_params)->data);
-
   fs_codec_add_optional_parameter (codec1, "aa1", "bb1");
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 1) not recognized");
 
-  _free_codec_param (g_list_first (codec1->optional_params)->data);
-  codec1->optional_params = g_list_remove (codec1->optional_params,
+  fs_codec_remove_optional_parameter (codec1,
       g_list_first (codec1->optional_params)->data);
-
   fs_codec_add_optional_parameter (codec1, "aa2", "bb2");
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
@@ -143,8 +130,7 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
 
   codec1 = init_codec_with_three_params ();
 
-  _free_codec_param (g_list_first (codec1->optional_params)->data);
-  codec1->optional_params = g_list_remove (codec1->optional_params,
+  fs_codec_remove_optional_parameter (codec1,
       g_list_first (codec1->optional_params)->data);
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
@@ -155,8 +141,7 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   fs_codec_destroy (codec1);
 
   codec1 = init_codec_with_three_params ();
-  _free_codec_param (g_list_last (codec1->optional_params)->data);
-  codec1->optional_params = g_list_remove (codec1->optional_params,
+  fs_codec_remove_optional_parameter (codec1,
       g_list_last (codec1->optional_params)->data);
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
