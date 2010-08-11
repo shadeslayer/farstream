@@ -95,6 +95,10 @@ init_codec_with_three_params (void)
   fs_codec_add_optional_parameter (codec, "aa2", "bb2");
   fs_codec_add_optional_parameter (codec, "aa3", "bb3");
 
+  fs_codec_add_feedback_parameter (codec, "aa1", "bb1", "cc1");
+  fs_codec_add_feedback_parameter (codec, "aa2", "bb2", "cc2");
+  fs_codec_add_feedback_parameter (codec, "aa3", "bb3", "cc3");
+
   codec->ABI.ABI.ptime = 12;
   codec->ABI.ABI.maxptime = 12;
 
@@ -143,6 +147,60 @@ GST_START_TEST (test_fscodec_are_equal_opt_params)
   codec1 = init_codec_with_three_params ();
   fs_codec_remove_optional_parameter (codec1,
       g_list_last (codec1->optional_params)->data);
+
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
+      "Did not detect removal of last parameter of first codec");
+  fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
+      "Did not detect removal of last parameter of second codec");
+
+  fs_codec_destroy (codec1);
+  fs_codec_destroy (codec2);
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_fscodec_are_equal_feedback_params)
+{
+  FsCodec *codec1;
+  FsCodec *codec2;
+
+  codec1 = init_codec_with_three_params ();
+  codec2 = init_codec_with_three_params ();
+
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
+      "Identical codecs (with params) not recognized");
+
+  fs_codec_remove_feedback_parameter (codec1,
+      g_list_first (codec1->ABI.ABI.feedback_params));
+  fs_codec_add_feedback_parameter (codec1, "aa1", "bb1", "cc1");
+
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
+      "Identical codecs (with params in different order 1) not recognized");
+
+  fs_codec_remove_feedback_parameter (codec1,
+      g_list_first (codec1->ABI.ABI.feedback_params));
+  fs_codec_add_feedback_parameter (codec1, "aa2", "bb2", "cc2");
+
+  fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
+      "Identical codecs (with params in different order 2) not recognized");
+
+  fs_codec_destroy (codec1);
+
+  codec1 = init_codec_with_three_params ();
+
+  fs_codec_remove_feedback_parameter (codec1,
+      g_list_first (codec1->ABI.ABI.feedback_params));
+
+  fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
+      "Did not detect removal of first parameter of first codec");
+  fail_unless (fs_codec_are_equal (codec2, codec1) == FALSE,
+      "Did not detect removal of first parameter of second codec");
+
+  fs_codec_destroy (codec1);
+
+  codec1 = init_codec_with_three_params ();
+  fs_codec_remove_feedback_parameter (codec1,
+      g_list_last (codec1->ABI.ABI.feedback_params));
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Did not detect removal of last parameter of first codec");
@@ -221,6 +279,7 @@ GST_START_TEST (test_fscodec_keyfile)
   fs_codec_add_optional_parameter (codec, "test3", "test4");
   fs_codec_add_feedback_parameter (codec, "aa", "bb", "cc");
   fs_codec_add_feedback_parameter (codec, "dd", "ee", "");
+  fs_codec_add_feedback_parameter (codec, "ff", "", "");
   comparison = g_list_append (comparison, codec);
 
   codec = fs_codec_new (123, "TEST2", FS_MEDIA_TYPE_VIDEO, 8002);
@@ -261,6 +320,7 @@ fscodec_suite (void)
   tcase_add_test (tc_chain, test_fscodec_new);
   tcase_add_test (tc_chain, test_fscodec_are_equal);
   tcase_add_test (tc_chain, test_fscodec_are_equal_opt_params);
+  tcase_add_test (tc_chain, test_fscodec_are_equal_feedback_params);
   tcase_add_test (tc_chain, test_fscodec_copy);
   tcase_add_test (tc_chain, test_fscodec_null);
   tcase_add_test (tc_chain, test_fscodec_keyfile);

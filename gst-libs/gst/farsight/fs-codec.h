@@ -175,29 +175,23 @@ GList *fs_codec_list_copy (const GList *codec_list);
 
 GList *fs_codec_list_from_keyfile (const gchar *filename, GError **error);
 gchar *fs_codec_to_string (const FsCodec *codec);
+const gchar *fs_media_type_to_string (FsMediaType media_type);
 
 gboolean fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2);
-
 gboolean fs_codec_list_are_equal (GList *list1, GList *list2);
-
-const gchar *fs_media_type_to_string (FsMediaType media_type);
 
 void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
     const gchar *value);
-
 void fs_codec_remove_optional_parameter (FsCodec *codec,
     FsCodecParameter *param);
-
 FsCodecParameter *fs_codec_get_optional_parameter (FsCodec *codec,
     const gchar *name, const gchar *value);
 
 
 void fs_codec_add_feedback_parameter (FsCodec *codec, const gchar *type,
     const gchar *subtype, const gchar *extra_params);
-
 FsFeedbackParameter *fs_codec_get_feedback_parameter (FsCodec *codec,
     const gchar *type, const gchar *subtype, const gchar *extra_params);
-
 void fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item);
 
 G_END_DECLS
