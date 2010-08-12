@@ -59,10 +59,11 @@ GST_START_TEST (test_rtprecv_no_config_data)
   GstMessage *msg;
   guint port = 0;
   GError *error = NULL;
-  GList *codecs;
+  GList *codecs = NULL;
   GstElement *fspipeline;
   GstElement *conference;
   FsSession *session;
+  GList *item;
 
   fspipeline = gst_pipeline_new (NULL);
 
@@ -76,6 +77,24 @@ GST_START_TEST (test_rtprecv_no_config_data)
     fail ("Error while creating new session (%d): %s",
         error->code, error->message);
   fail_if (session == NULL, "Could not make session, but no GError!");
+
+
+  for (item = codecs; item; item = item->next)
+  {
+    FsCodec *codec = item->data;
+
+    if (!g_ascii_strcasecmp ("THEORA", codec->encoding_name))
+      break;
+  }
+  fs_codec_list_destroy (codecs);
+
+  if (!item)
+  {
+    GST_INFO ("Skipping %s because THEORA is not detected", G_STRFUNC);
+    g_object_unref (session);
+    gst_object_unref (fspipeline);
+    return;
+  }
 
   participant = fs_conference_new_participant (
       FS_CONFERENCE (conference), "blob@blob.com", &error);
@@ -94,6 +113,8 @@ GST_START_TEST (test_rtprecv_no_config_data)
 
   g_signal_connect (stream, "src-pad-added",
       G_CALLBACK (src_pad_added_cb), fspipeline);
+
+  g_object_get (session, "codecs-without-config", &codecs, NULL);
 
 
   codecs = g_list_prepend (NULL, fs_codec_new (96, "THEORA",
