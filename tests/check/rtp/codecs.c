@@ -2075,13 +2075,64 @@ GST_START_TEST (test_rtpcodecs_nego_h264)
 }
 GST_END_TEST;
 
+
+GST_START_TEST (test_rtpcodecs_nego_feedback)
+{
+  struct SimpleTestConference *dat = NULL;
+  FsCodec *codec = NULL;
+  FsCodec *outcodec = NULL;
+  FsCodec *prefcodec = NULL;
+  FsCodec *outprefcodec = NULL;
+  FsParticipant *participant;
+  setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_VIDEO);
+
+
+  outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H264",
+      FS_MEDIA_TYPE_VIDEO, 90000);
+  prefcodec = fs_codec_copy (outprefcodec);
+  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+      "identity");
+  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+      "identity");
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_feedback_parameter (codec, "nack", "pli", "");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_feedback_parameter (prefcodec, "nack", "pli", "");
+  fs_codec_add_feedback_parameter (outprefcodec, "nack", "pli", "");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  fs_codec_add_feedback_parameter (codec, "nack", "pli", "");
+  fs_codec_add_feedback_parameter (outcodec, "nack", "pli", "");
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  fs_codec_destroy (outprefcodec);
+  fs_codec_destroy (prefcodec);
+  cleanup_codec_tests (dat, participant);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
   Suite *s = suite_create ("fsrtpcodecs");
   TCase *tc_chain;
   GLogLevelFlags fatal_mask;
-
 
   fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
@@ -2154,6 +2205,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_h264");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_h264);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_feedback");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_feedback);
   suite_add_tcase (s, tc_chain);
 
   return s;
