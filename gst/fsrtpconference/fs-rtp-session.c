@@ -3489,7 +3489,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     FS_RTP_SESSION_LOCK (self);
     secondary_codecs = fs_rtp_special_sources_get_codecs_locked (
         self->priv->extra_sources, self->priv->codec_associations,
-        ca->codec);
+        codec_copy);
     FS_RTP_SESSION_UNLOCK (self);
 
     secondary_codecs = g_list_concat (secondary_codecs, other_codecs);
