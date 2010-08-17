@@ -29,6 +29,11 @@
 
 #include "fs-rtp-tfrc.h"
 
+#include "tfrc.h"
+
+#include <gst/rtp/gstrtcpbuffer.h>
+
+
 GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
 #define GST_CAT_DEFAULT fsrtpconference_tfrc
 
@@ -38,6 +43,8 @@ struct TrackedSource {
   gboolean has_google_tfrc;
   gboolean has_standard_tfrc;
 
+  TfrcSender *sender;
+  TfrcReceiver *receiver;
 };
 
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
@@ -62,6 +69,11 @@ static void
 free_source (struct TrackedSource *src)
 {
   g_object_unref (src->rtpsource);
+
+  if (src->sender)
+    tfrc_sender_free (src->sender);
+  if (src->receiver)
+    tfrc_receiver_free (src->receiver);
 
   g_slice_free (struct TrackedSource, src);
 }
@@ -156,6 +168,84 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 static gboolean
 incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 {
+  GstRTCPPacket packet;
+
+
+  if (!gst_rtcp_buffer_validate (buffer))
+    goto out;
+
+  if (!gst_rtcp_buffer_get_first_packet (buffer, &packet))
+    goto out;
+
+  do {
+    if (gst_rtcp_packet_get_type (&packet) == GST_RTCP_TYPE_RTPFB &&
+        gst_rtcp_packet_fb_get_type (&packet) == 2 &&
+        gst_rtcp_packet_get_length (&packet) == 6)
+    {
+      /* We have a TFRC packet */
+      guint32 media_source_ssrc;
+      guint32 ts;
+      guint32 delay;
+      guint32 x_recv;
+      guint32 loss_event_rate;
+      guint8 *buf = GST_BUFFER_DATA (packet.buffer) + packet.offset;
+      struct TrackedSource *src;
+      guint now, rtt;
+
+      media_source_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
+
+      buf += 4 * 3; /* skip the header, ssrc of sender and media sender */
+
+      ts = GST_READ_UINT32_BE (buf);
+      buf += 4;
+      delay = GST_READ_UINT32_BE (buf);
+      buf += 4;
+      x_recv = GST_READ_UINT32_BE (buf);
+      buf += 4;
+      loss_event_rate = GST_READ_UINT32_BE (buf);
+
+      GST_LOG ("Got RTCP TFRC packet last_sent_ts: %u delay: %u x_recv: %u"
+          " loss_event_rate: %u", ts, delay, x_recv, loss_event_rate);
+
+      GST_OBJECT_LOCK (self);
+
+      src = g_hash_table_lookup (self->tfrc_sources,
+          GUINT_TO_POINTER (media_source_ssrc));
+      if (!src)
+      {
+        GST_WARNING ("Could not find tracked source for ssrc %X",
+            media_source_ssrc);
+        goto done;
+      }
+
+      now = fs_rtp_tfrc_get_now (self);
+
+      if (ts >= now || now - ts < delay)
+      {
+        GST_DEBUG ("Ignoring packet because ts >= now || now - ts < delay"
+            "(ts: %u now: %u delay:%u", ts, now, delay);
+        goto done;
+      }
+
+      rtt = now - ts - delay;
+
+      GST_LOG ("rtt: %s", rtt);
+
+      if (!src->sender)
+      {
+        src->sender = tfrc_sender_new (1460, now);
+        tfrc_sender_on_first_rtt (src->sender, now);
+      }
+
+      tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
+          loss_event_rate, TRUE /* is data limited */);
+
+    done:
+      GST_OBJECT_UNLOCK (self);
+    }
+  } while (gst_rtcp_packet_move_to_next (&packet));
+
+out:
   return TRUE;
 }
 
