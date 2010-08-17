@@ -29,25 +29,7 @@
 
 #include "fs-rtp-tfrc.h"
 
-
-struct _FsRtpTfrcPrivate
-{
-  GObject *rtpsession;
-
-  GstPad *in_rtp_pad;
-  GstPad *in_rtcp_pad;
-
-  gulong in_rtp_probe_id;
-  gulong in_rtcp_probe_id;
-
-  GHashTable *tfrc_sender_ht;
-};
-
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
-
-#define FS_RTP_TFRC_GET_PRIVATE(o)  \
-  (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RTP_TFRC,  \
-      FsRtpTfrcPrivate))
 
 static void fs_rtp_tfrc_dispose (GObject *object);
 static void fs_rtp_tfrc_finalize (GObject *object);
@@ -62,8 +44,6 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 
   gobject_class->dispose = fs_rtp_tfrc_dispose;
   gobject_class->finalize = fs_rtp_tfrc_finalize;
-
-  g_type_class_add_private (klass, sizeof (FsRtpTfrcPrivate));
 }
 
 
@@ -71,7 +51,6 @@ static void
 fs_rtp_tfrc_init (FsRtpTfrc *self)
 {
   /* member init */
-  self->priv = FS_RTP_TFRC_GET_PRIVATE (self);
 }
 
 
@@ -80,12 +59,12 @@ fs_rtp_tfrc_dispose (GObject *object)
 {
   FsRtpTfrc *self = FS_RTP_TFRC (object);
 
-  if (self->priv->in_rtp_probe_id)
-    g_signal_handler_disconnect (self->priv->in_rtp_pad,
-        self->priv->in_rtp_probe_id);
-  if (self->priv->in_rtcp_probe_id)
-    g_signal_handler_disconnect (self->priv->in_rtcp_pad,
-        self->priv->in_rtcp_probe_id);
+  if (self->in_rtp_probe_id)
+    g_signal_handler_disconnect (self->in_rtp_pad, self->in_rtp_probe_id);
+  self->in_rtp_probe_id = 0;
+  if (self->in_rtcp_probe_id)
+    g_signal_handler_disconnect (self->in_rtcp_pad, self->in_rtcp_probe_id);
+  self->in_rtcp_probe_id = 0;
 }
 
 static void
@@ -139,13 +118,13 @@ fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp)
 
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
 
-  self->priv->rtpsession = rtpsession;
-  self->priv->in_rtp_pad = inrtp;
-  self->priv->in_rtcp_pad = inrtcp;
+  self->rtpsession = rtpsession;
+  self->in_rtp_pad = inrtp;
+  self->in_rtcp_pad = inrtcp;
 
-  self->priv->in_rtp_probe_id = gst_pad_add_buffer_probe (inrtp,
+  self->in_rtp_probe_id = gst_pad_add_buffer_probe (inrtp,
       G_CALLBACK (incoming_rtp_probe), self);
-  self->priv->in_rtcp_probe_id = gst_pad_add_buffer_probe (inrtcp,
+  self->in_rtcp_probe_id = gst_pad_add_buffer_probe (inrtcp,
       G_CALLBACK (incoming_rtcp_probe), self);
 
   g_signal_connect_object (rtpsession, "on-ssrc-validated",

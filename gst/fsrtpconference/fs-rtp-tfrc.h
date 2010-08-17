@@ -47,12 +47,6 @@ G_BEGIN_DECLS
 
 typedef struct _FsRtpTfrc FsRtpRateControl;
 typedef struct _FsRtpTfrcClass FsRtpRateControlClass;
-typedef struct _FsRtpTfrcPrivate FsRtpRateControlPrivate;
-
-struct _FsRtpTfrcClass
-{
-  GstObjectClass parent_class;
-};
 
 /**
  * FsRtpTfrc:
@@ -62,7 +56,18 @@ struct _FsRtpTfrc
 {
   GstObject parent;
 
-  FsRtpTfrcPrivate *priv;
+  GObject *rtpsession;
+
+  GstPad *in_rtp_pad;
+  GstPad *in_rtcp_pad;
+
+  gulong in_rtp_probe_id;
+  gulong in_rtcp_probe_id;
+};
+
+struct _FsRtpTfrcClass
+{
+  GstObjectClass parent_class;
 };
 
 #define FS_RTP_TFRC_LOCK(tfrc)  \
