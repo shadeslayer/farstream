@@ -32,6 +32,14 @@
 GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
 #define GST_CAT_DEFAULT fsrtpconference_tfrc
 
+struct TrackedSource {
+  guint32 ssrc;
+  GObject *rtpsource;
+  gboolean has_google_tfrc;
+  gboolean has_standard_tfrc;
+
+};
+
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
 
 static void fs_rtp_tfrc_dispose (GObject *object);
@@ -51,12 +59,24 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 
 
 static void
+free_source (struct TrackedSource *src)
+{
+  g_object_unref (src->rtpsource);
+
+  g_slice_free (struct TrackedSource, src);
+}
+
+static void
 fs_rtp_tfrc_init (FsRtpTfrc *self)
 {
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_tfrc,
       "fsrtpconference_tfrc", 0,
       "Farsight RTP Conference Element Rate Control logic");
+
   /* member init */
+
+  self->tfrc_sources = g_hash_table_new_full (g_direct_hash,
+      g_direct_equal, NULL, (GDestroyNotify) free_source);
 }
 
 
@@ -72,6 +92,10 @@ fs_rtp_tfrc_dispose (GObject *object)
     g_signal_handler_disconnect (self->in_rtcp_pad, self->in_rtcp_probe_id);
   self->in_rtcp_probe_id = 0;
 
+  if (self->tfrc_sources)
+    g_hash_table_unref (self->tfrc_sources);
+  self->tfrc_sources = NULL;
+
   gst_object_unref (self->systemclock);
   self->systemclock = NULL;
 }
@@ -85,7 +109,26 @@ static void
 rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *source,
     FsRtpTfrc *self)
 {
-  return;
+  struct TrackedSource *src = NULL;
+  guint32 ssrc;
+
+  g_object_get (source, "ssrc", &ssrc, NULL);
+
+  GST_OBJECT_LOCK (self);
+  src = g_hash_table_lookup (self->tfrc_sources, GUINT_TO_POINTER (ssrc));
+
+  if (src)
+    goto out;
+
+  src = g_slice_new0 (struct TrackedSource);
+
+  src->ssrc = ssrc;
+  src->rtpsource = g_object_ref (source);
+
+  g_hash_table_insert (self->tfrc_sources, GUINT_TO_POINTER (ssrc), src);
+
+out:
+  GST_OBJECT_UNLOCK (self);
 }
 
 static guint

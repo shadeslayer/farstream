@@ -65,6 +65,8 @@ struct _FsRtpTfrc
 
   gulong in_rtp_probe_id;
   gulong in_rtcp_probe_id;
+
+  GHashTable *tfrc_sources;
 };
 
 struct _FsRtpTfrcClass
