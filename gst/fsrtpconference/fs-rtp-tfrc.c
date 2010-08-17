@@ -29,6 +29,9 @@
 
 #include "fs-rtp-tfrc.h"
 
+GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
+#define GST_CAT_DEFAULT fsrtpconference_tfrc
+
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
 
 static void fs_rtp_tfrc_dispose (GObject *object);
@@ -50,6 +53,9 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 static void
 fs_rtp_tfrc_init (FsRtpTfrc *self)
 {
+  GST_DEBUG_CATEGORY_INIT (fsrtpconference_tfrc,
+      "fsrtpconference_tfrc", 0,
+      "Farsight RTP Conference Element Rate Control logic");
   /* member init */
 }
 
