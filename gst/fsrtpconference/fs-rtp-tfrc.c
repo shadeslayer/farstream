@@ -71,6 +71,9 @@ fs_rtp_tfrc_dispose (GObject *object)
   if (self->in_rtcp_probe_id)
     g_signal_handler_disconnect (self->in_rtcp_pad, self->in_rtcp_probe_id);
   self->in_rtcp_probe_id = 0;
+
+  gst_object_unref (self->systemclock);
+  self->systemclock = NULL;
 }
 
 static void
@@ -83,6 +86,12 @@ rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *source,
     FsRtpTfrc *self)
 {
   return;
+}
+
+static guint
+fs_rtp_tfrc_get_now (FsRtpTfrc *self)
+{
+  return GST_TIME_AS_MSECONDS (gst_clock_get_time (self->systemclock));
 }
 
 static gboolean
@@ -123,6 +132,8 @@ fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp)
   g_return_val_if_fail (rtpsession, NULL);
 
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
+
+  self->systemclock = gst_system_clock_obtain ();
 
   self->rtpsession = rtpsession;
   self->in_rtp_pad = inrtp;

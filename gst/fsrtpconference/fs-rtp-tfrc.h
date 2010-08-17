@@ -56,6 +56,8 @@ struct _FsRtpTfrc
 {
   GstObject parent;
 
+  GstClock *systemclock;
+
   GObject *rtpsession;
 
   GstPad *in_rtp_pad;
