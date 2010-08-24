@@ -30,7 +30,6 @@
 #include "fs-rtp-tfrc.h"
 
 #include "fs-rtp-packet-modder.h"
-#include "tfrc.h"
 
 #include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
@@ -38,21 +37,6 @@
 
 GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
 #define GST_CAT_DEFAULT fsrtpconference_tfrc
-
-struct TrackedSource {
-  FsRtpTfrc *self;
-
-  guint32 ssrc;
-  GObject *rtpsource;
-  gboolean has_google_tfrc;
-  gboolean has_standard_tfrc;
-
-  TfrcSender *sender;
-  GstClockID sender_id;
-  guint sender_expiry;
-
-  TfrcReceiver *receiver;
-};
 
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
 
@@ -299,7 +283,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       rtt = now - ts - delay;
 
-      self->rtt = rtt;
+      src->rtt = rtt;
 
       GST_LOG ("rtt: %s", rtt);
 
@@ -336,7 +320,9 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   GST_OBJECT_LOCK (self);
 
-  if (self->extension_type == EXTENSION_NONE)
+  if (self->extension_type == EXTENSION_NONE ||
+    self->last_src == NULL ||
+    self->last_src->rtt == 0)
   {
     GST_OBJECT_UNLOCK (self);
     return buffer_or_list;
@@ -356,7 +342,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   list = gst_buffer_list_make_writable (list);
 
-  GST_WRITE_UINT24_BE (data, self->rtt);
+  GST_WRITE_UINT24_BE (data, self->last_src->rtt);
   GST_WRITE_UINT32_BE (data+3, fs_rtp_tfrc_get_now (self));
 
   it = gst_buffer_list_iterate (list);

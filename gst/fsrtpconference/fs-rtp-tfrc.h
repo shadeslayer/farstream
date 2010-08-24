@@ -28,6 +28,8 @@
 
 #include <gst/gst.h>
 
+#include "tfrc.h"
+
 G_BEGIN_DECLS
 
 /* TYPE MACROS */
@@ -54,6 +56,24 @@ typedef enum {
   EXTENSION_TWO_BYTES
 } ExtensionType;
 
+
+struct TrackedSource {
+  FsRtpTfrc *self;
+
+  guint32 ssrc;
+  GObject *rtpsource;
+  gboolean has_google_tfrc;
+  gboolean has_standard_tfrc;
+
+  TfrcSender *sender;
+  GstClockID sender_id;
+  guint sender_expiry;
+
+  TfrcReceiver *receiver;
+
+  guint rtt;
+};
+
 /**
  * FsRtpTfrc:
  *
@@ -75,11 +95,10 @@ struct _FsRtpTfrc
   GstElement *packet_modder;
 
   GHashTable *tfrc_sources;
+  struct TrackedSource *last_src;
 
   ExtensionType extension_type;
   guint extension_id;
-
-  guint rtt;
 };
 
 struct _FsRtpTfrcClass
