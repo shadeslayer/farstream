@@ -48,6 +48,12 @@ G_BEGIN_DECLS
 typedef struct _FsRtpTfrc FsRtpRateControl;
 typedef struct _FsRtpTfrcClass FsRtpRateControlClass;
 
+typedef enum {
+  EXTENSION_NONE,
+  EXTENSION_ONE_BYTE,
+  EXTENSION_TWO_BYTES
+} ExtensionType;
+
 /**
  * FsRtpTfrc:
  *
@@ -66,7 +72,14 @@ struct _FsRtpTfrc
   gulong in_rtp_probe_id;
   gulong in_rtcp_probe_id;
 
+  GstElement *packet_modder;
+
   GHashTable *tfrc_sources;
+
+  ExtensionType extension_type;
+  guint extension_id;
+
+  guint rtt;
 };
 
 struct _FsRtpTfrcClass
@@ -85,7 +98,7 @@ struct _FsRtpTfrcClass
 GType fs_rtp_tfrc_get_type (void);
 
 FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp,
-    GstPad *inrtcp);
+    GstPad *inrtcp, GstElement **send_filter);
 
 
 G_END_DECLS

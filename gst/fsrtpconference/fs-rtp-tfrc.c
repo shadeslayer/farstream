@@ -29,8 +29,10 @@
 
 #include "fs-rtp-tfrc.h"
 
+#include "fs-rtp-packet-modder.h"
 #include "tfrc.h"
 
+#include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
 
 
@@ -120,6 +122,9 @@ fs_rtp_tfrc_dispose (GObject *object)
   if (self->tfrc_sources)
     g_hash_table_unref (self->tfrc_sources);
   self->tfrc_sources = NULL;
+
+  if (self->packet_modder)
+    g_object_unref (self->packet_modder);
 
   gst_object_unref (self->systemclock);
   self->systemclock = NULL;
@@ -294,6 +299,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       rtt = now - ts - delay;
 
+      self->rtt = rtt;
+
       GST_LOG ("rtt: %s", rtt);
 
       if (!src->sender)
@@ -318,6 +325,69 @@ out:
   return TRUE;
 }
 
+static GstMiniObject *
+fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
+    GstMiniObject *buffer_or_list, gpointer user_data)
+{
+  FsRtpTfrc *self = FS_RTP_TFRC (user_data);
+  GstBufferList *list;
+  GstBufferListIterator *it;
+  gchar data[7];
+
+  GST_OBJECT_LOCK (self);
+
+  if (self->extension_type == EXTENSION_NONE)
+  {
+    GST_OBJECT_UNLOCK (self);
+    return buffer_or_list;
+  }
+
+  if (GST_IS_BUFFER (buffer_or_list))
+  {
+    GstBuffer *buf = GST_BUFFER (buffer_or_list);
+
+    list = gst_rtp_buffer_list_from_buffer (buf);
+    gst_buffer_unref (buf);
+  }
+  else
+  {
+    list = GST_BUFFER_LIST (buffer_or_list);
+  }
+
+  list = gst_buffer_list_make_writable (list);
+
+  GST_WRITE_UINT24_BE (data, self->rtt);
+  GST_WRITE_UINT32_BE (data+3, fs_rtp_tfrc_get_now (self));
+
+  it = gst_buffer_list_iterate (list);
+
+  while (gst_buffer_list_iterator_next_group (it))
+  {
+    gst_buffer_list_iterator_next (it);
+
+    if (self->extension_type == EXTENSION_ONE_BYTE)
+    {
+      if (!gst_rtp_buffer_list_add_extension_onebyte_header (it,
+              self->extension_id, data, 7))
+        GST_WARNING_OBJECT (self,
+            "Could not add extension to RTP header in list %p", list);
+    }
+    else if (self->extension_type == EXTENSION_TWO_BYTES)
+    {
+      if (!gst_rtp_buffer_list_add_extension_twobytes_header (it, 0,
+              self->extension_id, data, 7))
+        GST_WARNING_OBJECT (self,
+            "Could not add extension to RTP header in list %p", list);
+    }
+  }
+
+  gst_buffer_list_iterator_free (it);
+
+  GST_OBJECT_UNLOCK (self);
+
+  return GST_MINI_OBJECT (list);
+}
+
 /* TODO:
  * - Insert element to insert TFRC header into RTP packets
  * - Hook up to incoming RTP packets to check for TFRC headers
@@ -327,7 +397,8 @@ out:
  */
 
 FsRtpTfrc *
-fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp)
+fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp,
+    GstElement **send_filter)
 {
   FsRtpTfrc *self;
 
@@ -355,6 +426,12 @@ fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp)
   g_signal_connect_object (rtpsession, "on-sending-rtcp",
       G_CALLBACK (rtpsession_sending_rtcp), self, 0);
 
+  self->packet_modder = GST_ELEMENT (fs_rtp_packet_modder_new (
+        fs_rtp_tfrc_outgoing_packets, self));
+  g_object_ref (self->packet_modder);
+
+  if (send_filter)
+    *send_filter = self->packet_modder;
 
   return self;
 }
