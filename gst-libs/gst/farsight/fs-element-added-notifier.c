@@ -248,7 +248,8 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
 
   factory = gst_element_get_factory (element);
 
-  g_assert (factory);
+  if (!factory)
+    return;
 
   name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
 
