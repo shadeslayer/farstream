@@ -64,7 +64,8 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 static void
 free_source (struct TrackedSource *src)
 {
-  g_object_unref (src->rtpsource);
+  if (src->rtpsource)
+    g_object_unref (src->rtpsource);
 
   if (src->sender_id)
     gst_clock_id_unschedule (src->sender_id);
@@ -107,6 +108,8 @@ fs_rtp_tfrc_dispose (GObject *object)
     g_hash_table_unref (self->tfrc_sources);
   self->tfrc_sources = NULL;
 
+  self->last_src = NULL;
+
   if (self->packet_modder)
     g_object_unref (self->packet_modder);
 
@@ -119,30 +122,44 @@ fs_rtp_tfrc_finalize (GObject *object)
 {
 }
 
-static void
-rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *source,
-    FsRtpTfrc *self)
+static struct TrackedSource *
+fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
+  GObject *rtpsource)
 {
-  struct TrackedSource *src = NULL;
-  guint32 ssrc;
+  struct TrackedSource *src;
 
-  g_object_get (source, "ssrc", &ssrc, NULL);
-
-  GST_OBJECT_LOCK (self);
   src = g_hash_table_lookup (self->tfrc_sources, GUINT_TO_POINTER (ssrc));
 
   if (src)
-    goto out;
+  {
+    if (G_UNLIKELY (rtpsource && !src->rtpsource))
+      src->rtpsource = g_object_ref (rtpsource);
+
+    return src;
+  }
 
   src = g_slice_new0 (struct TrackedSource);
 
   src->self = self;
   src->ssrc = ssrc;
-  src->rtpsource = g_object_ref (source);
+  if (rtpsource)
+    src->rtpsource = g_object_ref (rtpsource);
 
   g_hash_table_insert (self->tfrc_sources, GUINT_TO_POINTER (ssrc), src);
 
-out:
+  return src;
+}
+
+static void
+rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *rtpsource,
+    FsRtpTfrc *self)
+{
+  guint32 ssrc;
+
+  g_object_get (rtpsource, "ssrc", &ssrc, NULL);
+
+  GST_OBJECT_LOCK (self);
+  fs_rtp_tfrc_get_remote_ssrc_locked (self, ssrc, rtpsource);
   GST_OBJECT_UNLOCK (self);
 }
 
@@ -166,6 +183,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 {
   return TRUE;
 }
+
 static gboolean
 no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   gpointer user_data)
@@ -237,7 +255,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         gst_rtcp_packet_get_length (&packet) == 6)
     {
       /* We have a TFRC packet */
-      guint32 media_source_ssrc;
+      guint32 media_ssrc;
+      guint32 sender_ssrc;
       guint32 ts;
       guint32 delay;
       guint32 x_recv;
@@ -245,8 +264,16 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       guint8 *buf = GST_BUFFER_DATA (packet.buffer) + packet.offset;
       struct TrackedSource *src;
       guint now, rtt;
+      guint32 local_ssrc;
 
-      media_source_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
+      media_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
+
+      g_object_get (self->rtpsession, "ssrc", &local_ssrc, NULL);
+
+      if (media_ssrc != local_ssrc)
+        continue;
+
+      sender_ssrc = gst_rtcp_packet_fb_get_sender_ssrc (&packet);
 
       buf += 4 * 3; /* skip the header, ssrc of sender and media sender */
 
@@ -263,14 +290,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       GST_OBJECT_LOCK (self);
 
-      src = g_hash_table_lookup (self->tfrc_sources,
-          GUINT_TO_POINTER (media_source_ssrc));
-      if (!src)
-      {
-        GST_WARNING ("Could not find tracked source for ssrc %X",
-            media_source_ssrc);
-        goto done;
-      }
+      src = fs_rtp_tfrc_get_remote_ssrc_locked (self, sender_ssrc,
+          NULL);
 
       now = fs_rtp_tfrc_get_now (self);
 
