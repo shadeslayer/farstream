@@ -71,7 +71,8 @@ struct TrackedSource {
 
   TfrcReceiver *receiver;
 
-  guint rtt;
+  guint32 rtt;
+  guint32 last_received_ts; 
 };
 
 /**

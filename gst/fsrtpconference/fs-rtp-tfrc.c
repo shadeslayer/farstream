@@ -181,6 +181,45 @@ rtpsession_sending_rtcp (GObject *rtpsession, GstBuffer *buffer,
 static gboolean
 incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 {
+  guint32 ssrc;
+  guint8 *data;
+  guint size;
+  gboolean got_header = FALSE;
+  struct TrackedSource *src;
+
+  GST_OBJECT_LOCK (self);
+
+  if (self->extension_type == EXTENSION_NONE)
+    goto out;
+  else if (self->extension_type == EXTENSION_ONE_BYTE)
+    got_header = gst_rtp_buffer_get_extension_onebyte_header (buffer,
+        self->extension_id, 0, (gpointer *) &data, &size);
+  else if (self->extension_type == EXTENSION_TWO_BYTES)
+    got_header = gst_rtp_buffer_get_extension_twobytes_header (buffer,
+        NULL, self->extension_id, 0, (gpointer *) &data, &size);
+
+  if (!got_header)
+    goto out;
+
+  if (size != 7)
+    goto out;
+
+  ssrc = gst_rtp_buffer_get_ssrc (buffer);
+
+  src = fs_rtp_tfrc_get_remote_ssrc_locked (self, ssrc, NULL);
+
+  if (src->rtpsource == NULL)
+  {
+    GST_WARNING_OBJECT (self, "Got packet from unconfirmed source %X?", ssrc);
+    goto out;
+  }
+
+  src->rtt = GST_READ_UINT24_BE (data);
+  src->last_received_ts = GST_READ_UINT24_BE (data + 3);
+
+out:
+  GST_OBJECT_UNLOCK (self);
+
   return TRUE;
 }
 
