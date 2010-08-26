@@ -242,7 +242,7 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   guint8 *pdata;
   guint32 now;
 
-  if (!src->feedback_requested)
+  if (!src->receiver)
     return;
 
   if (!gst_rtcp_buffer_add_packet (data->buffer, GST_RTCP_TYPE_RTPFB, &packet))
@@ -349,11 +349,10 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
-  if (start_feedback)
-  {
-    /* TODO: REQUEST FEEDBACK PACKET */
-    src->feedback_requested = TRUE;
-  }
+  src->last_ts = ts;
+  src->last_now = now;
+
+  /* TODO: REQUEST FEEDBACK PACKET */
 
 out:
   GST_OBJECT_UNLOCK (self);
