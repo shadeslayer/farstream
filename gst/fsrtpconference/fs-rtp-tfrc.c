@@ -169,13 +169,72 @@ fs_rtp_tfrc_get_now (FsRtpTfrc *self)
   return GST_TIME_AS_MSECONDS (gst_clock_get_time (self->systemclock));
 }
 
+struct SendingRtcpData {
+  FsRtpTfrc *self;
+  GstBuffer *buffer;
+  gboolean ret;
+  guint32 ssrc;
+  gboolean have_ssrc;
+};
+
+static void
+tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
+{
+  struct SendingRtcpData *data = user_data;
+  struct TrackedSource *src = value;
+  GstRTCPPacket packet;
+  guint8 *pdata;
+  guint32 now;
+
+  if (!src->feedback_requested)
+    return;
+
+  if (!gst_rtcp_buffer_add_packet (data->buffer, GST_RTCP_TYPE_RTPFB, &packet))
+    return;
+
+  if (!gst_rtcp_packet_fb_set_fci_length (&packet, 4))
+  {
+    gst_rtcp_packet_remove (&packet);
+    return;
+  }
+
+  if (!data->have_ssrc)
+    g_object_get (data->self->rtpsession, "ssrc", &data->ssrc, NULL);
+  data->have_ssrc = TRUE;
+
+  gst_rtcp_packet_fb_set_sender_ssrc (&packet, data->ssrc);
+  gst_rtcp_packet_fb_set_media_ssrc (&packet, src->ssrc);
+  pdata = gst_rtcp_packet_fb_get_fci (&packet);
+
+  now = fs_rtp_tfrc_get_now (data->self);
+  GST_WRITE_UINT32_BE (pdata, src->last_ts);
+  GST_WRITE_UINT32_BE (pdata + 4, now - src->last_now);
+  GST_WRITE_UINT32_BE (pdata + 8,
+      tfrc_receiver_get_receive_rate (src->receiver));
+  GST_WRITE_UINT32_BE (pdata + 12,
+      tfrc_receiver_get_loss_event_rate (src->receiver));
+
+  data->ret = TRUE;
+}
+
 static gboolean
 rtpsession_sending_rtcp (GObject *rtpsession, GstBuffer *buffer,
     gboolean is_early, FsRtpTfrc *self)
 {
+  struct SendingRtcpData data;
+
+  data.self = self;
+  data.ret = FALSE;
+  data.buffer = buffer;
+  data.have_ssrc = FALSE;
+
+
+  GST_OBJECT_LOCK (self);
+  g_hash_table_foreach (self->tfrc_sources, tfrc_sources_process, &data);
+  GST_OBJECT_UNLOCK (self);
 
   /* Return TRUE if something was added */
-  return FALSE;
+  return data.ret;
 }
 
 static gboolean
@@ -186,6 +245,8 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   guint size;
   gboolean got_header = FALSE;
   struct TrackedSource *src;
+  guint32 rtt, ts, seq;
+  gboolean send_feedback = FALSE;
 
   GST_OBJECT_LOCK (self);
 
@@ -200,11 +261,11 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   if (!got_header)
     goto out;
-
   if (size != 7)
     goto out;
 
   ssrc = gst_rtp_buffer_get_ssrc (buffer);
+  seq = gst_rtp_buffer_get_seq (buffer);
 
   src = fs_rtp_tfrc_get_remote_ssrc_locked (self, ssrc, NULL);
 
@@ -214,8 +275,28 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
     goto out;
   }
 
-  src->rtt = GST_READ_UINT24_BE (data);
-  src->last_received_ts = GST_READ_UINT24_BE (data + 3);
+  if (!src->receiver)
+  {
+    src->receiver = tfrc_receiver_new ();
+    send_feedback = TRUE;
+  }
+
+  if (seq < src->last_seq)
+    src->seq_cycles += 1 << 16;
+  src->last_seq = seq;
+  seq += src->seq_cycles;
+
+  rtt = GST_READ_UINT24_BE (data);
+  ts = GST_READ_UINT24_BE (data + 3);
+
+  tfrc_receiver_got_packet (src->receiver, ts,
+      fs_rtp_tfrc_get_now (self), seq, rtt, GST_BUFFER_SIZE (buffer));
+
+  if (send_feedback)
+  {
+    /* TODO: REQUEST FEEDBACK PACKET */
+    src->feedback_requested = TRUE;
+  }
 
 out:
   GST_OBJECT_UNLOCK (self);

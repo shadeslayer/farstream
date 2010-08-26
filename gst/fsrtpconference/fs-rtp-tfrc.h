@@ -68,11 +68,14 @@ struct TrackedSource {
   TfrcSender *sender;
   GstClockID sender_id;
   guint sender_expiry;
+  guint32 rtt;
 
   TfrcReceiver *receiver;
-
-  guint32 rtt;
-  guint32 last_received_ts; 
+  guint32 seq_cycles;
+  guint32 last_seq;
+  gboolean feedback_requested;
+  guint32 last_ts;
+  guint32 last_now;
 };
 
 /**
