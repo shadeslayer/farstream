@@ -41,7 +41,6 @@ GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
 
 static void fs_rtp_tfrc_dispose (GObject *object);
-static void fs_rtp_tfrc_finalize (GObject *object);
 
 static void fs_rtp_tfrc_update_sender_timer_locked (
   FsRtpTfrc *self,
@@ -60,7 +59,6 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
   gobject_class = (GObjectClass *) klass;
 
   gobject_class->dispose = fs_rtp_tfrc_dispose;
-  gobject_class->finalize = fs_rtp_tfrc_finalize;
 }
 
 
@@ -120,10 +118,6 @@ fs_rtp_tfrc_dispose (GObject *object)
   self->systemclock = NULL;
 }
 
-static void
-fs_rtp_tfrc_finalize (GObject *object)
-{
-}
 
 static struct TrackedSource *
 fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
