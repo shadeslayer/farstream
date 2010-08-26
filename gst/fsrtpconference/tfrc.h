@@ -54,4 +54,8 @@ gboolean tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver,
     guint now);
 guint tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver);
 
+guint tfrc_receiver_get_receive_rate (TfrcReceiver *receiver);
+guint tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver);
+
+
 #endif /* __TFRC_H__ */

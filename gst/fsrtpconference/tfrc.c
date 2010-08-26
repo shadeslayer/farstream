@@ -730,3 +730,15 @@ tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver)
 {
   return receiver->feedback_timer_expiry;
 }
+
+guint
+tfrc_receiver_get_receive_rate (TfrcReceiver *receiver)
+{
+  return receiver->receive_rate;
+}
+
+guint
+tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver)
+{
+  return receiver->loss_event_rate;
+}
