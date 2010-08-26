@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight RTP Rate Control
+ * Farsight2 - Farsight RTP TFRC Support
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -47,8 +47,8 @@ G_BEGIN_DECLS
   (G_TYPE_INSTANCE_GET_CLASS ((obj), FS_TYPE_RTP_TFRC, FsRtpTfrcClass))
 #define FS_RTP_TFRC_CAST(obj) ((FsRtpTfrc *) (obj))
 
-typedef struct _FsRtpTfrc FsRtpRateControl;
-typedef struct _FsRtpTfrcClass FsRtpRateControlClass;
+typedef struct _FsRtpTfrc FsRtpTfrc;
+typedef struct _FsRtpTfrcClass FsRtpTfrcClass;
 
 typedef enum {
   EXTENSION_NONE,
@@ -71,6 +71,7 @@ struct TrackedSource {
   guint32 rtt;
 
   TfrcReceiver *receiver;
+  GstClockID receiver_id;
   guint32 seq_cycles;
   guint32 last_seq;
   gboolean feedback_requested;
@@ -109,13 +110,6 @@ struct _FsRtpTfrcClass
 {
   GstObjectClass parent_class;
 };
-
-#define FS_RTP_TFRC_LOCK(tfrc)  \
-  GST_OBJECT_LOCK(tfrc)
-#define FS_RTP_TFRC_UNLOCK(tfrc) \
-  GST_OBJECT_UNLOCK(tfrc)
-#define FS_RTP_TFRC_GET_LOCK(tfrc) \
-  GST_OBJECT_GET_LOCK(tfrc)
 
 
 GType fs_rtp_tfrc_get_type (void);

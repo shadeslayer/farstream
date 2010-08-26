@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight RTP Rate Control
+ * Farsight2 - Farsight RTP TFRC support
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -47,6 +47,9 @@ static void fs_rtp_tfrc_update_sender_timer_locked (
   FsRtpTfrc *self,
   struct TrackedSource *src,
   guint now);
+
+static gboolean feedback_timer_expired (GstClock *clock, GstClockTime time,
+    GstClockID id, gpointer user_data);
 
 
 static void
@@ -163,6 +166,59 @@ rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *rtpsource,
   GST_OBJECT_UNLOCK (self);
 }
 
+
+static gboolean
+feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
+  gpointer user_data)
+{
+  struct TrackedSource *src = user_data;
+  guint now = GST_TIME_AS_MSECONDS (time);
+  guint expiry;
+  GstClockReturn cret;
+
+  if (time == GST_CLOCK_TIME_NONE)
+    return FALSE;
+
+  GST_OBJECT_LOCK (src->self);
+
+
+  if (src->receiver_id)
+    gst_clock_id_unschedule (src->receiver_id);
+  src->receiver_id = NULL;
+
+  for (;;)
+  {
+    expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+
+    if (expiry <= now)
+    {
+      tfrc_receiver_feedback_timer_expired (src->receiver, now);
+
+      /* TODO: REQUEST FEEDBACK PACKET */
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  src->receiver_id = gst_clock_new_single_shot_id (src->self->systemclock,
+      expiry * GST_MSECOND);
+
+  cret = gst_clock_id_wait_async (src->receiver_id, feedback_timer_expired,
+      src);
+  if (cret != GST_CLOCK_OK)
+  {
+    GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
+        expiry, now, cret);
+  }
+
+  GST_OBJECT_UNLOCK (src->self);
+
+  return FALSE;
+}
+
+
 static guint
 fs_rtp_tfrc_get_now (FsRtpTfrc *self)
 {
@@ -246,7 +302,8 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   gboolean got_header = FALSE;
   struct TrackedSource *src;
   guint32 rtt, ts, seq;
-  gboolean send_feedback = FALSE;
+  gboolean start_feedback = FALSE;
+  guint now;
 
   GST_OBJECT_LOCK (self);
 
@@ -278,7 +335,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   if (!src->receiver)
   {
     src->receiver = tfrc_receiver_new ();
-    send_feedback = TRUE;
+    start_feedback = TRUE;
   }
 
   if (seq < src->last_seq)
@@ -288,11 +345,11 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   rtt = GST_READ_UINT24_BE (data);
   ts = GST_READ_UINT24_BE (data + 3);
+  now =  fs_rtp_tfrc_get_now (self);
+  tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
+      GST_BUFFER_SIZE (buffer));
 
-  tfrc_receiver_got_packet (src->receiver, ts,
-      fs_rtp_tfrc_get_now (self), seq, rtt, GST_BUFFER_SIZE (buffer));
-
-  if (send_feedback)
+  if (start_feedback)
   {
     /* TODO: REQUEST FEEDBACK PACKET */
     src->feedback_requested = TRUE;
@@ -300,6 +357,9 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
 out:
   GST_OBJECT_UNLOCK (self);
+
+  if (start_feedback)
+    feedback_timer_expired (NULL, now, 0, src);
 
   return TRUE;
 }
