@@ -188,7 +188,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
     {
       tfrc_receiver_feedback_timer_expired (src->receiver, now);
 
-      /* TODO: REQUEST FEEDBACK PACKET */
+      g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
     }
     else
     {
@@ -346,13 +346,15 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   src->last_ts = ts;
   src->last_now = now;
 
-  /* TODO: REQUEST FEEDBACK PACKET */
 
 out:
   GST_OBJECT_UNLOCK (self);
 
   if (start_feedback)
+  {
+    g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
     feedback_timer_expired (NULL, now, 0, src);
+  }
 
   return TRUE;
 }
