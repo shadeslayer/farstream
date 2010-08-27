@@ -586,6 +586,9 @@ fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp,
 
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
 
+  self->extension_type = EXTENSION_ONE_BYTE;
+  self->extension_id = 4;
+
   self->systemclock = gst_system_clock_obtain ();
 
   self->rtpsession = rtpsession;
