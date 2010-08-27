@@ -76,6 +76,7 @@
 #include "fs-rtp-substream.h"
 #include "fs-rtp-special-source.h"
 #include "fs-rtp-codec-specific.h"
+#include "fs-rtp-tfrc.h"
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
@@ -211,6 +212,7 @@ struct _FsRtpSessionPrivate
 
   /* Set at construction time, can not change */
   GstElement *send_filter;
+  FsRtpTfrc *rtp_tfrc;
 
   /* Can only be used while using the lock */
   GStaticRWLock disposed_lock;
@@ -557,6 +559,14 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
     gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
   if (self->priv->rtpbin_send_rtp_sink)
     gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
+
+  if (self->priv->send_filter)
+    stop_and_remove (conferencebin, &self->priv->send_filter, FALSE);
+
+  if (self->priv->rtp_tfrc)
+    gst_object_unref (self->priv->rtp_tfrc);
+  self->priv->rtp_tfrc = NULL;
+
 
   FS_RTP_SESSION_LOCK (self);
   fs_rtp_session_stop_codec_param_gathering_unlock (self);
@@ -1202,7 +1212,6 @@ fs_rtp_session_constructed (GObject *object)
 
   gst_element_set_state (funnel, GST_STATE_PLAYING);
 
-
   /* Now create the transmitter RTCP funnel */
 
   tmp = g_strdup_printf ("recv_rtcp_funnel_%u", self->id);
@@ -1255,6 +1264,9 @@ fs_rtp_session_constructed (GObject *object)
 
   gst_element_set_state (funnel, GST_STATE_PLAYING);
 
+
+  /* Lets get the internal RTP session */
+
   g_signal_emit_by_name (self->priv->conference->gstrtpbin,
       "get-internal-session", self->id, &self->priv->rtpbin_internal_session);
 
@@ -1275,6 +1287,11 @@ fs_rtp_session_constructed (GObject *object)
       "bandwidth", (gdouble) 0,
       "rtcp-fraction", (gdouble) 0.05,
       NULL);
+
+  self->priv->rtp_tfrc = fs_rtp_tfrc_new (self->priv->rtpbin_internal_session,
+      self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink,
+      &self->priv->send_filter);
+
 
   /* Lets now create the RTP muxer */
 
