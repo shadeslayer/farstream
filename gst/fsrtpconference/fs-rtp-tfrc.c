@@ -326,9 +326,11 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
     goto out;
   }
 
+  now =  fs_rtp_tfrc_get_now (self);
+
   if (!src->receiver)
   {
-    src->receiver = tfrc_receiver_new ();
+    src->receiver = tfrc_receiver_new (now);
     start_feedback = TRUE;
   }
 
@@ -339,7 +341,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   rtt = GST_READ_UINT24_BE (data);
   ts = GST_READ_UINT24_BE (data + 3);
-  now =  fs_rtp_tfrc_get_now (self);
   tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 

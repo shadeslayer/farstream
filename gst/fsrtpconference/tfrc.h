@@ -44,8 +44,8 @@ guint tfrc_sender_get_send_rate (TfrcSender *sender);
 guint tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender);
 
 
-TfrcReceiver *tfrc_receiver_new (void);
-TfrcReceiver *tfrc_receiver_new_sp (void);
+TfrcReceiver *tfrc_receiver_new (guint now);
+TfrcReceiver *tfrc_receiver_new_sp (guint now);
 void tfrc_receiver_free (TfrcReceiver *receiver);
 
 void tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,

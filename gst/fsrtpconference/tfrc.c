@@ -400,19 +400,22 @@ struct _TfrcReceiver {
 };
 
 TfrcReceiver *
-tfrc_receiver_new (void)
+tfrc_receiver_new (guint now)
 {
   TfrcReceiver *receiver = g_slice_new0 (TfrcReceiver);
+
   g_queue_init (&receiver->received_intervals);
+  receiver->received_bytes_reset_time = now;
+  receiver->prev_received_bytes_reset_time = now;
 
   return receiver;
 }
 
 
 TfrcReceiver *
-tfrc_receiver_new_sp (void)
+tfrc_receiver_new_sp (guint now)
 {
-  TfrcReceiver *receiver = tfrc_receiver_new ();
+  TfrcReceiver *receiver = tfrc_receiver_new (now);
 
   receiver->sp = TRUE;
 
