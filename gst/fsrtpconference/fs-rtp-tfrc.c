@@ -520,9 +520,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   GST_OBJECT_LOCK (self);
 
-  if (self->extension_type == EXTENSION_NONE ||
-    self->last_src == NULL ||
-    self->last_src->rtt == 0)
+  if (self->extension_type == EXTENSION_NONE)
   {
     GST_OBJECT_UNLOCK (self);
     return buffer_or_list;
@@ -542,7 +540,10 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   list = gst_buffer_list_make_writable (list);
 
-  GST_WRITE_UINT24_BE (data, self->last_src->rtt);
+  if (self->last_src)
+    GST_WRITE_UINT24_BE (data, self->last_src->rtt);
+  else
+    GST_WRITE_UINT24_BE (data, 0);
   GST_WRITE_UINT32_BE (data+3, fs_rtp_tfrc_get_now (self));
 
   it = gst_buffer_list_iterate (list);
