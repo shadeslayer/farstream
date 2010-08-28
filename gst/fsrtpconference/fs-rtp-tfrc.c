@@ -264,6 +264,12 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   GST_WRITE_UINT32_BE (pdata + 12,
       tfrc_receiver_get_loss_event_rate (src->receiver));
 
+  GST_LOG ("Sending RTCP report last_ts: %d delay: %d, x_recv: %d, rate: %d",
+      src->last_ts, now - src->last_now,
+      tfrc_receiver_get_receive_rate (src->receiver),
+      tfrc_receiver_get_loss_event_rate (src->receiver));
+
+
   data->ret = TRUE;
 }
 
