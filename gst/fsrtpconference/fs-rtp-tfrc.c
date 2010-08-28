@@ -249,7 +249,7 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   }
 
   if (!data->have_ssrc)
-    g_object_get (data->self->rtpsession, "ssrc", &data->ssrc, NULL);
+    g_object_get (data->self->rtpsession, "internal-ssrc", &data->ssrc, NULL);
   data->have_ssrc = TRUE;
 
   gst_rtcp_packet_fb_set_sender_ssrc (&packet, data->ssrc);
@@ -446,7 +446,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       media_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
 
-      g_object_get (self->rtpsession, "ssrc", &local_ssrc, NULL);
+      g_object_get (self->rtpsession, "internal-ssrc", &local_ssrc, NULL);
 
       if (media_ssrc != local_ssrc)
         continue;
