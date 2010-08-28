@@ -150,7 +150,6 @@ fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
       goto invalid;
     }
 
-    gst_object_unref (buf);
     buf = newbuf;
   }
 
