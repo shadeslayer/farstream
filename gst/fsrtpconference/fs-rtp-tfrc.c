@@ -155,6 +155,8 @@ rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *rtpsource,
 
   g_object_get (rtpsource, "ssrc", &ssrc, NULL);
 
+  GST_DEBUG ("ssrc validate: %X", ssrc);
+
   GST_OBJECT_LOCK (self);
   fs_rtp_tfrc_get_remote_ssrc_locked (self, ssrc, rtpsource);
   GST_OBJECT_UNLOCK (self);
@@ -328,7 +330,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   if (src->rtpsource == NULL)
   {
-    GST_WARNING_OBJECT (self, "Got packet from unconfirmed source %X?", ssrc);
+    GST_WARNING_OBJECT (self, "Got packet from unconfirmed source %X ?", ssrc);
     goto out;
   }
 
