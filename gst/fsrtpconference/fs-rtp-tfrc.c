@@ -344,7 +344,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   seq += src->seq_cycles;
 
   rtt = GST_READ_UINT24_BE (data);
-  ts = GST_READ_UINT24_BE (data + 3);
+  ts = GST_READ_UINT32_BE (data + 3);
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
