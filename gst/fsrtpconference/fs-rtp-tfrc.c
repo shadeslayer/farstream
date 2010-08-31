@@ -515,6 +515,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       fs_rtp_tfrc_update_sender_timer_locked (self, src, now);
 
+      self->last_src = src;
+
     done:
       GST_OBJECT_UNLOCK (self);
 
