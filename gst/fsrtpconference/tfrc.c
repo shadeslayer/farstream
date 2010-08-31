@@ -564,7 +564,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
 
 
 /* Implements RFC 5348 section 6.1 */
-void
+gboolean
 tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
     guint now, guint seqnum, guint sender_rtt, guint packet_size)
 {
@@ -572,18 +572,21 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
   ReceivedInterval *current = NULL;
   ReceivedInterval *prev = NULL;
   gboolean recalculate_loss_rate = FALSE;
+  gboolean retval = FALSE;
 
   receiver->received_bytes += packet_size;
 
   /* RFC 5348 section 6.3: First packet received */
+
+  receiver->sender_rtt = sender_rtt;
 
   if (g_queue_get_length (&receiver->received_intervals) == 0 ||
       receiver->sender_rtt == 0) {
     if (receiver->sender_rtt)
       receiver->feedback_timer_expiry = now + receiver->sender_rtt;
 
-    /* First packet, lets send a feedback packet */
-    /* TODO: SEND FEEDBACK PACKET */
+    /* First packet or no RTT yet, lets send a feedback packet */
+    retval = TRUE;
   }
 
   /* RFC 5348 section 6.1 Step 1: Add to packet history */
@@ -639,7 +642,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
   if (G_UNLIKELY (!current)) {
     /* If its before MAX_HISTORY_SIZE, its too old, just discard it */
     if (g_queue_get_length (&receiver->received_intervals) > MAX_HISTORY_SIZE)
-      return;
+      return retval;
 
     current = g_slice_new (ReceivedInterval);
 
@@ -687,8 +690,10 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
 
     if (new_loss_event_rate > receiver->loss_event_rate ||
         !receiver->feedback_sent_on_last_timer)
-      tfrc_receiver_feedback_timer_expired (receiver, now);
+      retval |= tfrc_receiver_feedback_timer_expired (receiver, now);
   }
+
+  return retval;
 }
 
 gboolean

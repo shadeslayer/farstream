@@ -22,7 +22,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -188,9 +187,8 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
     if (expiry <= now)
     {
-      tfrc_receiver_feedback_timer_expired (src->receiver, now);
-
-      g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
+      if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
+        g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
     }
     else
     {
@@ -305,6 +303,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   struct TrackedSource *src;
   guint32 rtt, ts, seq;
   gboolean start_feedback = FALSE;
+  gboolean send_rtcp = FALSE;
   guint now;
 
   GST_OBJECT_LOCK (self);
@@ -349,7 +348,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   rtt = GST_READ_UINT24_BE (data);
   ts = GST_READ_UINT24_BE (data + 3);
-  tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
+  send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
   src->last_ts = ts;
@@ -359,11 +358,11 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 out:
   GST_OBJECT_UNLOCK (self);
 
-  if (start_feedback)
-  {
+  if (start_feedback || send_rtcp)
     g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
+
+  if (start_feedback)
     feedback_timer_expired (NULL, now, 0, src);
-  }
 
   return TRUE;
 }

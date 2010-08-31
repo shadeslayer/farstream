@@ -48,7 +48,7 @@ TfrcReceiver *tfrc_receiver_new (guint now);
 TfrcReceiver *tfrc_receiver_new_sp (guint now);
 void tfrc_receiver_free (TfrcReceiver *receiver);
 
-void tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
+gboolean tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
     guint now, guint seqnum, guint sender_rtt, guint packet_size);
 gboolean tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver,
     guint now);
