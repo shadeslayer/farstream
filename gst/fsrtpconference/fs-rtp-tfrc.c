@@ -252,6 +252,8 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
     g_object_get (data->self->rtpsession, "internal-ssrc", &data->ssrc, NULL);
   data->have_ssrc = TRUE;
 
+  /* draft-ietf-avt-tfrc-profile-10 defines the type as 2 */
+  gst_rtcp_packet_fb_set_type (&packet, 2);
   gst_rtcp_packet_fb_set_sender_ssrc (&packet, data->ssrc);
   gst_rtcp_packet_fb_set_media_ssrc (&packet, src->ssrc);
   pdata = gst_rtcp_packet_fb_get_fci (&packet);
