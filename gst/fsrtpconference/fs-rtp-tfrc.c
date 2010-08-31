@@ -501,6 +501,12 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       rtt = now - ts - delay;
 
+      if (rtt > 50 * 1000)
+      {
+        GST_WARNING ("Impossible RTT %u ms, ignoring", rtt);
+        goto done;
+      }
+
       src->rtt = rtt;
 
       GST_LOG ("rtt: %s", rtt);
