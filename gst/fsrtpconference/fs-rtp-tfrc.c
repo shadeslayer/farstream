@@ -183,6 +183,12 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   for (;;)
   {
+    if (expiry == tfrc_receiver_get_feedback_timer_expiry (src->receiver))
+    {
+      g_warning ("Expiry not moving ?");
+      break;
+    }
+
     expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
 
     if (expiry <= now)
