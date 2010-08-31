@@ -70,6 +70,9 @@ free_source (struct TrackedSource *src)
   if (src->sender_id)
     gst_clock_id_unschedule (src->sender_id);
 
+  if (src->receiver_id)
+    gst_clock_id_unschedule (src->receiver_id);
+
   if (src->sender)
     tfrc_sender_free (src->sender);
   if (src->receiver)
