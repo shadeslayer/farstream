@@ -76,6 +76,7 @@ struct TrackedSource {
   guint32 last_seq;
   guint32 last_ts;
   guint32 last_now;
+  guint32 last_rtt;
 };
 
 /**

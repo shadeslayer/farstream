@@ -336,10 +336,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   now =  fs_rtp_tfrc_get_now (self);
 
   if (!src->receiver)
-  {
     src->receiver = tfrc_receiver_new (now);
-    start_feedback = TRUE;
-  }
 
   if (seq < src->last_seq)
     src->seq_cycles += 1 << 16;
@@ -351,14 +348,18 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
+  if (src->last_rtt == 0 && rtt)
+    start_feedback = TRUE;
+
   src->last_ts = ts;
   src->last_now = now;
+  src->last_rtt = rtt;
 
 
 out:
   GST_OBJECT_UNLOCK (self);
 
-  if (start_feedback || send_rtcp)
+  if (send_rtcp)
     g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
 
   if (start_feedback)
