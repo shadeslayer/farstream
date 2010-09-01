@@ -509,7 +509,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       src->rtt = rtt;
 
-      GST_LOG ("rtt: %s", rtt);
+      GST_LOG ("rtt: %u = now %u - ts %u - delay %u", rtt, now, ts, delay);
 
       if (!src->sender)
       {
