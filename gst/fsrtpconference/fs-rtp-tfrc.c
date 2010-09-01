@@ -171,7 +171,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 {
   struct TrackedSource *src = user_data;
   guint now = GST_TIME_AS_MSECONDS (time);
-  guint expiry = 0;
+  guint expiry;
   GstClockReturn cret;
 
   if (time == GST_CLOCK_TIME_NONE)
@@ -184,25 +184,14 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
     gst_clock_id_unschedule (src->receiver_id);
   src->receiver_id = NULL;
 
-  for (;;)
+  expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+
+  if (expiry <= now)
   {
-    if (expiry == tfrc_receiver_get_feedback_timer_expiry (src->receiver))
-    {
-      g_warning ("Expiry not moving ?");
-      break;
-    }
+    if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
+      g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
 
     expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
-
-    if (expiry <= now)
-    {
-      if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
-        g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
-    }
-    else
-    {
-      break;
-    }
   }
 
   src->receiver_id = gst_clock_new_single_shot_id (src->self->systemclock,

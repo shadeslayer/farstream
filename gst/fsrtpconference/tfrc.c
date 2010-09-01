@@ -709,7 +709,8 @@ tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
   guint received_bytes = 0;
   guint received_bytes_reset_time = 0;
 
-  if (receiver->received_bytes == 0) {
+  if (receiver->received_bytes == 0 ||
+      receiver->prev_received_bytes_reset_time == now) {
     receiver->feedback_timer_expiry = now + receiver->sender_rtt;
     receiver->feedback_sent_on_last_timer = FALSE;
     return FALSE;
