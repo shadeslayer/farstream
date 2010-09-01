@@ -171,7 +171,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 {
   struct TrackedSource *src = user_data;
   guint now = GST_TIME_AS_MSECONDS (time);
-  guint expiry;
+  guint expiry = 0;
   GstClockReturn cret;
 
   if (time == GST_CLOCK_TIME_NONE)
