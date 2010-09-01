@@ -366,7 +366,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   src->last_now = now;
   src->last_rtt = rtt;
 
-
 out:
   GST_OBJECT_UNLOCK (self);
 
