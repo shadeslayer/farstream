@@ -348,6 +348,12 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
+
+  GST_LOG ("Got RTP packet x_recv: %d, rate: %d",
+      tfrc_receiver_get_receive_rate (src->receiver),
+      tfrc_receiver_get_loss_event_rate (src->receiver));
+
+
   if (src->last_rtt == 0 && rtt)
     start_feedback = TRUE;
 
