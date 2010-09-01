@@ -339,8 +339,11 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
     update_limits(sender, sender->computed_rate / 2, now);
   }
 
-  sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
-      2 * sender->segment_size / sender->rate);
+  if (sender->rate)
+    sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
+        2 * sender->segment_size / sender->rate);
+  else
+    sender->nofeedback_timer_expiry = now + (4 * sender->averaged_rtt);
 }
 
 void
