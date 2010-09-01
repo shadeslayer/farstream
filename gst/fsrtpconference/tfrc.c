@@ -257,7 +257,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
       recv_limit = maximize_receive_rate_history (sender, receive_rate,
           now);
     } else {
-      recv_limit =  2 * maximize_receive_rate_history (sender, receive_rate,
+      recv_limit = 2 * maximize_receive_rate_history (sender, receive_rate,
           now);
     }
   } else {
