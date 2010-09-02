@@ -64,14 +64,14 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 static void
 free_source (struct TrackedSource *src)
 {
-  if (src->rtpsource)
-    g_object_unref (src->rtpsource);
-
   if (src->sender_id)
     gst_clock_id_unschedule (src->sender_id);
 
   if (src->receiver_id)
     gst_clock_id_unschedule (src->receiver_id);
+
+  if (src->rtpsource)
+    g_object_unref (src->rtpsource);
 
   if (src->sender)
     tfrc_sender_free (src->sender);
