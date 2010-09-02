@@ -103,6 +103,8 @@ fs_rtp_tfrc_dispose (GObject *object)
 {
   FsRtpTfrc *self = FS_RTP_TFRC (object);
 
+  GST_OBJECT_LOCK (self);
+
   if (self->in_rtp_probe_id)
     g_signal_handler_disconnect (self->in_rtp_pad, self->in_rtp_probe_id);
   self->in_rtp_probe_id = 0;
@@ -121,6 +123,11 @@ fs_rtp_tfrc_dispose (GObject *object)
 
   gst_object_unref (self->systemclock);
   self->systemclock = NULL;
+
+  GST_OBJECT_UNLOCK (self);
+
+  if (G_OBJECT_CLASS (fs_rtp_tfrc_parent_class)->dispose)
+    G_OBJECT_CLASS (fs_rtp_tfrc_parent_class)->dispose (object);
 }
 
 
