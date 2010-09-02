@@ -236,6 +236,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   if (!plugin) {
     plugin = g_object_new (FS_TYPE_PLUGIN, NULL);
     if (!plugin) {
+      g_static_mutex_unlock (&mutex);
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not create a fsplugin object");
       return NULL;
@@ -248,6 +249,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
      * the gstreamer libraries can't be unloaded
      */
     if (!g_type_module_use (G_TYPE_MODULE (plugin))) {
+      g_static_mutex_unlock (&mutex);
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not load the %s-%s transmitter plugin", name, type_suffix);
       return NULL;
