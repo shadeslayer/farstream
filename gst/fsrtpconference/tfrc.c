@@ -211,7 +211,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 {
   guint recv_limit; /* the limit on the sending rate computed from X_recv_set */
 
-  if (rtt > 1000 * 10)
+  if (rtt == 0 || rtt > 1000 * 10)
     return;
 
 
