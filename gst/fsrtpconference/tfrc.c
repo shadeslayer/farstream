@@ -759,3 +759,90 @@ tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver)
 {
   return receiver->loss_event_rate;
 }
+
+
+struct _TfrcIsDataLimited
+{
+  guint not_limited_1;
+  guint not_limited_2;
+  guint t_new;
+  guint t_next;
+  guint t_now;
+
+  guint last_reset_ts;
+  guint rate;
+  guint sent;
+};
+
+/*
+ * This implements the algorithm proposed in RFC 5248 section 8.2.1 */
+
+TfrcIsDataLimited *
+tfrc_is_data_limited_new (guint now)
+{
+  TfrcIsDataLimited *idl = g_slice_new0 (TfrcIsDataLimited);
+
+  idl->t_now = now;
+
+  return idl;
+}
+
+void
+tfrc_is_data_limited_free (TfrcIsDataLimited *idl)
+{
+  g_slice_free (TfrcIsDataLimited, idl);
+}
+
+void
+tfrc_is_data_limited_set_rate (TfrcIsDataLimited *idl, guint rate, guint now)
+{
+  idl->rate = rate;
+  idl->last_reset_ts = now;
+  idl->sent = 0;
+}
+
+void
+tfrc_is_data_limited_sent_segment (TfrcIsDataLimited *idl, guint now,
+    guint size)
+{
+  idl->sent += size;
+  /* if sender has not sent all it is allowed to send */
+  if ((now - idl->last_reset_ts) * idl->rate / 1000 > idl->sent)
+    return;
+
+  /* Sender is not data-limited at this instant. */
+  if (idl->not_limited_1 <= idl->t_new)
+    /* Goal: NotLimited1 > t_new. */
+    idl->not_limited_1 = idl->t_now;
+  else if (idl->not_limited_2 <= idl->t_next)
+    /* Goal: NotLimited2 > t_next. */
+    idl->not_limited_2 = idl->t_now;
+}
+
+/*
+ * Returns TRUE if the period since the previous feedback packet
+ * was data limited
+ */
+gboolean
+tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl,
+    guint last_packet_timestamp, guint rtt)
+{
+  gboolean ret;
+  guint t_old;
+
+  idl->t_new = last_packet_timestamp;
+  t_old = idl->t_new - rtt; /* local variable */
+  idl->t_next = idl->t_now;
+  if ((t_old < idl->not_limited_1 && idl->not_limited_1 <= idl->t_new) ||
+      (t_old <  idl->not_limited_2 && idl->not_limited_2 <= idl->t_new))
+    /* This was NOT a data-limited interval */
+    ret =  FALSE;
+  else
+    /* This was a data-limited interval. */
+    ret = TRUE;
+
+  if (idl->not_limited_1 <= idl->t_new && idl->not_limited_2 > idl->t_new)
+      idl->not_limited_1 = idl->not_limited_2;
+
+  return ret;
+}

@@ -29,6 +29,7 @@
 
 typedef struct _TfrcSender TfrcSender;
 typedef struct _TfrcReceiver TfrcReceiver;
+typedef struct _TfrcIsDataLimited TfrcIsDataLimited;
 
 TfrcSender *tfrc_sender_new (guint segment_size, guint now);
 TfrcSender *tfrc_sender_new_sp (guint now, guint initial_average_packet_size);
@@ -56,6 +57,17 @@ guint tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver);
 
 guint tfrc_receiver_get_receive_rate (TfrcReceiver *receiver);
 guint tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver);
+
+TfrcIsDataLimited *tfrc_is_data_limited_new (guint now);
+void tfrc_is_data_limited_free (TfrcIsDataLimited *idl);
+void tfrc_is_data_limited_sent_segment (TfrcIsDataLimited *idl, guint now,
+    guint size);
+gboolean tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl,
+    guint last_packet_timestamp, guint rtt);
+void tfrc_is_data_limited_set_rate (TfrcIsDataLimited *idl, guint rate,
+    guint now);
+
+
 
 
 #endif /* __TFRC_H__ */
