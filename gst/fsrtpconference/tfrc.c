@@ -180,7 +180,7 @@ update_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
       sender->receive_rate_history[i].rate = 0;
 }
 
-const guint t_mbi = 64000; /* the maximum backoff interval of 64 seconds */
+const guint t_mbi = 64; /* the maximum backoff interval of 64 seconds */
 
 /* RFC 5348 section 4.3 step 4 second part */
 
@@ -339,11 +339,10 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
     update_limits(sender, sender->computed_rate / 2, now);
   }
 
-  if (sender->rate)
-    sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
-        2 * sender->segment_size / sender->rate);
-  else
-    sender->nofeedback_timer_expiry = now + (4 * sender->averaged_rtt);
+  g_assert (sender->rate != 0);
+
+  sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
+      1000 * 2 * sender->segment_size / sender->rate);
 }
 
 void
