@@ -412,14 +412,12 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
     gst_clock_id_unschedule (src->sender_id);
   src->sender_id = NULL;
 
-  for (;;)
-  {
-    expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
+  expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
 
-    if (expiry <= now)
-      tfrc_sender_no_feedback_timer_expired (src->sender, now);
-    else
-      break;
+  if (expiry <= now)
+  {
+    tfrc_sender_no_feedback_timer_expired (src->sender, now);
+    expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
   }
 
 
