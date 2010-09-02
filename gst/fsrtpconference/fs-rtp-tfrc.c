@@ -78,6 +78,9 @@ free_source (struct TrackedSource *src)
   if (src->receiver)
     tfrc_receiver_free (src->receiver);
 
+  if (src->idl)
+    tfrc_is_data_limited_free (src->idl);
+
   g_slice_free (struct TrackedSource, src);
 }
 
@@ -348,11 +351,12 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
-
   GST_LOG ("Got RTP packet x_recv: %d, rate: %d",
       tfrc_receiver_get_receive_rate (src->receiver),
       tfrc_receiver_get_loss_event_rate (src->receiver));
 
+  if (src->idl)
+    tfrc_is_data_limited_sent_segment (src->idl, now, GST_BUFFER_SIZE (buffer));
 
   if (src->last_rtt == 0 && rtt)
     start_feedback = TRUE;
@@ -386,6 +390,9 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   GST_OBJECT_LOCK (src->self);
 
   fs_rtp_tfrc_update_sender_timer_locked (src->self, src, now);
+  if (src->idl)
+    tfrc_is_data_limited_set_rate (src->idl,
+        tfrc_sender_get_send_rate (src->sender), now);
 
   g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
@@ -456,6 +463,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       struct TrackedSource *src;
       guint now, rtt;
       guint32 local_ssrc;
+      gboolean is_data_limited;
 
       media_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
 
@@ -511,8 +519,17 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         tfrc_sender_on_first_rtt (src->sender, now);
       }
 
+      if (!src->idl)
+        src->idl = tfrc_is_data_limited_new (now);
+      is_data_limited =
+          tfrc_is_data_limited_received_feedback (src->idl, ts, rtt);
+
       tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
-          loss_event_rate, TRUE /* is data limited */);
+          loss_event_rate, is_data_limited);
+
+      if (src->idl)
+        tfrc_is_data_limited_set_rate (src->idl,
+            tfrc_sender_get_send_rate (src->sender), now);
 
       g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
