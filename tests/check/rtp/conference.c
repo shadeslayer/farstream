@@ -1506,6 +1506,7 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
       st->stream = NULL;
       gst_message_unref (message);
       g_main_loop_quit (loop);
+      TEST_UNLOCK ();
       return GST_BUS_DROP;
     }
   }
