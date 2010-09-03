@@ -97,12 +97,9 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
       g_direct_equal, NULL, (GDestroyNotify) free_source);
 }
 
-
-static void
-fs_rtp_tfrc_dispose (GObject *object)
+void
+fs_rtp_tfrc_destroy (FsRtpTfrc *self)
 {
-  FsRtpTfrc *self = FS_RTP_TFRC (object);
-
   GST_OBJECT_LOCK (self);
 
   if (self->in_rtp_probe_id)
@@ -112,10 +109,21 @@ fs_rtp_tfrc_dispose (GObject *object)
     g_signal_handler_disconnect (self->in_rtcp_pad, self->in_rtcp_probe_id);
   self->in_rtcp_probe_id = 0;
 
-  if (self->tfrc_sources)
-    g_hash_table_unref (self->tfrc_sources);
-  self->tfrc_sources = NULL;
+  g_hash_table_destroy (g_hash_table_ref (self->tfrc_sources));
 
+  GST_OBJECT_UNLOCK (self);
+}
+
+static void
+fs_rtp_tfrc_dispose (GObject *object)
+{
+  FsRtpTfrc *self = FS_RTP_TFRC (object);
+
+  GST_OBJECT_LOCK (self);
+
+  if (self->tfrc_sources)
+    g_hash_table_destroy (self->tfrc_sources);
+  self->tfrc_sources = NULL;
   self->last_src = NULL;
 
   if (self->packet_modder)
@@ -174,21 +182,37 @@ rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *rtpsource,
   GST_OBJECT_UNLOCK (self);
 }
 
-
-static gboolean
-feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
-  gpointer user_data)
+struct TimerData
 {
-  struct TrackedSource *src = user_data;
-  guint now = GST_TIME_AS_MSECONDS (time);
+  FsRtpTfrc *self;
+  guint ssrc;
+};
+
+static struct TimerData *
+build_timer_data (FsRtpTfrc *self, guint ssrc)
+{
+  struct TimerData *td = g_slice_new0 (struct TimerData);
+
+  td->self = g_object_ref (self);
+  td->ssrc = ssrc;
+
+  return td;
+}
+
+static void
+free_timer_data (gpointer data)
+{
+  struct TimerData *td = data;
+  g_object_unref (td->self);
+  g_slice_free (struct TimerData, td);
+}
+
+static void
+fs_rtp_tfrc_receiver_timer_func (FsRtpTfrc *self, struct TrackedSource *src,
+    guint now)
+{
   guint expiry;
   GstClockReturn cret;
-
-  if (time == GST_CLOCK_TIME_NONE)
-    return FALSE;
-
-  GST_OBJECT_LOCK (src->self);
-
 
   if (src->receiver_id)
     gst_clock_id_unschedule (src->receiver_id);
@@ -199,23 +223,41 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   if (expiry <= now)
   {
     if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
-      g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
+      g_signal_emit_by_name (self->rtpsession, "send-rtcp", 0);
 
     expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
   }
 
-  src->receiver_id = gst_clock_new_single_shot_id (src->self->systemclock,
+  src->receiver_id = gst_clock_new_single_shot_id (self->systemclock,
       expiry * GST_MSECOND);
 
-  cret = gst_clock_id_wait_async (src->receiver_id, feedback_timer_expired,
-      src);
+  cret = gst_clock_id_wait_async_full (src->receiver_id, feedback_timer_expired,
+      build_timer_data (self, src->ssrc), free_timer_data);
   if (cret != GST_CLOCK_OK)
-  {
     GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
         expiry, now, cret);
-  }
+}
 
-  GST_OBJECT_UNLOCK (src->self);
+static gboolean
+feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
+  gpointer user_data)
+{
+  struct TimerData *td = user_data;
+  struct TrackedSource *src;
+  guint now = GST_TIME_AS_MSECONDS (time);
+
+  if (time == GST_CLOCK_TIME_NONE)
+    return FALSE;
+
+  GST_OBJECT_LOCK (td->self);
+
+  src = g_hash_table_lookup (td->self->tfrc_sources,
+      GUINT_TO_POINTER (td->ssrc));
+
+  if (src)
+    fs_rtp_tfrc_receiver_timer_func (td->self, src, now);
+
+  GST_OBJECT_UNLOCK (td->self);
 
   return FALSE;
 }
@@ -312,7 +354,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   gboolean got_header = FALSE;
   struct TrackedSource *src;
   guint32 rtt, ts, seq;
-  gboolean start_feedback = FALSE;
   gboolean send_rtcp = FALSE;
   guint now;
 
@@ -366,7 +407,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
     tfrc_is_data_limited_sent_segment (src->idl, now, GST_BUFFER_SIZE (buffer));
 
   if (src->last_rtt == 0 && rtt)
-    start_feedback = TRUE;
+    fs_rtp_tfrc_receiver_timer_func (self, src, now);
 
   src->last_ts = ts;
   src->last_now = now;
@@ -378,9 +419,6 @@ out:
   if (send_rtcp)
     g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
 
-  if (start_feedback)
-    feedback_timer_expired (NULL, now, 0, src);
-
   return TRUE;
 }
 
@@ -388,22 +426,31 @@ static gboolean
 no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   gpointer user_data)
 {
-  struct TrackedSource *src = user_data;
+  struct TimerData *td = user_data;
+  struct TrackedSource *src;
   guint now = GST_TIME_AS_MSECONDS (time);
 
   if (time == GST_CLOCK_TIME_NONE)
     return FALSE;
 
-  GST_OBJECT_LOCK (src->self);
+  GST_OBJECT_LOCK (td->self);
 
-  fs_rtp_tfrc_update_sender_timer_locked (src->self, src, now);
+  src = g_hash_table_lookup (td->self->tfrc_sources,
+      GUINT_TO_POINTER (td->ssrc));
+
+  if (!src)
+    goto out;
+
+  fs_rtp_tfrc_update_sender_timer_locked (td->self, src, now);
   if (src->idl)
     tfrc_is_data_limited_set_rate (src->idl,
         tfrc_sender_get_send_rate (src->sender), now);
 
   g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
-  GST_OBJECT_UNLOCK (src->self);
+out:
+
+  GST_OBJECT_UNLOCK (td->self);
 
   return FALSE;
 }
@@ -431,13 +478,12 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
   src->sender_id = gst_clock_new_single_shot_id (self->systemclock,
       expiry * GST_MSECOND);
 
-  cret = gst_clock_id_wait_async (src->sender_id, no_feedback_timer_expired,
-      src);
+  cret = gst_clock_id_wait_async_full (src->sender_id,
+      no_feedback_timer_expired, build_timer_data (self, src->ssrc),
+      free_timer_data);
   if (cret != GST_CLOCK_OK)
-  {
     GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
         expiry, now, cret);
-  }
 }
 
 static gboolean
