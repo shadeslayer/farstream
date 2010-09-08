@@ -577,7 +577,6 @@ fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not make shmsrc");
-    gst_object_unref (elem);
     goto error;
   }
 
