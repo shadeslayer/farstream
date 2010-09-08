@@ -264,12 +264,11 @@ run_shm_transmitter_test (gint flags)
 
   trans = fs_transmitter_new ("shm", 2, 0, &error);
 
-  if (error) {
+  if (error)
     ts_fail ("Error creating transmitter: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
-  }
-
   ts_fail_if (trans == NULL, "No transmitter create, yet error is still NULL");
+  g_clear_error (&error);
 
   if (flags & FLAG_RECVONLY_FILTER)
     ts_fail_unless (g_signal_connect (trans, "get-recvonly-filter",
@@ -296,8 +295,8 @@ run_shm_transmitter_test (gint flags)
   if (error)
     ts_fail ("Error creating stream transmitter: (%s:%d) %s",
         g_quark_to_string (error->domain), error->code, error->message);
-
   ts_fail_if (st == NULL, "No stream transmitter created, yet error is NULL");
+  g_clear_error (&error);
 
   g_object_set (st, "sending", !(flags & FLAG_NOT_SENDING), NULL);
 
@@ -320,14 +319,17 @@ run_shm_transmitter_test (gint flags)
   if (!fs_stream_transmitter_gather_local_candidates (st, &error))
   {
     if (error)
-    {
       ts_fail ("Could not start gathering local candidates (%s:%d) %s",
           g_quark_to_string (error->domain), error->code, error->message);
-    }
     else
       ts_fail ("Could not start gathering candidates"
           " (without a specified error)");
   }
+  else
+  {
+    ts_fail_unless (error == NULL);
+  }
+  g_clear_error (&error);
 
   ret = gst_element_set_state (pipeline, GST_STATE_PLAYING);
   ts_fail_if (ret == GST_STATE_CHANGE_FAILURE,
@@ -343,6 +345,11 @@ run_shm_transmitter_test (gint flags)
           g_quark_to_string (error->domain), error->code, error->message);
     ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
   }
+  else
+  {
+    ts_fail_unless (error == NULL);
+  }
+  g_clear_error (&error);
 
   cand = fs_candidate_new (NULL, 1,
           FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, NULL, 0);
@@ -358,6 +365,7 @@ run_shm_transmitter_test (gint flags)
     ts_fail ("Error while adding candidate: (%s:%d) %s",
       g_quark_to_string (error->domain), error->code, error->message);
   ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
+  g_clear_error (&error);
 
   g_mutex_lock (mutex);
   while (connected_count < 2)
