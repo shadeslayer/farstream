@@ -32,7 +32,7 @@ For the python module:
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
  - gst-plugins-good 0.10.17
- - gst-plugins-bad 0.10.17
+ - gst-plugins-bad 0.10.20
 
 Run time for the MSN plugin:
  - gst-plugins-bad 0.10.17
