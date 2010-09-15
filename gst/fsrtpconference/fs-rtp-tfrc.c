@@ -39,6 +39,17 @@ GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
 
 G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
 
+/* props */
+enum
+{
+  PROP_0,
+  PROP_BITRATE
+};
+
+static void fs_rtp_tfrc_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
 static void fs_rtp_tfrc_dispose (GObject *object);
 
 static void fs_rtp_tfrc_update_sender_timer_locked (
@@ -57,7 +68,15 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 
   gobject_class = (GObjectClass *) klass;
 
+  gobject_class->get_property = fs_rtp_tfrc_get_property;
   gobject_class->dispose = fs_rtp_tfrc_dispose;
+
+  g_object_class_install_property (gobject_class,
+      PROP_BITRATE,
+      g_param_spec_uint ("bitrate",
+          "The bitrate at which data should be sent",
+          "The bitrate that the session should try to send at in bits/sec",
+          0, G_MAXUINT, 0, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -136,6 +155,31 @@ fs_rtp_tfrc_dispose (GObject *object)
 
   if (G_OBJECT_CLASS (fs_rtp_tfrc_parent_class)->dispose)
     G_OBJECT_CLASS (fs_rtp_tfrc_parent_class)->dispose (object);
+}
+
+static void
+fs_rtp_tfrc_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtpTfrc *self = FS_RTP_TFRC (object);
+
+  switch (prop_id)
+  {
+    case PROP_BITRATE:
+      GST_OBJECT_LOCK (self);
+      if (self->last_src && self->last_src->sender)
+        g_value_set_uint (value,
+            tfrc_sender_get_send_rate (self->last_src->sender));
+      else
+        g_value_set_uint (value, 0);
+      GST_OBJECT_UNLOCK (self);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
 }
 
 
@@ -429,6 +473,8 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   struct TimerData *td = user_data;
   struct TrackedSource *src;
   guint now = GST_TIME_AS_MSECONDS (time);
+  guint old_rate = 0;
+  gboolean notify = FALSE;
 
   if (time == GST_CLOCK_TIME_NONE)
     return FALSE;
@@ -441,6 +487,8 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   if (!src)
     goto out;
 
+  old_rate = tfrc_sender_get_send_rate (src->sender);
+
   fs_rtp_tfrc_update_sender_timer_locked (td->self, src, now);
   if (src->idl)
     tfrc_is_data_limited_set_rate (src->idl,
@@ -448,9 +496,15 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
+  if (old_rate != tfrc_sender_get_send_rate (src->sender))
+    notify = TRUE;
+
 out:
 
   GST_OBJECT_UNLOCK (td->self);
+
+  if (notify)
+    g_object_notify (G_OBJECT (td->self), "bitrate");
 
   return FALSE;
 }
@@ -490,7 +544,7 @@ static gboolean
 incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 {
   GstRTCPPacket packet;
-
+  gboolean notify = FALSE;
 
   if (!gst_rtcp_buffer_validate (buffer))
     goto out;
@@ -515,6 +569,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       guint now, rtt;
       guint32 local_ssrc;
       gboolean is_data_limited;
+      guint old_send_rate = 0;
 
       media_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
 
@@ -570,6 +625,9 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         tfrc_sender_on_first_rtt (src->sender, now);
       }
 
+      if (self->last_src)
+        old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
+
       if (!src->idl)
         src->idl = tfrc_is_data_limited_new (now);
       is_data_limited =
@@ -588,12 +646,18 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       self->last_src = src;
 
+      if (old_send_rate != tfrc_sender_get_send_rate (src->sender))
+        notify = TRUE;
+
     done:
       GST_OBJECT_UNLOCK (self);
 
 
     }
   } while (gst_rtcp_packet_move_to_next (&packet));
+
+  if (notify)
+    g_object_notify (G_OBJECT (self), "bitrate");
 
 out:
   return TRUE;
