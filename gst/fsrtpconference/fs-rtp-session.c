@@ -1014,6 +1014,16 @@ _rtpbin_internal_session_notify_internal_ssrc (GObject *internal_session,
 }
 
 static void
+_rtp_tfrc_bitrate_changed (GObject *rtp_tfrc, GParamSpec *pspec,
+    FsRtpSession *self)
+{
+  guint bitrate;
+
+  g_object_get (rtp_tfrc, "bitrate", &bitrate, NULL);
+  fs_rtp_session_set_send_bitrate (self, bitrate);
+}
+
+static void
 fs_rtp_session_constructed (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION_CAST (object);
@@ -1292,6 +1302,9 @@ fs_rtp_session_constructed (GObject *object)
       self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink,
       &self->priv->send_filter);
 
+  g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
+      G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
+  _rtp_tfrc_bitrate_changed (G_OBJECT (self->priv->rtp_tfrc), NULL, self);
 
   /* Lets now create the RTP muxer */
 
