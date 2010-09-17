@@ -1302,9 +1302,17 @@ fs_rtp_session_constructed (GObject *object)
       self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink,
       &self->priv->send_filter);
 
-  g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
-      G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
-  _rtp_tfrc_bitrate_changed (G_OBJECT (self->priv->rtp_tfrc), NULL, self);
+  if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
+  {
+    self->priv->rtp_tfrc = fs_rtp_tfrc_new (self->priv->rtpbin_internal_session,
+        self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink,
+        &self->priv->send_filter);
+
+
+    g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
+        G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
+    _rtp_tfrc_bitrate_changed (G_OBJECT (self->priv->rtp_tfrc), NULL, self);
+  }
 
   /* Lets now create the RTP muxer */
 
