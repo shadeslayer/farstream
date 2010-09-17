@@ -1020,6 +1020,7 @@ _rtp_tfrc_bitrate_changed (GObject *rtp_tfrc, GParamSpec *pspec,
   guint bitrate;
 
   g_object_get (rtp_tfrc, "bitrate", &bitrate, NULL);
+  g_debug ("setting bitrate to: %d", bitrate);
   fs_rtp_session_set_send_bitrate (self, bitrate);
 }
 

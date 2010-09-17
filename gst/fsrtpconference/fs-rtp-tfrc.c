@@ -494,7 +494,7 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
     tfrc_is_data_limited_set_rate (src->idl,
         tfrc_sender_get_send_rate (src->sender), now);
 
-  g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
+  //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
   if (old_rate != tfrc_sender_get_send_rate (src->sender))
     notify = TRUE;
@@ -640,7 +640,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         tfrc_is_data_limited_set_rate (src->idl,
             tfrc_sender_get_send_rate (src->sender), now);
 
-      g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
+      //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
       fs_rtp_tfrc_update_sender_timer_locked (self, src, now);
 
