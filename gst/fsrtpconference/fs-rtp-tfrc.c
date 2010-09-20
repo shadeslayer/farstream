@@ -171,7 +171,7 @@ fs_rtp_tfrc_get_property (GObject *object,
       GST_OBJECT_LOCK (self);
       if (self->last_src && self->last_src->sender)
         g_value_set_uint (value,
-            tfrc_sender_get_send_rate (self->last_src->sender));
+            tfrc_sender_get_send_rate (self->last_src->sender) * 8);
       else
         g_value_set_uint (value, 0);
       GST_OBJECT_UNLOCK (self);
