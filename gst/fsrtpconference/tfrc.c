@@ -449,7 +449,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   const gdouble weights[8] = { 1.0, 1.0, 1.0, 1.0, 0.8, 0.6, 0.4, 0.2 };
   gint max_index = 0;
   guint received_count;
-  guint lost_count;
+  guint lost_count = 0;
   GList *item;
   guint loss_event_end = 0;
   guint max_seqnum = 0;
