@@ -358,9 +358,9 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   GST_WRITE_UINT32_BE (pdata + 8,
       tfrc_receiver_get_receive_rate (src->receiver));
   GST_WRITE_UINT32_BE (pdata + 12,
-      tfrc_receiver_get_loss_event_rate (src->receiver));
+      tfrc_receiver_get_loss_event_rate (src->receiver) * G_MAXUINT);
 
-  GST_LOG ("Sending RTCP report last_ts: %d delay: %d, x_recv: %d, rate: %d",
+  GST_LOG ("Sending RTCP report last_ts: %d delay: %d, x_recv: %d, rate: %f",
       src->last_ts, now - src->last_now,
       tfrc_receiver_get_receive_rate (src->receiver),
       tfrc_receiver_get_loss_event_rate (src->receiver));
@@ -443,7 +443,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
-  GST_LOG ("Got RTP packet x_recv: %d, rate: %d",
+  GST_LOG ("Got RTP packet x_recv: %d, rate: %f",
       tfrc_receiver_get_receive_rate (src->receiver),
       tfrc_receiver_get_loss_event_rate (src->receiver));
 
@@ -563,7 +563,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       guint32 ts;
       guint32 delay;
       guint32 x_recv;
-      guint32 loss_event_rate;
+      gdouble loss_event_rate;
       guint8 *buf = GST_BUFFER_DATA (packet.buffer) + packet.offset;
       struct TrackedSource *src;
       guint now, rtt;
@@ -588,10 +588,10 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       buf += 4;
       x_recv = GST_READ_UINT32_BE (buf);
       buf += 4;
-      loss_event_rate = GST_READ_UINT32_BE (buf);
+      loss_event_rate = (gdouble) GST_READ_UINT32_BE (buf) / (gdouble) G_MAXUINT;
 
       GST_LOG ("Got RTCP TFRC packet last_sent_ts: %u delay: %u x_recv: %u"
-          " loss_event_rate: %u", ts, delay, x_recv, loss_event_rate);
+          " loss_event_rate: %f", ts, delay, x_recv, loss_event_rate);
 
       GST_OBJECT_LOCK (self);
 

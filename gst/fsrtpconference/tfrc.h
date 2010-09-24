@@ -37,7 +37,7 @@ void tfrc_sender_free (TfrcSender *sender);
 
 void tfrc_sender_on_first_rtt (TfrcSender *sender, guint now);
 void tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now, guint rtt,
-    guint receive_rate, guint loss_event_rate, gboolean is_data_limited);
+    guint receive_rate, gdouble loss_event_rate, gboolean is_data_limited);
 void tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now);
 
 void tfrc_sender_sp_sending_packet (TfrcSender *sender, guint size);
@@ -56,7 +56,7 @@ gboolean tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver,
 guint tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver);
 
 guint tfrc_receiver_get_receive_rate (TfrcReceiver *receiver);
-guint tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver);
+gdouble tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver);
 
 TfrcIsDataLimited *tfrc_is_data_limited_new (guint now);
 void tfrc_is_data_limited_free (TfrcIsDataLimited *idl);

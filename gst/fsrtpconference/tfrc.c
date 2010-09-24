@@ -81,7 +81,7 @@ struct _TfrcSender {
 
   struct ReceiveRateItem receive_rate_history[RECEIVE_RATE_HISTORY_SIZE];
 
-  guint last_loss_event_rate;
+  gdouble last_loss_event_rate;
 
   gboolean sent_packet;
 };
@@ -186,7 +186,7 @@ const guint t_mbi = 64; /* the maximum backoff interval of 64 seconds */
 
 static void
 recompute_sending_rate (TfrcSender *sender, guint recv_limit,
-    guint loss_event_rate, guint now)
+    gdouble loss_event_rate, guint now)
 {
   if (loss_event_rate > 0) {
     /* congestion avoidance phase */
@@ -206,7 +206,7 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
 
 void
 tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
-    guint rtt, guint receive_rate, guint loss_event_rate,
+    guint rtt, guint receive_rate, gdouble loss_event_rate,
     gboolean is_data_limited)
 {
   guint recv_limit; /* the limit on the sending rate computed from X_recv_set */
@@ -395,7 +395,7 @@ struct _TfrcReceiver {
   guint receive_rate;
   guint feedback_timer_expiry;
 
-  guint loss_event_rate;
+  gdouble loss_event_rate;
 
   gboolean feedback_sent_on_last_timer;
 
@@ -440,7 +440,7 @@ tfrc_receiver_free (TfrcReceiver *receiver)
 }
 
 /* Implements RFC 5348 section 5 */
-static guint
+static gdouble
 calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
 {
   guint loss_event_times[LOSS_EVENTS_MAX];
@@ -692,7 +692,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
    */
 
   if (recalculate_loss_rate || !receiver->feedback_sent_on_last_timer) {
-    guint new_loss_event_rate = calculate_loss_event_rate (receiver, now);
+    gdouble new_loss_event_rate = calculate_loss_event_rate (receiver, now);
 
     if (new_loss_event_rate > receiver->loss_event_rate ||
         !receiver->feedback_sent_on_last_timer)
@@ -753,7 +753,7 @@ tfrc_receiver_get_receive_rate (TfrcReceiver *receiver)
   return receiver->receive_rate;
 }
 
-guint
+gdouble
 tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver)
 {
   return receiver->loss_event_rate;
