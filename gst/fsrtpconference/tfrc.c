@@ -487,9 +487,9 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
      while (loss_event_end - receiver->sender_rtt > prev->last_timestamp) {
       loss_event_times[max_index] = loss_event_end - receiver->sender_rtt;
       loss_event_seqnums[max_index] = prev->last_seqnum +
-          (current->first_timestamp - prev->last_seqnum) *
+          (current->first_timestamp - prev->last_timestamp) *
           ((loss_event_times[max_index] - prev->last_timestamp) /
-              (prev->last_timestamp - current->first_timestamp));
+              (current->first_timestamp - prev->last_timestamp));
       loss_event_end -= receiver->sender_rtt;
       /* First case is if the event ends before current */
       if (max_index &&
@@ -507,7 +507,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     }
 
     /* Add loss events that are between the start of prev and loss_event_end */
-    if (loss_event_end - receiver->sender_rtt > prev->first_timestamp) {
+    if (loss_event_end > prev->first_timestamp) {
       loss_event_seqnums[max_index] = prev->last_seqnum + 1;
       loss_event_times[max_index]  = prev->last_timestamp +
           ((current->first_timestamp - prev->last_timestamp) /
@@ -525,8 +525,9 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     /* Count the number of lost packets not in an already counted loss event */
     if (loss_event_end == current->first_timestamp)
       lost_count += prev->last_seqnum - current->first_seqnum;
-    else
-      lost_count += prev->last_seqnum - loss_event_seqnums[max_index];
+    else if (max_index &&
+        prev->last_seqnum + 1 != loss_event_seqnums[max_index - 1])
+      lost_count += prev->last_seqnum - loss_event_seqnums[max_index - 1] - 1;
   }
 
  done:
@@ -607,7 +608,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
       current->last_seqnum = seqnum;
       current->last_timestamp = timestamp;
       current->last_recvtime = now;
-    } else if (seqnum >= current->first_seqnum ||
+    } else if (seqnum >= current->first_seqnum &&
         seqnum <= current->last_seqnum) {
       /* Is inside the current interval, must be duplicate, ignore */
     } else if (seqnum > current->last_seqnum + 1) {
