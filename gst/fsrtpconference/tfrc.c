@@ -191,8 +191,7 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
   if (loss_event_rate > 0) {
     /* congestion avoidance phase */
     sender->computed_rate = calculate_bitrate (sender->segment_size,
-        sender->averaged_rtt,
-        loss_event_rate);
+        sender->averaged_rtt, loss_event_rate);
     sender->rate = MAX (MIN (sender->computed_rate, recv_limit),
         sender->segment_size/t_mbi);
   } else if (now - sender->tld >= sender->averaged_rtt) {
@@ -318,7 +317,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
      */
 
     sender->rate = MAX ( sender->rate / 2, sender->segment_size / t_mbi);
-  } else if ((( sender->last_loss_event_rate > 0 &&
+  } else if (((sender->last_loss_event_rate > 0 &&
               receive_rate < recover_rate) ||
           (sender->last_loss_event_rate == 0 &&
               sender->rate < 2 * recover_rate)) &&
