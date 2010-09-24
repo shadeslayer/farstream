@@ -612,6 +612,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
         seqnum <= current->last_seqnum) {
       /* Is inside the current interval, must be duplicate, ignore */
     } else if (seqnum > current->last_seqnum + 1) {
+      /* We had a loss, lets add a new one */
       prev = current;
 
       current = g_slice_new (ReceivedInterval);
