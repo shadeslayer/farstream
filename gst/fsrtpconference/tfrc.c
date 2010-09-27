@@ -372,7 +372,8 @@ tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender)
 
 
 #define NDUPACK 3 /* Number of packets to receive after a loss before declaring the loss event */
-#define LOSS_EVENTS_MAX (8)
+#define LOSS_EVENTS_MAX (9)
+#define LOSS_INTERVALS_MAX (8)
 #define MAX_HISTORY_SIZE (LOSS_EVENTS_MAX * 2) /* 2 is a random number */
 
 typedef struct  {
@@ -445,15 +446,13 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   guint loss_event_times[LOSS_EVENTS_MAX];
   guint loss_event_seqnums[LOSS_EVENTS_MAX];
   guint loss_event_pktcount[LOSS_EVENTS_MAX];
-  guint loss_intervals[LOSS_EVENTS_MAX + 1];
+  guint loss_intervals[LOSS_EVENTS_MAX];
   const gdouble weights[8] = { 1.0, 1.0, 1.0, 1.0, 0.8, 0.6, 0.4, 0.2 };
-  gint max_index = 0;
-  guint received_count;
-  guint lost_count = 0;
+  gint max_index = -1;
   GList *item;
-  guint loss_event_end = 0;
   guint max_seqnum = 0;
   guint i = 0;
+  guint max_interval;
   gdouble I_tot0 = 0;
   gdouble I_tot1 = 0;
   gdouble W_tot = 0;
@@ -462,95 +461,99 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   if (receiver->sender_rtt == 0)
     return 0;
 
-  for (item = g_queue_peek_tail_link (&receiver->received_intervals);
-       item;
-       item = item->prev) {
-    ReceivedInterval *current = item->data;
-    ReceivedInterval *prev = item->prev ? item->prev->data : NULL;
-
-    if (!max_seqnum)
-      max_seqnum = current->last_seqnum;
-
-    /* Don't declare a loss event unless 3 packets have arrived after the loss
-     */
-    received_count += current->last_seqnum - current->first_seqnum;
-    if (received_count < 3)
-      continue;
-
-    if (!prev)
-      break;
-
-    if (loss_event_end == 0)
-      loss_event_end = current->first_timestamp;
-
-    /* Add loss events that are entirely between prev and current */
-     while (loss_event_end - receiver->sender_rtt > prev->last_timestamp) {
-      loss_event_times[max_index] = loss_event_end - receiver->sender_rtt;
-      loss_event_seqnums[max_index] = prev->last_seqnum +
-          (current->first_timestamp - prev->last_timestamp) *
-          ((loss_event_times[max_index] - prev->last_timestamp) /
-              (current->first_timestamp - prev->last_timestamp));
-      loss_event_end -= receiver->sender_rtt;
-      /* First case is if the event ends before current */
-      if (max_index &&
-          loss_event_seqnums[max_index-1] < current->first_timestamp)
-        loss_event_pktcount[max_index] = lost_count +
-            (loss_event_seqnums[max_index-1] - loss_event_seqnums[max_index]);
-      else
-        loss_event_pktcount[max_index] = lost_count +
-            (current->first_seqnum - loss_event_seqnums[max_index]);
-      lost_count = 0;
-
-      max_index++;
-      if (max_index >= LOSS_EVENTS_MAX )
-        goto done;
-    }
-
-    /* Add loss events that are between the start of prev and loss_event_end */
-    if (loss_event_end > prev->first_timestamp) {
-      loss_event_seqnums[max_index] = prev->last_seqnum + 1;
-      loss_event_times[max_index]  = prev->last_timestamp +
-          ((current->first_timestamp - prev->last_timestamp) /
-              (current->first_seqnum - prev->last_seqnum));
-      loss_event_end = 0;
-      loss_event_pktcount[max_index] = lost_count +
-          (current->first_seqnum - loss_event_seqnums[max_index]);
-      lost_count = 0;
-      max_index++;
-
-      if (max_index >= LOSS_EVENTS_MAX)
-        goto done;
-    }
-
-    /* Count the number of lost packets not in an already counted loss event */
-    if (loss_event_end == current->first_timestamp)
-      lost_count += prev->last_seqnum - current->first_seqnum;
-    else if (max_index &&
-        prev->last_seqnum + 1 != loss_event_seqnums[max_index - 1])
-      lost_count += prev->last_seqnum - loss_event_seqnums[max_index - 1] - 1;
-  }
-
- done:
-
-  if (max_index == 0)
+  if (receiver->received_intervals.length <= 1)
     return 0;
 
+  for (item = g_queue_peek_head_link (&receiver->received_intervals);
+       item;
+       item = item->next) {
+    ReceivedInterval *current = item->data;
+    ReceivedInterval *prev = item->prev ? item->prev->data : NULL;
+    guint start_ts;
+    guint start_seqnum;
+
+    if (!prev)
+      continue;
+
+    max_seqnum = current->last_seqnum;
+
+    /* If the current loss is entirely within one RTT of the beginning of the
+     * last loss, lets merge it into there
+     */
+    if (max_index >= 0 && current->first_timestamp <
+        loss_event_times[max_index % LOSS_EVENTS_MAX] + receiver->sender_rtt) {
+      loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
+          current->first_seqnum - prev->last_seqnum;
+      continue;
+    }
+
+    if (max_index >= 0 && prev->last_timestamp <
+        loss_event_times[max_index % LOSS_EVENTS_MAX] + receiver->sender_rtt) {
+      /* This is the case where a loss event ends in a middle of an interval
+       * without packets, then we close this loss event and start a new one
+       */
+      start_ts = loss_event_times[max_index % LOSS_EVENTS_MAX] +
+          receiver->sender_rtt;
+      start_seqnum = prev->last_seqnum +
+          (current->first_seqnum - prev->last_seqnum) *
+          (start_ts - prev->last_timestamp) /
+          (1 + current->first_timestamp - prev->last_timestamp);
+      loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
+          start_seqnum - prev->last_seqnum - 1;
+    } else {
+      /* this is the case where the packet loss starts an entirely new loss
+       * event
+       */
+      start_ts = prev->last_timestamp +
+          ((current->first_timestamp - prev->last_timestamp) /
+              (current->first_seqnum - prev->last_seqnum));
+      start_seqnum = prev->last_seqnum + 1;
+    }
+
+    /* Now we have one or more loss events that start
+     * during this interval of lost packets, if there is more than one
+     * all but the last one are of RTT length
+     */
+    while (start_ts < current->first_timestamp) {
+      max_index ++;
+
+      loss_event_times[max_index % LOSS_EVENTS_MAX] = start_ts;
+      loss_event_seqnums[max_index % LOSS_EVENTS_MAX] = start_seqnum;
+      start_ts += receiver->sender_rtt;
+      start_seqnum += receiver->sender_rtt *
+          (current->first_seqnum - prev->last_seqnum) /
+          (current->first_timestamp - prev->last_timestamp);
+      if (start_seqnum == loss_event_seqnums[max_index % LOSS_EVENTS_MAX])
+        start_seqnum++;
+      loss_event_pktcount[max_index % LOSS_EVENTS_MAX] = start_seqnum -
+          loss_event_seqnums[max_index % LOSS_EVENTS_MAX];
+    }
+  }
+
   /* RFC 5348 Section 5.3: The size of loss events */
-  loss_intervals[0] = max_seqnum  - loss_event_seqnums[0] + 1;
-  for (i = 1; i < max_index; i++)
+  loss_intervals[0] = max_seqnum  - loss_event_seqnums[max_index] + 1;
+  for (i = max_index % LOSS_EVENTS_MAX, max_interval = 0;
+       max_interval < LOSS_INTERVALS_MAX &&
+	 ((max_index >= LOSS_EVENTS_MAX && i != (max_index - 1)) ||
+             (i != LOSS_EVENTS_MAX - 1));
+       i = (i ? i : LOSS_EVENTS_MAX) - 1, max_interval++) {
+    guint prev_i = (i + 1) % LOSS_EVENTS_MAX;
+
     /* if its Small Packet variant and the loss event is short,
      * that is less than 2 * RTT, then the loss interval is divided by the
      * number of packets lost
      * see RFC 4828 section 3 bullet 3 paragraph 2 */
     if (receiver->sp &&
-        loss_event_times[i-1] - loss_event_times[i] < 2 * receiver->sender_rtt)
-      loss_intervals[i] = (loss_event_seqnums[i - 1] - loss_event_seqnums[i]) /
-          loss_event_pktcount[i];
+        loss_event_times[prev_i] - loss_event_times[i] <
+        2 * receiver->sender_rtt)
+      loss_intervals[max_interval] = (loss_event_seqnums[prev_i] -
+          loss_event_seqnums[i]) / loss_event_pktcount[i];
     else
-      loss_intervals[i] = loss_event_seqnums[i - 1] - loss_event_seqnums[i];
+      loss_intervals[max_interval] = loss_event_seqnums[prev_i] - loss_event_seqnums[i];
+  }
 
   /* Section 5.4: Average loss rate */
-  for (i = 0; i < max_index - 1; i++) {
+  for (i = 0; i < max_interval; i++) {
     I_tot1 += loss_intervals[i] * weights[i-1];
     W_tot += weights[i];
   }
@@ -559,7 +562,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   if (receiver->sp && now - loss_event_times[0] < 2 * receiver->sender_rtt) {
     I_tot = I_tot1;
   } else {
-    for (i = 1; i < max_index; i++)
+    for (i = 1; i < max_interval; i++)
       I_tot0 += loss_intervals[i] * weights[i];
 
     I_tot = MAX (I_tot0, I_tot1);
