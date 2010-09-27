@@ -375,6 +375,7 @@ tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender)
 #define LOSS_EVENTS_MAX (9)
 #define LOSS_INTERVALS_MAX (8)
 #define MAX_HISTORY_SIZE (LOSS_EVENTS_MAX * 2) /* 2 is a random number */
+#define MIN_HISTORY_DURATION (10)
 
 typedef struct  {
   guint first_timestamp;
@@ -582,6 +583,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
   ReceivedInterval *prev = NULL;
   gboolean recalculate_loss_rate = FALSE;
   gboolean retval = FALSE;
+  gboolean history_too_short = !sender_rtt; /* No RTT, keep all history */
 
   receiver->received_bytes += packet_size;
 
@@ -648,10 +650,28 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
     break;
   }
 
+  /* Don't forget history if we have aless than MIN_HISTORY_DURATION * rtt
+   * of history
+   */
+  if (!history_too_short)
+  {
+    ReceivedInterval *newest =
+      g_queue_peek_tail (&receiver->received_intervals);
+    ReceivedInterval *oldest =
+      g_queue_peek_head (&receiver->received_intervals);
+    if (newest && oldest)
+      history_too_short =
+        newest->last_timestamp - oldest->first_timestamp <
+        MIN_HISTORY_DURATION * sender_rtt;
+    else
+      history_too_short = TRUE;
+  }
+
   /* It's the first one or we're at the start */
   if (G_UNLIKELY (!current)) {
     /* If its before MAX_HISTORY_SIZE, its too old, just discard it */
-    if (g_queue_get_length (&receiver->received_intervals) > MAX_HISTORY_SIZE)
+    if (!history_too_short &&
+        g_queue_get_length (&receiver->received_intervals) > MAX_HISTORY_SIZE)
       return retval;
 
     current = g_slice_new (ReceivedInterval);
@@ -662,9 +682,9 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
     g_queue_push_head (&receiver->received_intervals, current);
   }
 
-  if (g_queue_get_length (&receiver->received_intervals) > MAX_HISTORY_SIZE) {
+  if (!history_too_short &&
+      g_queue_get_length (&receiver->received_intervals) > MAX_HISTORY_SIZE) {
     ReceivedInterval *remove = g_queue_pop_head (&receiver->received_intervals);
-
     if (remove == prev)
       prev = NULL;
     g_slice_free (ReceivedInterval, remove);
