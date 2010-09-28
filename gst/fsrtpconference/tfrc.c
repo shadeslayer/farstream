@@ -790,7 +790,6 @@ struct _TfrcIsDataLimited
   guint not_limited_2;
   guint t_new;
   guint t_next;
-  guint t_now;
 
   guint last_reset_ts;
   guint rate;
@@ -804,8 +803,6 @@ TfrcIsDataLimited *
 tfrc_is_data_limited_new (guint now)
 {
   TfrcIsDataLimited *idl = g_slice_new0 (TfrcIsDataLimited);
-
-  idl->t_now = now;
 
   return idl;
 }
@@ -829,17 +826,18 @@ tfrc_is_data_limited_sent_segment (TfrcIsDataLimited *idl, guint now,
     guint size)
 {
   idl->sent += size;
+
   /* if sender has not sent all it is allowed to send */
-  if ((now - idl->last_reset_ts) * idl->rate / 1000 > idl->sent)
+  if ((now - idl->last_reset_ts) * idl->rate > idl->sent * 1000)
     return;
 
   /* Sender is not data-limited at this instant. */
   if (idl->not_limited_1 <= idl->t_new)
     /* Goal: NotLimited1 > t_new. */
-    idl->not_limited_1 = idl->t_now;
+    idl->not_limited_1 = now;
   else if (idl->not_limited_2 <= idl->t_next)
     /* Goal: NotLimited2 > t_next. */
-    idl->not_limited_2 = idl->t_now;
+    idl->not_limited_2 = now;
 }
 
 /*
@@ -847,15 +845,15 @@ tfrc_is_data_limited_sent_segment (TfrcIsDataLimited *idl, guint now,
  * was data limited
  */
 gboolean
-tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl,
+tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl, guint now,
     guint last_packet_timestamp, guint rtt)
 {
   gboolean ret;
   guint t_old;
 
   idl->t_new = last_packet_timestamp;
-  t_old = idl->t_new - rtt; /* local variable */
-  idl->t_next = idl->t_now;
+  t_old = idl->t_new - rtt;
+  idl->t_next = now;
   if ((t_old < idl->not_limited_1 && idl->not_limited_1 <= idl->t_new) ||
       (t_old <  idl->not_limited_2 && idl->not_limited_2 <= idl->t_new))
     /* This was NOT a data-limited interval */
@@ -866,6 +864,9 @@ tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl,
 
   if (idl->not_limited_1 <= idl->t_new && idl->not_limited_2 > idl->t_new)
       idl->not_limited_1 = idl->not_limited_2;
+
+  idl->last_reset_ts = now;
+  idl->sent = 0;
 
   return ret;
 }

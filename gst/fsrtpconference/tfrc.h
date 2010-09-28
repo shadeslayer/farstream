@@ -63,7 +63,7 @@ void tfrc_is_data_limited_free (TfrcIsDataLimited *idl);
 void tfrc_is_data_limited_sent_segment (TfrcIsDataLimited *idl, guint now,
     guint size);
 gboolean tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl,
-    guint last_packet_timestamp, guint rtt);
+    guint now, guint last_packet_timestamp, guint rtt);
 void tfrc_is_data_limited_set_rate (TfrcIsDataLimited *idl, guint rate,
     guint now);
 

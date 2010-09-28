@@ -447,9 +447,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       tfrc_receiver_get_receive_rate (src->receiver),
       tfrc_receiver_get_loss_event_rate (src->receiver));
 
-  if (src->idl)
-    tfrc_is_data_limited_sent_segment (src->idl, now, GST_BUFFER_SIZE (buffer));
-
   if (src->last_rtt == 0 && rtt)
     fs_rtp_tfrc_receiver_timer_func (self, src, now);
 
@@ -634,14 +631,13 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       if (!src->idl)
         src->idl = tfrc_is_data_limited_new (now);
       is_data_limited =
-          tfrc_is_data_limited_received_feedback (src->idl, ts, rtt);
+          tfrc_is_data_limited_received_feedback (src->idl, now, ts, rtt);
 
       tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
           loss_event_rate, is_data_limited);
 
-      if (src->idl)
-        tfrc_is_data_limited_set_rate (src->idl,
-            tfrc_sender_get_send_rate (src->sender), now);
+      tfrc_is_data_limited_set_rate (src->idl,
+          tfrc_sender_get_send_rate (src->sender), now);
 
       //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
@@ -674,6 +670,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   GstBufferList *list;
   GstBufferListIterator *it;
   gchar data[7];
+  guint now;
 
   GST_OBJECT_LOCK (self);
 
@@ -682,6 +679,8 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
     GST_OBJECT_UNLOCK (self);
     return buffer_or_list;
   }
+
+  now = fs_rtp_tfrc_get_now (self);
 
   if (GST_IS_BUFFER (buffer_or_list))
   {
@@ -701,7 +700,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
     GST_WRITE_UINT24_BE (data, self->last_src->rtt);
   else
     GST_WRITE_UINT24_BE (data, 0);
-  GST_WRITE_UINT32_BE (data+3, fs_rtp_tfrc_get_now (self));
+  GST_WRITE_UINT32_BE (data+3, now);
 
   it = gst_buffer_list_iterate (list);
 
@@ -726,6 +725,22 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   }
 
   gst_buffer_list_iterator_free (it);
+
+  if (self->last_src && self->last_src->idl)
+  {
+    it = gst_buffer_list_iterate (list);
+    while (gst_buffer_list_iterator_next_group (it))
+    {
+      guint size = 0;
+      GstBuffer *buf;
+
+      while ((buf = gst_buffer_list_iterator_next (it)))
+        size += GST_BUFFER_SIZE (buf);
+
+      tfrc_is_data_limited_sent_segment (self->last_src->idl, now, size);
+    }
+    gst_buffer_list_iterator_free (it);
+  }
 
   GST_OBJECT_UNLOCK (self);
 
