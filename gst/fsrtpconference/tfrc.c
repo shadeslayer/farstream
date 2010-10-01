@@ -29,8 +29,10 @@
 
 /*
  * ALL TIMES ARE IN MILLISECONDS
+ * bitrates are in bytes/sec
  */
 
+#define MAX_BITRATE (1024*1024) /* Max it 1 megabyte/sec */
 
 /*
  * @s: segment size in bytes
@@ -192,12 +194,12 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
     /* congestion avoidance phase */
     sender->computed_rate = calculate_bitrate (sender->segment_size,
         sender->averaged_rtt, loss_event_rate);
-    sender->rate = MAX (MIN (sender->computed_rate, recv_limit),
-        sender->segment_size/t_mbi);
+    sender->rate = MIN (MAX (MIN (sender->computed_rate, recv_limit),
+            sender->segment_size/t_mbi), MAX_BITRATE);
   } else if (now - sender->tld >= sender->averaged_rtt) {
     /* initial slow-start */
-    sender->rate = MAX ( MIN (2 * sender->rate, recv_limit),
-        sender->initial_rate);
+    sender->rate = MIN (MAX ( MIN (2 * sender->rate, recv_limit),
+            sender->initial_rate), MAX_BITRATE);
     sender->tld = now;
   }
 }
