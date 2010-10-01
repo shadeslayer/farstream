@@ -556,16 +556,16 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   }
 
   /* Section 5.4: Average loss rate */
-  for (i = 0; i < max_interval; i++) {
+  for (i = 1; i < max_interval; i++) {
     I_tot1 += loss_intervals[i] * weights[i-1];
-    W_tot += weights[i];
+    W_tot += weights[i-1];
   }
 
   /* Modified according to RFC 4828 section 3 bullet 3 paragraph 4*/
   if (receiver->sp && now - loss_event_times[0] < 2 * receiver->sender_rtt) {
     I_tot = I_tot1;
   } else {
-    for (i = 1; i < max_interval; i++)
+    for (i = 0; i < max_interval - 1; i++)
       I_tot0 += loss_intervals[i] * weights[i];
 
     I_tot = MAX (I_tot0, I_tot1);
