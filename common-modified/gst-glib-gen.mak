@@ -22,7 +22,7 @@ $(glib_gen_basename)-enumtypes.h: $(glib_enum_headers)
 	$(AM_V_GEN)glib-mkenums \
 	--fhead "#ifndef __$(glib_enum_define)_ENUM_TYPES_H__\n#define __$(glib_enum_define)_ENUM_TYPES_H__\n\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 	--fprod "\n/* enumerations from \"@filename@\" */\n" \
-	--vhead "GType @enum_name@_get_type (void);\n#define FS_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n"         \
+	--vhead "GType @enum_name@_get_type (void);\n#define FS_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
 	--ftail "G_END_DECLS\n\n#endif /* __$(glib_enum_define)_ENUM_TYPES_H__ */" \
 	$^ > $@
 

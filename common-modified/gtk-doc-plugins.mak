@@ -108,15 +108,15 @@ scanobj-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
 	if test x"$(srcdir)" != x. ; then				\
 	    for f in $(SCANOBJ_FILES);					\
 	    do								\
-	        cp $(srcdir)/$$f . ;					\
+		cp $(srcdir)/$$f . ;					\
 	    done;							\
 	else								\
-	    $(INSPECT_ENVIRONMENT) 					\
+	    $(INSPECT_ENVIRONMENT)					\
 	    CC="$(GTKDOC_CC)" LD="$(GTKDOC_LD)"				\
 	    CFLAGS="$(GTKDOC_CFLAGS) $(CFLAGS)"				\
 	    LDFLAGS="$(GTKDOC_LIBS) $(LDFLAGS)"				\
 	    $(GST_DOC_SCANOBJ) --type-init-func="gst_init(NULL,NULL)"	\
-	        --module=$(DOC_MODULE) --source=$(PACKAGE) &&		\
+		--module=$(DOC_MODULE) --source=$(PACKAGE) &&		\
 		$(PYTHON)						\
 		$(top_srcdir)/common/scangobj-merge.py $(DOC_MODULE);	\
 	fi
@@ -130,9 +130,9 @@ $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(SCANOBJ_FILES_O): scan-build.stamp sca
 # only look at the plugins in this module when building inspect .xml stuff
 INSPECT_REGISTRY=$(top_builddir)/docs/plugins/inspect-registry.xml
 INSPECT_ENVIRONMENT=\
-        GST_PLUGIN_SYSTEM_PATH= \
-        GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/sys:$(top_builddir)/ext:$(top_builddir)/plugins:$(top_builddir)/src:$(top_builddir)/gnl \
-        GST_REGISTRY=$(INSPECT_REGISTRY) \
+	GST_PLUGIN_SYSTEM_PATH= \
+	GST_PLUGIN_PATH=$(top_builddir)/gst:$(top_builddir)/sys:$(top_builddir)/ext:$(top_builddir)/plugins:$(top_builddir)/src:$(top_builddir)/gnl \
+	GST_REGISTRY=$(INSPECT_REGISTRY) \
 	$(INSPECT_EXTRA_ENVIRONMENT)
 
 inspect-update: inspect
@@ -152,10 +152,10 @@ inspect-build.stamp:
 	    cp $(srcdir)/inspect-build.stamp . ; \
 	else \
 	    $(INSPECT_ENVIRONMENT) $(PYTHON) \
-	        $(top_srcdir)/common/gst-xmlinspect.py $(PACKAGE) inspect && \
+		$(top_srcdir)/common/gst-xmlinspect.py $(PACKAGE) inspect && \
 	    echo -n "timestamp" > inspect.stamp && \
 	    touch inspect-build.stamp; \
-        fi
+	fi
 
 else
 inspect-build.stamp:
@@ -166,9 +166,9 @@ endif
 scan-build.stamp: $(HFILE_GLOB) $(EXTRA_HFILES) $(basefiles) scanobj-build.stamp inspect-build.stamp scanobj-trans-build.stamp
 	if test "x$(top_srcdir)" != "x$(top_builddir)" &&		\
 	   test -d "$(top_builddir)/gst";				\
-        then								\
-            export BUILT_OPTIONS="--source-dir=$(top_builddir)/gst";	\
-        fi;								\
+	then								\
+	    export BUILT_OPTIONS="--source-dir=$(top_builddir)/gst";	\
+	fi;								\
 	gtkdoc-scan							\
 	    $(SCAN_OPTIONS) $(EXTRA_HFILES)				\
 	    --module=$(DOC_MODULE)					\
@@ -186,7 +186,7 @@ tmpl-build.stamp: $(DOC_MODULE)-decl.txt $(SCANOBJ_FILES) $(DOC_MODULE)-sections
 	if test x"$(srcdir)" != x. ; then				\
 	    for f in $(SCANOBJ_FILES) $(SCAN_FILES);			\
 	    do								\
-	        if test -e $(srcdir)/$$f; then cp $(srcdir)/$$f . ; fi; \
+		if test -e $(srcdir)/$$f; then cp $(srcdir)/$$f . ; fi; \
 	    done;							\
 	fi
 	gtkdoc-mktmpl --module=$(DOC_MODULE) | tee tmpl-build.log
@@ -206,14 +206,14 @@ sgml-build.stamp: tmpl.stamp inspect.stamp $(CFILE_GLOB) $(top_srcdir)/common/pl
 	@echo '*** Building XML ***'
 	@-mkdir -p xml
 	@for a in $(srcdir)/inspect/*.xml; do \
-            xsltproc --stringparam module $(MODULE) \
+	    xsltproc --stringparam module $(MODULE) \
 		$(top_srcdir)/common/plugins.xsl $$a > xml/`basename $$a`; done
 	@for f in $(EXAMPLE_CFILES); do \
 		$(PYTHON) $(top_srcdir)/common/c-to-xml.py $$f > xml/element-`basename $$f .c`.xml; done
 	gtkdoc-mkdb \
 		--module=$(DOC_MODULE) \
 		--source-dir=$(DOC_SOURCE_DIR) \
-                 --expand-content-files="$(expand_content_files)" \
+		 --expand-content-files="$(expand_content_files)" \
 		--main-sgml-file=$(srcdir)/$(DOC_MAIN_SGML_FILE) \
 		--output-format=xml \
 		--ignore-files="$(IGNORE_HFILES) $(IGNORE_CFILES)" \
@@ -278,7 +278,7 @@ install-data-local:
 	if test "$$installfiles" = '$(srcdir)/html/*.sgml $(srcdir)/html/*.html $(srcdir)/html/*.png $(srcdir)/html/*.css'; \
 	then echo '-- Nothing to install' ; \
 	else \
-          $(mkinstalldirs) $(DESTDIR)$(TARGET_DIR); \
+	  $(mkinstalldirs) $(DESTDIR)$(TARGET_DIR); \
 	  for i in $$installfiles; do \
 	    echo '-- Installing '$$i ; \
 	    $(INSTALL_DATA) $$i $(DESTDIR)$(TARGET_DIR); \
@@ -295,7 +295,7 @@ install-data-local:
 	    $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp; \
 	  if test -e $(srcdir)/html/$(DOC_MODULE).devhelp2; then \
 	    $(INSTALL_DATA) $(srcdir)/html/$(DOC_MODULE).devhelp2 \
-	           $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp2; \
+		   $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp2; \
 	  fi; \
 	fi) 
 uninstall-local:
@@ -376,7 +376,7 @@ scanobj-trans-build.stamp: $(SCANOBJ_DEPS) $(basefiles) scanobj-build.stamp fars
 	    $(srcdir)/gtkdoc-scangobj-transmitters			\
 		 --type-init-func="gst_init(NULL,NULL)"			\
 		 --types=farsight2-transmitters.types			\
-	         --module=$(DOC_MODULE) &&				\
+		 --module=$(DOC_MODULE) &&				\
 		$(PYTHON)						\
 		$(top_srcdir)/common/scangobj-merge.py $(DOC_MODULE);	\
 	fi
