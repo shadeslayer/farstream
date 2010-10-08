@@ -910,8 +910,13 @@ fs_codec_to_gst_caps (const FsCodec *codec)
        item = g_list_next (item)) {
     FsCodecParameter *param = item->data;
     gchar *lower_name = g_ascii_strdown (param->name, -1);
-    gst_structure_set (structure, lower_name, G_TYPE_STRING, param->value,
-      NULL);
+
+    if (!strcmp (lower_name, "ptime") || !strcmp (lower_name, "maxptime"))
+      gst_structure_set (structure, lower_name, G_TYPE_UINT,
+          atoi (param->value), NULL);
+    else
+      gst_structure_set (structure, lower_name, G_TYPE_STRING, param->value,
+          NULL);
     g_free (lower_name);
   }
 
