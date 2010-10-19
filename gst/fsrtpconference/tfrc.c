@@ -66,6 +66,7 @@ struct _TfrcSender {
   gboolean sp;
   guint header_size;
   guint average_packet_size; /* 16 times larger */
+  gboolean use_inst_rate; /* use inst_rate instead of rate */
 
   guint mss; /* max segment size */
   guint rate; /* maximum allowed sending rate in bytes/sec */
@@ -116,6 +117,13 @@ tfrc_sender_new_sp (guint now, guint initial_average_packet_size)
 
   return sender;
 }
+
+void
+tfrc_sender_use_inst_rate (TfrcSender *sender, gboolean use_inst_rate)
+{
+  sender->use_inst_rate = use_inst_rate;
+}
+
 
 void
 tfrc_sender_free (TfrcSender *sender)
@@ -359,11 +367,18 @@ tfrc_sender_sp_sending_packet (TfrcSender *sender, guint size)
 guint
 tfrc_sender_get_send_rate (TfrcSender *sender)
 {
+  guint rate;
+
+  if (sender->use_inst_rate)
+    rate = sender->inst_rate;
+  else
+    rate = sender->rate;
+
   if (sender->sp)
-    return sender->rate * (sender->average_packet_size >> 4) /
+    return rate * (sender->average_packet_size >> 4) /
         ((sender->average_packet_size >> 4) + sender->header_size);
   else
-    return sender->rate;
+    return rate;
 }
 
 guint

@@ -34,6 +34,8 @@ typedef struct _TfrcIsDataLimited TfrcIsDataLimited;
 TfrcSender *tfrc_sender_new (guint segment_size, guint now);
 TfrcSender *tfrc_sender_new_sp (guint now, guint initial_average_packet_size);
 void tfrc_sender_free (TfrcSender *sender);
+void tfrc_sender_use_inst_rate (TfrcSender *sender, gboolean use_inst_rate);
+
 
 void tfrc_sender_on_first_rtt (TfrcSender *sender, guint now);
 void tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now, guint rtt,
