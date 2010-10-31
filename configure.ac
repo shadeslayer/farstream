@@ -105,6 +105,7 @@ AC_SUBST(GST_INSTALL_PLUGINS_HELPER)
 
 dnl these are all the gst plug-ins, compilable without additional libs
 FS2_PLUGINS_ALL=" \
+	fsrawconference \
 	fsrtpconference \
 	fsmsnconference \
 	funnel \
@@ -390,6 +391,7 @@ common/Makefile
 common/m4/Makefile
 common-modified/Makefile
 gst/Makefile
+gst/fsrawconference/Makefile
 gst/fsrtpconference/Makefile
 gst/fsmsnconference/Makefile
 gst/funnel/Makefile
