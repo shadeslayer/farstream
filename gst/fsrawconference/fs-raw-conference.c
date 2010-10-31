@@ -39,6 +39,8 @@
 
 #include "fs-raw-conference.h"
 
+#include "fs-raw-participant.h"
+
 GST_DEBUG_CATEGORY (fsrawconference_debug);
 #define GST_CAT_DEFAULT fsrawconference_debug
 
@@ -74,6 +76,9 @@ static GstStaticPadTemplate fs_raw_conference_src_template =
 struct _FsRawConferencePrivate
 {
   gboolean disposed;
+
+  /* Protected by GST_OBJECT_LOCK */
+  GList *participants;
 };
 
 static void fs_raw_conference_do_init (GType type);
@@ -90,6 +95,9 @@ static FsParticipant *fs_raw_conference_new_participant (FsBaseConference *conf,
     const gchar *cname,
     GError **error);
 
+static void _remove_participant (gpointer user_data,
+    GObject *where_the_object_was);
+
 static void
 fs_raw_conference_do_init (GType type)
 {
@@ -101,9 +109,17 @@ static void
 fs_raw_conference_dispose (GObject * object)
 {
   FsRawConference *self = FS_RAW_CONFERENCE (object);
+  GList *item;
 
   if (self->priv->disposed)
     return;
+
+  for (item = g_list_first (self->priv->participants);
+       item;
+       item = g_list_next (item))
+    g_object_weak_unref (G_OBJECT (item->data), _remove_participant, self);
+  g_list_free (self->priv->participants);
+  self->priv->participants = NULL;
 
   self->priv->disposed = TRUE;
 
@@ -146,6 +162,18 @@ fs_raw_conference_init (FsRawConference *conf,
   conf->priv = FS_RAW_CONFERENCE_GET_PRIVATE (conf);
 }
 
+static void
+_remove_participant (gpointer user_data,
+                     GObject *where_the_object_was)
+{
+  FsRawConference *self = FS_RAW_CONFERENCE (user_data);
+
+  GST_OBJECT_LOCK (self);
+  self->priv->participants =
+    g_list_remove_all (self->priv->participants, where_the_object_was);
+  GST_OBJECT_UNLOCK (self);
+}
+
 static FsSession *
 fs_raw_conference_new_session (FsBaseConference *conf,
                                FsMediaType media_type,
@@ -160,6 +188,47 @@ fs_raw_conference_new_participant (FsBaseConference *conf,
                                    const gchar *cname,
                                    GError **error)
 {
-  return NULL;
+  FsRawConference *self = FS_RAW_CONFERENCE (conf);
+  FsParticipant *new_participant = NULL;
+  GList *item = NULL;
+
+  if (cname)
+  {
+    GST_OBJECT_LOCK (self);
+    for (item = g_list_first (self->priv->participants);
+         item;
+         item = g_list_next (item))
+    {
+      gchar *lcname;
+
+      g_object_get (item->data, "cname", &lcname, NULL);
+      if (lcname && !g_strcmp0 (lcname, cname))
+      {
+        g_free (lcname);
+        break;
+      }
+      g_free (lcname);
+    }
+    GST_OBJECT_UNLOCK (self);
+
+    if (item)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "There is already a participant with this cname");
+      return NULL;
+    }
+  }
+
+  new_participant = FS_PARTICIPANT_CAST (fs_raw_participant_new (cname));
+
+
+  GST_OBJECT_LOCK (self);
+  self->priv->participants = g_list_append (self->priv->participants,
+      new_participant);
+  GST_OBJECT_UNLOCK (self);
+
+  g_object_weak_ref (G_OBJECT (new_participant), _remove_participant, self);
+
+  return new_participant;
 }
 

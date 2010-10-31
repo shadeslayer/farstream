@@ -6,10 +6,12 @@ plugin_LTLIBRARIES = libfsrawconference.la
 noinst_LTLIBRARIES = libfsrawconference-convenience.la
 
 libfsrawconference_convenience_la_SOURCES = \
-	fs-raw-conference.c
+	fs-raw-conference.c \
+	fs-raw-participant.c
 
 noinst_HEADERS = \
-	fs-raw-conference.h
+	fs-raw-conference.h \
+	fs-raw-participant.h
 
 
 AM_CFLAGS = \
