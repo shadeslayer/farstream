@@ -890,7 +890,7 @@ fs_nice_transmitter_set_sending (FsNiceTransmitter *self,
           g_object_set (ns->recvonly_filters[c], "sending", TRUE, NULL);
         else
         {
-          GstStateChangeReturn ret;
+          GstPadLinkReturn ret;
           GstPad *elempad;
 
           gst_element_set_locked_state (ns->nicesinks[c], FALSE);
