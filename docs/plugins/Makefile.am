@@ -58,6 +58,7 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/transmitters/multicast/libmulticast-transmitter.la \
 	$(top_builddir)/transmitters/rawudp/librawudp-transmitter.la \
 	$(top_builddir)/transmitters/nice/libnice-transmitter.la \
+	$(top_builddir)/transmitters/shm/libshm-transmitter.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \
 	$(top_builddir)/gst/funnel/libfsfunnel.la \
@@ -93,7 +94,9 @@ EXTRA_HFILES = \
 	$(top_srcdir)/transmitters/multicast/fs-multicast-transmitter.h \
 	$(top_srcdir)/transmitters/multicast/fs-multicast-stream-transmitter.h \
 	$(top_srcdir)/transmitters/nice/fs-nice-transmitter.h \
-	$(top_srcdir)/transmitters/nice/fs-nice-stream-transmitter.h
+	$(top_srcdir)/transmitters/nice/fs-nice-stream-transmitter.h \
+	$(top_srcdir)/transmitters/shm/fs-shm-transmitter.h \
+	$(top_srcdir)/transmitters/shm/fs-shm-stream-transmitter.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES =
@@ -131,7 +134,7 @@ GTKDOC_LD=$(LIBTOOL) --tag=CC --mode=link $(CC)
 #DOC_OVERRIDES = $(DOC_MODULE)-overrides.txt
 DOC_OVERRIDES =
 
-FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs
+FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs:$(top_builddir)/transmitters/shm/.libs
 
 update-all: scanobj-trans-build.stamp update
 

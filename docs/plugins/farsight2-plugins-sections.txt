@@ -44,7 +44,8 @@ FS_IS_RTP_CONFERENCE_CLASS
 FS_RTP_CONFERENCE_GET_CLASS
 <SUBSECTION Private>
 fs_codec_to_gst_caps
-fs_codec_to_gst_caps_with_ptime
+fs_rtp_conference_is_internal_thread
+codecs_copy_with_new_ptime
 </SECTION>
 
 <SECTION>
@@ -173,6 +174,8 @@ fs_rtp_session_new
 fs_rtp_session_new_recv_pad
 fs_rtp_session_request_pt_map
 fs_rtp_session_ssrc_validated
+fs_rtp_session_has_disposed_enter
+fs_rtp_session_has_disposed_exit
 </SECTION>
 
 <SECTION>
@@ -259,6 +262,55 @@ fs_nice_stream_transmitter_get_type
 FS_NICE_STREAM_TRANSMITTER_CLASS
 FS_IS_NICE_STREAM_TRANSMITTER_CLASS
 FS_NICE_STREAM_TRANSMITTER_GET_CLASS
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-shm-transmitter</FILE>
+<TITLE>FsShmTransmitter</TITLE>
+FsShmTransmitter
+<SUBSECTION Standard>
+FsShmTransmitterClass
+FS_SHM_TRANSMITTER_CAST
+FS_SHM_TRANSMITTER
+FS_IS_SHM_TRANSMITTER
+FS_TYPE_SHM_TRANSMITTER
+fs_shm_transmitter_get_type
+FS_SHM_TRANSMITTER_CLASS
+FS_IS_SHM_TRANSMITTER_CLASS
+FS_SHM_TRANSMITTER_GET_CLASS
+<SUBSECTION Private>
+FsShmTransmitterPrivate
+ShmSink
+ShmSrc
+connected
+fs_shm_transmitter_check_shm_sink
+fs_shm_transmitter_check_shm_src
+fs_shm_transmitter_get_shm_sink
+fs_shm_transmitter_get_shm_src
+fs_shm_transmitter_sink_set_sending
+got_buffer
+ready
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-shm-stream-transmitter</FILE>
+<TITLE>FsShmStreamTransmitter</TITLE>
+FsShmStreamTransmitter
+<SUBSECTION Standard>
+FS_SHM_STREAM_TRANSMITTER_CAST
+FsShmStreamTransmitterPrivate
+fs_shm_stream_transmitter_register_type
+fs_shm_stream_transmitter_newv
+FsShmStreamTransmitterClass
+FS_SHM_STREAM_TRANSMITTER
+FS_IS_SHM_STREAM_TRANSMITTER
+FS_TYPE_SHM_STREAM_TRANSMITTER
+fs_shm_stream_transmitter_get_type
+FS_SHM_STREAM_TRANSMITTER_CLASS
+FS_IS_SHM_STREAM_TRANSMITTER_CLASS
+FS_SHM_STREAM_TRANSMITTER_GET_CLASS
 </SECTION>
 
 
