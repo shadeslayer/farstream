@@ -349,9 +349,7 @@ if test "x$WANT_PYTHON" = "xyes"; then
 				   gst-python-0.10 >= 0.10.10] )
    PKG_CHECK_MODULES(PYCODEGEN, [ pygobject-2.0 >= 2.16.0 ],
      PYCODEGEN=pygobject-codegen-2.0,
-     PKG_CHECK_MODULES(PYCODEGEN, [ pygtk-2.0 >= 2.10 ],
-       PYCODEGEN=pygtk-codegen-2.0,
-       AC_MSG_ERROR([You need pygobject 2.16+ or pygtk for the codegen])))
+       AC_MSG_ERROR([You need pygobject 2.16+ for the codegen]))
 fi
 AC_SUBST(PYCODEGEN)
 AM_CONDITIONAL(WANT_PYTHON, test "x$WANT_PYTHON" = "xyes")

@@ -1,5 +1,4 @@
 PYDEFS=`pkg-config --variable=defsdir pygobject-2.0`
-[ -z "$PYDEFS" && PYDEFS=`pkg-config --variable=defsdir pygtk-2.0`]
 GSTPYDEFS=`pkg-config --variable=defsdir gst-python-0.10`
 
 AM_CPPFLAGS =						\

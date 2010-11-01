@@ -25,9 +25,8 @@ For UPnP support:
  - GUPnP-IGD
 
 For the python module:
- - PyGObject 2.12
+ - PyGObject 2.16
  - gst-python 0.10.10
- - PyGObject 2.16 or PyGTK 2.10 
 
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
