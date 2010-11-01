@@ -116,7 +116,8 @@ scanobj-build.stamp: $(SCANOBJ_DEPS) $(basefiles)
 	    CFLAGS="$(GTKDOC_CFLAGS) $(CFLAGS)"				\
 	    LDFLAGS="$(GTKDOC_LIBS) $(LDFLAGS)"				\
 	    $(GST_DOC_SCANOBJ) --type-init-func="gst_init(NULL,NULL)"	\
-		--module=$(DOC_MODULE) --source=$(PACKAGE) &&		\
+		--module=$(DOC_MODULE) --source=$(PACKAGE) 		\
+		--inspect-dir="inspect" &&				\
 		$(PYTHON)						\
 		$(top_srcdir)/common/scangobj-merge.py $(DOC_MODULE);	\
 	fi
