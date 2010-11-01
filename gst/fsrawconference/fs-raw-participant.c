@@ -78,7 +78,7 @@ fs_raw_participant_init (FsRawParticipant *self)
   // self->priv = FS_RAW_PARTICIPANT_GET_PRIVATE (self);
 }
 
-FsRawParticipant *fs_raw_participant_new (const gchar *cname)
+FsRawParticipant *fs_raw_participant_new (void)
 {
-  return g_object_new (FS_TYPE_RAW_PARTICIPANT, "cname", cname, NULL);
+  return g_object_new (FS_TYPE_RAW_PARTICIPANT, NULL);
 }

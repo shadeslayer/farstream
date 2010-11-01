@@ -74,7 +74,7 @@ struct _FsRawParticipant
 
 GType fs_raw_participant_get_type (void);
 
-FsRawParticipant *fs_raw_participant_new (const gchar *cname);
+FsRawParticipant *fs_raw_participant_new (void);
 
 G_END_DECLS
 

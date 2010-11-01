@@ -190,37 +190,8 @@ fs_raw_conference_new_participant (FsBaseConference *conf,
 {
   FsRawConference *self = FS_RAW_CONFERENCE (conf);
   FsParticipant *new_participant = NULL;
-  GList *item = NULL;
 
-  if (cname)
-  {
-    GST_OBJECT_LOCK (self);
-    for (item = g_list_first (self->priv->participants);
-         item;
-         item = g_list_next (item))
-    {
-      gchar *lcname;
-
-      g_object_get (item->data, "cname", &lcname, NULL);
-      if (lcname && !g_strcmp0 (lcname, cname))
-      {
-        g_free (lcname);
-        break;
-      }
-      g_free (lcname);
-    }
-    GST_OBJECT_UNLOCK (self);
-
-    if (item)
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "There is already a participant with this cname");
-      return NULL;
-    }
-  }
-
-  new_participant = FS_PARTICIPANT_CAST (fs_raw_participant_new (cname));
-
+  new_participant = FS_PARTICIPANT_CAST (fs_raw_participant_new ());
 
   GST_OBJECT_LOCK (self);
   self->priv->participants = g_list_append (self->priv->participants,
