@@ -4230,7 +4230,10 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
   CodecAssociation *ca = NULL;
 
   if (fs_rtp_session_has_disposed_enter (session, NULL))
+  {
+    gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
     return;
+  }
 
   g_mutex_lock (session->priv->discovery_pad_blocked_mutex);
 
