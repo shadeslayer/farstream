@@ -45,6 +45,7 @@
 #include <string.h>
 
 #include <gst/gst.h>
+#include <gst/farsight/fs-transmitter.h>
 
 #include "fs-raw-stream.h"
 #include "fs-raw-participant.h"
@@ -118,6 +119,8 @@ static FsStream *fs_raw_session_new_stream (FsSession *session,
     GParameter *parameters,
     GError **error);
 
+static gchar **fs_raw_session_list_transmitters (FsSession *session);
+
 static GType
 fs_raw_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter);
@@ -139,6 +142,7 @@ fs_raw_session_class_init (FsRawSessionClass *klass)
   gobject_class->constructed = fs_raw_session_constructed;
 
   session_class->new_stream = fs_raw_session_new_stream;
+  session_class->list_transmitters = fs_raw_session_list_transmitters;
   session_class->get_stream_transmitter_type =
     fs_raw_session_get_stream_transmitter_type;
 
@@ -543,6 +547,11 @@ fs_raw_session_new (FsMediaType media_type,
   return session;
 }
 
+static gchar **
+fs_raw_session_list_transmitters (FsSession *session)
+{
+  return fs_transmitter_list_available ();
+}
 
 static GType
 fs_raw_session_get_stream_transmitter_type (FsSession *session,
