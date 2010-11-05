@@ -1,0 +1,552 @@
+/*
+ * Farsight2 - Farsight Raw Session
+ *
+ * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
+ * Copyright 2007 Nokia Corp.
+ * Copyright 2007-2010 Collabora Ltd.
+ *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *  @author: Youness Alaoui <youness.alaoui@collabora.co.uk>
+ *
+ * fs-raw-session.c - A Farsight Raw Session gobject
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
+ */
+
+/**
+ * SECTION:fs-raw-session
+ * @short_description: A  Raw session in a #FsRawConference
+ *
+ * The transmitter parameters to the fs_session_new_stream() function are
+ * used to set the initial value of the construct properties of the stream
+ * object.
+ *
+ * The codecs preferences can not be modified. The codec should have the
+ * encoding_name property set to the value returned by gst_caps_to_string.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "fs-raw-session.h"
+
+#include <string.h>
+
+#include <gst/gst.h>
+
+#include "fs-raw-stream.h"
+#include "fs-raw-participant.h"
+
+#define GST_CAT_DEFAULT fsrawconference_debug
+
+/* Signals */
+enum
+{
+  LAST_SIGNAL
+};
+
+/* props */
+enum
+{
+  PROP_0,
+  PROP_MEDIA_TYPE,
+  PROP_ID,
+  PROP_SINK_PAD,
+  PROP_CODEC_PREFERENCES,
+  PROP_CODECS,
+  PROP_CODECS_WITHOUT_CONFIG,
+  PROP_CURRENT_SEND_CODEC,
+  PROP_CODECS_READY,
+  PROP_CONFERENCE,
+  PROP_TOS
+};
+
+
+
+struct _FsRawSessionPrivate
+{
+  FsMediaType media_type;
+
+  FsRawConference *conference;
+  FsRawStream *stream;
+
+  GError *construction_error;
+
+  GstPad *media_sink_pad;
+
+  guint tos; /* Protected by conf lock */
+
+  GMutex *mutex; /* protects the conference */
+};
+
+G_DEFINE_TYPE (FsRawSession, fs_raw_session, FS_TYPE_SESSION);
+
+#define FS_RAW_SESSION_GET_PRIVATE(o)  \
+   (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAW_SESSION, FsRawSessionPrivate))
+
+static void fs_raw_session_dispose (GObject *object);
+static void fs_raw_session_finalize (GObject *object);
+
+static void fs_raw_session_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
+static void fs_raw_session_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec);
+
+static void fs_raw_session_constructed (GObject *object);
+
+static FsStream *fs_raw_session_new_stream (FsSession *session,
+    FsParticipant *participant,
+    FsStreamDirection direction,
+    const gchar *transmitter,
+    guint n_parameters,
+    GParameter *parameters,
+    GError **error);
+
+static GType
+fs_raw_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter);
+
+static void _remove_stream (gpointer user_data,
+                            GObject *where_the_object_was);
+
+static void
+fs_raw_session_class_init (FsRawSessionClass *klass)
+{
+  GObjectClass *gobject_class;
+  FsSessionClass *session_class;
+
+  gobject_class = (GObjectClass *) klass;
+  session_class = FS_SESSION_CLASS (klass);
+
+  gobject_class->set_property = fs_raw_session_set_property;
+  gobject_class->get_property = fs_raw_session_get_property;
+  gobject_class->constructed = fs_raw_session_constructed;
+
+  session_class->new_stream = fs_raw_session_new_stream;
+  session_class->get_stream_transmitter_type =
+    fs_raw_session_get_stream_transmitter_type;
+
+  g_object_class_override_property (gobject_class,
+      PROP_MEDIA_TYPE, "media-type");
+  g_object_class_override_property (gobject_class,
+      PROP_ID, "id");
+  g_object_class_override_property (gobject_class,
+      PROP_SINK_PAD, "sink-pad");
+
+  g_object_class_override_property (gobject_class,
+    PROP_CODEC_PREFERENCES, "codec-preferences");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS, "codecs");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS_WITHOUT_CONFIG, "codecs-without-config");
+  g_object_class_override_property (gobject_class,
+    PROP_CURRENT_SEND_CODEC, "current-send-codec");
+  g_object_class_override_property (gobject_class,
+    PROP_CODECS_READY, "codecs-ready");
+  g_object_class_override_property (gobject_class,
+    PROP_TOS, "tos");
+
+  g_object_class_install_property (gobject_class,
+      PROP_CONFERENCE,
+      g_param_spec_object ("conference",
+          "The Conference this stream refers to",
+          "This is a convience pointer for the Conference",
+          FS_TYPE_RAW_CONFERENCE,
+          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  gobject_class->dispose = fs_raw_session_dispose;
+  gobject_class->finalize = fs_raw_session_finalize;
+
+  g_type_class_add_private (klass, sizeof (FsRawSessionPrivate));
+}
+
+static void
+fs_raw_session_init (FsRawSession *self)
+{
+  /* member init */
+  self->priv = FS_RAW_SESSION_GET_PRIVATE (self);
+  self->priv->construction_error = NULL;
+
+  self->priv->mutex = g_mutex_new ();
+
+  self->priv->media_type = FS_MEDIA_TYPE_LAST + 1;
+}
+
+
+static FsRawConference *
+fs_raw_session_get_conference (FsRawSession *self, GError **error)
+{
+  FsRawConference *conference;
+
+  g_mutex_lock (self->priv->mutex);
+  conference = self->priv->conference;
+  if (conference)
+    g_object_ref (conference);
+  g_mutex_unlock (self->priv->mutex);
+
+  if (!conference)
+    g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
+        "Called function after session has been disposed");
+
+  return conference;
+}
+
+
+static void
+fs_raw_session_dispose (GObject *object)
+{
+  FsRawSession *self = FS_RAW_SESSION (object);
+  GstBin *conferencebin = NULL;
+  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+  GstElement *valve = NULL;
+
+  g_mutex_lock (self->priv->mutex);
+  self->priv->conference = NULL;
+  g_mutex_unlock (self->priv->mutex);
+
+  if (!conference)
+    goto out;
+
+  conferencebin = GST_BIN (conference);
+
+  if (!conferencebin)
+    goto out;
+
+  if (self->priv->media_sink_pad)
+    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
+
+  GST_OBJECT_LOCK (conference);
+  valve = self->valve;
+  self->valve = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (valve)
+  {
+    gst_element_set_locked_state (valve, TRUE);
+    gst_element_set_state (valve, GST_STATE_NULL);
+    gst_bin_remove (conferencebin, valve);
+  }
+
+  if (self->priv->media_sink_pad)
+    gst_element_remove_pad (GST_ELEMENT (conference),
+        self->priv->media_sink_pad);
+  self->priv->media_sink_pad = NULL;
+
+  gst_object_unref (conferencebin);
+  gst_object_unref (conference);
+
+ out:
+
+  G_OBJECT_CLASS (fs_raw_session_parent_class)->dispose (object);
+}
+
+static void
+fs_raw_session_finalize (GObject *object)
+{
+  FsRawSession *self = FS_RAW_SESSION (object);
+
+  g_mutex_free (self->priv->mutex);
+
+  G_OBJECT_CLASS (fs_raw_session_parent_class)->finalize (object);
+}
+
+static void
+fs_raw_session_get_property (GObject *object,
+                             guint prop_id,
+                             GValue *value,
+                             GParamSpec *pspec)
+{
+  FsRawSession *self = FS_RAW_SESSION (object);
+  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+
+  if (!conference)
+    return;
+
+  switch (prop_id)
+  {
+    case PROP_MEDIA_TYPE:
+      g_value_set_enum (value, self->priv->media_type);
+      break;
+    case PROP_ID:
+      g_value_set_uint (value, 1);
+      break;
+    case PROP_CONFERENCE:
+      g_value_set_object (value, self->priv->conference);
+      break;
+    case PROP_SINK_PAD:
+      g_value_set_object (value, self->priv->media_sink_pad);
+      break;
+    case PROP_CODECS_READY:
+      g_value_set_boolean (value, TRUE);
+      break;
+    case PROP_CODEC_PREFERENCES:
+      /* There are no preferences, so return NULL */
+      break;
+    case PROP_CODECS:
+    case PROP_CODECS_WITHOUT_CONFIG:
+      {
+        GList *codecs = NULL;
+        FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
+          FS_MEDIA_TYPE_VIDEO, 0);
+        codecs = g_list_append (codecs, mimic_codec);
+        g_value_take_boxed (value, codecs);
+      }
+      break;
+    case PROP_CURRENT_SEND_CODEC:
+      {
+        FsCodec *send_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
+            FS_MEDIA_TYPE_VIDEO, 0);
+        g_value_take_boxed (value, send_codec);
+        break;
+      }
+    case PROP_TOS:
+      GST_OBJECT_LOCK (conference);
+      g_value_set_uint (value, self->priv->tos);
+      GST_OBJECT_UNLOCK (conference);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+
+  gst_object_unref (conference);
+}
+
+static void
+fs_raw_session_set_property (GObject *object,
+                             guint prop_id,
+                             const GValue *value,
+                             GParamSpec *pspec)
+{
+  FsRawSession *self = FS_RAW_SESSION (object);
+  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+
+  if (!conference && !(pspec->flags & G_PARAM_CONSTRUCT_ONLY))
+    return;
+
+  switch (prop_id)
+  {
+    case PROP_MEDIA_TYPE:
+      self->priv->media_type = g_value_get_enum (value);
+      break;
+    case PROP_ID:
+      break;
+    case PROP_CONFERENCE:
+      self->priv->conference = FS_RAW_CONFERENCE (g_value_dup_object (value));
+      break;
+    case PROP_TOS:
+      if (conference)
+        GST_OBJECT_LOCK (conference);
+      self->priv->tos = g_value_get_uint (value);
+      if (self->priv->stream)
+        fs_raw_stream_set_tos_locked (self->priv->stream, self->priv->tos);
+      if (conference)
+        GST_OBJECT_UNLOCK (conference);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+
+  if (conference)
+    gst_object_unref (conference);
+}
+
+static void
+fs_raw_session_constructed (GObject *object)
+{
+  FsRawSession *self = FS_RAW_SESSION (object);
+  GstPad *pad;
+
+  g_assert (self->priv->conference);
+
+  self->valve = gst_element_factory_make ("valve", NULL);
+
+  if (!self->valve)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not make sink valve");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->valve))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
+    return;
+  }
+
+  g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
+
+  pad = gst_element_get_static_pad (self->valve, "sink");
+  self->priv->media_sink_pad = gst_ghost_pad_new ("sink1", pad);
+  gst_object_unref (pad);
+
+  if (!self->priv->media_sink_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not create sink ghost pad");
+    return;
+  }
+
+  gst_pad_set_active (self->priv->media_sink_pad, TRUE);
+  if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
+          self->priv->media_sink_pad))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add sink pad to conference");
+    gst_object_unref (self->priv->media_sink_pad);
+    self->priv->media_sink_pad = NULL;
+    return;
+  }
+
+  gst_element_sync_state_with_parent (self->valve);
+
+  if (G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed (object);
+}
+
+
+static void
+_remove_stream (gpointer user_data,
+                GObject *where_the_object_was)
+{
+  FsRawSession *self = FS_RAW_SESSION (user_data);
+  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+
+  if (!conference)
+    return;
+
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->stream == (FsRawStream *) where_the_object_was)
+    self->priv->stream = NULL;
+  GST_OBJECT_UNLOCK (conference);
+  gst_object_unref (conference);
+}
+
+/**
+ * fs_raw_session_new_stream:
+ * @session: an #FsRawSession
+ * @participant: #FsParticipant of a participant for the new stream
+ * @direction: #FsStreamDirection describing the direction of the new stream
+ * that will be created for this participant
+ * @error: location of a #GError, or NULL if no error occured
+ *
+ * This function creates a stream for the given participant into the active
+ * session.
+ *
+ * Returns: the new #FsStream that has been created. User must unref the
+ * #FsStream when the stream is ended. If an error occured, returns NULL.
+ */
+static FsStream *
+fs_raw_session_new_stream (FsSession *session,
+                           FsParticipant *participant,
+                           FsStreamDirection direction,
+                           const gchar *transmitter,
+                           guint n_parameters,
+                           GParameter *parameters,
+                           GError **error)
+{
+  FsRawSession *self = FS_RAW_SESSION (session);
+  FsRawParticipant *rawparticipant = NULL;
+  FsStream *new_stream = NULL;
+  FsRawConference *conference;
+
+  if (!FS_IS_RAW_PARTICIPANT (participant))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "You have to provide a participant of type RAW");
+    return NULL;
+  }
+
+  conference = fs_raw_session_get_conference (self, error);
+  if (!conference)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->stream)
+    goto already_have_stream;
+  GST_OBJECT_UNLOCK (conference);
+
+  rawparticipant = FS_RAW_PARTICIPANT (participant);
+
+  new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
+          direction, conference, n_parameters, parameters, error));
+
+  if (new_stream)
+  {
+    GST_OBJECT_LOCK (conference);
+    if (self->priv->stream)
+    {
+      g_object_unref (new_stream);
+      goto already_have_stream;
+    }
+    self->priv->stream = (FsRawStream *) new_stream;
+    g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+
+    if (self->priv->tos)
+      fs_raw_stream_set_tos_locked (self->priv->stream, self->priv->tos);
+    GST_OBJECT_UNLOCK (conference);
+  }
+  gst_object_unref (conference);
+
+
+  return new_stream;
+
+ already_have_stream:
+  GST_OBJECT_UNLOCK (conference);
+  gst_object_unref (conference);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
+        "There already is a stream in this session");
+  return NULL;
+}
+
+FsRawSession *
+fs_raw_session_new (FsMediaType media_type,
+    FsRawConference *conference,
+    GError **error)
+{
+  FsRawSession *session = g_object_new (FS_TYPE_RAW_SESSION,
+      "media-type", media_type,
+      "conference", conference,
+      NULL);
+
+  if (!session)
+  {
+    *error = g_error_new (FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not create object");
+  }
+  else if (session->priv->construction_error)
+  {
+    g_propagate_error (error, session->priv->construction_error);
+    g_object_unref (session);
+    return NULL;
+  }
+
+  return session;
+}
+
+
+static GType
+fs_raw_session_get_stream_transmitter_type (FsSession *session,
+    const gchar *transmitter)
+{
+  return FS_TYPE_RAW_STREAM;
+}

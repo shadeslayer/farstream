@@ -7,10 +7,12 @@ noinst_LTLIBRARIES = libfsrawconference-convenience.la
 
 libfsrawconference_convenience_la_SOURCES = \
 	fs-raw-conference.c \
+	fs-raw-session.c \
 	fs-raw-participant.c
 
 noinst_HEADERS = \
 	fs-raw-conference.h \
+	fs-raw-session.h \
 	fs-raw-participant.h
 
 
