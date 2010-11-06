@@ -86,6 +86,7 @@ struct _FsRawSessionPrivate
   GError *construction_error;
 
   GstPad *media_sink_pad;
+  GstElement *capsfilter;
 
   guint tos; /* Protected by conf lock */
 
@@ -219,6 +220,7 @@ fs_raw_session_dispose (GObject *object)
   GstBin *conferencebin = NULL;
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   GstElement *valve = NULL;
+  GstElement *capsfilter = NULL;
 
   g_mutex_lock (self->priv->mutex);
   self->priv->conference = NULL;
@@ -245,6 +247,18 @@ fs_raw_session_dispose (GObject *object)
     gst_element_set_locked_state (valve, TRUE);
     gst_element_set_state (valve, GST_STATE_NULL);
     gst_bin_remove (conferencebin, valve);
+  }
+
+  GST_OBJECT_LOCK (conference);
+  capsfilter = self->priv->capsfilter;
+  self->priv->capsfilter = capsfilter;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (capsfilter)
+  {
+    gst_element_set_locked_state (capsfilter, TRUE);
+    gst_element_set_state (capsfilter, GST_STATE_NULL);
+    gst_bin_remove (conferencebin, capsfilter);
   }
 
   if (self->priv->media_sink_pad)
@@ -378,6 +392,7 @@ fs_raw_session_constructed (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
   GstPad *pad;
+  gchar *tmp;
 
   if (self->id == 0)
   {
@@ -388,12 +403,44 @@ fs_raw_session_constructed (GObject *object)
 
   g_assert (self->priv->conference);
 
-  self->valve = gst_element_factory_make ("valve", NULL);
+
+  tmp = g_strdup_printf ("send_capsfilter_%u", self->id);
+  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  g_free (tmp);
+
+  if (!self->priv->capsfilter)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not make send capsfilter");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add capsfilter to conference");
+    gst_object_unref (self->priv->capsfilter);
+    return;
+  }
+
+  if (!gst_element_sync_state_with_parent (self->priv->capsfilter))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not sync the send capsfilter's state with its parent");
+    return;
+  }
+
+
+  tmp = g_strdup_printf ("send_valve_%u", self->id);
+  self->valve = gst_element_factory_make ("valve", tmp);
+  g_free (tmp);
 
   if (!self->valve)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION, "Could not make sink valve");
+        FS_ERROR_CONSTRUCTION, "Could not make send valve");
     return;
   }
 
@@ -401,13 +448,34 @@ fs_raw_session_constructed (GObject *object)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
+    gst_object_unref (self->valve);
     return;
   }
 
   g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
 
+  if (!gst_element_sync_state_with_parent (self->valve))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not sync the send valve's state with its parent");
+    return;
+  }
+
+  if (!gst_element_link_pads (self->valve, "src",
+          self->priv->capsfilter, "sink"))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link send valve and capsfilter");
+    return;
+  }
+
+
   pad = gst_element_get_static_pad (self->valve, "sink");
-  self->priv->media_sink_pad = gst_ghost_pad_new ("sink1", pad);
+  tmp = g_strdup_printf ("sink_%u", self->id);
+  self->priv->media_sink_pad = gst_ghost_pad_new (tmp, pad);
+  g_free (tmp);
   gst_object_unref (pad);
 
   if (!self->priv->media_sink_pad)
