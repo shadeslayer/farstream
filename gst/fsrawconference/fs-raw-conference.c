@@ -39,6 +39,7 @@
 
 #include "fs-raw-conference.h"
 
+#include "fs-raw-session.h"
 #include "fs-raw-participant.h"
 
 GST_DEBUG_CATEGORY (fsrawconference_debug);
@@ -78,6 +79,9 @@ struct _FsRawConferencePrivate
   gboolean disposed;
 
   /* Protected by GST_OBJECT_LOCK */
+  GList *sessions;
+  guint max_session_id;
+
   GList *participants;
 };
 
@@ -94,6 +98,9 @@ static FsSession *fs_raw_conference_new_session (FsBaseConference *conf,
 static FsParticipant *fs_raw_conference_new_participant (FsBaseConference *conf,
     const gchar *cname,
     GError **error);
+
+static void _remove_session (gpointer user_data,
+    GObject *where_the_object_was);
 
 static void _remove_participant (gpointer user_data,
     GObject *where_the_object_was);
@@ -160,6 +167,53 @@ fs_raw_conference_init (FsRawConference *conf,
   GST_DEBUG_OBJECT (conf, "fs_raw_conference_init");
 
   conf->priv = FS_RAW_CONFERENCE_GET_PRIVATE (conf);
+
+  conf->priv->max_session_id = 1;
+}
+
+/**
+ * fs_rtp_conference_get_session_by_id_locked
+ * @self: The #FsRtpConference
+ * @session_id: The session id
+ *
+ * Gets the #FsRtpSession from a list of sessions or NULL if it doesnt exist
+ * You have to hold the GST_OBJECT_LOCK to call this function.
+ *
+ * Return value: A #FsRtpSession (unref after use) or NULL if it doesn't exist
+ */
+static FsRawSession *
+fs_raw_conference_get_session_by_id_locked (FsRawConference *self,
+                                            guint session_id)
+{
+  GList *item = NULL;
+
+  for (item = g_list_first (self->priv->sessions);
+       item;
+       item = g_list_next (item)) {
+    FsRawSession *session = item->data;
+
+    if (session->id == session_id) {
+      g_object_ref (session);
+      break;
+    }
+  }
+
+  if (item)
+    return FS_RAW_SESSION (item->data);
+  else
+    return NULL;
+}
+
+static void
+_remove_session (gpointer user_data,
+                 GObject *where_the_object_was)
+{
+  FsRawConference *self = FS_RAW_CONFERENCE (user_data);
+
+  GST_OBJECT_LOCK (self);
+  self->priv->sessions =
+    g_list_remove_all (self->priv->sessions, where_the_object_was);
+  GST_OBJECT_UNLOCK (self);
 }
 
 static void
@@ -179,7 +233,25 @@ fs_raw_conference_new_session (FsBaseConference *conf,
                                FsMediaType media_type,
                                GError **error)
 {
-  return NULL;
+  FsRawConference *self = FS_RAW_CONFERENCE (conf);
+  FsRawSession *new_session = NULL;
+  guint id;
+
+  GST_OBJECT_LOCK (self);
+  do {
+    id = self->priv->max_session_id++;
+  } while (fs_raw_conference_get_session_by_id_locked (self, id));
+  GST_OBJECT_UNLOCK (self);
+
+  new_session = fs_raw_session_new (media_type, self, id, error);
+
+  GST_OBJECT_LOCK (self);
+  self->priv->sessions = g_list_append (self->priv->sessions, new_session);
+  GST_OBJECT_UNLOCK (self);
+
+  g_object_weak_ref (G_OBJECT (new_session), _remove_session, self);
+
+  return FS_SESSION (new_session);
 }
 
 

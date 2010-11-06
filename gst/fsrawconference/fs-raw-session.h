@@ -71,6 +71,9 @@ struct _FsRawSession
 
   /*< private >*/
 
+  /* This ID can be accessed by the streams for this session */
+  guint id;
+
   FsRawSessionPrivate *priv;
 };
 
@@ -79,6 +82,7 @@ GType fs_raw_session_get_type (void);
 
 FsRawSession *fs_raw_session_new (FsMediaType media_type,
     FsRawConference *conference,
+    guint id,
     GError **error);
 
 G_END_DECLS

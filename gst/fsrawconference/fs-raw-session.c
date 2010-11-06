@@ -288,7 +288,7 @@ fs_raw_session_get_property (GObject *object,
       g_value_set_enum (value, self->priv->media_type);
       break;
     case PROP_ID:
-      g_value_set_uint (value, 1);
+      g_value_set_uint (value, self->id);
       break;
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
@@ -350,6 +350,7 @@ fs_raw_session_set_property (GObject *object,
       self->priv->media_type = g_value_get_enum (value);
       break;
     case PROP_ID:
+      self->id = g_value_get_uint (value);
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_RAW_CONFERENCE (g_value_dup_object (value));
@@ -377,6 +378,13 @@ fs_raw_session_constructed (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
   GstPad *pad;
+
+  if (self->id == 0)
+  {
+    g_error ("You can not instantiate this element directly, you MUST"
+      " call fs_raw_session_new ()");
+    return;
+  }
 
   g_assert (self->priv->conference);
 
@@ -525,11 +533,13 @@ fs_raw_session_new_stream (FsSession *session,
 FsRawSession *
 fs_raw_session_new (FsMediaType media_type,
     FsRawConference *conference,
+    guint id,
     GError **error)
 {
   FsRawSession *session = g_object_new (FS_TYPE_RAW_SESSION,
       "media-type", media_type,
       "conference", conference,
+      "id", id,
       NULL);
 
   if (!session)
