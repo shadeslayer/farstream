@@ -329,8 +329,11 @@ fs_stream_transmitter_set_remote_candidates (
     GList *candidates,
     GError **error)
 {
-  FsStreamTransmitterClass *klass =
-    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+  FsStreamTransmitterClass *klass;
+
+  g_return_val_if_fail (streamtransmitter, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM_TRANSMITTER (streamtransmitter), FALSE);
+  klass = FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
   if (klass->set_remote_candidates) {
     return klass->set_remote_candidates (streamtransmitter, candidates, error);
@@ -361,8 +364,11 @@ fs_stream_transmitter_force_remote_candidates (
     GList *remote_candidates,
     GError **error)
 {
-  FsStreamTransmitterClass *klass =
-    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+  FsStreamTransmitterClass *klass;
+
+  g_return_val_if_fail (streamtransmitter, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM_TRANSMITTER (streamtransmitter), FALSE);
+  klass = FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
   if (klass->force_remote_candidates) {
     return klass->force_remote_candidates (streamtransmitter,
@@ -392,8 +398,11 @@ fs_stream_transmitter_gather_local_candidates (
     FsStreamTransmitter *streamtransmitter,
     GError **error)
 {
-  FsStreamTransmitterClass *klass =
-    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+  FsStreamTransmitterClass *klass;
+
+  g_return_val_if_fail (streamtransmitter, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM_TRANSMITTER (streamtransmitter), FALSE);
+  klass = FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
   if (klass->gather_local_candidates)
     return klass->gather_local_candidates (streamtransmitter, error);
@@ -414,8 +423,11 @@ fs_stream_transmitter_gather_local_candidates (
 void
 fs_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
 {
-  FsStreamTransmitterClass *klass =
-    FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
+  FsStreamTransmitterClass *klass;
+
+  g_return_if_fail (streamtransmitter);
+  g_return_if_fail (FS_IS_STREAM_TRANSMITTER (streamtransmitter));
+  klass = FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
   if (klass->stop)
     klass->stop (streamtransmitter);

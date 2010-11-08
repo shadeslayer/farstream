@@ -266,11 +266,13 @@ fs_transmitter_new_stream_transmitter (FsTransmitter *transmitter,
                                        GParameter *parameters,
                                        GError **error)
 {
-  FsTransmitterClass *klass = FS_TRANSMITTER_GET_CLASS (transmitter);
+  FsTransmitterClass *klass;
 
   g_return_val_if_fail (transmitter, NULL);
-  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (FS_IS_TRANSMITTER (transmitter), NULL);
+  klass = FS_TRANSMITTER_GET_CLASS (transmitter);
   g_return_val_if_fail (klass->new_stream_transmitter, NULL);
+
 
   return klass->new_stream_transmitter (transmitter, participant,
       n_parameters, parameters, error);
@@ -334,9 +336,11 @@ fs_transmitter_new (const gchar *type,
 GType
 fs_transmitter_get_stream_transmitter_type (FsTransmitter *transmitter)
 {
-  FsTransmitterClass *klass = FS_TRANSMITTER_GET_CLASS (transmitter);
+  FsTransmitterClass *klass;
 
-  g_return_val_if_fail (klass, 0);
+  g_return_val_if_fail (transmitter, 0);
+  g_return_val_if_fail (FS_IS_TRANSMITTER (transmitter), 0);
+  klass = FS_TRANSMITTER_GET_CLASS (transmitter);
   g_return_val_if_fail (klass->get_stream_transmitter_type, 0);
 
   return klass->get_stream_transmitter_type (transmitter);

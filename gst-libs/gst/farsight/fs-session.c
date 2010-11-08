@@ -421,14 +421,13 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
                        GParameter *stream_transmitter_parameters,
                        GError **error)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
   FsStream *new_stream = NULL;
 
   g_return_val_if_fail (session, NULL);
-  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (FS_IS_SESSION (session), NULL);
+  klass = FS_SESSION_GET_CLASS (session);
   g_return_val_if_fail (klass->new_stream, NULL);
-  g_return_val_if_fail (g_type_is_a (G_OBJECT_TYPE (session),
-              FS_TYPE_SESSION), NULL);
 
   new_stream = klass->new_stream (session, participant, direction,
       transmitter, stream_transmitter_n_parameters,
@@ -466,7 +465,11 @@ gboolean
 fs_session_start_telephony_event (FsSession *session, guint8 event,
                                   guint8 volume, FsDTMFMethod method)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, FALSE);
+  g_return_val_if_fail (FS_IS_SESSION (session), FALSE);
+  klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->start_telephony_event) {
     return klass->start_telephony_event (session, event, volume, method);
@@ -493,7 +496,11 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
 gboolean
 fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, FALSE);
+  g_return_val_if_fail (FS_IS_SESSION (session), FALSE);
+  klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->stop_telephony_event) {
     return klass->stop_telephony_event (session, method);
@@ -521,7 +528,11 @@ gboolean
 fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                            GError **error)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, FALSE);
+  g_return_val_if_fail (FS_IS_SESSION (session), FALSE);
+  klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->set_send_codec) {
     return klass->set_send_codec (session, send_codec, error);
@@ -561,7 +572,11 @@ fs_session_set_codec_preferences (FsSession *session,
     GList *codec_preferences,
     GError **error)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, FALSE);
+  g_return_val_if_fail (FS_IS_SESSION (session), FALSE);
+  klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->set_codec_preferences) {
     return klass->set_codec_preferences (session, codec_preferences, error);
@@ -607,7 +622,11 @@ fs_session_emit_error (FsSession *session,
 gchar **
 fs_session_list_transmitters (FsSession *session)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, NULL);
+  g_return_val_if_fail (FS_IS_SESSION (session), NULL);
+  klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->list_transmitters) {
     return klass->list_transmitters (session);
@@ -631,7 +650,11 @@ GType
 fs_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter)
 {
-  FsSessionClass *klass = FS_SESSION_GET_CLASS (session);
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, 0);
+  g_return_val_if_fail (FS_IS_SESSION (session), 0);
+  klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->get_stream_transmitter_type)
     return klass->get_stream_transmitter_type (session, transmitter);

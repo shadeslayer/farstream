@@ -118,10 +118,11 @@ FsSession *
 fs_conference_new_session (FsConference *conference, FsMediaType media_type,
                            GError **error)
 {
-  FsConferenceClass *iface =
-      FS_CONFERENCE_GET_IFACE (conference);
+  FsConferenceClass *iface;
 
-  g_return_val_if_fail (iface, NULL);
+  g_return_val_if_fail (conference, NULL);
+  g_return_val_if_fail (FS_IS_CONFERENCE (conference), NULL);
+  iface = FS_CONFERENCE_GET_IFACE (conference);
   g_return_val_if_fail (iface->new_session, NULL);
 
   return iface->new_session (conference, media_type, error);
@@ -143,9 +144,10 @@ FsParticipant *
 fs_conference_new_participant (FsConference *conference, const gchar *cname,
     GError **error)
 {
-  FsConferenceClass *iface =
-      FS_CONFERENCE_GET_IFACE (conference);
+  FsConferenceClass *iface;
 
+  g_return_val_if_fail (conference, NULL);
+  iface = FS_CONFERENCE_GET_IFACE (conference);
   g_return_val_if_fail (iface, NULL);
   g_return_val_if_fail (iface->new_participant, NULL);
 

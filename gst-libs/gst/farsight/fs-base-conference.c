@@ -130,23 +130,24 @@ fs_base_conference_new_session (FsConference *conf,
                                 FsMediaType media_type,
                                 GError **error)
 {
-  FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
-  FsBaseConference *base_conf = FS_BASE_CONFERENCE (conf);
-
+  FsBaseConferenceClass *klass;
+  FsBaseConference *baseconf;
   FsSession *new_session = NULL;
 
-  g_return_val_if_fail (base_conf, NULL);
-  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (conf, NULL);
+  g_return_val_if_fail (FS_IS_BASE_CONFERENCE (conf), NULL);
+  baseconf = FS_BASE_CONFERENCE (conf);
+  klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
   g_return_val_if_fail (klass->new_session, NULL);
 
-  new_session = klass->new_session (base_conf, media_type, error);
+  new_session = klass->new_session (baseconf, media_type, error);
 
   if (!new_session)
     return NULL;
 
   /* Let's catch all session errors and send them over the GstBus */
   g_signal_connect_object (new_session, "error",
-      G_CALLBACK (fs_base_conference_error), base_conf, 0);
+      G_CALLBACK (fs_base_conference_error), baseconf, 0);
 
   return new_session;
 }
@@ -183,11 +184,13 @@ fs_base_conference_new_participant (FsConference *conf,
     const gchar *cname,
     GError **error)
 {
-  FsBaseConference *baseconf = FS_BASE_CONFERENCE (conf);
-  FsBaseConferenceClass *klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
+  FsBaseConference *baseconf;
+  FsBaseConferenceClass *klass;
 
-  g_return_val_if_fail (baseconf, NULL);
-  g_return_val_if_fail (klass, NULL);
+  g_return_val_if_fail (conf, NULL);
+  g_return_val_if_fail (FS_IS_BASE_CONFERENCE (conf), NULL);
+  baseconf = FS_BASE_CONFERENCE (conf);
+  klass = FS_BASE_CONFERENCE_GET_CLASS (conf);
   g_return_val_if_fail (klass->new_participant, NULL);
 
   return klass->new_participant (baseconf, cname, error);

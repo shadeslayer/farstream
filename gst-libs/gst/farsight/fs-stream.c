@@ -383,7 +383,11 @@ fs_stream_set_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error)
 {
-  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+  FsStreamClass *klass;
+
+  g_return_val_if_fail (stream, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM (stream), FALSE);
+  klass = FS_STREAM_GET_CLASS (stream);
 
   if (klass->set_remote_candidates) {
     return klass->set_remote_candidates (stream, candidates, error);
@@ -413,7 +417,11 @@ fs_stream_force_remote_candidates (FsStream *stream,
     GList *remote_candidates,
     GError **error)
 {
-  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+  FsStreamClass *klass;
+
+  g_return_val_if_fail (stream, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM (stream), FALSE);
+  klass = FS_STREAM_GET_CLASS (stream);
 
   if (klass->force_remote_candidates) {
     return klass->force_remote_candidates (stream,
@@ -445,7 +453,11 @@ gboolean
 fs_stream_set_remote_codecs (FsStream *stream,
                              GList *remote_codecs, GError **error)
 {
-  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+  FsStreamClass *klass;
+
+  g_return_val_if_fail (stream, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM (stream), FALSE);
+  klass = FS_STREAM_GET_CLASS (stream);
 
   if (klass->set_remote_codecs) {
     return klass->set_remote_codecs (stream, remote_codecs, error);
@@ -480,7 +492,11 @@ void
 fs_stream_add_id (FsStream *stream,
                   guint id)
 {
-  FsStreamClass *klass = FS_STREAM_GET_CLASS (stream);
+  FsStreamClass *klass;
+
+  g_return_if_fail (stream);
+  g_return_if_fail (FS_IS_STREAM (stream));
+  klass = FS_STREAM_GET_CLASS (stream);
 
   if (klass->add_id)
     klass->add_id (stream, id);
