@@ -660,5 +660,16 @@ static GType
 fs_raw_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter)
 {
-  return FS_TYPE_RAW_STREAM;
+  FsTransmitter *fstransmitter;
+  GType transmitter_type;
+
+  fstransmitter = fs_transmitter_new (transmitter, 1, 0, NULL);
+
+  if (!fstransmitter)
+    return G_TYPE_NONE;
+
+  transmitter_type = fs_transmitter_get_stream_transmitter_type (fstransmitter);
+
+  g_object_unref (fstransmitter);
+  return transmitter_type;
 }
