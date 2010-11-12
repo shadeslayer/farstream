@@ -88,6 +88,8 @@ struct _FsRawSessionPrivate
   GstPad *media_sink_pad;
   GstElement *capsfilter;
 
+  FsTransmitter *transmitter;
+
   guint tos; /* Protected by conf lock */
 
   GMutex *mutex; /* protects the conference */
@@ -373,8 +375,8 @@ fs_raw_session_set_property (GObject *object,
       if (conference)
         GST_OBJECT_LOCK (conference);
       self->priv->tos = g_value_get_uint (value);
-      if (self->priv->stream)
-        fs_raw_stream_set_tos_locked (self->priv->stream, self->priv->tos);
+      if (self->priv->transmitter)
+        g_object_set (self->priv->transmitter, "tos", self->priv->tos, NULL);
       if (conference)
         GST_OBJECT_UNLOCK (conference);
       break;
@@ -509,14 +511,20 @@ _remove_stream (gpointer user_data,
 {
   FsRawSession *self = FS_RAW_SESSION (user_data);
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+  FsTransmitter *transmitter = NULL;
 
   if (!conference)
     return;
 
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream == (FsRawStream *) where_the_object_was)
+  {
     self->priv->stream = NULL;
+    transmitter = self->priv->transmitter;
+    self->priv->transmitter = NULL;
+  }
   GST_OBJECT_UNLOCK (conference);
+  g_object_unref (transmitter);
   gst_object_unref (conference);
 }
 
@@ -547,6 +555,7 @@ fs_raw_session_new_stream (FsSession *session,
   FsRawParticipant *rawparticipant = NULL;
   FsStream *new_stream = NULL;
   FsRawConference *conference;
+  FsTransmitter *fstransmitter;
 
   if (!FS_IS_RAW_PARTICIPANT (participant))
   {
@@ -564,6 +573,14 @@ fs_raw_session_new_stream (FsSession *session,
     goto already_have_stream;
   GST_OBJECT_UNLOCK (conference);
 
+  fstransmitter = fs_transmitter_new (transmitter, 1, 0, error);
+
+  if (!fstransmitter)
+  {
+    g_object_unref (conference);
+    return FALSE;
+  }
+
   rawparticipant = FS_RAW_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
@@ -575,14 +592,22 @@ fs_raw_session_new_stream (FsSession *session,
     if (self->priv->stream)
     {
       g_object_unref (new_stream);
+      g_object_unref (fstransmitter);
       goto already_have_stream;
     }
     self->priv->stream = (FsRawStream *) new_stream;
     g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
 
     if (self->priv->tos)
-      fs_raw_stream_set_tos_locked (self->priv->stream, self->priv->tos);
+      g_object_set (fstransmitter, "tos", self->priv->tos, NULL);
+
+    self->priv->transmitter = fstransmitter;
+
     GST_OBJECT_UNLOCK (conference);
+  }
+  else
+  {
+    g_object_unref (fstransmitter);
   }
   gst_object_unref (conference);
 
