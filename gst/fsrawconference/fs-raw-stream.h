@@ -27,6 +27,7 @@
 #define __FS_RAW_STREAM_H__
 
 #include <gst/farsight/fs-stream.h>
+#include <gst/farsight/fs-stream-transmitter.h>
 
 #include "fs-raw-participant.h"
 #include "fs-raw-session.h"
@@ -77,8 +78,7 @@ FsRawStream *fs_raw_stream_new (FsRawSession *session,
     FsRawParticipant *participant,
     FsStreamDirection direction,
     FsRawConference *conference,
-    guint n_parameters,
-    GParameter *parameters,
+    FsStreamTransmitter *stream_transmitter,
     GError **error);
 
 void fs_raw_stream_set_tos_locked (FsRawStream *self, gint tos);

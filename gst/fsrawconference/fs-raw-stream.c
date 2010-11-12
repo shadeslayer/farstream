@@ -61,6 +61,7 @@ enum
   PROP_PARTICIPANT,
   PROP_SESSION,
   PROP_CONFERENCE,
+  PROP_STREAM_TRANSMITTER,
 };
 
 
@@ -71,6 +72,7 @@ struct _FsRawStreamPrivate
   FsRawSession *session;
   FsRawParticipant *participant;
   FsStreamDirection direction;
+  FsStreamTransmitter *stream_transmitter;
   GstElement *codecbin;
   GstElement *recv_valve;
   GstPad *src_pad;
@@ -137,6 +139,20 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
           "This is a conveniance pointer for the Conference",
           FS_TYPE_RAW_CONFERENCE,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * FsRtpStream:stream-transmitter:
+   *
+   * The #FsStreamTransmitter for this stream.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_STREAM_TRANSMITTER,
+      g_param_spec_object ("stream-transmitter",
+        "The transmitter use by the stream",
+        "An FsStreamTransmitter used by this stream",
+        FS_TYPE_STREAM_TRANSMITTER,
+        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 }
 
 static void
@@ -205,6 +221,12 @@ fs_raw_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (conference), self->priv->codecbin);
     self->priv->codecbin = NULL;
+  }
+
+  if (self->priv->stream_transmitter)
+  {
+    g_object_unref (self->priv->stream_transmitter);
+    self->priv->stream_transmitter = NULL;
   }
 
   if (self->priv->participant)
@@ -356,6 +378,9 @@ fs_raw_stream_set_property (GObject *object,
     case PROP_CONFERENCE:
       self->priv->conference = FS_RAW_CONFERENCE (g_value_dup_object (value));
       break;
+    case PROP_STREAM_TRANSMITTER:
+      self->priv->stream_transmitter = g_value_get_object (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -396,37 +421,18 @@ fs_raw_stream_new (FsRawSession *session,
     FsRawParticipant *participant,
     FsStreamDirection direction,
     FsRawConference *conference,
-    guint n_parameters,
-    GParameter *parameters,
+    FsStreamTransmitter *stream_transmitter,
     GError **error)
 {
   FsRawStream *self;
-  GParameter *params;
 
-  params = g_new0 (GParameter, n_parameters + 4);
-
-  params[0].name = "session";
-  g_value_init (&params[0].value, FS_TYPE_SESSION);
-  g_value_set_object (&params[0].value, session);
-
-  params[1].name = "participant";
-  g_value_init (&params[1].value, FS_TYPE_PARTICIPANT);
-  g_value_set_object (&params[1].value, participant);
-
-  params[2].name = "direction";
-  g_value_init (&params[2].value, FS_TYPE_STREAM_DIRECTION);
-  g_value_set_flags (&params[2].value, direction);
-
-  params[3].name = "conference";
-  g_value_init (&params[3].value, FS_TYPE_RAW_CONFERENCE);
-  g_value_set_object (&params[3].value, conference);
-
-  if (n_parameters)
-    memcpy (params+4, parameters, n_parameters * sizeof(GParameter));
-
-  self = g_object_newv (FS_TYPE_RAW_STREAM, n_parameters + 4, params);
-
-  g_free (params);
+  self = g_object_new (FS_TYPE_RAW_STREAM,
+      "session", session,
+      "participant", participant,
+      "direction", direction,
+      "conference", conference,
+      "stream-transmitter", stream_transmitter,
+      NULL);
 
   if (!self)
   {

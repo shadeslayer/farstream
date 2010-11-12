@@ -556,6 +556,7 @@ fs_raw_session_new_stream (FsSession *session,
   FsStream *new_stream = NULL;
   FsRawConference *conference;
   FsTransmitter *fstransmitter;
+  FsStreamTransmitter *stream_transmitter;
 
   if (!FS_IS_RAW_PARTICIPANT (participant))
   {
@@ -581,10 +582,20 @@ fs_raw_session_new_stream (FsSession *session,
     return FALSE;
   }
 
+  stream_transmitter = fs_transmitter_new_stream_transmitter (fstransmitter,
+      participant, n_parameters, parameters, error);
+
+  if (!stream_transmitter)
+  {
+    g_object_unref (fstransmitter);
+    g_object_unref (conference);
+    return FALSE;
+  }
+
   rawparticipant = FS_RAW_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
-          direction, conference, n_parameters, parameters, error));
+          direction, conference, stream_transmitter, error));
 
   if (new_stream)
   {
@@ -592,6 +603,7 @@ fs_raw_session_new_stream (FsSession *session,
     if (self->priv->stream)
     {
       g_object_unref (new_stream);
+      g_object_unref (stream_transmitter);
       g_object_unref (fstransmitter);
       goto already_have_stream;
     }
@@ -607,6 +619,7 @@ fs_raw_session_new_stream (FsSession *session,
   }
   else
   {
+    g_object_unref (stream_transmitter);
     g_object_unref (fstransmitter);
   }
   gst_object_unref (conference);
