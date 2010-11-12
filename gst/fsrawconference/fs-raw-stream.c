@@ -450,8 +450,3 @@ fs_raw_stream_new (FsRawSession *session,
   return self;
 }
 
-void
-fs_raw_stream_set_tos_locked (FsRawStream *self, gint tos)
-{
-}
-

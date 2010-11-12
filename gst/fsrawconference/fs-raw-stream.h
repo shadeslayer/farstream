@@ -81,8 +81,6 @@ FsRawStream *fs_raw_stream_new (FsRawSession *session,
     FsStreamTransmitter *stream_transmitter,
     GError **error);
 
-void fs_raw_stream_set_tos_locked (FsRawStream *self, gint tos);
-
 
 G_END_DECLS
 
