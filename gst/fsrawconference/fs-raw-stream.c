@@ -400,7 +400,28 @@ static gboolean
 fs_raw_stream_set_remote_candidates (FsStream *stream, GList *candidates,
                                      GError **error)
 {
-  return TRUE;
+  FsRawStream *self = FS_RAW_STREAM (stream);
+  FsRawConference *conference = fs_raw_stream_get_conference (self, error);
+  FsStreamTransmitter *st = NULL;
+  gboolean ret = FALSE;
+
+  if (!conference)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->stream_transmitter)
+    st = g_object_ref (self->priv->stream_transmitter);
+  GST_OBJECT_UNLOCK (conference);
+
+  if (st)
+  {
+    ret = fs_stream_transmitter_set_remote_candidates (st, candidates, error);
+    g_object_unref (st);
+  }
+
+  gst_object_unref (conference);
+
+  return ret;
 }
 
 
