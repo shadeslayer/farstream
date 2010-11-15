@@ -79,6 +79,12 @@ struct _FsRawStreamPrivate
 
   GError *construction_error;
 
+  gulong local_candidates_prepared_handler_id;
+  gulong new_active_candidate_pair_handler_id;
+  gulong new_local_candidate_handler_id;
+  gulong error_handler_id;
+  gulong state_changed_handler_id;
+
   GMutex *mutex; /* protects the conference */
 };
 
@@ -100,6 +106,31 @@ static void fs_raw_stream_set_property (GObject *object,
                                         const GValue *value,
                                         GParamSpec *pspec);
 
+static void fs_raw_stream_constructed (GObject *object);
+
+static void _local_candidates_prepared (
+    FsStreamTransmitter *stream_transmitter,
+    gpointer user_data);
+static void _new_active_candidate_pair (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate1,
+    FsCandidate *candidate2,
+    gpointer user_data);
+static void _new_local_candidate (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate,
+    gpointer user_data);
+static void _transmitter_error (
+    FsStreamTransmitter *stream_transmitter,
+    gint errorno,
+    gchar *error_msg,
+    gchar *debug_msg,
+    gpointer user_data);
+static void _state_changed (FsStreamTransmitter *stream_transmitter,
+    guint component,
+    FsStreamState state,
+    gpointer user_data);
+
 static gboolean fs_raw_stream_set_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error);
@@ -114,6 +145,7 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
 
   gobject_class->set_property = fs_raw_stream_set_property;
   gobject_class->get_property = fs_raw_stream_get_property;
+  gobject_class->constructed = fs_raw_stream_constructed;
   gobject_class->dispose = fs_raw_stream_dispose;
   gobject_class->finalize = fs_raw_stream_finalize;
 
@@ -193,6 +225,7 @@ fs_raw_stream_dispose (GObject *object)
 {
   FsRawStream *self = FS_RAW_STREAM (object);
   FsRawConference *conference = fs_raw_stream_get_conference (self, NULL);
+  FsStreamTransmitter *st;
 
   if (!conference)
     return;
@@ -223,10 +256,24 @@ fs_raw_stream_dispose (GObject *object)
     self->priv->codecbin = NULL;
   }
 
-  if (self->priv->stream_transmitter)
+  st = self->priv->stream_transmitter;
+  self->priv->stream_transmitter = NULL;
+
+  if (st)
   {
-    g_object_unref (self->priv->stream_transmitter);
-    self->priv->stream_transmitter = NULL;
+    g_signal_handler_disconnect (st,
+        self->priv->local_candidates_prepared_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->new_active_candidate_pair_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->new_local_candidate_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->error_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->state_changed_handler_id);
+
+    fs_stream_transmitter_stop (st);
+    g_object_unref (st);
   }
 
   if (self->priv->participant)
@@ -391,6 +438,166 @@ fs_raw_stream_set_property (GObject *object,
     GST_OBJECT_UNLOCK (conference);
     gst_object_unref (conference);
   }
+}
+
+static void
+fs_raw_stream_constructed (GObject *object)
+{
+  FsRawStream *self = FS_RAW_STREAM_CAST (object);
+
+  if (!self->priv->stream_transmitter) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "The Stream Transmitter has not been set");
+    return;
+  }
+
+  self->priv->local_candidates_prepared_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "local-candidates-prepared",
+        G_CALLBACK (_local_candidates_prepared),
+        self, 0);
+  self->priv->new_active_candidate_pair_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "new-active-candidate-pair",
+        G_CALLBACK (_new_active_candidate_pair),
+        self, 0);
+  self->priv->new_local_candidate_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "new-local-candidate",
+        G_CALLBACK (_new_local_candidate),
+        self, 0);
+  self->priv->error_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "error",
+        G_CALLBACK (_transmitter_error),
+        self, 0);
+  self->priv->state_changed_handler_id =
+    g_signal_connect_object (self->priv->stream_transmitter,
+        "state-changed",
+        G_CALLBACK (_state_changed),
+        self, 0);
+
+  if (!fs_stream_transmitter_gather_local_candidates (
+          self->priv->stream_transmitter,
+          &self->priv->construction_error))
+  {
+    if (!self->priv->construction_error)
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_INTERNAL,
+          "Unknown error while gathering local candidates");
+    return;
+  }
+
+  if (G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed)
+    G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed (object);
+}
+
+
+static void
+_local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
+    gpointer user_data)
+{
+  FsRawStream *self = FS_RAW_STREAM (user_data);
+  GstElement *conf = GST_ELEMENT (fs_raw_stream_get_conference (self, NULL));
+
+  if (!conf)
+    return;
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-local-candidates-prepared",
+              "stream", FS_TYPE_STREAM, self,
+              NULL)));
+
+  gst_object_unref (conf);
+}
+
+
+static void
+_new_active_candidate_pair (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *local_candidate,
+    FsCandidate *remote_candidate,
+    gpointer user_data)
+{
+  FsRawStream *self = FS_RAW_STREAM (user_data);
+  GstElement *conf = GST_ELEMENT (fs_raw_stream_get_conference (self, NULL));
+
+  if (!conf)
+    return;
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-new-active-candidate-pair",
+              "stream", FS_TYPE_STREAM, self,
+              "local-candidate", FS_TYPE_CANDIDATE, local_candidate,
+              "remote-candidate", FS_TYPE_CANDIDATE, remote_candidate,
+              NULL)));
+
+  gst_object_unref (conf);
+}
+
+
+static void
+_new_local_candidate (
+    FsStreamTransmitter *stream_transmitter,
+    FsCandidate *candidate,
+    gpointer user_data)
+{
+  FsRawStream *self = FS_RAW_STREAM (user_data);
+  GstElement *conf = GST_ELEMENT (fs_raw_stream_get_conference (self, NULL));
+
+  if (!conf)
+    return;
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-new-local-candidate",
+              "stream", FS_TYPE_STREAM, self,
+              "candidate", FS_TYPE_CANDIDATE, candidate,
+              NULL)));
+
+  gst_object_unref (conf);
+}
+
+static void
+_transmitter_error (
+    FsStreamTransmitter *stream_transmitter,
+    gint errorno,
+    gchar *error_msg,
+    gchar *debug_msg,
+    gpointer user_data)
+{
+  FsStream *stream = FS_STREAM (user_data);
+
+  fs_stream_emit_error (stream, errorno, error_msg, debug_msg);
+}
+
+static void
+_state_changed (FsStreamTransmitter *stream_transmitter,
+    guint component,
+    FsStreamState state,
+    gpointer user_data)
+{
+  FsRawStream *self = FS_RAW_STREAM (user_data);
+  GstElement *conf = GST_ELEMENT (fs_raw_stream_get_conference (self, NULL));
+
+  if (!conf)
+    return;
+
+  gst_element_post_message (conf,
+      gst_message_new_element (GST_OBJECT (conf),
+          gst_structure_new ("farsight-component-state-changed",
+              "stream", FS_TYPE_STREAM, self,
+              "component", G_TYPE_UINT, component,
+              "state", FS_TYPE_STREAM_STATE, state,
+              NULL)));
+
+  gst_object_unref (conf);
+
+  if (component == 1 && state == FS_STREAM_STATE_FAILED)
+    fs_stream_emit_error (FS_STREAM (self), FS_ERROR_CONNECTION_FAILED,
+        "Could not establish connection", "Could not establish connection");
 }
 
 /**
