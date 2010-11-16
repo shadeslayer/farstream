@@ -77,7 +77,12 @@ struct _FsRawStreamPrivate
   GstElement *recv_valve;
   GstPad *src_pad;
 
+  GList *remote_codecs;
+
   GError *construction_error;
+
+  stream_new_remote_codecs_cb new_remote_codecs_cb;
+  gpointer user_data_for_cb;
 
   gulong local_candidates_prepared_handler_id;
   gulong new_active_candidate_pair_handler_id;
@@ -134,6 +139,9 @@ static void _state_changed (FsStreamTransmitter *stream_transmitter,
 static gboolean fs_raw_stream_set_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error);
+static gboolean fs_raw_stream_set_remote_codecs (FsStream *stream,
+    GList *remote_codecs,
+    GError **error);
 
 static void
 fs_raw_stream_class_init (FsRawStreamClass *klass)
@@ -150,6 +158,7 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
   gobject_class->finalize = fs_raw_stream_finalize;
 
   stream_class->set_remote_candidates = fs_raw_stream_set_remote_candidates;
+  stream_class->set_remote_codecs = fs_raw_stream_set_remote_codecs;
 
 
   g_type_class_add_private (klass, sizeof (FsRawStreamPrivate));
@@ -298,6 +307,8 @@ static void
 fs_raw_stream_finalize (GObject *object)
 {
   FsRawStream *self = FS_RAW_STREAM (object);
+
+  fs_codec_list_destroy (self->priv->remote_codecs);
 
   g_mutex_free (self->priv->mutex);
 
@@ -633,6 +644,138 @@ fs_raw_stream_set_remote_candidates (FsStream *stream, GList *candidates,
 
 
 /**
+ * fs_raw_stream_set_remote_codecs:
+ * @stream: an #FsStream
+ * @remote_codecs: a #GList of #FsCodec representing the remote codecs
+ * @error: location of a #GError, or NULL if no error occured
+ *
+ * This function will set the list of remote codecs for this stream. This list
+ * should contain one or two codecs. The first codec in this list represents
+ * the codec the remote side will be sending. The second codec, if given,
+ * represents what should be sent to the remote side. If only one codec is
+ * passed, and the codec to send to the remote side hasn't yet been chosen,
+ * it will use the first and only codec in the list. If the list isn't in this
+ * format, @error will be set and %FALSE will be returned. The @remote_codecs
+ * list will be copied so it must be free'd using fs_codec_list_destroy()
+ * when done.
+ *
+ * Returns: %FALSE if the remote codecs couldn't be set.
+ */
+static gboolean
+fs_raw_stream_set_remote_codecs (FsStream *stream,
+    GList *remote_codecs,
+    GError **error)
+{
+  FsRawStream *self = FS_RAW_STREAM (stream);
+  GList *item = NULL;
+  FsMediaType media_type;
+  FsRawSession *session;
+  GList *remote_codecs_copy;
+  FsRawConference *conf = fs_raw_stream_get_conference (self, error);
+
+  if (!conf)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conf);
+  session = self->priv->session;
+  if (session)
+    g_object_ref (session);
+  GST_OBJECT_UNLOCK (conf);
+
+  if (!session)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
+          "Called function after stream has been disposed");
+      return FALSE;
+    }
+
+  if (remote_codecs == NULL) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "You can not set NULL remote codecs");
+    goto error;
+  }
+
+  if (g_list_length (remote_codecs) > 2) {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Too many codecs passed");
+    goto error;
+  }
+
+  g_object_get (session, "media-type", &media_type, NULL);
+
+  for (item = g_list_first (remote_codecs); item; item = g_list_next (item))
+  {
+    FsCodec *codec = item->data;
+    GstCaps *caps;
+
+    if (!codec->encoding_name)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The codec must have an encoding name");
+      goto error;
+    }
+    if (codec->id < 0 || codec->id > 128)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The codec id must be between 0 and 128 for %s",
+          codec->encoding_name);
+      goto error;
+    }
+    if (codec->media_type != media_type)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The media type for codec %s is not %s", codec->encoding_name,
+          fs_media_type_to_string (media_type));
+      goto error;
+    }
+
+    caps = gst_caps_from_string (codec->encoding_name);
+    if (!caps)
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+          "The encoding name for codec %s is not valid GstCaps",
+          codec->encoding_name);
+      goto error;
+    }
+  }
+
+  remote_codecs_copy = fs_codec_list_copy (remote_codecs);
+
+  if (self->priv->new_remote_codecs_cb (self, remote_codecs_copy, error,
+          self->priv->user_data_for_cb))
+  {
+    gboolean is_new = TRUE;
+
+    GST_OBJECT_LOCK (conf);
+    if (self->priv->remote_codecs)
+    {
+      is_new = !fs_codec_list_are_equal (self->priv->remote_codecs,
+          remote_codecs);
+      fs_codec_list_destroy (self->priv->remote_codecs);
+    }
+    self->priv->remote_codecs = remote_codecs_copy;
+    GST_OBJECT_UNLOCK (conf);
+
+    if (is_new)
+      g_object_notify (G_OBJECT (stream), "remote-codecs");
+  } else {
+    fs_codec_list_destroy (remote_codecs_copy);
+    goto error;
+  }
+
+  g_object_unref (session);
+  g_object_unref (conf);
+  return TRUE;
+
+ error:
+
+  g_object_unref (session);
+  g_object_unref (conf);
+  return FALSE;
+}
+
+
+/**
  * fs_raw_stream_new:
  * @session: The #FsRawSession this stream is a child of
  * @participant: The #FsRawParticipant this stream is for
@@ -650,9 +793,16 @@ fs_raw_stream_new (FsRawSession *session,
     FsStreamDirection direction,
     FsRawConference *conference,
     FsStreamTransmitter *stream_transmitter,
+    stream_new_remote_codecs_cb new_remote_codecs_cb,
+    gpointer user_data_for_cb,
     GError **error)
 {
   FsRawStream *self;
+
+  g_return_val_if_fail (session, NULL);
+  g_return_val_if_fail (participant, NULL);
+  g_return_val_if_fail (stream_transmitter, NULL);
+  g_return_val_if_fail (new_remote_codecs_cb, NULL);
 
   self = g_object_new (FS_TYPE_RAW_STREAM,
       "session", session,
@@ -661,6 +811,9 @@ fs_raw_stream_new (FsRawSession *session,
       "conference", conference,
       "stream-transmitter", stream_transmitter,
       NULL);
+
+  self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
+  self->priv->user_data_for_cb = user_data_for_cb;
 
   if (!self)
   {

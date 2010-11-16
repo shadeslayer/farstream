@@ -504,6 +504,12 @@ fs_raw_session_constructed (GObject *object)
     G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed (object);
 }
 
+static gboolean
+_stream_new_remote_codecs (FsRawStream *stream,
+    GList *codecs, GError **error, gpointer user_data)
+{
+  return TRUE;
+}
 
 static void
 _remove_stream (gpointer user_data,
@@ -595,7 +601,8 @@ fs_raw_session_new_stream (FsSession *session,
   rawparticipant = FS_RAW_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
-          direction, conference, stream_transmitter, error));
+      direction, conference, stream_transmitter,
+      _stream_new_remote_codecs, self, error));
 
   if (new_stream)
   {

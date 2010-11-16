@@ -74,11 +74,16 @@ struct _FsRawStream
 
 GType fs_raw_stream_get_type (void);
 
+typedef gboolean (*stream_new_remote_codecs_cb) (FsRawStream *stream,
+    GList *codecs, GError **error, gpointer user_data);
+
 FsRawStream *fs_raw_stream_new (FsRawSession *session,
     FsRawParticipant *participant,
     FsStreamDirection direction,
     FsRawConference *conference,
     FsStreamTransmitter *stream_transmitter,
+    stream_new_remote_codecs_cb new_remote_codecs_cb,
+    gpointer user_data_for_cb,
     GError **error);
 
 
