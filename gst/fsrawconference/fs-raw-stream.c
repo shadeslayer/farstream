@@ -62,6 +62,7 @@ enum
   PROP_SESSION,
   PROP_CONFERENCE,
   PROP_STREAM_TRANSMITTER,
+  PROP_REMOTE_CODECS,
 };
 
 
@@ -172,6 +173,9 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
   g_object_class_override_property (gobject_class,
       PROP_SESSION,
       "session");
+  g_object_class_override_property (gobject_class,
+      PROP_REMOTE_CODECS,
+      "remote-codecs");
 
   g_object_class_install_property (gobject_class,
       PROP_CONFERENCE,
@@ -345,6 +349,9 @@ fs_raw_stream_get_property (GObject *object,
       break;
     case PROP_CONFERENCE:
       g_value_set_object (value, self->priv->conference);
+      break;
+    case PROP_REMOTE_CODECS:
+      g_value_set_boxed (value, self->priv->remote_codecs);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
