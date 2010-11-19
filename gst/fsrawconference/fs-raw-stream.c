@@ -408,37 +408,22 @@ fs_raw_stream_set_property (GObject *object,
         if (self->priv->session->valve)
           session_valve = gst_object_ref (self->priv->session->valve);
 
-        if (self->priv->direction == FS_DIRECTION_NONE)
-        {
-          GST_OBJECT_UNLOCK (conference);
-          if (recv_valve)
-            g_object_set (recv_valve, "drop", TRUE, NULL);
-          g_object_set (session_valve, "drop", TRUE, NULL);
-          GST_OBJECT_LOCK (conference);
-        }
-        else if (self->priv->direction == FS_DIRECTION_SEND)
-        {
-          if (self->priv->codecbin)
-          {
-            GST_OBJECT_UNLOCK (conference);
-            g_object_set (session_valve, "drop", FALSE, NULL);
-            GST_OBJECT_LOCK (conference);
-          }
-        }
-        else if (self->priv->direction == FS_DIRECTION_RECV)
-        {
-          GST_OBJECT_UNLOCK (conference);
-          if (recv_valve)
-            g_object_set (recv_valve, "drop", FALSE, NULL);
-          GST_OBJECT_LOCK (conference);
-        }
+        self->priv->direction = g_value_get_flags (value);
+
+        GST_OBJECT_UNLOCK (conference);
+        if (recv_valve)
+          g_object_set (recv_valve, "drop",
+              self->priv->direction & FS_DIRECTION_RECV, NULL);
+        if (session_valve)
+          g_object_set (session_valve, "drop",
+              self->priv->direction & FS_DIRECTION_SEND, NULL);
+        GST_OBJECT_LOCK (conference);
 
         if (session_valve)
           gst_object_unref (session_valve);
         if (recv_valve)
           gst_object_unref (recv_valve);
       }
-      self->priv->direction = g_value_get_flags (value);
       break;
     case PROP_CONFERENCE:
       self->priv->conference = FS_RAW_CONFERENCE (g_value_dup_object (value));
