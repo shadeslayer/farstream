@@ -1839,7 +1839,7 @@ fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
       method_str="RFC4733";
       method_int = 1;
       break;
-    case FS_DTMF_METHOD_IN_BAND:
+    case FS_DTMF_METHOD_SOUND:
       method_str="sound";
       method_int = 2;
       break;
@@ -1917,7 +1917,7 @@ fs_rtp_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
   {
     case FS_DTMF_METHOD_AUTO:
     case FS_DTMF_METHOD_RTP_RFC4733:
-    case FS_DTMF_METHOD_IN_BAND:
+    case FS_DTMF_METHOD_SOUND:
       break;
     default:
       GST_WARNING ("Invalid telephony event method %d", method);

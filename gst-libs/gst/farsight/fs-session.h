@@ -88,7 +88,7 @@ typedef enum _FsDTMFEvent
  * @FS_DTMF_METHOD_AUTO: Send in any possible way
  * @FS_DTMF_METHOD_RTP_RFC4733: Send as a special payload type defined by RFC 4733
  * (which obsoletes RFC 2833)
- * @FS_DTMF_METHOD_IN_BAND: Send as tones as in-band audio sound
+ * @FS_DTMF_METHOD_SOUND: Send as tones as in-band audio sound
  *
  * An enum that represents the different ways a DTMF event can be sent
  *
@@ -97,7 +97,7 @@ typedef enum _FsDTMFMethod
 {
   FS_DTMF_METHOD_AUTO = 0,
   FS_DTMF_METHOD_RTP_RFC4733,
-  FS_DTMF_METHOD_IN_BAND
+  FS_DTMF_METHOD_SOUND
 } FsDTMFMethod;
 
 /**

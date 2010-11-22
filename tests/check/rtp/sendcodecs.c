@@ -496,7 +496,7 @@ GST_START_TEST (test_senddtmf_sound)
   gint port = 0;
   GstElement *recv_pipeline = build_dtmf_sound_recv_pipeline (&port);
 
-  method = FS_DTMF_METHOD_IN_BAND;
+  method = FS_DTMF_METHOD_SOUND;
   g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
 }

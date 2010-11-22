@@ -410,7 +410,7 @@
   (values
     '("auto" "FS_DTMF_METHOD_AUTO")
     '("rtp-rfc4733" "FS_DTMF_METHOD_RTP_RFC4733")
-    '("in-band" "FS_DTMF_METHOD_IN_BAND")
+    '("sound" "FS_DTMF_METHOD_SOUND")
   )
 )
 
