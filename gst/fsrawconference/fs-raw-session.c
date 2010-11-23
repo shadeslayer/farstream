@@ -573,7 +573,7 @@ fs_raw_session_new_stream (FsSession *session,
 
   conference = fs_raw_session_get_conference (self, error);
   if (!conference)
-    return FALSE;
+    return NULL;
 
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream)
@@ -584,8 +584,8 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (!fstransmitter)
   {
-    g_object_unref (conference);
-    return FALSE;
+    gst_object_unref (conference);
+    return NULL;
   }
 
   stream_transmitter = fs_transmitter_new_stream_transmitter (fstransmitter,
@@ -594,8 +594,8 @@ fs_raw_session_new_stream (FsSession *session,
   if (!stream_transmitter)
   {
     g_object_unref (fstransmitter);
-    g_object_unref (conference);
-    return FALSE;
+    gst_object_unref (conference);
+    return NULL;
   }
 
   rawparticipant = FS_RAW_PARTICIPANT (participant);
