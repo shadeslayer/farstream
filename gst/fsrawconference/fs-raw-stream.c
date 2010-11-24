@@ -413,10 +413,10 @@ fs_raw_stream_set_property (GObject *object,
         GST_OBJECT_UNLOCK (conference);
         if (recv_valve)
           g_object_set (recv_valve, "drop",
-              self->priv->direction & FS_DIRECTION_RECV, NULL);
+              (self->priv->direction & FS_DIRECTION_RECV) ? TRUE : FALSE, NULL);
         if (session_valve)
           g_object_set (session_valve, "drop",
-              self->priv->direction & FS_DIRECTION_SEND, NULL);
+              (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
         GST_OBJECT_LOCK (conference);
 
         if (session_valve)
