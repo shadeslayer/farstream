@@ -563,6 +563,9 @@ fs_raw_session_new_stream (FsSession *session,
   FsRawConference *conference;
   FsTransmitter *fstransmitter;
   FsStreamTransmitter *stream_transmitter;
+  GstElement *transmitter_sink = NULL;
+  GstElement *transmitter_src = NULL;
+  GstPad *transmitter_pad;
 
   if (!FS_IS_RAW_PARTICIPANT (participant))
   {
@@ -598,10 +601,65 @@ fs_raw_session_new_stream (FsSession *session,
     return NULL;
   }
 
+  g_object_get (fstransmitter, "gst-sink", &transmitter_sink, NULL);
+
+  if (!transmitter_sink)
+  {  
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Unable to get the sink element from the FsTransmitter");
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_sink))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the transmitter's source element"
+      " for session %d to the conference bin", self->id);
+    gst_object_unref (transmitter_sink);
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
+
+  g_object_get (fstransmitter, "gst-src", &transmitter_src, NULL);
+
+  if (!transmitter_src)
+  {  
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Unable to get the source element from the FsTransmitter");
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_src))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the transmitter's source element"
+      " for session %d to the conference bin", self->id);
+    gst_object_unref (transmitter_src);
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
+
+  transmitter_pad = gst_element_get_static_pad (transmitter_src, "src1");
+
+  if (!transmitter_pad)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Unable to get the srcpad from the FsTransmitter's gst-src");
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
+
   rawparticipant = FS_RAW_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
-      direction, conference, stream_transmitter,
+      direction, conference, stream_transmitter, transmitter_pad,
       _stream_new_remote_codecs, self, error));
 
   if (new_stream)

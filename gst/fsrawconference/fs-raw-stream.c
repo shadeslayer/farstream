@@ -63,6 +63,7 @@ enum
   PROP_CONFERENCE,
   PROP_STREAM_TRANSMITTER,
   PROP_REMOTE_CODECS,
+  PROP_TRANSMITTER_PAD,
 };
 
 
@@ -75,7 +76,9 @@ struct _FsRawStreamPrivate
   FsStreamDirection direction;
   FsStreamTransmitter *stream_transmitter;
   GstElement *codecbin;
+  GstElement *capsfilter;
   GstElement *recv_valve;
+  GstPad *transmitter_pad;
   GstPad *src_pad;
 
   GList *remote_codecs;
@@ -185,6 +188,14 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
           FS_TYPE_RAW_CONFERENCE,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  g_object_class_install_property (gobject_class,
+    PROP_TRANSMITTER_PAD,
+    g_param_spec_object ("transmitter-pad",
+      "The GstPad this stream is linked to",
+      "This is the pad on which this stream will attach itself",
+      GST_TYPE_PAD,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   /**
    * FsRtpStream:stream-transmitter:
    *
@@ -257,8 +268,18 @@ fs_raw_stream_dispose (GObject *object)
 
   if (self->priv->recv_valve)
   {
-    gst_object_unref (self->priv->recv_valve);
+    gst_element_set_locked_state (self->priv->recv_valve, TRUE);
+    gst_element_set_state (self->priv->recv_valve, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (conference), self->priv->recv_valve);
     self->priv->recv_valve = NULL;
+  }
+
+  if (self->priv->capsfilter)
+  {
+    gst_element_set_locked_state (self->priv->capsfilter, TRUE);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (conference), self->priv->capsfilter);
+    self->priv->capsfilter = NULL;
   }
 
   if (self->priv->codecbin)
@@ -267,6 +288,12 @@ fs_raw_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (conference), self->priv->codecbin);
     self->priv->codecbin = NULL;
+  }
+
+  if (self->priv->transmitter_pad)
+  {
+    gst_object_unref (self->priv->transmitter_pad);
+    self->priv->transmitter_pad = NULL;
   }
 
   st = self->priv->stream_transmitter;
@@ -353,6 +380,9 @@ fs_raw_stream_get_property (GObject *object,
     case PROP_REMOTE_CODECS:
       g_value_set_boxed (value, self->priv->remote_codecs);
       break;
+    case PROP_TRANSMITTER_PAD:
+      g_value_set_object (value, self->priv->transmitter_pad);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -431,6 +461,9 @@ fs_raw_stream_set_property (GObject *object,
     case PROP_STREAM_TRANSMITTER:
       self->priv->stream_transmitter = g_value_get_object (value);
       break;
+    case PROP_TRANSMITTER_PAD:
+      self->priv->transmitter_pad = GST_PAD (g_value_dup_object (value));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -447,12 +480,111 @@ static void
 fs_raw_stream_constructed (GObject *object)
 {
   FsRawStream *self = FS_RAW_STREAM_CAST (object);
+  GstPad *valve_sink_pad = NULL;
+  GstPadLinkReturn linkret;
+  gchar *tmp;
+
+  if (!self->priv->conference) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_INVALID_ARGUMENTS, "A Stream needs a conference object");
+    return;
+  }
+
+  tmp = g_strdup_printf ("recv_capsfilter_%d", self->priv->session->id);
+  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  g_free (tmp);
+
+  if (!self->priv->capsfilter) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not create a capsfilter element for"
+      " session %d", self->priv->session->id);
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference),
+      gst_object_ref (self->priv->capsfilter))) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for"
+      " session %d", self->priv->session->id);
+    gst_object_unref (self->priv->capsfilter);
+    return;
+  }
+
+  if (gst_element_set_state (self->priv->capsfilter, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not set the capsfilter element for"
+      " session %d", self->priv->session->id);
+    return;
+  }
+
+
+  tmp = g_strdup_printf ("recv_valve_%d", self->priv->session->id);
+  self->priv->recv_valve = gst_element_factory_make ("valve", tmp);
+  g_free (tmp);
+
+  if (!self->priv->recv_valve) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not create a valve element for"
+      " session %d", self->priv->session->id);
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference),
+      gst_object_ref (self->priv->recv_valve)))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the valve element for session"
+      " %d to the conference bin", self->priv->session->id);
+    gst_object_unref (self->priv->recv_valve);
+    return;
+  }
+
+  if (gst_element_set_state (self->priv->recv_valve, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not set the valve element for session"
+      " %d to the playing state", self->priv->session->id);
+    return;
+  }
+
+  if (!gst_element_link (self->priv->recv_valve, self->priv->capsfilter))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not link the recv valve"
+        " and the capsfilter");
+    return;
+  }
+
+  valve_sink_pad = gst_element_get_static_pad (self->priv->recv_valve, "sink");
+  if (!valve_sink_pad)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not get the valve's sink pad");
+    return;
+  }
+
+  linkret = gst_pad_link (self->priv->transmitter_pad, valve_sink_pad);
+
+  gst_object_unref (valve_sink_pad);
+
+  if (GST_PAD_LINK_FAILED (linkret))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link the recv_valve to the codec bin (%d)", linkret);
+    return;
+  }
 
   if (!self->priv->stream_transmitter) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "The Stream Transmitter has not been set");
     return;
   }
+
+  g_object_set (self->priv->stream_transmitter, "sending",
+      self->priv->direction & FS_DIRECTION_SEND, NULL);
 
   self->priv->local_candidates_prepared_handler_id =
     g_signal_connect_object (self->priv->stream_transmitter,
@@ -785,6 +917,7 @@ fs_raw_stream_new (FsRawSession *session,
     FsStreamDirection direction,
     FsRawConference *conference,
     FsStreamTransmitter *stream_transmitter,
+    GstPad *transmitter_pad,
     stream_new_remote_codecs_cb new_remote_codecs_cb,
     gpointer user_data_for_cb,
     GError **error)
@@ -802,6 +935,7 @@ fs_raw_stream_new (FsRawSession *session,
       "direction", direction,
       "conference", conference,
       "stream-transmitter", stream_transmitter,
+      "transmitter-pad", transmitter_pad,
       NULL);
 
   self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
