@@ -851,6 +851,14 @@ negotiate_stream_codec (CodecAssociation *old_ca, FsCodec *remote_codec,
   {
     intersect_feedback_params (*nego_codec, old_ca->codec);
     intersect_feedback_params (*nego_send_codec, old_ca->send_codec);
+
+    if (multi_stream)
+    {
+      (*nego_codec)->ABI.ABI.minimum_reporting_interval =
+          old_ca->codec->ABI.ABI.minimum_reporting_interval;
+      (*nego_send_codec)->ABI.ABI.minimum_reporting_interval =
+          old_ca->send_codec->ABI.ABI.minimum_reporting_interval;
+    }
   }
 }
 
