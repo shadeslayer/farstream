@@ -332,11 +332,15 @@ fs_raw_session_get_property (GObject *object,
     case PROP_CODECS:
     case PROP_CODECS_WITHOUT_CONFIG:
       {
-        GList *codecs = NULL;
-        FsCodec *mimic_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
-          FS_MEDIA_TYPE_VIDEO, 0);
-        codecs = g_list_append (codecs, mimic_codec);
-        g_value_take_boxed (value, codecs);
+        FsRawStream *stream = self->priv->stream;
+
+        if (stream)
+        {
+          GList *codecs = NULL;
+
+          g_object_get (self->priv->stream, "remote-codecs", &codecs, NULL);
+          g_value_take_boxed (value, codecs);
+        }
       }
       break;
     case PROP_CURRENT_SEND_CODEC:
