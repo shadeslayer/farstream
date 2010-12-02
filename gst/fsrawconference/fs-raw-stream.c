@@ -501,8 +501,7 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference),
-      gst_object_ref (self->priv->capsfilter))) {
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter)) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for"
       " session %d", self->priv->session->id);
@@ -530,8 +529,7 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference),
-      gst_object_ref (self->priv->recv_valve)))
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->recv_valve))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the valve element for session"
