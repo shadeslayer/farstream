@@ -874,6 +874,7 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
           codec->encoding_name);
       goto error;
     }
+    gst_caps_unref (caps);
   }
 
   remote_codecs_copy = fs_codec_list_copy (remote_codecs);
