@@ -443,10 +443,10 @@ fs_raw_stream_set_property (GObject *object,
         GST_OBJECT_UNLOCK (conference);
         if (recv_valve)
           g_object_set (recv_valve, "drop",
-              (self->priv->direction & FS_DIRECTION_RECV) ? TRUE : FALSE, NULL);
+              (self->priv->direction & FS_DIRECTION_RECV) ? FALSE : TRUE, NULL);
         if (session_valve)
           g_object_set (session_valve, "drop",
-              (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
+              (self->priv->direction & FS_DIRECTION_SEND) ? FALSE : TRUE, NULL);
         GST_OBJECT_LOCK (conference);
 
         if (session_valve)
@@ -582,7 +582,7 @@ fs_raw_stream_constructed (GObject *object)
   }
 
   g_object_set (self->priv->stream_transmitter, "sending",
-      self->priv->direction & FS_DIRECTION_SEND, NULL);
+      (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
 
   self->priv->local_candidates_prepared_handler_id =
     g_signal_connect_object (self->priv->stream_transmitter,
