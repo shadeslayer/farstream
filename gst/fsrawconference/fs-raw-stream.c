@@ -895,7 +895,18 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
     GST_OBJECT_UNLOCK (conf);
 
     if (is_new)
+    {
+      FsCodec *codec;
+      GstCaps *caps;
+
+      codec = self->priv->remote_codecs->data;
+
+      caps = gst_caps_from_string (codec->encoding_name);
+      g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+      gst_caps_unref (caps);
+
       g_object_notify (G_OBJECT (stream), "remote-codecs");
+    }
   } else {
     fs_codec_list_destroy (remote_codecs_copy);
     goto error;
