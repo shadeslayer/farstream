@@ -223,6 +223,7 @@ fs_raw_session_dispose (GObject *object)
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   GstElement *valve = NULL;
   GstElement *capsfilter = NULL;
+  FsTransmitter *transmitter = NULL;
 
   g_mutex_lock (self->priv->mutex);
   self->priv->conference = NULL;
@@ -261,6 +262,16 @@ fs_raw_session_dispose (GObject *object)
     gst_element_set_locked_state (capsfilter, TRUE);
     gst_element_set_state (capsfilter, GST_STATE_NULL);
     gst_bin_remove (conferencebin, capsfilter);
+  }
+
+  GST_OBJECT_LOCK (conference);
+  transmitter = self->priv->transmitter;
+  self->priv->transmitter = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (transmitter)
+  {
+    g_object_unref (transmitter);
   }
 
   if (self->priv->media_sink_pad)
