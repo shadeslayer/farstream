@@ -83,6 +83,8 @@ struct _FsRawStreamPrivate
 
   GList *remote_codecs;
 
+  gulong blocking_id;
+
   GError *construction_error;
 
   stream_new_remote_codecs_cb new_remote_codecs_cb;
@@ -290,6 +292,14 @@ fs_raw_stream_dispose (GObject *object)
     self->priv->codecbin = NULL;
   }
 
+  if (self->priv->blocking_id)
+  {
+    if (self->priv->transmitter_pad)
+      gst_pad_remove_data_probe (self->priv->transmitter_pad,
+          self->priv->blocking_id);
+    self->priv->blocking_id = 0;
+  }
+
   if (self->priv->transmitter_pad)
   {
     gst_object_unref (self->priv->transmitter_pad);
@@ -484,6 +494,75 @@ fs_raw_stream_set_property (GObject *object,
   }
 }
 
+static gboolean
+_transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
+    gpointer user_data)
+{
+  FsRawStream *self = FS_RAW_STREAM_CAST (user_data);
+  gboolean ret = TRUE;
+  gboolean remove = FALSE;
+
+  if (!self->priv->remote_codecs || !self->priv->capsfilter)
+  {
+    ret = FALSE;
+  }
+  else if (GST_IS_BUFFER (miniobj))
+  {
+    GstCaps *caps;
+    FsCodec *codec = self->priv->remote_codecs->data;
+    caps = gst_caps_from_string (codec->encoding_name);
+
+    if (!GST_IS_CAPS (caps))
+      ret = FALSE;
+    else
+      remove = TRUE;
+
+    gst_caps_unref (caps);
+  }
+
+  if (remove && self->priv->blocking_id)
+  {
+    GstPad *ghostpad;
+    GstPad *srcpad;
+    gchar *padname;
+
+    gst_pad_remove_data_probe (pad, self->priv->blocking_id);
+    self->priv->blocking_id = 0;
+
+    srcpad = gst_element_get_static_pad (self->priv->capsfilter, "src");
+
+    if (!srcpad)
+    {
+      GST_WARNING ("Unable to get capsfilter (%p) srcpad",
+          self->priv->capsfilter);
+      return FALSE;
+    }
+
+    padname = g_strdup_printf ("src_%d", self->priv->session->id);
+    ghostpad = gst_ghost_pad_new_from_template (padname, srcpad,
+        gst_element_class_get_pad_template (
+            GST_ELEMENT_GET_CLASS (self->priv->conference),
+            "src_%d_%d_%d"));
+    g_free (padname);
+
+    /* XXX Should this really be needed? */
+    if (!gst_pad_set_active (ghostpad, TRUE))
+      GST_WARNING ("Unable to set ghost pad active");
+
+    
+    if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference), ghostpad))
+    {
+      GST_WARNING ("Unable to add ghost pad to conference");
+      return FALSE;
+    }
+
+    fs_stream_emit_src_pad_added (FS_STREAM (self), ghostpad,
+        self->priv->remote_codecs->data);
+  }
+
+  return ret;
+}
+
 static void
 fs_raw_stream_constructed (GObject *object)
 {
@@ -582,6 +661,11 @@ fs_raw_stream_constructed (GObject *object)
         "Could not link the recv_valve to the codec bin (%d)", linkret);
     return;
   }
+
+  if (!self->priv->blocking_id)
+    self->priv->blocking_id = gst_pad_add_data_probe (
+        self->priv->transmitter_pad,
+        G_CALLBACK (_transmitter_pad_have_data_callback), self);
 
   if (!self->priv->stream_transmitter) {
     self->priv->construction_error = g_error_new (FS_ERROR,
