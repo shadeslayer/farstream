@@ -510,7 +510,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   {
     GstCaps *caps;
     FsCodec *codec = self->priv->remote_codecs->data;
-    caps = gst_caps_from_string (codec->encoding_name);
+    caps = fs_codec_to_gst_caps (codec);
 
     if (!GST_IS_CAPS (caps))
       ret = FALSE;
@@ -950,7 +950,7 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
       goto error;
     }
 
-    caps = gst_caps_from_string (codec->encoding_name);
+    caps = fs_codec_to_gst_caps (codec);
     if (!caps)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
@@ -985,7 +985,7 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
 
       codec = self->priv->remote_codecs->data;
 
-      caps = gst_caps_from_string (codec->encoding_name);
+      caps = fs_codec_to_gst_caps (codec);
       g_object_set (self->priv->capsfilter, "caps", caps, NULL);
       gst_caps_unref (caps);
 

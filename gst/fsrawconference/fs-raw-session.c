@@ -539,7 +539,7 @@ _stream_new_remote_codecs (FsRawStream *stream,
     return FALSE;
   }
 
-  caps = gst_caps_from_string (codec->encoding_name);
+  caps = fs_codec_to_gst_caps (codec);
 
   if (!caps)
   {

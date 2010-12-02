@@ -275,3 +275,17 @@ fs_raw_conference_new_participant (FsBaseConference *conf,
   return new_participant;
 }
 
+/**
+ * fs_codec_to_gst_caps
+ * @codec: A #FsCodec to be converted
+ *
+ * This function converts a #FsCodec to a fixed #GstCaps.
+ *
+ * Return value: A newly-allocated #GstCaps or %NULL if the codec was %NULL
+ */
+
+GstCaps *
+fs_codec_to_gst_caps (const FsCodec *codec)
+{
+  return gst_caps_from_string (codec->encoding_name);
+}
