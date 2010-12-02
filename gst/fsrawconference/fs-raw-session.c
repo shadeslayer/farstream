@@ -523,6 +523,35 @@ static gboolean
 _stream_new_remote_codecs (FsRawStream *stream,
     GList *codecs, GError **error, gpointer user_data)
 {
+  FsRawSession *self = FS_RAW_SESSION_CAST (user_data);
+  GstCaps *caps;
+  FsCodec *codec = NULL;
+
+  if (g_list_length (codecs) == 2)
+    codec = codecs->next->data;
+  else if (codecs && codecs->data)
+    codec = codecs->data;
+
+  if (!codec || !codec->encoding_name)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Invalid codecs");
+    return FALSE;
+  }
+
+  caps = gst_caps_from_string (codec->encoding_name);
+
+  if (!caps)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
+        "Codec has invalid caps");
+    return FALSE;
+  }
+
+  if (self->priv->capsfilter)
+    g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+
+  gst_caps_unref (caps);
   return TRUE;
 }
 
