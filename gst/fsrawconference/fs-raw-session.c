@@ -634,6 +634,16 @@ fs_raw_session_new_stream (FsSession *session,
     return NULL;
   }
 
+  if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not link the capsfilter and transmitter's"
+      " sink element for session %d", self->id);
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
+
   g_object_get (fstransmitter, "gst-src", &transmitter_src, NULL);
 
   if (!transmitter_src)
