@@ -629,6 +629,13 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
+  if (self->priv->recv_valve)
+    g_object_set (self->priv->recv_valve, "drop",
+        (self->priv->direction & FS_DIRECTION_RECV) ? FALSE : TRUE, NULL);
+  if (self->priv->session->valve)
+    g_object_set (self->priv->session->valve, "drop",
+        (self->priv->direction & FS_DIRECTION_SEND) ? FALSE : TRUE, NULL);
+
   if (G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed)
     G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed (object);
 }
