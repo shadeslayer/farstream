@@ -77,6 +77,7 @@ tests/check/transmitter/rawudp
 tests/check/transmitter/multicast
 tests/check/transmitter/nice
 tests/check/transmitter/shm
+tests/check/raw/conference
 tests/check/rtp/conference
 tests/check/rtp/codecs
 tests/check/rtp/sendcodecs

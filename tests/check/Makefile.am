@@ -49,6 +49,7 @@ check_PROGRAMS = \
 	transmitter/multicast \
 	transmitter/nice \
 	transmitter/shm \
+	raw/conference \
 	rtp/codecs \
 	rtp/sendcodecs \
 	rtp/conference \
@@ -121,6 +122,13 @@ transmitter_shm_SOURCES = \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/shm.c
+
+raw_conference_CFLAGS = $(AM_CFLAGS)
+raw_conference_SOURCES = \
+	check-threadsafe.h  \
+	testutils.c \
+	testutils.h \
+	raw/conference.c
 
 rtp_conference_CFLAGS = $(AM_CFLAGS)
 rtp_conference_SOURCES = \
