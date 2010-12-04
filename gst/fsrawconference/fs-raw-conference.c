@@ -275,6 +275,12 @@ fs_raw_conference_new_participant (FsBaseConference *conf,
   return new_participant;
 }
 
+typedef struct
+{
+  const gchar *prop_name;
+  GType prop_type;
+} CapPropertyMapItem;
+
 /**
  * fs_codec_to_gst_caps
  * @codec: A #FsCodec to be converted
@@ -287,5 +293,64 @@ fs_raw_conference_new_participant (FsBaseConference *conf,
 GstCaps *
 fs_codec_to_gst_caps (const FsCodec *codec)
 {
-  return gst_caps_from_string (codec->encoding_name);
+  GstCaps *caps;
+  GstStructure *structure;
+  GList *item;
+  CapPropertyMapItem *iter;
+
+  /* TODO: Add the appropriate video properties */
+  CapPropertyMapItem prop_map[] = {
+      {"endianness", G_TYPE_INT},
+      {"signed", G_TYPE_BOOLEAN},
+      {"width", G_TYPE_INT},
+      {"depth", G_TYPE_INT},
+      {"rate", G_TYPE_INT},
+      {NULL, G_TYPE_INVALID}
+  };
+
+  if (codec == NULL || codec->encoding_name == NULL)
+    return NULL;
+
+  structure = gst_structure_new (codec->encoding_name, NULL);
+
+  if (codec->channels)
+    gst_structure_set (structure, "channels", G_TYPE_INT, codec->channels,
+      NULL);
+
+  for (item = codec->optional_params;
+       item;
+       item = g_list_next (item)) {
+    FsCodecParameter *param = item->data;
+
+    for (iter = prop_map; iter->prop_name; ++iter) {  
+      if (g_strcmp0 (param->name, iter->prop_name) != 0)
+        continue;
+
+      switch (iter->prop_type) {
+        case G_TYPE_INT:
+          gst_structure_set (structure, param->name,
+              G_TYPE_INT, atoi (param->value), NULL);
+          break;
+        case G_TYPE_BOOLEAN: {
+          int tmp = atoi (param->value);
+          if (tmp > 1 || tmp < 0)
+            GST_WARNING ("Caps param %s is not a boolean ('0' or '1') %s",
+                param->name, param->value);
+            break;
+          gst_structure_set (structure, param->name,
+              G_TYPE_BOOLEAN, tmp, NULL);
+          break;
+        }
+        default:
+          GST_WARNING ("No type defined for this parameter, "
+              "defaulting to G_TYPE_STRING");
+          gst_structure_set (structure, param->name,
+              G_TYPE_STRING, param->value, NULL);
+          break;
+      }
+    }
+  }
+
+  caps = gst_caps_new_full (structure, NULL);
+  return caps;
 }

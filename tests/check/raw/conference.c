@@ -937,6 +937,7 @@ set_initial_codecs (
     struct SimpleTestConference *from,
     struct SimpleTestStream *to)
 {
+  FsCodec *codec;
   GList *codecs = NULL;
   GList *filtered_codecs = NULL;
   GList *rcodecs2 = NULL;
@@ -949,10 +950,15 @@ set_initial_codecs (
 
   ts_fail_unless (codecs == NULL, "Shouldn't generate codecs codecs");
 
-  codecs = g_list_append (codecs, fs_codec_new (0,
-      "audio/x-raw-int, endianness=1234, signed=true, "
-      "width=16, depth=16, rate=44100, channels=1",
-      FS_MEDIA_TYPE_AUDIO, 44100));
+  codec = fs_codec_new (0, "audio/x-raw-int", FS_MEDIA_TYPE_AUDIO, 44100);
+  codec->channels = 1;
+  fs_codec_add_optional_parameter (codec, "endianness", "1234");
+  fs_codec_add_optional_parameter (codec, "signed", "1");
+  fs_codec_add_optional_parameter (codec, "width", "16");
+  fs_codec_add_optional_parameter (codec, "depth", "16");
+  fs_codec_add_optional_parameter (codec, "rate", "44100");
+  codecs = g_list_append (codecs, codec);
+
   filtered_codecs = g_list_append (filtered_codecs, codecs->data);
 
   GST_DEBUG ("Setting initial remote codecs on %d:%d from %d",
