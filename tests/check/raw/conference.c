@@ -321,7 +321,7 @@ GST_START_TEST (test_rawconference_new)
 
   ts_fail_unless (id == 1, "The id of the first session should be 1 not %d",
       id);
-  ts_fail_if (codecs == NULL, "Codecs should not be NULL");
+  ts_fail_unless (codecs == NULL, "Codecs should be NULL");
   fs_codec_list_destroy (codecs);
   ts_fail_unless (media_type == FS_MEDIA_TYPE_AUDIO, "Media type isnt audio,"
       " its %d", media_type);
