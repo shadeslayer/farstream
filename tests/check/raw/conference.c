@@ -1288,7 +1288,8 @@ GST_START_TEST (test_rawconference_dispose)
   g_clear_error (&error);
 
   fail_if (fs_stream_force_remote_candidates (stream, NULL, &error));
-  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_NOT_IMPLEMENTED);
   g_clear_error (&error);
 
   g_object_unref (stream);
@@ -1308,7 +1309,8 @@ GST_START_TEST (test_rawconference_dispose)
   g_clear_error (&error);
 
   fail_if (fs_stream_force_remote_candidates (stream, NULL, &error));
-  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_NOT_IMPLEMENTED);
   g_clear_error (&error);
 
   g_object_run_dispose (G_OBJECT (session));
@@ -1318,11 +1320,13 @@ GST_START_TEST (test_rawconference_dispose)
   fail_if (fs_session_stop_telephony_event (session, FS_DTMF_METHOD_AUTO));
 
   fail_if (fs_session_set_send_codec (session, NULL, &error));
-  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_NOT_IMPLEMENTED);
   g_clear_error (&error);
 
   fail_if (fs_session_set_codec_preferences (session, NULL, &error));
-  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
+  fail_unless (error->domain == FS_ERROR &&
+      error->code == FS_ERROR_NOT_IMPLEMENTED);
   g_clear_error (&error);
 
   g_object_unref (session);
