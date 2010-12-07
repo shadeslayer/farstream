@@ -658,9 +658,9 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_sink))
   {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not add the transmitter's source element"
-      " for session %d to the conference bin", self->id);
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the transmitter's source element"
+        " for session %d to the conference bin", self->id);
     gst_object_unref (transmitter_sink);
     g_object_unref (fstransmitter);
     gst_object_unref (conference);
@@ -669,9 +669,9 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
   {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not link the capsfilter and transmitter's"
-      " sink element for session %d", self->id);
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the capsfilter and transmitter's"
+        " sink element for session %d", self->id);
     g_object_unref (fstransmitter);
     gst_object_unref (conference);
     return NULL;
@@ -690,9 +690,9 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_src))
   {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not add the transmitter's source element"
-      " for session %d to the conference bin", self->id);
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the transmitter's source element"
+        " for session %d to the conference bin", self->id);
     gst_object_unref (transmitter_src);
     g_object_unref (fstransmitter);
     gst_object_unref (conference);
