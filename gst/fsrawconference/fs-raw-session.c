@@ -562,6 +562,9 @@ _remove_stream (gpointer user_data,
   FsRawSession *self = FS_RAW_SESSION (user_data);
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   FsTransmitter *transmitter = NULL;
+  GstElement *src = NULL;
+  GstElement *sink = NULL;
+  GstObject *parent = NULL;
 
   if (!conference)
     return;
@@ -574,6 +577,26 @@ _remove_stream (gpointer user_data,
     self->priv->transmitter = NULL;
   }
   GST_OBJECT_UNLOCK (conference);
+
+  g_object_get (transmitter,
+      "gst-src", &src,
+      "gst-sink", &sink,
+      NULL);
+  
+  gst_element_set_locked_state (src, TRUE);
+  gst_element_set_state (src, GST_STATE_NULL);
+  gst_bin_remove (GST_BIN (self->priv->conference), src);
+
+  gst_element_set_locked_state (sink, TRUE);
+  gst_element_set_state (sink, GST_STATE_NULL);
+  if ((parent = gst_object_get_parent (GST_OBJECT (sink))))
+  {
+    gst_object_unref (parent);
+    gst_bin_remove (GST_BIN (self->priv->conference), sink);
+  }
+
+  gst_object_unref (src);
+  gst_object_unref (sink);
   g_object_unref (transmitter);
   gst_object_unref (conference);
 }
