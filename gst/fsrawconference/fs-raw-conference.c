@@ -65,7 +65,7 @@ static GstStaticPadTemplate fs_raw_conference_sink_template =
       GST_STATIC_CAPS_ANY);
 
 static GstStaticPadTemplate fs_raw_conference_src_template =
-  GST_STATIC_PAD_TEMPLATE ("src_%d_%d_%d",
+  GST_STATIC_PAD_TEMPLATE ("src_%d",
       GST_PAD_SRC,
       GST_PAD_SOMETIMES,
       GST_STATIC_CAPS_ANY);

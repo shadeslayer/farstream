@@ -542,7 +542,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     ghostpad = gst_ghost_pad_new_from_template (padname, srcpad,
         gst_element_class_get_pad_template (
             GST_ELEMENT_GET_CLASS (self->priv->conference),
-            "src_%d_%d_%d"));
+            "src_%d"));
     g_free (padname);
 
     /* XXX Should this really be needed? */
