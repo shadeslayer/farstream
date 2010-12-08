@@ -173,13 +173,13 @@ fs_raw_conference_init (FsRawConference *conf,
 
 /**
  * fs_rtp_conference_get_session_by_id_locked
- * @self: The #FsRtpConference
+ * @self: The #FsRawConference
  * @session_id: The session id
  *
- * Gets the #FsRtpSession from a list of sessions or NULL if it doesnt exist
+ * Gets the #FsRawSession from a list of sessions or NULL if it doesnt exist
  * You have to hold the GST_OBJECT_LOCK to call this function.
  *
- * Return value: A #FsRtpSession (unref after use) or NULL if it doesn't exist
+ * Return value: A #FsRawSession (unref after use) or NULL if it doesn't exist
  */
 static FsRawSession *
 fs_raw_conference_get_session_by_id_locked (FsRawConference *self,

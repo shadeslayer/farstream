@@ -199,7 +199,7 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
       G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
-   * FsRtpStream:stream-transmitter:
+   * FsRawStream:stream-transmitter:
    *
    * The #FsStreamTransmitter for this stream.
    *
