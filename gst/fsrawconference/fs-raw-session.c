@@ -237,9 +237,6 @@ fs_raw_session_dispose (GObject *object)
   if (!conferencebin)
     goto out;
 
-  if (self->priv->media_sink_pad)
-    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
-
   GST_OBJECT_LOCK (conference);
   valve = self->valve;
   self->valve = NULL;
@@ -275,9 +272,14 @@ fs_raw_session_dispose (GObject *object)
   }
 
   if (self->priv->media_sink_pad)
+  {
+    gst_object_ref (self->priv->media_sink_pad);
     gst_element_remove_pad (GST_ELEMENT (conference),
         self->priv->media_sink_pad);
-  self->priv->media_sink_pad = NULL;
+    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
+    gst_object_unref (self->priv->media_sink_pad);
+    self->priv->media_sink_pad = NULL;
+  }
 
   gst_object_unref (conferencebin);
   gst_object_unref (conference);
