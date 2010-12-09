@@ -747,7 +747,6 @@ fs_raw_session_new_stream (FsSession *session,
     if (self->priv->stream)
     {
       g_object_unref (new_stream);
-      g_object_unref (stream_transmitter);
       g_object_unref (fstransmitter);
       goto already_have_stream;
     }
