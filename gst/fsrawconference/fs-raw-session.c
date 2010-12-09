@@ -87,6 +87,7 @@ struct _FsRawSessionPrivate
 
   GstPad *media_sink_pad;
   GstElement *capsfilter;
+  GList *codecs;
 
   FsTransmitter *transmitter;
 
@@ -294,6 +295,9 @@ fs_raw_session_finalize (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
 
+  if (self->priv->codecs)
+    fs_codec_list_destroy (self->priv->codecs);
+
   g_mutex_free (self->priv->mutex);
 
   G_OBJECT_CLASS (fs_raw_session_parent_class)->finalize (object);
@@ -333,17 +337,7 @@ fs_raw_session_get_property (GObject *object,
       break;
     case PROP_CODECS:
     case PROP_CODECS_WITHOUT_CONFIG:
-      {
-        FsRawStream *stream = self->priv->stream;
-
-        if (stream)
-        {
-          GList *codecs = NULL;
-
-          g_object_get (self->priv->stream, "remote-codecs", &codecs, NULL);
-          g_value_take_boxed (value, codecs);
-        }
-      }
+      g_value_set_boxed (value, self->priv->codecs);
       break;
     case PROP_CURRENT_SEND_CODEC:
       {
@@ -526,6 +520,7 @@ _stream_new_remote_codecs (FsRawStream *stream,
     GList *codecs, GError **error, gpointer user_data)
 {
   FsRawSession *self = FS_RAW_SESSION_CAST (user_data);
+  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   GstCaps *caps;
   FsCodec *codec = NULL;
 
@@ -553,7 +548,16 @@ _stream_new_remote_codecs (FsRawStream *stream,
   if (self->priv->capsfilter)
     g_object_set (self->priv->capsfilter, "caps", caps, NULL);
 
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->codecs)
+    fs_codec_list_destroy (self->priv->codecs);
+  self->priv->codecs = fs_codec_list_copy (codecs);
+  GST_OBJECT_UNLOCK (conference);
+
+  g_object_notify (G_OBJECT (self), "codecs");
+
   gst_caps_unref (caps);
+  gst_object_unref (conference);
   return TRUE;
 }
 
