@@ -1483,7 +1483,7 @@ param_h264_profile_level_id (const struct SdpParam *sdp_param,
   local_level_idc = 0xFF & local_value;
   nego_level_idc = MIN (remote_level_idc, local_level_idc);
 
-  snprintf (buf, 7, "%02hhX%02hhX%02hhX", local_profile_idc, nego_profile_iop,
+  g_snprintf (buf, 7, "%02hhX%02hhX%02hhX", local_profile_idc, nego_profile_iop,
       nego_level_idc);
 
   fs_codec_add_optional_parameter (negotiated_codec, sdp_param->name, buf);
