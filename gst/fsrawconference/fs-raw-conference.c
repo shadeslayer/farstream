@@ -293,7 +293,6 @@ typedef struct
 GstCaps *
 fs_codec_to_gst_caps (const FsCodec *codec)
 {
-  GstCaps *caps;
   GstStructure *structure;
   GList *item;
   CapPropertyMapItem *iter;
@@ -351,6 +350,5 @@ fs_codec_to_gst_caps (const FsCodec *codec)
     }
   }
 
-  caps = gst_caps_new_full (structure, NULL);
-  return caps;
+  return gst_caps_new_full (structure, NULL);
 }
