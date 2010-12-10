@@ -64,7 +64,7 @@ struct _FsRawConferenceClass
 
 GType fs_raw_conference_get_type (void);
 
-GstCaps *fs_codec_to_gst_caps (const FsCodec *codec);
+GstCaps *fs_raw_codec_to_gst_caps (const FsCodec *codec);
 
 GST_DEBUG_CATEGORY_EXTERN (fsrawconference_debug);
 

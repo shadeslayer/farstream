@@ -291,7 +291,7 @@ typedef struct
  */
 
 GstCaps *
-fs_codec_to_gst_caps (const FsCodec *codec)
+fs_raw_codec_to_gst_caps (const FsCodec *codec)
 {
   GstStructure *structure;
   GList *item;
