@@ -499,17 +499,26 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     gpointer user_data)
 {
   FsRawStream *self = FS_RAW_STREAM_CAST (user_data);
+  FsRawConference *conference = fs_raw_stream_get_conference (self, NULL);
+  GList *remote_codecs = NULL;
+  GstElement *capsfilter = NULL;
+  gulong blocking_id = 0;
   gboolean ret = TRUE;
   gboolean remove = FALSE;
 
-  if (!self->priv->remote_codecs || !self->priv->capsfilter)
+  GST_OBJECT_LOCK (conference);
+  remote_codecs = self->priv->remote_codecs;
+  capsfilter = self->priv->capsfilter;
+  GST_OBJECT_UNLOCK (conference); 
+
+  if (!remote_codecs || !capsfilter)
   {
     ret = FALSE;
   }
   else if (GST_IS_BUFFER (miniobj))
   {
     GstCaps *caps;
-    FsCodec *codec = self->priv->remote_codecs->data;
+    FsCodec *codec = remote_codecs->data;
     caps = fs_codec_to_gst_caps (codec);
 
     if (!GST_IS_CAPS (caps))
@@ -520,21 +529,25 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     gst_caps_unref (caps);
   }
 
-  if (remove && self->priv->blocking_id)
+  blocking_id = self->priv->blocking_id;
+
+  if (remove && blocking_id)
   {
     GstPad *ghostpad;
     GstPad *srcpad;
     gchar *padname;
 
-    gst_pad_remove_data_probe (pad, self->priv->blocking_id);
-    self->priv->blocking_id = 0;
+    gst_pad_remove_data_probe (pad, blocking_id);
+    GST_OBJECT_LOCK (conference);
+    if (self->priv->blocking_id == blocking_id)
+      self->priv->blocking_id = 0;
+    GST_OBJECT_UNLOCK (conference);
 
-    srcpad = gst_element_get_static_pad (self->priv->capsfilter, "src");
+    srcpad = gst_element_get_static_pad (capsfilter, "src");
 
     if (!srcpad)
     {
-      GST_WARNING ("Unable to get capsfilter (%p) srcpad",
-          self->priv->capsfilter);
+      GST_WARNING ("Unable to get capsfilter (%p) srcpad", capsfilter);
       return FALSE;
     }
 
@@ -557,7 +570,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     }
 
     fs_stream_emit_src_pad_added (FS_STREAM (self), ghostpad,
-        self->priv->remote_codecs->data);
+        remote_codecs->data);
   }
 
   return ret;
@@ -983,7 +996,7 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
       FsCodec *codec;
       GstCaps *caps;
 
-      codec = self->priv->remote_codecs->data;
+      codec = remote_codecs_copy->data;
 
       caps = fs_codec_to_gst_caps (codec);
       g_object_set (self->priv->capsfilter, "caps", caps, NULL);
