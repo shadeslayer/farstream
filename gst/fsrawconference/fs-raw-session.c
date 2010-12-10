@@ -249,8 +249,9 @@ fs_raw_session_dispose (GObject *object)
   if (valve)
   {
     gst_element_set_locked_state (valve, TRUE);
-    gst_element_set_state (valve, GST_STATE_NULL);
     gst_bin_remove (conferencebin, valve);
+    gst_element_set_state (valve, GST_STATE_NULL);
+    gst_object_unref (valve);
   }
 
   GST_OBJECT_LOCK (conference);
@@ -261,8 +262,9 @@ fs_raw_session_dispose (GObject *object)
   if (capsfilter)
   {
     gst_element_set_locked_state (capsfilter, TRUE);
-    gst_element_set_state (capsfilter, GST_STATE_NULL);
     gst_bin_remove (conferencebin, capsfilter);
+    gst_element_set_state (capsfilter, GST_STATE_NULL);
+    gst_object_unref (capsfilter);
   }
 
   GST_OBJECT_LOCK (conference);
@@ -282,7 +284,6 @@ fs_raw_session_dispose (GObject *object)
 
   if (media_sink_pad)
   {
-    gst_object_ref (media_sink_pad);
     gst_element_remove_pad (GST_ELEMENT (conference), media_sink_pad);
     gst_pad_set_active (media_sink_pad, FALSE);
     gst_object_unref (media_sink_pad);
@@ -436,6 +437,8 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
+  gst_object_ref_sink (self->priv->capsfilter);
+
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -464,6 +467,8 @@ fs_raw_session_constructed (GObject *object)
         FS_ERROR_CONSTRUCTION, "Could not make send valve");
     return;
   }
+
+  gst_object_ref_sink (self->valve);
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->valve))
   {
@@ -506,6 +511,8 @@ fs_raw_session_constructed (GObject *object)
         FS_ERROR_CONSTRUCTION, "Could not create sink ghost pad");
     return;
   }
+
+  gst_object_ref_sink (self->priv->media_sink_pad);
 
   gst_pad_set_active (self->priv->media_sink_pad, TRUE);
   if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference),
