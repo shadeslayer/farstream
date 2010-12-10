@@ -509,8 +509,6 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  gst_element_sync_state_with_parent (self->valve);
-
   if (G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed)
     G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed (object);
 }
