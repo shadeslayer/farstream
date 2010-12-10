@@ -560,6 +560,17 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
       return FALSE;
     }
 
+    GST_OBJECT_LOCK (conference);
+    if (self->priv->src_pad)
+    {
+      GST_WARNING ("Src pad %p already exists in session %d",
+          self->priv->src_pad, self->priv->session->id);
+      gst_object_unref (self->priv->src_pad);
+    }
+
+    self->priv->src_pad = ghostpad;
+    GST_OBJECT_UNLOCK (conference);
+
     fs_stream_emit_src_pad_added (FS_STREAM (self), ghostpad,
         remote_codecs->data);
   }
