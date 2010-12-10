@@ -250,15 +250,16 @@ static void
 fs_raw_stream_dispose (GObject *object)
 {
   FsRawStream *self = FS_RAW_STREAM (object);
-  FsRawConference *conference = fs_raw_stream_get_conference (self, NULL);
+  FsRawConference *conference;
   FsStreamTransmitter *st;
+
+  g_mutex_lock (self->priv->mutex);
+  conference = self->priv->conference;
+  self->priv->conference = NULL;
+  g_mutex_unlock (self->priv->mutex);
 
   if (!conference)
     return;
-
-  g_mutex_lock (self->priv->mutex);
-  self->priv->conference = NULL;
-  g_mutex_unlock (self->priv->mutex);
 
   if (self->priv->src_pad)
   {
@@ -338,7 +339,6 @@ fs_raw_stream_dispose (GObject *object)
     self->priv->session = NULL;
   }
 
-  gst_object_unref (conference);
   gst_object_unref (conference);
 
   G_OBJECT_CLASS (fs_raw_stream_parent_class)->dispose (object);
