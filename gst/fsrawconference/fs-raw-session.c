@@ -587,7 +587,6 @@ _remove_stream (gpointer user_data,
   FsTransmitter *transmitter = NULL;
   GstElement *src = NULL;
   GstElement *sink = NULL;
-  GstObject *parent = NULL;
 
   if (!conference)
     return;
@@ -612,11 +611,7 @@ _remove_stream (gpointer user_data,
 
   gst_element_set_locked_state (sink, TRUE);
   gst_element_set_state (sink, GST_STATE_NULL);
-  if ((parent = gst_object_get_parent (GST_OBJECT (sink))))
-  {
-    gst_object_unref (parent);
-    gst_bin_remove (GST_BIN (self->priv->conference), sink);
-  }
+  gst_bin_remove (GST_BIN (self->priv->conference), sink);
 
   gst_object_unref (src);
   gst_object_unref (sink);
