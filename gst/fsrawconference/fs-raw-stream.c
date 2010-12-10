@@ -262,8 +262,9 @@ fs_raw_stream_dispose (GObject *object)
 
   if (self->priv->src_pad)
   {
-    gst_pad_set_active (self->priv->src_pad, FALSE);
     gst_element_remove_pad (GST_ELEMENT (conference), self->priv->src_pad);
+    gst_pad_set_active (self->priv->src_pad, FALSE);
+    gst_object_unref (self->priv->src_pad);
     self->priv->src_pad = NULL;
   }
 
@@ -271,16 +272,18 @@ fs_raw_stream_dispose (GObject *object)
   if (self->priv->recv_valve)
   {
     gst_element_set_locked_state (self->priv->recv_valve, TRUE);
-    gst_element_set_state (self->priv->recv_valve, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (conference), self->priv->recv_valve);
+    gst_element_set_state (self->priv->recv_valve, GST_STATE_NULL);
+    gst_object_unref (self->priv->recv_valve);
     self->priv->recv_valve = NULL;
   }
 
   if (self->priv->capsfilter)
   {
     gst_element_set_locked_state (self->priv->capsfilter, TRUE);
-    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (conference), self->priv->capsfilter);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_object_unref (self->priv->capsfilter);
     self->priv->capsfilter = NULL;
   }
 
@@ -549,6 +552,8 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
             "src_%d"));
     g_free (padname);
 
+    gst_object_ref_sink (ghostpad);
+
     /* XXX Should this really be needed? */
     if (!gst_pad_set_active (ghostpad, TRUE))
       GST_WARNING ("Unable to set ghost pad active");
@@ -603,6 +608,8 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
+  gst_object_ref_sink (self->priv->capsfilter);
+
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter)) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for"
@@ -630,6 +637,8 @@ fs_raw_stream_constructed (GObject *object)
       " session %d", self->priv->session->id);
     return;
   }
+
+  gst_object_ref_sink (self->priv->recv_valve);
 
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->recv_valve))
   {
