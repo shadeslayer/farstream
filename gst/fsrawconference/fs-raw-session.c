@@ -222,12 +222,13 @@ fs_raw_session_dispose (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
   GstBin *conferencebin = NULL;
-  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+  FsRawConference *conference = NULL;
   GstElement *valve = NULL;
   GstElement *capsfilter = NULL;
   FsTransmitter *transmitter = NULL;
 
   g_mutex_lock (self->priv->mutex);
+  conference = self->priv->conference;
   self->priv->conference = NULL;
   g_mutex_unlock (self->priv->mutex);
 
@@ -283,7 +284,6 @@ fs_raw_session_dispose (GObject *object)
     self->priv->media_sink_pad = NULL;
   }
 
-  gst_object_unref (conferencebin);
   gst_object_unref (conference);
 
  out:
