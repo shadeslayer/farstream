@@ -226,6 +226,7 @@ fs_raw_session_dispose (GObject *object)
   GstElement *valve = NULL;
   GstElement *capsfilter = NULL;
   FsTransmitter *transmitter = NULL;
+  GstPad *media_sink_pad = NULL;
 
   g_mutex_lock (self->priv->mutex);
   conference = self->priv->conference;
@@ -274,14 +275,17 @@ fs_raw_session_dispose (GObject *object)
     g_object_unref (transmitter);
   }
 
-  if (self->priv->media_sink_pad)
+  GST_OBJECT_LOCK (conference);
+  media_sink_pad = self->priv->media_sink_pad;
+  self->priv->media_sink_pad = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (media_sink_pad)
   {
-    gst_object_ref (self->priv->media_sink_pad);
-    gst_element_remove_pad (GST_ELEMENT (conference),
-        self->priv->media_sink_pad);
-    gst_pad_set_active (self->priv->media_sink_pad, FALSE);
-    gst_object_unref (self->priv->media_sink_pad);
-    self->priv->media_sink_pad = NULL;
+    gst_object_ref (media_sink_pad);
+    gst_element_remove_pad (GST_ELEMENT (conference), media_sink_pad);
+    gst_pad_set_active (media_sink_pad, FALSE);
+    gst_object_unref (media_sink_pad);
   }
 
   gst_object_unref (conference);
@@ -319,6 +323,8 @@ fs_raw_session_get_property (GObject *object,
   if (!conference)
     return;
 
+  GST_OBJECT_LOCK (conference);
+
   switch (prop_id)
   {
     case PROP_MEDIA_TYPE:
@@ -347,15 +353,14 @@ fs_raw_session_get_property (GObject *object,
       g_value_take_boxed (value, self->priv->send_codec);
       break;
     case PROP_TOS:
-      GST_OBJECT_LOCK (conference);
       g_value_set_uint (value, self->priv->tos);
-      GST_OBJECT_UNLOCK (conference);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
 
+  GST_OBJECT_UNLOCK (conference);
   gst_object_unref (conference);
 }
 
@@ -371,6 +376,9 @@ fs_raw_session_set_property (GObject *object,
   if (!conference && !(pspec->flags & G_PARAM_CONSTRUCT_ONLY))
     return;
 
+  if (conference)
+    GST_OBJECT_LOCK (conference);
+
   switch (prop_id)
   {
     case PROP_MEDIA_TYPE:
@@ -383,13 +391,9 @@ fs_raw_session_set_property (GObject *object,
       self->priv->conference = FS_RAW_CONFERENCE (g_value_dup_object (value));
       break;
     case PROP_TOS:
-      if (conference)
-        GST_OBJECT_LOCK (conference);
       self->priv->tos = g_value_get_uint (value);
       if (self->priv->transmitter)
         g_object_set (self->priv->transmitter, "tos", self->priv->tos, NULL);
-      if (conference)
-        GST_OBJECT_UNLOCK (conference);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -397,7 +401,10 @@ fs_raw_session_set_property (GObject *object,
   }
 
   if (conference)
+  {
+    GST_OBJECT_UNLOCK (conference);
     gst_object_unref (conference);
+  }
 }
 
 static void
