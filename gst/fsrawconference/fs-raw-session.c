@@ -442,6 +442,7 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not sync the send capsfilter's state with its parent");
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
     return;
   }
 
@@ -472,6 +473,7 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not sync the send valve's state with its parent");
+    gst_bin_remove (GST_BIN (self->priv->conference), self->valve);
     return;
   }
 
