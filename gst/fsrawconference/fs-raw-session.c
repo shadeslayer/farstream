@@ -88,6 +88,7 @@ struct _FsRawSessionPrivate
   GstPad *media_sink_pad;
   GstElement *capsfilter;
   GList *codecs;
+  FsCodec *send_codec;
 
   FsTransmitter *transmitter;
 
@@ -298,6 +299,9 @@ fs_raw_session_finalize (GObject *object)
   if (self->priv->codecs)
     fs_codec_list_destroy (self->priv->codecs);
 
+  if (self->priv->send_codec)
+    fs_codec_destroy (self->priv->send_codec);
+
   g_mutex_free (self->priv->mutex);
 
   G_OBJECT_CLASS (fs_raw_session_parent_class)->finalize (object);
@@ -340,12 +344,8 @@ fs_raw_session_get_property (GObject *object,
       g_value_set_boxed (value, self->priv->codecs);
       break;
     case PROP_CURRENT_SEND_CODEC:
-      {
-        FsCodec *send_codec = fs_codec_new (FS_CODEC_ID_ANY, "mimic",
-            FS_MEDIA_TYPE_VIDEO, 0);
-        g_value_take_boxed (value, send_codec);
-        break;
-      }
+      g_value_take_boxed (value, self->priv->send_codec);
+      break;
     case PROP_TOS:
       GST_OBJECT_LOCK (conference);
       g_value_set_uint (value, self->priv->tos);
@@ -549,6 +549,25 @@ _stream_new_remote_codecs (FsRawStream *stream,
     g_object_set (self->priv->capsfilter, "caps", caps, NULL);
 
   GST_OBJECT_LOCK (conference);
+  if (!fs_codec_are_equal (self->priv->send_codec, codec))
+  {
+    if (self->priv->send_codec)
+      fs_codec_destroy (self->priv->send_codec);
+
+    self->priv->send_codec = fs_codec_copy (codec);
+
+    GST_OBJECT_UNLOCK (conference);
+    g_object_notify (G_OBJECT (self), "current-send-codec");
+    gst_element_post_message (GST_ELEMENT (self->priv->conference),
+        gst_message_new_element (GST_OBJECT (self->priv->conference),
+            gst_structure_new ("farsight-send-codec-changed",
+                "session", FS_TYPE_SESSION, self,
+                "codec", FS_TYPE_CODEC, codec,
+                "secondary-codecs", FS_TYPE_CODEC_LIST, NULL,
+                NULL)));
+    GST_OBJECT_LOCK (conference);
+  }
+
   if (self->priv->codecs)
     fs_codec_list_destroy (self->priv->codecs);
   self->priv->codecs = fs_codec_list_copy (codecs);
