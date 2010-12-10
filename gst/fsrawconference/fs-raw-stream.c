@@ -75,7 +75,6 @@ struct _FsRawStreamPrivate
   FsRawParticipant *participant;
   FsStreamDirection direction;
   FsStreamTransmitter *stream_transmitter;
-  GstElement *codecbin;
   GstElement *capsfilter;
   GstElement *recv_valve;
   GstPad *transmitter_pad;
@@ -283,14 +282,6 @@ fs_raw_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (conference), self->priv->capsfilter);
     self->priv->capsfilter = NULL;
-  }
-
-  if (self->priv->codecbin)
-  {
-    gst_element_set_locked_state (self->priv->codecbin, TRUE);
-    gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (conference), self->priv->codecbin);
-    self->priv->codecbin = NULL;
   }
 
   if (self->priv->blocking_id)
