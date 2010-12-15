@@ -551,7 +551,9 @@ fs_multicast_stream_transmitter_set_remote_candidates (
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
           "The remote candidate is not of the right type, it should be"
-          " FS_ERROR_INVALID_ARGUMENTS, but it is %d", candidate->type);
+          " FS_CANDIDATE_TYPE_MULTICAST (%d), but it is %d",
+          FS_CANDIDATE_TYPE_MULTICAST,
+          candidate->type);
       return FALSE;
     }
 
