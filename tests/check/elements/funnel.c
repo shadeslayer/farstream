@@ -29,12 +29,13 @@ struct TestData {
   GstElement *funnel;
   GstPad *funnelsrc, *funnelsink11, *funnelsink22;
   GstPad *mysink, *mysrc1, *mysrc2;
+  GstCaps *mycaps;
 };
 
 static void
-setup_test_objects (struct TestData *td, GstPadChainFunction chain_func)
+setup_test_objects (struct TestData *td, GstPadChainFunction chain_func, GstPadBufferAllocFunction alloc_func)
 {
-  GstCaps *caps =  gst_caps_new_simple ("test/test", NULL);
+  td->mycaps = gst_caps_new_simple ("test/test", NULL);
 
   td->funnel = gst_element_factory_make ("fsfunnel", NULL);
 
@@ -54,16 +55,17 @@ setup_test_objects (struct TestData *td, GstPadChainFunction chain_func)
 
   td->mysink = gst_pad_new ("sink", GST_PAD_SINK);
   gst_pad_set_chain_function (td->mysink, chain_func);
+  gst_pad_set_bufferalloc_function (td->mysink, alloc_func);
   gst_pad_set_active (td->mysink, TRUE);
-  gst_pad_set_caps (td->mysink, caps);
+  gst_pad_set_caps (td->mysink, td->mycaps);
 
   td->mysrc1 = gst_pad_new ("src1", GST_PAD_SRC);
   gst_pad_set_active (td->mysrc1, TRUE);
-  gst_pad_set_caps (td->mysrc1, caps);
+  gst_pad_set_caps (td->mysrc1, td->mycaps);
 
   td->mysrc2 = gst_pad_new ("src2", GST_PAD_SRC);
   gst_pad_set_active (td->mysrc2, TRUE);
-  gst_pad_set_caps (td->mysrc2, caps);
+  gst_pad_set_caps (td->mysrc2, td->mycaps);
 
   fail_unless (GST_PAD_LINK_SUCCESSFUL(
           gst_pad_link (td->funnelsrc, td->mysink)));
@@ -74,7 +76,6 @@ setup_test_objects (struct TestData *td, GstPadChainFunction chain_func)
   fail_unless (GST_PAD_LINK_SUCCESSFUL(
           gst_pad_link (td->mysrc2, td->funnelsink22)));
 
-  gst_caps_unref (caps);
 }
 
 static void
@@ -97,10 +98,12 @@ release_test_objects (struct TestData *td)
   gst_object_unref (td->funnelsink22);
   gst_element_release_request_pad (td->funnel, td->funnelsink22);
 
+  gst_caps_unref (td->mycaps);
   gst_object_unref (td->funnel);
 }
 
 static gint bufcount = 0;
+static gint alloccount = 0;
 
 static GstFlowReturn
 chain_ok (GstPad *pad, GstBuffer *buffer)
@@ -112,18 +115,48 @@ chain_ok (GstPad *pad, GstBuffer *buffer)
   return GST_FLOW_OK;
 }
 
+static GstFlowReturn
+alloc_ok (GstPad *pad,
+          guint64 offset,
+          guint size,
+          GstCaps *caps,
+          GstBuffer **buffer)
+{
+  alloccount++;
+
+  fail_unless (buffer != NULL);
+  fail_unless (*buffer == NULL);
+
+  *buffer = gst_buffer_new_and_alloc(size);
+  gst_buffer_set_caps (*buffer, caps);
+  GST_BUFFER_OFFSET (*buffer) = offset;
+
+  return GST_FLOW_OK;
+}
+
 GST_START_TEST (test_funnel_simple)
 {
   struct TestData td;
+  GstBuffer *buf1 = NULL;
+  GstBuffer *buf2 = NULL;
 
-  setup_test_objects (&td, chain_ok);
+  setup_test_objects (&td, chain_ok, alloc_ok);
 
   bufcount = 0;
+  alloccount = 0;
 
   fail_unless (gst_pad_push (td.mysrc1, gst_buffer_new ()) == GST_FLOW_OK);
   fail_unless (gst_pad_push (td.mysrc2, gst_buffer_new ()) == GST_FLOW_OK);
 
   fail_unless (bufcount == 2);
+
+  fail_unless (gst_pad_alloc_buffer (td.mysrc1, 0, 1024, td.mycaps, &buf1) == GST_FLOW_OK);
+  fail_unless (gst_pad_alloc_buffer (td.mysrc2, 1024, 1024, td.mycaps, &buf2) == GST_FLOW_OK);
+
+  fail_unless (alloccount == 2);
+
+  gst_buffer_unref (buf1);
+  gst_buffer_unref (buf2);
 
   release_test_objects (&td);
 }
