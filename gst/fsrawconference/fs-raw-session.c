@@ -607,9 +607,12 @@ _remove_stream (gpointer user_data,
   if (!conference)
     return;
 
+  g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
+
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream == (FsRawStream *) where_the_object_was)
   {
+
     self->priv->stream = NULL;
     transmitter = self->priv->transmitter;
     self->priv->transmitter = NULL;
