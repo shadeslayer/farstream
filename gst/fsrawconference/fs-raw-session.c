@@ -727,6 +727,8 @@ fs_raw_session_new_stream (FsSession *session,
     return NULL;
   }
 
+  gst_element_sync_state_with_parent (transmitter_sink);
+
   if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -736,6 +738,7 @@ fs_raw_session_new_stream (FsSession *session,
     gst_object_unref (conference);
     return NULL;
   }
+
 
   g_object_get (fstransmitter, "gst-src", &transmitter_src, NULL);
 
@@ -778,6 +781,8 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (new_stream)
   {
+    gst_element_sync_state_with_parent (transmitter_src);
+
     GST_OBJECT_LOCK (conference);
     if (self->priv->stream)
     {
