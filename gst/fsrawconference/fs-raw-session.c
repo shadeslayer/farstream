@@ -96,12 +96,41 @@ struct _FsRawSessionPrivate
   guint tos; /* Protected by conf lock */
 
   GMutex *mutex; /* protects the conference */
+
+#ifdef DEBUG_MUTEXES
+  guint count;
+#endif
 };
 
 G_DEFINE_TYPE (FsRawSession, fs_raw_session, FS_TYPE_SESSION);
 
 #define FS_RAW_SESSION_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAW_SESSION, FsRawSessionPrivate))
+
+#ifdef DEBUG_MUTEXES
+
+#define FS_RAW_SESSION_LOCK(session) \
+  do { \
+    g_mutex_lock (FS_RAW_SESSION (session)->priv->mutex);   \
+    g_assert (FS_RAW_SESSION (session)->priv->count == 0);  \
+    FS_RAW_SESSION (session)->priv->count++;                \
+  } while (0);
+#define FS_RAW_SESSION_UNLOCK(session) \
+  do { \
+    g_assert (FS_RAW_SESSION (session)->priv->count == 1);  \
+    FS_RAW_SESSION (session)->priv->count--;                \
+    g_mutex_unlock (FS_RAW_SESSION (session)->priv->mutex); \
+  } while (0);
+#define FS_RAW_SESSION_GET_LOCK(session) \
+  (FS_RAW_SESSION (session)->priv->mutex)
+#else
+#define FS_RAW_SESSION_LOCK(session) \
+  g_mutex_lock ((session)->priv->mutex)
+#define FS_RAW_SESSION_UNLOCK(session) \
+  g_mutex_unlock ((session)->priv->mutex)
+#define FS_RAW_SESSION_GET_LOCK(session) \
+  ((session)->priv->mutex)
+#endif
 
 static void fs_raw_session_dispose (GObject *object);
 static void fs_raw_session_finalize (GObject *object);
@@ -204,11 +233,11 @@ fs_raw_session_get_conference (FsRawSession *self, GError **error)
 {
   FsRawConference *conference;
 
-  g_mutex_lock (self->priv->mutex);
+  FS_RAW_SESSION_LOCK (self);
   conference = self->priv->conference;
   if (conference)
     g_object_ref (conference);
-  g_mutex_unlock (self->priv->mutex);
+  FS_RAW_SESSION_UNLOCK (self);
 
   if (!conference)
     g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
@@ -229,10 +258,10 @@ fs_raw_session_dispose (GObject *object)
   FsTransmitter *transmitter = NULL;
   GstPad *media_sink_pad = NULL;
 
-  g_mutex_lock (self->priv->mutex);
+  FS_RAW_SESSION_LOCK (self);
   conference = self->priv->conference;
   self->priv->conference = NULL;
-  g_mutex_unlock (self->priv->mutex);
+  FS_RAW_SESSION_UNLOCK (self);
 
   if (!conference)
     goto out;

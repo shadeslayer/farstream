@@ -97,6 +97,10 @@ struct _FsRawStreamPrivate
   gulong state_changed_handler_id;
 
   GMutex *mutex; /* protects the conference */
+
+#ifdef DEBUG_MUTEXES
+  guint count;
+#endif
 };
 
 
@@ -104,6 +108,31 @@ G_DEFINE_TYPE(FsRawStream, fs_raw_stream, FS_TYPE_STREAM);
 
 #define FS_RAW_STREAM_GET_PRIVATE(o)  \
    (G_TYPE_INSTANCE_GET_PRIVATE ((o), FS_TYPE_RAW_STREAM, FsRawStreamPrivate))
+
+#ifdef DEBUG_MUTEXES
+
+#define FS_RAW_STREAM_LOCK(stream) \
+  do { \
+    g_mutex_lock (FS_RAW_STREAM (stream)->priv->mutex);   \
+    g_assert (FS_RAW_STREAM (stream)->priv->count == 0);  \
+    FS_RAW_STREAM (stream)->priv->count++;                \
+  } while (0);
+#define FS_RAW_STREAM_UNLOCK(stream) \
+  do { \
+    g_assert (FS_RAW_STREAM (stream)->priv->count == 1);  \
+    FS_RAW_STREAM (stream)->priv->count--;                \
+    g_mutex_unlock (FS_RAW_STREAM (stream)->priv->mutex); \
+  } while (0);
+#define FS_RAW_STREAM_GET_LOCK(stream) \
+  (FS_RAW_STREAM (stream)->priv->mutex)
+#else
+#define FS_RAW_STREAM_LOCK(stream) \
+  g_mutex_lock ((stream)->priv->mutex)
+#define FS_RAW_STREAM_UNLOCK(stream) \
+  g_mutex_unlock ((stream)->priv->mutex)
+#define FS_RAW_STREAM_GET_LOCK(stream) \
+  ((stream)->priv->mutex)
+#endif
 
 static void fs_raw_stream_dispose (GObject *object);
 static void fs_raw_stream_finalize (GObject *object);
@@ -233,11 +262,11 @@ fs_raw_stream_get_conference (FsRawStream *self, GError **error)
 {
   FsRawConference *conference;
 
-  g_mutex_lock (self->priv->mutex);
+  FS_RAW_STREAM_LOCK (self);
   conference = self->priv->conference;
   if (conference)
     g_object_ref (conference);
-  g_mutex_unlock (self->priv->mutex);
+  FS_RAW_STREAM_UNLOCK (self);
 
   if (!conference)
     g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
@@ -253,10 +282,10 @@ fs_raw_stream_dispose (GObject *object)
   FsRawConference *conference;
   FsStreamTransmitter *st;
 
-  g_mutex_lock (self->priv->mutex);
+  FS_RAW_STREAM_LOCK (self);
   conference = self->priv->conference;
   self->priv->conference = NULL;
-  g_mutex_unlock (self->priv->mutex);
+  FS_RAW_STREAM_UNLOCK (self);
 
   if (!conference)
     return;
