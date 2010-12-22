@@ -5,6 +5,7 @@
  * Copyright 2007 Nokia Corp.
  * Copyright 2007,2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  *
  * fs-raw-stream.h - A Farsight Raw Stream
  *

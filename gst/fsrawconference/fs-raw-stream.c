@@ -6,6 +6,7 @@
  * Copyright 2007-2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Youness Alaoui <youness.alaoui@collabora.co.uk>
+ *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  *
  * fs-raw-stream.c - A Farsight Raw Stream gobject
  *

@@ -3,6 +3,7 @@
  *
  * Copyright 2007,2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
+ *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
  * fs-raw-participant.h - A Farsight Raw Participant gobject
