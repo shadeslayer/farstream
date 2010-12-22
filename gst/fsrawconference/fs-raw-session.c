@@ -381,7 +381,7 @@ fs_raw_session_get_property (GObject *object,
       g_value_set_boxed (value, self->priv->codecs);
       break;
     case PROP_CURRENT_SEND_CODEC:
-      g_value_take_boxed (value, self->priv->send_codec);
+      g_value_set_boxed (value, self->priv->send_codec);
       break;
     case PROP_TOS:
       g_value_set_uint (value, self->priv->tos);
