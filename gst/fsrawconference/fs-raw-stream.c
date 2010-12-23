@@ -713,10 +713,9 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
-  if (!self->priv->blocking_id)
-    self->priv->blocking_id = gst_pad_add_data_probe (
-        self->priv->transmitter_pad,
-        G_CALLBACK (_transmitter_pad_have_data_callback), self);
+  self->priv->blocking_id = gst_pad_add_data_probe (
+      self->priv->transmitter_pad,
+      G_CALLBACK (_transmitter_pad_have_data_callback), self);
 
   if (!self->priv->stream_transmitter) {
     self->priv->construction_error = g_error_new (FS_ERROR,
