@@ -225,7 +225,7 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
       "The GstPad this stream is linked to",
       "This is the pad on which this stream will attach itself",
       GST_TYPE_PAD,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsRawStream:stream-transmitter:
@@ -413,9 +413,6 @@ fs_raw_stream_get_property (GObject *object,
       break;
     case PROP_REMOTE_CODECS:
       g_value_set_boxed (value, self->priv->remote_codecs);
-      break;
-    case PROP_TRANSMITTER_PAD:
-      g_value_set_object (value, self->priv->transmitter_pad);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
