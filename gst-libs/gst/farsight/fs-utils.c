@@ -66,3 +66,40 @@ fs_utils_get_default_codec_preferences (const gchar *element_name)
 
   return NULL;
 }
+
+/**
+ * fs_utils_get_default_element_properties:
+ * @element_name: Name of the Farsight2 element that these element properties
+ *   are used with
+ *
+ * This function produces a #GKeyFile that can be fed to
+ * fs_element_added_notifier_set_properties_from_keyfile(). If no
+ * default properties have been found, it will return %NULL.
+ *
+ * Returns: a #GKeyFile containing the default element properties for this
+ *  element or %NULL if no properties were found. Caller must free
+ * the #GKeyFile when he is done.
+ */
+
+GKeyFile *
+fs_utils_get_default_element_properties (const gchar *element_name)
+{
+  gboolean file_loaded;
+  GKeyFile *keyfile = g_key_file_new ();
+  gchar *filename = g_build_filename (PACKAGE,
+      FS2_MAJORMINOR, element_name, "default-element-properties", NULL);
+
+  file_loaded = g_key_file_load_from_data_dirs (keyfile, filename, NULL,
+      G_KEY_FILE_NONE, NULL);
+  g_free (filename);
+
+  if (file_loaded)
+  {
+    return keyfile;
+  }
+  else
+  {
+    g_key_file_free (keyfile);
+    return NULL;
+  }
+}
