@@ -2481,13 +2481,63 @@ _substream_error (FsRtpSubStream *substream,
 }
 
 static void
+fs_rtp_session_update_minimum_rtcp_interval (FsRtpSession *self,
+    FsRtpSubStream *skip_substream)
+{
+  guint min_interval = 5000;
+  GList *item, *item2;
+
+  FS_RTP_SESSION_LOCK (self);
+
+  if (self->priv->current_send_codec)
+    min_interval = MIN (min_interval,
+        self->priv->current_send_codec->ABI.ABI.minimum_reporting_interval);
+
+  for (item = self->priv->free_substreams; item; item = item->next)
+  {
+    FsRtpSubStream *substream = item->data;
+
+    if (substream == skip_substream)
+      continue;
+
+    if (substream->codec)
+      min_interval = MIN (min_interval,
+          substream->codec->ABI.ABI.minimum_reporting_interval);
+  }
+
+  for (item2 = self->priv->streams; item2; item2 = item2->next)
+  {
+    FsRtpStream *stream = item2->data;
+
+    for (item = stream->substreams; item; item = item->next)
+    {
+      FsRtpSubStream *substream = item->data;
+
+      if (substream == skip_substream)
+        continue;
+
+      if (substream->codec)
+        min_interval = MIN (min_interval,
+            substream->codec->ABI.ABI.minimum_reporting_interval);
+    }
+  }
+
+  FS_RTP_SESSION_UNLOCK (self);
+
+  g_object_set (self->priv->rtpbin_internal_session,
+      "rtcp-min-interval", min_interval, NULL);
+
+}
+
+static void
 _substream_unlinked (FsRtpSubStream *substream, gpointer user_data)
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
 
-
   if (fs_rtp_session_has_disposed_enter (self, NULL))
     return;
+
+  fs_rtp_session_update_minimum_rtcp_interval (self, substream);
 
   FS_RTP_SESSION_LOCK (self);
 
@@ -2504,6 +2554,17 @@ _substream_unlinked (FsRtpSubStream *substream, gpointer user_data)
   {
     FS_RTP_SESSION_UNLOCK (self);
   }
+
+  fs_rtp_session_has_disposed_exit (self);
+}
+
+static void
+_substream_codec_changed (FsRtpSubStream *substream, FsRtpSession *self)
+{
+  if (fs_rtp_session_has_disposed_enter (self, NULL))
+    return;
+
+  fs_rtp_session_update_minimum_rtcp_interval (self, NULL);
 
   fs_rtp_session_has_disposed_exit (self);
 }
@@ -2561,6 +2622,9 @@ fs_rtp_session_new_recv_pad (FsRtpSession *session, GstPad *new_pad,
 
   g_signal_connect_object (substream, "unlinked",
       G_CALLBACK (_substream_unlinked), session, 0);
+
+  g_signal_connect_object (substream, "codec-changed",
+      G_CALLBACK (_substream_codec_changed), session, 0);
 
   /* Lets find the FsRtpStream for this substream, if no Stream claims it
    * then we just store it
