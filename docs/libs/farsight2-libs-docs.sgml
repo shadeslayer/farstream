@@ -34,6 +34,7 @@
       <title>Farsight Utility Functions and Objects</title>
       <xi:include href="xml/fs-element-added-notifier.xml"/>
       <xi:include href="xml/fs-interfaces.xml"/>
+      <xi:include href="xml/fs-utils.xml"/>
     </chapter>
   </part>
   <part>

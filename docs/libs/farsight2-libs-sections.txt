@@ -260,3 +260,9 @@ fs_interfaces_get_ip_for_interface
 fs_interfaces_get_local_interfaces
 fs_interfaces_get_local_ips
 </SECTION>
+
+<SECTION>
+<FILE>fs-utils</FILE>
+<INCLUDE>gst/farsight/fs-utils.h</INCLUDE>
+fs_utils_get_default_codec_preferences
+</SECTION>

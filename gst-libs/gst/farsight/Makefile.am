@@ -12,7 +12,8 @@ libgstfarsightinclude_HEADERS = \
 		fs-stream-transmitter.h \
 		fs-plugin.h \
 		fs-element-added-notifier.h \
-		fs-interfaces.h
+		fs-interfaces.h \
+		fs-utils.h
 
 nodist_libgstfarsightinclude_HEADERS = \
 		fs-enum-types.h
@@ -42,6 +43,7 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-plugin.c \
 		fs-element-added-notifier.c \
 		fs-interfaces.c \
+		fs-utils.c \
 		fs-private.h
 
 nodist_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
@@ -81,7 +83,8 @@ public_headers = fs-candidate.h \
 		fs-participant.h \
 		fs-session.h \
 		fs-stream.h \
-		fs-conference-iface.h
+		fs-conference-iface.h \
+		fs-utils.h
 
 glib_enum_headers=$(public_headers)
 glib_enum_define=FS
