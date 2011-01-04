@@ -165,11 +165,9 @@ fs_codec_copy (const FsCodec * codec)
   if (codec == NULL)
     return NULL;
 
-  copy = g_slice_new0 (FsCodec);
+  copy = fs_codec_new (codec->id, codec->encoding_name, codec->media_type,
+      codec->clock_rate);
 
-  copy->id = codec->id;
-  copy->media_type = codec->media_type;
-  copy->clock_rate = codec->clock_rate;
   copy->channels = codec->channels;
   copy->ABI.ABI.maxptime = codec->ABI.ABI.maxptime;
   copy->ABI.ABI.ptime = codec->ABI.ABI.ptime;
@@ -311,63 +309,68 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
     goto out;
 
   for (i=0; i < groups_count && groups[i]; i++) {
-    FsCodec *codec = g_slice_new0 (FsCodec);
+    FsCodec *codec;
     gchar **keys = NULL;
     gsize keys_count;
     int j;
     gchar *encoding_name = NULL;
     gchar *next_tok = NULL;
-
-    codec->id = FS_CODEC_ID_ANY;
-    codec->ABI.ABI.minimum_reporting_interval = G_MAXUINT;
+    FsMediaType media_type;
 
     keys = g_key_file_get_keys (keyfile, groups[i], &keys_count, &gerror);
 
     if (!keys || gerror) {
-      if (gerror) {
+      if (gerror)
         GST_WARNING ("Unable to read parameters for %s: %s\n",
             groups[i], gerror->message);
-
-      } else {
+      else
         GST_WARNING ("Unknown errors while reading parameters for %s",
             groups[i]);
-      }
+
       g_clear_error (&gerror);
 
       goto next_codec;
     }
 
     next_tok = strchr (groups[i], '/');
-    if (!next_tok) {
+    if (!next_tok)
+    {
       GST_WARNING ("Invalid codec name: %s", groups[i]);
       goto next_codec;
     }
 
     if ((next_tok - groups[i]) == 5 /* strlen ("audio") */ &&
         !g_ascii_strncasecmp ("audio", groups[i], 5))
-      codec->media_type = FS_MEDIA_TYPE_AUDIO;
+    {
+      media_type = FS_MEDIA_TYPE_AUDIO;
+    }
     else if ((next_tok - groups[i]) == 5 /* strlen ("video") */ &&
         !g_ascii_strncasecmp ("video", groups[i], 5))
-      codec->media_type = FS_MEDIA_TYPE_VIDEO;
-    else {
+    {
+      media_type = FS_MEDIA_TYPE_VIDEO;
+    }
+    else
+    {
       GST_WARNING ("Invalid media type in codec name name %s", groups[i]);
       goto next_codec;
     }
 
-    encoding_name = next_tok+1;
+    encoding_name = next_tok + 1;
 
-    next_tok = strchr (groups[i], ':');
+    next_tok = strchr (encoding_name, ':');
 
-    if (next_tok) {
-      codec->encoding_name = g_strndup (encoding_name,
-          next_tok - encoding_name);
-    } else {
-      codec->encoding_name = g_strdup (encoding_name);
-    }
-
-    if (!codec->encoding_name || codec->encoding_name[0] == 0) {
+    if (encoding_name[0] == 0 || next_tok - encoding_name == 1)
       goto next_codec;
-    }
+
+    if (next_tok)
+      encoding_name = g_strndup (encoding_name,
+          next_tok - encoding_name);
+    else
+      encoding_name = g_strdup (encoding_name);
+
+    codec = fs_codec_new (FS_CODEC_ID_ANY, encoding_name, media_type, 0);
+
+    g_free (encoding_name);
 
     for (j = 0; j < keys_count && keys[j]; j++) {
       if (!g_ascii_strcasecmp ("clock-rate", keys[j])) {
@@ -469,12 +472,8 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
 
     codecs = g_list_append (codecs, codec);
 
-    g_strfreev (keys);
-    continue;
   next_codec:
-    fs_codec_destroy (codec);
     g_strfreev (keys);
-
   }
 
 
