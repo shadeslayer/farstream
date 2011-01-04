@@ -85,8 +85,8 @@ typedef enum
  * @ptime: The preferred duration (in ms) of a packet
  * @maxptime: The maximum duration (in ms) of a packet
  * @minimum_reporting_interval: The minimum interval between two RTCP reports,
- *  If it is not specified (0), it is up to the protocol to decide (it is 5
- * seconds for RTP/AVP).
+ *  If it is not specified (G_MAXUINT), it is up to the protocol to decide
+ * (it is 5 seconds for RTP).
  *
  * This structure reprensents one codec that can be offered or received
  */

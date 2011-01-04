@@ -100,6 +100,7 @@ fs_codec_new (int id, const char *encoding_name,
   codec->encoding_name = g_strdup (encoding_name);
   codec->media_type = media_type;
   codec->clock_rate = clock_rate;
+  codec->ABI.ABI.minimum_reporting_interval = G_MAXUINT;
 
   return codec;
 }
@@ -318,6 +319,7 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
     gchar *next_tok = NULL;
 
     codec->id = FS_CODEC_ID_ANY;
+    codec->ABI.ABI.minimum_reporting_interval = G_MAXUINT;
 
     keys = g_key_file_get_keys (keyfile, groups[i], &keys_count, &gerror);
 
@@ -413,7 +415,7 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
         codec->ABI.ABI.minimum_reporting_interval =
             g_key_file_get_integer (keyfile, groups[i], keys[j], &gerror);
         if (gerror) {
-          codec->ABI.ABI.minimum_reporting_interval = 0;
+          codec->ABI.ABI.minimum_reporting_interval = G_MAXUINT;
           goto keyerror;
         }
       } else if (g_str_has_prefix (keys[j], "feedback:")) {
@@ -535,7 +537,7 @@ fs_codec_to_string (const FsCodec *codec)
   if (codec->ABI.ABI.ptime)
     g_string_append_printf (string, " ptime=%u", codec->ABI.ABI.ptime);
 
-  if (codec->ABI.ABI.minimum_reporting_interval)
+  if (codec->ABI.ABI.minimum_reporting_interval != G_MAXUINT)
     g_string_append_printf (string, " trr-int=%u",
         codec->ABI.ABI.minimum_reporting_interval);
 
