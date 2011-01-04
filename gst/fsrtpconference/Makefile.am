@@ -60,6 +60,9 @@ libfsrtpconference_la_LIBADD = \
 
 libfsrtpconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 
+preferencesdir = $(datadir)/$(PACKAGE_TARNAME)/$(FS2_MAJORMINOR)/fsrtpconference
+preferences_DATA = default-codec-preferences
+
 # Optionally build a library to allow building the gtk-doc
 
 if ENABLE_GTK_DOC
