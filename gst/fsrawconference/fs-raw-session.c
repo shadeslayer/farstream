@@ -95,6 +95,8 @@ struct _FsRawSessionPrivate
 
   guint tos; /* Protected by conf lock */
 
+  gulong stream_direction_handler_id;
+
   GMutex *mutex; /* protects the conference */
 
 #ifdef DEBUG_MUTEXES
@@ -255,6 +257,7 @@ fs_raw_session_dispose (GObject *object)
   FsRawConference *conference = NULL;
   GstElement *valve = NULL;
   GstElement *capsfilter = NULL;
+  gulong handler_id = 0;
   FsTransmitter *transmitter = NULL;
   GstPad *media_sink_pad = NULL;
 
@@ -296,6 +299,14 @@ fs_raw_session_dispose (GObject *object)
     gst_element_set_state (capsfilter, GST_STATE_NULL);
     gst_object_unref (capsfilter);
   }
+
+  GST_OBJECT_LOCK (conference);
+  handler_id = self->priv->stream_direction_handler_id;
+  self->priv->stream_direction_handler_id = 0;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (handler_id > 0 && self->priv->stream)
+    g_signal_handler_disconnect (self->priv->stream, handler_id);
 
   GST_OBJECT_LOCK (conference);
   transmitter = self->priv->transmitter;
@@ -667,6 +678,99 @@ _remove_stream (gpointer user_data,
   gst_object_unref (conference);
 }
 
+static gboolean
+_add_transmitter_sink (FsRawSession *self,
+                       GstElement *transmitter_sink,
+                       GError **error)
+{
+  if (!transmitter_sink)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Unable to get the sink element from the FsTransmitter");
+    goto error;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the transmitter's source element"
+        " for session %d to the conference bin", self->id);
+    gst_object_unref (transmitter_sink);
+    transmitter_sink = NULL;
+    goto error;
+  }
+
+  if (!gst_element_sync_state_with_parent (transmitter_sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the transmitter's sink element"
+        " with its parent for session %d", self->id);
+    goto error;
+  }
+
+  if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not link the capsfilter and transmitter's"
+        " sink element for session %d", self->id);
+    goto error;
+  }
+
+  return TRUE;
+
+error:
+  return FALSE;
+}
+
+static void
+_stream_direction_notify_cb (GObject *stream,
+                             GParamSpec *pspec,
+                             gpointer user_data)
+{
+  FsRawSession *self = FS_RAW_SESSION (user_data);
+  FsStreamDirection direction;
+
+  g_object_get (self, "direction", &direction, NULL);
+
+  if (direction & FS_DIRECTION_SEND)
+  {
+    GstElement *transmitter_sink;
+    GError *error = NULL;
+    gulong handler_id = 0;
+    FsRawConference *conference;
+
+    conference = fs_raw_session_get_conference (self, &error);
+
+    if (!conference)
+    {
+      fs_session_emit_error (FS_SESSION (self), error->code, error->message,
+          "Unable to add transmitter sink");
+      g_clear_error (&error);
+      return;
+    }
+
+    g_object_get (self->priv->transmitter, "gst-sink", &transmitter_sink, NULL);
+
+    if (!_add_transmitter_sink (self, transmitter_sink, &error))
+    {
+      fs_session_emit_error (FS_SESSION (self), error->code, error->message,
+          "Unable to add transmitter sink");
+      g_clear_error (&error);
+      gst_object_unref (conference);
+      return;
+    }
+
+    GST_OBJECT_LOCK (conference);
+    handler_id = self->priv->stream_direction_handler_id;
+    self->priv->stream_direction_handler_id = 0;
+    GST_OBJECT_UNLOCK (conference);
+
+    g_signal_handler_disconnect (stream, handler_id);
+
+    gst_object_unref (conference);
+  }
+}
+
 /**
  * fs_raw_session_new_stream:
  * @session: an #FsRawSession
@@ -731,44 +835,6 @@ fs_raw_session_new_stream (FsSession *session,
     goto error;
   }
 
-  g_object_get (fstransmitter, "gst-sink", &transmitter_sink, NULL);
-
-  if (!transmitter_sink)
-  {  
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Unable to get the sink element from the FsTransmitter");
-    goto error;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_sink))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add the transmitter's source element"
-        " for session %d to the conference bin", self->id);
-    gst_object_unref (transmitter_sink);
-    transmitter_sink = NULL;
-    goto error;
-  }
-
-  if (!gst_element_sync_state_with_parent (transmitter_sink))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not sync the transmitter's sink element"
-        " with its parent for session %d", self->id);
-    g_object_unref (fstransmitter);
-    gst_object_unref (conference);
-    return NULL;
-  }
-
-  if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not link the capsfilter and transmitter's"
-        " sink element for session %d", self->id);
-    goto error;
-  }
-
-
   g_object_get (fstransmitter, "gst-src", &transmitter_src, NULL);
 
   if (!transmitter_src)
@@ -816,9 +882,21 @@ fs_raw_session_new_stream (FsSession *session,
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
           "Could not sync the transmitter's source element"
           " with its parent for session %d", self->id);
-      g_object_unref (new_stream);
-      g_object_unref (fstransmitter);
-      return NULL;
+      goto error;
+    }
+
+    if (direction & FS_DIRECTION_SEND)
+    {
+      g_object_get (fstransmitter, "gst-sink", &transmitter_sink, NULL);
+
+      if (!_add_transmitter_sink (self, transmitter_sink, error))
+        goto error;
+    }
+    else
+    {
+      self->priv->stream_direction_handler_id =
+          g_signal_connect (new_stream, "notify::direction",
+          G_CALLBACK (_stream_direction_notify_cb), self);
     }
 
     GST_OBJECT_LOCK (conference);

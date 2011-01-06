@@ -492,6 +492,8 @@ fs_raw_stream_set_property (GObject *object,
           gst_object_unref (recv_valve);
         if (st)
           g_object_unref (st);
+
+        g_object_notify (object, "direction");
       }
       break;
     case PROP_CONFERENCE:
