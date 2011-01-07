@@ -693,7 +693,7 @@ _add_transmitter_sink (FsRawSession *self,
   if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_sink))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not add the transmitter's source element"
+        "Could not add the transmitter's sink element"
         " for session %d to the conference bin", self->id);
     gst_object_unref (transmitter_sink);
     transmitter_sink = NULL;
