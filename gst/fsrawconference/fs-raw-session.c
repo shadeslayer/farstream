@@ -612,7 +612,6 @@ _remove_stream (gpointer user_data,
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream == (FsRawStream *) where_the_object_was)
   {
-
     self->priv->stream = NULL;
     transmitter = self->priv->transmitter;
     self->priv->transmitter = NULL;
@@ -727,7 +726,15 @@ fs_raw_session_new_stream (FsSession *session,
     return NULL;
   }
 
-  gst_element_sync_state_with_parent (transmitter_sink);
+  if (!gst_element_sync_state_with_parent (transmitter_sink))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not sync the transmitter's sink element"
+        " with its parent for session %d", self->id);
+    g_object_unref (fstransmitter);
+    gst_object_unref (conference);
+    return NULL;
+  }
 
   if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
   {
@@ -781,7 +788,15 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (new_stream)
   {
-    gst_element_sync_state_with_parent (transmitter_src);
+    if (!gst_element_sync_state_with_parent (transmitter_src))
+    {
+      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+          "Could not sync the transmitter's source element"
+          " with its parent for session %d", self->id);
+      g_object_unref (new_stream);
+      g_object_unref (fstransmitter);
+      return NULL;
+    }
 
     GST_OBJECT_LOCK (conference);
     if (self->priv->stream)
