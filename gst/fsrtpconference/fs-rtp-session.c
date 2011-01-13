@@ -971,18 +971,6 @@ fs_rtp_session_constructed (GObject *object)
     return;
   }
 
-  /* Create an initial list of local codec associations */
-  self->priv->codec_associations = create_local_codec_associations (
-      self->priv->blueprints, NULL, NULL);
-
-  if (!self->priv->codec_associations)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR, FS_ERROR_INTERNAL,
-        "Unable to create initial codec associations"
-        " from the discovered codecs");
-    return;
-  }
-
   tmp = g_strdup_printf ("send_tee_%u", self->id);
   tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
@@ -1411,9 +1399,13 @@ fs_rtp_session_constructed (GObject *object)
     g_object_set (self->priv->rtpbin_internal_session, "favor-new", TRUE,
         NULL);
 
-  FS_RTP_SESSION_LOCK (self);
-  fs_rtp_session_start_codec_param_gathering_locked (self);
-  FS_RTP_SESSION_UNLOCK (self);
+
+  if (!fs_rtp_session_update_codecs (self, NULL, NULL,
+          &self->priv->construction_error))
+  {
+    g_assert (self->priv->construction_error);
+    return;
+  }
 
   if (G_OBJECT_CLASS (fs_rtp_session_parent_class)->constructed)
     G_OBJECT_CLASS (fs_rtp_session_parent_class)->constructed(object);
