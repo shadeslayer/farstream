@@ -30,6 +30,42 @@
 
 GMainLoop *loop = NULL;
 
+
+GST_START_TEST (test_rtpcodecs_codec_base)
+{
+  struct SimpleTestConference *dat = NULL;
+  GList *codecs = NULL, *item;
+  gboolean ready;
+  gboolean needs_ready = FALSE;
+
+  dat = setup_simple_conference_full (1, "fsrtpconference", "bob@127.0.0.1",
+      FS_MEDIA_TYPE_VIDEO);
+
+  g_object_get (dat->session, "codecs", &codecs, "codecs-ready", &ready, NULL);
+
+  fail_if (codecs == NULL);
+  for (item = codecs; item; item = item->next)
+  {
+    FsCodec *codec = item->data;
+
+    if (!g_ascii_strcasecmp (codec->encoding_name, "THEORA") ||
+        !g_ascii_strcasecmp (codec->encoding_name, "H264"))
+      needs_ready = TRUE;
+  }
+  if (!needs_ready)
+    GST_DEBUG ("No Theora and no H.264, so can't test codecs-ready");
+
+
+
+  /* make sure we're not already ready before starting the pipeline */
+  fail_if (needs_ready && ready);
+
+  fs_codec_list_destroy (codecs);
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
+
 void
 _notify_codecs (GObject *object, GParamSpec *param, gpointer user_data)
 {
@@ -2048,6 +2084,10 @@ fsrtpcodecs_suite (void)
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
+
+  tc_chain = tcase_create ("fsrtpcodecs_codec_base");
+  tcase_add_test (tc_chain, test_rtpcodecs_codec_base);
+  suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrtpcodecs_codec_preferences");
   tcase_add_test (tc_chain, test_rtpcodecs_codec_preferences);
