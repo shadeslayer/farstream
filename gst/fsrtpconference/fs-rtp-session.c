@@ -700,18 +700,17 @@ fs_rtp_session_dispose (GObject *object)
     return;
   }
 
-  self->priv->disposed = TRUE;
-
-  g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
-
   if (fs_rtp_conference_is_internal_thread (self->priv->conference))
   {
+    g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
     g_object_ref (self);
     if (!g_thread_create (trigger_dispose, self, FALSE, NULL))
       g_error ("Could not create dispose thread");
   }
   else
   {
+    self->priv->disposed = TRUE;
+    g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
     fs_rtp_session_real_dispose (self);
   }
 }
