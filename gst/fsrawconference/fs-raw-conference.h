@@ -67,6 +67,8 @@ GType fs_raw_conference_get_type (void);
 
 GstCaps *fs_raw_codec_to_gst_caps (const FsCodec *codec);
 
+gboolean fs_raw_conference_is_internal_thread (FsRawConference *self);
+
 GST_DEBUG_CATEGORY_EXTERN (fsrawconference_debug);
 
 G_END_DECLS

@@ -84,6 +84,9 @@ struct _FsRawConferencePrivate
   guint max_session_id;
 
   GList *participants;
+
+  /* Array of all internal threads, as GThreads */
+  GPtrArray *threads;
 };
 
 static void fs_raw_conference_do_init (GType type);
@@ -105,6 +108,11 @@ static void _remove_session (gpointer user_data,
 
 static void _remove_participant (gpointer user_data,
     GObject *where_the_object_was);
+
+static void fs_raw_conference_handle_message (
+    GstBin * bin,
+    GstMessage * message);
+
 
 static void
 fs_raw_conference_do_init (GType type)
@@ -135,10 +143,21 @@ fs_raw_conference_dispose (GObject * object)
 }
 
 static void
+fs_raw_conference_finalize (GObject * object)
+{
+  FsRawConference *self = FS_RAW_CONFERENCE (object);
+
+  g_ptr_array_free (self->priv->threads, TRUE);
+
+  G_OBJECT_CLASS (parent_class)->finalize (object);
+}
+
+static void
 fs_raw_conference_class_init (FsRawConferenceClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   FsBaseConferenceClass *baseconf_class = FS_BASE_CONFERENCE_CLASS (klass);
+  GstBinClass *gstbin_class = GST_BIN_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (FsRawConferencePrivate));
 
@@ -147,6 +166,10 @@ fs_raw_conference_class_init (FsRawConferenceClass * klass)
   baseconf_class->new_participant =
     GST_DEBUG_FUNCPTR (fs_raw_conference_new_participant);
 
+  gstbin_class->handle_message =
+    GST_DEBUG_FUNCPTR (fs_raw_conference_handle_message);
+
+  gobject_class->finalize = GST_DEBUG_FUNCPTR (fs_raw_conference_finalize);
   gobject_class->dispose = GST_DEBUG_FUNCPTR (fs_raw_conference_dispose);
 }
 
@@ -170,6 +193,8 @@ fs_raw_conference_init (FsRawConference *conf,
   conf->priv = FS_RAW_CONFERENCE_GET_PRIVATE (conf);
 
   conf->priv->max_session_id = 1;
+
+  conf->priv->threads = g_ptr_array_new ();
 }
 
 /**
@@ -276,6 +301,57 @@ fs_raw_conference_new_participant (FsBaseConference *conf,
   return new_participant;
 }
 
+static void
+fs_raw_conference_handle_message (
+    GstBin * bin,
+    GstMessage * message)
+{
+  FsRawConference *self = FS_RAW_CONFERENCE (bin);
+
+  switch (GST_MESSAGE_TYPE (message)) {
+    case GST_MESSAGE_STREAM_STATUS:
+    {
+      GstStreamStatusType type;
+      guint i;
+
+      gst_message_parse_stream_status (message, &type, NULL);
+
+      switch (type)
+      {
+        case GST_STREAM_STATUS_TYPE_ENTER:
+          GST_OBJECT_LOCK (self);
+          for (i = 0; i < self->priv->threads->len; i++)
+          {
+            if (g_ptr_array_index (self->priv->threads, i) ==
+                g_thread_self ())
+              goto done;
+          }
+          g_ptr_array_add (self->priv->threads, g_thread_self ());
+        done:
+          GST_OBJECT_UNLOCK (self);
+          break;
+
+        case GST_STREAM_STATUS_TYPE_LEAVE:
+          GST_OBJECT_LOCK (self);
+          while (g_ptr_array_remove_fast (self->priv->threads,
+                  g_thread_self ()));
+          GST_OBJECT_UNLOCK (self);
+          break;
+
+        default:
+          /* Do nothing */
+          break;
+      }
+    }
+      break;
+    default:
+      break;
+  }
+
+  /* forward all messages to the parent */
+  GST_BIN_CLASS (parent_class)->handle_message (bin, message);
+}
+
 typedef struct
 {
   const gchar *prop_name;
@@ -353,3 +429,24 @@ fs_raw_codec_to_gst_caps (const FsCodec *codec)
 
   return gst_caps_new_full (structure, NULL);
 }
+
+gboolean
+fs_raw_conference_is_internal_thread (FsRawConference *self)
+{
+  guint i;
+  gboolean ret = FALSE;
+
+  GST_OBJECT_LOCK (self);
+  for (i = 0; i < self->priv->threads->len; i++)
+  {
+    if (g_ptr_array_index (self->priv->threads, i))
+    {
+      ret = TRUE;
+      break;
+    }
+  }
+  GST_OBJECT_UNLOCK (self);
+
+  return ret;
+}
+
