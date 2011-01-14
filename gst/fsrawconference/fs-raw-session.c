@@ -663,7 +663,7 @@ _remove_stream (gpointer user_data,
       "gst-src", &src,
       "gst-sink", &sink,
       NULL);
-  
+
   gst_element_set_locked_state (src, TRUE);
   gst_element_set_state (src, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (self->priv->conference), src);
