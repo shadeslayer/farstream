@@ -486,6 +486,15 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   GList *item = NULL;
   GstBin *conferencebin = NULL;
 
+  g_static_rw_lock_writer_lock (&self->priv->disposed_lock);
+  if (self->priv->disposed)
+  {
+    g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
+    return;
+  }
+  self->priv->disposed = TRUE;
+  g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
+
   conferencebin = GST_BIN (self->priv->conference);
 
   if (self->priv->rtpbin_internal_session)
@@ -684,6 +693,7 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   g_hash_table_remove_all (self->priv->ssrc_streams);
   g_hash_table_remove_all (self->priv->ssrc_streams_manual);
 
+
   G_OBJECT_CLASS (fs_rtp_session_parent_class)->dispose (G_OBJECT (self));
 }
 
@@ -692,25 +702,19 @@ fs_rtp_session_dispose (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION (object);
 
-  g_static_rw_lock_writer_lock (&self->priv->disposed_lock);
-  if (self->priv->disposed)
-  {
-    /* If dispose did already run, return. */
-    g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
+  if (fs_rtp_session_has_disposed_enter (self, NULL))
     return;
-  }
 
   if (fs_rtp_conference_is_internal_thread (self->priv->conference))
   {
-    g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
     g_object_ref (self);
     if (!g_thread_create (trigger_dispose, self, FALSE, NULL))
       g_error ("Could not create dispose thread");
+    fs_rtp_session_has_disposed_exit (self);
   }
   else
   {
-    self->priv->disposed = TRUE;
-    g_static_rw_lock_writer_unlock (&self->priv->disposed_lock);
+    fs_rtp_session_has_disposed_exit (self);
     fs_rtp_session_real_dispose (self);
   }
 }
