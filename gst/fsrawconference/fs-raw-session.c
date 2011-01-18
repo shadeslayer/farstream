@@ -248,6 +248,9 @@ fs_raw_session_get_conference (FsRawSession *self, GError **error)
   return conference;
 }
 
+static void
+_remove_stream (gpointer user_data,
+                GObject *where_the_object_was);
 
 static void
 fs_raw_session_dispose (GObject *object)
@@ -305,8 +308,15 @@ fs_raw_session_dispose (GObject *object)
   self->priv->stream_direction_handler_id = 0;
   GST_OBJECT_UNLOCK (conference);
 
-  if (handler_id > 0 && self->priv->stream)
-    g_signal_handler_disconnect (self->priv->stream, handler_id);
+  if (self->priv->stream)
+  {
+    if (handler_id > 0 && self->priv->stream)
+      g_signal_handler_disconnect (self->priv->stream, handler_id);
+
+    g_object_weak_unref (G_OBJECT (self->priv->stream), _remove_stream, self);
+
+    _remove_stream(G_OBJECT (self), G_OBJECT (self->priv->stream));
+  }
 
   GST_OBJECT_LOCK (conference);
   transmitter = self->priv->transmitter;
