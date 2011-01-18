@@ -144,12 +144,23 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
       "SimpleTestStream");
   gboolean ret;
   GError *error = NULL;
-  struct SimpleTestStream *other_st = find_pointback_stream (st->target,
-      st->dat);
+  struct SimpleTestStream *other_st;
   GList *candidates = NULL;
 
-  if (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp)
+  TEST_LOCK ();
+
+  if (st->target == NULL)
+  {
+    TEST_UNLOCK ();
     return;
+  }
+
+  other_st = find_pointback_stream (st->target, st->dat);
+  if (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp)
+  {
+    TEST_UNLOCK ();
+    return;
+  }
 
   st->got_candidates = TRUE;
 
@@ -168,6 +179,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
 
   ts_fail_unless (ret == TRUE, "No detailed error from add_remote_candidate");
 
+  TEST_UNLOCK ();
 }
 
 static void
@@ -773,10 +785,14 @@ set_initial_codecs (
   fs_codec_list_destroy (codecs);
 }
 
-typedef void (*extra_init) (void);
+typedef void (*extra_conf_init) (struct SimpleTestConference *dat,
+    guint confid);
+typedef void (*extra_stream_init) (struct SimpleTestStream *st, guint confid,
+    guint streamid);
 
 static void
-nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
+nway_test (int in_count, extra_conf_init extra_conf_init,
+    extra_stream_init extra_stream_init, const gchar *transmitter,
     guint st_param_count, GParameter *st_params)
 {
   int i, j;
@@ -815,6 +831,10 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
 
     g_object_set (G_OBJECT (dats[i]->session), "no-rtcp-timeout", -1, NULL);
 
+
+    if (extra_conf_init)
+      extra_conf_init (dats[i], i);
+
     rtpconference_connect_signals (dats[i]);
     g_idle_add (_start_pipeline, dats[i]);
 
@@ -838,10 +858,10 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
         st->handoff_handler = G_CALLBACK (_handoff_handler);
         g_signal_connect (st->stream, "src-pad-added",
             G_CALLBACK (_src_pad_added), st);
+        if (extra_stream_init)
+          extra_stream_init (st, i, j);
       }
 
-  if (extrainit)
-    extrainit ();
 
   for (i = 1; i < count; i++)
   {
@@ -869,21 +889,21 @@ nway_test (int in_count, extra_init extrainit, const gchar *transmitter,
 
 GST_START_TEST (test_rtpconference_two_way)
 {
-  nway_test (2, NULL, "rawudp", 0, NULL);
+  nway_test (2, NULL, NULL, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_three_way)
 {
-  nway_test (3, NULL, "rawudp", 0, NULL);
+  nway_test (3, NULL, NULL, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
 
 GST_START_TEST (test_rtpconference_ten_way)
 {
-  nway_test (10, NULL, "rawudp", 0, NULL);
+  nway_test (10, NULL, NULL, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -926,7 +946,7 @@ GST_START_TEST (test_rtpconference_select_send_codec)
 {
   select_last_codec = TRUE;
   max_src_pads = 2;
-  nway_test (2, NULL, "rawudp", 0, NULL);
+  nway_test (2, NULL, NULL, "rawudp", 0, NULL);
   select_last_codec = FALSE;
   max_src_pads = 1;
 }
@@ -937,7 +957,7 @@ GST_START_TEST (test_rtpconference_select_send_codec_while_running)
 {
   reset_to_last_codec = TRUE;
   max_src_pads = 2;
-  nway_test (2, NULL, "rawudp", 0, NULL);
+  nway_test (2, NULL, NULL, "rawudp", 0, NULL);
   reset_to_last_codec = FALSE;
   max_src_pads = 1;
 }
@@ -964,70 +984,54 @@ _normal_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 }
 
-static void
-_recv_only_init_1 (void)
-{
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
-
-  st1->handoff_handler = G_CALLBACK (_error_handoff_handler);
-  st2->handoff_handler = G_CALLBACK (_normal_handoff_handler);
-
-  g_object_set (st2->stream, "direction", FS_DIRECTION_RECV, NULL);
-}
-
+gint error_conf;
 
 static void
-_recv_only_init_2 (void)
+_recv_only_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
-
-  st1->handoff_handler = G_CALLBACK (_normal_handoff_handler);
-  st2->handoff_handler = G_CALLBACK (_error_handoff_handler);
-
-  g_object_set (st1->stream, "direction", FS_DIRECTION_RECV, NULL);
+  if (confid == error_conf)
+  {
+    st->handoff_handler = G_CALLBACK (_error_handoff_handler);
+  }
+  else
+  {
+    st->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+    g_object_set (st->stream, "direction", FS_DIRECTION_RECV, NULL);
+  }
 }
 
 GST_START_TEST (test_rtpconference_recv_only)
 {
-  nway_test (2, _recv_only_init_1, "rawudp", 0, NULL);
-  nway_test (2, _recv_only_init_2, "rawudp", 0, NULL);
+  error_conf = 0;
+  nway_test (2, NULL, _recv_only_init, "rawudp", 0, NULL);
+  error_conf = 1;
+  nway_test (2, NULL, _recv_only_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
-static void
-_send_only_init_1 (void)
-{
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
-
-  st1->handoff_handler = G_CALLBACK (_error_handoff_handler);
-  st2->handoff_handler = G_CALLBACK (_normal_handoff_handler);
-
-  g_object_set (st1->stream, "direction", FS_DIRECTION_SEND, NULL);
-}
 
 static void
-_send_only_init_2 (void)
+_send_only_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
-
-  st1->handoff_handler = G_CALLBACK (_normal_handoff_handler);
-  st2->handoff_handler = G_CALLBACK (_error_handoff_handler);
-
-  g_object_set (st2->stream, "direction", FS_DIRECTION_SEND, NULL);
+  if (confid == error_conf)
+  {
+    st->handoff_handler = G_CALLBACK (_error_handoff_handler);
+    g_object_set (st->stream, "direction", FS_DIRECTION_SEND, NULL);
+  }
+  else
+  {
+    st->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+  }
 }
 
 GST_START_TEST (test_rtpconference_send_only)
 {
-  nway_test (2, _send_only_init_1, "rawudp", 0, NULL);
-  nway_test (2, _send_only_init_2, "rawudp", 0, NULL);
+  error_conf = 0;
+  nway_test (2, NULL, _send_only_init, "rawudp", 0, NULL);
+  error_conf = 1;
+  nway_test (2, NULL, _send_only_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
-
-
 
 static void
 _switch_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
@@ -1046,18 +1050,18 @@ _switch_handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
 
 
 static void
-_change_to_send_only_init (void)
+_change_to_send_only_init (struct SimpleTestStream *st, guint confid,
+    guint streamid)
 {
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
-
-  st1->handoff_handler = G_CALLBACK (_normal_handoff_handler);
-  st2->handoff_handler = G_CALLBACK (_switch_handoff_handler);
+  if (confid == 0)
+    st->handoff_handler = G_CALLBACK (_normal_handoff_handler);
+  else
+    st->handoff_handler = G_CALLBACK (_switch_handoff_handler);
 }
 
 GST_START_TEST (test_rtpconference_change_to_send_only)
 {
-  nway_test (2, _change_to_send_only_init, "rawudp", 0, NULL);
+  nway_test (2, NULL, _change_to_send_only_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -1066,7 +1070,7 @@ GST_START_TEST (test_rtpconference_no_rtcp)
 {
   no_rtcp = TRUE;
 
-  nway_test (2, NULL, "rawudp", 0, NULL);
+  nway_test (2, NULL, NULL, "rawudp", 0, NULL);
 
   no_rtcp = FALSE;
 }
@@ -1076,20 +1080,10 @@ GST_END_TEST;
 
 #if 0
 static void
-associate_cnames_init (void)
+associate_cnames_init (struct SimpleTestStream *st, guint confid,
+    guint streamid)
 {
-  int i;
-
-  for (i = 0; i < 3; i++)
-  {
-    GList *item;
-    for (item = dats[i]->streams; item; item = item->next)
-    {
-      struct SimpleTestStream *st = item->data;
-
-      g_object_set (st->participant, "cname", st->target->cname, NULL);
-    }
-  }
+  g_object_set (st->participant, "cname", st->target->cname, NULL);
 }
 
 GST_START_TEST (test_rtpconference_three_way_cname_assoc)
@@ -1100,7 +1094,7 @@ GST_START_TEST (test_rtpconference_three_way_cname_assoc)
   g_value_init (&param.value, G_TYPE_BOOLEAN);
   g_value_set_boolean (&param.value, FALSE);
 
-  nway_test (3, associate_cnames_init, "rawudp", 1, &param);
+  nway_test (3, NULL, associate_cnames_init, "rawudp", 1, &param);
 }
 GST_END_TEST;
 
@@ -1108,10 +1102,8 @@ GST_END_TEST;
 
 
 static void
-_simple_profile_init (void)
+_simple_profile_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
   GList *prefs = NULL;
   FsCodec *codec = NULL;
   gboolean ret;
@@ -1121,10 +1113,7 @@ _simple_profile_init (void)
       "audioconvert ! audioresample ! audioconvert ! mulawenc ! rtppcmupay");
   prefs = g_list_append (NULL, codec);
 
-  ret = fs_session_set_codec_preferences (st1->dat->session, prefs,
-      NULL);
-  ts_fail_unless (ret, "set codec prefs");
-  ret = fs_session_set_codec_preferences (st2->dat->session, prefs,
+  ret = fs_session_set_codec_preferences (st->dat->session, prefs,
       NULL);
   ts_fail_unless (ret, "set codec prefs");
 
@@ -1135,7 +1124,7 @@ _simple_profile_init (void)
 
 GST_START_TEST (test_rtpconference_simple_profile)
 {
-  nway_test (2, _simple_profile_init, "rawudp", 0, NULL);
+  nway_test (2, NULL, _simple_profile_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -1193,16 +1182,13 @@ _double_codec_handoff_handler (GstElement *element, GstBuffer *buffer,
 }
 
 static void
-_double_profile_init (void)
+_double_profile_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  struct SimpleTestStream *st1 = dats[0]->streams->data;
-  struct SimpleTestStream *st2 = dats[1]->streams->data;
   GList *prefs = NULL;
   FsCodec *codec = NULL;
   gboolean ret;
 
-  st1->handoff_handler = G_CALLBACK (_double_codec_handoff_handler);
-  st2->handoff_handler = G_CALLBACK (_double_codec_handoff_handler);
+  st->handoff_handler = G_CALLBACK (_double_codec_handoff_handler);
 
   codec = fs_codec_new (0, "PCMU", FS_MEDIA_TYPE_AUDIO, 8000);
   fs_codec_add_optional_parameter (codec, "farsight-send-profile",
@@ -1211,12 +1197,7 @@ _double_profile_init (void)
       "t. ! audioconvert ! audioresample ! audioconvert ! alawenc ! rtppcmapay");
   prefs = g_list_append (NULL, codec);
 
-  ret = fs_session_set_codec_preferences (st1->dat->session, prefs,
-      NULL);
-  ts_fail_unless (ret, "set codec prefs");
-
-  ret = fs_session_set_codec_preferences (st2->dat->session, prefs,
-      NULL);
+  ret = fs_session_set_codec_preferences (st->dat->session, prefs, NULL);
   ts_fail_unless (ret, "set codec prefs");
 
   fs_codec_list_destroy (prefs);
@@ -1225,7 +1206,7 @@ _double_profile_init (void)
 GST_START_TEST (test_rtpconference_double_codec_profile)
 {
   max_src_pads = 2;
-  nway_test (2, _double_profile_init, "rawudp", 0, NULL);
+  nway_test (2, NULL, _double_profile_init, "rawudp", 0, NULL);
   max_src_pads = 1;
 }
 GST_END_TEST;
@@ -1307,14 +1288,12 @@ GST_START_TEST (test_rtpconference_dispose)
 }
 GST_END_TEST;
 
-static guint mcast_confs;
-
 static void
-multicast_init(void)
+multicast_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  guint i;
   GList *candidates = NULL;
   FsCandidate *cand;
+  GError *error = NULL;
 
   cand = fs_candidate_new ("1", FS_COMPONENT_RTP,
       FS_CANDIDATE_TYPE_MULTICAST, FS_NETWORK_PROTOCOL_UDP, "224.0.0.11",
@@ -1327,19 +1306,9 @@ multicast_init(void)
   cand->port = 2325;
   candidates = g_list_prepend (candidates, cand);
 
-  for (i = 0; i < mcast_confs; i++)
-  {
-    GList *item;
 
-    for (item = dats[i]->streams; item; item = item->next)
-    {
-      struct SimpleTestStream *st = item->data;
-      GError *error = NULL;
-
-      ts_fail_unless (fs_stream_set_remote_candidates (st->stream, candidates,
-              &error), "Error %s", error ? error->message : "No GError");
-    }
-  }
+  ts_fail_unless (fs_stream_set_remote_candidates (st->stream, candidates,
+          &error), "Error %s", error ? error->message : "No GError");
 
   fs_candidate_list_destroy (candidates);
 }
@@ -1347,10 +1316,10 @@ multicast_init(void)
 #if 0
 
 static void
-multicast_cname_init(void)
+multicast_cname_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  associate_cnames_init ();
-  multicast_init();
+  associate_cnames_init (st, confid, streamid);
+  multicast_init (st, confid, streamid);
 }
 
 
@@ -1362,8 +1331,7 @@ GST_START_TEST (test_rtpconference_multicast_three_way_cname_assoc)
     return;
   g_free (mcast_addr);
 
-  mcast_confs = 3;
-  nway_test (mcast_confs, multicast_cname_init, "multicast", 0, NULL);
+  nway_test (3, NULL, multicast_cname_init, "multicast", 0, NULL);
 }
 GST_END_TEST;
 
@@ -1379,27 +1347,16 @@ add_ssrc_cb (GObject *session, GParamSpec *pspec, FsStream *stream)
 }
 
 static void
-multicast_ssrc_init(void)
+multicast_ssrc_init (struct SimpleTestStream *st, guint confid, guint streamid)
 {
-  int i;
+  guint ssrc;
 
-  multicast_init();
+  multicast_init (st, confid, streamid);
 
-  for (i = 0; i < mcast_confs; i++)
-  {
-    GList *item;
-
-    for (item = dats[i]->streams; item; item = item->next)
-    {
-      struct SimpleTestStream *st = item->data;
-      guint ssrc;
-
-      g_object_get (st->target->session, "ssrc", &ssrc, NULL);
-      fs_stream_add_id (st->stream, ssrc);
-      g_signal_connect (st->target->session, "notify::ssrc",
-          G_CALLBACK (add_ssrc_cb), st->stream);
-    }
-  }
+  g_object_get (st->target->session, "ssrc", &ssrc, NULL);
+  fs_stream_add_id (st->stream, ssrc);
+  g_signal_connect (st->target->session, "notify::ssrc",
+      G_CALLBACK (add_ssrc_cb), st->stream);
 }
 
 
@@ -1411,9 +1368,8 @@ GST_START_TEST (test_rtpconference_multicast_three_way_ssrc_assoc)
     return;
   g_free (mcast_addr);
 
-  mcast_confs = 3;
   max_src_pads = 3;
-  nway_test (mcast_confs, multicast_ssrc_init, "multicast", 0, NULL);
+  nway_test (3, NULL, multicast_ssrc_init, "multicast", 0, NULL);
   max_src_pads = 1;
 }
 GST_END_TEST;
@@ -1447,27 +1403,16 @@ static void unref_session_on_src_pad_added (FsStream *stream,
   g_main_loop_quit (loop);
 }
 
-static void unref_session_init (void)
+static void unref_session_init (struct SimpleTestStream *st, guint confid,
+    guint streamid)
 {
-  gint i;
-
-  for (i=0 ; i < 2; i++)
-  {
-    GList *item;
-
-    for (item = dats[i]->streams; item; item = item->next)
-    {
-      struct SimpleTestStream *st = item->data;
-
-      g_signal_connect (st->stream, "src-pad-added",
-          G_CALLBACK (unref_session_on_src_pad_added), st);
-    }
-  }
+  g_signal_connect (st->stream, "src-pad-added",
+      G_CALLBACK (unref_session_on_src_pad_added), st);
 }
 
 GST_START_TEST (test_rtpconference_unref_session_in_pad_added)
 {
-  nway_test (2, unref_session_init, "rawudp", 0, NULL);
+  nway_test (2, NULL, unref_session_init, "rawudp", 0, NULL);
 }
 GST_END_TEST;
 
@@ -1517,38 +1462,33 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
   return GST_BUS_DROP;
 }
 
-static void unref_stream_init (void)
+static void unref_stream_init (struct SimpleTestConference *dat, guint confid)
 {
-  gint i;
+  GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (dat->pipeline));
 
-  for (i=0 ; i < 2; i++)
-  {
-    GstBus *bus = gst_pipeline_get_bus (GST_PIPELINE (dats[i]->pipeline));
-
-    gst_bus_set_sync_handler (bus, NULL, NULL);
-    gst_bus_set_sync_handler (bus, unref_stream_sync_handler, dats[i]);
-    gst_object_unref (bus);
-  }
+  gst_bus_set_sync_handler (bus, NULL, NULL);
+  gst_bus_set_sync_handler (bus, unref_stream_sync_handler, dat);
+  gst_object_unref (bus);
 }
 
 GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_prepared)
 {
   signal_name = "farsight-local-candidates-prepared";
-  nway_test (2, unref_stream_init, "nice", 0, NULL);
+  nway_test (2, unref_stream_init, NULL, "nice", 0, NULL);
 }
 GST_END_TEST;
 
 GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_new_active)
 {
   signal_name = "farsight-new-active-candidate-pair";
-  nway_test (2, unref_stream_init, "nice", 0, NULL);
+  nway_test (2, unref_stream_init, NULL, "nice", 0, NULL);
 }
 GST_END_TEST;
 
 GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_state_changed)
 {
   signal_name = "farsight-component-state-changed";
-  nway_test (2, unref_stream_init, "nice", 0, NULL);
+  nway_test (2, unref_stream_init, NULL, "nice", 0, NULL);
 }
 GST_END_TEST;
 
