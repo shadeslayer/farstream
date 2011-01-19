@@ -249,6 +249,9 @@ class FsUIPipeline:
         if element.get_factory().get_name() == "x264enc":
             element.set_property("byte-stream", True)
             element.set_property("bitrate", 128)
+            element.set_property("speed-preset", 2)
+            element.set_property("profile", "baseline")
+            element.set_property("tune", "zerolatency")
         elif element.get_factory().get_name() == "gstrtpbin":
             element.set_property("latency", 100)
             
