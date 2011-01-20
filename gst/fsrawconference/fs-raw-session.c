@@ -676,11 +676,11 @@ _remove_stream (gpointer user_data,
 
   gst_element_set_locked_state (src, TRUE);
   gst_element_set_state (src, GST_STATE_NULL);
-  gst_bin_remove (GST_BIN (self->priv->conference), src);
+  gst_bin_remove (GST_BIN (conference), src);
 
   gst_element_set_locked_state (sink, TRUE);
   gst_element_set_state (sink, GST_STATE_NULL);
-  gst_bin_remove (GST_BIN (self->priv->conference), sink);
+  gst_bin_remove (GST_BIN (conference), sink);
 
   gst_object_unref (src);
   gst_object_unref (sink);
