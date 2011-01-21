@@ -29,7 +29,8 @@ GPATH = $(srcdir)
 TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@
 
 MAINTAINER_DOC_STAMPS =			\
-	scanobj-build.stamp
+	scanobj-build.stamp		\
+	scanobj-trans-build.stamp
 
 EXTRA_DIST = 				\
 	$(MAINTAINER_DOC_STAMPS)		\
