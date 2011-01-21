@@ -162,9 +162,6 @@ static GType
 fs_raw_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter);
 
-static void _remove_stream (gpointer user_data,
-                            GObject *where_the_object_was);
-
 static void
 fs_raw_session_class_init (FsRawSessionClass *klass)
 {
@@ -249,10 +246,6 @@ fs_raw_session_get_conference (FsRawSession *self, GError **error)
 }
 
 static void
-_remove_stream (gpointer user_data,
-                GObject *where_the_object_was);
-
-static void
 fs_raw_session_dispose (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
@@ -313,9 +306,7 @@ fs_raw_session_dispose (GObject *object)
     if (handler_id > 0 && self->priv->stream)
       g_signal_handler_disconnect (self->priv->stream, handler_id);
 
-    g_object_weak_unref (G_OBJECT (self->priv->stream), _remove_stream, self);
-
-    _remove_stream(G_OBJECT (self), G_OBJECT (self->priv->stream));
+    raw_session_remove_stream(self, FS_STREAM (self->priv->stream));
   }
 
   GST_OBJECT_LOCK (conference);
@@ -645,11 +636,10 @@ _stream_new_remote_codecs (FsRawStream *stream,
   return TRUE;
 }
 
-static void
-_remove_stream (gpointer user_data,
-                GObject *where_the_object_was)
+void
+raw_session_remove_stream (FsRawSession *self,
+                           FsStream *stream)
 {
-  FsRawSession *self = FS_RAW_SESSION (user_data);
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   FsTransmitter *transmitter = NULL;
   GstElement *src = NULL;
@@ -661,7 +651,7 @@ _remove_stream (gpointer user_data,
   g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
 
   GST_OBJECT_LOCK (conference);
-  if (self->priv->stream == (FsRawStream *) where_the_object_was)
+  if (self->priv->stream == (FsRawStream *) stream)
   {
     self->priv->stream = NULL;
     transmitter = self->priv->transmitter;
@@ -915,7 +905,6 @@ fs_raw_session_new_stream (FsSession *session,
       goto already_have_stream;
     }
     self->priv->stream = (FsRawStream *) new_stream;
-    g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
 
     if (self->priv->tos)
       g_object_set (fstransmitter, "tos", self->priv->tos, NULL);

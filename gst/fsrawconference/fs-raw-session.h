@@ -86,6 +86,9 @@ FsRawSession *fs_raw_session_new (FsMediaType media_type,
     guint id,
     GError **error);
 
+void raw_session_remove_stream (FsRawSession *self,
+    FsStream *stream);
+
 G_END_DECLS
 
 #endif /* __FS_RAW_SESSION_H__ */
