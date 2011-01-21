@@ -726,7 +726,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
     }
 
     if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
-        self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
+        self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN &&
+        self->priv->compatibility_mode != NICE_COMPATIBILITY_OC2007)
     {
       if (!username)
       {
@@ -779,7 +780,8 @@ fs_nice_stream_transmitter_set_remote_candidates (
   }
 
   if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
-        self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
+      self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN &&
+      self->priv->compatibility_mode != NICE_COMPATIBILITY_OC2007)
   {
     username = g_strdup (username);
     password = g_strdup (password);
@@ -1681,7 +1683,8 @@ agent_gathering_done_idle (gpointer data)
       GError *error = NULL;
 
       if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
-          self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN)
+          self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN &&
+          self->priv->compatibility_mode != NICE_COMPATIBILITY_OC2007)
       {
         if (!nice_agent_set_remote_credentials (self->priv->agent->agent,
                 self->priv->stream_id, self->priv->username,
