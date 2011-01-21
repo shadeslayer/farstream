@@ -1479,14 +1479,16 @@ stun_timeout_func (gpointer user_data)
   }
 
   FS_RAWUDP_COMPONENT_LOCK(self);
-  stun_timer_start (&stun_timer);
+  stun_timer_start (&stun_timer, STUN_TIMER_DEFAULT_TIMEOUT,
+      STUN_TIMER_DEFAULT_MAX_RETRANSMISSIONS);
 
   while (!self->priv->stun_stop &&
       timeout_accum_ms < self->priv->stun_timeout * 1000)
   {
     if (self->priv->stun_server_changed)
     {
-      stun_timer_start (&stun_timer);
+      stun_timer_start (&stun_timer, STUN_TIMER_DEFAULT_TIMEOUT,
+          STUN_TIMER_DEFAULT_MAX_RETRANSMISSIONS);
       self->priv->stun_server_changed = FALSE;
       timer_ret = STUN_USAGE_TIMER_RETURN_RETRANSMIT;
     }
