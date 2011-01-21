@@ -13,7 +13,8 @@ libgstfarsightinclude_HEADERS = \
 		fs-plugin.h \
 		fs-element-added-notifier.h \
 		fs-interfaces.h \
-		fs-utils.h
+		fs-utils.h \
+		fs-rtp.h
 
 nodist_libgstfarsightinclude_HEADERS = \
 		fs-enum-types.h
@@ -44,6 +45,7 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-element-added-notifier.c \
 		fs-interfaces.c \
 		fs-utils.c \
+		fs-rtp.c \
 		fs-private.h
 
 nodist_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \

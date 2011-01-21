@@ -17,7 +17,7 @@ Requirements
 Build time:
  - gstreamer 0.10.26
  - gst-plugins-base 0.10.26
- - glib 2.16
+ - glib 2.26
  - Python 2.4
  - libnice 0.1.0
 
