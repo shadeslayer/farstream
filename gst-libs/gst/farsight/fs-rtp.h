@@ -30,6 +30,16 @@
 
 G_BEGIN_DECLS
 
+/**
+ * FsRtpHeaderExtension:
+ * @id: The identifier of the RTP header extension
+ * @direction: the direction in which this extension can be used
+ * @uri: The URI that defines this extension
+ *
+ * Defines a RTP header extension with its negotiated identifier, direction
+ * and URI. They should only be created with fs_rtp_header_extension_new().
+ */
+
 typedef struct _FsRtpHeaderExtension {
   guint id;
   FsStreamDirection direction;
@@ -47,7 +57,6 @@ typedef struct _FsRtpHeaderExtension {
  *
  * Boxed type for a #GList of #FsRtpHeaderExtension
  */
-
 
 #define FS_TYPE_RTP_HEADER_EXTENSION \
   fs_rtp_header_extension_get_type ()

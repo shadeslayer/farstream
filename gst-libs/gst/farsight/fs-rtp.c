@@ -37,6 +37,17 @@ G_DEFINE_BOXED_TYPE (FsRtpHeaderExtensionGList, fs_rtp_header_extension_list,
     fs_rtp_header_extension_list_copy, fs_rtp_header_extension_list_destroy)
 
 
+/**
+ * fs_rtp_header_extension_new:
+ * @id: The identifier of the RTP header extension
+ * @direction: the direction in which this extension can be used
+ * @uri: The URI that defines this extension
+ *
+ * Creates a new #FsRtpHeaderExtension
+ *
+ * Returns: a new #FsRtpHeaderExtension
+ */
+
 FsRtpHeaderExtension *
 fs_rtp_header_extension_new (guint id, FsStreamDirection direction,
     const gchar *uri)
@@ -52,6 +63,15 @@ fs_rtp_header_extension_new (guint id, FsStreamDirection direction,
   return extension;
 }
 
+/**
+ * fs_rtp_header_extension_copy:
+ * @extension: The RTP header extension definition to copy
+ *
+ * Copies a #FsRtpHeaderExtension
+ *
+ * Returns: a new #FsRtpHeaderExtension
+ */
+
 FsRtpHeaderExtension *
 fs_rtp_header_extension_copy (FsRtpHeaderExtension *extension)
 {
@@ -62,6 +82,13 @@ fs_rtp_header_extension_copy (FsRtpHeaderExtension *extension)
     return NULL;
 }
 
+/**
+ * fs_rtp_header_extension_destroy:
+ * @extension: A RTP header extension to free
+ *
+ * Frees the passed #FsRtpHeaderExtension
+ */
+
 void
 fs_rtp_header_extension_destroy (FsRtpHeaderExtension *extension)
 {
@@ -71,6 +98,15 @@ fs_rtp_header_extension_destroy (FsRtpHeaderExtension *extension)
     g_slice_free (FsRtpHeaderExtension, extension);
   }
 }
+
+/**
+ * fs_rtp_header_extension_list_copy:
+ * @extensions: a #GList of #FsRtpHeaderExtension
+ *
+ * Does a deep copy of a #GList of #FsRtpHeaderExtension
+ *
+ * Returns: a new #GList of #FsRtpHeaderExtension
+ */
 
 GList *
 fs_rtp_header_extension_list_copy (GList *extensions)
@@ -87,6 +123,13 @@ fs_rtp_header_extension_list_copy (GList *extensions)
   copy = g_list_reverse (copy);
   return copy;
 }
+
+/**
+ * fs_rtp_header_extension_list_destroy:
+ * @extensions: a #GList of #FsRtpHeaderExtension
+ *
+ * Frees the passed #GList of #FsRtpHeaderExtension
+ */
 
 void
 fs_rtp_header_extension_list_destroy (GList *extensions)

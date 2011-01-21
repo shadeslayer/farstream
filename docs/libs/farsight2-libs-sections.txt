@@ -266,6 +266,22 @@ fs_interfaces_get_local_ips
 </SECTION>
 
 <SECTION>
+<FILE>fs-rtp</FILE>
+<TITLE>RTP Specific types</TITLE>
+<INCLUDE>gst/farsight/fs-rtp.h</INCLUDE>
+FsRtpHeaderExtension
+fs_rtp_header_extension_copy
+fs_rtp_header_extension_destroy
+fs_rtp_header_extension_list_copy
+fs_rtp_header_extension_list_destroy
+fs_rtp_header_extension_new
+FS_TYPE_RTP_HEADER_EXTENSION
+FS_TYPE_RTP_HEADER_EXTENSION_LIST
+<SUBSECTION Standard>
+fs_rtp_header_extension_get_type
+fs_rtp_header_extension_list_get_type
+</SECTION>
+
 <FILE>fs-utils</FILE>
 <TITLE>Utility functions</TITLE>
 <INCLUDE>gst/farsight/fs-utils.h</INCLUDE>
