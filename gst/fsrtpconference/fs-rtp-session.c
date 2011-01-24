@@ -67,6 +67,7 @@
 
 #include <gst/farsight/fs-transmitter.h>
 #include "gst/farsight/fs-utils.h"
+#include <gst/farsight/fs-rtp.h>
 
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
@@ -100,7 +101,9 @@ enum
   PROP_NO_RTCP_TIMEOUT,
   PROP_SSRC,
   PROP_TOS,
-  PROP_SEND_BITRATE
+  PROP_SEND_BITRATE,
+  PROP_RTP_HEADER_EXTENSIONS,
+  PROP_RTP_HEADER_EXTENSION_PREFERENCES
 };
 
 #define DEFAULT_NO_RTCP_TIMEOUT (7000)
@@ -181,6 +184,9 @@ struct _FsRtpSessionPrivate
 
   /* These are protected by the session mutex */
   GList *codec_associations;
+
+  GList *hdrext_negotiated;
+  GList *hdrext_preferences;
 
   /* Protected by the session mutex */
   gint no_rtcp_timeout;
@@ -384,6 +390,24 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
           "The bitrate at which data will be sent",
           "The bitrate that the session will try to send at in bits/sec",
           0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class,
+      PROP_RTP_HEADER_EXTENSIONS,
+      g_param_spec_boxed ("rtp-header-extensions",
+          "Currently negotiated RTP header extensions",
+          "GList of RTP Header extensions that have been negotiated and will"
+          " be used when sending of receiving RTP packets",
+          FS_TYPE_RTP_HEADER_EXTENSION_LIST,
+          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class,
+      PROP_RTP_HEADER_EXTENSION_PREFERENCES,
+      g_param_spec_boxed ("rtp-header-extension-preferences",
+          "Desired RTP header extensions",
+          "GList of RTP Header extensions that are locally supported and"
+          " desired by the application",
+          FS_TYPE_RTP_HEADER_EXTENSION_LIST,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gobject_class->dispose = fs_rtp_session_dispose;
   gobject_class->finalize = fs_rtp_session_finalize;
@@ -740,6 +764,9 @@ fs_rtp_session_finalize (GObject *object)
   fs_codec_list_destroy (self->priv->codec_preferences);
   codec_association_list_destroy (self->priv->codec_associations);
 
+  fs_rtp_header_extension_list_destroy (self->priv->hdrext_preferences);
+  fs_rtp_header_extension_list_destroy (self->priv->hdrext_negotiated);
+
   if (self->priv->current_send_codec)
     fs_codec_destroy (self->priv->current_send_codec);
 
@@ -871,6 +898,16 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_uint (value, self->priv->tos);
       FS_RTP_SESSION_UNLOCK (self);
       break;
+    case PROP_RTP_HEADER_EXTENSIONS:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_boxed (value, self->priv->hdrext_negotiated);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
+    case PROP_RTP_HEADER_EXTENSION_PREFERENCES:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_boxed (value, self->priv->hdrext_preferences);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -928,6 +965,11 @@ fs_rtp_session_set_property (GObject *object,
       break;
     case PROP_SEND_BITRATE:
       fs_rtp_session_set_send_bitrate (self, g_value_get_uint (value));
+      break;
+    case PROP_RTP_HEADER_EXTENSION_PREFERENCES:
+      FS_RTP_SESSION_LOCK (self);
+          /* TODO: RENEGOTIATE */
+      FS_RTP_SESSION_UNLOCK (self);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

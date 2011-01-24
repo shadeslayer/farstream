@@ -39,6 +39,8 @@
 
 #include <gst/gst.h>
 
+#include <gst/farsight/fs-rtp.h>
+
 #include "fs-rtp-marshal.h"
 
 /* Signals */
@@ -61,7 +63,8 @@ enum
   PROP_DIRECTION,
   PROP_PARTICIPANT,
   PROP_SESSION,
-  PROP_STREAM_TRANSMITTER
+  PROP_STREAM_TRANSMITTER,
+  PROP_RTP_HEADER_EXTENSIONS
 };
 
 struct _FsRtpStreamPrivate
@@ -207,6 +210,15 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
         "An FsStreamTransmitter used by this stream",
         FS_TYPE_STREAM_TRANSMITTER,
         G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class,
+      PROP_RTP_HEADER_EXTENSIONS,
+      g_param_spec_boxed ("rtp-header-extensions",
+          "RTP Header extension desired by participant in this stream",
+          "GList of RTP Header extensions that the participant for this stream"
+          " would like to use",
+          FS_TYPE_RTP_HEADER_EXTENSION_LIST,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
 }
 
@@ -418,6 +430,11 @@ fs_rtp_stream_get_property (GObject *object,
         FS_RTP_SESSION_UNLOCK (session);
       }
       break;
+    case PROP_RTP_HEADER_EXTENSIONS:
+      FS_RTP_SESSION_LOCK (session);
+      g_value_set_boxed (value, self->hdrext);
+      FS_RTP_SESSION_UNLOCK (session);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -489,6 +506,20 @@ fs_rtp_stream_set_property (GObject *object,
         g_list_foreach (copy, (GFunc) g_object_unref, NULL);
         g_list_free (copy);
         g_object_unref (session);
+      }
+      break;
+    case PROP_RTP_HEADER_EXTENSIONS:
+      {
+        FsRtpSession *session = fs_rtp_stream_get_session (self, NULL);
+        if (session)
+        {
+          FS_RTP_SESSION_LOCK (session);
+          fs_rtp_header_extension_list_destroy (self->hdrext);
+          self->hdrext = g_value_dup_boxed (value);
+          /* TODO: RENEGOTIATE */
+          FS_RTP_SESSION_UNLOCK (session);
+          g_object_unref (session);
+        }
       }
       break;
     default:

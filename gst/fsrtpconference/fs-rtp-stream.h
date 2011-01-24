@@ -74,6 +74,11 @@ struct _FsRtpStream
   GList *remote_codecs;
   GList *negotiated_codecs;
 
+  /* Same as codecs, hold FsRtpSession lock and modify by
+   * setting the property
+   */
+  GList *hdrext;
+
   /* Dont modify, call add_substream() */
   GList *substreams;
 
