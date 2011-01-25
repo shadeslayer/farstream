@@ -33,6 +33,21 @@
  * @short_description: Miscellaneous useful functions
  */
 
+static GList *
+load_default_codec_preferences_from_path (const gchar *element_name,
+    const gchar *path)
+{
+  GList *codec_prefs = NULL;
+  gchar *filename;
+
+  filename = g_build_filename (path, PACKAGE, FS2_MAJORMINOR, element_name,
+      "default-codec-preferences", NULL);
+  codec_prefs = fs_codec_list_from_keyfile (filename, NULL);
+  g_free (filename);
+
+  return codec_prefs;
+}
+
 /**
  * fs_utils_get_default_codec_preferences:
  * @element_name: Name of the Farsight2 element that these codec
@@ -52,14 +67,15 @@ fs_utils_get_default_codec_preferences (const gchar *element_name)
   GList *codec_prefs = NULL;
   guint i;
 
+  codec_prefs = load_default_codec_preferences_from_path (element_name,
+      g_get_user_data_dir ());
+  if (codec_prefs)
+    return codec_prefs;
+
   for (i = 0; system_data_dirs[i]; i++)
   {
-    gchar *filename = g_build_filename (system_data_dirs[i], PACKAGE,
-        FS2_MAJORMINOR, element_name, "default-codec-preferences", NULL);
-
-    codec_prefs = fs_codec_list_from_keyfile (filename, NULL);
-    g_free (filename);
-
+    codec_prefs = load_default_codec_preferences_from_path (element_name,
+        system_data_dirs[i]);
     if (codec_prefs)
       return codec_prefs;
   }
@@ -86,12 +102,22 @@ fs_utils_get_default_element_properties (const gchar *element_name)
 {
   gboolean file_loaded;
   GKeyFile *keyfile = g_key_file_new ();
-  gchar *filename = g_build_filename (PACKAGE,
-      FS2_MAJORMINOR, element_name, "default-element-properties", NULL);
+  gchar *filename;
 
+  filename = g_build_filename (PACKAGE, FS2_MAJORMINOR, element_name,
+      "default-element-properties", NULL);
   file_loaded = g_key_file_load_from_data_dirs (keyfile, filename, NULL,
       G_KEY_FILE_NONE, NULL);
   g_free (filename);
+
+  if (!file_loaded)
+  {
+    filename =  g_build_filename (g_get_user_data_dir (), PACKAGE,
+        FS2_MAJORMINOR, element_name,   "default-element-properties", NULL);
+    file_loaded = g_key_file_load_from_file (keyfile, filename, G_KEY_FILE_NONE,
+        NULL);
+    g_free (filename);
+  }
 
   if (file_loaded)
   {
