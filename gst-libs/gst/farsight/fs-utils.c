@@ -118,23 +118,11 @@ fs_utils_get_default_element_properties (GstElement *element)
   gchar *filename;
   const gchar *factory_name = factory_name_from_element (element);
 
-  if (!factory_name)
-    return NULL;
-
   filename = g_build_filename (PACKAGE, FS2_MAJORMINOR, factory_name,
       "default-element-properties", NULL);
   file_loaded = g_key_file_load_from_data_dirs (keyfile, filename, NULL,
       G_KEY_FILE_NONE, NULL);
   g_free (filename);
-
-  if (!file_loaded)
-  {
-    filename =  g_build_filename (g_get_user_data_dir (), PACKAGE,
-        FS2_MAJORMINOR, factory_name,   "default-element-properties", NULL);
-    file_loaded = g_key_file_load_from_file (keyfile, filename, G_KEY_FILE_NONE,
-        NULL);
-    g_free (filename);
-  }
 
   if (file_loaded)
   {
