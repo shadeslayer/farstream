@@ -48,10 +48,20 @@ load_default_codec_preferences_from_path (const gchar *element_name,
   return codec_prefs;
 }
 
+static const gchar *
+factory_name_from_element (GstElement *element)
+{
+  GstElementFactory *factory = gst_element_get_factory (element);
+
+  if (factory)
+    return gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
+  else
+    return NULL;
+}
+
 /**
  * fs_utils_get_default_codec_preferences:
- * @element_name: Name of the Farsight2 element that these codec
- *                preferences are for
+ * @element: Element for which to fetch default codec preferences
  *
  * These default codec preferences should work with the elements that are
  * available in the main GStreamer element repositories.
@@ -61,20 +71,24 @@ load_default_codec_preferences_from_path (const gchar *element_name,
  * this #GList should be freed with fs_codec_list_destroy()
  */
 GList *
-fs_utils_get_default_codec_preferences (const gchar *element_name)
+fs_utils_get_default_codec_preferences (GstElement *element)
 {
   const gchar * const * system_data_dirs = g_get_system_data_dirs ();
   GList *codec_prefs = NULL;
   guint i;
+  const gchar *factory_name = factory_name_from_element (element);
 
-  codec_prefs = load_default_codec_preferences_from_path (element_name,
+  if (!factory_name)
+    return NULL;
+
+  codec_prefs = load_default_codec_preferences_from_path (factory_name,
       g_get_user_data_dir ());
   if (codec_prefs)
     return codec_prefs;
 
   for (i = 0; system_data_dirs[i]; i++)
   {
-    codec_prefs = load_default_codec_preferences_from_path (element_name,
+    codec_prefs = load_default_codec_preferences_from_path (factory_name,
         system_data_dirs[i]);
     if (codec_prefs)
       return codec_prefs;
@@ -85,8 +99,7 @@ fs_utils_get_default_codec_preferences (const gchar *element_name)
 
 /**
  * fs_utils_get_default_element_properties:
- * @element_name: Name of the Farsight2 element that these element properties
- *   are used with
+ * @element: Element for which to fetch default codec preferences
  *
  * This function produces a #GKeyFile that can be fed to
  * fs_element_added_notifier_set_properties_from_keyfile(). If no
@@ -98,13 +111,17 @@ fs_utils_get_default_codec_preferences (const gchar *element_name)
  */
 
 GKeyFile *
-fs_utils_get_default_element_properties (const gchar *element_name)
+fs_utils_get_default_element_properties (GstElement *element)
 {
   gboolean file_loaded;
   GKeyFile *keyfile = g_key_file_new ();
   gchar *filename;
+  const gchar *factory_name = factory_name_from_element (element);
 
-  filename = g_build_filename (PACKAGE, FS2_MAJORMINOR, element_name,
+  if (!factory_name)
+    return NULL;
+
+  filename = g_build_filename (PACKAGE, FS2_MAJORMINOR, factory_name,
       "default-element-properties", NULL);
   file_loaded = g_key_file_load_from_data_dirs (keyfile, filename, NULL,
       G_KEY_FILE_NONE, NULL);
@@ -113,7 +130,7 @@ fs_utils_get_default_element_properties (const gchar *element_name)
   if (!file_loaded)
   {
     filename =  g_build_filename (g_get_user_data_dir (), PACKAGE,
-        FS2_MAJORMINOR, element_name,   "default-element-properties", NULL);
+        FS2_MAJORMINOR, factory_name,   "default-element-properties", NULL);
     file_loaded = g_key_file_load_from_file (keyfile, filename, G_KEY_FILE_NONE,
         NULL);
     g_free (filename);

@@ -30,9 +30,9 @@
 
 G_BEGIN_DECLS
 
-GList *fs_utils_get_default_codec_preferences (const gchar *element_name);
+GList *fs_utils_get_default_codec_preferences (GstElement *element);
 
-GKeyFile *fs_utils_get_default_element_properties (const gchar *element_name);
+GKeyFile *fs_utils_get_default_element_properties (GstElement *element);
 
 G_END_DECLS
 
