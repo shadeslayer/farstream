@@ -50,8 +50,11 @@ struct SimpleTestStream {
   struct SimpleTestConference *dat;
   struct SimpleTestConference *target;
 
+  FsCandidate *candidate;
   FsParticipant *participant;
   FsStream *stream;
+
+  gchar *transmitter;
 
   gint buffer_count;
 
@@ -173,6 +176,7 @@ simple_conference_add_stream (
 
   st->dat = dat;
   st->target = target;
+  st->transmitter = g_strdup (transmitter);
 
   st->participant = fs_conference_new_participant (
       FS_CONFERENCE (dat->conference), NULL, &error);
@@ -202,6 +206,8 @@ cleanup_simple_stream (struct SimpleTestStream *st)
   if (st->stream)
     g_object_unref (st->stream);
   g_object_unref (st->participant);
+  fs_candidate_destroy (st->candidate);
+  g_free (st->transmitter);
   g_free (st);
 }
 
@@ -385,6 +391,9 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
     return;
   }
 
+  if (st->candidate)
+    fs_candidate_destroy (st->candidate);
+  st->candidate = fs_candidate_copy (candidate);
   st->got_candidates = TRUE;
 
   GST_DEBUG ("%d:%d: Setting remote candidate for component %d",
@@ -392,7 +401,18 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
       other_st->target->id,
       candidate->component_id);
 
-  candidates = g_list_prepend (NULL, candidate);
+  if (!strcmp ("shm", st->transmitter) && other_st->candidate)
+  {
+    if (other_st->candidate->username)
+      g_free ((gchar *)other_st->candidate->username);
+    other_st->candidate->username = g_strdup (candidate->ip);
+    candidates = g_list_prepend (NULL, other_st->candidate);
+  }
+  else
+  {
+    candidates = g_list_prepend (NULL, candidate);
+  }
+
   ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
   g_list_free (candidates);
 
@@ -1079,6 +1099,17 @@ nway_test (int in_count, extra_conf_init extra_conf_init,
         st->handoff_handler = G_CALLBACK (_handoff_handler);
         g_signal_connect (st->stream, "src-pad-added",
             G_CALLBACK (_src_pad_added), st);
+
+        if (!strcmp ("shm", transmitter))
+        {
+          FsCandidate *candidate = fs_candidate_new ("1", 1,
+              FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP,
+              "/tmp/test-stream", 0);
+          st->candidate = fs_candidate_copy (candidate);
+          fs_stream_set_remote_candidates (st->stream,
+              g_list_prepend (NULL, candidate), NULL);
+        }
+
         if (extra_stream_init)
           extra_stream_init (st, i, j);
       }
@@ -1111,6 +1142,13 @@ nway_test (int in_count, extra_conf_init extra_conf_init,
 GST_START_TEST (test_rawconference_two_way)
 {
   nway_test (2, NULL, NULL, "rawudp", 0, NULL);
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_rawconference_two_way_shm)
+{
+  nway_test (2, NULL, NULL, "shm", 0, NULL);
 }
 GST_END_TEST;
 
@@ -1466,6 +1504,10 @@ fsrawconference_suite (void)
 
   tc_chain = tcase_create ("fsrawconference_two_way");
   tcase_add_test (tc_chain, test_rawconference_two_way);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrawconference_two_way_shm");
+  tcase_add_test (tc_chain, test_rawconference_two_way_shm);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrawconference_errors");
