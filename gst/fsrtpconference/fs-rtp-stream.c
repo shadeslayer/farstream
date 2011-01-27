@@ -516,8 +516,12 @@ fs_rtp_stream_set_property (GObject *object,
           FS_RTP_SESSION_LOCK (session);
           fs_rtp_header_extension_list_destroy (self->hdrext);
           self->hdrext = g_value_dup_boxed (value);
-          /* TODO: RENEGOTIATE */
           FS_RTP_SESSION_UNLOCK (session);
+          /* The callbadck can not fail because it does not change
+           * the codecs
+           */
+          self->priv->new_remote_codecs_cb (NULL, NULL, NULL,
+              self->priv->user_data_for_cb);
           g_object_unref (session);
         }
       }

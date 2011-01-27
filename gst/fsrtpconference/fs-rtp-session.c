@@ -968,8 +968,11 @@ fs_rtp_session_set_property (GObject *object,
       break;
     case PROP_RTP_HEADER_EXTENSION_PREFERENCES:
       FS_RTP_SESSION_LOCK (self);
-          /* TODO: RENEGOTIATE */
+      fs_rtp_header_extension_list_destroy (self->priv->hdrext_preferences);
+      self->priv->hdrext_preferences = g_value_dup_boxed (value);
       FS_RTP_SESSION_UNLOCK (self);
+      /* This call can't fail because the codecs do NOT change */
+      fs_rtp_session_update_codecs (self, NULL, NULL, NULL);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -2329,6 +2332,8 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
   gboolean has_many_streams = FALSE;
   GList *new_negotiated_codec_associations = NULL;
   GList *item;
+  guint8 hdrext_used_ids[8];
+  GList *new_hdrexts = NULL;
 
   *has_remotes = FALSE;
 
@@ -2362,6 +2367,10 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
     goto error;
   }
 
+  new_hdrexts = create_local_header_extensions (
+    session->priv->hdrext_negotiated, session->priv->hdrext_preferences,
+    hdrext_used_ids);
+
   for (item = g_list_first (session->priv->streams);
        item;
        item = g_list_next (item))
@@ -2388,6 +2397,9 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
 
       if (!new_negotiated_codec_associations)
         break;
+
+      new_hdrexts = negotiate_stream_header_extensions (new_hdrexts,
+          mystream->hdrext, !has_many_streams, hdrext_used_ids);
     }
   }
 
@@ -2414,9 +2426,16 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
   codec_association_list_destroy (session->priv->codec_associations);
   session->priv->codec_associations = new_negotiated_codec_associations;
 
+  new_hdrexts = finish_header_extensions_nego (new_hdrexts, hdrext_used_ids);
+
+  fs_rtp_header_extension_list_destroy (session->priv->hdrext_negotiated);
+  session->priv->hdrext_negotiated = new_hdrexts;
+
   return TRUE;
 
  error:
+
+  fs_rtp_header_extension_list_destroy (new_hdrexts);
 
   return FALSE;
 }
