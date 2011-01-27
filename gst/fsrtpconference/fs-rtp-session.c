@@ -2306,20 +2306,23 @@ fs_rtp_session_distribute_recv_codecs_locked (FsRtpSession *session,
  * @remote_codecs: The #GList of remote codecs to use for that stream
  * @has_remotes: Set to %TRUE if at least one stream has remote codecs
  *  set to %FALSE otherwise
+ * @is_new: Set to %TRUE if the codecs associations have changed
  *
  * Negotiates the codecs using the current (stored) codecs
  * and the remote codecs from each stream.
  * If a stream is specified, it will use the specified remote codecs
  * instead of the ones currently in the stream
  *
- * Returns: the newly negotiated codec associations or %NULL on error
+ * Returns: %TRUE if a new list could be negotiated, otherwise %FALSE and sets
+ *  @error
  */
 
-static GList *
+static gboolean
 fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
     FsRtpStream *stream,
     GList *remote_codecs,
     gboolean *has_remotes,
+    gboolean *is_new,
     GError **error)
 {
   gint streams_with_codecs = 0;
@@ -2404,11 +2407,18 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
     fs_rtp_special_sources_negotiation_filter (
         new_negotiated_codec_associations);
 
-  return new_negotiated_codec_associations;
+  if (session->priv->codec_associations)
+    *is_new = ! codec_associations_list_are_equal (
+      session->priv->codec_associations, new_negotiated_codec_associations);
+
+  codec_association_list_destroy (session->priv->codec_associations);
+  session->priv->codec_associations = new_negotiated_codec_associations;
+
+  return TRUE;
 
  error:
 
-  return NULL;
+  return FALSE;
 }
 
 
@@ -2435,34 +2445,16 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
     GList *remote_codecs,
     GError **error)
 {
-  GList *new_negotiated_codec_associations = NULL;
   gboolean is_new = TRUE;
-  GList *old_negotiated_codec_associations;
   gboolean has_remotes = FALSE;
 
   FS_RTP_SESSION_LOCK (session);
 
-  old_negotiated_codec_associations =
-    session->priv->codec_associations;
-
-  new_negotiated_codec_associations = fs_rtp_session_negotiate_codecs_locked (
-      session, stream, remote_codecs, &has_remotes, error);
-
-  if (!new_negotiated_codec_associations)
+  if (!fs_rtp_session_negotiate_codecs_locked (
+        session, stream, remote_codecs, &has_remotes, &is_new, error))
   {
     FS_RTP_SESSION_UNLOCK (session);
     return FALSE;
-  }
-
-  session->priv->codec_associations = new_negotiated_codec_associations;
-
-  if (old_negotiated_codec_associations)
-  {
-    is_new = ! codec_associations_list_are_equal (
-        old_negotiated_codec_associations,
-        new_negotiated_codec_associations);
-
-    codec_association_list_destroy (old_negotiated_codec_associations);
   }
 
   fs_rtp_session_distribute_recv_codecs_locked (session, stream, remote_codecs);
