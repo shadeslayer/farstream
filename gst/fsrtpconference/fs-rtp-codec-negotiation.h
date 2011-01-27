@@ -128,6 +128,16 @@ parse_bin_from_description_all_linked (const gchar *bin_description,
     guint *src_pad_count, guint *sink_pad_count, GError **error);
 
 
+
+GList *
+create_local_header_extensions (GList *hdrext_old, GList *hdrext_prefs,
+    guint8 *used_ids);
+GList *
+negotiate_stream_header_extensions (GList *hdrext, GList *hdrext_remote,
+    gboolean favor_remote, guint8 *used_ids);
+GList *
+finish_header_extensions_nego (GList *hdrexts, guint8 *used_ids);
+
 G_END_DECLS
 
 #endif /* __FS_RTP_CODEC_NEGOTIATION_H__ */

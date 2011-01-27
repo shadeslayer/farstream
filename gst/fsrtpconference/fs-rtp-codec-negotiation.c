@@ -28,6 +28,8 @@
 
 #include "fs-rtp-codec-negotiation.h"
 
+#include <gst/farsight/fs-rtp.h>
+
 #include <string.h>
 
 #include "fs-rtp-codec-specific.h"
@@ -1400,4 +1402,194 @@ lookup_codec_association_by_codec_for_sending (GList *codec_associations,
   }
 
   return NULL;
+}
+
+FsRtpHeaderExtension *
+get_extension (GList *hdrexts, const gchar *uri, guint id)
+{
+  GList *item;
+
+  for (item = hdrexts; item; item = item->next)
+  {
+    FsRtpHeaderExtension *hdrext = item->data;
+
+    if ((!uri || !g_ascii_strcasecmp (hdrext->uri, uri)) &&
+        (id == G_MAXUINT || hdrext->id == id))
+      return hdrext;
+  }
+
+  return NULL;
+}
+
+
+static inline gboolean
+read_bit (guint8 *array, guint8 bit)
+{
+  return array[bit/8] & (1 << (bit%8));
+}
+
+static inline void
+write_bit (guint8 *array, guint8 bit)
+{
+  array[bit/8] |= 1 << (bit%8);
+}
+
+GList *
+create_local_header_extensions (GList *hdrexts_old, GList *hdrexts_prefs,
+    guint8 *used_ids)
+{
+  GList *hdrexts_new = fs_rtp_header_extension_list_copy (hdrexts_prefs);
+  GList *item;
+
+  for (item = hdrexts_new; item; item = item->next)
+  {
+    FsRtpHeaderExtension *hdrext = item->data;
+    FsRtpHeaderExtension *hdrext_existing = get_extension (hdrexts_old,
+        hdrext->uri, G_MAXUINT);
+
+    if (hdrext_existing &&
+        hdrext_existing->id < 256 &&
+        !get_extension (hdrexts_prefs, NULL, hdrext->id))
+      hdrext->id = hdrext_existing->id;
+  }
+
+  for (item = hdrexts_new; item; item = item->next)
+  {
+    FsRtpHeaderExtension *hdrext = item->data;
+    if (hdrext->id < 256)
+      write_bit (used_ids, hdrext->id);
+  }
+
+  return hdrexts_new;
+}
+
+static void
+renumber_hdrext (GList *hdrexts, guint old_id, guint new_id)
+{
+   GList *item;
+
+   for (item = hdrexts; item; item = item->next)
+   {
+     FsRtpHeaderExtension *hdrext = item->data;
+
+     if (hdrext->id == old_id)
+       hdrext->id = new_id;
+   }
+}
+
+GList *
+negotiate_stream_header_extensions (GList *hdrexts, GList *hdrexts_stream,
+    gboolean favor_remote, guint8 *used_ids)
+{
+  GList *item;
+
+  if (!hdrexts)
+    return NULL;
+
+  for (item = hdrexts_stream; item; item = item->next)
+  {
+    FsRtpHeaderExtension *hdrext_stream = item->data;
+    if (hdrext_stream->id < 256)
+      write_bit (used_ids, hdrext_stream->id);
+  }
+
+  for (item = hdrexts; item;)
+  {
+    FsRtpHeaderExtension *hdrext = item->data;
+    FsRtpHeaderExtension *hdrext_stream = get_extension (hdrexts_stream,
+        hdrext->uri, G_MAXUINT);
+    GList *next = item->next;
+
+    if (hdrext_stream)
+    {
+      /* Use the minimum direction */
+      hdrext->direction &= hdrext_stream->direction;
+      /* If favor remotes, then we use the remote one for all matching
+       * extensions, we want to preserve duplicates, modules will pick
+       * the one they prefer if they have a preference
+       */
+      if (favor_remote)
+        renumber_hdrext (hdrexts, hdrext->id, hdrext_stream->id);
+    }
+    else
+    {
+      hdrexts = g_list_delete_link (hdrexts, item);
+      fs_rtp_header_extension_destroy (hdrext);
+    }
+
+    item = next;
+  }
+
+  return hdrexts;
+}
+
+static GList *
+hdrext_list_remove_by_id (GList *hdrexts, guint id)
+{
+  GList *item;
+
+  for (item = hdrexts; item; item = item->next)
+  {
+      FsRtpHeaderExtension *hdrext = item->data;
+
+      if (hdrext->id == id)
+      {
+        GList *next = item->next;
+
+        hdrexts = g_list_delete_link (hdrexts, item);
+        fs_rtp_header_extension_destroy (hdrext);
+        item = next;
+      }
+    }
+
+  return hdrexts;
+}
+
+GList *
+finish_header_extensions_nego (GList *hdrexts, guint8 *used_ids)
+{
+  GList *item;
+  guint min = 1;
+
+  for (item = hdrexts; item;)
+  {
+    FsRtpHeaderExtension *hdrext = item->data;
+
+    if (hdrext->id >= 256)
+    {
+
+      /* Find the next available ID */
+      for (; min < 256; min++)
+        if (!read_bit (used_ids, min))
+          break;
+
+      if (min < 256)
+      {
+        /* We have a valid ID, remove any other extension with the same ID */
+        /* and then use it */
+        item = hdrext_list_remove_by_id (item->next, hdrext->id);
+        hdrext->id = min;
+        write_bit (used_ids, min);
+        min++;
+      }
+      else
+      {
+        /* We lost, we used all slots between 1 and 255... forget this extension
+         */
+        GList *next = item->next;
+
+        hdrexts = g_list_delete_link (hdrexts, item);
+        fs_rtp_header_extension_destroy (hdrext);
+        item = next;
+      }
+    }
+    else
+    {
+      /* Item already has a valid number, keep as-is */
+      item = item->next;
+    }
+  }
+
+  return hdrexts;
+
 }
