@@ -18,7 +18,7 @@
   </bookinfo>
 
   <part>
-    <title>FsConference Plugins</title>
+    <title>Plugins implementing FsConference</title>
     <chapter>
       <title>RTP Plugin</title>
       <xi:include href="xml/element-fsrtpconference.xml"/>
