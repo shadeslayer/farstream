@@ -28,6 +28,13 @@
 /**
  * SECTION:fs-raw-stream
  * @short_description: A raw stream in a #FsRawSession in a #FsRawConference
+ *
+ * This list of remote codecs set on this stream should contain one or two
+ * codecs. The first codec in this list represents the codec the remote side
+ * will be sending. The second codec, if given, represents what should be
+ * sent to the remote side. If only one codec is passed, and the codec to
+ * send to the remote side hasn't yet been chosen, it will use the first
+ * and only codec in the list.
  */
 
 #ifdef HAVE_CONFIG_H
