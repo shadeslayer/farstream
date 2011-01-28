@@ -25,6 +25,7 @@
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-conference-iface.h>
 #include <gst/farsight/fs-stream-transmitter.h>
+#include <gst/farsight/fs-rtp.h>
 
 #include "generic.h"
 
@@ -1887,8 +1888,6 @@ GST_START_TEST (test_rtpcodecs_nego_h263_1998)
 }
 GST_END_TEST;
 
-
-
 GST_START_TEST (test_rtpcodecs_nego_h263_2000)
 {
   struct SimpleTestConference *dat = NULL;
@@ -2172,6 +2171,119 @@ GST_START_TEST (test_rtpcodecs_nego_feedback)
 }
 GST_END_TEST;
 
+static gboolean
+compare_extensions (FsRtpHeaderExtension *ext1, FsRtpHeaderExtension *ext2)
+{
+  if (ext1->id == ext2->id &&
+      ext1->direction == ext2->direction &&
+      !strcmp (ext1->uri, ext2->uri))
+    return TRUE;
+  else
+    return FALSE;
+}
+
+static gboolean
+compare_extensions_list (GList *list1, GList *list2)
+{
+   for (;
+        list1 && list2;
+        list1 = g_list_next (list1), list2 = g_list_next (list2))
+    if (!compare_extensions (list1->data, list2->data))
+      return FALSE;
+
+  if (list1 == NULL && list2 == NULL)
+    return TRUE;
+  else
+    return FALSE;
+}
+
+GST_START_TEST (test_rtpcodecs_nego_hdrext)
+{
+  GstBus *bus;
+  struct SimpleTestConference *dat;
+  FsParticipant *participant;
+  FsStream *stream;
+  GList *hdrexts_prefs;
+  GList *hdrexts;
+  GList *hdrexts2;
+  GList *codecs;
+
+  dat = setup_simple_conference_full (1, "fsrtpconference", "bob@127.0.0.1",
+      FS_MEDIA_TYPE_AUDIO);
+
+  participant = fs_conference_new_participant (
+      FS_CONFERENCE (dat->conference), "name", NULL);
+  fail_if (participant == NULL, "Could not add participant to conference");
+
+  bus = gst_pipeline_get_bus (GST_PIPELINE (dat->pipeline));
+  fail_if (bus == NULL);
+  gst_bus_set_sync_handler (bus, NULL, NULL);
+  gst_bus_set_sync_handler (bus, drop_all_sync_handler, dat);
+  gst_object_unref (bus);
+
+
+  stream = fs_session_new_stream (dat->session, participant,
+      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+  fail_if (stream == NULL, "Could not add stream to session");
+
+  hdrexts_prefs = g_list_prepend (NULL, fs_rtp_header_extension_new (1,
+          FS_DIRECTION_BOTH, "URI"));
+
+  g_object_get (dat->session, "rtp-header-extension-preferences", &hdrexts,
+      NULL);
+  fail_unless (hdrexts == NULL);
+  g_object_get (dat->session, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (hdrexts == NULL);
+
+  g_object_set (dat->session, "rtp-header-extension-preferences",
+      hdrexts_prefs, NULL);
+  g_object_get (dat->session, "rtp-header-extension-preferences", &hdrexts,
+      NULL);
+  fs_rtp_header_extension_list_destroy (hdrexts);
+
+  g_object_get (dat->session, "codecs", &codecs, NULL);
+  fail_unless (codecs != NULL);
+  fail_unless (fs_stream_set_remote_codecs (stream, codecs, NULL));
+  fs_codec_list_destroy (codecs);
+
+  hdrexts2 = g_list_prepend (NULL, fs_rtp_header_extension_new (2,
+          FS_DIRECTION_SEND, "URI"));
+  g_object_set (stream, "rtp-header-extensions",  hdrexts2, NULL);
+  g_object_get (stream, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (compare_extensions_list (hdrexts, hdrexts2));
+  fs_rtp_header_extension_list_destroy (hdrexts);
+
+  g_object_get (dat->session, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (compare_extensions_list (hdrexts, hdrexts2));
+  fs_rtp_header_extension_list_destroy (hdrexts);
+  fs_rtp_header_extension_list_destroy (hdrexts2);
+
+  g_object_set (stream, "rtp-header-extensions",  hdrexts_prefs, NULL);
+  g_object_get (stream, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (compare_extensions_list (hdrexts, hdrexts_prefs));
+  fs_rtp_header_extension_list_destroy (hdrexts);
+
+  g_object_get (dat->session, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (compare_extensions_list (hdrexts, hdrexts_prefs));
+  fs_rtp_header_extension_list_destroy (hdrexts);
+
+
+  hdrexts2 = g_list_prepend (NULL, fs_rtp_header_extension_new (1,
+          FS_DIRECTION_BOTH, "URI2"));
+  g_object_set (stream, "rtp-header-extensions",  hdrexts2, NULL);
+  g_object_get (stream, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (compare_extensions_list (hdrexts, hdrexts2));
+  fs_rtp_header_extension_list_destroy (hdrexts);
+  fs_rtp_header_extension_list_destroy (hdrexts2);
+  g_object_get (dat->session, "rtp-header-extensions", &hdrexts, NULL);
+  fail_unless (hdrexts == NULL);
+
+  fs_rtp_header_extension_list_destroy (hdrexts_prefs);
+  g_object_unref (stream);
+  g_object_unref (participant);
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
 
 static Suite *
 fsrtpcodecs_suite (void)
@@ -2255,6 +2367,10 @@ fsrtpcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpcodecs_nego_feedback");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_feedback);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_nego_hdrext");
+  tcase_add_test (tc_chain, test_rtpcodecs_nego_hdrext);
   suite_add_tcase (s, tc_chain);
 
   return s;
