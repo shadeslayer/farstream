@@ -571,9 +571,9 @@ fs_raw_session_constructed (GObject *object)
     G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed (object);
 }
 
-static gboolean
+static void
 _stream_new_remote_codecs (FsRawStream *stream,
-    GList *codecs, GError **error, gpointer user_data)
+    GList *codecs, gpointer user_data)
 {
   FsRawSession *self = FS_RAW_SESSION_CAST (user_data);
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
@@ -619,7 +619,6 @@ _stream_new_remote_codecs (FsRawStream *stream,
 
   gst_caps_unref (caps);
   gst_object_unref (conference);
-  return TRUE;
 }
 
 void

@@ -988,8 +988,8 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
   FsRawStream *self = FS_RAW_STREAM (stream);
   GList *item = NULL;
   FsRawSession *session;
-  GList *remote_codecs_copy;
   FsRawConference *conf = fs_raw_stream_get_conference (self, error);
+  gboolean is_new = TRUE;
 
   if (!conf)
     return FALSE;
@@ -1042,39 +1042,30 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
     gst_caps_unref (caps);
   }
 
-  remote_codecs_copy = fs_codec_list_copy (remote_codecs);
-
-  if (self->priv->new_remote_codecs_cb (self, remote_codecs_copy, error,
-          self->priv->user_data_for_cb))
+  GST_OBJECT_LOCK (conf);
+  if (self->priv->remote_codecs)
   {
-    gboolean is_new = TRUE;
+    is_new = !fs_codec_list_are_equal (self->priv->remote_codecs,
+        remote_codecs);
+    fs_codec_list_destroy (self->priv->remote_codecs);
+  }
+  self->priv->remote_codecs = fs_codec_list_copy (remote_codecs);
+  GST_OBJECT_UNLOCK (conf);
 
-    GST_OBJECT_LOCK (conf);
-    if (self->priv->remote_codecs)
-    {
-      is_new = !fs_codec_list_are_equal (self->priv->remote_codecs,
-          remote_codecs);
-      fs_codec_list_destroy (self->priv->remote_codecs);
-    }
-    self->priv->remote_codecs = remote_codecs_copy;
-    GST_OBJECT_UNLOCK (conf);
 
-    if (is_new)
-    {
-      FsCodec *codec;
-      GstCaps *caps;
+  self->priv->new_remote_codecs_cb (self, remote_codecs,
+      self->priv->user_data_for_cb);
 
-      codec = remote_codecs_copy->data;
+  if (is_new)
+  {
+    FsCodec *codec = remote_codecs->data;
+    GstCaps *caps;
 
-      caps = fs_raw_codec_to_gst_caps (codec);
-      g_object_set (self->priv->capsfilter, "caps", caps, NULL);
-      gst_caps_unref (caps);
+    caps = fs_raw_codec_to_gst_caps (codec);
+    g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+    gst_caps_unref (caps);
 
-      g_object_notify (G_OBJECT (stream), "remote-codecs");
-    }
-  } else {
-    fs_codec_list_destroy (remote_codecs_copy);
-    goto error;
+    g_object_notify (G_OBJECT (stream), "remote-codecs");
   }
 
   g_object_unref (session);
