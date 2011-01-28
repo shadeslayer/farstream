@@ -1033,20 +1033,6 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
           "The codec must have an encoding name");
       goto error;
     }
-    if (codec->id < 0 || codec->id > 128)
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "The codec id must be between 0 and 128 for %s",
-          codec->encoding_name);
-      goto error;
-    }
-    if (codec->media_type != media_type)
-    {
-      g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "The media type for codec %s is not %s", codec->encoding_name,
-          fs_media_type_to_string (media_type));
-      goto error;
-    }
 
     caps = fs_raw_codec_to_gst_caps (codec);
     if (!caps)
