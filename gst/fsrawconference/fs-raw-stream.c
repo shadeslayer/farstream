@@ -987,7 +987,6 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
 {
   FsRawStream *self = FS_RAW_STREAM (stream);
   GList *item = NULL;
-  FsMediaType media_type;
   FsRawSession *session;
   GList *remote_codecs_copy;
   FsRawConference *conf = fs_raw_stream_get_conference (self, error);
@@ -1019,8 +1018,6 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
         "Too many codecs passed");
     goto error;
   }
-
-  g_object_get (session, "media-type", &media_type, NULL);
 
   for (item = g_list_first (remote_codecs); item; item = g_list_next (item))
   {
