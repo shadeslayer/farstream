@@ -87,9 +87,6 @@ struct _FsRawStreamPrivate
 
   GError *construction_error;
 
-  stream_new_remote_codecs_cb new_remote_codecs_cb;
-  gpointer user_data_for_cb;
-
   gulong local_candidates_prepared_handler_id;
   gulong new_active_candidate_pair_handler_id;
   gulong new_local_candidate_handler_id;
@@ -1052,10 +1049,6 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
   self->priv->remote_codecs = fs_codec_list_copy (remote_codecs);
   GST_OBJECT_UNLOCK (conf);
 
-
-  self->priv->new_remote_codecs_cb (self, remote_codecs,
-      self->priv->user_data_for_cb);
-
   if (is_new)
   {
     FsCodec *codec = remote_codecs->data;
@@ -1099,8 +1092,6 @@ fs_raw_stream_new (FsRawSession *session,
     FsRawConference *conference,
     FsStreamTransmitter *stream_transmitter,
     GstPad *transmitter_pad,
-    stream_new_remote_codecs_cb new_remote_codecs_cb,
-    gpointer user_data_for_cb,
     GError **error)
 {
   FsRawStream *self;
@@ -1108,7 +1099,6 @@ fs_raw_stream_new (FsRawSession *session,
   g_return_val_if_fail (session, NULL);
   g_return_val_if_fail (participant, NULL);
   g_return_val_if_fail (stream_transmitter, NULL);
-  g_return_val_if_fail (new_remote_codecs_cb, NULL);
 
   self = g_object_new (FS_TYPE_RAW_STREAM,
       "session", session,
@@ -1118,9 +1108,6 @@ fs_raw_stream_new (FsRawSession *session,
       "stream-transmitter", stream_transmitter,
       "transmitter-pad", transmitter_pad,
       NULL);
-
-  self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
-  self->priv->user_data_for_cb = user_data_for_cb;
 
   if (!self)
   {

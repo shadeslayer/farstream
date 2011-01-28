@@ -572,13 +572,18 @@ fs_raw_session_constructed (GObject *object)
 }
 
 static void
-_stream_new_remote_codecs (FsRawStream *stream,
-    GList *codecs, gpointer user_data)
+_stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
+    FsRawSession *self)
 {
-  FsRawSession *self = FS_RAW_SESSION_CAST (user_data);
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
+  GList *codecs;
   GstCaps *caps;
   FsCodec *codec = NULL;
+
+  g_object_get (stream, "remote-codecs", &codecs, NULL);
+
+  if (!codecs)
+    return;
 
   if (g_list_length (codecs) == 2)
     codec = codecs->next->data;
@@ -851,8 +856,7 @@ fs_raw_session_new_stream (FsSession *session,
   rawparticipant = FS_RAW_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
-      direction, conference, stream_transmitter, transmitter_pad,
-      _stream_new_remote_codecs, self, error));
+      direction, conference, stream_transmitter, transmitter_pad, error));
 
   /* stream_new takes the reference to this */
   stream_transmitter = NULL;
@@ -862,6 +866,9 @@ fs_raw_session_new_stream (FsSession *session,
 
   if (new_stream)
   {
+    g_signal_connect_object (new_stream, "notify::remote-codecs",
+        G_CALLBACK (_stream_remote_codecs_changed), self, 0);
+
     if (!gst_element_sync_state_with_parent (transmitter_src))
     {
       g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
