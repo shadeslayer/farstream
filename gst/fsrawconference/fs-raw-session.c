@@ -585,21 +585,7 @@ _stream_new_remote_codecs (FsRawStream *stream,
   else if (codecs && codecs->data)
     codec = codecs->data;
 
-  if (!codec || !codec->encoding_name)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Invalid codecs");
-    return FALSE;
-  }
-
   caps = fs_raw_codec_to_gst_caps (codec);
-
-  if (!caps)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-        "Codec has invalid caps");
-    return FALSE;
-  }
 
   if (self->priv->capsfilter)
     g_object_set (self->priv->capsfilter, "caps", caps, NULL);
