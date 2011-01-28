@@ -35,6 +35,10 @@
  * sent to the remote side. If only one codec is passed, and the codec to
  * send to the remote side hasn't yet been chosen, it will use the first
  * and only codec in the list.
+ *
+ * The codec content of the codec are ignored except for the "encoding_name"
+ * parameter which has to be a valid caps string that can be parsed with
+ * gst_caps_to_string() to produce fixed caps.
  */
 
 #ifdef HAVE_CONFIG_H

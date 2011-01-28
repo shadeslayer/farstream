@@ -983,13 +983,10 @@ set_initial_codecs (
 
   ts_fail_unless (codecs == NULL, "Shouldn't generate codecs codecs");
 
-  codec = fs_codec_new (0, "audio/x-raw-int", FS_MEDIA_TYPE_AUDIO, 44100);
-  codec->channels = 1;
-  fs_codec_add_optional_parameter (codec, "endianness", "1234");
-  fs_codec_add_optional_parameter (codec, "signed", "1");
-  fs_codec_add_optional_parameter (codec, "width", "16");
-  fs_codec_add_optional_parameter (codec, "depth", "16");
-  fs_codec_add_optional_parameter (codec, "rate", "44100");
+  codec = fs_codec_new (0, "audio/x-raw-int,"
+      "endianness=(int)1234, signed=(bool)true, "
+      "width=(int)16, depth=(int)16, "
+      "rate=(int)44100", FS_MEDIA_TYPE_AUDIO, 0);
   codecs = g_list_append (codecs, codec);
 
   filtered_codecs = g_list_append (filtered_codecs, codecs->data);

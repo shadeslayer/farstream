@@ -352,12 +352,6 @@ fs_raw_conference_handle_message (
   GST_BIN_CLASS (parent_class)->handle_message (bin, message);
 }
 
-typedef struct
-{
-  const gchar *prop_name;
-  GType prop_type;
-} CapPropertyMapItem;
-
 /**
  * fs_codec_to_gst_caps
  * @codec: A #FsCodec to be converted
@@ -370,64 +364,21 @@ typedef struct
 GstCaps *
 fs_raw_codec_to_gst_caps (const FsCodec *codec)
 {
-  GstStructure *structure;
-  GList *item;
-  CapPropertyMapItem *iter;
-
-  /* TODO: Add the appropriate video properties */
-  CapPropertyMapItem prop_map[] = {
-      {"endianness", G_TYPE_INT},
-      {"signed", G_TYPE_BOOLEAN},
-      {"width", G_TYPE_INT},
-      {"depth", G_TYPE_INT},
-      {"rate", G_TYPE_INT},
-      {NULL, G_TYPE_INVALID}
-  };
+  GstCaps *caps;
 
   if (codec == NULL || codec->encoding_name == NULL)
     return NULL;
 
-  structure = gst_structure_new (codec->encoding_name, NULL);
+  caps = gst_caps_from_string (codec->encoding_name);
 
-  if (codec->channels)
-    gst_structure_set (structure, "channels", G_TYPE_INT, codec->channels,
-      NULL);
+  if (!caps)
+    return NULL;
 
-  for (item = codec->optional_params;
-       item;
-       item = g_list_next (item)) {
-    FsCodecParameter *param = item->data;
+  if (gst_caps_is_fixed (caps))
+    return caps;
 
-    for (iter = prop_map; iter->prop_name; ++iter) {
-      if (g_strcmp0 (param->name, iter->prop_name) != 0)
-        continue;
-
-      switch (iter->prop_type) {
-        case G_TYPE_INT:
-          gst_structure_set (structure, param->name,
-              G_TYPE_INT, atoi (param->value), NULL);
-          break;
-        case G_TYPE_BOOLEAN: {
-          int tmp = atoi (param->value);
-          if (tmp > 1 || tmp < 0)
-            GST_WARNING ("Caps param %s is not a boolean ('0' or '1') %s",
-                param->name, param->value);
-            break;
-          gst_structure_set (structure, param->name,
-              G_TYPE_BOOLEAN, tmp, NULL);
-          break;
-        }
-        default:
-          GST_WARNING ("No type defined for this parameter, "
-              "defaulting to G_TYPE_STRING");
-          gst_structure_set (structure, param->name,
-              G_TYPE_STRING, param->value, NULL);
-          break;
-      }
-    }
-  }
-
-  return gst_caps_new_full (structure, NULL);
+  gst_caps_unref (caps);
+  return NULL;
 }
 
 gboolean
