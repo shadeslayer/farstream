@@ -828,7 +828,7 @@ fs_raw_session_new_stream (FsSession *session,
   g_object_get (fstransmitter, "gst-src", &transmitter_src, NULL);
 
   if (!transmitter_src)
-  {  
+  {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Unable to get the source element from the FsTransmitter");
     goto error;

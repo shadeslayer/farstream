@@ -398,7 +398,7 @@ fs_raw_codec_to_gst_caps (const FsCodec *codec)
        item = g_list_next (item)) {
     FsCodecParameter *param = item->data;
 
-    for (iter = prop_map; iter->prop_name; ++iter) {  
+    for (iter = prop_map; iter->prop_name; ++iter) {
       if (g_strcmp0 (param->name, iter->prop_name) != 0)
         continue;
 

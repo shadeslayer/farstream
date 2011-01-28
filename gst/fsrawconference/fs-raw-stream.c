@@ -575,7 +575,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
   GST_OBJECT_LOCK (conference);
   remote_codecs = self->priv->remote_codecs;
   capsfilter = self->priv->capsfilter;
-  GST_OBJECT_UNLOCK (conference); 
+  GST_OBJECT_UNLOCK (conference);
 
   if (!remote_codecs || !capsfilter)
   {
@@ -630,7 +630,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     if (!gst_pad_set_active (ghostpad, TRUE))
       GST_WARNING ("Unable to set ghost pad active");
 
-    
+
     if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference), ghostpad))
     {
       GST_WARNING ("Unable to add ghost pad to conference");
