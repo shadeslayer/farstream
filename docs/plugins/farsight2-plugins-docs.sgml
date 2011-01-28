@@ -18,25 +18,21 @@
   </bookinfo>
 
   <part>
-    <title>RTP Plugin</title>
+    <title>FsConference Plugins</title>
     <chapter>
-      <title>Core interface classes</title>
+      <title>RTP Plugin</title>
       <xi:include href="xml/element-fsrtpconference.xml"/>
       <xi:include href="xml/fs-rtp-participant.xml"/>
       <xi:include href="xml/fs-rtp-session.xml"/>
       <xi:include href="xml/fs-rtp-stream.xml"/>
     </chapter>
     <chapter>
-      <title>Transmitters</title>
-      <xi:include href="xml/fs-rawudp-stream-transmitter.xml"/>
-      <xi:include href="xml/fs-multicast-stream-transmitter.xml"/>
-      <xi:include href="xml/fs-nice-stream-transmitter.xml"/>
-      <xi:include href="xml/fs-shm-stream-transmitter.xml"/>
+      <title>Raw Plugin</title>
+      <xi:include href="xml/element-fsrawconference.xml"/>
+      <xi:include href="xml/fs-raw-participant.xml"/>
+      <xi:include href="xml/fs-raw-session.xml"/>
+      <xi:include href="xml/fs-raw-stream.xml"/>
     </chapter>
-  </part>
-
-  <part>
-    <title>MSN plugins</title>
     <chapter>
       <title>MSN Webcam plugin</title>
       <xi:include href="xml/element-fsmsncamsendconference.xml"/>
@@ -46,6 +42,14 @@
       <xi:include href="xml/fs-msn-session.xml"/>
       <xi:include href="xml/fs-msn-stream.xml"/>
     </chapter>
+  </part>
+
+  <part>
+    <title>Transmitters</title>
+    <xi:include href="xml/fs-rawudp-stream-transmitter.xml"/>
+    <xi:include href="xml/fs-multicast-stream-transmitter.xml"/>
+    <xi:include href="xml/fs-nice-stream-transmitter.xml"/>
+    <xi:include href="xml/fs-shm-stream-transmitter.xml"/>
   </part>
 
   <part>

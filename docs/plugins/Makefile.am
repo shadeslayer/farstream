@@ -61,6 +61,7 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/transmitters/shm/libshm-transmitter.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \
+	$(top_builddir)/gst/fsrawconference/libfsrawconference_doc.la \
 	$(top_builddir)/gst/funnel/libfsfunnel.la \
 	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la 
 
@@ -83,6 +84,10 @@ EXTRA_HFILES = \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-session.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-stream.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-participant.h \
+	$(top_srcdir)/gst/fsrawconference/fs-raw-conference.h \
+	$(top_srcdir)/gst/fsrawconference/fs-raw-session.h \
+	$(top_srcdir)/gst/fsrawconference/fs-raw-stream.h \
+	$(top_srcdir)/gst/fsrawconference/fs-raw-participant.h \
 	$(top_srcdir)/gst/fsmsnconference/fs-msn-cam-recv-conference.h \
 	$(top_srcdir)/gst/fsmsnconference/fs-msn-cam-send-conference.h \
 	$(top_srcdir)/gst/fsmsnconference/fs-msn-conference.h \
@@ -123,6 +128,7 @@ GTKDOC_CFLAGS = $(GST_BASE_CFLAGS) -I$(top_builddir) -I$(top_builddir)/gst-libs
 GTKDOC_LIBS = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
+	$(top_builddir)/gst/fsrawconference/libfsrawconference_doc.la \
 	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \
 	$(GST_BASE_LIBS) 
 

@@ -26,7 +26,7 @@
  */
 
 /**
- * SECTION:fs-raw-conference
+ * SECTION:element-fsrawconference
  * @short_description: Farsight Raw Conference Gstreamer Elements Base class
  *
  * This element implements a raw content stream over which any Gstreamer

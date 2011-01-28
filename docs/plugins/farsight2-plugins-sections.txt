@@ -45,7 +45,7 @@ FS_RTP_CONFERENCE_GET_CLASS
 <SUBSECTION Private>
 fs_codec_to_gst_caps
 fs_rtp_conference_is_internal_thread
-codecs_copy_with_new_ptime
+fs_codec_to_gst_caps_with_ptime
 </SECTION>
 
 <SECTION>
@@ -426,4 +426,84 @@ FS_TYPE_MSN_CAM_SEND_CONFERENCE
 FsMsnCamSendConferenceClass
 FsMsnCamSendConferencePrivate
 fs_msn_cam_send_conference_get_type
+</SECTION>
+
+
+<SECTION>
+<FILE>element-fsrawconference</FILE>
+<TITLE>FsRawConference</TITLE>
+FsRawConference
+<SUBSECTION Standard>
+FS_IS_RAW_CONFERENCE
+FS_IS_RAW_CONFERENCE_CLASS
+FS_RAW_CONFERENCE
+FS_RAW_CONFERENCE_CAST
+FS_RAW_CONFERENCE_CLASS
+FS_RAW_CONFERENCE_GET_CLASS
+FS_TYPE_RAW_CONFERENCE
+FsRawConferenceClass
+FsRawConferencePrivate
+fs_raw_conference_get_type
+<SUBSECTION Private>
+fs_raw_conference_is_internal_thread
+</SECTION>
+
+<SECTION>
+<FILE>fs-raw-session</FILE>
+<TITLE>FsRawSession</TITLE>
+FsRawSession
+<SUBSECTION Standard>
+FS_IS_RAW_SESSION
+FS_IS_RAW_SESSION_CLASS
+FS_RAW_SESSION
+FS_RAW_SESSION_CAST
+FS_RAW_SESSION_CLASS
+FS_RAW_SESSION_GET_CLASS
+FS_TYPE_RAW_SESSION
+FsRawSessionClass
+FsRawSessionPrivate
+fs_raw_session_get_type
+<SUBSECTION Private>
+fs_raw_session_new
+raw_session_remove_stream
+</SECTION>
+
+
+<SECTION>
+<FILE>fs-raw-stream</FILE>
+<TITLE>FsRawStream</TITLE>
+FsRawStream
+<SUBSECTION Standard>
+FS_IS_RAW_STREAM
+FS_IS_RAW_STREAM_CLASS
+FS_RAW_STREAM
+FS_RAW_STREAM_CAST
+FS_RAW_STREAM_CLASS
+FS_RAW_STREAM_GET_CLASS
+FS_TYPE_RAW_STREAM
+FsRawStreamClass
+FsRawStreamPrivate
+fs_raw_stream_get_type
+<SUBSECTION Private>
+fs_raw_stream_new
+fs_raw_stream_set_remote_candidate
+</SECTION>
+
+<SECTION>
+<FILE>fs-raw-participant</FILE>
+<TITLE>FsRawParticipant</TITLE>
+FsRawParticipant
+<SUBSECTION Standard>
+FS_IS_RAW_PARTICIPANT
+FS_IS_RAW_PARTICIPANT_CLASS
+FS_RAW_PARTICIPANT
+FS_RAW_PARTICIPANT_CAST
+FS_RAW_PARTICIPANT_CLASS
+FS_RAW_PARTICIPANT_GET_CLASS
+FS_TYPE_RAW_PARTICIPANT
+FsRawParticipantClass
+FsRawParticipantPrivate
+fs_raw_participant_get_type
+<SUBSECTION Private>
+fs_raw_participant_new
 </SECTION>
