@@ -106,6 +106,7 @@ struct _FsNiceStreamTransmitterPrivate
 
   gboolean forced_candidates;
   GList *remote_candidates;
+  GList *local_candidates;
 
   /* These are fixed and must be identical in the latest draft */
   gchar *username;
@@ -439,6 +440,7 @@ fs_nice_stream_transmitter_finalize (GObject *object)
   fs_candidate_list_destroy (self->priv->preferred_local_candidates);
 
   fs_candidate_list_destroy (self->priv->remote_candidates);
+  fs_candidate_list_destroy (self->priv->local_candidates);
 
   if (self->priv->relay_info)
     g_value_array_free (self->priv->relay_info);
@@ -1624,14 +1626,29 @@ agent_new_candidate (NiceAgent *agent,
 
   if (fscandidate)
   {
-    struct candidate_signal_data *data =
-      g_slice_new (struct candidate_signal_data);
-    data->self = g_object_ref (self);
-    data->signal_name = "new-local-candidate";
-    data->candidate1 = fscandidate;
-    data->candidate2 = NULL;
-    fs_nice_agent_add_idle (self->priv->agent, agent_candidate_signal_idle,
+    FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+    if (!self->priv->gathered)
+    {
+      /* Nice doesn't do connchecks while gathering, so don't tell the upper
+       * layers about the candidates untill gathering is finished */
+       self->priv->local_candidates = g_list_prepend
+        (self->priv->local_candidates, fscandidate);
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+    }
+    else
+    {
+      struct candidate_signal_data *data =
+        g_slice_new (struct candidate_signal_data);
+
+      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+
+      data->self = g_object_ref (self);
+      data->signal_name = "new-local-candidate";
+      data->candidate1 = fscandidate;
+      data->candidate2 = NULL;
+      fs_nice_agent_add_idle (self->priv->agent, agent_candidate_signal_idle,
         data, free_candidate_signal_data);
+    }
   }
   else
   {
@@ -1647,6 +1664,7 @@ agent_gathering_done_idle (gpointer data)
 {
   FsNiceStreamTransmitter *self = data;
   GList *remote_candidates = NULL;
+  GList *local_candidates = NULL;
   gboolean forced_candidates;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
@@ -1659,10 +1677,21 @@ agent_gathering_done_idle (gpointer data)
   self->priv->gathered = TRUE;
   remote_candidates = self->priv->remote_candidates;
   self->priv->remote_candidates = NULL;
+  local_candidates = self->priv->local_candidates;
+  self->priv->local_candidates = NULL;
   forced_candidates = self->priv->forced_candidates;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
+
+  if (local_candidates)
+  {
+    GList *l;
+
+    for (l = local_candidates ; l != NULL; l = g_list_next (l))
+      g_signal_emit_by_name (self, "new-local-candidate", l->data);
+    fs_candidate_list_destroy (local_candidates);
+  }
 
   g_signal_emit_by_name (self, "local-candidates-prepared");
 
