@@ -720,7 +720,7 @@ _stream_direction_notify_cb (GObject *stream,
   FsRawSession *self = FS_RAW_SESSION (user_data);
   FsStreamDirection direction;
 
-  g_object_get (self, "direction", &direction, NULL);
+  g_object_get (stream, "direction", &direction, NULL);
 
   if (direction & FS_DIRECTION_SEND)
   {
