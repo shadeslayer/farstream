@@ -534,7 +534,10 @@ fs_shm_stream_transmitter_gather_local_candidates (
   if (self->priv->create_local_candidates)
   {
     guint c;
-    gchar tmpdir[] = "/tmp/farsight-shm-XXXXXX";
+    gchar *tmpdir;
+
+    tmpdir = g_build_filename (g_get_tmp_dir (),
+      "farsight-shm-XXXXXX", NULL);
 
     if (mkdtemp (tmpdir) == NULL)
       return FALSE;
@@ -552,9 +555,13 @@ fs_shm_stream_transmitter_gather_local_candidates (
       self->priv->shm_sink[c], self->priv->sending);
 
       if (self->priv->shm_sink[c] == NULL)
+      {
+        g_free (tmpdir);
         return FALSE;
+      }
     }
 
+    g_free (tmpdir);
     return TRUE;
   }
 
