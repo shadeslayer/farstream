@@ -28,7 +28,11 @@
 
 #include "fs-rtp-tfrc.h"
 
+#include <string.h>
+
 #include "fs-rtp-packet-modder.h"
+#include "gst/farsight/fs-rtp.h"
+#include "fs-rtp-codec-negotiation.h"
 
 #include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
@@ -756,7 +760,9 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
  */
 
 FsRtpTfrc *
-fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp,
+fs_rtp_tfrc_new (GObject *rtpsession,
+    GstPad *inrtp,
+    GstPad *inrtcp,
     GstElement **send_filter)
 {
   FsRtpTfrc *self;
@@ -798,3 +804,66 @@ fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp, GstPad *inrtcp,
   return self;
 }
 
+gboolean
+validate_ca_for_tfrc (CodecAssociation *ca, gpointer user_data)
+{
+  return codec_association_is_valid_for_sending (ca, TRUE) &&
+      fs_codec_get_feedback_parameter (ca->codec, "tfrc", NULL, NULL);
+}
+
+void
+fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
+    GList **codec_associations,
+    GList **header_extensions)
+{
+  gboolean has_header_ext = FALSE;
+  gboolean has_codec_rtcpfb = FALSE;
+  GList *item;
+
+  has_codec_rtcpfb = !!lookup_codec_association_custom (*codec_associations,
+      validate_ca_for_tfrc, NULL);
+
+  for (item = *header_extensions; item;)
+  {
+    FsRtpHeaderExtension *hdrext = item->data;
+    GList *next = item->next;
+
+    if (!strcmp (hdrext->uri, "urn:ietf:params:rtp-hdtext:rtt-sendts"))
+    {
+      if (has_header_ext || !has_codec_rtcpfb)
+      {
+        *header_extensions = g_list_remove_link (*header_extensions, item);
+      }
+      else if (hdrext->direction == FS_DIRECTION_BOTH)
+      {
+        has_header_ext = TRUE;
+      }
+    }
+    item = next;
+  }
+
+  if (!has_codec_rtcpfb || has_header_ext)
+    return;
+
+  for (item = *codec_associations; item; item = item->next)
+  {
+    CodecAssociation *ca = item->data;
+    GList *item2;
+
+    for (item2 = ca->codec->ABI.ABI.feedback_params; item2;)
+    {
+      GList *next2 = item2->next;
+      FsFeedbackParameter *p = item2->data;
+
+      if (!g_ascii_strcasecmp (p->type, "tfrc"))
+      {
+        ca->codec->ABI.ABI.feedback_params = g_list_delete_link (
+          ca->codec->ABI.ABI.feedback_params, item2);
+      }
+
+
+      item2 = next2;
+    }
+  }
+
+}

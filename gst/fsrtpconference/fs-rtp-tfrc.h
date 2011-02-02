@@ -115,10 +115,16 @@ struct _FsRtpTfrcClass
 
 GType fs_rtp_tfrc_get_type (void);
 
-FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession, GstPad *inrtp,
-    GstPad *inrtcp, GstElement **send_filter);
+FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession,
+    GstPad *inrtp,
+    GstPad *inrtcp,
+    GstElement **send_filter);
 
 void fs_rtp_tfrc_destroy (FsRtpTfrc *self);
+
+void fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
+    GList **codec_associations,
+    GList **header_extensions);
 
 G_END_DECLS
 
