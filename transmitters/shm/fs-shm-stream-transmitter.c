@@ -71,6 +71,8 @@
 # include <unistd.h>
 #endif
 
+#include <stdlib.h>
+
 GST_DEBUG_CATEGORY_EXTERN (fs_shm_transmitter_debug);
 #define GST_CAT_DEFAULT fs_shm_transmitter_debug
 
@@ -85,7 +87,8 @@ enum
 {
   PROP_0,
   PROP_SENDING,
-  PROP_PREFERRED_LOCAL_CANDIDATES
+  PROP_PREFERRED_LOCAL_CANDIDATES,
+  PROP_CREATE_LOCAL_CANDIDATES,
 };
 
 struct _FsShmStreamTransmitterPrivate
@@ -105,6 +108,10 @@ struct _FsShmStreamTransmitterPrivate
 
   /* Protected by the mutex */
   FsCandidate **candidates;
+
+  /* Whether we create the local candidate ourselves or rely on the remote end
+   * to pass them to us as part of the candidate */
+  gboolean create_local_candidates;
 
   ShmSrc **shm_src;
   ShmSink **shm_sink;
@@ -183,6 +190,7 @@ fs_shm_stream_transmitter_class_init (FsShmStreamTransmitterClass *klass)
   GObjectClass *gobject_class = (GObjectClass *) klass;
   FsStreamTransmitterClass *streamtransmitterclass =
     FS_STREAM_TRANSMITTER_CLASS (klass);
+  GParamSpec *pspec;
 
   parent_class = g_type_class_peek_parent (klass);
 
@@ -197,6 +205,16 @@ fs_shm_stream_transmitter_class_init (FsShmStreamTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_SENDING, "sending");
   g_object_class_override_property (gobject_class,
       PROP_PREFERRED_LOCAL_CANDIDATES, "preferred-local-candidates");
+
+  pspec = g_param_spec_boolean ("create-local-candidates",
+    "CreateLocalCandidates",
+    "Whether the transmitter should automatically create local candidates",
+    FALSE,
+    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (gobject_class,
+    PROP_CREATE_LOCAL_CANDIDATES,
+    pspec);
+
 
   gobject_class->dispose = fs_shm_stream_transmitter_dispose;
   gobject_class->finalize = fs_shm_stream_transmitter_finalize;
@@ -271,6 +289,9 @@ fs_shm_stream_transmitter_get_property (GObject *object,
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       g_value_set_boxed (value, self->priv->preferred_local_candidates);
       break;
+    case PROP_CREATE_LOCAL_CANDIDATES:
+      g_value_set_boolean (value, self->priv->create_local_candidates);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -302,6 +323,9 @@ fs_shm_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       self->priv->preferred_local_candidates = g_value_dup_boxed (value);
+      break;
+    case PROP_CREATE_LOCAL_CANDIDATES:
+      self->priv->create_local_candidates = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -357,6 +381,9 @@ static gboolean
 fs_shm_stream_transmitter_add_sink (FsShmStreamTransmitter *self,
     FsCandidate *candidate, GError **error)
 {
+  if (self->priv->create_local_candidates)
+    return TRUE;
+
   if (!candidate->ip || !candidate->ip[0])
     return TRUE;
 
@@ -387,25 +414,28 @@ fs_shm_stream_transmitter_add_remote_candidate (
     FsShmStreamTransmitter *self, FsCandidate *candidate,
     GError **error)
 {
+  const gchar *path;
   if (!fs_shm_stream_transmitter_add_sink (self, candidate, error))
     return FALSE;
 
-  if (candidate->username && candidate->username[0])
-  {
+  if (self->priv->create_local_candidates)
+    path = candidate->ip;
+  else
+    path = candidate->username;
 
+  if (path && path[0])
+  {
     if (self->priv->shm_src[candidate->component_id])
     {
       if (fs_shm_transmitter_check_shm_src (self->priv->transmitter,
-              self->priv->shm_src[candidate->component_id],
-              candidate->username))
+              self->priv->shm_src[candidate->component_id], path))
         return TRUE;
       self->priv->shm_src[candidate->component_id] = NULL;
     }
 
     self->priv->shm_src[candidate->component_id] =
       fs_shm_transmitter_get_shm_src (self->priv->transmitter,
-          candidate->component_id, candidate->username, got_buffer_func, self,
-          error);
+          candidate->component_id, path, got_buffer_func, self, error);
 
     if (self->priv->shm_src[candidate->component_id] == NULL)
       return FALSE;
@@ -493,6 +523,33 @@ fs_shm_stream_transmitter_gather_local_candidates (
   FsShmStreamTransmitter *self =
     FS_SHM_STREAM_TRANSMITTER (streamtransmitter);
   GList *item;
+
+  if (self->priv->create_local_candidates)
+  {
+    guint c;
+    gchar tmpdir[] = "/tmp/farsight-shm-XXXXXX";
+
+    if (mkdtemp (tmpdir) == NULL)
+      return FALSE;
+
+    for (c = 1; c <= self->priv->transmitter->components; c++)
+    {
+      gchar *path = g_strdup_printf ("%s/shm-sink-socket-%d", tmpdir, c);
+
+      self->priv->shm_sink[c] =
+        fs_shm_transmitter_get_shm_sink (self->priv->transmitter,
+          c, path, ready_cb, connected_cb, self, error);
+      g_free (path);
+
+      fs_shm_transmitter_sink_set_sending (self->priv->transmitter,
+      self->priv->shm_sink[c], self->priv->sending);
+
+      if (self->priv->shm_sink[c] == NULL)
+        return FALSE;
+    }
+
+    return TRUE;
+  }
 
   for (item = self->priv->preferred_local_candidates;
        item;
