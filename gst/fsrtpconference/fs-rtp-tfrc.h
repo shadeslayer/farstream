@@ -126,6 +126,9 @@ void fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
     GList **codec_associations,
     GList **header_extensions);
 
+void fs_rtp_tfrc_hdrext_updated (FsRtpTfrc *self,
+    GList *header_extensions);
+
 G_END_DECLS
 
 #endif /* __FS_RTP_TFRC_H__ */

@@ -771,8 +771,8 @@ fs_rtp_tfrc_new (GObject *rtpsession,
 
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
 
-  self->extension_type = EXTENSION_ONE_BYTE;
-  self->extension_id = 4;
+  self->extension_type = EXTENSION_NONE;
+  self->extension_id = 0;
 
   self->systemclock = gst_system_clock_obtain ();
 
@@ -866,4 +866,32 @@ fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
     }
   }
 
+}
+
+void
+fs_rtp_tfrc_hdrext_updated (FsRtpTfrc *self, GList *header_extensions)
+{
+  GList *item;
+  FsRtpHeaderExtension *hdrext;
+
+  for (item = header_extensions; item; item = item->next)
+  {
+    hdrext = item->data;
+    if (!strcmp (hdrext->uri, "urn:ietf:params:rtp-hdtext:rtt-sendts") &&
+        hdrext->direction == FS_DIRECTION_BOTH)
+      break;
+  }
+
+  if (!item)
+  {
+    self->extension_type = EXTENSION_NONE;
+    return;
+  }
+
+  if (hdrext->id > 15)
+    self->extension_type = EXTENSION_TWO_BYTES;
+  else
+    self->extension_type = EXTENSION_ONE_BYTE;
+
+  self->extension_id = hdrext->id;
 }
