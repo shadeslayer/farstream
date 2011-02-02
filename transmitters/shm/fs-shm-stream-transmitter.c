@@ -37,7 +37,14 @@
  * send data and one to receive data. The receiver always connects to the
  * sender. The sender socket must exist before the receiver connects to it.
  *
- * The sender socket can be created by giving the transmitter a candidate
+ * Negotiating the paths of the sockets can happen in two ways. If the
+ * create-local-candidates is True then the transmitter will generate the
+ * path of the local candidate and us it as the ip filed in #FsCandidate. The
+ * transmitter will expect the path of the applications sender socket to be in
+ * the "ip" field of the remote candidates #FsCandidate as well.
+ *
+ * Or alternatively, if create-local-candidates is false then
+ * the sender socket can be created by giving the transmitter a candidate
  * with the path of the socket in the "ip" field of the #FsCandidate. This
  * #FsCandidate can be given to the #FsStreamTransmitter in two ways, either
  * by setting the #FsStreamTransmitter:preferred-local-candidates property
