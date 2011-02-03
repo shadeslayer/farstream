@@ -62,8 +62,6 @@ struct TrackedSource {
 
   guint32 ssrc;
   GObject *rtpsource;
-  gboolean has_google_tfrc;
-  gboolean has_standard_tfrc;
 
   TfrcSender *sender;
   GstClockID sender_id;
@@ -107,6 +105,8 @@ struct _FsRtpTfrc
 
   ExtensionType extension_type;
   guint extension_id;
+
+  gboolean pts[128];
 };
 
 struct _FsRtpTfrcClass
@@ -128,8 +128,10 @@ void fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
     GList **codec_associations,
     GList **header_extensions);
 
-void fs_rtp_tfrc_hdrext_updated (FsRtpTfrc *self,
+void fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
+    GList *codec_associations,
     GList *header_extensions);
+
 
 G_END_DECLS
 

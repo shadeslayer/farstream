@@ -785,6 +785,7 @@ fs_rtp_tfrc_new (GObject *rtpsession,
 
   self->extension_type = EXTENSION_NONE;
   self->extension_id = 0;
+  memset (self->pts, 0, 128);
 
   self->systemclock = gst_system_clock_obtain ();
 
@@ -881,10 +882,21 @@ fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
 }
 
 void
-fs_rtp_tfrc_hdrext_updated (FsRtpTfrc *self, GList *header_extensions)
+fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
+    GList *codec_associations,
+    GList *header_extensions)
 {
   GList *item;
   FsRtpHeaderExtension *hdrext;
+
+  memset (self->pts, 0, 128);
+  for (item = codec_associations; item; item = item->next)
+  {
+    CodecAssociation *ca = item->data;
+
+    if (fs_codec_get_feedback_parameter (ca->codec, "tfrc", NULL, NULL));
+    self->pts[ca->codec->id] = TRUE;
+  }
 
   for (item = header_extensions; item; item = item->next)
   {

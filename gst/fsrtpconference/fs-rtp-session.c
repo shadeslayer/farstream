@@ -2653,7 +2653,8 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
   }
 
   if (session->priv->rtp_tfrc)
-    fs_rtp_tfrc_hdrext_updated (session->priv->rtp_tfrc,
+    fs_rtp_tfrc_codecs_updated (session->priv->rtp_tfrc,
+        session->priv->codec_associations,
         session->priv->hdrext_negotiated);
 
   fs_rtp_session_distribute_recv_codecs_locked (session, stream, remote_codecs);
