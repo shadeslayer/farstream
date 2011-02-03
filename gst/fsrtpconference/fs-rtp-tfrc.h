@@ -78,6 +78,8 @@ struct TrackedSource {
   guint32 last_ts;
   guint32 last_now;
   guint32 last_rtt;
+
+  gboolean got_nohdr_pkt;
 };
 
 /**

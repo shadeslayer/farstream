@@ -337,6 +337,9 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   if (!src->receiver)
     return;
 
+  if (src->got_nohdr_pkt)
+    return;
+
   if (!gst_rtcp_buffer_add_packet (data->buffer, GST_RTCP_TYPE_RTPFB, &packet))
     return;
 
@@ -404,22 +407,22 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   guint32 rtt, ts, seq;
   gboolean send_rtcp = FALSE;
   guint now;
+  guint8 pt;
 
   GST_OBJECT_LOCK (self);
 
+  pt = gst_rtp_buffer_get_payload_type (buffer);
+  if (pt > 128 || !self->pts[pt])
+    goto out_no_header;
+
   if (self->extension_type == EXTENSION_NONE)
-    goto out;
+    goto out_no_header;
   else if (self->extension_type == EXTENSION_ONE_BYTE)
     got_header = gst_rtp_buffer_get_extension_onebyte_header (buffer,
         self->extension_id, 0, (gpointer *) &data, &size);
   else if (self->extension_type == EXTENSION_TWO_BYTES)
     got_header = gst_rtp_buffer_get_extension_twobytes_header (buffer,
         NULL, self->extension_id, 0, (gpointer *) &data, &size);
-
-  if (!got_header)
-    goto out;
-  if (size != 7)
-    goto out;
 
   ssrc = gst_rtp_buffer_get_ssrc (buffer);
   seq = gst_rtp_buffer_get_seq (buffer);
@@ -431,6 +434,11 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
     GST_WARNING_OBJECT (self, "Got packet from unconfirmed source %X ?", ssrc);
     goto out;
   }
+
+  if (!got_header || size != 7)
+    goto out_no_header;
+
+  src->got_nohdr_pkt = FALSE;
 
   now =  fs_rtp_tfrc_get_now (self);
 
@@ -465,6 +473,10 @@ out:
     g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
 
   return TRUE;
+
+out_no_header:
+  src->got_nohdr_pkt = TRUE;
+  goto out;
 }
 
 static gboolean
