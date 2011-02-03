@@ -71,6 +71,8 @@
 
 #include <gst/gst.h>
 
+#include <glib/gstdio.h>
+
 #include <string.h>
 #include <sys/types.h>
 
@@ -119,6 +121,9 @@ struct _FsShmStreamTransmitterPrivate
   /* Whether we create the local candidate ourselves or rely on the remote end
    * to pass them to us as part of the candidate */
   gboolean create_local_candidates;
+
+  /* temporary socket directy in case we made one */
+  gchar *socket_dir;
 
   ShmSrc **shm_src;
   ShmSink **shm_sink;
@@ -262,6 +267,11 @@ fs_shm_stream_transmitter_dispose (GObject *object)
     }
     self->priv->shm_sink[c] = NULL;
   }
+
+  if (self->priv->socket_dir != NULL)
+    g_rmdir (self->priv->socket_dir);
+  g_free (self->priv->socket_dir);
+  self->priv->socket_dir = NULL;
 
   parent_class->dispose (object);
 }
@@ -534,17 +544,19 @@ fs_shm_stream_transmitter_gather_local_candidates (
   if (self->priv->create_local_candidates)
   {
     guint c;
-    gchar *tmpdir;
+    gchar *socket_dir;
 
-    tmpdir = g_build_filename (g_get_tmp_dir (),
+    socket_dir = g_build_filename (g_get_tmp_dir (),
       "farsight-shm-XXXXXX", NULL);
 
-    if (mkdtemp (tmpdir) == NULL)
+    if (mkdtemp (socket_dir) == NULL)
       return FALSE;
+
+    self->priv->socket_dir = socket_dir;
 
     for (c = 1; c <= self->priv->transmitter->components; c++)
     {
-      gchar *path = g_strdup_printf ("%s/shm-sink-socket-%d", tmpdir, c);
+      gchar *path = g_strdup_printf ("%s/shm-sink-socket-%d", socket_dir, c);
 
       self->priv->shm_sink[c] =
         fs_shm_transmitter_get_shm_sink (self->priv->transmitter,
@@ -555,13 +567,9 @@ fs_shm_stream_transmitter_gather_local_candidates (
       self->priv->shm_sink[c], self->priv->sending);
 
       if (self->priv->shm_sink[c] == NULL)
-      {
-        g_free (tmpdir);
         return FALSE;
-      }
     }
 
-    g_free (tmpdir);
     return TRUE;
   }
 
