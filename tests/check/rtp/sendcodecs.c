@@ -218,7 +218,7 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
   GError *error = NULL;
   FsCodec *dtmf_codec = NULL;
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
 
   ts_fail_if (codecs == NULL, "Could not get the local codecs");
 

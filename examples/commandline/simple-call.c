@@ -163,7 +163,7 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   fs_codec_list_destroy (codecs);
 
 
-  g_object_get (ses->session, "codecs", &codecs, NULL);
+  g_object_get (ses->session, "codecs-without-config", &codecs, NULL);
   res = fs_stream_set_remote_codecs (ses->stream, codecs, &error);
   print_error (error);
   g_assert (res);

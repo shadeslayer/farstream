@@ -536,11 +536,10 @@ class FsUIStream:
         "Internal function to send our local codecs when they're ready"
         if not self.send_codecs:
             return
-        if not self.session.fssession.get_property("codecs-ready"):
+        codecs = self.session.fssession.get_property("codecs")
+        if not codecs:
             print "Codecs are not ready"
             return
-        codecs = self.session.fssession.get_property("codecs")
-        assert(codecs is not None and len(codecs) > 0)
         if (codecs == self.last_codecs):
             return
         self.last_codecs = codecs
@@ -550,7 +549,7 @@ class FsUIStream:
     def send_stream_codecs(self):
         if not self.connect.is_server:
             return
-        if not self.session.fssession.get_property("codecs-ready"):
+        if not self.session.fssession.get_property("codecs"):
             return
         codecs = self.fsstream.get_property("negotiated-codecs")
         if codecs:
@@ -780,7 +779,7 @@ class FsMainUI:
         liststore = combobox.get_model()
         current = fssession.get_property("current-send-codec")
         liststore.clear()
-        for c in fssession.get_property("codecs"):
+        for c in fssession.get_property("codecs-without-config"):
             str = ("%s: %s/%s %s" % (c.id, 
                                      c.media_type.value_nick,
                                      c.encoding_name,

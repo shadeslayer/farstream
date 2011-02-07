@@ -35,17 +35,19 @@ GMainLoop *loop = NULL;
 GST_START_TEST (test_rtpcodecs_codec_base)
 {
   struct SimpleTestConference *dat = NULL;
-  GList *codecs = NULL, *item;
-  gboolean ready;
+  GList *codecs = NULL;
+  GList *codecs_without_config = NULL;
+  GList *item;
   gboolean needs_ready = FALSE;
 
   dat = setup_simple_conference_full (1, "fsrtpconference", "bob@127.0.0.1",
       FS_MEDIA_TYPE_VIDEO);
 
-  g_object_get (dat->session, "codecs", &codecs, "codecs-ready", &ready, NULL);
+  g_object_get (dat->session, "codecs", &codecs,
+      "codecs-without-config", &codecs_without_config, NULL);
 
-  fail_if (codecs == NULL);
-  for (item = codecs; item; item = item->next)
+  fail_if (codecs_without_config == NULL);
+  for (item = codecs_without_config; item; item = item->next)
   {
     FsCodec *codec = item->data;
 
@@ -53,15 +55,15 @@ GST_START_TEST (test_rtpcodecs_codec_base)
         !g_ascii_strcasecmp (codec->encoding_name, "H264"))
       needs_ready = TRUE;
   }
+
   if (!needs_ready)
-    GST_DEBUG ("No Theora and no H.264, so can't test codecs-ready");
-
-
+    GST_DEBUG ("No Theora and no H.264, so can't test codecs readiness");
 
   /* make sure we're not already ready before starting the pipeline */
-  fail_if (needs_ready && ready);
+  fail_if (needs_ready && codecs);
 
   fs_codec_list_destroy (codecs);
+  fs_codec_list_destroy (codecs_without_config);
   cleanup_simple_conference (dat);
 }
 GST_END_TEST;
@@ -84,12 +86,12 @@ GST_START_TEST (test_rtpcodecs_codec_preferences)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "codecs", &orig_codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &orig_codecs, NULL);
 
   fail_unless (fs_session_set_codec_preferences (dat->session, orig_codecs,
           &error), "Could not set local codecs as codec preferences");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
 
   fail_unless (fs_codec_list_are_equal (orig_codecs, codecs),
       "Setting local codecs as preferences changes the list of local codecs");
@@ -150,7 +152,7 @@ GST_START_TEST (test_rtpcodecs_codec_preferences)
   fs_codec_list_destroy (codecs);
   fs_codec_list_destroy (codecs2);
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
 
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
@@ -180,7 +182,7 @@ GST_START_TEST (test_rtpcodecs_codec_preferences)
   fail_unless (local_codecs_notified, "We were not notified of the change"
       " in codecs");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
 
   fail_unless (fs_codec_list_are_equal (codecs, orig_codecs),
       "Resetting codec-preferences failed, codec lists are not equal");
@@ -286,7 +288,7 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fail_unless (stream_remote_codecs_notified);
   fail_unless (stream_nego_codecs_notified);
 
-  g_object_get (dat->session, "codecs", &codecs2, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
   fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
       "Negotiated codec does not match remote codec");
@@ -324,7 +326,7 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fail_unless (stream_nego_codecs_notified);
   fail_unless (stream_remote_codecs_notified);
 
-  g_object_get (dat->session, "codecs", &codecs2, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
   fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
       "Negotiated codec does not match remote codec");
@@ -365,7 +367,7 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
 
   ((FsCodec*)codecs->data)->clock_rate = 8000;
 
-  g_object_get (dat->session, "codecs", &codecs2, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
   fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
       "Negotiated codec does not match remote codec");
@@ -384,7 +386,7 @@ GST_START_TEST (test_rtpcodecs_two_way_negotiation)
   fail_unless (fs_stream_set_remote_codecs (st->stream, codecs, &error),
       "Could not set remote PCMU codec with unknown clock-rate");
 
-  g_object_get (dat->session, "codecs", &codecs2, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs2, NULL);
   fail_unless (g_list_length (codecs2) == 1, "Too many negotiated codecs");
   ((FsCodec*)(codecs->data))->clock_rate = 8000;
   fail_unless (fs_codec_are_equal (codecs->data, codecs2->data),
@@ -443,7 +445,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -467,7 +469,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   fail_unless (fs_session_set_codec_preferences (dat->session, codec_prefs,
           NULL), "Could not set codec preferences");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -490,14 +492,14 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   fail_if (s == NULL, "Could not add stream");
   g_object_unref (p);
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
 
   fail_unless (fs_stream_set_remote_codecs (s, codecs, NULL),
                "Could not set local codecs as remote codecs");
 
   fs_codec_list_destroy (codecs);
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -512,7 +514,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   fail_unless (fs_session_set_codec_preferences (dat->session, codec_prefs,
           NULL), "Could not set codec preferences after set_remote_codecs");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -527,7 +529,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   fail_unless (fs_session_set_codec_preferences (dat->session, codec_prefs,
           NULL), "Could not re-set codec-preferences after set_remote_codecs");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -597,7 +599,6 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   GList *codecs2 = NULL;
   FsCodec *codec = NULL;
   GList *item1, *item2;
-  gboolean ready;
   const GstStructure *s = gst_message_get_structure (message);
   FsParticipant *p2 = NULL;
   FsStream *stream2 = NULL;
@@ -612,12 +613,12 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   if (!gst_structure_has_name (s, "farsight-codecs-changed"))
     return;
 
-  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
+  g_object_get (cd->dat->session, "codecs", &codecs, NULL);
 
-  if (!ready)
+  /* Not ready, return */
+  if (!codecs)
     return;
 
-  g_object_get (cd->dat->session, "codecs", &codecs, NULL);
   codec = check_vorbis_and_configuration ("codecs before negotiation", codecs,
       NULL);
   vorbis_id = codec->id;
@@ -679,11 +680,9 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   fs_codec_list_destroy (codecs);
 
-
-  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
-  fail_unless (ready, "Codecs became unready after setting new remote codecs");
-
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
+  fail_unless (codecs != NULL,
+      "Codecs became unready after setting new remote codecs");
   check_vorbis_and_configuration ("session codecs after negotiation",
       codecs, discovered_config);
   fs_codec_list_destroy (codecs);
@@ -707,10 +706,9 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   fs_codec_list_destroy (codecs);
 
 
-  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
-  fail_unless (ready, "Codecs became unready after setting new remote codecs");
-
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
+  fail_unless (codecs != NULL,
+      "Codecs became unready after setting new remote codecs");
   check_vorbis_and_configuration ("session codecs after negotiation",
       codecs, discovered_config);
   fs_codec_list_destroy (codecs);
@@ -748,10 +746,9 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   }
   fs_codec_list_destroy (codecs);
 
-  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
-  fail_unless (ready, "Codecs became unready after setting new remote codecs");
-
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
+  fail_unless (codecs != NULL,
+      "Codecs became unready after setting new remote codecs");
   check_vorbis_and_configuration ("session codecs after renegotiation",
       codecs, discovered_config);
   fs_codec_list_destroy (codecs);
@@ -778,10 +775,11 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   }
   fs_codec_list_destroy (codecs);
 
-  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
-  fail_unless (ready, "Codecs became unready after setting new remote codecs");
-
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
+  fail_unless (codecs != NULL,
+      "Codecs became unready after setting new remote codecs");
+  fail_unless (codecs != NULL,
+      "Codecs became unready after setting new remote codecs");
   check_vorbis_and_configuration ("session codecs after renegotiation",
       codecs, discovered_config);
   fs_codec_list_destroy (codecs);
@@ -810,7 +808,6 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 {
   struct ConfigDataTest cd;
   GList *codecs = NULL, *item = NULL;
-  gboolean ready;
   GError *error = NULL;
   GstBus *bus = NULL;
   const gchar config[] = "lksajdoiwqjfd2ohqfpiuwqjofqiufhqfqw";
@@ -843,7 +840,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
 
   fs_codec_list_destroy (codecs);
 
-  g_object_get (cd.dat->session, "codecs", &codecs, NULL);
+  g_object_get (cd.dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -861,11 +858,10 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
   }
 
 
-  g_object_get (cd.dat->session, "codecs-ready", &ready, NULL);
-
-  fail_if (ready, "Codecs are ready before the pipeline is playing, it does not"
-      " try to detect vorbis codec data");
-
+  g_object_get (cd.dat->session, "codecs", &codecs, NULL);
+  fail_if (codecs, "Codecs are ready before the pipeline is playing,"
+      " it does not try to detect vorbis codec data");
+  fs_codec_list_destroy (codecs);
 
   if (preset_remotes)
   {
@@ -889,11 +885,10 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
     fs_codec_list_destroy (codecs);
   }
 
-
-  g_object_get (cd.dat->session, "codecs-ready", &ready, NULL);
-
-  fail_if (ready, "Codecs are ready before the pipeline is playing, it does not"
-      " try to detect vorbis codec data");
+  g_object_get (cd.dat->session, "codecs", &codecs, NULL);
+  fail_if (codecs, "Codecs are ready before the pipeline is playing,"
+      " it does not try to detect vorbis codec data");
+    fs_codec_list_destroy (codecs);
 
   setup_fakesrc (cd.dat);
 
@@ -968,7 +963,7 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
   fail_unless (fs_session_set_codec_preferences (session, prefs, NULL),
       "Could not set codec preferences");
 
-  g_object_get (session, "codecs", &codecs, NULL);
+  g_object_get (session, "codecs-without-config", &codecs, NULL);
 
   for (item = codecs; item; item = g_list_next (item))
     if (fs_codec_are_equal ((FsCodec *)item->data, base_codec))
@@ -1061,7 +1056,7 @@ GST_START_TEST (test_rtpcodecs_dynamic_pt)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *codec = item->data;
@@ -1096,7 +1091,7 @@ GST_START_TEST (test_rtpcodecs_dynamic_pt)
   fail_unless (fs_session_set_codec_preferences (dat->session, codec_prefs,
           NULL), "Could not set codec preferences");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     if (fs_codec_are_equal (item->data, tmpcodec))
@@ -1130,7 +1125,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
 
   dat = setup_simple_conference (1, "fsrtpconference", "bob@127.0.0.1");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *tmpcodec = item->data;
@@ -1163,7 +1158,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
   g_object_get (dat->session, "current-send-codec", &codec, NULL);
   fail_unless (codec == NULL);
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   codec = codecs->data;
   fail_unless (codec->id == prefcodec->id);
   fail_unless (
@@ -1185,7 +1180,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
   fail_unless (error == NULL);
   fs_codec_list_destroy (codecs);
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   fail_unless (g_list_length (codecs) == 1);
   codec = codecs->data;
   fail_unless (codec->id == prefcodec->id);
@@ -1247,13 +1242,13 @@ static GstBusSyncReply
 drop_all_sync_handler (GstBus *bus, GstMessage *message, gpointer data)
 {
   struct SimpleTestConference *dat = data;
-  gboolean ready;
+  guint tos;
 
-  /* Get the codecs-ready property which takes the session lock to make sure
-   * it is not held across signal emissions
+  /* Get the tos property which takes the session lock to
+     make sure it is not held across signal emissions
    */
   if (dat->session)
-    g_object_get (dat->session, "codecs-ready", &ready, NULL);
+    g_object_get (dat->session, "tos", &tos, NULL);
 
   gst_message_unref (message);
 
@@ -1303,7 +1298,7 @@ test_one_telephone_event_codec (FsSession *session, FsStream *stream,
   fail_unless (error == NULL);
   fs_codec_list_destroy (codecs);
 
-  g_object_get (session, "codecs", &codecs, NULL);
+  g_object_get (session, "codecs-without-config", &codecs, NULL);
   if (outcodec)
   {
     fail_unless (g_list_length (codecs) == 2);
@@ -1337,7 +1332,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
       FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
   fail_if (stream == NULL, "Could not add stream to session");
 
-  g_object_get (dat->session, "codecs", &codecs, NULL);
+  g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
   for (item = g_list_first (codecs); item; item = g_list_next (item))
   {
     FsCodec *tmpcodec = item->data;
@@ -1456,7 +1451,7 @@ test_one_codec_internal (const gchar *addr,
   {
     FsCodec *copy;
 
-    g_object_get (session, "codecs", &codecs, NULL);
+    g_object_get (session, "codecs-without-config", &codecs, NULL);
     codec = codecs->data;
     copy = fs_codec_copy (outprefcodec);
     copy->id = codec->id;
@@ -1487,7 +1482,7 @@ test_one_codec_internal (const gchar *addr,
 
   if (outcodec)
   {
-    g_object_get (session, "codecs", &codecs, NULL);
+    g_object_get (session, "codecs-without-config", &codecs, NULL);
     fail_unless (g_list_length (codecs) == 1,
         "%s: Negotiation gives more than one codec", addr);
     codec = codecs->data;

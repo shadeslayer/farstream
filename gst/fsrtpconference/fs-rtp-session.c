@@ -98,7 +98,6 @@ enum
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
-  PROP_CODECS_READY,
   PROP_CONFERENCE,
   PROP_NO_RTCP_TIMEOUT,
   PROP_SSRC,
@@ -364,8 +363,6 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
     PROP_CODECS_WITHOUT_CONFIG, "codecs-without-config");
   g_object_class_override_property (gobject_class,
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
-  g_object_class_override_property (gobject_class,
-    PROP_CODECS_READY, "codecs-ready");
   g_object_class_override_property (gobject_class,
     PROP_TOS, "tos");
 
@@ -867,9 +864,19 @@ fs_rtp_session_get_property (GObject *object,
     case PROP_CODECS:
       {
         GList *codecs = NULL;
+        GList *item = NULL;
         FS_RTP_SESSION_LOCK (self);
-        codecs = codec_associations_to_codecs (self->priv->codec_associations,
-            TRUE);
+        for (item = g_list_first (self->priv->codec_associations);
+             item;
+             item = g_list_next (item))
+        {
+          CodecAssociation *ca = item->data;
+          if (!ca->disable && ca->need_config)
+            break;
+        }
+        if (item == NULL)
+          codecs = codec_associations_to_codecs (self->priv->codec_associations,
+              TRUE);
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, codecs);
       }
@@ -882,24 +889,6 @@ fs_rtp_session_get_property (GObject *object,
             FALSE);
         FS_RTP_SESSION_UNLOCK (self);
         g_value_take_boxed (value, codecs);
-      }
-      break;
-    case PROP_CODECS_READY:
-      {
-        GList *item = NULL;
-
-        FS_RTP_SESSION_LOCK (self);
-        for (item = g_list_first (self->priv->codec_associations);
-             item;
-             item = g_list_next (item))
-        {
-          CodecAssociation *ca = item->data;
-          if (!ca->disable && ca->need_config)
-            break;
-        }
-        FS_RTP_SESSION_UNLOCK (self);
-
-        g_value_set_boolean (value, item == NULL);
       }
       break;
     case PROP_CONFERENCE:
@@ -4273,7 +4262,6 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
     if (!item)
     {
       FS_RTP_SESSION_UNLOCK (session);
-      g_object_notify (G_OBJECT (session), "codecs-ready");
       g_object_notify (G_OBJECT (session), "codecs");
       gst_element_post_message (GST_ELEMENT (session->priv->conference),
           gst_message_new_element (GST_OBJECT (session->priv->conference),
@@ -4613,7 +4601,7 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
   {
     fs_rtp_session_stop_codec_param_gathering_unlock (session);
 
-    g_object_notify (G_OBJECT (session), "codecs-ready");
+    g_object_notify (G_OBJECT (session), "codecs");
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
             gst_structure_new ("farsight-codecs-changed",

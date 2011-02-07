@@ -94,13 +94,14 @@ static GstBusSyncReply
 default_sync_handler (GstBus *bus, GstMessage *message, gpointer data)
 {
   struct SimpleTestConference *dat = data;
-  gboolean ready;
+  GList *codecs = NULL;
 
-  /* Get the codecs-ready property which takes the session lock to make sure
+  /* Get the codecs property which should take the session lock to make sure
    * it is not held across signal emissions
    */
   if (dat->session)
-    g_object_get (dat->session, "codecs-ready", &ready, NULL);
+    g_object_get (dat->session, "codecs", &codecs, NULL);
+  fs_codec_list_destroy (codecs);
 
   return GST_BUS_PASS;
 }

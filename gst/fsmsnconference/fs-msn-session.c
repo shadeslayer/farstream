@@ -74,7 +74,6 @@ enum
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
-  PROP_CODECS_READY,
   PROP_CONFERENCE,
   PROP_TOS
 };
@@ -163,8 +162,6 @@ fs_msn_session_class_init (FsMsnSessionClass *klass)
     PROP_CODECS_WITHOUT_CONFIG, "codecs-without-config");
   g_object_class_override_property (gobject_class,
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
-  g_object_class_override_property (gobject_class,
-    PROP_CODECS_READY, "codecs-ready");
   g_object_class_override_property (gobject_class,
     PROP_TOS, "tos");
 
@@ -297,9 +294,6 @@ fs_msn_session_get_property (GObject *object,
       break;
     case PROP_SINK_PAD:
       g_value_set_object (value, self->priv->media_sink_pad);
-      break;
-    case PROP_CODECS_READY:
-      g_value_set_boolean (value, TRUE);
       break;
     case PROP_CODEC_PREFERENCES:
       /* There are no preferences, so return NULL */

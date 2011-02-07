@@ -62,10 +62,8 @@
  * This message is sent on the bus when the value of the
  * #FsSession:codecs or #FsSession:codecs-without-config properties change.
  * If one is using codecs that have configuration data that needs to be
- * transmitted reliably, once should check the value of #FsSession:codecs-ready
- * property to make sure all of the codecs configuration are ready and have been
- * discovered before using the codecs. If its not %TRUE, one should wait for the
- * next "farsight-codecs-changed" message until reading the codecs.
+ * transmitted reliably, one should fetch #FsSession:codecs, otherwise,
+ * #FsSession:codecs-without-config should be enough.
  * </para>
  * </refsect2>
  * <para>
@@ -105,7 +103,6 @@ enum
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
-  PROP_CODECS_READY,
   PROP_TYPE_OF_SERVICE
 };
 
@@ -228,8 +225,9 @@ fs_session_class_init (FsSessionClass *klass)
    * on a #FsStream in this session, when a #FsStream is destroyed or
    * asynchronously when new config data is discovered.
    *
-   * You can only assume that the configuration parameters are valid when
-   * the #FsSession:codecs-ready property is %TRUE.
+   * If any configuration parameter needs to be discovered, this property
+   * will be %NULL until they have been discovered. One can always get
+   * the codecs from #FsSession:codecs-without-config.
    * The "farsight-codecs-changed" message will be emitted whenever the value
    * of this property changes.
    *
@@ -297,26 +295,6 @@ fs_session_class_init (FsSessionClass *klass)
         G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   /**
-   * FsSession:codecs-ready
-   *
-   * Some codecs that have configuration data that needs to be sent reliably
-   * may need to be initialized from actual data before being ready. If your
-   * application uses such codecs, wait until this property is %TRUE before
-   * using the #FsSession:codecs
-   * property. If the value if not %TRUE, the "farsight-codecs-changed"
-   * message will be emitted when it becomes %TRUE. You should re-check
-   * the value of this property when you receive the message.
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_CODECS_READY,
-      g_param_spec_boolean ("codecs-ready",
-          "Indicates if the codecs are ready",
-          "Indicates if the codecs are ready or if their configuration is"
-          " still being discovered",
-          TRUE,
-          G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
-
-  /**
    * FsSession:tos
    *
    * Sets the IP ToS field (and if possible the IPv6 TCLASS field
@@ -364,19 +342,10 @@ fs_session_get_property (GObject *object,
                          GValue *value,
                          GParamSpec *pspec)
 {
-  switch (prop_id)
-  {
-    case PROP_CODECS_READY:
-      g_value_set_boolean (value, TRUE);
-      break;
-
-    default:
-      GST_WARNING ("Subclass %s of FsSession does not override the %s property"
-          " getter",
-          G_OBJECT_TYPE_NAME(object),
-          g_param_spec_get_name (pspec));
-      break;
-  }
+  GST_WARNING ("Subclass %s of FsSession does not override the %s property"
+      " getter",
+      G_OBJECT_TYPE_NAME(object),
+      g_param_spec_get_name (pspec));
 }
 
 static void
