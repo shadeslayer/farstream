@@ -337,7 +337,7 @@ run_shm_transmitter_test (gint flags)
 
   if (!(flags & FLAG_LOCAL_CANDIDATES))
   {
-    ret = fs_stream_transmitter_set_remote_candidates (st, local_cands,
+    ret = fs_stream_transmitter_force_remote_candidates (st, local_cands,
         &error);
     fs_candidate_list_destroy (local_cands);
     if (error)
@@ -359,7 +359,7 @@ run_shm_transmitter_test (gint flags)
           FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, NULL, 0);
   cand->username = g_strdup ("/tmp/src2");
   remote_cands = g_list_prepend (remote_cands, cand);
-  ret = fs_stream_transmitter_set_remote_candidates (st, remote_cands, &error);
+  ret = fs_stream_transmitter_force_remote_candidates (st, remote_cands, &error);
   fs_candidate_list_destroy (remote_cands);
   if (error)
     ts_fail ("Error while adding candidate: (%s:%d) %s",

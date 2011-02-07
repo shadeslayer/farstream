@@ -48,7 +48,7 @@
  * with the path of the socket in the "ip" field of the #FsCandidate. This
  * #FsCandidate can be given to the #FsStreamTransmitter in two ways, either
  * by setting the #FsStreamTransmitter:preferred-local-candidates property
- * or by calling the fs_stream_transmitter_set_remote_candidates() function.
+ * or by calling the fs_stream_transmitter_force_remote_candidates() function.
  * There can be only one single send socket per stream. When the send socket
  * is ready to be connected to, #FsStreamTransmitter::new-local-candidate signal
  * will be emitted.
@@ -56,7 +56,7 @@
  * To connect the receive side to the other application, one must create a
  * #FsCandidate with the path of the sender's socket in the "username" field.
  * If the receiver can not connect to the sender,
- * the fs_stream_transmitter_set_remote_candidates() call will fail.
+ * the fs_stream_transmitter_force_remote_candidates() call will fail.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -152,7 +152,7 @@ static void fs_shm_stream_transmitter_set_property (GObject *object,
                                                 const GValue *value,
                                                 GParamSpec *pspec);
 
-static gboolean fs_shm_stream_transmitter_set_remote_candidates (
+static gboolean fs_shm_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error);
 static gboolean fs_shm_stream_transmitter_gather_local_candidates (
@@ -209,8 +209,8 @@ fs_shm_stream_transmitter_class_init (FsShmStreamTransmitterClass *klass)
   gobject_class->set_property = fs_shm_stream_transmitter_set_property;
   gobject_class->get_property = fs_shm_stream_transmitter_get_property;
 
-  streamtransmitterclass->set_remote_candidates =
-    fs_shm_stream_transmitter_set_remote_candidates;
+  streamtransmitterclass->force_remote_candidates =
+    fs_shm_stream_transmitter_force_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
     fs_shm_stream_transmitter_gather_local_candidates;
 
@@ -437,7 +437,7 @@ disconnected_cb (guint component, gint id, gpointer data)
 }
 
 static gboolean
-fs_shm_stream_transmitter_add_remote_candidate (
+fs_shm_stream_transmitter_force_remote_candidate (
     FsShmStreamTransmitter *self, FsCandidate *candidate,
     GError **error)
 {
@@ -473,11 +473,11 @@ fs_shm_stream_transmitter_add_remote_candidate (
 }
 
 /**
- * fs_shm_stream_transmitter_set_remote_candidates
+ * fs_shm_stream_transmitter_force_remote_candidates
  */
 
 static gboolean
-fs_shm_stream_transmitter_set_remote_candidates (
+fs_shm_stream_transmitter_force_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error)
 {
@@ -508,7 +508,7 @@ fs_shm_stream_transmitter_set_remote_candidates (
   }
 
   for (item = candidates; item; item = g_list_next (item))
-    if (!fs_shm_stream_transmitter_add_remote_candidate (self,
+    if (!fs_shm_stream_transmitter_force_remote_candidate (self,
             item->data, error))
       return FALSE;
 

@@ -407,7 +407,8 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
     candidates = g_list_prepend (NULL, candidate);
   }
 
-  ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
+  ret = fs_stream_force_remote_candidates (other_st->stream, candidates,
+      &error);
   g_list_free (candidates);
   fs_candidate_destroy (freecand);
 
@@ -1097,6 +1098,7 @@ nway_test (int in_count, extra_conf_init extra_conf_init,
           FsCandidate *candidate = fs_candidate_new ("1", 1,
               FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP,
               "/tmp/test-stream", 0);
+          st->candidate = fs_candidate_copy (candidate);
           fs_stream_set_remote_candidates (st->stream,
               g_list_prepend (NULL, candidate), NULL);
         }
@@ -1313,8 +1315,7 @@ GST_START_TEST (test_rawconference_dispose)
   g_clear_error (&error);
 
   fail_if (fs_stream_force_remote_candidates (stream, NULL, &error));
-  fail_unless (error->domain == FS_ERROR &&
-      error->code == FS_ERROR_NOT_IMPLEMENTED);
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
   g_object_unref (stream);
@@ -1334,8 +1335,7 @@ GST_START_TEST (test_rawconference_dispose)
   g_clear_error (&error);
 
   fail_if (fs_stream_force_remote_candidates (stream, NULL, &error));
-  fail_unless (error->domain == FS_ERROR &&
-      error->code == FS_ERROR_NOT_IMPLEMENTED);
+  fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
   g_object_run_dispose (G_OBJECT (session));
