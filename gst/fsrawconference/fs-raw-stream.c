@@ -180,6 +180,9 @@ static void _state_changed (FsStreamTransmitter *stream_transmitter,
 static gboolean fs_raw_stream_set_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error);
+static gboolean fs_raw_stream_force_remote_candidates (FsStream *stream,
+    GList *remote_candidates,
+    GError **error);
 static gboolean fs_raw_stream_set_remote_codecs (FsStream *stream,
     GList *remote_codecs,
     GError **error);
@@ -199,6 +202,7 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
   gobject_class->finalize = fs_raw_stream_finalize;
 
   stream_class->set_remote_candidates = fs_raw_stream_set_remote_candidates;
+  stream_class->force_remote_candidates = fs_raw_stream_force_remote_candidates;
   stream_class->set_remote_codecs = fs_raw_stream_set_remote_codecs;
 
 
@@ -685,6 +689,39 @@ fs_raw_stream_set_remote_candidates (FsStream *stream, GList *candidates,
   if (st)
   {
     ret = fs_stream_transmitter_set_remote_candidates (st, candidates, error);
+    g_object_unref (st);
+  }
+
+  gst_object_unref (conference);
+
+  return ret;
+}
+
+
+/**
+ * fs_raw_stream_force_remote_candidate:
+ */
+static gboolean
+fs_raw_stream_force_remote_candidates (FsStream *stream,
+    GList *candidates,
+    GError **error)
+{
+  FsRawStream *self = FS_RAW_STREAM (stream);
+  FsRawConference *conference = fs_raw_stream_get_conference (self, error);
+  FsStreamTransmitter *st = NULL;
+  gboolean ret = FALSE;
+
+  if (!conference)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->stream_transmitter)
+    st = g_object_ref (self->priv->stream_transmitter);
+  GST_OBJECT_UNLOCK (conference);
+
+  if (st)
+  {
+    ret = fs_stream_transmitter_force_remote_candidates (st, candidates, error);
     g_object_unref (st);
   }
 
