@@ -615,6 +615,13 @@
   )
 )
 
+(define-method get_src_pads_iterator
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_get_src_pads_iterator")
+  (return-type "GstIterator*")
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...
