@@ -100,7 +100,6 @@ static FsSession *fs_raw_conference_new_session (FsBaseConference *conf,
     GError **error);
 
 static FsParticipant *fs_raw_conference_new_participant (FsBaseConference *conf,
-    const gchar *cname,
     GError **error);
 
 static void _remove_session (gpointer user_data,
@@ -286,7 +285,6 @@ fs_raw_conference_new_session (FsBaseConference *conf,
 
 static FsParticipant *
 fs_raw_conference_new_participant (FsBaseConference *conf,
-                                   const gchar *cname,
                                    GError **error)
 {
   FsRawConference *self = FS_RAW_CONFERENCE (conf);
