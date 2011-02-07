@@ -594,3 +594,44 @@ fs_stream_get_src_pads_iterator (FsStream *stream)
       &stream->priv->src_pads_cookie, &stream->priv->src_pads,
       g_object_ref (stream), src_pad_iterator_item_func, g_object_unref);
 }
+
+
+/**
+ * fs_stream_set_transmitter:
+ * @stream: a #FsStream
+ * @transmitter: Name of the type of transmitter to use for this stream
+ * @stream_transmitter_n_parameters: Number of parametrs passed to the stream
+ *  transmitter
+ * @stream_transmitter_parameters: an array of n_parameters #GParameter struct
+ *  that will be passed to the newly-created #FsStreamTransmitter
+ * @error: location of a #GError, or %NULL if no error occured
+ *
+ * Set the transmitter to use for this stream. This function will only succeed
+ * once.
+ *
+ * Returns: %TRUE if the transmitter could be set, %FALSE otherwise
+ */
+
+gboolean
+fs_stream_set_transmitter (FsStream *stream,
+    const gchar *transmitter,
+    GParameter *stream_transmitter_parameters,
+    guint stream_transmitter_n_parameters,
+    GError **error)
+{
+  FsStreamClass *klass;
+
+  g_return_val_if_fail (stream, FALSE);
+  g_return_val_if_fail (FS_IS_STREAM (stream), FALSE);
+  klass = FS_STREAM_GET_CLASS (stream);
+
+  if (klass->set_transmitter)
+    return klass->set_transmitter (stream, transmitter,
+        stream_transmitter_parameters, stream_transmitter_n_parameters, error);
+
+
+  g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
+      "set_transmitter not defined in class");
+
+  return FALSE;
+}
