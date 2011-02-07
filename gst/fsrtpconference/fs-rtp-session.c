@@ -274,6 +274,14 @@ static GstElement *_substream_get_codec_bin (FsRtpSubStream *substream,
 static gboolean _stream_new_remote_codecs (FsRtpStream *stream,
     GList *codecs, GError **error, gpointer user_data);
 
+static FsStreamTransmitter* _stream_get_new_stream_transmitter (
+  FsRtpStream *stream,
+  const gchar *transmitter_name,
+  FsParticipant *participant,
+  GParameter *parameters,
+  guint n_parameters,
+  GError **error,
+  gpointer user_data);
 
 static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     FsRtpSession *self,
@@ -1709,6 +1717,8 @@ _remove_stream (gpointer user_data,
   fs_rtp_session_has_disposed_exit (self);
 }
 
+
+
 /**
  * fs_rtp_session_new_stream:
  * @session: an #FsRtpSession
@@ -1735,7 +1745,7 @@ fs_rtp_session_new_stream (FsSession *session,
   FsRtpSession *self = FS_RTP_SESSION (session);
   FsRtpParticipant *rtpparticipant = NULL;
   FsStream *new_stream = NULL;
-  FsStreamTransmitter *st;
+  FsStreamTransmitter *st = NULL;
 
   if (!FS_IS_RTP_PARTICIPANT (participant))
   {
@@ -1749,13 +1759,16 @@ fs_rtp_session_new_stream (FsSession *session,
 
   rtpparticipant = FS_RTP_PARTICIPANT (participant);
 
-  st = fs_rtp_session_get_new_stream_transmitter (self, transmitter,
-      participant, n_parameters, parameters, error);
-
-  if (!st)
+  if (transmitter)
   {
-    fs_rtp_session_has_disposed_exit (self);
-    return NULL;
+    st = fs_rtp_session_get_new_stream_transmitter (self, transmitter,
+        participant, n_parameters, parameters, error);
+
+    if (!st)
+    {
+      fs_rtp_session_has_disposed_exit (self);
+      return NULL;
+    }
   }
 
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
@@ -1763,6 +1776,7 @@ fs_rtp_session_new_stream (FsSession *session,
           _stream_known_source_packet_received,
           _stream_sending_changed_locked,
           _stream_ssrc_added_cb,
+          _stream_get_new_stream_transmitter,
           self, error));
 
 
@@ -2307,6 +2321,7 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
   return NULL;
 }
 
+
 /**
  * fs_rtp_session_get_new_stream_transmitter:
  * @self: a #FsRtpSession
@@ -2328,6 +2343,33 @@ fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
 {
   FsTransmitter *transmitter;
   FsStreamTransmitter *st = NULL;
+
+  transmitter = fs_rtp_session_get_transmitter (self, transmitter_name, error);
+
+  if (!transmitter)
+    return NULL;
+
+  st = fs_transmitter_new_stream_transmitter (transmitter, participant,
+      n_parameters, parameters, error);
+
+  g_object_unref (transmitter);
+
+  return st;
+}
+
+
+static FsStreamTransmitter *
+_stream_get_new_stream_transmitter (FsRtpStream *stream,
+    const gchar *transmitter_name,
+    FsParticipant *participant,
+    GParameter *parameters,
+    guint n_parameters,
+    GError **error,
+    gpointer user_data)
+{
+  FsTransmitter *transmitter;
+  FsStreamTransmitter *st = NULL;
+  FsRtpSession *self = user_data;
 
   transmitter = fs_rtp_session_get_transmitter (self, transmitter_name, error);
 
