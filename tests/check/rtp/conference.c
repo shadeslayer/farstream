@@ -170,6 +170,12 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
       other_st->target->id,
       candidate->component_id);
 
+  if (other_st->stream == NULL)
+  {
+    TEST_UNLOCK ();
+    return;
+  }
+
   candidates = g_list_prepend (NULL, candidate);
   ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
   g_list_free (candidates);
