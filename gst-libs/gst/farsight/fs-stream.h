@@ -99,7 +99,7 @@ typedef struct _FsStreamPrivate FsStreamPrivate;
 /**
  * FsStreamClass:
  * @parent_class: Our parent
- * @set_remote_candidates: Set sthe remote candidates
+ * @add_remote_candidates: Set sthe remote candidates
  * @force_remote_candidates: Forces certain remote candidates
  * @set_remote_codecs: Sets the list of remote codecs
  * @add_id: Add a known id to be associated with this stream
@@ -113,7 +113,7 @@ struct _FsStreamClass
   GstObjectClass parent_class;
 
   /*virtual functions */
-  gboolean (*set_remote_candidates) (FsStream *stream,
+  gboolean (*add_remote_candidates) (FsStream *stream,
                                      GList *candidates,
                                      GError **error);
 
@@ -149,7 +149,7 @@ struct _FsStream
 
 GType fs_stream_get_type (void);
 
-gboolean fs_stream_set_remote_candidates (FsStream *stream,
+gboolean fs_stream_add_remote_candidates (FsStream *stream,
                                           GList *candidates,
                                           GError **error);
 

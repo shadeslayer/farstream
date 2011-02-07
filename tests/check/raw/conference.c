@@ -1099,7 +1099,7 @@ nway_test (int in_count, extra_conf_init extra_conf_init,
           FsCandidate *candidate = fs_candidate_new ("1", 1,
               FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP,
               "/tmp/test-stream", 0);
-          fs_stream_add_remote_candidates (st->stream,
+          fs_stream_force_remote_candidates (st->stream,
               g_list_prepend (NULL, candidate), NULL);
         }
 
@@ -1306,7 +1306,7 @@ GST_START_TEST (test_rawconference_dispose)
 
   g_object_run_dispose (G_OBJECT (stream));
 
-  fail_if (fs_stream_set_remote_candidates (stream, NULL, &error));
+  fail_if (fs_stream_add_remote_candidates (stream, NULL, &error));
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
@@ -1326,7 +1326,7 @@ GST_START_TEST (test_rawconference_dispose)
 
   g_object_run_dispose (G_OBJECT (stream));
 
-  fail_if (fs_stream_set_remote_candidates (stream, NULL, &error));
+  fail_if (fs_stream_add_remote_candidates (stream, NULL, &error));
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 

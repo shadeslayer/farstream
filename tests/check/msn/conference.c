@@ -117,13 +117,13 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
           {
             GError *error = NULL;
             GList *list = g_list_append (NULL, candidate);
-            gboolean set_remote_candidates_res;
+            gboolean add_remote_candidates_res;
 
             g_debug ("Setting candidate: %s %d",
                 candidate->ip, candidate->port);
-            set_remote_candidates_res = fs_stream_set_remote_candidates (
+            add_remote_candidates_res = fs_stream_add_remote_candidates (
                 dat->target->stream, list, &error);
-            ts_fail_unless (set_remote_candidates_res,
+            ts_fail_unless (add_remote_candidates_res,
                 "Could not set remote candidate: %s",
                 error ? error->message : "No GError");
             ts_fail_unless (error == NULL);

@@ -374,13 +374,13 @@ fs_stream_set_property (GObject *object,
 }
 
 /**
- * fs_stream_set_remote_candidates:
+ * fs_stream_add_remote_candidates:
  * @stream: an #FsStream
  * @candidates: (element-type FsCandidate): an #GList of #FsCandidate
  *  representing the remote candidates
  * @error: location of a #GError, or %NULL if no error occured
  *
- * This function sets the list of remote candidates. Any new candidates are
+ * This function adds remote candidates. Any new candidates are
  * added to the list. The candidates will be used to establish a connection
  * with the peer. A copy will be made so the user must free the
  * passed candidate using fs_candidate_destroy() when done.
@@ -388,7 +388,7 @@ fs_stream_set_property (GObject *object,
  * Return value: TRUE if the candidate was valid, FALSE otherwise
  */
 gboolean
-fs_stream_set_remote_candidates (FsStream *stream,
+fs_stream_add_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error)
 {
@@ -398,11 +398,11 @@ fs_stream_set_remote_candidates (FsStream *stream,
   g_return_val_if_fail (FS_IS_STREAM (stream), FALSE);
   klass = FS_STREAM_GET_CLASS (stream);
 
-  if (klass->set_remote_candidates) {
-    return klass->set_remote_candidates (stream, candidates, error);
+  if (klass->add_remote_candidates) {
+    return klass->add_remote_candidates (stream, candidates, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
-      "set_remote_candidate not defined in class");
+      "add_remote_candidate not defined in class");
   }
 
   return FALSE;

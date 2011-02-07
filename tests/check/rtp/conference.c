@@ -180,7 +180,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   }
 
   candidates = g_list_prepend (NULL, candidate);
-  ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
+  ret = fs_stream_add_remote_candidates (other_st->stream, candidates, &error);
   if (ret == FALSE && error &&
       error->domain == FS_ERROR && error->code == FS_ERROR_NOT_IMPLEMENTED)
   {
@@ -1247,7 +1247,7 @@ GST_START_TEST (test_rtpconference_dispose)
 
   g_object_run_dispose (G_OBJECT (stream));
 
-  fail_if (fs_stream_set_remote_candidates (stream, NULL, &error));
+  fail_if (fs_stream_add_remote_candidates (stream, NULL, &error));
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
@@ -1267,7 +1267,7 @@ GST_START_TEST (test_rtpconference_dispose)
 
   g_object_run_dispose (G_OBJECT (stream));
 
-  fail_if (fs_stream_set_remote_candidates (stream, NULL, &error));
+  fail_if (fs_stream_add_remote_candidates (stream, NULL, &error));
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 

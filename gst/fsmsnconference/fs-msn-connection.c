@@ -338,10 +338,10 @@ fs_msn_connection_gather_local_candidates (FsMsnConnection *self,
 
 
 /**
- * fs_msn_connection_set_remote_candidate:
+ * fs_msn_connection_add_remote_candidate:
  */
 gboolean
-fs_msn_connection_set_remote_candidates (FsMsnConnection *self,
+fs_msn_connection_add_remote_candidates (FsMsnConnection *self,
     GList *candidates, GError **error)
 {
   GList *item = NULL;

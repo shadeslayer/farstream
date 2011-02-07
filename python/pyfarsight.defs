@@ -576,10 +576,10 @@
   (return-type "GType")
 )
 
-(define-method set_remote_candidates
+(define-method add_remote_candidates
   (of-object "FsStream")
   (unblock-threads t)
-  (c-name "fs_stream_set_remote_candidates")
+  (c-name "fs_stream_add_remote_candidates")
   (return-type "gboolean")
   (parameters
     '("GList*" "candidates")

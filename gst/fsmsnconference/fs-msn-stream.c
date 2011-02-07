@@ -125,7 +125,7 @@ static void fs_msn_stream_set_property (GObject *object,
 
 static void fs_msn_stream_constructed (GObject *object);
 
-static gboolean fs_msn_stream_set_remote_candidates (FsStream *stream,
+static gboolean fs_msn_stream_add_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error);
 
@@ -161,7 +161,7 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
   gobject_class->dispose = fs_msn_stream_dispose;
   gobject_class->finalize = fs_msn_stream_finalize;
 
-  stream_class->set_remote_candidates = fs_msn_stream_set_remote_candidates;
+  stream_class->add_remote_candidates = fs_msn_stream_add_remote_candidates;
 
 
   g_type_class_add_private (klass, sizeof (FsMsnStreamPrivate));
@@ -778,10 +778,10 @@ _connection_failed (FsMsnConnection *connection, FsMsnStream *self)
 }
 
 /**
- * fs_msn_stream_set_remote_candidate:
+ * fs_msn_stream_add_remote_candidate:
  */
 static gboolean
-fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
+fs_msn_stream_add_remote_candidates (FsStream *stream, GList *candidates,
                                      GError **error)
 {
   FsMsnStream *self = FS_MSN_STREAM (stream);
@@ -799,7 +799,7 @@ fs_msn_stream_set_remote_candidates (FsStream *stream, GList *candidates,
 
   if (conn)
   {
-    ret = fs_msn_connection_set_remote_candidates (conn, candidates, error);
+    ret = fs_msn_connection_add_remote_candidates (conn, candidates, error);
     g_object_unref (conn);
   }
 

@@ -112,7 +112,7 @@ static void fs_rtp_stream_set_property (GObject *object,
 static void fs_rtp_stream_constructed (GObject *object);
 
 
-static gboolean fs_rtp_stream_set_remote_candidates (FsStream *stream,
+static gboolean fs_rtp_stream_add_remote_candidates (FsStream *stream,
                                                      GList *candidates,
                                                      GError **error);
 static gboolean fs_rtp_stream_force_remote_candidates (FsStream *stream,
@@ -170,7 +170,7 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   gobject_class->dispose = fs_rtp_stream_dispose;
   gobject_class->finalize = fs_rtp_stream_finalize;
 
-  stream_class->set_remote_candidates = fs_rtp_stream_set_remote_candidates;
+  stream_class->add_remote_candidates = fs_rtp_stream_add_remote_candidates;
   stream_class->set_remote_codecs = fs_rtp_stream_set_remote_codecs;
   stream_class->force_remote_candidates = fs_rtp_stream_force_remote_candidates;
   stream_class->add_id = fs_rtp_stream_add_id;
@@ -595,10 +595,10 @@ fs_rtp_stream_constructed (GObject *object)
 
 
 /**
- * fs_rtp_stream_set_remote_candidate:
+ * fs_rtp_stream_add_remote_candidate:
  */
 static gboolean
-fs_rtp_stream_set_remote_candidates (FsStream *stream, GList *candidates,
+fs_rtp_stream_add_remote_candidates (FsStream *stream, GList *candidates,
                                      GError **error)
 {
   FsRtpStream *self = FS_RTP_STREAM (stream);

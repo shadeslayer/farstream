@@ -147,7 +147,7 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
           FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, remoteip,
           remoteport));
 
-  res = fs_stream_set_remote_candidates (ses->stream, cands, &error);
+  res = fs_stream_add_remote_candidates (ses->stream, cands, &error);
   print_error (error);
   g_assert (res);
 
