@@ -311,19 +311,19 @@ fs_stream_transmitter_set_property (GObject *object,
 
 
 /**
- * fs_stream_transmitter_set_remote_candidates
+ * fs_stream_transmitter_add_remote_candidates
  * @streamtransmitter: a #FsStreamTranmitter
  * @candidates: (element-type FsCandidate): a #GList of the remote candidates
  * @error: location of a #GError, or NULL if no error occured
  *
- * This function is used to set the remote candidates to the transmitter
+ * This function is used to add remote candidates to the transmitter
  *
  * Returns: TRUE of the candidate could be added, FALSE if it couldnt
  *   (and the #GError will be set)
  */
 
 gboolean
-fs_stream_transmitter_set_remote_candidates (
+fs_stream_transmitter_add_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
     GList *candidates,
     GError **error)
@@ -334,8 +334,8 @@ fs_stream_transmitter_set_remote_candidates (
   g_return_val_if_fail (FS_IS_STREAM_TRANSMITTER (streamtransmitter), FALSE);
   klass = FS_STREAM_TRANSMITTER_GET_CLASS (streamtransmitter);
 
-  if (klass->set_remote_candidates) {
-    return klass->set_remote_candidates (streamtransmitter, candidates, error);
+  if (klass->add_remote_candidates) {
+    return klass->add_remote_candidates (streamtransmitter, candidates, error);
   } else {
     g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
       "add_remote_candidate not defined in stream transmitter class");

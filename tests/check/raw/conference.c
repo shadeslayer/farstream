@@ -1099,8 +1099,7 @@ nway_test (int in_count, extra_conf_init extra_conf_init,
           FsCandidate *candidate = fs_candidate_new ("1", 1,
               FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP,
               "/tmp/test-stream", 0);
-          st->candidate = fs_candidate_copy (candidate);
-          fs_stream_set_remote_candidates (st->stream,
+          fs_stream_add_remote_candidates (st->stream,
               g_list_prepend (NULL, candidate), NULL);
         }
 

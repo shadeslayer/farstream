@@ -197,7 +197,7 @@ fs_transmitter_get_type
 <INCLUDE>gst/farsight/fs-transmitter.h</INCLUDE>
 FsStreamTransmitter
 FsStreamTransmitterClass
-fs_stream_transmitter_set_remote_candidates
+fs_stream_transmitter_add_remote_candidates
 fs_stream_transmitter_gather_local_candidates
 fs_stream_transmitter_force_remote_candidates
 fs_stream_transmitter_stop

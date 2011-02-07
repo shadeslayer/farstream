@@ -56,7 +56,7 @@ typedef struct _FsStreamTransmitterPrivate FsStreamTransmitterPrivate;
 /**
  * FsStreamTransmitterClass:
  * @parent_class: Our parent
- * @set_remote_candidates: Sets the remote candidates
+ * @add_remote_candidates: Sets the remote candidates
  * @force_remote_candidates: Forces certain remote candidates
  * @gather_local_candidates: Starts the gathering of local candidates
  * @stop: Stop the stream transmitter synchronously (does any Gst stopping
@@ -70,7 +70,7 @@ struct _FsStreamTransmitterClass
   GstObjectClass parent_class;
 
   /*virtual functions */
-  gboolean (*set_remote_candidates) (FsStreamTransmitter *streamtransmitter,
+  gboolean (*add_remote_candidates) (FsStreamTransmitter *streamtransmitter,
                                      GList *candidates, GError **error);
 
   gboolean (*force_remote_candidates) (FsStreamTransmitter *streamtransmitter,
@@ -100,7 +100,7 @@ struct _FsStreamTransmitter
 
 GType fs_stream_transmitter_get_type (void);
 
-gboolean fs_stream_transmitter_set_remote_candidates (
+gboolean fs_stream_transmitter_add_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
     GList *candidates,
     GError **error);

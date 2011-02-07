@@ -608,7 +608,7 @@ fs_rtp_stream_set_remote_candidates (FsStream *stream, GList *candidates,
   if (!st)
     return FALSE;
 
-  ret = fs_stream_transmitter_set_remote_candidates (st, candidates, error);
+  ret = fs_stream_transmitter_add_remote_candidates (st, candidates, error);
 
   g_object_unref (st);
   return ret;

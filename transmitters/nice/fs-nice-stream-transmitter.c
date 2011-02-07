@@ -141,7 +141,7 @@ static void fs_nice_stream_transmitter_set_property (GObject *object,
                                                 const GValue *value,
                                                 GParamSpec *pspec);
 
-static gboolean fs_nice_stream_transmitter_set_remote_candidates (
+static gboolean fs_nice_stream_transmitter_add_remote_candidates (
     FsStreamTransmitter *streamtransmitter, GList *candidates,
     GError **error);
 static gboolean fs_nice_stream_transmitter_force_remote_candidates (
@@ -225,8 +225,8 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
   gobject_class->dispose = fs_nice_stream_transmitter_dispose;
   gobject_class->finalize = fs_nice_stream_transmitter_finalize;
 
-  streamtransmitterclass->set_remote_candidates =
-    fs_nice_stream_transmitter_set_remote_candidates;
+  streamtransmitterclass->add_remote_candidates =
+    fs_nice_stream_transmitter_add_remote_candidates;
   streamtransmitterclass->force_remote_candidates =
     fs_nice_stream_transmitter_force_remote_candidates;
   streamtransmitterclass->gather_local_candidates =
@@ -649,7 +649,7 @@ fs_candidate_to_nice_candidate (FsNiceStreamTransmitter *self,
 
 
 static gboolean
-fs_nice_stream_transmitter_set_remote_candidates (
+fs_nice_stream_transmitter_add_remote_candidates (
     FsStreamTransmitter *streamtransmitter,
     GList *candidates,
     GError **error)
@@ -1766,7 +1766,7 @@ agent_gathering_done_idle (gpointer data)
       }
 
 
-      if (!fs_nice_stream_transmitter_set_remote_candidates (
+      if (!fs_nice_stream_transmitter_add_remote_candidates (
               FS_STREAM_TRANSMITTER_CAST (self),
               remote_candidates, &error))
       {
