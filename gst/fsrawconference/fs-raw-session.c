@@ -89,7 +89,7 @@ struct _FsRawSessionPrivate
   GstElement *send_capsfilter;
   GList *codecs;
   FsCodec *send_codec;
-  gboolean transmitter_linked;
+  gboolean transmitter_sink_added;
 
   GstElement *send_tee;
   GstPad *send_tee_pad;
@@ -1079,8 +1079,9 @@ fs_raw_session_update_direction (FsRawSession *self,
     goto out;
   }
 
-  if (direction & FS_DIRECTION_SEND && !self->priv->transmitter_linked)
-  {
+  if (self->priv->transmitter &&
+      !self->priv->transmitter_sink_added &&
+      direction & FS_DIRECTION_SEND)  {
     GstElement *transmitter_sink;
 
     GST_OBJECT_UNLOCK (conference);
@@ -1104,7 +1105,7 @@ fs_raw_session_update_direction (FsRawSession *self,
     gst_object_unref (transmitter_sink);
 
     GST_OBJECT_LOCK (conference);
-    self->priv->transmitter_linked = TRUE;
+    self->priv->transmitter_sink_added = TRUE;
   }
 
   if (self->priv->recv_valve)
@@ -1173,10 +1174,13 @@ fs_raw_session_new_stream (FsSession *session,
     goto already_have_stream;
   GST_OBJECT_UNLOCK (conference);
 
-  stream_transmitter = _stream_get_stream_transmitter (NULL,
-      transmitter, participant, parameters, n_parameters, error, self);
-  if (!stream_transmitter)
-    goto error;
+  if (transmitter)
+  {
+    stream_transmitter = _stream_get_stream_transmitter (NULL,
+        transmitter, participant, parameters, n_parameters, error, self);
+    if (!stream_transmitter)
+      goto error;
+  }
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self,
           FS_RAW_PARTICIPANT (participant),

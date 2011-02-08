@@ -186,6 +186,11 @@ static gboolean fs_raw_stream_force_remote_candidates (FsStream *stream,
 static gboolean fs_raw_stream_set_remote_codecs (FsStream *stream,
     GList *remote_codecs,
     GError **error);
+static gboolean fs_raw_stream_set_transmitter (FsStream *stream,
+    const gchar *transmitter,
+    GParameter *stream_transmitter_parameters,
+    guint stream_transmitter_n_parameters,
+    GError **error);
 
 static void
 fs_raw_stream_class_init (FsRawStreamClass *klass)
@@ -204,7 +209,7 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
   stream_class->add_remote_candidates = fs_raw_stream_add_remote_candidates;
   stream_class->force_remote_candidates = fs_raw_stream_force_remote_candidates;
   stream_class->set_remote_codecs = fs_raw_stream_set_remote_codecs;
-
+  stream_class->set_transmitter = fs_raw_stream_set_transmitter;
 
   g_type_class_add_private (klass, sizeof (FsRawStreamPrivate));
 
@@ -509,50 +514,47 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
-  if (!self->priv->stream_transmitter) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "The Stream Transmitter has not been set");
-    return;
-  }
+  if (self->priv->stream_transmitter)
+  {
+    g_object_set (self->priv->stream_transmitter, "sending",
+        (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
 
-  g_object_set (self->priv->stream_transmitter, "sending",
-      (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
+    self->priv->local_candidates_prepared_handler_id =
+        g_signal_connect_object (self->priv->stream_transmitter,
+            "local-candidates-prepared",
+            G_CALLBACK (_local_candidates_prepared),
+            self, 0);
+    self->priv->new_active_candidate_pair_handler_id =
+        g_signal_connect_object (self->priv->stream_transmitter,
+            "new-active-candidate-pair",
+            G_CALLBACK (_new_active_candidate_pair),
+            self, 0);
+    self->priv->new_local_candidate_handler_id =
+        g_signal_connect_object (self->priv->stream_transmitter,
+            "new-local-candidate",
+            G_CALLBACK (_new_local_candidate),
+            self, 0);
+    self->priv->error_handler_id =
+        g_signal_connect_object (self->priv->stream_transmitter,
+            "error",
+            G_CALLBACK (_transmitter_error),
+            self, 0);
+    self->priv->state_changed_handler_id =
+        g_signal_connect_object (self->priv->stream_transmitter,
+            "state-changed",
+            G_CALLBACK (_state_changed),
+            self, 0);
 
-  self->priv->local_candidates_prepared_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "local-candidates-prepared",
-        G_CALLBACK (_local_candidates_prepared),
-        self, 0);
-  self->priv->new_active_candidate_pair_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "new-active-candidate-pair",
-        G_CALLBACK (_new_active_candidate_pair),
-        self, 0);
-  self->priv->new_local_candidate_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "new-local-candidate",
-        G_CALLBACK (_new_local_candidate),
-        self, 0);
-  self->priv->error_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "error",
-        G_CALLBACK (_transmitter_error),
-        self, 0);
-  self->priv->state_changed_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "state-changed",
-        G_CALLBACK (_state_changed),
-        self, 0);
-
-  if (!fs_stream_transmitter_gather_local_candidates (
+    if (!fs_stream_transmitter_gather_local_candidates (
           self->priv->stream_transmitter,
           &self->priv->construction_error))
-  {
-    if (!self->priv->construction_error)
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_INTERNAL,
-          "Unknown error while gathering local candidates");
-    return;
+    {
+      if (!self->priv->construction_error)
+        self->priv->construction_error = g_error_new (FS_ERROR,
+            FS_ERROR_INTERNAL,
+            "Unknown error while gathering local candidates");
+      return;
+    }
   }
 
   if (G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed)
@@ -862,7 +864,6 @@ fs_raw_stream_new (FsRawSession *session,
 
   g_return_val_if_fail (session, NULL);
   g_return_val_if_fail (participant, NULL);
-  g_return_val_if_fail (stream_transmitter, NULL);
 
   self = g_object_new (FS_TYPE_RAW_STREAM,
       "session", session,
@@ -891,3 +892,111 @@ fs_raw_stream_new (FsRawSession *session,
   return self;
 }
 
+
+static gboolean
+fs_raw_stream_set_transmitter (FsStream *stream,
+    const gchar *transmitter,
+    GParameter *stream_transmitter_parameters,
+    guint stream_transmitter_n_parameters,
+    GError **error)
+{
+  FsRawStream *self = FS_RAW_STREAM (stream);
+  FsRawConference *conf = fs_raw_stream_get_conference (self, error);
+  FsStreamTransmitter *st;
+  FsRawSession *session = NULL;
+
+  if (!conf)
+    return FALSE;
+
+  GST_OBJECT_LOCK (conf);
+  if (self->priv->stream_transmitter)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
+        "Stream transmitter already set");
+    GST_OBJECT_UNLOCK (conf);
+    goto error;
+  }
+
+  session = g_object_ref (self->priv->session);
+  GST_OBJECT_UNLOCK (conf);
+
+  st = self->priv->get_new_stream_transmitter_cb (self, transmitter,
+      FS_PARTICIPANT (self->priv->participant), stream_transmitter_parameters,
+      stream_transmitter_n_parameters,error, self->priv->user_data);
+
+  if (!st)
+    goto error;
+
+  GST_OBJECT_LOCK (conf);
+  self->priv->stream_transmitter = st;
+  GST_OBJECT_UNLOCK (conf);
+
+
+  g_object_set (self->priv->stream_transmitter, "sending",
+      (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
+
+  self->priv->local_candidates_prepared_handler_id =
+      g_signal_connect_object (self->priv->stream_transmitter,
+          "local-candidates-prepared",
+          G_CALLBACK (_local_candidates_prepared),
+          self, 0);
+  self->priv->new_active_candidate_pair_handler_id =
+      g_signal_connect_object (self->priv->stream_transmitter,
+          "new-active-candidate-pair",
+          G_CALLBACK (_new_active_candidate_pair),
+          self, 0);
+  self->priv->new_local_candidate_handler_id =
+      g_signal_connect_object (self->priv->stream_transmitter,
+          "new-local-candidate",
+          G_CALLBACK (_new_local_candidate),
+          self, 0);
+  self->priv->error_handler_id =
+      g_signal_connect_object (self->priv->stream_transmitter,
+          "error",
+          G_CALLBACK (_transmitter_error),
+          self, 0);
+  self->priv->state_changed_handler_id =
+      g_signal_connect_object (self->priv->stream_transmitter,
+          "state-changed",
+          G_CALLBACK (_state_changed),
+          self, 0);
+
+  if (!fs_stream_transmitter_gather_local_candidates (
+        self->priv->stream_transmitter, error))
+  {
+    if (!self->priv->construction_error)
+      GST_OBJECT_LOCK (conf);
+    self->priv->stream_transmitter = NULL;
+    GST_OBJECT_UNLOCK (conf);
+
+    g_signal_handler_disconnect (st,
+        self->priv->local_candidates_prepared_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->new_active_candidate_pair_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->new_local_candidate_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->error_handler_id);
+    g_signal_handler_disconnect (st,
+        self->priv->state_changed_handler_id);
+
+    fs_stream_transmitter_stop (st);
+    /* We want to remove the transmitter, but not the stream */
+    fs_raw_session_remove_stream (session, NULL);
+    goto error;
+  }
+
+  g_object_unref (conf);
+  g_object_unref (session);
+
+  g_object_notify (G_OBJECT (self), "remote-codecs");
+  g_object_notify (G_OBJECT (self), "direction");
+  return TRUE;
+
+error:
+  if (session)
+    g_object_unref (session);
+  g_object_unref (conf);
+
+  return FALSE;
+}
