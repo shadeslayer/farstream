@@ -123,6 +123,13 @@ static void fs_msn_stream_set_property (GObject *object,
                                         const GValue *value,
                                         GParamSpec *pspec);
 
+static gboolean
+fs_msn_stream_set_transmitter (FsStream *stream,
+    const gchar *transmitter,
+    GParameter *stream_transmitter_parameters,
+    guint stream_transmitter_n_parameters,
+    GError **error);
+
 static void fs_msn_stream_constructed (GObject *object);
 
 static gboolean fs_msn_stream_add_remote_candidates (FsStream *stream,
@@ -162,7 +169,7 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
   gobject_class->finalize = fs_msn_stream_finalize;
 
   stream_class->add_remote_candidates = fs_msn_stream_add_remote_candidates;
-
+  stream_class->set_transmitter = fs_msn_stream_set_transmitter;
 
   g_type_class_add_private (klass, sizeof (FsMsnStreamPrivate));
 
@@ -901,3 +908,75 @@ fs_msn_stream_set_tos_locked (FsMsnStream *self, gint tos)
 #endif
 }
 
+
+static gboolean
+fs_msn_stream_set_transmitter (FsStream *stream,
+    const gchar *transmitter,
+    GParameter *stream_transmitter_parameters,
+    guint stream_transmitter_n_parameters,
+    GError **error)
+{
+  FsMsnStream *self = FS_MSN_STREAM (stream);
+  FsMsnConference *conference = fs_msn_stream_get_conference (self, error);
+  gboolean producer;
+  guint i;
+
+  if (conference)
+    return FALSE;
+
+  for (i = 0; i < stream_transmitter_n_parameters; i++)
+  {
+    if (!g_ascii_strcasecmp (stream_transmitter_parameters[i].name,
+            "session-id"))
+    {
+      if (g_value_get_uint (&stream_transmitter_parameters[i].value) >= 1025 &&
+          g_value_get_uint (&stream_transmitter_parameters[i].value) < 65536)
+        self->priv->session_id =
+            g_value_get_uint (&stream_transmitter_parameters[i].value);
+    }
+    else if (!g_ascii_strcasecmp (stream_transmitter_parameters[i].name,
+            "initial-port"))
+    {
+      if (g_value_get_uint (&stream_transmitter_parameters[i].value) < 10000)
+        self->priv->initial_port =
+            g_value_get_uint (&stream_transmitter_parameters[i].value);
+    }
+  }
+
+  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
+    producer = FALSE;
+  else if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
+    producer = TRUE;
+  else
+    g_assert_not_reached ();
+
+
+  self->priv->connection = fs_msn_connection_new (self->priv->session_id,
+      producer, self->priv->initial_port);
+
+  g_signal_connect (self->priv->connection,
+      "new-local-candidate",
+      G_CALLBACK (_new_local_candidate), self);
+  g_signal_connect (self->priv->connection,
+      "local-candidates-prepared",
+      G_CALLBACK (_local_candidates_prepared), self);
+  g_signal_connect (self->priv->connection,
+      "connected",
+      G_CALLBACK (_connected), self);
+  g_signal_connect (self->priv->connection,
+      "connection-failed",
+      G_CALLBACK (_connection_failed), self);
+
+  if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
+          &self->priv->construction_error))
+  {
+    g_object_unref (self->priv->connection);
+    self->priv->connection = NULL;
+    g_object_unref (conference);
+    return FALSE;
+  }
+
+  g_object_unref (conference);
+
+  return TRUE;
+}
