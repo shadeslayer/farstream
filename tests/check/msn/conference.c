@@ -276,9 +276,13 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
   }
 
   dat->stream = fs_session_new_stream (dat->session, dat->part, dir, NULL,
-      n_params, &param, &error);
+      0, NULL, &error);
   ts_fail_unless (dat->stream != NULL);
   ts_fail_unless (error == NULL);
+
+  fail_unless (fs_stream_set_transmitter (dat->stream, NULL, &param, n_params,
+          &error));
+  fail_unless (error == NULL);
 
   g_signal_connect (dat->stream, "src-pad-added",
       G_CALLBACK (stream_src_pad_added), dat);
@@ -381,6 +385,10 @@ GST_START_TEST (test_msnconference_error)
   ts_fail_unless (error->domain == FS_ERROR &&
       error->code == FS_ERROR_ALREADY_EXISTS);
   g_clear_error (&error);
+
+  fail_unless (fs_stream_set_transmitter (dat->stream, NULL, NULL, 0,
+          &error));
+  fail_unless (error == NULL);
 
 
   free_conference (dat);

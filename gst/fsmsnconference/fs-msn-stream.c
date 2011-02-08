@@ -130,8 +130,6 @@ fs_msn_stream_set_transmitter (FsStream *stream,
     guint stream_transmitter_n_parameters,
     GError **error);
 
-static void fs_msn_stream_constructed (GObject *object);
-
 static gboolean fs_msn_stream_add_remote_candidates (FsStream *stream,
     GList *candidates,
     GError **error);
@@ -164,7 +162,6 @@ fs_msn_stream_class_init (FsMsnStreamClass *klass)
 
   gobject_class->set_property = fs_msn_stream_set_property;
   gobject_class->get_property = fs_msn_stream_get_property;
-  gobject_class->constructed = fs_msn_stream_constructed;
   gobject_class->dispose = fs_msn_stream_dispose;
   gobject_class->finalize = fs_msn_stream_finalize;
 
@@ -459,44 +456,6 @@ fs_msn_stream_set_property (GObject *object,
     gst_object_unref (conference);
   }
 }
-
-static void
-fs_msn_stream_constructed (GObject *object)
-{
-  FsMsnStream *self = FS_MSN_STREAM_CAST (object);
-  gboolean producer;
-
-  if (self->priv->conference->max_direction == FS_DIRECTION_RECV)
-    producer = FALSE;
-  else if (self->priv->conference->max_direction == FS_DIRECTION_SEND)
-    producer = TRUE;
-  else
-    g_assert_not_reached ();
-
-  self->priv->connection = fs_msn_connection_new (self->priv->session_id,
-      producer, self->priv->initial_port);
-
-  g_signal_connect (self->priv->connection,
-      "new-local-candidate",
-      G_CALLBACK (_new_local_candidate), self);
-  g_signal_connect (self->priv->connection,
-      "local-candidates-prepared",
-      G_CALLBACK (_local_candidates_prepared), self);
-  g_signal_connect (self->priv->connection,
-      "connected",
-      G_CALLBACK (_connected), self);
-  g_signal_connect (self->priv->connection,
-      "connection-failed",
-      G_CALLBACK (_connection_failed), self);
-
-  if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
-          &self->priv->construction_error))
-    return;
-
-  if (G_OBJECT_CLASS (fs_msn_stream_parent_class)->constructed)
-    G_OBJECT_CLASS (fs_msn_stream_parent_class)->constructed (object);
-}
-
 
 static void
 _local_candidates_prepared (FsMsnConnection *connection,
@@ -847,32 +806,13 @@ fs_msn_stream_new (FsMsnSession *session,
     GError **error)
 {
   FsMsnStream *self;
-  GParameter *params;
 
-  params = g_new0 (GParameter, n_parameters + 4);
-
-  params[0].name = "session";
-  g_value_init (&params[0].value, FS_TYPE_SESSION);
-  g_value_set_object (&params[0].value, session);
-
-  params[1].name = "participant";
-  g_value_init (&params[1].value, FS_TYPE_PARTICIPANT);
-  g_value_set_object (&params[1].value, participant);
-
-  params[2].name = "direction";
-  g_value_init (&params[2].value, FS_TYPE_STREAM_DIRECTION);
-  g_value_set_flags (&params[2].value, direction);
-
-  params[3].name = "conference";
-  g_value_init (&params[3].value, FS_TYPE_MSN_CONFERENCE);
-  g_value_set_object (&params[3].value, conference);
-
-  if (n_parameters)
-    memcpy (params+4, parameters, n_parameters * sizeof(GParameter));
-
-  self = g_object_newv (FS_TYPE_MSN_STREAM, n_parameters + 4, params);
-
-  g_free (params);
+  self = g_object_new (FS_TYPE_MSN_STREAM,
+      "session", session,
+      "participant", participant,
+      "direction", direction,
+      "conference", conference,
+      NULL);
 
   if (!self)
   {
@@ -921,7 +861,7 @@ fs_msn_stream_set_transmitter (FsStream *stream,
   gboolean producer;
   guint i;
 
-  if (conference)
+  if (!conference)
     return FALSE;
 
   for (i = 0; i < stream_transmitter_n_parameters; i++)
