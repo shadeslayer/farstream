@@ -323,7 +323,7 @@ fs_raw_session_dispose (GObject *object)
     if (handler_id > 0 && self->priv->stream)
       g_signal_handler_disconnect (self->priv->stream, handler_id);
 
-    raw_session_remove_stream(self, FS_STREAM (self->priv->stream));
+    fs_raw_session_remove_stream(self, FS_STREAM (self->priv->stream));
   }
 
   GST_OBJECT_LOCK (conference);
@@ -909,8 +909,8 @@ error:
 }
 
 void
-raw_session_remove_stream (FsRawSession *self,
-                           FsStream *stream)
+fs_raw_session_remove_stream (FsRawSession *self,
+    FsStream *stream)
 {
   FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   FsTransmitter *transmitter = NULL;

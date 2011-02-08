@@ -83,7 +83,7 @@ FsRawSession *fs_raw_session_new (FsMediaType media_type,
     guint id,
     GError **error);
 
-void raw_session_remove_stream (FsRawSession *self,
+void fs_raw_session_remove_stream (FsRawSession *self,
     FsStream *stream);
 
 void fs_raw_session_update_direction (FsRawSession *self,

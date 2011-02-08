@@ -379,7 +379,7 @@ fs_raw_stream_real_dispose (FsRawStream *self)
 
   if (self->priv->session)
   {
-    raw_session_remove_stream (self->priv->session, (FsStream *)self);
+    fs_raw_session_remove_stream (self->priv->session, (FsStream *)self);
 
     g_object_unref (self->priv->session);
     self->priv->session = NULL;
