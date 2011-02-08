@@ -88,7 +88,7 @@ struct _FsRawStreamPrivate
   FsRawParticipant *participant;
   FsStreamDirection direction;
   FsStreamTransmitter *stream_transmitter;
-  GstElement *capsfilter;
+  GstElement *recv_capsfilter;
   GstElement *recv_valve;
   GstPad *transmitter_pad;
   GstPad *src_pad;
@@ -328,13 +328,13 @@ fs_raw_stream_real_dispose (FsRawStream *self)
     self->priv->recv_valve = NULL;
   }
 
-  if (self->priv->capsfilter)
+  if (self->priv->recv_capsfilter)
   {
-    gst_element_set_locked_state (self->priv->capsfilter, TRUE);
-    gst_bin_remove (GST_BIN (conference), self->priv->capsfilter);
-    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
-    gst_object_unref (self->priv->capsfilter);
-    self->priv->capsfilter = NULL;
+    gst_element_set_locked_state (self->priv->recv_capsfilter, TRUE);
+    gst_bin_remove (GST_BIN (conference), self->priv->recv_capsfilter);
+    gst_element_set_state (self->priv->recv_capsfilter, GST_STATE_NULL);
+    gst_object_unref (self->priv->recv_capsfilter);
+    self->priv->recv_capsfilter = NULL;
   }
 
   if (self->priv->blocking_id)
@@ -574,7 +574,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 {
   FsRawStream *self = FS_RAW_STREAM_CAST (user_data);
   FsRawConference *conference = fs_raw_stream_get_conference (self, NULL);
-  GstElement *capsfilter = NULL;
+  GstElement *recv_capsfilter = NULL;
   GstPad *ghostpad;
   GstPad *srcpad;
   gchar *padname;
@@ -585,7 +585,7 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   GST_OBJECT_LOCK (conference);
   if (!self->priv->remote_codecs ||
-      !self->priv->capsfilter ||
+      !self->priv->recv_capsfilter ||
       !self->priv->blocking_id)
   {
     GST_OBJECT_UNLOCK (conference);
@@ -593,17 +593,17 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
     return FALSE;
   }
 
-  capsfilter = gst_object_ref (self->priv->capsfilter);
+  recv_capsfilter = gst_object_ref (self->priv->recv_capsfilter);
   gst_pad_remove_data_probe (pad, self->priv->blocking_id);
   self->priv->blocking_id = 0;
   codec = fs_codec_copy (self->priv->remote_codecs->data);
   GST_OBJECT_UNLOCK (conference);
 
-  srcpad = gst_element_get_static_pad (capsfilter, "src");
+  srcpad = gst_element_get_static_pad (recv_capsfilter, "src");
 
   if (!srcpad)
   {
-    GST_WARNING ("Unable to get capsfilter (%p) srcpad", capsfilter);
+    GST_WARNING ("Unable to get recv_capsfilter (%p) srcpad", recv_capsfilter);
     goto error;
   }
 
@@ -638,14 +638,14 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   fs_codec_destroy (codec);
   gst_object_unref (conference);
-  gst_object_unref (capsfilter);
+  gst_object_unref (recv_capsfilter);
 
   return TRUE;
 
 error:
   fs_codec_destroy (codec);
   gst_object_unref (conference);
-  gst_object_unref (capsfilter);
+  gst_object_unref (recv_capsfilter);
 
   return FALSE;
 }
@@ -665,27 +665,28 @@ fs_raw_stream_constructed (GObject *object)
   }
 
   tmp = g_strdup_printf ("recv_capsfilter_%d", self->priv->session->id);
-  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  self->priv->recv_capsfilter = gst_element_factory_make ("capsfilter", tmp);
   g_free (tmp);
 
-  if (!self->priv->capsfilter) {
+  if (!self->priv->recv_capsfilter) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not create a capsfilter element for"
       " session %d", self->priv->session->id);
     return;
   }
 
-  gst_object_ref_sink (self->priv->capsfilter);
+  gst_object_ref_sink (self->priv->recv_capsfilter);
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter)) {
+  if (!gst_bin_add (GST_BIN (self->priv->conference),
+          self->priv->recv_capsfilter)) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for"
       " session %d", self->priv->session->id);
-    gst_object_unref (self->priv->capsfilter);
+    gst_object_unref (self->priv->recv_capsfilter);
     return;
   }
 
-  if (gst_element_set_state (self->priv->capsfilter, GST_STATE_PLAYING) ==
+  if (gst_element_set_state (self->priv->recv_capsfilter, GST_STATE_PLAYING) ==
     GST_STATE_CHANGE_FAILURE) {
     self->priv->construction_error = g_error_new (FS_ERROR,
       FS_ERROR_CONSTRUCTION, "Could not set the capsfilter element for"
@@ -724,7 +725,7 @@ fs_raw_stream_constructed (GObject *object)
     return;
   }
 
-  if (!gst_element_link (self->priv->recv_valve, self->priv->capsfilter))
+  if (!gst_element_link (self->priv->recv_valve, self->priv->recv_capsfilter))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not link the recv valve"
@@ -1047,7 +1048,7 @@ fs_raw_stream_set_remote_codecs (FsStream *stream,
     GstCaps *caps;
 
     caps = fs_raw_codec_to_gst_caps (codec);
-    g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+    g_object_set (self->priv->recv_capsfilter, "caps", caps, NULL);
     gst_caps_unref (caps);
 
     g_object_notify (G_OBJECT (stream), "remote-codecs");
