@@ -128,11 +128,16 @@ simple_conference_add_stream (
   fail_if (st->participant == NULL, "Could not make participant, but no GError!");
 
   st->stream = fs_session_new_stream (dat->session, st->participant,
-      FS_DIRECTION_BOTH, transmitter, st_param_count, st_params, &error);
+      FS_DIRECTION_BOTH, NULL, 0, NULL, &error);
   if (error)
     fail ("Error while creating new stream (%d): %s",
         error->code, error->message);
   fail_if (st->stream == NULL, "Could not make stream, but no GError!");
+
+  fail_unless (fs_stream_set_transmitter (st->stream, transmitter, st_params,
+          st_param_count, &error));
+  fail_unless (error == NULL);
+
 
   g_object_set_data (G_OBJECT (st->stream), "SimpleTestStream", st);
 

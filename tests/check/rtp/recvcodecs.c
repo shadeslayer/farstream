@@ -223,11 +223,14 @@ GST_START_TEST (test_rtprecv_inband_config_data)
       "Could not make participant, but no GError!");
 
   stream = fs_session_new_stream (session, participant,
-      FS_DIRECTION_RECV, "rawudp", 0, NULL, &error);
+      FS_DIRECTION_RECV, NULL, 0, NULL, &error);
   if (error)
     ts_fail ("Error while creating new stream (%d): %s",
         error->code, error->message);
   ts_fail_if (stream == NULL, "Could not make stream, but no GError!");
+
+  fail_unless (fs_stream_set_transmitter (stream, "rawudp", NULL, 0, &error));
+  fail_unless (error == NULL);
 
   g_signal_connect (stream, "src-pad-added",
       G_CALLBACK (src_pad_added_cb), fspipeline);

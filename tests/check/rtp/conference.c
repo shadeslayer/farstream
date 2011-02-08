@@ -935,10 +935,11 @@ GST_START_TEST (test_rtpconference_errors)
   ts_fail_if (participant == NULL, "Could not create participant");
 
   stream = fs_session_new_stream (dat->session, participant, FS_DIRECTION_NONE,
-      "invalid-transmitter-name", 0, NULL, &error);
+      NULL, 0, NULL, &error);
+  ts_fail_unless (stream != NULL);
 
-  ts_fail_unless (stream == NULL, "A stream was created with an invalid"
-      " transmitter name");
+  fail_unless (fs_stream_set_transmitter (stream, "invalid-transmitter-name",
+          NULL, 0, &error) == FALSE);
   ts_fail_if (error == NULL, "Error was not set");
   ts_fail_unless (error->domain == FS_ERROR &&
       error->code == FS_ERROR_CONSTRUCTION,
@@ -1241,7 +1242,7 @@ GST_START_TEST (test_rtpconference_dispose)
   part = fs_conference_new_participant (conf, &error);
   fail_if (part == NULL || error != NULL);
 
-  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, "rawudp",
+  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, NULL,
       0, NULL, &error);
   fail_if (stream == NULL || error != NULL);
 
@@ -1261,7 +1262,7 @@ GST_START_TEST (test_rtpconference_dispose)
 
   g_object_unref (stream);
 
-  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, "rawudp",
+  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, NULL,
       0, NULL, &error);
   fail_if (stream == NULL || error != NULL);
 
