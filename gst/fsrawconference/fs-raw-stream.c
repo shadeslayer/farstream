@@ -574,93 +574,80 @@ _transmitter_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 {
   FsRawStream *self = FS_RAW_STREAM_CAST (user_data);
   FsRawConference *conference = fs_raw_stream_get_conference (self, NULL);
-  GList *remote_codecs = NULL;
   GstElement *capsfilter = NULL;
-  gulong blocking_id = 0;
-  gboolean ret = TRUE;
-  gboolean remove = FALSE;
+  GstPad *ghostpad;
+  GstPad *srcpad;
+  gchar *padname;
+  FsCodec *codec;
+
+  if (!conference)
+    return FALSE;
 
   GST_OBJECT_LOCK (conference);
-  remote_codecs = self->priv->remote_codecs;
-  capsfilter = self->priv->capsfilter;
+  if (!self->priv->remote_codecs ||
+      !self->priv->capsfilter ||
+      !self->priv->blocking_id)
+  {
+    GST_OBJECT_UNLOCK (conference);
+    gst_object_unref (conference);
+    return FALSE;
+  }
+
+  capsfilter = gst_object_ref (self->priv->capsfilter);
+  gst_pad_remove_data_probe (pad, self->priv->blocking_id);
+  self->priv->blocking_id = 0;
+  codec = fs_codec_copy (self->priv->remote_codecs->data);
   GST_OBJECT_UNLOCK (conference);
 
-  if (!remote_codecs || !capsfilter)
-  {
-    ret = FALSE;
-  }
-  else if (GST_IS_BUFFER (miniobj))
-  {
-    GstCaps *caps;
-    FsCodec *codec = remote_codecs->data;
-    caps = fs_raw_codec_to_gst_caps (codec);
+  srcpad = gst_element_get_static_pad (capsfilter, "src");
 
-    if (!GST_IS_CAPS (caps))
-      ret = FALSE;
-    else
-      remove = TRUE;
-
-    gst_caps_unref (caps);
+  if (!srcpad)
+  {
+    GST_WARNING ("Unable to get capsfilter (%p) srcpad", capsfilter);
+    goto error;
   }
 
-  blocking_id = self->priv->blocking_id;
+  padname = g_strdup_printf ("src_%d", self->priv->session->id);
+  ghostpad = gst_ghost_pad_new_from_template (padname, srcpad,
+      gst_element_class_get_pad_template (
+        GST_ELEMENT_GET_CLASS (self->priv->conference),
+        "src_%d"));
+  g_free (padname);
+  gst_object_unref (srcpad);
 
-  if (remove && blocking_id)
+  gst_object_ref (ghostpad);
+
+  if (!gst_pad_set_active (ghostpad, TRUE))
+    GST_WARNING ("Unable to set ghost pad active");
+
+
+  if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference), ghostpad))
   {
-    GstPad *ghostpad;
-    GstPad *srcpad;
-    gchar *padname;
+    GST_WARNING ("Unable to add ghost pad to conference");
 
-    gst_pad_remove_data_probe (pad, blocking_id);
-    GST_OBJECT_LOCK (conference);
-    if (self->priv->blocking_id == blocking_id)
-      self->priv->blocking_id = 0;
-    GST_OBJECT_UNLOCK (conference);
-
-    srcpad = gst_element_get_static_pad (capsfilter, "src");
-
-    if (!srcpad)
-    {
-      GST_WARNING ("Unable to get capsfilter (%p) srcpad", capsfilter);
-      return FALSE;
-    }
-
-    padname = g_strdup_printf ("src_%d", self->priv->session->id);
-    ghostpad = gst_ghost_pad_new_from_template (padname, srcpad,
-        gst_element_class_get_pad_template (
-            GST_ELEMENT_GET_CLASS (self->priv->conference),
-            "src_%d"));
-    g_free (padname);
-
-    gst_object_ref_sink (ghostpad);
-
-    /* XXX Should this really be needed? */
-    if (!gst_pad_set_active (ghostpad, TRUE))
-      GST_WARNING ("Unable to set ghost pad active");
-
-
-    if (!gst_element_add_pad (GST_ELEMENT (self->priv->conference), ghostpad))
-    {
-      GST_WARNING ("Unable to add ghost pad to conference");
-      return FALSE;
-    }
-
-    GST_OBJECT_LOCK (conference);
-    if (self->priv->src_pad)
-    {
-      GST_WARNING ("Src pad %p already exists in session %d",
-          self->priv->src_pad, self->priv->session->id);
-      gst_object_unref (self->priv->src_pad);
-    }
-
-    self->priv->src_pad = ghostpad;
-    GST_OBJECT_UNLOCK (conference);
-
-    fs_stream_emit_src_pad_added (FS_STREAM (self), ghostpad,
-        remote_codecs->data);
+    gst_object_unref (ghostpad);
+    gst_object_unref (ghostpad);
+    goto error;
   }
 
-  return ret;
+  GST_OBJECT_LOCK (conference);
+  self->priv->src_pad = ghostpad;
+  GST_OBJECT_UNLOCK (conference);
+
+  fs_stream_emit_src_pad_added (FS_STREAM (self), ghostpad, codec);
+
+  fs_codec_destroy (codec);
+  gst_object_unref (conference);
+  gst_object_unref (capsfilter);
+
+  return TRUE;
+
+error:
+  fs_codec_destroy (codec);
+  gst_object_unref (conference);
+  gst_object_unref (capsfilter);
+
+  return FALSE;
 }
 
 static void
