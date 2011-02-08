@@ -1168,19 +1168,19 @@ fs_raw_session_new_stream (FsSession *session,
   }
 
 error:
-  if (transmitter_src != NULL)
+  if (transmitter_src)
     gst_bin_remove (GST_BIN (conference), transmitter_src);
 
-  if (transmitter_sink != NULL)
+  if (transmitter_sink)
     gst_bin_remove (GST_BIN (conference), transmitter_sink);
 
-  if (stream_transmitter != NULL)
+  if (stream_transmitter)
     {
       fs_stream_transmitter_stop (stream_transmitter);
       g_object_unref (stream_transmitter);
     }
 
-  if (fstransmitter != NULL)
+  if (fstransmitter)
     g_object_unref (fstransmitter);
 
 done:
