@@ -24,7 +24,6 @@
 
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-conference-iface.h>
-#include <gst/farsight/fs-stream-transmitter.h>
 #include <gst/farsight/fs-rtp.h>
 
 #include "generic.h"
