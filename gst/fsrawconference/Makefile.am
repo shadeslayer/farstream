@@ -52,7 +52,7 @@ libfsrawconference_doc_la_LIBADD = $(libfsrawconference_la_LIBADD)
 %.doc.c: %.c
 	$(AM_V_GEN)sed -e 's:GST_PLUGIN_DEFINE:GST_PLUGIN_DEFINE_STATIC:' 	$< > $@
 
-BUILT_SOURCES = $(nodist_libfsrawconference_doc_la_SOURCES)
+BUILT_SOURCES = fs-raw-conference-plugin.doc.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
