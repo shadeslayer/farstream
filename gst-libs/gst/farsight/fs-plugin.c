@@ -214,7 +214,7 @@ fs_plugin_get_by_name_locked (const gchar * name, const gchar * type_suffix)
  * Loads the appropriate plugin if necessary and creates a GObject of
  * the requested type
  *
- * Returns: The object created (or NULL if there is an error)
+ * Returns: (transfer full): The object created (or NULL if there is an error)
  **/
 
 GObject *
@@ -276,7 +276,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
  * Loads the appropriate plugin if necessary and creates a GObject of
  * the requested type
  *
- * Returns: The object created (or NULL if there is an error)
+ * Returns: (transfer full): The object created (or NULL if there is an error)
  **/
 
 GObject *
@@ -300,8 +300,9 @@ fs_plugin_create (const gchar *name, const gchar *type_suffix,
  *
  * Gets the list of all available plugins of a certain type
  *
- * Returns: a newly allocated NULL terminated array of strings or %NULL if no
- * strings were found. It should be freed with g_strfreev().
+ * Returns: (transfer full): a newly allocated NULL terminated array of
+ * strings or %NULL if no strings were found.
+ * It should be freed with g_strfreev().
  */
 
 gchar **

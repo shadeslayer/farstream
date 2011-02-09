@@ -64,7 +64,8 @@ GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
  *
  * Get the list of local interfaces
  *
- * Returns: a newly-allocated #GList of strings. The caller must free it.
+ * Returns:  (element-type utf8) (transfer full): a newly-allocated #GList of
+ * strings. The caller must free it.
  */
 #ifdef HAVE_GETIFADDRS
 GList *
@@ -178,7 +179,8 @@ fs_interfaces_is_private_ip (const struct in_addr in)
  *
  * Get a list of local ipv4 interface addresses
  *
- * Returns: a newly-allocated #GList of strings. The caller must free it.
+ * Returns: (element-type utf8) (transfer full): a newly-allocated #GList of
+ * strings. The caller must free it.
  */
 
 #ifdef HAVE_GETIFADDRS

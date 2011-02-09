@@ -314,7 +314,7 @@ fs_stream_transmitter_set_property (GObject *object,
 /**
  * fs_stream_transmitter_set_remote_candidates
  * @streamtransmitter: a #FsStreamTranmitter
- * @candidates: a #GList of the remote candidates
+ * @candidates: (element-type FsCandidate): a #GList of the remote candidates
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function is used to set the remote candidates to the transmitter
@@ -348,7 +348,8 @@ fs_stream_transmitter_set_remote_candidates (
 /**
  * fs_stream_transmitter_force_remote_candidates:
  * @streamtransmitter: a #FsStreamTransmitter
- * @remote_candidates: a #GList of #FsCandidate to force
+ * @remote_candidates: (element-type FsCandidate): a #GList of #FsCandidate to
+ *   force
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function forces data to be sent immediately to the selected remote

@@ -111,8 +111,8 @@ fs_conference_iface_init (FsConferenceClass * iface)
  *
  * Create a new Farsight session for the given conference.
  *
- * Returns: the new #FsSession that has been created. The #FsSession must be
- * unref'd by the user when closing the session.
+ * Returns: (transfer full): the new #FsSession that has been created.
+ * The #FsSession must be unref'd by the user when closing the session.
  */
 FsSession *
 fs_conference_new_session (FsConference *conference, FsMediaType media_type,
@@ -137,8 +137,9 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  *
  * Create a new Farsight Participant for the type of the given conference.
  *
- * Returns: the new #FsParticipant that has been created. The #FsParticipant
- * is owned by the user and he must unref it when he is done with it.
+ * Returns: (transfer full): the new #FsParticipant that has been created.
+ * The #FsParticipant is owned by the user and he must unref it when he is
+ * done with it.
  */
 FsParticipant *
 fs_conference_new_participant (FsConference *conference, const gchar *cname,

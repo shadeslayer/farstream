@@ -69,8 +69,9 @@ factory_name_from_element (GstElement *element)
  * available in the main GStreamer element repositories.
  * They should be suitable for standards based protocols like SIP or XMPP.
  *
- * Returns: The default codec preferences for this plugin,
- * this #GList should be freed with fs_codec_list_destroy()
+ * Returns: (element-type FsCodec) (transfer full):
+ * The default codec preferences for this plugin.
+ * This #GList should be freed with fs_codec_list_destroy()
  */
 GList *
 fs_utils_get_default_codec_preferences (GstElement *element)
@@ -100,16 +101,16 @@ fs_utils_get_default_codec_preferences (GstElement *element)
 }
 
 /**
- * fs_utils_get_default_element_properties:
+ * fs_utils_get_default_element_properties: (skip):
  * @element: Element for which to fetch default element properties
  *
  * This function produces a #GKeyFile that can be fed to
  * fs_element_added_notifier_set_properties_from_keyfile(). If no
  * default properties have been found, it will return %NULL.
  *
- * Returns: a #GKeyFile containing the default element properties for this
- *  element or %NULL if no properties were found. Caller must free
- * the #GKeyFile when he is done.
+ * Returns: a #GKeyFile containing the default element
+ * properties for this element or %NULL if no properties were found.
+ * Caller must free the #GKeyFile when he is done.
  */
 
 GKeyFile *
@@ -237,8 +238,9 @@ load_default_rtp_hdrext_preferences_from_path (const gchar *element_name,
  * that are available in the main GStreamer element repositories.
  * They should be suitable for standards based protocols like SIP or XMPP.
  *
- * Returns: The default rtp header extension preferences for this plugin,
- * this #GList should be freed with fs_codec_list_destroy()
+ * Returns: (element-type FsCodec) (transfer full): The default rtp
+ * header extension preferences for this plugin, this #GList should be
+ * freed with fs_codec_list_destroy()
  */
 GList *
 fs_utils_get_default_rtp_header_extension_preferences (GstElement *element,

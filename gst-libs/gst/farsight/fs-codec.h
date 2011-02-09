@@ -81,7 +81,8 @@ typedef enum _FsMediaType
  * @media_type: type of media this codec is for
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
- * @optional_params: key pairs of param name to param data
+ * @optional_params: (element-type FsCodecParameter): key pairs of param name
+ *   to param data
  * @ptime: The preferred duration (in ms) of a packet
  * @maxptime: The maximum duration (in ms) of a packet
  * @minimum_reporting_interval: The minimum interval between two RTCP reports,

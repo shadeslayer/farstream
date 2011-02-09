@@ -176,6 +176,9 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream:remote-codecs:
    *
+   * Type: GLib.List<FsCodec>
+   * Transfer: full
+   *
    * This is the list of remote codecs for this stream. They must be set by the
    * user as soon as they are known using fs_stream_set_remote_codecs()
    * (generally through external signaling). It is a #GList of #FsCodec.
@@ -191,6 +194,9 @@ fs_stream_class_init (FsStreamClass *klass)
 
   /**
    * FsStream:negotiated-codecs:
+   *
+   * Type: GLib.List<FsCodec>
+   * Transfer: full
    *
    * This is the list of negotiatied codecs, it is the same list as the list
    * of #FsCodec from the parent #FsSession, except that the codec config data
@@ -209,6 +215,9 @@ fs_stream_class_init (FsStreamClass *klass)
 
   /**
    * FsStream:current-recv-codecs:
+   *
+   * Type: GLib.List<FsCodec>
+   * Transfer: full
    *
    * This is the list of codecs that have been received by this stream.
    * The user must free the list if fs_codec_list_destroy().
@@ -368,7 +377,8 @@ fs_stream_set_property (GObject *object,
 /**
  * fs_stream_set_remote_candidates:
  * @stream: an #FsStream
- * @candidates: an #GList of #FsCandidate representing the remote candidates
+ * @candidates: (element-type FsCandidate): an #GList of #FsCandidate
+ *  representing the remote candidates
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function sets the list of remote candidates. Any new candidates are
@@ -402,7 +412,8 @@ fs_stream_set_remote_candidates (FsStream *stream,
 /**
  * fs_stream_force_remote_candidates:
  * @stream: a #FsStream
- * @remote_candidates: a #GList of #FsCandidate to force
+ * @remote_candidates: (element-type FsCandidate):
+ *   a #GList of #FsCandidate to force
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function forces data to be sent immediately to the selected remote
@@ -438,7 +449,8 @@ fs_stream_force_remote_candidates (FsStream *stream,
 /**
  * fs_stream_set_remote_codecs:
  * @stream: a #FsStream
- * @remote_codecs: a #GList of #FsCodec representing the remote codecs
+ * @remote_codecs: (element-type FsCodec): a #GList of #FsCodec representing
+ *   the remote codecs
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function will set the list of remote codecs for this stream. If
@@ -576,7 +588,7 @@ src_pad_iterator_item_func (GstIterator*iter, gpointer item)
  * stream. These are the pads that were announced by #FsStream:src-pad-added
  * and are still valid.
  *
- * Returns: The #GstIterator
+ * Returns: (transfer full): The #GstIterator
  */
 
 GstIterator *

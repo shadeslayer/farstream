@@ -136,7 +136,7 @@ fs_feedback_parameter_free (FsFeedbackParameter *param)
 }
 
 /**
- * fs_codec_destroy:
+ * fs_codec_destroy: (skip): 
  * @codec: #FsCodec structure to free
  *
  * Deletes a #FsCodec structure and all its data. Is a no-op on %NULL codec
@@ -221,7 +221,7 @@ fs_codec_copy (const FsCodec * codec)
 }
 
 /**
- * fs_codec_list_destroy:
+ * fs_codec_list_destroy: (skip): 
  * @codec_list: a GList of #FsCodec to delete
  *
  * Deletes a list of #FsCodec structures and the list itself.
@@ -247,7 +247,7 @@ fs_codec_list_destroy (GList *codec_list)
  *
  * Copies a list of #FsCodec structures.
  *
- * Returns: The new list.
+ * Returns: (element-type FsCodec) (transfer full): The new list.
  */
 GList *
 fs_codec_list_copy (const GList *codec_list)
@@ -291,8 +291,8 @@ fs_codec_list_copy (const GList *codec_list)
  * feedback:tfrc=
  * ]|
  *
- * Return value: The #GList of #FsCodec or %NULL if the keyfile was empty
- *  or an error occured.
+ * Return value: (element-type FsCodec) (transfer full):
+ * The #GList of #FsCodec or %NULL if the keyfile was empty or an error occured.
  */
 GList *
 fs_codec_list_from_keyfile (const gchar *filename, GError **error)
@@ -687,8 +687,8 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
 
 /**
  * fs_codec_list_are_equal:
- * @list1: a #GList of #FsCodec
- * @list2: a #GList of #FsCodec
+ * @list1: (element-type FsCodec): a #GList of #FsCodec
+ * @list2: (element-type FsCodec): a #GList of #FsCodec
  *
  * Verifies if two glist of fscodecs are identical
  *
@@ -771,7 +771,7 @@ fs_codec_remove_optional_parameter (FsCodec *codec,
  * Finds the #FsCodecParameter in the #FsCodec that has the requested name
  * and, if not %NULL, the requested value
  *
- * Returns: the #FsCodecParameter from the #FsCodec or %NULL
+ * Returns: (transfer none) the #FsCodecParameter from the #FsCodec or %NULL
  */
 
 FsCodecParameter *

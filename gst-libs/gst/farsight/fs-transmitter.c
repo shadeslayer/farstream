@@ -196,7 +196,8 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
    * This element should have a "sending" property that can be changed with the
    * sending state of the stream. It should default to %TRUE.
    *
-   * Returns: the #GstElement to use as the filter, or %NULL to drop everything
+   * Returns: (transfer full) (allow-none): the #GstElement to use as the
+   * filter, or %NULL to drop everything
    */
 
   signals[GET_RECVONLY_FILTER_SIGNAL] = g_signal_new ("get-recvonly-filter",
@@ -256,7 +257,8 @@ fs_transmitter_set_property (GObject *object,
  * This function will create a new #FsStreamTransmitter element for a
  * specific participant for this #FsTransmitter
  *
- * Returns: a new #FsStreamTransmitter, or NULL if there is an error
+ * Returns: (transfer full): a new #FsStreamTransmitter, or NULL if there is an
+ *  error
  */
 
 FsStreamTransmitter *
@@ -372,8 +374,8 @@ fs_transmitter_emit_error (FsTransmitter *transmitter,
  *
  * Get the list of all available transmitters
  *
- * Returns: a newly allocated array of strings containing the list of all
- *  available transmitters or %NULL if there are none. It should
+ * Returns: (transfer full): a newly allocated array of strings containing the
+ * list of all available transmitters or %NULL if there are none. It should
  *  be freed with g_strfreev().
  */
 
@@ -392,7 +394,8 @@ fs_transmitter_list_available (void)
  *
  * Only for use by subclasses.
  *
- * Returns: a #GstElement to use as the filter or %NULL
+ * Returns: (transfer full) (allow-none): a #GstElement to use as the filter or
+ *   %NULL
  */
 
 GstElement *

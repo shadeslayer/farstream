@@ -190,6 +190,9 @@ fs_session_class_init (FsSessionClass *klass)
   /**
    * FsSession:codec-preferences:
    *
+   * Type: GLib.List<FsCodec>
+   * Transfer: full
+   *
    * This is the current preferences list for the local codecs. It is
    * set by the user to specify the codec options and priorities. The user may
    * change its value with fs_session_set_codec_preferences() at any time
@@ -212,6 +215,9 @@ fs_session_class_init (FsSessionClass *klass)
 
   /**
    * FsSession:codecs:
+   *
+   * Type: GLib.List<FsCodec>
+   * Transfer: full
    *
    * This is the list of codecs used for this session. It will include the
    * codecs and payload type used to receive media on this session. It will
@@ -241,6 +247,9 @@ fs_session_class_init (FsSessionClass *klass)
 
   /**
    * FsSession:codecs-without-config:
+   *
+   * Type: GLib.List<FsCodec>
+   * Transfer: full
    *
    * This is the same list of codecs as #FsSession:codecs without
    * the configuration information that describes the data sent. It is suitable
@@ -404,15 +413,16 @@ fs_session_error_forward (GObject *signal_src,
  * @transmitter: Name of the type of transmitter to use for this session
  * @stream_transmitter_n_parameters: Number of parametrs passed to the stream
  *  transmitter
- * @stream_transmitter_parameters: an array of n_parameters #GParameter struct
- *  that will be passed
+ * @stream_transmitter_parameters: (array length=stream_transmitter_n_parameters) (allow-none):
+ *   an array of n_parameters #GParameter struct that will be passed
  *   to the newly-create #FsStreamTransmitter
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function creates a stream for the given participant into the active session.
  *
- * Returns: the new #FsStream that has been created. User must unref the
- * #FsStream when the stream is ended. If an error occured, returns NULL.
+ * Returns: (transfer full): the new #FsStream that has been created.
+ * User must unref the #FsStream when the stream is ended. If an error occured,
+ * returns NULL.
  */
 FsStream *
 fs_session_new_stream (FsSession *session, FsParticipant *participant,
@@ -547,7 +557,8 @@ fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
 /**
  * fs_session_set_codec_preferences:
  * @session: a #FsSession
- * @codec_preferences: a #GList of #FsCodec with the desired configuration
+ * @codec_preferences: (element-type FsCodec): a #GList of #FsCodec with the
+ *   desired configuration
  * @error: location of a #GError, or %NULL if no error occured
  *
  * Set the list of desired codec preferences. The user may
@@ -614,9 +625,9 @@ fs_session_emit_error (FsSession *session,
  *
  * Get the list of all available transmitters for this session.
  *
- * Returns: a newly-allocagted %NULL terminated array of named of transmitters
- * or %NULL if no transmitter is needed for this type of session. It should
- * be freed with g_strfreev().
+ * Returns: (transfer full): a newly-allocagted %NULL terminated array of
+ * named of transmitters or %NULL if no transmitter is needed for this type of
+ * session. It should be freed with g_strfreev().
  */
 
 gchar **
@@ -672,8 +683,9 @@ fs_session_get_stream_transmitter_type (FsSession *session,
  * because they contain important parameters required to decode the media.
  * Other codec updates, caused by user action, don't.
  *
- * Returns: A new #GList of #FsCodec that need to be resent or %NULL
- *  if there are none. This list must be freed with fs_codec_list_destroy().
+ * Returns: (element-type FsCodec) (transfer full): A new #GList of
+ *  #FsCodec that need to be resent or %NULL if there are none. This
+ *  list must be freed with fs_codec_list_destroy().
  */
 GList *
 fs_session_codecs_need_resend (FsSession *session,

@@ -137,7 +137,8 @@ fs_rtp_header_extension_destroy (FsRtpHeaderExtension *extension)
  *
  * Does a deep copy of a #GList of #FsRtpHeaderExtension
  *
- * Returns: a new #GList of #FsRtpHeaderExtension
+ * Returns: (element-type FsRtpHeaderExtension) (transfer full): a new
+ * #GList of #FsRtpHeaderExtension
  */
 
 GList *
@@ -206,7 +207,8 @@ fs_rtp_header_extension_list_destroy (GList *extensions)
  * direction=receive
  * ]|
  *
- * Returns: a #GList of #FsRtpHeaderExtension that must be freed with
+ * Returns: (element-type FsRtpHeaderExtension) (transfer full): a
+ * #GList of #FsRtpHeaderExtension that must be freed with
  * fs_rtp_header_extension_list_destroy()
  */
 

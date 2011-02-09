@@ -70,7 +70,7 @@ fs_candidate_list_get_type (void)
 }
 
 /**
- * fs_candidate_destroy:
+ * fs_candidate_destroy: (skip):
  * @cand: a #FsCandidate to delete
  *
  * Frees a #FsCandidate and all its contents
@@ -124,7 +124,7 @@ fs_candidate_copy (const FsCandidate * cand)
 }
 
 /**
- * fs_candidate_list_destroy:
+ * fs_candidate_list_destroy: (skip):
  * @candidate_list: A GList of #FsCandidate
  *
  * Deletes a GList of #FsCandidate and its contents
@@ -145,11 +145,11 @@ fs_candidate_list_destroy (GList *candidate_list)
 
 /**
  * fs_candidate_list_copy:
- * @candidate_list: A GList of #FsCandidate
+ * @candidate_list: (element-type FsCodec): A GList of #FsCandidate
  *
  * Copies a GList of #FsCandidate and its contents
  *
- * Returns: a new GList of #FsCandidate
+ * Returns: (element-type FsCodec) (transfer full): a new GList of #FsCandidate
  */
 GList *
 fs_candidate_list_copy (const GList *candidate_list)

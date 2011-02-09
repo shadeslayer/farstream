@@ -55,7 +55,7 @@ typedef struct _FsBaseConferenceClass FsBaseConferenceClass;
 typedef struct _FsBaseConferencePrivate FsBaseConferencePrivate;
 
 /**
- * FsBaseConference
+ * FsBaseConference:
  *
  * The #FsBaseConference structure, all the members are private
  */
