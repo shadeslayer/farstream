@@ -93,7 +93,7 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
 {
   GObjectClass *gobject_class;
 
-  fs_base_conference_init_debug ();
+  _fs_base_conference_init_debug ();
 
   gobject_class = (GObjectClass *) klass;
 

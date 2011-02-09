@@ -227,7 +227,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   g_return_val_if_fail (name, NULL);
   g_return_val_if_fail (type_suffix, NULL);
 
-  fs_base_conference_init_debug ();
+  _fs_base_conference_init_debug ();
 
   g_static_mutex_lock (&mutex);
 

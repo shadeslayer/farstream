@@ -83,7 +83,7 @@ void fs_base_conference_error (GObject *signal_src, GObject *error_src,
                                gchar *debug_msg, FsBaseConference *conf);
 
 void
-fs_base_conference_init_debug (void)
+_fs_base_conference_init_debug (void)
 {
   GST_DEBUG_CATEGORY_INIT (fs_base_conference_debug, "fsbaseconference", 0,
       "farsight base conference library");
@@ -92,7 +92,7 @@ fs_base_conference_init_debug (void)
 static void
 fs_base_conference_base_init (gpointer g_class)
 {
-  fs_base_conference_init_debug ();
+  _fs_base_conference_init_debug ();
 }
 
 static void
