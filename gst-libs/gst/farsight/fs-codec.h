@@ -50,7 +50,7 @@ typedef struct _FsFeedbackParameter FsFeedbackParameter;
  *
  * Enum used to signify the media type of a codec or stream.
  */
-typedef enum
+typedef enum _FsMediaType
 {
   FS_MEDIA_TYPE_AUDIO,
   FS_MEDIA_TYPE_VIDEO,

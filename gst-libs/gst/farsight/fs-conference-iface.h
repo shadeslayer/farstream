@@ -111,7 +111,8 @@ GType fs_conference_get_type (void);
  * signal, from the Gst Bus or for error in the FS_ERROR domain in GErrors
  */
 
-typedef enum {
+typedef enum _FsError
+{
   FS_ERROR_CONSTRUCTION = 1,
   FS_ERROR_INTERNAL,
   FS_ERROR_INVALID_ARGUMENTS = 100,

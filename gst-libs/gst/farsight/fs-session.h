@@ -62,7 +62,7 @@ typedef struct _FsSessionPrivate FsSessionPrivate;
  * http://www.iana.org/assignments/audio-telephone-event-registry
  *
  */
-typedef enum
+typedef enum _FsDTMFEvent
 {
   /*< protected >*/
   FS_DTMF_EVENT_0 = 0,
@@ -93,7 +93,7 @@ typedef enum
  * An enum that represents the different ways a DTMF event can be sent
  *
  */
-typedef enum
+typedef enum _FsDTMFMethod
 {
   FS_DTMF_METHOD_AUTO = 0,
   FS_DTMF_METHOD_RTP_RFC4733,
