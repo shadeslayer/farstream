@@ -12,6 +12,8 @@ Makefile.in
 *.stamp
 *.gcno
 *.gcda
+*.typelib
+*.gir
 
 gst/fsrtpconference/fs-rtp-marshal.[ch]
 gst/fsrtpconference/fs-rtp-marshal.list

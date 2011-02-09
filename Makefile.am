@@ -1,4 +1,4 @@
-DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc
+DISTCHECK_CONFIGURE_FLAGS=--enable-gtk-doc --enable-introspection
 
 SUBDIRS_EXT =
 

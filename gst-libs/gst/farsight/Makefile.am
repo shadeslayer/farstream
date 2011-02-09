@@ -94,3 +94,26 @@ glib_gen_prefix=_fs
 glib_gen_basename=fs
 
 include $(top_srcdir)/common-modified/gst-glib-gen.mak
+
+if HAVE_INTROSPECTION
+include $(INTROSPECTION_MAKEFILE)
+introspection_sources = \
+	$(libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) \
+	$(nodist_libgstfarsightinclude_HEADERS) \
+	$(libgstfarsightinclude_HEADERS)
+
+INTROSPECTION_GIRS = Farsight-0.0.gir
+Farsight_0_0_gir_NAMESPACE = Farsight
+Farsight_0_0_gir_VERSION = 0.0
+Farsight_0_0_gir_LIBS = libgstfarsight-@GST_MAJORMINOR@.la
+Farsight_0_0_gir_FILES = $(introspection_sources)
+Farsight_0_0_gir_INCLUDES = GObject-2.0 Gst-0.10
+Farsight_0_0_gir_CFLAGS = $(FS2_INTERNAL_CFLAGS)
+Farsight_0_0_gir_SCANNERFLAGS = --identifier-prefix=fs_ --identifier-prefix=Fs
+
+girdir = $(datadir)/gir-1.0
+dist_gir_DATA = Farsight-0.0.gir
+typelibdir = $(libdir)/girepository-1.0
+typelib_DATA = Farsight-0.0.typelib
+CLEANFILES += $(dist_gir_DATA) $(typelib_DATA)
+endif
