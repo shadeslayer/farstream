@@ -124,9 +124,6 @@ struct _FsSessionClass
   FsStream *(* new_stream) (FsSession *session,
                             FsParticipant *participant,
                             FsStreamDirection direction,
-                            const gchar *transmitter,
-                            guint stream_transmitter_n_parameters,
-                            GParameter *stream_transmitter_parameters,
                             GError **error);
 
   gboolean (* start_telephony_event) (FsSession *session, guint8 event,
@@ -172,9 +169,6 @@ GType fs_session_get_type (void);
 FsStream *fs_session_new_stream (FsSession *session,
                                  FsParticipant *participant,
                                  FsStreamDirection direction,
-                                 const gchar *transmitter,
-                                 guint stream_transmitter_n_parameters,
-                                 GParameter *stream_transmitter_parameters,
                                  GError **error);
 
 gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,

@@ -222,8 +222,8 @@ GST_START_TEST (test_rtprecv_inband_config_data)
   ts_fail_if (participant == NULL,
       "Could not make participant, but no GError!");
 
-  stream = fs_session_new_stream (session, participant,
-      FS_DIRECTION_RECV, NULL, 0, NULL, &error);
+  stream = fs_session_new_stream (session, participant, FS_DIRECTION_RECV,
+      &error);
   if (error)
     ts_fail ("Error while creating new stream (%d): %s",
         error->code, error->message);

@@ -76,10 +76,7 @@ GType fs_msn_stream_get_type (void);
 FsMsnStream *fs_msn_stream_new (FsMsnSession *session,
     FsMsnParticipant *participant,
     FsStreamDirection direction,
-    FsMsnConference *conference,
-    guint n_parameters,
-    GParameter *parameters,
-    GError **error);
+    FsMsnConference *conference);
 
 void fs_msn_stream_set_tos_locked (FsMsnStream *self, gint tos);
 

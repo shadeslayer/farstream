@@ -275,8 +275,7 @@ setup_conference (FsStreamDirection dir, struct SimpleMsnConference *target)
     g_value_set_uint (&param.value, session_id);
   }
 
-  dat->stream = fs_session_new_stream (dat->session, dat->part, dir, NULL,
-      0, NULL, &error);
+  dat->stream = fs_session_new_stream (dat->session, dat->part, dir, &error);
   ts_fail_unless (dat->stream != NULL);
   ts_fail_unless (error == NULL);
 
@@ -381,7 +380,7 @@ GST_START_TEST (test_msnconference_error)
 
   ts_fail_unless (
       fs_session_new_stream (dat->session, dat->part, FS_DIRECTION_SEND,
-          NULL, 0, NULL, &error) == NULL);
+          &error) == NULL);
   ts_fail_unless (error->domain == FS_ERROR &&
       error->code == FS_ERROR_ALREADY_EXISTS);
   g_clear_error (&error);

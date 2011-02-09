@@ -163,9 +163,6 @@ static void fs_raw_session_constructed (GObject *object);
 static FsStream *fs_raw_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
-    const gchar *transmitter,
-    guint n_parameters,
-    GParameter *parameters,
     GError **error);
 
 static gchar **fs_raw_session_list_transmitters (FsSession *session);
@@ -1148,15 +1145,11 @@ static FsStream *
 fs_raw_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
-    const gchar *transmitter,
-    guint n_parameters,
-    GParameter *parameters,
     GError **error)
 {
   FsRawSession *self = FS_RAW_SESSION (session);
   FsStream *new_stream = NULL;
   FsRawConference *conference;
-  FsStreamTransmitter *stream_transmitter = NULL;
 
   if (!FS_IS_RAW_PARTICIPANT (participant))
   {
@@ -1174,33 +1167,23 @@ fs_raw_session_new_stream (FsSession *session,
     goto already_have_stream;
   GST_OBJECT_UNLOCK (conference);
 
-  if (transmitter)
-  {
-    stream_transmitter = _stream_get_stream_transmitter (NULL,
-        transmitter, participant, parameters, n_parameters, error, self);
-    if (!stream_transmitter)
-      goto error;
-  }
-
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self,
           FS_RAW_PARTICIPANT (participant),
-          direction, conference, stream_transmitter,
-          _stream_get_stream_transmitter, self, error));
+          direction, conference,
+          _stream_get_stream_transmitter, self));
 
-  if (new_stream)
-  {
-    g_signal_connect_object (new_stream, "notify::remote-codecs",
-        G_CALLBACK (_stream_remote_codecs_changed), self, 0);
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->stream)
+    goto already_have_stream;
 
-    GST_OBJECT_LOCK (conference);
-    if (self->priv->stream)
-    {
-      goto already_have_stream;
-    }
-    self->priv->stream = (FsRawStream *) new_stream;
 
-    GST_OBJECT_UNLOCK (conference);
-  }
+  self->priv->stream = (FsRawStream *) new_stream;
+
+  GST_OBJECT_UNLOCK (conference);
+
+  g_signal_connect_object (new_stream, "notify::remote-codecs",
+      G_CALLBACK (_stream_remote_codecs_changed), self, 0);
+
 
 done:
   gst_object_unref (conference);
@@ -1210,16 +1193,6 @@ already_have_stream:
   GST_OBJECT_UNLOCK (conference);
   g_set_error (error, FS_ERROR, FS_ERROR_ALREADY_EXISTS,
       "There already is a stream in this session");
-  goto error;
-
-error:
-  fs_raw_session_remove_stream (self, NULL);
-
-  if (stream_transmitter)
-  {
-    fs_stream_transmitter_stop (stream_transmitter);
-    g_object_unref (stream_transmitter);
-  }
   goto done;
 }
 

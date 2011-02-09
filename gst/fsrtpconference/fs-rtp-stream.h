@@ -98,22 +98,20 @@ typedef void (*stream_sending_changed_locked_cb) (FsRtpStream *stream,
 typedef void (*stream_ssrc_added_cb) (FsRtpStream *stream, guint32 ssrc,
     gpointer user_data);
 typedef FsStreamTransmitter* (*stream_get_new_stream_transmitter_cb) (
-  FsRtpStream *stream, const gchar *transmitter_name,
-  FsParticipant *participant, GParameter *parameters, guint n_parameters,
+  FsRtpStream *stream,  FsParticipant *participant,
+  const gchar *transmitter_name, GParameter *parameters, guint n_parameters,
   GError **error, gpointer user_data);
 
 
 FsRtpStream *fs_rtp_stream_new (FsRtpSession *session,
     FsRtpParticipant *participant,
     FsStreamDirection direction,
-    FsStreamTransmitter *stream_transmitter,
     stream_new_remote_codecs_cb new_remote_codecs_cb,
     stream_known_source_packet_receive_cb known_source_packet_received_cb,
     stream_sending_changed_locked_cb sending_changed_locked_cb,
     stream_ssrc_added_cb ssrc_added_cb,
     stream_get_new_stream_transmitter_cb get_new_stream_transmitter_cb,
-    gpointer user_data_for_cb,
-    GError **error);
+    gpointer user_data_for_cb);
 
 gboolean fs_rtp_stream_add_substream_unlock (FsRtpStream *stream,
     FsRtpSubStream *substream,

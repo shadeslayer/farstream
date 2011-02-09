@@ -63,7 +63,6 @@ enum
   PROP_DIRECTION,
   PROP_PARTICIPANT,
   PROP_SESSION,
-  PROP_STREAM_TRANSMITTER,
   PROP_RTP_HEADER_EXTENSIONS
 };
 
@@ -73,8 +72,6 @@ struct _FsRtpStreamPrivate
   FsStreamTransmitter *stream_transmitter;
 
   FsStreamDirection direction;
-
-  GError *construction_error;
 
   stream_new_remote_codecs_cb new_remote_codecs_cb;
   stream_known_source_packet_receive_cb known_source_packet_received_cb;
@@ -110,8 +107,6 @@ static void fs_rtp_stream_set_property (GObject *object,
                                     guint prop_id,
                                     const GValue *value,
                                     GParamSpec *pspec);
-static void fs_rtp_stream_constructed (GObject *object);
-
 
 static gboolean fs_rtp_stream_add_remote_candidates (FsStream *stream,
                                                      GList *candidates,
@@ -174,7 +169,6 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
 
   gobject_class->set_property = fs_rtp_stream_set_property;
   gobject_class->get_property = fs_rtp_stream_get_property;
-  gobject_class->constructed = fs_rtp_stream_constructed;
   gobject_class->dispose = fs_rtp_stream_dispose;
   gobject_class->finalize = fs_rtp_stream_finalize;
 
@@ -204,20 +198,6 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
   g_object_class_override_property (gobject_class,
                                     PROP_SESSION,
                                     "session");
-  /**
-   * FsRtpStream:stream-transmitter:
-   *
-   * The #FsStreamTransmitter for this stream.
-   *
-   */
-  g_object_class_install_property (gobject_class,
-      PROP_STREAM_TRANSMITTER,
-      g_param_spec_object ("stream-transmitter",
-        "The transmitter use by the stream",
-        "An FsStreamTransmitter used by this stream",
-        FS_TYPE_STREAM_TRANSMITTER,
-        G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
-
   g_object_class_install_property (gobject_class,
       PROP_RTP_HEADER_EXTENSIONS,
       g_param_spec_boxed ("rtp-header-extensions",
@@ -226,7 +206,6 @@ fs_rtp_stream_class_init (FsRtpStreamClass *klass)
           " would like to use",
           FS_TYPE_RTP_HEADER_EXTENSION_LIST,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
 }
 
 static void
@@ -466,10 +445,6 @@ fs_rtp_stream_set_property (GObject *object,
     case PROP_PARTICIPANT:
       self->participant = FS_RTP_PARTICIPANT (g_value_dup_object (value));
       break;
-    case PROP_STREAM_TRANSMITTER:
-      self->priv->stream_transmitter =
-        FS_STREAM_TRANSMITTER (g_value_get_object (value));
-      break;
     case PROP_DIRECTION:
       {
         FsStreamTransmitter *st = NULL;
@@ -538,65 +513,6 @@ fs_rtp_stream_set_property (GObject *object,
       break;
   }
 
-}
-
-static void
-fs_rtp_stream_constructed (GObject *object)
-{
-  FsRtpStream *self = FS_RTP_STREAM_CAST (object);
-
-  if (!self->priv->stream_transmitter)
-    goto done;
-
-  g_object_set (self->priv->stream_transmitter, "sending",
-    self->priv->direction & FS_DIRECTION_SEND, NULL);
-
-  self->priv->local_candidates_prepared_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "local-candidates-prepared",
-        G_CALLBACK (_local_candidates_prepared),
-        self, 0);
-  self->priv->new_active_candidate_pair_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "new-active-candidate-pair",
-        G_CALLBACK (_new_active_candidate_pair),
-        self, 0);
-  self->priv->new_local_candidate_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "new-local-candidate",
-        G_CALLBACK (_new_local_candidate),
-        self, 0);
-  self->priv->error_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "error",
-        G_CALLBACK (_transmitter_error),
-        self, 0);
-  self->priv->known_source_packet_received_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "known-source-packet-received",
-        G_CALLBACK (_known_source_packet_received),
-        self, 0);
-  self->priv->state_changed_handler_id =
-    g_signal_connect_object (self->priv->stream_transmitter,
-        "state-changed",
-        G_CALLBACK (_state_changed),
-        self, 0);
-
-  if (!fs_stream_transmitter_gather_local_candidates (
-          self->priv->stream_transmitter,
-          &self->priv->construction_error))
-  {
-    if (!self->priv->construction_error)
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_INTERNAL,
-          "Unknown error while gathering local candidates");
-    return;
-  }
-
-done:
-
-  if (G_OBJECT_CLASS (fs_rtp_stream_parent_class)->constructed)
-    G_OBJECT_CLASS (fs_rtp_stream_parent_class)->constructed(object);
 }
 
 
@@ -743,8 +659,6 @@ fs_rtp_stream_set_remote_codecs (FsStream *stream,
  * @session: The #FsRtpSession this stream is a child of
  * @participant: The #FsRtpParticipant this stream is for
  * @direction: the initial #FsDirection for this stream
- * @stream_transmitter: the #FsStreamTransmitter for this stream, one
- *   reference to it will be eaten
  * @new_remote_codecs_cb: Callback called when the remote codecs change
  * (ie when fs_rtp_stream_set_remote_codecs() is called). One must hold
  * the session lock across calls.
@@ -762,14 +676,12 @@ FsRtpStream *
 fs_rtp_stream_new (FsRtpSession *session,
     FsRtpParticipant *participant,
     FsStreamDirection direction,
-    FsStreamTransmitter *stream_transmitter,
     stream_new_remote_codecs_cb new_remote_codecs_cb,
     stream_known_source_packet_receive_cb known_source_packet_received_cb,
     stream_sending_changed_locked_cb sending_changed_locked_cb,
     stream_ssrc_added_cb ssrc_added_cb,
     stream_get_new_stream_transmitter_cb get_new_stream_transmitter_cb,
-    gpointer user_data_for_cb,
-    GError **error)
+    gpointer user_data_for_cb)
 {
   FsRtpStream *self;
 
@@ -782,7 +694,6 @@ fs_rtp_stream_new (FsRtpSession *session,
     "session", session,
     "participant", participant,
     "direction", direction,
-    "stream-transmitter", stream_transmitter,
     NULL);
 
   self->priv->new_remote_codecs_cb = new_remote_codecs_cb;
@@ -792,12 +703,6 @@ fs_rtp_stream_new (FsRtpSession *session,
   self->priv->get_new_stream_transmitter_cb = get_new_stream_transmitter_cb;
 
   self->priv->user_data_for_cb = user_data_for_cb;
-
-  if (self->priv->construction_error) {
-    g_propagate_error (error, self->priv->construction_error);
-    g_object_unref (self);
-    return NULL;
-  }
 
   return self;
 }
@@ -1184,8 +1089,8 @@ fs_rtp_stream_set_transmitter (FsStream *stream,
   }
   FS_RTP_SESSION_UNLOCK (session);
 
-  st = self->priv->get_new_stream_transmitter_cb (self, transmitter,
-      FS_PARTICIPANT (self->participant),
+  st = self->priv->get_new_stream_transmitter_cb (self,
+      FS_PARTICIPANT (self->participant), transmitter,
       stream_transmitter_parameters, stream_transmitter_n_parameters, error,
       self->priv->user_data_for_cb);
 
@@ -1233,6 +1138,10 @@ fs_rtp_stream_set_transmitter (FsStream *stream,
 
   FS_RTP_SESSION_LOCK (session);
   self->priv->stream_transmitter = st;
+  if (self->priv->direction & FS_DIRECTION_SEND)
+    self->priv->sending_changed_locked_cb (self,
+        self->priv->direction & FS_DIRECTION_SEND,
+        self->priv->user_data_for_cb);
   FS_RTP_SESSION_UNLOCK (session);
 
   if (!fs_stream_transmitter_gather_local_candidates (st, error))

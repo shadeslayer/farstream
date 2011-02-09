@@ -90,8 +90,6 @@ struct _FsRawStreamPrivate
 
   GList *remote_codecs;
 
-  GError *construction_error;
-
   gulong local_candidates_prepared_handler_id;
   gulong new_active_candidate_pair_handler_id;
   gulong new_local_candidate_handler_id;
@@ -153,8 +151,6 @@ static void fs_raw_stream_set_property (GObject *object,
                                         const GValue *value,
                                         GParamSpec *pspec);
 
-static void fs_raw_stream_constructed (GObject *object);
-
 static void _local_candidates_prepared (
     FsStreamTransmitter *stream_transmitter,
     gpointer user_data);
@@ -202,7 +198,6 @@ fs_raw_stream_class_init (FsRawStreamClass *klass)
 
   gobject_class->set_property = fs_raw_stream_set_property;
   gobject_class->get_property = fs_raw_stream_get_property;
-  gobject_class->constructed = fs_raw_stream_constructed;
   gobject_class->dispose = fs_raw_stream_dispose;
   gobject_class->finalize = fs_raw_stream_finalize;
 
@@ -503,64 +498,6 @@ fs_raw_stream_set_property (GObject *object,
   }
 }
 
-static void
-fs_raw_stream_constructed (GObject *object)
-{
-  FsRawStream *self = FS_RAW_STREAM_CAST (object);
-
-  if (!self->priv->conference) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_INVALID_ARGUMENTS, "A Stream needs a conference object");
-    return;
-  }
-
-  if (self->priv->stream_transmitter)
-  {
-    g_object_set (self->priv->stream_transmitter, "sending",
-        (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
-
-    self->priv->local_candidates_prepared_handler_id =
-        g_signal_connect_object (self->priv->stream_transmitter,
-            "local-candidates-prepared",
-            G_CALLBACK (_local_candidates_prepared),
-            self, 0);
-    self->priv->new_active_candidate_pair_handler_id =
-        g_signal_connect_object (self->priv->stream_transmitter,
-            "new-active-candidate-pair",
-            G_CALLBACK (_new_active_candidate_pair),
-            self, 0);
-    self->priv->new_local_candidate_handler_id =
-        g_signal_connect_object (self->priv->stream_transmitter,
-            "new-local-candidate",
-            G_CALLBACK (_new_local_candidate),
-            self, 0);
-    self->priv->error_handler_id =
-        g_signal_connect_object (self->priv->stream_transmitter,
-            "error",
-            G_CALLBACK (_transmitter_error),
-            self, 0);
-    self->priv->state_changed_handler_id =
-        g_signal_connect_object (self->priv->stream_transmitter,
-            "state-changed",
-            G_CALLBACK (_state_changed),
-            self, 0);
-
-    if (!fs_stream_transmitter_gather_local_candidates (
-          self->priv->stream_transmitter,
-          &self->priv->construction_error))
-    {
-      if (!self->priv->construction_error)
-        self->priv->construction_error = g_error_new (FS_ERROR,
-            FS_ERROR_INTERNAL,
-            "Unknown error while gathering local candidates");
-      return;
-    }
-  }
-
-  if (G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed)
-    G_OBJECT_CLASS (fs_raw_stream_parent_class)->constructed (object);
-}
-
 
 static void
 _local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
@@ -855,10 +792,8 @@ fs_raw_stream_new (FsRawSession *session,
     FsRawParticipant *participant,
     FsStreamDirection direction,
     FsRawConference *conference,
-    FsStreamTransmitter *stream_transmitter,
     stream_get_new_stream_transmitter_cb get_new_stream_transmitter_cb,
-    gpointer user_data,
-    GError **error)
+    gpointer user_data)
 {
   FsRawStream *self;
 
@@ -870,21 +805,7 @@ fs_raw_stream_new (FsRawSession *session,
       "participant", participant,
       "direction", direction,
       "conference", conference,
-      "stream-transmitter", stream_transmitter,
       NULL);
-
-  if (!self)
-  {
-    *error = g_error_new (FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not create object");
-    return NULL;
-  }
-  else if (self->priv->construction_error)
-  {
-    g_propagate_error (error, self->priv->construction_error);
-    g_object_unref (self);
-    return NULL;
-  }
 
   self->priv->get_new_stream_transmitter_cb = get_new_stream_transmitter_cb;
   self->priv->user_data = user_data;
@@ -964,8 +885,7 @@ fs_raw_stream_set_transmitter (FsStream *stream,
   if (!fs_stream_transmitter_gather_local_candidates (
         self->priv->stream_transmitter, error))
   {
-    if (!self->priv->construction_error)
-      GST_OBJECT_LOCK (conf);
+    GST_OBJECT_LOCK (conf);
     self->priv->stream_transmitter = NULL;
     GST_OBJECT_UNLOCK (conf);
 

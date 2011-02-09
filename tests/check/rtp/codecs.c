@@ -486,8 +486,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
   p = fs_conference_new_participant (FS_CONFERENCE (dat->conference),  NULL);
   fail_if (p == NULL, "Could not add participant");
 
-  s = fs_session_new_stream (dat->session, p,
-      FS_DIRECTION_BOTH, NULL, 0, NULL, NULL);
+  s = fs_session_new_stream (dat->session, p, FS_DIRECTION_BOTH, NULL);
   fail_if (s == NULL, "Could not add stream");
   g_object_unref (p);
 
@@ -725,7 +724,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
     fail ("Could not add second participant to conference %s", error->message);
 
   stream2 = fs_session_new_stream (cd->dat->session, p2, FS_DIRECTION_BOTH,
-      NULL, 0, NULL, NULL);
+      NULL);
 
   fail_if (stream2 == NULL, "Could not second create new stream");
 
@@ -824,7 +823,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
   fail_if (cd.participant == NULL, "Could not add participant to conference");
 
   cd.stream = fs_session_new_stream (cd.dat->session, cd.participant,
-      FS_DIRECTION_BOTH, NULL, 0, NULL, NULL);
+      FS_DIRECTION_BOTH, NULL);
 
   fail_if (cd.stream == NULL, "Could not create new stream");
 
@@ -1171,7 +1170,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
   fail_if (participant == NULL, "Could not add participant to conference");
 
   stream = fs_session_new_stream (dat->session, participant,
-      FS_DIRECTION_BOTH, NULL, 0, NULL, NULL);
+      FS_DIRECTION_BOTH, NULL);
   fail_if (stream == NULL, "Could not add stream to session");
 
   codecs = g_list_append (NULL, fs_codec_copy (prefcodec));
@@ -1328,7 +1327,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
 
   setup_codec_tests (&dat, &participant, FS_MEDIA_TYPE_AUDIO);
   stream = fs_session_new_stream (dat->session, participant,
-      FS_DIRECTION_BOTH, NULL, 0, NULL, NULL);
+      FS_DIRECTION_BOTH, NULL);
   fail_if (stream == NULL, "Could not add stream to session");
 
   g_object_get (dat->session, "codecs-without-config", &codecs, NULL);
@@ -1437,7 +1436,7 @@ test_one_codec_internal (const gchar *addr,
   FsStream *stream;
 
   stream = fs_session_new_stream (session, participant,
-      FS_DIRECTION_BOTH, NULL, 0, NULL, NULL);
+      FS_DIRECTION_BOTH, NULL);
   fail_if (stream == NULL, "Could not add stream to session");
 
   codecs = g_list_append (NULL, prefcodec);
@@ -2273,7 +2272,7 @@ GST_START_TEST (test_rtpcodecs_nego_hdrext)
 
 
   stream = fs_session_new_stream (dat->session, participant,
-      FS_DIRECTION_BOTH, "rawudp", 0, NULL, NULL);
+      FS_DIRECTION_BOTH, NULL);
   fail_if (stream == NULL, "Could not add stream to session");
 
   hdrexts_prefs = g_list_prepend (NULL, fs_rtp_header_extension_new (1,

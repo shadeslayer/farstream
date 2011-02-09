@@ -94,8 +94,6 @@ struct _FsMsnStreamPrivate
   GstPad *src_pad;
   FsMsnConnection *connection;
 
-  GError *construction_error;
-
   guint session_id;
   guint initial_port;
 
@@ -800,10 +798,7 @@ FsMsnStream *
 fs_msn_stream_new (FsMsnSession *session,
     FsMsnParticipant *participant,
     FsStreamDirection direction,
-    FsMsnConference *conference,
-    guint n_parameters,
-    GParameter *parameters,
-    GError **error)
+    FsMsnConference *conference)
 {
   FsMsnStream *self;
 
@@ -813,19 +808,6 @@ fs_msn_stream_new (FsMsnSession *session,
       "direction", direction,
       "conference", conference,
       NULL);
-
-  if (!self)
-  {
-    *error = g_error_new (FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Could not create object");
-    return NULL;
-  }
-  else if (self->priv->construction_error)
-  {
-    g_propagate_error (error, self->priv->construction_error);
-    g_object_unref (self);
-    return NULL;
-  }
 
   return self;
 }
@@ -908,7 +890,7 @@ fs_msn_stream_set_transmitter (FsStream *stream,
       G_CALLBACK (_connection_failed), self);
 
   if (!fs_msn_connection_gather_local_candidates (self->priv->connection,
-          &self->priv->construction_error))
+          error))
   {
     g_object_unref (self->priv->connection);
     self->priv->connection = NULL;

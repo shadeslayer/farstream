@@ -126,6 +126,11 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   gst_object_unref (pad);
 
 
+  ses->stream = fs_session_new_stream (ses->session, part, FS_DIRECTION_BOTH,
+      &error);
+  print_error (error);
+  g_assert (ses->stream);
+
   cands = g_list_prepend (NULL, fs_candidate_new ("", FS_COMPONENT_RTP,
           FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, NULL, localport));
 
@@ -133,8 +138,7 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   g_value_init (&param.value, FS_TYPE_CANDIDATE_LIST);
   g_value_take_boxed (&param.value, cands);
 
-  ses->stream = fs_session_new_stream (ses->session, part, FS_DIRECTION_BOTH,
-      "rawudp", 1, &param, &error);
+  res = fs_stream_set_transmitter (ses->stream, "rawudp", &param, 1, &error);
   print_error (error);
   g_assert (ses->stream);
 

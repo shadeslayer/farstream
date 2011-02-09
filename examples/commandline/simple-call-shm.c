@@ -135,6 +135,11 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   gst_object_unref (pad2);
   gst_object_unref (pad);
 
+  ses->stream = fs_session_new_stream (ses->session, part, FS_DIRECTION_BOTH,
+      &error);
+  print_error (error);
+  g_assert (ses->stream);
+
   cand = fs_candidate_new ("", FS_COMPONENT_RTP,
       FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, send_socket, 0);
   cands = g_list_prepend (NULL, cand);
@@ -143,11 +148,8 @@ add_audio_session (GstElement *pipeline, FsConference *conf, guint id,
   g_value_init (&param.value, FS_TYPE_CANDIDATE_LIST);
   g_value_take_boxed (&param.value, cands);
 
-  ses->stream = fs_session_new_stream (ses->session, part, FS_DIRECTION_BOTH,
-      "shm", 1, &param, &error);
+  res = fs_stream_set_transmitter (ses->stream, "shm", &param, 1, &error);
   print_error (error);
-  g_assert (ses->stream);
-
   g_value_unset (&param.value);
 
   g_signal_connect (ses->stream, "src-pad-added",

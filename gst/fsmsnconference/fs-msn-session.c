@@ -118,9 +118,6 @@ static void fs_msn_session_constructed (GObject *object);
 static FsStream *fs_msn_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
-    const gchar *transmitter,
-    guint n_parameters,
-    GParameter *parameters,
     GError **error);
 
 static GType
@@ -458,9 +455,6 @@ static FsStream *
 fs_msn_session_new_stream (FsSession *session,
                            FsParticipant *participant,
                            FsStreamDirection direction,
-                           const gchar *transmitter,
-                           guint n_parameters,
-                           GParameter *parameters,
                            GError **error)
 {
   FsMsnSession *self = FS_MSN_SESSION (session);
@@ -487,23 +481,20 @@ fs_msn_session_new_stream (FsSession *session,
   msnparticipant = FS_MSN_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_msn_stream_new (self, msnparticipant,
-          direction, conference, n_parameters, parameters, error));
+          direction, conference));
 
-  if (new_stream)
+  GST_OBJECT_LOCK (conference);
+  if (self->priv->stream)
   {
-    GST_OBJECT_LOCK (conference);
-    if (self->priv->stream)
-    {
-      g_object_unref (new_stream);
-      goto already_have_stream;
-    }
-    self->priv->stream = (FsMsnStream *) new_stream;
-    g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
-
-    if (self->priv->tos)
-      fs_msn_stream_set_tos_locked (self->priv->stream, self->priv->tos);
-    GST_OBJECT_UNLOCK (conference);
+    g_object_unref (new_stream);
+    goto already_have_stream;
   }
+  self->priv->stream = (FsMsnStream *) new_stream;
+  g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+
+  fs_msn_stream_set_tos_locked (self->priv->stream, self->priv->tos);
+  GST_OBJECT_UNLOCK (conference);
+
   gst_object_unref (conference);
 
 

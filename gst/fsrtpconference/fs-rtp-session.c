@@ -242,9 +242,6 @@ static void fs_rtp_session_constructed (GObject *object);
 static FsStream *fs_rtp_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
-    const gchar *transmitter,
-    guint n_parameters,
-    GParameter *parameters,
     GError **error);
 static gboolean fs_rtp_session_start_telephony_event (FsSession *session,
     guint8 event,
@@ -276,20 +273,12 @@ static gboolean _stream_new_remote_codecs (FsRtpStream *stream,
 
 static FsStreamTransmitter* _stream_get_new_stream_transmitter (
   FsRtpStream *stream,
-  const gchar *transmitter_name,
   FsParticipant *participant,
+  const gchar *transmitter_name,
   GParameter *parameters,
   guint n_parameters,
   GError **error,
   gpointer user_data);
-
-static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
-    FsRtpSession *self,
-    const gchar *transmitter_name,
-    FsParticipant *participant,
-    guint n_parameters,
-    GParameter *parameters,
-    GError **error);
 
 static GList *fs_rtp_session_get_codecs_need_resend (FsSession *session,
     GList *old_codecs, GList *new_codecs);
@@ -1725,7 +1714,6 @@ _remove_stream (gpointer user_data,
  * @participant: #FsParticipant of a participant for the new stream
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
- * @transmitter: Name of the type of transmitter to use for this session
  * @error: location of a #GError, or NULL if no error occured
  *
  * This function creates a stream for the given participant into the active session.
@@ -1737,15 +1725,11 @@ static FsStream *
 fs_rtp_session_new_stream (FsSession *session,
     FsParticipant *participant,
     FsStreamDirection direction,
-    const gchar *transmitter,
-    guint n_parameters,
-    GParameter *parameters,
     GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
   FsRtpParticipant *rtpparticipant = NULL;
   FsStream *new_stream = NULL;
-  FsStreamTransmitter *st = NULL;
 
   if (!FS_IS_RTP_PARTICIPANT (participant))
   {
@@ -1759,26 +1743,13 @@ fs_rtp_session_new_stream (FsSession *session,
 
   rtpparticipant = FS_RTP_PARTICIPANT (participant);
 
-  if (transmitter)
-  {
-    st = fs_rtp_session_get_new_stream_transmitter (self, transmitter,
-        participant, n_parameters, parameters, error);
-
-    if (!st)
-    {
-      fs_rtp_session_has_disposed_exit (self);
-      return NULL;
-    }
-  }
-
   new_stream = FS_STREAM_CAST (fs_rtp_stream_new (self, rtpparticipant,
-          direction, st, _stream_new_remote_codecs,
+          direction, _stream_new_remote_codecs,
           _stream_known_source_packet_received,
           _stream_sending_changed_locked,
           _stream_ssrc_added_cb,
           _stream_get_new_stream_transmitter,
-          self, error));
-
+          self));
 
   if (new_stream)
   {
@@ -1793,10 +1764,12 @@ fs_rtp_session_new_stream (FsSession *session,
     self->priv->streams = g_list_append (self->priv->streams, new_stream);
     self->priv->streams_cookie++;
     FS_RTP_SESSION_UNLOCK (self);
-
-    g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
   }
+
+  g_object_weak_ref (G_OBJECT (new_stream), _remove_stream, self);
+
   fs_rtp_session_has_disposed_exit (self);
+
   return new_stream;
 }
 
@@ -2322,46 +2295,10 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
 }
 
 
-/**
- * fs_rtp_session_get_new_stream_transmitter:
- * @self: a #FsRtpSession
- * @transmitter_name: The name of the transmitter to create a stream for
- * @participant: The #FsRtpParticipant for this stream
- * @n_parameters: the number of parameters
- * @parameters: a table of n_parameters #GParameter structs
- *
- * This function will create a new #FsStreamTransmitter, possibly creating
- * and inserting into the pipeline its parent #FsTransmitter
- *
- * Returns: a newly allocated #FsStreamTransmitter
- */
-
-static FsStreamTransmitter *
-fs_rtp_session_get_new_stream_transmitter (FsRtpSession *self,
-  const gchar *transmitter_name, FsParticipant *participant, guint n_parameters,
-  GParameter *parameters, GError **error)
-{
-  FsTransmitter *transmitter;
-  FsStreamTransmitter *st = NULL;
-
-  transmitter = fs_rtp_session_get_transmitter (self, transmitter_name, error);
-
-  if (!transmitter)
-    return NULL;
-
-  st = fs_transmitter_new_stream_transmitter (transmitter, participant,
-      n_parameters, parameters, error);
-
-  g_object_unref (transmitter);
-
-  return st;
-}
-
-
 static FsStreamTransmitter *
 _stream_get_new_stream_transmitter (FsRtpStream *stream,
-    const gchar *transmitter_name,
     FsParticipant *participant,
+    const gchar *transmitter_name,
     GParameter *parameters,
     guint n_parameters,
     GError **error,

@@ -431,9 +431,6 @@
   (parameters
     '("FsParticipant*" "participant")
     '("FsStreamDirection" "direction")
-    '("const-gchar*" "transmitter")
-    '("guint" "stream_transmitter_n_parameters")
-    '("GParameter*" "stream_transmitter_parameters")
     '("GError**" "error")
   )
 )
@@ -646,6 +643,19 @@
   (unblock-threads t)
   (c-name "fs_stream_get_src_pads_iterator")
   (return-type "GstIterator*")
+)
+
+(define-method set_transmitter
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_set_transmitter")
+  (return-type "gboolean")
+  (parameters
+    '("const-gchar*" "transmitter")
+    '("GParameter*" "stream_transmitter_parameters")
+    '("guint" "stream_transmitter_n_parameters")
+    '("GError**" "error")
+  )
 )
 
 

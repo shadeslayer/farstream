@@ -602,8 +602,10 @@ fs_stream_get_src_pads_iterator (FsStream *stream)
  * @transmitter: Name of the type of transmitter to use for this stream
  * @stream_transmitter_n_parameters: Number of parametrs passed to the stream
  *  transmitter
- * @stream_transmitter_parameters: an array of n_parameters #GParameter struct
- *  that will be passed to the newly-created #FsStreamTransmitter
+ * @stream_transmitter_parameters:
+ *   (array length=stream_transmitter_n_parameters) (allow-none):
+ *   an array of n_parameters #GParameter struct that will be passed
+ *   to the newly-create #FsStreamTransmitter
  * @error: location of a #GError, or %NULL if no error occured
  *
  * Set the transmitter to use for this stream. This function will only succeed

@@ -377,12 +377,6 @@ fs_session_error_forward (GObject *signal_src,
  * @participant: #FsParticipant of a participant for the new stream
  * @direction: #FsStreamDirection describing the direction of the new stream that will
  * be created for this participant
- * @transmitter: Name of the type of transmitter to use for this session
- * @stream_transmitter_n_parameters: Number of parametrs passed to the stream
- *  transmitter
- * @stream_transmitter_parameters: (array length=stream_transmitter_n_parameters) (allow-none):
- *   an array of n_parameters #GParameter struct that will be passed
- *   to the newly-create #FsStreamTransmitter
  * @error: location of a #GError, or %NULL if no error occured
  *
  * This function creates a stream for the given participant into the active session.
@@ -392,11 +386,10 @@ fs_session_error_forward (GObject *signal_src,
  * returns NULL.
  */
 FsStream *
-fs_session_new_stream (FsSession *session, FsParticipant *participant,
-                       FsStreamDirection direction, const gchar *transmitter,
-                       guint stream_transmitter_n_parameters,
-                       GParameter *stream_transmitter_parameters,
-                       GError **error)
+fs_session_new_stream (FsSession *session,
+    FsParticipant *participant,
+    FsStreamDirection direction,
+    GError **error)
 {
   FsSessionClass *klass;
   FsStream *new_stream = NULL;
@@ -406,9 +399,7 @@ fs_session_new_stream (FsSession *session, FsParticipant *participant,
   klass = FS_SESSION_GET_CLASS (session);
   g_return_val_if_fail (klass->new_stream, NULL);
 
-  new_stream = klass->new_stream (session, participant, direction,
-      transmitter, stream_transmitter_n_parameters,
-      stream_transmitter_parameters, error);
+  new_stream = klass->new_stream (session, participant, direction, error);
 
   if (!new_stream)
     return NULL;

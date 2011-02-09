@@ -84,10 +84,8 @@ FsRawStream *fs_raw_stream_new (FsRawSession *session,
     FsRawParticipant *participant,
     FsStreamDirection direction,
     FsRawConference *conference,
-    FsStreamTransmitter *stream_transmitter,
     stream_get_new_stream_transmitter_cb get_new_stream_transmitter_cb,
-    gpointer user_data,
-    GError **error);
+    gpointer user_data);
 
 
 G_END_DECLS

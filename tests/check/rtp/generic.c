@@ -128,7 +128,7 @@ simple_conference_add_stream (
   fail_if (st->participant == NULL, "Could not make participant, but no GError!");
 
   st->stream = fs_session_new_stream (dat->session, st->participant,
-      FS_DIRECTION_BOTH, NULL, 0, NULL, &error);
+      FS_DIRECTION_BOTH, &error);
   if (error)
     fail ("Error while creating new stream (%d): %s",
         error->code, error->message);

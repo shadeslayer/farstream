@@ -935,7 +935,7 @@ GST_START_TEST (test_rtpconference_errors)
   ts_fail_if (participant == NULL, "Could not create participant");
 
   stream = fs_session_new_stream (dat->session, participant, FS_DIRECTION_NONE,
-      NULL, 0, NULL, &error);
+      &error);
   ts_fail_unless (stream != NULL);
 
   fail_unless (fs_stream_set_transmitter (stream, "invalid-transmitter-name",
@@ -1242,8 +1242,7 @@ GST_START_TEST (test_rtpconference_dispose)
   part = fs_conference_new_participant (conf, &error);
   fail_if (part == NULL || error != NULL);
 
-  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, NULL,
-      0, NULL, &error);
+  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, &error);
   fail_if (stream == NULL || error != NULL);
 
   g_object_run_dispose (G_OBJECT (stream));
@@ -1262,8 +1261,7 @@ GST_START_TEST (test_rtpconference_dispose)
 
   g_object_unref (stream);
 
-  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, NULL,
-      0, NULL, &error);
+  stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, &error);
   fail_if (stream == NULL || error != NULL);
 
   g_object_run_dispose (G_OBJECT (stream));

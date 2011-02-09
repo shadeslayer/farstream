@@ -293,7 +293,7 @@ one_way (GstElement *recv_pipeline, gint port)
       "Could not make participant, but no GError!");
 
   stream = fs_session_new_stream (dat->session, participant,
-      FS_DIRECTION_SEND, NULL, 0, NULL, &error);
+      FS_DIRECTION_SEND, &error);
   if (error)
     ts_fail ("Error while creating new stream (%d): %s",
         error->code, error->message);
