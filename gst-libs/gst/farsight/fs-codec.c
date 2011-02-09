@@ -79,6 +79,11 @@ fs_codec_list_get_type (void)
   return codec_list_type;
 }
 
+G_DEFINE_BOXED_TYPE (FsCodecParameter,
+    fs_codec_parameter,
+    fs_codec_parameter_copy,
+    fs_codec_parameter_free);
+
 /**
  * fs_codec_new:
  * @id: codec identifier, if RTP this should be based on IETF RTP payload types
@@ -105,8 +110,9 @@ fs_codec_new (int id, const char *encoding_name,
   return codec;
 }
 
-static void
-free_optional_parameter (FsCodecParameter *param)
+void
+fs_codec_parameter_free (FsCodecParameter *param)
+
 {
   g_free (param->name);
   g_free (param->value);
@@ -137,7 +143,7 @@ fs_codec_destroy (FsCodec * codec)
 
   g_free (codec->encoding_name);
 
-  g_list_foreach (codec->optional_params, (GFunc) free_optional_parameter,
+  g_list_foreach (codec->optional_params, (GFunc) fs_codec_parameter_free,
         NULL);
   g_list_free (codec->optional_params);
 
@@ -451,12 +457,12 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
         param->value = g_key_file_get_string (keyfile, groups[i], keys[j],
             &gerror);
         if (gerror) {
-          free_optional_parameter (param);
+          fs_codec_parameter_free (param);
           goto keyerror;
         }
 
         if (!param->name || !param->value)
-          free_optional_parameter (param);
+          fs_codec_parameter_free (param);
         else
           codec->optional_params = g_list_append (codec->optional_params,
               param);
@@ -746,7 +752,7 @@ fs_codec_remove_optional_parameter (FsCodec *codec,
   if (!param)
     return;
 
-  free_optional_parameter (param);
+  fs_codec_parameter_free (param);
   codec->optional_params = g_list_remove (codec->optional_params, param);
 }
 
@@ -877,4 +883,15 @@ fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item)
   free_feedback_parameter (item->data);
   codec->ABI.ABI.feedback_params =
       g_list_delete_link (codec->ABI.ABI.feedback_params, item);
+}
+
+FsCodecParameter *
+fs_codec_parameter_copy (const FsCodecParameter *param)
+{
+  FsCodecParameter *outparam = g_slice_new (FsCodecParameter);
+
+  outparam->name = g_strdup (param->name);
+  outparam->value = g_strdup (param->value);
+
+  return outparam;
 }

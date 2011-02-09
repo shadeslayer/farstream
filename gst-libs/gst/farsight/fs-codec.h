@@ -180,6 +180,7 @@ const gchar *fs_media_type_to_string (FsMediaType media_type);
 gboolean fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2);
 gboolean fs_codec_list_are_equal (GList *list1, GList *list2);
 
+
 void fs_codec_add_optional_parameter (FsCodec *codec, const gchar *name,
     const gchar *value);
 void fs_codec_remove_optional_parameter (FsCodec *codec,
@@ -187,12 +188,19 @@ void fs_codec_remove_optional_parameter (FsCodec *codec,
 FsCodecParameter *fs_codec_get_optional_parameter (FsCodec *codec,
     const gchar *name, const gchar *value);
 
+#define FS_TYPE_CODEC_PARAMETER (fs_codec_parameter_get_type ())
+GType fs_codec_parameter_get_type (void);
+
+FsCodecParameter *fs_codec_parameter_copy (const FsCodecParameter *param);
+void fs_codec_parameter_free (FsCodecParameter *param);
+
 
 void fs_codec_add_feedback_parameter (FsCodec *codec, const gchar *type,
     const gchar *subtype, const gchar *extra_params);
 FsFeedbackParameter *fs_codec_get_feedback_parameter (FsCodec *codec,
     const gchar *type, const gchar *subtype, const gchar *extra_params);
 void fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item);
+
 
 G_END_DECLS
 
