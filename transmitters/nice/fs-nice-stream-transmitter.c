@@ -1630,9 +1630,17 @@ agent_new_candidate (NiceAgent *agent,
     if (!self->priv->gathered)
     {
       /* Nice doesn't do connchecks while gathering, so don't tell the upper
-       * layers about the candidates untill gathering is finished */
-       self->priv->local_candidates = g_list_prepend
-        (self->priv->local_candidates, fscandidate);
+       * layers about the candidates untill gathering is finished.
+       * Also older versions of farsight would fail the connection right away
+       * when the first candidate given failed immediately (e.g. ipv6 on a
+       * non-ipv6 capable host, so we order ipv6 candidates after ipv4 ones */
+
+       if (strchr (fscandidate->ip, ':'))
+        self->priv->local_candidates = g_list_append
+          (self->priv->local_candidates, fscandidate);
+      else
+        self->priv->local_candidates = g_list_prepend
+          (self->priv->local_candidates, fscandidate);
       FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
     }
     else
