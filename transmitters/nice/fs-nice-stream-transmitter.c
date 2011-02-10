@@ -1471,12 +1471,14 @@ agent_state_changed (NiceAgent *agent,
     gpointer user_data)
 {
   FsNiceStreamTransmitter *self = FS_NICE_STREAM_TRANSMITTER (user_data);
-  FsStreamState fs_state = nice_component_state_to_fs_stream_state (state);
-  struct state_changed_signal_data *data =
-    g_slice_new (struct state_changed_signal_data);
+  FsStreamState fs_state;
+  struct state_changed_signal_data *data;
 
   if (stream_id != self->priv->stream_id)
     return;
+
+  fs_state = nice_component_state_to_fs_stream_state (state);
+  data = g_slice_new (struct state_changed_signal_data);
 
   GST_DEBUG ("Stream: %u Component %u has state %u",
       self->priv->stream_id, component_id, state);
