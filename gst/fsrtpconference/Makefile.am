@@ -65,6 +65,8 @@ preferences_DATA = \
 	default-codec-preferences \
 	default-element-properties
 
+EXTRA_DIST = $(preferences_DATA)
+
 # Optionally build a library to allow building the gtk-doc
 
 if ENABLE_GTK_DOC
