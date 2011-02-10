@@ -35,9 +35,9 @@
 #include <stun/stunagent.h>
 #include <stun/usages/timer.h>
 #include <nice/address.h>
+#include <nice/interfaces.h>
 
 #include <gst/farsight/fs-conference-iface.h>
-#include <gst/farsight/fs-interfaces.h>
 
 #include <gst/netbuffer/gstnetbuffer.h>
 
@@ -1155,6 +1155,31 @@ fs_rawudp_component_stop_upnp_discovery_locked (FsRawUdpComponent *self)
 
 #endif
 
+static GList *
+filter_ips (GList *ips, gboolean ipv4, gboolean ipv6)
+{
+  GList *item;
+
+  if (ipv4 && ipv6)
+    return ips;
+
+  for (item = ips; item;)
+  {
+    gchar *ip = item->data;
+    GList *next = item->next;
+
+    if ((ipv4 && !strchr (ip, '.')) ||
+        (ipv6 && !strchr (ip, ':')))
+    {
+      g_free (ip);
+      ips = g_list_delete_link (ips, item);
+    }
+    item = next;
+  }
+
+  return ips;
+}
+
 gboolean
 fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
     GError **error)
@@ -1183,7 +1208,8 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 
     port = fs_rawudp_transmitter_udpport_get_port (self->priv->udpport);
 
-    ips = fs_interfaces_get_local_ips (FALSE);
+    ips = nice_interfaces_get_local_ips (FALSE);
+    ips = filter_ips (ips, TRUE, FALSE);
 
     if (ips)
     {
@@ -1621,7 +1647,8 @@ fs_rawudp_component_emit_local_candidates (FsRawUdpComponent *self,
 
   port = fs_rawudp_transmitter_udpport_get_port (self->priv->udpport);
 
-  ips = fs_interfaces_get_local_ips (TRUE);
+  ips = nice_interfaces_get_local_ips (TRUE);
+  ips = filter_ips (ips, TRUE, FALSE);
 
   for (current = g_list_first (ips);
        current;
