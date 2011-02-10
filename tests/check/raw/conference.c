@@ -90,8 +90,6 @@ GStaticMutex testlock = G_STATIC_MUTEX_INIT;
 
 gboolean select_last_codec = FALSE;
 gboolean reset_to_last_codec = FALSE;
-gboolean no_rtcp = TRUE;
-
 
 static GstBusSyncReply
 default_sync_handler (GstBus *bus, GstMessage *message, gpointer data)
@@ -385,8 +383,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   }
 
   other_st = find_pointback_stream (st->target, st->dat);
-  if (other_st->stream == NULL ||
-      (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp))
+  if (other_st->stream == NULL)
   {
     TEST_UNLOCK ();
     return;
@@ -1289,17 +1286,6 @@ GST_START_TEST (test_rawconference_change_to_send_only)
 GST_END_TEST;
 
 
-GST_START_TEST (test_rawconference_no_rtcp)
-{
-  no_rtcp = TRUE;
-
-  nway_test (2, NULL, NULL, "rawudp", 0, NULL);
-
-  no_rtcp = FALSE;
-}
-GST_END_TEST;
-
-
 GST_START_TEST (test_rawconference_dispose)
 {
   FsConference *conf;
@@ -1522,10 +1508,6 @@ fsrawconference_suite (void)
 
   tc_chain = tcase_create ("fsrawconference_change_to_send_only");
   tcase_add_test (tc_chain, test_rawconference_change_to_send_only);
-  suite_add_tcase (s, tc_chain);
-
-  tc_chain = tcase_create ("fsrawconference_no_rtcp");
-  tcase_add_test (tc_chain, test_rawconference_no_rtcp);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrawconference_dispose");
