@@ -99,7 +99,7 @@ fs_utils_get_default_codec_preferences (GstElement *element)
 
 /**
  * fs_utils_get_default_element_properties:
- * @element: Element for which to fetch default codec preferences
+ * @element: Element for which to fetch default element properties
  *
  * This function produces a #GKeyFile that can be fed to
  * fs_element_added_notifier_set_properties_from_keyfile(). If no
