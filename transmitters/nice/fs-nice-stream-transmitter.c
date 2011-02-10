@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight libnice Stream Transmitter
+ * Farstream - Farstream libnice Stream Transmitter
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-nice-stream-transmitter.c - A Farsight libnice stream transmitter
+ * fs-nice-stream-transmitter.c - A Farstream libnice stream transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,7 +39,6 @@
 #include "fs-nice-agent.h"
 
 #include <gst/farsight/fs-conference-iface.h>
-#include <gst/farsight/fs-interfaces.h>
 
 #include <gst/gst.h>
 
@@ -1661,7 +1660,7 @@ agent_new_candidate (NiceAgent *agent,
     {
       /* Nice doesn't do connchecks while gathering, so don't tell the upper
        * layers about the candidates untill gathering is finished.
-       * Also older versions of farsight would fail the connection right away
+       * Also older versions of farstream would fail the connection right away
        * when the first candidate given failed immediately (e.g. ipv6 on a
        * non-ipv6 capable host, so we order ipv6 candidates after ipv4 ones */
 

@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight libnice Transmitter agent object
+ * Farstream - Farstream libnice Transmitter agent object
  *
  * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2008 Nokia Corp.
  *
- * fs-nice-agent.c - A Farsight libnice transmitter agent object
+ * fs-nice-agent.c - A Farstream libnice transmitter agent object
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -33,7 +33,6 @@
 #endif
 
 #include <gst/farsight/fs-conference-iface.h>
-#include <gst/farsight/fs-interfaces.h>
 
 #include "fs-nice-transmitter.h"
 #include "fs-nice-agent.h"

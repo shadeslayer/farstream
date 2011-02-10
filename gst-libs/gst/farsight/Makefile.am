@@ -12,7 +12,6 @@ libgstfarsightinclude_HEADERS = \
 		fs-stream-transmitter.h \
 		fs-plugin.h \
 		fs-element-added-notifier.h \
-		fs-interfaces.h \
 		fs-utils.h \
 		fs-rtp.h
 
@@ -43,7 +42,6 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-stream-transmitter.c \
 		fs-plugin.c \
 		fs-element-added-notifier.c \
-		fs-interfaces.c \
 		fs-utils.c \
 		fs-rtp.c \
 		fs-private.h

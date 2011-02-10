@@ -259,15 +259,6 @@ fs_element_added_notifier_get_type
 </SECTION>
 
 <SECTION>
-<FILE>fs-interfaces</FILE>
-<TITLE>Network interfaces discovery</TITLE>
-<INCLUDE>gst/farsight/fs-interfaces.h</INCLUDE>
-fs_interfaces_get_ip_for_interface
-fs_interfaces_get_local_interfaces
-fs_interfaces_get_local_ips
-</SECTION>
-
-<SECTION>
 <FILE>fs-rtp</FILE>
 <TITLE>RTP Specific types</TITLE>
 <INCLUDE>gst/farsight/fs-rtp.h</INCLUDE>
