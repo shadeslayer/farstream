@@ -100,6 +100,8 @@ struct _FsNiceStreamTransmitterPrivate
 
   volatile gint associate_on_source;
 
+  gboolean *component_has_been_ready; /* only from NiceAgent main thread */
+
   /* Everything below is protected by the mutex */
 
   gboolean sending;
@@ -451,6 +453,8 @@ fs_nice_stream_transmitter_finalize (GObject *object)
 
   g_free (self->priv->username);
   g_free (self->priv->password);
+
+  g_free (self->priv->component_has_been_ready);
 
   parent_class->finalize (object);
 }
@@ -1320,6 +1324,9 @@ fs_nice_stream_transmitter_build (FsNiceStreamTransmitter *self,
 
   FS_PARTICIPANT_DATA_UNLOCK (participant);
 
+  self->priv->component_has_been_ready = g_new0 (gboolean,
+      self->priv->transmitter->components);
+
   self->priv->stream_id = nice_agent_add_stream (
       self->priv->agent->agent,
       self->priv->transmitter->components);
@@ -1476,6 +1483,15 @@ agent_state_changed (NiceAgent *agent,
 
   if (stream_id != self->priv->stream_id)
     return;
+
+  /* Ignore failed until we've connected, never time out because
+   * of the dribbling case, more candidates could come later
+   */
+  if (state == NICE_COMPONENT_STATE_FAILED &&
+      !self->priv->component_has_been_ready[component_id])
+    return;
+  else if (state == NICE_COMPONENT_STATE_READY)
+    self->priv->component_has_been_ready[component_id] = TRUE;
 
   fs_state = nice_component_state_to_fs_stream_state (state);
   data = g_slice_new (struct state_changed_signal_data);
