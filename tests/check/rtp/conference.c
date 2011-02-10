@@ -156,7 +156,8 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   }
 
   other_st = find_pointback_stream (st->target, st->dat);
-  if (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp)
+  if (other_st->stream == NULL ||
+      (candidate->component_id == FS_COMPONENT_RTCP && no_rtcp))
   {
     TEST_UNLOCK ();
     return;
