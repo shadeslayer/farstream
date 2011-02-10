@@ -40,6 +40,8 @@
 
 #include <stdlib.h>
 
+#include "fs-utils.h"
+
 #include "fs-marshal.h"
 
 
@@ -419,3 +421,28 @@ _element_added_callback (GstBin *parent, GstElement *element,
   g_signal_emit (notifier, signals[ELEMENT_ADDED], 0, parent, element);
 }
 
+
+/**
+ * fs_element_added_notifier_set_default_properties:
+ * @notifier: a #FsElementAddedNotifier
+ * @element: Element for which to set the default codec
+ *   preferences
+ *
+ * Same as first calling fs_utils_get_default_element_properties() and using
+ * the result with
+ * fs_element_added_notifier_set_properties_from_keyfile() .
+ *
+ * This is binding friendly (since GKeyFile doesn't have a boxed type).
+ */
+void
+fs_element_added_notifier_set_default_properties (
+    FsElementAddedNotifier *notifier,
+    GstElement *element)
+{
+  GKeyFile *keyfile = fs_utils_get_default_element_properties (element);
+
+  if (!keyfile)
+    return;
+
+  fs_element_added_notifier_set_properties_from_keyfile(notifier, keyfile);
+}
