@@ -26,7 +26,8 @@ AM_CFLAGS = \
 	$(FS2_INTERNAL_CFLAGS) \
 	$(FS2_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
-	$(GST_CFLAGS)
+	$(GST_CFLAGS) \
+	$(NICE_CFLAGS) 
 
 # Build the main plugin
 
@@ -40,7 +41,8 @@ libfsmsnconference_la_LIBADD = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
 	$(FS2_LIBS) \
 	$(GST_BASE_LIBS) \
-	$(GST_LIBS)
+	$(GST_LIBS) \
+	$(NICE_LIBS)
 
 
 

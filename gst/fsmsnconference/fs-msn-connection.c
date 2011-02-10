@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight MSN Connection
+ * Farstream2 - Farstream MSN Connection
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
@@ -43,8 +43,7 @@
 #endif
 
 #include <gst/gst.h>
-
-#include <gst/farsight/fs-interfaces.h>
+#include <nice/interfaces.h>
 
 #define GST_CAT_DEFAULT fsmsnconference_debug
 
@@ -438,6 +437,28 @@ fs_msn_connection_add_remote_candidates (FsMsnConnection *self,
 }
 
 
+
+static GList *
+filter_ips_ipv4 (GList *ips)
+{
+  GList *item;
+
+  for (item = ips; item;)
+  {
+    gchar *ip = item->data;
+    GList *next = item->next;
+
+    if (!strchr (ip, '.'))
+    {
+      g_free (ip);
+      ips = g_list_delete_link (ips, item);
+    }
+    item = next;
+  }
+
+  return ips;
+}
+
 static gboolean
 fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
     GError **error)
@@ -446,9 +467,11 @@ fs_msn_open_listening_port_unlock (FsMsnConnection *self, guint16 port,
   struct sockaddr_in myaddr;
   guint myaddr_len = sizeof (struct sockaddr_in);
   FsCandidate * candidate = NULL;
-  GList *addresses = fs_interfaces_get_local_ips (FALSE);
+  GList *addresses = nice_interfaces_get_local_ips (FALSE);
   GList *item = NULL;
   gchar *session_id;
+
+  addresses = filter_ips_ipv4 (addresses);
 
 
   GST_DEBUG ("Attempting to listen on port %d.....",port);
