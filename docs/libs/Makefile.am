@@ -49,7 +49,7 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-@GST_MAJORMINOR@.la
 
 # Header files to ignore when scanning.
-IGNORE_HFILES = fs-marshal.h fs-enum-types.h fs-private.h
+IGNORE_HFILES = fs-marshal.h fs-enumtypes.h fs-private.h
 
 # Images to copy into HTML directory.
 HTML_IMAGES =

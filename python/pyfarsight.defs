@@ -803,7 +803,7 @@
 ;; Enumerations and flags ...
 
 
-;; From fs-enum-types.h
+;; From fs-enumtypes.h
 
 (define-function fs_candidate_type_get_type
   (c-name "fs_candidate_type_get_type")

@@ -30,7 +30,7 @@
 
 #include <gst/farsight/fs-session.h>
 #include <gst/farsight/fs-codec.h>
-#include <gst/farsight/fs-enum-types.h>
+#include <gst/farsight/fs-enumtypes.h>
 
 G_BEGIN_DECLS
 

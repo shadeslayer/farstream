@@ -16,11 +16,8 @@ libgstfarsightinclude_HEADERS = \
 		fs-rtp.h
 
 nodist_libgstfarsightinclude_HEADERS = \
-		fs-enum-types.h
+		fs-enumtypes.h
 
-# Don't forget to rename on ABI break
-fs-enum-types.h: fs-enumtypes.h
-	$(AM_V_GEN)test -L fs-enum-types.h || { rm -f fs-enum-types.h;  $(LN_S) fs-enumtypes.h fs-enum-types.h ; }
 
 lib_LTLIBRARIES = libgstfarsight-@GST_MAJORMINOR@.la
 
@@ -28,7 +25,7 @@ BUILT_SOURCES = \
 	$(nodist_libgstfarsight_@GST_MAJORMINOR@_la_SOURCES) \
 	$(nodist_libgstfarsightinclude_HEADERS)
 
-CLEANFILES = $(BUILT_SOURCES) fs-enumtypes.h fs-marshal.list
+CLEANFILES = $(BUILT_SOURCES) fs-marshal.list
 
 libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-base-conference.c \

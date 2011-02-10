@@ -9,7 +9,7 @@ HEADERS=" \
     fs-stream.h \
     fs-rtp.h \
     fs-element-added-notifier.h \
-    fs-enum-types.h"
+    fs-enumtypes.h"
 
 srcdir=../gst-libs/gst/farsight/
 
