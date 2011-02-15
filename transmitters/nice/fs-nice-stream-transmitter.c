@@ -1484,14 +1484,17 @@ agent_state_changed (NiceAgent *agent,
   if (stream_id != self->priv->stream_id)
     return;
 
+  g_return_if_fail (component_id > 0 &&
+      component_id <= self->priv->transmitter->components);
+
   /* Ignore failed until we've connected, never time out because
    * of the dribbling case, more candidates could come later
    */
   if (state == NICE_COMPONENT_STATE_FAILED &&
-      !self->priv->component_has_been_ready[component_id])
+      !self->priv->component_has_been_ready[component_id - 1])
     return;
   else if (state == NICE_COMPONENT_STATE_READY)
-    self->priv->component_has_been_ready[component_id] = TRUE;
+    self->priv->component_has_been_ready[component_id - 1] = TRUE;
 
   fs_state = nice_component_state_to_fs_stream_state (state);
   data = g_slice_new (struct state_changed_signal_data);
