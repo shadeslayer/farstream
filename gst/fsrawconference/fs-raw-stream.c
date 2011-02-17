@@ -46,6 +46,7 @@
 #endif
 
 #include "fs-raw-stream.h"
+#include "fs-raw-session.h"
 
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -529,6 +530,9 @@ fs_raw_stream_set_property (GObject *object,
         self->priv->direction = g_value_get_flags (value);
 
         GST_OBJECT_UNLOCK (conference);
+        raw_session_update_direction (self->priv->session,
+          self->priv->direction);
+
         if (recv_valve)
           g_object_set (recv_valve, "drop",
               (self->priv->direction & FS_DIRECTION_RECV) ? FALSE : TRUE, NULL);
@@ -546,8 +550,6 @@ fs_raw_stream_set_property (GObject *object,
           gst_object_unref (recv_valve);
         if (st)
           g_object_unref (st);
-
-        g_object_notify (object, "direction");
       }
       break;
     case PROP_CONFERENCE:

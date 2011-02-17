@@ -89,6 +89,9 @@ FsRawSession *fs_raw_session_new (FsMediaType media_type,
 void raw_session_remove_stream (FsRawSession *self,
     FsStream *stream);
 
+void raw_session_update_direction (FsRawSession *self,
+  FsStreamDirection direction);
+
 G_END_DECLS
 
 #endif /* __FS_RAW_SESSION_H__ */

@@ -90,12 +90,11 @@ struct _FsRawSessionPrivate
   GstElement *capsfilter;
   GList *codecs;
   FsCodec *send_codec;
+  gboolean transmitter_linked;
 
   FsTransmitter *transmitter;
 
   guint tos; /* Protected by conf lock */
-
-  gulong stream_direction_handler_id;
 
   GMutex *mutex; /* protects the conference */
 
@@ -295,11 +294,6 @@ fs_raw_session_dispose (GObject *object)
     gst_element_set_state (capsfilter, GST_STATE_NULL);
     gst_object_unref (capsfilter);
   }
-
-  GST_OBJECT_LOCK (conference);
-  handler_id = self->priv->stream_direction_handler_id;
-  self->priv->stream_direction_handler_id = 0;
-  GST_OBJECT_UNLOCK (conference);
 
   if (self->priv->stream)
   {
@@ -706,27 +700,24 @@ _add_transmitter_sink (FsRawSession *self,
     goto error;
   }
 
+  self->priv->transmitter_linked = TRUE;
+
   return TRUE;
 
 error:
   return FALSE;
 }
 
-static void
-_stream_direction_notify_cb (GObject *stream,
-                             GParamSpec *pspec,
-                             gpointer user_data)
+void
+raw_session_update_direction (FsRawSession *self,
+  FsStreamDirection direction)
 {
-  FsRawSession *self = FS_RAW_SESSION (user_data);
-  FsStreamDirection direction;
+  g_debug ("Direction notification %p", g_thread_self ());
 
-  g_object_get (stream, "direction", &direction, NULL);
-
-  if (direction & FS_DIRECTION_SEND)
+  if (direction & FS_DIRECTION_SEND && !self->priv->transmitter_linked)
   {
     GstElement *transmitter_sink;
     GError *error = NULL;
-    gulong handler_id = 0;
     FsRawConference *conference;
 
     conference = fs_raw_session_get_conference (self, &error);
@@ -749,13 +740,6 @@ _stream_direction_notify_cb (GObject *stream,
       gst_object_unref (conference);
       return;
     }
-
-    GST_OBJECT_LOCK (conference);
-    handler_id = self->priv->stream_direction_handler_id;
-    self->priv->stream_direction_handler_id = 0;
-    GST_OBJECT_UNLOCK (conference);
-
-    g_signal_handler_disconnect (stream, handler_id);
 
     gst_object_unref (conference);
   }
@@ -875,20 +859,6 @@ fs_raw_session_new_stream (FsSession *session,
           "Could not sync the transmitter's source element"
           " with its parent for session %d", self->id);
       goto error;
-    }
-
-    if (direction & FS_DIRECTION_SEND)
-    {
-      g_object_get (fstransmitter, "gst-sink", &transmitter_sink, NULL);
-
-      if (!_add_transmitter_sink (self, transmitter_sink, error))
-        goto error;
-    }
-    else
-    {
-      self->priv->stream_direction_handler_id =
-          g_signal_connect (new_stream, "notify::direction",
-          G_CALLBACK (_stream_direction_notify_cb), self);
     }
 
     GST_OBJECT_LOCK (conference);
