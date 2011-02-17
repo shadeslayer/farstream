@@ -271,6 +271,9 @@ fs_raw_conference_new_session (FsBaseConference *conf,
 
   new_session = fs_raw_session_new (media_type, self, id, error);
 
+  if (new_session == NULL)
+    return NULL;
+
   GST_OBJECT_LOCK (self);
   self->priv->sessions = g_list_append (self->priv->sessions, new_session);
   GST_OBJECT_UNLOCK (self);
