@@ -92,6 +92,11 @@ struct _FsRawSessionPrivate
   FsCodec *send_codec;
   gboolean transmitter_linked;
 
+  GstElement *send_tee;
+  GstPad *send_tee_pad;
+
+  GstElement *transform_bin;
+
   FsTransmitter *transmitter;
 
   guint tos; /* Protected by conf lock */
@@ -160,6 +165,9 @@ static gchar **fs_raw_session_list_transmitters (FsSession *session);
 static GType
 fs_raw_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter);
+
+static GstElement *
+_create_transform_bin (FsRawSession *self, GError **error);
 
 static void
 fs_raw_session_class_init (FsRawSessionClass *klass)
@@ -252,6 +260,9 @@ fs_raw_session_dispose (GObject *object)
   FsRawConference *conference = NULL;
   GstElement *valve = NULL;
   GstElement *capsfilter = NULL;
+  GstElement *transform = NULL;
+  GstElement *send_tee = NULL;
+  GstPad *send_tee_pad = NULL;
   gulong handler_id = 0;
   FsTransmitter *transmitter = NULL;
   GstPad *media_sink_pad = NULL;
@@ -324,6 +335,34 @@ fs_raw_session_dispose (GObject *object)
     gst_pad_set_active (media_sink_pad, FALSE);
     gst_object_unref (media_sink_pad);
   }
+
+  GST_OBJECT_LOCK (conference);
+  media_sink_pad = self->priv->media_sink_pad;
+  self->priv->media_sink_pad = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  GST_OBJECT_LOCK (conference);
+  transform = self->priv->transform_bin;
+  self->priv->transform_bin = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (transform != NULL)
+    gst_object_unref (transform);
+
+  GST_OBJECT_LOCK (conference);
+  send_tee = self->priv->send_tee;
+  self->priv->send_tee = NULL;
+
+  send_tee_pad = self->priv->send_tee_pad;
+  self->priv->send_tee_pad = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (send_tee != NULL)
+    gst_object_unref (send_tee);
+
+  if (send_tee_pad != NULL)
+    gst_object_unref (send_tee_pad);
+
 
   gst_object_unref (conference);
 
@@ -449,6 +488,7 @@ fs_raw_session_constructed (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
   GstPad *pad;
+  GstElement *fakesink;
   gchar *tmp;
 
   if (self->id == 0)
@@ -459,7 +499,6 @@ fs_raw_session_constructed (GObject *object)
   }
 
   g_assert (self->priv->conference);
-
 
   tmp = g_strdup_printf ("send_capsfilter_%u", self->id);
   self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
@@ -489,6 +528,139 @@ fs_raw_session_constructed (GObject *object)
         FS_ERROR_CONSTRUCTION,
         "Could not sync the send capsfilter's state with its parent");
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
+    return;
+  }
+
+  self->priv->transform_bin = _create_transform_bin (self, NULL);
+
+  if (self->priv->transform_bin == NULL)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not create transform bin");
+    gst_object_unref (self->priv->transform_bin);
+  }
+
+  gst_object_ref_sink (self->priv->transform_bin);
+  if (!gst_bin_add (GST_BIN (self->priv->conference),
+      self->priv->transform_bin))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add transform bin to conference");
+    gst_object_unref (self->priv->transform_bin);
+    return;
+  }
+
+  if (!gst_element_link_pads (self->priv->transform_bin, "src",
+          self->priv->capsfilter, "sink"))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link send transformbin and capsfilter");
+    return;
+  }
+
+  if (!gst_element_sync_state_with_parent (self->priv->transform_bin))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not sync the send transformbin's state with its parent");
+    gst_bin_remove (GST_BIN (self->priv->conference),
+      self->priv->transform_bin);
+    return;
+  }
+
+  tmp = g_strdup_printf ("send_tee_%u", self->id);
+  self->priv->send_tee = gst_element_factory_make ("tee", tmp);
+  g_free (tmp);
+
+  gst_object_ref_sink (self->priv->send_tee);
+  if (!self->priv->send_tee)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not make send tee");
+    return;
+  }
+
+  gst_object_ref_sink (self->priv->send_tee);
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->send_tee))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add send tee to conference");
+    gst_object_unref (self->valve);
+    return;
+  }
+
+  self->priv->send_tee_pad = gst_element_get_request_pad (self->priv->send_tee,
+    "src%d");
+
+  if (self->priv->send_tee_pad == NULL)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not create send tee pad");
+    return;
+  }
+
+  pad = gst_element_get_static_pad (self->priv->transform_bin, "sink");
+  if (pad == NULL)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not get transformbin sink pad");
+    return;
+  }
+
+  if (GST_PAD_LINK_FAILED(gst_pad_link (self->priv->send_tee_pad, pad)))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link send tee and transformbin");
+    return;
+  }
+
+  gst_object_unref (pad);
+
+  fakesink = gst_element_factory_make ("fakesink", NULL);
+  if (!fakesink)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not make fakesink");
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), fakesink))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not add fakesink to conference");
+    gst_object_unref (fakesink);
+    return;
+  }
+
+  if (!gst_element_link_pads (self->priv->send_tee, "src%d",
+          fakesink, "sink"))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not link send send tee and fakesink");
+    return;
+  }
+
+  if (!gst_element_sync_state_with_parent (fakesink))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not sync the fakesinks state with its parent");
+    gst_bin_remove (GST_BIN (self->priv->conference), fakesink);
+    return;
+  }
+
+  if (!gst_element_sync_state_with_parent (self->priv->send_tee))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not sync the send valve's state with its parent");
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->send_tee);
     return;
   }
 
@@ -526,14 +698,13 @@ fs_raw_session_constructed (GObject *object)
   }
 
   if (!gst_element_link_pads (self->valve, "src",
-          self->priv->capsfilter, "sink"))
+          self->priv->send_tee, "sink"))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
-        "Could not link send valve and capsfilter");
+        "Could not link send valve and transformbin");
     return;
   }
-
 
   pad = gst_element_get_static_pad (self->valve, "sink");
   tmp = g_strdup_printf ("sink_%u", self->id);
@@ -565,14 +736,195 @@ fs_raw_session_constructed (GObject *object)
     G_OBJECT_CLASS (fs_raw_session_parent_class)->constructed (object);
 }
 
+static GstElement *
+_create_audio_transform_bin (FsRawSession *self, GError **error)
+{
+  GstElement *bin = NULL;
+  GstElement *convert0 = NULL, *resample = NULL, *convert1 = NULL;
+  GstPad *ghost = NULL, *pad = NULL;
+
+  bin = gst_bin_new (NULL);
+  if (bin == NULL)
+    goto error;
+
+  convert0 = gst_element_factory_make ("audioconvert", NULL);
+  resample = gst_element_factory_make ("audioresample", NULL);
+  convert1 = gst_element_factory_make ("audioconvert", NULL);
+
+  if (convert0 == NULL || resample == NULL || convert1 == NULL)
+    goto error_elements;
+
+  if (!gst_bin_add (GST_BIN (bin), convert0))
+    goto error_elements;
+
+  if (!gst_bin_add (GST_BIN (bin), resample))
+    goto error_elements;
+
+  if (!gst_bin_add (GST_BIN (bin), convert1))
+    goto error_elements;
+
+  if (!gst_element_link_many (convert0, resample, convert1, NULL))
+    goto error;
+
+  pad = gst_element_get_static_pad (convert0, "sink");
+  if (pad == NULL)
+    goto error;
+
+  ghost = gst_ghost_pad_new ("sink", pad);
+  if (ghost == NULL)
+    goto error;
+
+  if (!gst_element_add_pad (bin, ghost))
+  {
+    gst_object_unref (ghost);
+    goto error;
+  }
+
+  gst_object_unref (pad);
+
+  pad = gst_element_get_static_pad (convert1, "src");
+  if (pad == NULL)
+    goto error;
+
+  ghost = gst_ghost_pad_new ("src", pad);
+  if (!gst_element_add_pad (bin, ghost))
+  {
+    gst_object_unref (ghost);
+    goto error;
+  }
+
+  gst_object_unref (pad);
+
+  return bin;
+
+error_elements:
+  if (convert0 != NULL)
+    gst_object_unref (convert0);
+
+  if (resample != NULL)
+    gst_object_unref (resample);
+
+  if (convert1 != NULL)
+    gst_object_unref (convert1);
+
+error:
+  if (bin != NULL)
+    gst_object_unref (bin);
+
+  if (pad != NULL)
+    gst_object_unref (pad);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+    "Couldn't create audio transform bin");
+  return NULL;
+}
+
+static GstElement *
+_create_video_transform_bin (FsRawSession *self, GError **error)
+{
+  GstElement *bin = NULL;
+  GstElement *colorspace = NULL, *videoscale = NULL;
+  GstPad *ghost = NULL, *pad = NULL;
+
+  bin = gst_bin_new (NULL);
+  if (bin == NULL)
+    goto error;
+
+  colorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
+  videoscale = gst_element_factory_make ("videoscale", NULL);
+
+  if (colorspace == NULL || videoscale == NULL)
+    goto error_elements;
+
+  if (!gst_bin_add (GST_BIN (bin), colorspace))
+    goto error_elements;
+
+  if (!gst_bin_add (GST_BIN (bin), videoscale))
+    goto error_elements;
+
+  if (!gst_element_link_many (colorspace, videoscale, NULL))
+    goto error;
+
+  pad = gst_element_get_static_pad (colorspace, "sink");
+  if (pad == NULL)
+    goto error;
+
+  ghost = gst_ghost_pad_new ("sink", pad);
+  if (ghost == NULL)
+    goto error;
+
+  if (!gst_element_add_pad (bin, ghost))
+  {
+    gst_object_unref (ghost);
+    goto error;
+  }
+
+  gst_object_unref (pad);
+
+  pad = gst_element_get_static_pad (videoscale, "src");
+  if (pad == NULL)
+    goto error;
+
+  ghost = gst_ghost_pad_new ("src", pad);
+  if (!gst_element_add_pad (bin, ghost))
+  {
+    gst_object_unref (ghost);
+    goto error;
+  }
+
+  gst_object_unref (pad);
+
+  return bin;
+
+error_elements:
+  if (colorspace != NULL)
+    gst_object_unref (colorspace);
+
+  if (videoscale != NULL)
+    gst_object_unref (videoscale);
+
+error:
+  if (bin != NULL)
+    gst_object_unref (bin);
+
+  if (pad != NULL)
+    gst_object_unref (pad);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
+    "Couldn't create audio transform bin");
+  return NULL;
+}
+
+static GstElement *
+_create_transform_bin (FsRawSession *self, GError **error)
+{
+  FsMediaType mtype = self->priv->media_type;
+
+  if (mtype == FS_MEDIA_TYPE_AUDIO)
+    return _create_audio_transform_bin (self, error);
+  else if (mtype == FS_MEDIA_TYPE_VIDEO)
+    return _create_video_transform_bin (self, error);
+
+  g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
+    "No transform bin for this media type");
+  return NULL;
+}
+
 static void
 _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
     FsRawSession *self)
 {
-  FsRawConference *conference = fs_raw_session_get_conference (self, NULL);
   GList *codecs;
   GstCaps *caps;
   FsCodec *codec = NULL;
+  GstPad *transform_pad;
+  GError *error = NULL;
+  GstElement *transform = NULL;
+  FsRawConference *conference = fs_raw_session_get_conference (self, &error);
+  gboolean changed;
+
+  if (conference == NULL)
+    goto error;
 
   g_object_get (stream, "remote-codecs", &codecs, NULL);
 
@@ -584,20 +936,68 @@ _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
   else if (codecs && codecs->data)
     codec = codecs->data;
 
-  caps = fs_raw_codec_to_gst_caps (codec);
+  GST_OBJECT_LOCK (conference);
+  transform = self->priv->transform_bin;
+  self->priv->transform_bin = NULL;
+  GST_OBJECT_UNLOCK (conference);
 
+  /* Replace the transform bin */
+  if (transform != NULL)
+  {
+    gst_element_set_locked_state (transform, TRUE);
+    gst_element_set_state (transform, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (conference), transform);
+    g_object_unref (transform);
+  }
+
+  transform = _create_transform_bin (self, &error);
+
+  if (transform == NULL)
+    goto error;
+  gst_object_ref_sink (transform);
+
+  if (!gst_bin_add (GST_BIN (conference), transform))
+    goto error;
+
+  caps = fs_raw_codec_to_gst_caps (codec);
   if (self->priv->capsfilter)
     g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+  gst_caps_unref (caps);
+
+  if (!gst_element_link_pads (transform, "src",
+          self->priv->capsfilter, "sink"))
+    goto error;
+
+  if (!gst_element_sync_state_with_parent (transform))
+    goto error;
+
+  transform_pad = gst_element_get_static_pad (transform, "sink");
+  if (transform_pad == NULL)
+    goto error;
+
+  if (GST_PAD_LINK_FAILED (gst_pad_link (self->priv->send_tee_pad,
+      transform_pad)))
+    goto error;
 
   GST_OBJECT_LOCK (conference);
-  if (!fs_codec_are_equal (self->priv->send_codec, codec))
+  self->priv->transform_bin = transform;
+  transform = NULL;
+
+  if (self->priv->codecs)
+    fs_codec_list_destroy (self->priv->codecs);
+  self->priv->codecs = codecs;
+
+  if ((changed = !fs_codec_are_equal (self->priv->send_codec, codec)))
   {
     if (self->priv->send_codec)
       fs_codec_destroy (self->priv->send_codec);
 
     self->priv->send_codec = fs_codec_copy (codec);
+  }
 
-    GST_OBJECT_UNLOCK (conference);
+  GST_OBJECT_UNLOCK (conference);
+  if (changed)
+  {
     g_object_notify (G_OBJECT (self), "current-send-codec");
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
         gst_message_new_element (GST_OBJECT (self->priv->conference),
@@ -606,18 +1006,27 @@ _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
                 "codec", FS_TYPE_CODEC, codec,
                 "secondary-codecs", FS_TYPE_CODEC_LIST, NULL,
                 NULL)));
-    GST_OBJECT_LOCK (conference);
   }
-
-  if (self->priv->codecs)
-    fs_codec_list_destroy (self->priv->codecs);
-  self->priv->codecs = fs_codec_list_copy (codecs);
-  GST_OBJECT_UNLOCK (conference);
 
   g_object_notify (G_OBJECT (self), "codecs");
 
-  gst_caps_unref (caps);
   gst_object_unref (conference);
+  return;
+
+error:
+  if (error != NULL)
+    fs_session_emit_error (FS_SESSION (self), error->code, error->message,
+          "Unable to change transform bin");
+  else
+    fs_session_emit_error (FS_SESSION (self), FS_ERROR_INTERNAL,
+          "Unable to change transform bin",
+          "Unknown error");
+
+  if (conference != NULL)
+    gst_object_unref (conference);
+
+  if (transform != NULL)
+    gst_object_unref (transform);
 }
 
 void
