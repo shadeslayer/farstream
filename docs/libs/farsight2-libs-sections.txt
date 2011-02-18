@@ -275,9 +275,11 @@ fs_rtp_header_extension_destroy
 fs_rtp_header_extension_list_copy
 fs_rtp_header_extension_list_destroy
 fs_rtp_header_extension_new
+FS_RTP_HEADER_EXTENSION_FORMAT
+FS_RTP_HEADER_EXTENSION_ARGS
+<SUBSECTION Standard>
 FS_TYPE_RTP_HEADER_EXTENSION
 FS_TYPE_RTP_HEADER_EXTENSION_LIST
-<SUBSECTION Standard>
 fs_rtp_header_extension_get_type
 fs_rtp_header_extension_list_get_type
 </SECTION>

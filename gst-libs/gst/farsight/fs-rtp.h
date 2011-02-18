@@ -81,6 +81,29 @@ fs_rtp_header_extension_list_copy (GList *extensions);
 void
 fs_rtp_header_extension_list_destroy (GList *extensions);
 
+
+/**
+ * FS_RTP_HEADER_EXTENSION_FORMAT:
+ *
+ * A format that can be used in printf like format strings to format a
+ * FsRtpHeaderExtension
+ */
+
+/**
+ * FS_RTP_HEADER_EXTENSION_ARGS:
+ * @hdrext: a #FsRtpHeaderExtension
+ *
+ * Formats the codec in args for FS_RTP_HEADER_EXTENSION_ARGS
+ */
+
+#define FS_RTP_HEADER_EXTENSION_FORMAT "%d: (%s) %s"
+#define FS_RTP_HEADER_EXTENSION_ARGS(hdrext)                    \
+  (hdrext)->id,                                                 \
+    (hdrext)->direction == FS_DIRECTION_BOTH ? "both" :         \
+      ((hdrext)->direction == FS_DIRECTION_RECV? "recv" :       \
+          ((hdrext)->direction == FS_DIRECTION_SEND ? "send" : "none")), \
+    (hdrext)->uri
+
 G_END_DECLS
 
 #endif /* __FS_RTP_H__ */
