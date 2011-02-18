@@ -4761,6 +4761,8 @@ codecbin_set_bitrate (GstElement *codecbin, guint bitrate)
   if (bitrate == 0)
     return FALSE;
 
+  GST_DEBUG ("Setting bitrate to %u bits/sec", bitrate);
+
   data.bitrate = bitrate;
   data.ret = FALSE;
 
