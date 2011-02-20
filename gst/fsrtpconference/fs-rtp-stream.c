@@ -1100,6 +1100,7 @@ fs_rtp_stream_set_negotiated_codecs_unlock (FsRtpStream *stream,
   {
     fs_codec_list_destroy (codecs);
     FS_RTP_SESSION_UNLOCK (session);
+    g_object_unref (session);
     return;
   }
 
