@@ -96,6 +96,7 @@ struct _FsRawSessionPrivate
   GstPad *send_tee_pad;
 
   GstElement *transform_bin;
+  GstElement *fakesink;
 
   FsTransmitter *transmitter;
 
@@ -262,6 +263,7 @@ fs_raw_session_dispose (GObject *object)
   GstElement *capsfilter = NULL;
   GstElement *transform = NULL;
   GstElement *send_tee = NULL;
+  GstElement *fakesink = NULL;
   GstPad *send_tee_pad = NULL;
   gulong handler_id = 0;
   FsTransmitter *transmitter = NULL;
@@ -337,17 +339,30 @@ fs_raw_session_dispose (GObject *object)
   }
 
   GST_OBJECT_LOCK (conference);
-  media_sink_pad = self->priv->media_sink_pad;
-  self->priv->media_sink_pad = NULL;
-  GST_OBJECT_UNLOCK (conference);
-
-  GST_OBJECT_LOCK (conference);
   transform = self->priv->transform_bin;
   self->priv->transform_bin = NULL;
   GST_OBJECT_UNLOCK (conference);
 
-  if (transform != NULL)
+  if (transform)
+  {
+    gst_element_set_locked_state (transform, TRUE);
+    gst_bin_remove (conferencebin, transform);
+    gst_element_set_state (transform, GST_STATE_NULL);
     gst_object_unref (transform);
+  }
+
+  GST_OBJECT_LOCK (conference);
+  fakesink = self->priv->fakesink;
+  self->priv->fakesink = NULL;
+  GST_OBJECT_UNLOCK (conference);
+
+  if (fakesink)
+  {
+    gst_element_set_locked_state (fakesink, TRUE);
+    gst_bin_remove (conferencebin, fakesink);
+    gst_element_set_state (fakesink, GST_STATE_NULL);
+    gst_object_unref (transform);
+  }
 
   GST_OBJECT_LOCK (conference);
   send_tee = self->priv->send_tee;
@@ -357,8 +372,13 @@ fs_raw_session_dispose (GObject *object)
   self->priv->send_tee_pad = NULL;
   GST_OBJECT_UNLOCK (conference);
 
-  if (send_tee != NULL)
+  if (send_tee)
+  {
+    gst_element_set_locked_state (send_tee, TRUE);
+    gst_bin_remove (conferencebin, send_tee);
+    gst_element_set_state (send_tee, GST_STATE_NULL);
     gst_object_unref (send_tee);
+  }
 
   if (send_tee_pad != NULL)
     gst_object_unref (send_tee_pad);
@@ -488,7 +508,6 @@ fs_raw_session_constructed (GObject *object)
 {
   FsRawSession *self = FS_RAW_SESSION (object);
   GstPad *pad;
-  GstElement *fakesink;
   gchar *tmp;
 
   if (self->id == 0)
@@ -519,6 +538,7 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add capsfilter to conference");
     gst_object_unref (self->priv->capsfilter);
+    self->priv->capsfilter = NULL;
     return;
   }
 
@@ -527,7 +547,6 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not sync the send capsfilter's state with its parent");
-    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
     return;
   }
 
@@ -537,7 +556,7 @@ fs_raw_session_constructed (GObject *object)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not create transform bin");
-    gst_object_unref (self->priv->transform_bin);
+    return;
   }
 
   gst_object_ref_sink (self->priv->transform_bin);
@@ -547,6 +566,7 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add transform bin to conference");
     gst_object_unref (self->priv->transform_bin);
+    self->priv->transform_bin = NULL;
     return;
   }
 
@@ -564,8 +584,6 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not sync the send transformbin's state with its parent");
-    gst_bin_remove (GST_BIN (self->priv->conference),
-      self->priv->transform_bin);
     return;
   }
 
@@ -573,7 +591,6 @@ fs_raw_session_constructed (GObject *object)
   self->priv->send_tee = gst_element_factory_make ("tee", tmp);
   g_free (tmp);
 
-  gst_object_ref_sink (self->priv->send_tee);
   if (!self->priv->send_tee)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -587,7 +604,8 @@ fs_raw_session_constructed (GObject *object)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add send tee to conference");
-    gst_object_unref (self->valve);
+    gst_object_unref (self->priv->send_tee);
+    self->priv->send_tee = NULL;
     return;
   }
 
@@ -611,34 +629,36 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  if (GST_PAD_LINK_FAILED(gst_pad_link (self->priv->send_tee_pad, pad)))
+  if (GST_PAD_LINK_FAILED (gst_pad_link (self->priv->send_tee_pad, pad)))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not link send tee and transformbin");
+    gst_object_unref (pad);
     return;
   }
 
   gst_object_unref (pad);
 
-  fakesink = gst_element_factory_make ("fakesink", NULL);
-  if (!fakesink)
+  self->priv->fakesink = gst_element_factory_make ("fakesink", NULL);
+  if (!self->priv->fakesink)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not make fakesink");
     return;
   }
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), fakesink))
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->fakesink))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add fakesink to conference");
-    gst_object_unref (fakesink);
+    gst_object_unref (self->priv->fakesink);
+    self->priv->fakesink = NULL;
     return;
   }
 
   if (!gst_element_link_pads (self->priv->send_tee, "src%d",
-          fakesink, "sink"))
+          self->priv->fakesink, "sink"))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -646,12 +666,11 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  if (!gst_element_sync_state_with_parent (fakesink))
+  if (!gst_element_sync_state_with_parent (self->priv->fakesink))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not sync the fakesinks state with its parent");
-    gst_bin_remove (GST_BIN (self->priv->conference), fakesink);
     return;
   }
 
@@ -663,7 +682,6 @@ fs_raw_session_constructed (GObject *object)
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->send_tee);
     return;
   }
-
 
   tmp = g_strdup_printf ("send_valve_%u", self->id);
   self->valve = gst_element_factory_make ("valve", tmp);
@@ -683,6 +701,7 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
     gst_object_unref (self->valve);
+    self->valve = NULL;
     return;
   }
 
@@ -693,7 +712,6 @@ fs_raw_session_constructed (GObject *object)
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
         "Could not sync the send valve's state with its parent");
-    gst_bin_remove (GST_BIN (self->priv->conference), self->valve);
     return;
   }
 
