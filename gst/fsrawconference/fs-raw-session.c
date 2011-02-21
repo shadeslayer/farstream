@@ -1118,7 +1118,7 @@ error:
 }
 
 void
-raw_session_update_direction (FsRawSession *self,
+fs_raw_session_update_direction (FsRawSession *self,
   FsStreamDirection direction)
 {
   g_debug ("Direction notification %p", g_thread_self ());

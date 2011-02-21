@@ -530,7 +530,7 @@ fs_raw_stream_set_property (GObject *object,
         self->priv->direction = g_value_get_flags (value);
 
         GST_OBJECT_UNLOCK (conference);
-        raw_session_update_direction (self->priv->session,
+        fs_raw_session_update_direction (self->priv->session,
           self->priv->direction);
 
         if (recv_valve)
