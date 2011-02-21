@@ -648,6 +648,7 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
+  gst_object_ref_sink (self->priv->fakesink);
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->fakesink))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
