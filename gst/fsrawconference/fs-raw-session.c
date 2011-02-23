@@ -1080,9 +1080,12 @@ raw_session_remove_stream (FsRawSession *self,
   gst_element_set_state (src, GST_STATE_NULL);
   gst_bin_remove (GST_BIN (conference), src);
 
-  gst_element_set_locked_state (sink, TRUE);
-  gst_element_set_state (sink, GST_STATE_NULL);
-  gst_bin_remove (GST_BIN (conference), sink);
+  if (gst_object_has_ancestor (GST_OBJECT (sink), GST_OBJECT (conference)))
+  {
+    gst_element_set_locked_state (sink, TRUE);
+    gst_element_set_state (sink, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (conference), sink);
+  }
 
   gst_object_unref (src);
   gst_object_unref (sink);
