@@ -756,173 +756,17 @@ fs_raw_session_constructed (GObject *object)
 }
 
 static GstElement *
-_create_audio_transform_bin (FsRawSession *self, GError **error)
-{
-  GstElement *bin = NULL;
-  GstElement *convert0 = NULL, *resample = NULL, *convert1 = NULL;
-  GstPad *ghost = NULL, *pad = NULL;
-
-  bin = gst_bin_new (NULL);
-  if (bin == NULL)
-    goto error;
-
-  convert0 = gst_element_factory_make ("audioconvert", NULL);
-  resample = gst_element_factory_make ("audioresample", NULL);
-  convert1 = gst_element_factory_make ("audioconvert", NULL);
-
-  if (convert0 == NULL || resample == NULL || convert1 == NULL)
-    goto error_elements;
-
-  if (!gst_bin_add (GST_BIN (bin), convert0))
-    goto error_elements;
-
-  if (!gst_bin_add (GST_BIN (bin), resample))
-    goto error_elements;
-
-  if (!gst_bin_add (GST_BIN (bin), convert1))
-    goto error_elements;
-
-  if (!gst_element_link_many (convert0, resample, convert1, NULL))
-    goto error;
-
-  pad = gst_element_get_static_pad (convert0, "sink");
-  if (pad == NULL)
-    goto error;
-
-  ghost = gst_ghost_pad_new ("sink", pad);
-  if (ghost == NULL)
-    goto error;
-
-  if (!gst_element_add_pad (bin, ghost))
-  {
-    gst_object_unref (ghost);
-    goto error;
-  }
-
-  gst_object_unref (pad);
-
-  pad = gst_element_get_static_pad (convert1, "src");
-  if (pad == NULL)
-    goto error;
-
-  ghost = gst_ghost_pad_new ("src", pad);
-  if (!gst_element_add_pad (bin, ghost))
-  {
-    gst_object_unref (ghost);
-    goto error;
-  }
-
-  gst_object_unref (pad);
-
-  return bin;
-
-error_elements:
-  if (convert0 != NULL)
-    gst_object_unref (convert0);
-
-  if (resample != NULL)
-    gst_object_unref (resample);
-
-  if (convert1 != NULL)
-    gst_object_unref (convert1);
-
-error:
-  if (bin != NULL)
-    gst_object_unref (bin);
-
-  if (pad != NULL)
-    gst_object_unref (pad);
-
-  g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-    "Couldn't create audio transform bin");
-  return NULL;
-}
-
-static GstElement *
-_create_video_transform_bin (FsRawSession *self, GError **error)
-{
-  GstElement *bin = NULL;
-  GstElement *colorspace = NULL, *videoscale = NULL;
-  GstPad *ghost = NULL, *pad = NULL;
-
-  bin = gst_bin_new (NULL);
-  if (bin == NULL)
-    goto error;
-
-  colorspace = gst_element_factory_make ("ffmpegcolorspace", NULL);
-  videoscale = gst_element_factory_make ("videoscale", NULL);
-
-  if (colorspace == NULL || videoscale == NULL)
-    goto error_elements;
-
-  if (!gst_bin_add (GST_BIN (bin), colorspace))
-    goto error_elements;
-
-  if (!gst_bin_add (GST_BIN (bin), videoscale))
-    goto error_elements;
-
-  if (!gst_element_link_many (colorspace, videoscale, NULL))
-    goto error;
-
-  pad = gst_element_get_static_pad (colorspace, "sink");
-  if (pad == NULL)
-    goto error;
-
-  ghost = gst_ghost_pad_new ("sink", pad);
-  if (ghost == NULL)
-    goto error;
-
-  if (!gst_element_add_pad (bin, ghost))
-  {
-    gst_object_unref (ghost);
-    goto error;
-  }
-
-  gst_object_unref (pad);
-
-  pad = gst_element_get_static_pad (videoscale, "src");
-  if (pad == NULL)
-    goto error;
-
-  ghost = gst_ghost_pad_new ("src", pad);
-  if (!gst_element_add_pad (bin, ghost))
-  {
-    gst_object_unref (ghost);
-    goto error;
-  }
-
-  gst_object_unref (pad);
-
-  return bin;
-
-error_elements:
-  if (colorspace != NULL)
-    gst_object_unref (colorspace);
-
-  if (videoscale != NULL)
-    gst_object_unref (videoscale);
-
-error:
-  if (bin != NULL)
-    gst_object_unref (bin);
-
-  if (pad != NULL)
-    gst_object_unref (pad);
-
-  g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
-    "Couldn't create audio transform bin");
-  return NULL;
-}
-
-static GstElement *
 _create_transform_bin (FsRawSession *self, GError **error)
 {
   FsMediaType mtype = self->priv->media_type;
 
   if (mtype == FS_MEDIA_TYPE_AUDIO)
-    return _create_audio_transform_bin (self, error);
+    return gst_parse_bin_from_description_full (
+      "audioconvert ! audioresample ! audioconvert", TRUE, NULL,
+      GST_PARSE_FLAG_NONE, error);
   else if (mtype == FS_MEDIA_TYPE_VIDEO)
-    return _create_video_transform_bin (self, error);
+    return gst_parse_bin_from_description_full ("ffmpegcolorspace ! videoscale",
+        TRUE, NULL, GST_PARSE_FLAG_NONE, error);
 
   g_set_error (error, FS_ERROR, FS_ERROR_NOT_IMPLEMENTED,
     "No transform bin for this media type");
