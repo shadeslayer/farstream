@@ -952,7 +952,7 @@ fs_rtp_conference_is_internal_thread (FsRtpConference *self)
   GST_OBJECT_LOCK (self);
   for (i = 0; i < self->priv->threads->len; i++)
   {
-    if (g_ptr_array_index (self->priv->threads, i))
+    if (g_ptr_array_index (self->priv->threads, i) == g_thread_self ())
     {
       ret = TRUE;
       break;
