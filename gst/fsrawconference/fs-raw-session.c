@@ -361,7 +361,7 @@ fs_raw_session_dispose (GObject *object)
     gst_element_set_locked_state (fakesink, TRUE);
     gst_bin_remove (conferencebin, fakesink);
     gst_element_set_state (fakesink, GST_STATE_NULL);
-    gst_object_unref (transform);
+    gst_object_unref (fakesink);
   }
 
   GST_OBJECT_LOCK (conference);
