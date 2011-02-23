@@ -994,6 +994,10 @@ void
 fs_raw_session_update_direction (FsRawSession *self,
   FsStreamDirection direction)
 {
+  /* Don't start sending before we have codecs */
+  if (!self->priv->codecs)
+    return;
+
   if (direction & FS_DIRECTION_SEND && !self->priv->transmitter_linked)
   {
     GstElement *transmitter_sink;
