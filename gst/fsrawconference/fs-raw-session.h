@@ -67,9 +67,6 @@ struct _FsRawSession
 {
   FsSession parent;
 
-  /* Protected by the conf lock */
-  GstElement *valve;
-
   /*< private >*/
 
   /* This ID can be accessed by the streams for this session */

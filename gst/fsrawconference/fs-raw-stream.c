@@ -509,7 +509,6 @@ fs_raw_stream_set_property (GObject *object,
       if (g_value_get_flags (value) != self->priv->direction)
       {
         GstElement *recv_valve = NULL;
-        GstElement *session_valve = NULL;
         FsStreamTransmitter *st = NULL;
 
         if (!conference ||
@@ -522,8 +521,6 @@ fs_raw_stream_set_property (GObject *object,
 
         if (self->priv->recv_valve)
           recv_valve = gst_object_ref (self->priv->recv_valve);
-        if (self->priv->session->valve)
-          session_valve = gst_object_ref (self->priv->session->valve);
         if (self->priv->stream_transmitter)
           st = g_object_ref (self->priv->stream_transmitter);
 
@@ -536,16 +533,11 @@ fs_raw_stream_set_property (GObject *object,
         if (recv_valve)
           g_object_set (recv_valve, "drop",
               (self->priv->direction & FS_DIRECTION_RECV) ? FALSE : TRUE, NULL);
-        if (session_valve)
-          g_object_set (session_valve, "drop",
-              (self->priv->direction & FS_DIRECTION_SEND) ? FALSE : TRUE, NULL);
         if (st)
           g_object_set (st, "sending",
               (self->priv->direction & FS_DIRECTION_SEND) ? TRUE : FALSE, NULL);
         GST_OBJECT_LOCK (conference);
 
-        if (session_valve)
-          gst_object_unref (session_valve);
         if (recv_valve)
           gst_object_unref (recv_valve);
         if (st)

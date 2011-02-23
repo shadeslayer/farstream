@@ -98,6 +98,8 @@ struct _FsRawSessionPrivate
   GstElement *transform_bin;
   GstElement *fakesink;
 
+  GstElement *valve;
+
   FsTransmitter *transmitter;
 
   guint tos; /* Protected by conf lock */
@@ -283,8 +285,8 @@ fs_raw_session_dispose (GObject *object)
     goto out;
 
   GST_OBJECT_LOCK (conference);
-  valve = self->valve;
-  self->valve = NULL;
+  valve = self->priv->valve;
+  self->priv->valve = NULL;
   GST_OBJECT_UNLOCK (conference);
 
   if (valve)
@@ -685,30 +687,30 @@ fs_raw_session_constructed (GObject *object)
   }
 
   tmp = g_strdup_printf ("send_valve_%u", self->id);
-  self->valve = gst_element_factory_make ("valve", tmp);
+  self->priv->valve = gst_element_factory_make ("valve", tmp);
   g_free (tmp);
 
-  if (!self->valve)
+  if (!self->priv->valve)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not make send valve");
     return;
   }
 
-  gst_object_ref_sink (self->valve);
+  gst_object_ref_sink (self->priv->valve);
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->valve))
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
-    gst_object_unref (self->valve);
-    self->valve = NULL;
+    gst_object_unref (self->priv->valve);
+    self->priv->valve = NULL;
     return;
   }
 
-  g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
+  g_object_set (G_OBJECT (self->priv->valve), "drop", TRUE, NULL);
 
-  if (!gst_element_sync_state_with_parent (self->valve))
+  if (!gst_element_sync_state_with_parent (self->priv->valve))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -716,7 +718,7 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  if (!gst_element_link_pads (self->valve, "src",
+  if (!gst_element_link_pads (self->priv->valve, "src",
           self->priv->send_tee, "sink"))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -725,7 +727,7 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  pad = gst_element_get_static_pad (self->valve, "sink");
+  pad = gst_element_get_static_pad (self->priv->valve, "sink");
   tmp = g_strdup_printf ("sink_%u", self->id);
   self->priv->media_sink_pad = gst_ghost_pad_new (tmp, pad);
   g_free (tmp);
@@ -785,11 +787,13 @@ _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
   GstElement *transform = NULL;
   FsRawConference *conference = fs_raw_session_get_conference (self, &error);
   gboolean changed;
+  FsStreamDirection direction;
 
   if (conference == NULL)
     goto error;
 
-  g_object_get (stream, "remote-codecs", &codecs, NULL);
+  g_object_get (stream, "remote-codecs", &codecs, "direction", &direction,
+      NULL);
 
   if (!codecs)
     return;
@@ -859,6 +863,9 @@ _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
   }
 
   GST_OBJECT_UNLOCK (conference);
+
+  fs_raw_session_update_direction (self, direction);
+
   if (changed)
   {
     g_object_notify (G_OBJECT (self), "current-send-codec");
@@ -904,7 +911,7 @@ raw_session_remove_stream (FsRawSession *self,
   if (!conference)
     return;
 
-  g_object_set (G_OBJECT (self->valve), "drop", TRUE, NULL);
+  g_object_set (G_OBJECT (self->priv->valve), "drop", TRUE, NULL);
 
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream == (FsRawStream *) stream)
@@ -1016,6 +1023,11 @@ fs_raw_session_update_direction (FsRawSession *self,
 
     gst_object_unref (conference);
   }
+
+  if (direction & FS_DIRECTION_SEND)
+    g_object_set (self->priv->valve, "drop", FALSE, NULL);
+  else
+    g_object_set (self->priv->valve, "drop", TRUE, NULL);
 }
 
 /**
