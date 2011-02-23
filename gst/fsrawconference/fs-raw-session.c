@@ -1143,8 +1143,6 @@ void
 fs_raw_session_update_direction (FsRawSession *self,
   FsStreamDirection direction)
 {
-  g_debug ("Direction notification %p", g_thread_self ());
-
   if (direction & FS_DIRECTION_SEND && !self->priv->transmitter_linked)
   {
     GstElement *transmitter_sink;
