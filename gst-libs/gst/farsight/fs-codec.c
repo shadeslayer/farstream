@@ -294,7 +294,8 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
   gsize groups_count = 0;
   int i;
 
-  g_assert (filename);
+  g_return_val_if_fail (filename, NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
   keyfile = g_key_file_new ();
 
