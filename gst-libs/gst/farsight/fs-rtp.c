@@ -85,6 +85,36 @@ fs_rtp_header_extension_copy (FsRtpHeaderExtension *extension)
 }
 
 /**
+ * fs_rtp_header_extension_are_equal:
+ * @extension1: The first #FsRtpHeaderExtension
+ * @extension2: The second #FsRtpHeaderExtension
+ *
+ * Compares two #FsRtpHeaderExtension structures
+ *
+ * Returns: %TRUE if they are identical, %FALSE otherwise
+ */
+
+gboolean
+fs_rtp_header_extension_are_equal (FsRtpHeaderExtension *extension1,
+    FsRtpHeaderExtension *extension2)
+{
+  if (extension1 == extension2)
+    return TRUE;
+
+  if (!extension2 || !extension2)
+    return FALSE;
+
+  if (extension1->id == extension2->id &&
+      extension1->direction == extension2->direction &&
+      (extension1->uri == extension2->uri ||
+          (extension1->uri && extension2->uri &&
+              !strcmp (extension1->uri, extension2->uri))))
+    return TRUE;
+  else
+    return FALSE;
+}
+
+/**
  * fs_rtp_header_extension_destroy:
  * @extension: A RTP header extension to free
  *

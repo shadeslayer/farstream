@@ -76,6 +76,10 @@ fs_rtp_header_extension_copy (FsRtpHeaderExtension *extension);
 void
 fs_rtp_header_extension_destroy (FsRtpHeaderExtension *extension);
 
+gboolean
+fs_rtp_header_extension_are_equal (FsRtpHeaderExtension *extension1,
+    FsRtpHeaderExtension *extension2);
+
 GList *
 fs_rtp_header_extension_list_copy (GList *extensions);
 void
