@@ -37,6 +37,9 @@ GKeyFile *fs_utils_get_default_element_properties (GstElement *element);
 
 void fs_utils_set_bitrate (GstElement *element, glong bitrate);
 
+GList *fs_utils_get_default_rtp_header_extension_preferences (
+  GstElement *element, FsMediaType media_type);
+
 G_END_DECLS
 
 #endif /* __FS_UTILS_H__ */

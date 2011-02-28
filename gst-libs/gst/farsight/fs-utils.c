@@ -28,6 +28,8 @@
 
 #include <string.h>
 
+#include "fs-rtp.h"
+
 /**
  * SECTION:fs-utils
  * @short_description: Miscellaneous useful functions
@@ -207,4 +209,61 @@ fs_utils_set_bitrate (GstElement *element, glong bitrate)
   {
     g_warning ("bitrate parameter of unknown type");
   }
+}
+
+static GList *
+load_default_rtp_hdrext_preferences_from_path (const gchar *element_name,
+    const gchar *path, FsMediaType media_type)
+{
+  GList *rtp_hdrext_prefs = NULL;
+  gchar *filename;
+
+  filename = g_build_filename (path, PACKAGE, FS2_MAJORMINOR, element_name,
+      "default-codec-preferences", NULL);
+  rtp_hdrext_prefs = fs_rtp_header_extension_list_from_keyfile (filename,
+      media_type, NULL);
+  g_free (filename);
+
+  return rtp_hdrext_prefs;
+}
+
+/**
+ * fs_utils_get_default_rtp_header_extension_preferences
+ * @element: Element for which to fetch default RTP Header Extension preferences
+ * @media_type: The #FsMediaType for which to get default RTP Header Extension
+ *  preferences
+ *
+ * These default rtp header extension preferences should work with the elements
+ * that are available in the main GStreamer element repositories.
+ * They should be suitable for standards based protocols like SIP or XMPP.
+ *
+ * Returns: The default rtp header extension preferences for this plugin,
+ * this #GList should be freed with fs_codec_list_destroy()
+ */
+GList *
+fs_utils_get_default_rtp_header_extension_preferences (GstElement *element,
+    FsMediaType media_type)
+{
+  const gchar * const * system_data_dirs = g_get_system_data_dirs ();
+  GList *rtp_hdrext_prefs = NULL;
+  guint i;
+  const gchar *factory_name = factory_name_from_element (element);
+
+  if (!factory_name)
+    return NULL;
+
+  rtp_hdrext_prefs = load_default_rtp_hdrext_preferences_from_path (
+    factory_name, g_get_user_data_dir (), media_type);
+  if (rtp_hdrext_prefs)
+    return rtp_hdrext_prefs;
+
+  for (i = 0; system_data_dirs[i]; i++)
+  {
+    rtp_hdrext_prefs = load_default_rtp_hdrext_preferences_from_path (
+      factory_name, system_data_dirs[i], media_type);
+    if (rtp_hdrext_prefs)
+      return rtp_hdrext_prefs;
+  }
+
+  return NULL;
 }
