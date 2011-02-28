@@ -28,6 +28,20 @@
 
 #include "fs-interfaces.h"
 
+#include <gst/gst.h>
+
+/**
+ * SECTION:fs-interfaces
+ * @short_description: Utility functions to discover local network interfaces
+ *
+ * These utility functions allow the discovery of local network interfaces
+ * in a portable manner, they also allow finding the local ip addresses or
+ * the address allocated to a network interface.
+ */
+
+GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
+#define GST_CAT_DEFAULT fs_base_conference_debug
+
 #ifdef G_OS_UNIX
 
 #include <arpa/inet.h>
@@ -44,21 +58,6 @@
  #include <sys/socket.h>
  #include <ifaddrs.h>
 #endif
-
-#include <gst/gst.h>
-
-/**
- * SECTION:fs-interfaces
- * @short_description: Utility functions to discover local network interfaces
- *
- * These utility functions allow the discovery of local network interfaces
- * in a portable manner, they also allow finding the local ip addresses or
- * the address allocated to a network interface.
- */
-
-GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
-#define GST_CAT_DEFAULT fs_base_conference_debug
-
 
 /**
  * fs_interfaces_get_local_interfaces:
