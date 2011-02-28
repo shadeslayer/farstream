@@ -23,7 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-codec.h>
+#include "gst/farsight/fs-codec.h"
+#include "gst/farsight/fs-rtp.h"
 
 #include "testutils.h"
 
@@ -309,6 +310,92 @@ GST_START_TEST (test_fscodec_keyfile)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_fscodec_rtp_hdrext)
+{
+  FsRtpHeaderExtension *hdrext, *hdrext2;
+
+  hdrext = fs_rtp_header_extension_new (1, FS_DIRECTION_BOTH, "uri");
+  hdrext2 = fs_rtp_header_extension_new (1, FS_DIRECTION_BOTH, "uri");
+
+  fail_unless (fs_rtp_header_extension_are_equal (hdrext, hdrext));
+  fail_unless (fs_rtp_header_extension_are_equal (hdrext, hdrext2));
+
+  hdrext2->id = 2;
+  fail_unless (!fs_rtp_header_extension_are_equal (hdrext, hdrext2));
+
+  hdrext2->id = 1;
+  fail_unless (fs_rtp_header_extension_are_equal (hdrext, hdrext2));
+
+  hdrext2->direction = FS_DIRECTION_NONE;
+  fail_unless (!fs_rtp_header_extension_are_equal (hdrext, hdrext2));
+  fs_rtp_header_extension_destroy (hdrext2);
+
+  hdrext2 = fs_rtp_header_extension_copy (hdrext);
+
+  fail_unless (fs_rtp_header_extension_are_equal (hdrext, hdrext2));
+
+  fs_rtp_header_extension_destroy (hdrext2);
+  fs_rtp_header_extension_destroy (hdrext);
+}
+GST_END_TEST;
+
+
+GST_START_TEST (test_fscodec_rtp_hdrext_keyfile)
+{
+  GList *extensions = NULL;
+  GError *error = NULL;
+  gchar *filename = NULL;
+  FsRtpHeaderExtension *comparison;
+
+  fail_if (fs_rtp_header_extension_list_from_keyfile ("invalid-filename",
+          FS_MEDIA_TYPE_AUDIO, &error));
+  fail_if (error == NULL);
+  fail_unless (error->domain == G_FILE_ERROR);
+  g_clear_error (&error);
+
+  filename = get_fullpath ("base/test1.conf");
+  extensions = fs_rtp_header_extension_list_from_keyfile (filename,
+      FS_MEDIA_TYPE_AUDIO, &error);
+  g_free (filename);
+  fail_unless (error == NULL);
+  fail_if (extensions == NULL);
+
+  comparison = fs_rtp_header_extension_new (1, FS_DIRECTION_BOTH,
+      "http://example.com/rtp-hdrext1");
+  fail_unless (fs_rtp_header_extension_are_equal (extensions->data,
+          comparison));
+  fs_rtp_header_extension_destroy (comparison);
+
+  comparison = fs_rtp_header_extension_new (2, FS_DIRECTION_RECV,
+      "http://example.com/rtp-hdrext2");
+  fail_unless (fs_rtp_header_extension_are_equal (extensions->next->data,
+          comparison));
+  fs_rtp_header_extension_destroy (comparison);
+
+  fail_unless (extensions->next->next == NULL);
+
+  fs_rtp_header_extension_list_destroy (extensions);
+
+
+
+  filename = get_fullpath ("base/test1.conf");
+  extensions = fs_rtp_header_extension_list_from_keyfile (filename,
+      FS_MEDIA_TYPE_VIDEO, &error);
+  g_free (filename);
+  fail_unless (error == NULL);
+  fail_if (extensions == NULL);
+
+  comparison = fs_rtp_header_extension_new (1, FS_DIRECTION_BOTH,
+      "http://example.com/rtp-hdrext1");
+  fail_unless (fs_rtp_header_extension_are_equal (extensions->data,
+          comparison));
+  fs_rtp_header_extension_destroy (comparison);
+
+  fail_unless (extensions->next == NULL);
+  fs_rtp_header_extension_list_destroy (extensions);
+}
+GST_END_TEST;
+
 static Suite *
 fscodec_suite (void)
 {
@@ -324,6 +411,8 @@ fscodec_suite (void)
   tcase_add_test (tc_chain, test_fscodec_copy);
   tcase_add_test (tc_chain, test_fscodec_null);
   tcase_add_test (tc_chain, test_fscodec_keyfile);
+  tcase_add_test (tc_chain, test_fscodec_rtp_hdrext);
+  tcase_add_test (tc_chain, test_fscodec_rtp_hdrext_keyfile);
 
   return s;
 }
