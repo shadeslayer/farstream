@@ -270,11 +270,12 @@ fs_interfaces_get_local_ips
 <TITLE>RTP Specific types</TITLE>
 <INCLUDE>gst/farsight/fs-rtp.h</INCLUDE>
 FsRtpHeaderExtension
+fs_rtp_header_extension_new
 fs_rtp_header_extension_copy
 fs_rtp_header_extension_destroy
 fs_rtp_header_extension_list_copy
 fs_rtp_header_extension_list_destroy
-fs_rtp_header_extension_new
+fs_rtp_header_extension_list_from_keyfile
 FS_RTP_HEADER_EXTENSION_FORMAT
 FS_RTP_HEADER_EXTENSION_ARGS
 <SUBSECTION Standard>

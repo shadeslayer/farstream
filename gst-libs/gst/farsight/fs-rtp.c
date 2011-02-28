@@ -29,6 +29,8 @@
 
 #include "fs-rtp.h"
 
+#include <string.h>
+
 typedef GList FsRtpHeaderExtensionGList;
 
 G_DEFINE_BOXED_TYPE (FsRtpHeaderExtension, fs_rtp_header_extension,
@@ -138,3 +140,148 @@ fs_rtp_header_extension_list_destroy (GList *extensions)
   g_list_free (extensions);
 }
 
+#define RTP_HDREXT_PREFIX "rtp-hdrext:"
+#define RTP_HDREXT_AUDIO_PREFIX "audio:"
+#define RTP_HDREXT_VIDEO_PREFIX "video:"
+
+/**
+ * fs_rtp_header_extension_list_from_keyfile:
+ * @filename: Name of the #GKeyFile to read the RTP Header Extensions from
+ * @media_type: The media type for which to get header extensions
+ * @error: location of a #GError, or NULL if no error occured
+ *
+ * Reads the content of a #GKeyFile of the following format into a
+ * #GList of #FsRtpHeaderExtension structures.
+ *
+ * The groups have a format "rtp-hdrext:audio:XXX" or
+ * "rtp-hdrext:video:XXX" where XXX is a unique string (per media type).
+ *
+ * The valid keys are:
+ * <itemizedlist>
+ *  <listitem>id: a int between in the 1-255 and 4096-4351 ranges</listitem>
+ *  <listitem>uri: a URI describing the RTP Header Extension</listitem>
+ *  <listitem>direction (optional): To only send or receive a RTP Header
+ *      Extension, possible values are "send", "receive", "none" or "both".
+ *      Defaults to "both"</listitem>
+ * </itemizedlist>
+ *
+ * Example:
+ * |[
+ * [rtp-hdrext:audio:a]
+ * id=1
+ * uri=urn:ietf:params:rtp-hdrext:toffset
+ *
+ * [rtp-hdrext:audio:abc]
+ * id=3
+ * uri=urn:ietf:params:rtp-hdrext:ntp-64
+ * direction=receive
+ * ]|
+ *
+ * Returns: a #GList of #FsRtpHeaderExtension that must be freed with
+ * fs_rtp_header_extension_list_destroy()
+ */
+
+GList *
+fs_rtp_header_extension_list_from_keyfile (const gchar *filename,
+    FsMediaType media_type,
+    GError **error)
+{
+  GKeyFile *keyfile = NULL;
+  GList *extensions = NULL;
+  gchar **groups = NULL;
+  gsize groups_count = 0;
+  int i;
+
+  g_return_val_if_fail (filename, NULL);
+  g_return_val_if_fail (media_type <= FS_MEDIA_TYPE_LAST, NULL);
+  g_return_val_if_fail (error == NULL || *error == NULL, NULL);
+
+  keyfile = g_key_file_new ();
+
+  if (!g_key_file_load_from_file (keyfile, filename, G_KEY_FILE_NONE, error))
+    goto out;
+
+  groups = g_key_file_get_groups (keyfile, &groups_count);
+
+  if (!groups)
+    goto out;
+
+  for (i=0; i < groups_count && groups[i]; i++)
+  {
+    FsStreamDirection direction = FS_DIRECTION_BOTH;
+    gint id;
+    gchar *uri;
+    GError *gerror = NULL;
+    gchar *str;
+
+    if (g_ascii_strncasecmp (RTP_HDREXT_PREFIX, groups[i],
+            strlen (RTP_HDREXT_PREFIX)))
+      continue;
+
+    if (!g_ascii_strncasecmp (RTP_HDREXT_AUDIO_PREFIX,
+            groups[i] + strlen (RTP_HDREXT_PREFIX),
+            strlen (RTP_HDREXT_AUDIO_PREFIX)))
+    {
+      if (media_type != FS_MEDIA_TYPE_AUDIO)
+        continue;
+    }
+    else if (!g_ascii_strncasecmp (RTP_HDREXT_VIDEO_PREFIX,
+            groups[i] + strlen (RTP_HDREXT_PREFIX),
+            strlen (RTP_HDREXT_VIDEO_PREFIX)))
+    {
+      if (media_type != FS_MEDIA_TYPE_VIDEO)
+        continue;
+    }
+    else
+    {
+      continue;
+    }
+
+    id = g_key_file_get_integer (keyfile, groups[i], "id", &gerror);
+    if (gerror)
+    {
+      g_clear_error (&gerror);
+      continue;
+    }
+
+    str = g_key_file_get_string (keyfile, groups[i], "direction", &gerror);
+    if (gerror)
+    {
+      GQuark domain = gerror->domain;
+      gint code = gerror->code;
+
+      g_clear_error (&gerror);
+      if (domain != G_KEY_FILE_ERROR || code != G_KEY_FILE_ERROR_KEY_NOT_FOUND)
+        continue;
+    }
+    else
+    {
+      if (!g_ascii_strcasecmp (str, "none"))
+        direction = FS_DIRECTION_NONE;
+      else if (!g_ascii_strcasecmp (str, "send"))
+        direction = FS_DIRECTION_SEND;
+      else if (!g_ascii_strcasecmp (str, "recv") ||
+          !g_ascii_strcasecmp (str, "receive"))
+        direction = FS_DIRECTION_RECV;
+      g_free (str);
+    }
+
+    uri = g_key_file_get_string (keyfile, groups[i], "uri", &gerror);
+    if (gerror)
+    {
+      g_clear_error (&gerror);
+      continue;
+    }
+
+    extensions = g_list_append (extensions, fs_rtp_header_extension_new (id,
+            direction, uri));
+    g_free (uri);
+  }
+
+  out:
+
+  g_strfreev (groups);
+  g_key_file_free (keyfile);
+
+  return extensions;
+}

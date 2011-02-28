@@ -81,6 +81,10 @@ fs_rtp_header_extension_list_copy (GList *extensions);
 void
 fs_rtp_header_extension_list_destroy (GList *extensions);
 
+GList *
+fs_rtp_header_extension_list_from_keyfile (const gchar *filename,
+    FsMediaType media_type,
+    GError **error);
 
 /**
  * FS_RTP_HEADER_EXTENSION_FORMAT:
