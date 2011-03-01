@@ -2131,6 +2131,21 @@ GST_START_TEST (test_rtpcodecs_nego_feedback)
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
       codec, outcodec);
 
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  codec->ABI.ABI.minimum_reporting_interval = 0;
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec->ABI.ABI.minimum_reporting_interval = 0;
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
+  codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  codec->ABI.ABI.minimum_reporting_interval = 3;
+  outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
+  outcodec->ABI.ABI.minimum_reporting_interval = 3;
+  test_one_codec (dat->session, participant, prefcodec, outprefcodec,
+      codec, outcodec);
+
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
   outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
   fs_codec_add_feedback_parameter (codec, "nack", "pli", "");
