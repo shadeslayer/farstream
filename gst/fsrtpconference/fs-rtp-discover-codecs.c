@@ -547,9 +547,7 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
   {
     codec_cap = (CodecCap *)(walk->data);
 
-    codec = g_slice_new0 (FsCodec);
-    codec->id = FS_CODEC_ID_ANY;
-    codec->clock_rate = 0;
+    codec = fs_codec_new (FS_CODEC_ID_ANY, NULL, media_type, 0);
 
     for (i = 0; i < gst_caps_get_size (codec_cap->rtp_caps); i++)
     {

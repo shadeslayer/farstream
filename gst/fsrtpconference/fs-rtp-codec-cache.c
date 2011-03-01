@@ -166,19 +166,21 @@ load_codec_blueprint (FsMediaType media_type, gchar **in, gsize *size) {
   gchar *tmp;
   gint tmp_size;
   int i;
-
-  codec_blueprint->codec = g_slice_new0 (FsCodec);
-  codec_blueprint->codec->media_type = media_type;
+  gint id;
+  gchar *encoding_name = NULL;
+  guint clock_rate;
 
   READ_CHECK (read_codec_blueprint_int
-      (in, size, &(codec_blueprint->codec->id)));
+      (in, size, &(id)));
   READ_CHECK (read_codec_blueprint_string
-      (in, size, &(codec_blueprint->codec->encoding_name)));
+      (in, size, &(encoding_name)));
   READ_CHECK (read_codec_blueprint_uint
-      (in, size, &(codec_blueprint->codec->clock_rate)));
+      (in, size, &(clock_rate)));
+  codec_blueprint->codec = fs_codec_new (id, encoding_name, media_type,
+      clock_rate);
+  g_free (encoding_name);
   READ_CHECK (read_codec_blueprint_uint
       (in, size, &(codec_blueprint->codec->channels)));
-
 
   READ_CHECK (read_codec_blueprint_int (in, size, &tmp_size));
   for (i = 0; i < tmp_size; i++) {
