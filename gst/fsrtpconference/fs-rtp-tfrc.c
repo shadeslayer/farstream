@@ -821,7 +821,7 @@ gboolean
 validate_ca_for_tfrc (CodecAssociation *ca, gpointer user_data)
 {
   return codec_association_is_valid_for_sending (ca, TRUE) &&
-      fs_codec_get_feedback_parameter (ca->codec, "tfrc", NULL, NULL);
+      fs_codec_get_feedback_parameter (ca->codec, "tfrc", "",  "");
 }
 
 void
@@ -845,6 +845,7 @@ fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
     {
       if (has_header_ext || !has_codec_rtcpfb)
       {
+        fs_rtp_header_extension_destroy (item->data);
         *header_extensions = g_list_remove_link (*header_extensions, item);
       }
       else if (hdrext->direction == FS_DIRECTION_BOTH)
@@ -869,11 +870,7 @@ fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
       FsFeedbackParameter *p = item2->data;
 
       if (!g_ascii_strcasecmp (p->type, "tfrc"))
-      {
-        ca->codec->ABI.ABI.feedback_params = g_list_delete_link (
-          ca->codec->ABI.ABI.feedback_params, item2);
-      }
-
+        fs_codec_remove_feedback_parameter (ca->codec, item2);
 
       item2 = next2;
     }
