@@ -87,7 +87,7 @@ struct _FsRawSessionPrivate
   GError *construction_error;
 
   GstPad *media_sink_pad;
-  GstElement *capsfilter;
+  GstElement *send_capsfilter;
   GList *codecs;
   FsCodec *send_codec;
   gboolean transmitter_linked;
@@ -98,7 +98,7 @@ struct _FsRawSessionPrivate
   GstElement *transform_bin;
   GstElement *fakesink;
 
-  GstElement *valve;
+  GstElement *send_valve;
 
   FsTransmitter *transmitter;
 
@@ -269,8 +269,8 @@ fs_raw_session_dispose (GObject *object)
   FsRawSession *self = FS_RAW_SESSION (object);
   GstBin *conferencebin = NULL;
   FsRawConference *conference = NULL;
-  GstElement *valve = NULL;
-  GstElement *capsfilter = NULL;
+  GstElement *send_valve = NULL;
+  GstElement *send_capsfilter = NULL;
   GstElement *transform = NULL;
   GstElement *send_tee = NULL;
   GstElement *fakesink = NULL;
@@ -293,29 +293,29 @@ fs_raw_session_dispose (GObject *object)
     goto out;
 
   GST_OBJECT_LOCK (conference);
-  valve = self->priv->valve;
-  self->priv->valve = NULL;
+  send_valve = self->priv->send_valve;
+  self->priv->send_valve = NULL;
   GST_OBJECT_UNLOCK (conference);
 
-  if (valve)
+  if (send_valve)
   {
-    gst_element_set_locked_state (valve, TRUE);
-    gst_bin_remove (conferencebin, valve);
-    gst_element_set_state (valve, GST_STATE_NULL);
-    gst_object_unref (valve);
+    gst_element_set_locked_state (send_valve, TRUE);
+    gst_bin_remove (conferencebin, send_valve);
+    gst_element_set_state (send_valve, GST_STATE_NULL);
+    gst_object_unref (send_valve);
   }
 
   GST_OBJECT_LOCK (conference);
-  capsfilter = self->priv->capsfilter;
-  self->priv->capsfilter = capsfilter;
+  send_capsfilter = self->priv->send_capsfilter;
+  self->priv->send_capsfilter = send_capsfilter;
   GST_OBJECT_UNLOCK (conference);
 
-  if (capsfilter)
+  if (send_capsfilter)
   {
-    gst_element_set_locked_state (capsfilter, TRUE);
-    gst_bin_remove (conferencebin, capsfilter);
-    gst_element_set_state (capsfilter, GST_STATE_NULL);
-    gst_object_unref (capsfilter);
+    gst_element_set_locked_state (send_capsfilter, TRUE);
+    gst_bin_remove (conferencebin, send_capsfilter);
+    gst_element_set_state (send_capsfilter, GST_STATE_NULL);
+    gst_object_unref (send_capsfilter);
   }
 
   if (self->priv->stream)
@@ -530,10 +530,10 @@ fs_raw_session_constructed (GObject *object)
   g_assert (self->priv->conference);
 
   tmp = g_strdup_printf ("send_capsfilter_%u", self->id);
-  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  self->priv->send_capsfilter = gst_element_factory_make ("capsfilter", tmp);
   g_free (tmp);
 
-  if (!self->priv->capsfilter)
+  if (!self->priv->send_capsfilter)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -541,18 +541,19 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  gst_object_ref_sink (self->priv->capsfilter);
+  gst_object_ref_sink (self->priv->send_capsfilter);
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter))
+  if (!gst_bin_add (GST_BIN (self->priv->conference),
+          self->priv->send_capsfilter))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add capsfilter to conference");
-    gst_object_unref (self->priv->capsfilter);
-    self->priv->capsfilter = NULL;
+    gst_object_unref (self->priv->send_capsfilter);
+    self->priv->send_capsfilter = NULL;
     return;
   }
 
-  if (!gst_element_sync_state_with_parent (self->priv->capsfilter))
+  if (!gst_element_sync_state_with_parent (self->priv->send_capsfilter))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -581,7 +582,7 @@ fs_raw_session_constructed (GObject *object)
   }
 
   if (!gst_element_link_pads (self->priv->transform_bin, "src",
-          self->priv->capsfilter, "sink"))
+          self->priv->send_capsfilter, "sink"))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -695,30 +696,30 @@ fs_raw_session_constructed (GObject *object)
   }
 
   tmp = g_strdup_printf ("send_valve_%u", self->id);
-  self->priv->valve = gst_element_factory_make ("valve", tmp);
+  self->priv->send_valve = gst_element_factory_make ("valve", tmp);
   g_free (tmp);
 
-  if (!self->priv->valve)
+  if (!self->priv->send_valve)
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not make send valve");
     return;
   }
 
-  gst_object_ref_sink (self->priv->valve);
+  gst_object_ref_sink (self->priv->send_valve);
 
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->valve))
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->send_valve))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION, "Could not add valve to conference");
-    gst_object_unref (self->priv->valve);
-    self->priv->valve = NULL;
+    gst_object_unref (self->priv->send_valve);
+    self->priv->send_valve = NULL;
     return;
   }
 
-  g_object_set (G_OBJECT (self->priv->valve), "drop", TRUE, NULL);
+  g_object_set (G_OBJECT (self->priv->send_valve), "drop", TRUE, NULL);
 
-  if (!gst_element_sync_state_with_parent (self->priv->valve))
+  if (!gst_element_sync_state_with_parent (self->priv->send_valve))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
         FS_ERROR_CONSTRUCTION,
@@ -726,7 +727,7 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  if (!gst_element_link_pads (self->priv->valve, "src",
+  if (!gst_element_link_pads (self->priv->send_valve, "src",
           self->priv->send_tee, "sink"))
   {
     self->priv->construction_error = g_error_new (FS_ERROR,
@@ -735,7 +736,7 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
-  pad = gst_element_get_static_pad (self->priv->valve, "sink");
+  pad = gst_element_get_static_pad (self->priv->send_valve, "sink");
   tmp = g_strdup_printf ("sink_%u", self->id);
   self->priv->media_sink_pad = gst_ghost_pad_new (tmp, pad);
   g_free (tmp);
@@ -835,12 +836,12 @@ _stream_remote_codecs_changed (FsRawStream *stream, GParamSpec *pspec,
     goto error;
 
   caps = fs_raw_codec_to_gst_caps (codec);
-  if (self->priv->capsfilter)
-    g_object_set (self->priv->capsfilter, "caps", caps, NULL);
+  if (self->priv->send_capsfilter)
+    g_object_set (self->priv->send_capsfilter, "caps", caps, NULL);
   gst_caps_unref (caps);
 
   if (!gst_element_link_pads (transform, "src",
-          self->priv->capsfilter, "sink"))
+          self->priv->send_capsfilter, "sink"))
     goto error;
 
   if (!gst_element_sync_state_with_parent (transform))
@@ -919,7 +920,7 @@ raw_session_remove_stream (FsRawSession *self,
   if (!conference)
     return;
 
-  g_object_set (G_OBJECT (self->priv->valve), "drop", TRUE, NULL);
+  g_object_set (G_OBJECT (self->priv->send_valve), "drop", TRUE, NULL);
 
   GST_OBJECT_LOCK (conference);
   if (self->priv->stream == (FsRawStream *) stream)
@@ -982,7 +983,7 @@ _add_transmitter_sink (FsRawSession *self,
     goto error;
   }
 
-  if (!gst_element_link (self->priv->capsfilter, transmitter_sink))
+  if (!gst_element_link (self->priv->send_capsfilter, transmitter_sink))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not link the capsfilter and transmitter's"
@@ -1037,9 +1038,9 @@ fs_raw_session_update_direction (FsRawSession *self,
   }
 
   if (direction & FS_DIRECTION_SEND)
-    g_object_set (self->priv->valve, "drop", FALSE, NULL);
+    g_object_set (self->priv->send_valve, "drop", FALSE, NULL);
   else
-    g_object_set (self->priv->valve, "drop", TRUE, NULL);
+    g_object_set (self->priv->send_valve, "drop", TRUE, NULL);
 }
 
 /**
