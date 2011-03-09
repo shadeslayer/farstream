@@ -105,6 +105,9 @@ struct _FsRawStreamPrivate
   gulong error_handler_id;
   gulong state_changed_handler_id;
 
+  stream_get_new_stream_transmitter_cb get_new_stream_transmitter_cb;
+  gpointer user_data;
+
   GMutex *mutex; /* protects the conference */
 
   gboolean disposed;
@@ -1094,6 +1097,8 @@ fs_raw_stream_new (FsRawSession *session,
     FsRawConference *conference,
     FsStreamTransmitter *stream_transmitter,
     GstPad *transmitter_pad,
+    stream_get_new_stream_transmitter_cb get_new_stream_transmitter_cb,
+    gpointer user_data,
     GError **error)
 {
   FsRawStream *self;
@@ -1123,6 +1128,9 @@ fs_raw_stream_new (FsRawSession *session,
     g_object_unref (self);
     return NULL;
   }
+
+  self->priv->get_new_stream_transmitter_cb = get_new_stream_transmitter_cb;
+  self->priv->user_data = user_data;
 
   return self;
 }

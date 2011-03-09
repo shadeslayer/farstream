@@ -165,12 +165,20 @@ static FsStream *fs_raw_session_new_stream (FsSession *session,
 
 static gchar **fs_raw_session_list_transmitters (FsSession *session);
 
-static GType
-fs_raw_session_get_stream_transmitter_type (FsSession *session,
+static GType fs_raw_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter);
 
-static GstElement *
-_create_transform_bin (FsRawSession *self, GError **error);
+
+static GstElement *_create_transform_bin (FsRawSession *self, GError **error);
+
+static FsStreamTransmitter *_stream_get_stream_transmitter (FsRawStream *stream,
+    const gchar *transmitter_name,
+    FsParticipant *participant,
+    GParameter *parameters,
+    guint n_parameters,
+    GError **error,
+    gpointer user_data);
+
 
 static void
 fs_raw_session_class_init (FsRawSessionClass *klass)
@@ -1129,7 +1137,8 @@ fs_raw_session_new_stream (FsSession *session,
   rawparticipant = FS_RAW_PARTICIPANT (participant);
 
   new_stream = FS_STREAM_CAST (fs_raw_stream_new (self, rawparticipant,
-      direction, conference, stream_transmitter, transmitter_pad, error));
+          direction, conference, stream_transmitter, transmitter_pad,
+          _stream_get_stream_transmitter, self, error));
 
   /* stream_new takes the reference to this */
   stream_transmitter = NULL;
@@ -1243,4 +1252,88 @@ fs_raw_session_get_stream_transmitter_type (FsSession *session,
 
   g_object_unref (fstransmitter);
   return transmitter_type;
+}
+
+static FsStreamTransmitter *_stream_get_stream_transmitter (FsRawStream *stream,
+    const gchar *transmitter_name,
+    FsParticipant *participant,
+    GParameter *parameters,
+    guint n_parameters,
+    GError **error,
+    gpointer user_data)
+{
+  FsRawSession *self = user_data;
+  FsTransmitter *fstransmitter = NULL;
+  FsStreamTransmitter *stream_transmitter = NULL;
+  GstElement *transmitter_sink = NULL;
+  GstElement *transmitter_src = NULL;
+  GstPad *transmitter_pad;
+  FsRawConference *conference;
+
+  conference = fs_raw_session_get_conference (self, error);
+  if (!conference)
+    return NULL;
+
+  fstransmitter = fs_transmitter_new (transmitter_name, 1, 0, error);
+
+  if (!fstransmitter)
+    goto error;
+
+  g_object_set (fstransmitter, "tos", self->priv->tos, NULL);
+
+  stream_transmitter = fs_transmitter_new_stream_transmitter (fstransmitter,
+      participant, n_parameters, parameters, error);
+
+  if (!stream_transmitter)
+    goto error;
+
+  g_object_get (fstransmitter, "gst-src", &transmitter_src, NULL);
+  g_assert (transmitter_src);
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_src))
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Could not add the transmitter's source element"
+        " for session %d to the conference bin", self->id);
+    gst_object_unref (transmitter_src);
+    transmitter_src = NULL;
+    goto error;
+  }
+
+  transmitter_pad = gst_element_get_static_pad (transmitter_src, "src1");
+
+  if (!transmitter_pad)
+  {
+    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
+        "Unable to get the srcpad from the FsTransmitter's gst-src");
+    goto error;
+  }
+
+  GST_OBJECT_LOCK (conference);
+  self->priv->transmitter = fstransmitter;
+  GST_OBJECT_UNLOCK (conference);
+
+  gst_object_unref (conference);
+  return stream_transmitter;
+
+error:
+  if (transmitter_src)
+    gst_bin_remove (GST_BIN (conference), transmitter_src);
+
+  if (transmitter_sink)
+    gst_bin_remove (GST_BIN (conference), transmitter_sink);
+
+  if (stream_transmitter)
+  {
+    fs_stream_transmitter_stop (stream_transmitter);
+    g_object_unref (stream_transmitter);
+  }
+
+  if (fstransmitter)
+    g_object_unref (fstransmitter);
+
+  gst_object_unref (conference);
+
+  return NULL;
+
 }
