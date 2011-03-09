@@ -991,8 +991,6 @@ _add_transmitter_sink (FsRawSession *self,
     goto error;
   }
 
-  self->priv->transmitter_linked = TRUE;
-
   return TRUE;
 
 error:
@@ -1003,25 +1001,33 @@ void
 fs_raw_session_update_direction (FsRawSession *self,
   FsStreamDirection direction)
 {
+  GError *error = NULL;
+  FsRawConference *conference;
+
+  conference = fs_raw_session_get_conference (self, &error);
+
+  if (!conference)
+  {
+    fs_session_emit_error (FS_SESSION (self), error->code, error->message,
+        "Unable to add transmitter sink");
+    g_clear_error (&error);
+    return;
+  }
+
+  GST_OBJECT_LOCK (conference);
+
   /* Don't start sending before we have codecs */
   if (!self->priv->codecs)
-    return;
+  {
+    GST_OBJECT_UNLOCK (conference);
+    goto out;
+  }
 
   if (direction & FS_DIRECTION_SEND && !self->priv->transmitter_linked)
   {
     GstElement *transmitter_sink;
-    GError *error = NULL;
-    FsRawConference *conference;
 
-    conference = fs_raw_session_get_conference (self, &error);
-
-    if (!conference)
-    {
-      fs_session_emit_error (FS_SESSION (self), error->code, error->message,
-          "Unable to add transmitter sink");
-      g_clear_error (&error);
-      return;
-    }
+    GST_OBJECT_UNLOCK (conference);
 
     g_object_get (self->priv->transmitter, "gst-sink", &transmitter_sink, NULL);
 
@@ -1030,17 +1036,21 @@ fs_raw_session_update_direction (FsRawSession *self,
       fs_session_emit_error (FS_SESSION (self), error->code, error->message,
           "Unable to add transmitter sink");
       g_clear_error (&error);
-      gst_object_unref (conference);
-      return;
+      goto out;
     }
 
-    gst_object_unref (conference);
+    GST_OBJECT_LOCK (conference);
+    self->priv->transmitter_linked = TRUE;
   }
+  GST_OBJECT_UNLOCK (conference);
 
   if (direction & FS_DIRECTION_SEND)
     g_object_set (self->priv->send_valve, "drop", FALSE, NULL);
   else
     g_object_set (self->priv->send_valve, "drop", TRUE, NULL);
+
+out:
+  gst_object_unref (conference);
 }
 
 /**
