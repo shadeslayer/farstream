@@ -307,7 +307,7 @@ fs_raw_session_dispose (GObject *object)
 
   GST_OBJECT_LOCK (conference);
   send_capsfilter = self->priv->send_capsfilter;
-  self->priv->send_capsfilter = send_capsfilter;
+  self->priv->send_capsfilter = NULL;
   GST_OBJECT_UNLOCK (conference);
 
   if (send_capsfilter)
