@@ -112,8 +112,6 @@ struct _FsRtpSessionPrivate
 
   GHashTable *transmitters;
 
-  GList *transmitters_add_sink;
-
   /* We keep references to these elements
    */
 
@@ -409,7 +407,6 @@ _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
   FsRtpSession *self = FS_RTP_SESSION (user_data);
   FsTransmitter *transmitter = FS_TRANSMITTER (value);
   GstElement *src, *sink;
-  GstObject *parent;
 
   g_object_get (transmitter, "gst-sink", &sink, "gst-src", &src, NULL);
 
@@ -419,11 +416,7 @@ _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
 
   gst_element_set_locked_state (sink, TRUE);
   gst_element_set_state (sink, GST_STATE_NULL);
-  if ((parent = gst_object_get_parent (GST_OBJECT (sink))))
-  {
-    gst_object_unref (parent);
-    gst_bin_remove (GST_BIN (self->priv->conference), sink);
-  }
+  gst_bin_remove (GST_BIN (self->priv->conference), sink);
 
   gst_object_unref (src);
   gst_object_unref (sink);
@@ -663,11 +656,6 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
     g_hash_table_destroy (self->priv->transmitters);
     self->priv->transmitters = NULL;
   }
-
-  g_list_foreach (self->priv->transmitters_add_sink, (GFunc) g_object_unref,
-      NULL);
-  g_list_free (self->priv->transmitters_add_sink);
-  self->priv->transmitters_add_sink = NULL;
 
   if (self->priv->free_substreams)
   {
@@ -1966,7 +1954,6 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
 {
   FsTransmitter *transmitter;
   GstElement *src = NULL;
-  gboolean sink_add_later = FALSE;
   guint tos;
 
   FS_RTP_SESSION_LOCK (self);
@@ -1991,15 +1978,8 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
   g_signal_connect (transmitter, "get-recvonly-filter",
       G_CALLBACK (_get_recvonly_filter), NULL);
 
-  if (self->priv->send_codecbin)
-  {
-    if (!fs_rtp_session_add_transmitter_gst_sink (self, transmitter, error))
-      goto error;
-  }
-  else
-  {
-    sink_add_later = TRUE;
-  }
+  if (!fs_rtp_session_add_transmitter_gst_sink (self, transmitter, error))
+    goto error;
 
   g_object_get (transmitter, "gst-src", &src, NULL);
 
@@ -2034,9 +2014,6 @@ fs_rtp_session_get_transmitter (FsRtpSession *self,
 
   g_object_ref (transmitter);
 
-  if (sink_add_later)
-    self->priv->transmitters_add_sink = g_list_prepend (
-        self->priv->transmitters_add_sink, g_object_ref (transmitter));
   g_hash_table_insert (self->priv->transmitters, g_strdup (transmitter_name),
       transmitter);
   FS_RTP_SESSION_UNLOCK (self);
@@ -3187,7 +3164,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   GstIterator *iter;
   GValue link_rv = {0};
   struct link_data data;
-  GList *item;
   FsCodec *send_codec_copy = fs_codec_copy (ca->send_codec);
   FsCodec *codec_copy = fs_codec_copy (ca->codec);
 
@@ -3303,29 +3279,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
 
   FS_RTP_SESSION_LOCK (session);
-  while ((item = session->priv->transmitters_add_sink) != NULL)
-  {
-    FsTransmitter *transmitter = item->data;
-
-    session->priv->transmitters_add_sink = g_list_delete_link (
-        session->priv->transmitters_add_sink, item);
-
-    FS_RTP_SESSION_UNLOCK (session);
-
-    if (!fs_rtp_session_add_transmitter_gst_sink (session, transmitter, error))
-    {
-      FS_RTP_SESSION_LOCK (session);
-      g_object_unref (transmitter);
-      g_list_foreach (session->priv->transmitters_add_sink,
-          (GFunc) g_object_unref, NULL);
-      g_list_free (session->priv->transmitters_add_sink);
-      session->priv->transmitters_add_sink = NULL;
-      goto error_locked;
-    }
-
-    g_object_unref (transmitter);
-    FS_RTP_SESSION_LOCK (session);
-  }
 
   if (session->priv->streams_sending)
     g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
@@ -3362,11 +3315,6 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   fs_codec_destroy (codec_copy);
   fs_codec_destroy (send_codec_copy);
   return NULL;
-
- error_locked:
-
-  FS_RTP_SESSION_UNLOCK (session);
-  goto error;
 }
 
 static void
