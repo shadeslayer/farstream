@@ -271,7 +271,7 @@ fs_rtp_tfrc_receiver_timer_func (FsRtpTfrc *self, struct TrackedSource *src,
   if (expiry <= now)
   {
     if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
-      g_signal_emit_by_name (self->rtpsession, "send-rtcp", 0);
+      g_signal_emit_by_name (self->rtpsession, "send-rtcp", (guint64) 0);
 
     expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
   }
@@ -470,7 +470,7 @@ out:
   GST_OBJECT_UNLOCK (self);
 
   if (send_rtcp)
-    g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", 0);
+    g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", (guint64) 0);
 
   return TRUE;
 
