@@ -391,6 +391,12 @@ tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender)
   return sender->nofeedback_timer_expiry;
 }
 
+guint
+tfrc_sender_get_averaged_rtt (TfrcSender *sender)
+{
+  return sender->averaged_rtt;
+}
+
 
 #define NDUPACK 3 /* Number of packets to receive after a loss before declaring the loss event */
 #define LOSS_EVENTS_MAX (9)

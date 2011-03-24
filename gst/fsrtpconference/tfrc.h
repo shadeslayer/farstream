@@ -45,6 +45,7 @@ void tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now);
 void tfrc_sender_sp_sending_packet (TfrcSender *sender, guint size);
 guint tfrc_sender_get_send_rate (TfrcSender *sender);
 guint tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender);
+guint tfrc_sender_get_averaged_rtt (TfrcSender *sender);
 
 
 TfrcReceiver *tfrc_receiver_new (guint now);

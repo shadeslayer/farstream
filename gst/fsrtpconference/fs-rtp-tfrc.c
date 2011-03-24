@@ -631,8 +631,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         goto done;
       }
 
-      src->rtt = rtt;
-
       GST_LOG ("rtt: %u = now %u - ts %u - delay %u", rtt, now, ts, delay);
 
       if (!src->sender)
@@ -713,7 +711,8 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   list = gst_buffer_list_make_writable (list);
 
   if (self->last_src)
-    GST_WRITE_UINT24_BE (data, self->last_src->rtt);
+    GST_WRITE_UINT24_BE (data,
+        tfrc_sender_get_averaged_rtt (self->last_src->sender));
   else
     GST_WRITE_UINT24_BE (data, 0);
   GST_WRITE_UINT32_BE (data+3, now);
