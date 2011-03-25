@@ -564,12 +564,17 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
           current->first_seqnum - start_seqnum;
         break;
       }
-      start_ts += receiver->sender_rtt;
-      start_seqnum = (current->first_seqnum - prev->last_seqnum) *
-        (start_ts - prev->last_timestamp) /
-        (current->first_timestamp - prev->last_timestamp);
-      if (start_seqnum <= loss_event_seqnums[max_index % LOSS_EVENTS_MAX])
-        start_seqnum = loss_event_seqnums[max_index % LOSS_EVENTS_MAX] + 1;
+      do {
+        start_ts += receiver->sender_rtt;
+        start_seqnum = (current->first_seqnum - prev->last_seqnum) *
+            (start_ts - prev->last_timestamp) /
+            (current->first_timestamp - prev->last_timestamp);
+      } while (start_seqnum <= loss_event_seqnums[max_index % LOSS_EVENTS_MAX]);
+      if (start_seqnum > current->first_seqnum)
+      {
+        g_assert (start_ts > current->first_timestamp);
+        start_seqnum = current->first_seqnum;
+      }
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] = start_seqnum -
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX];
       DEBUG ("loss %u times: %u seqnum: %u pktcount: %u",
