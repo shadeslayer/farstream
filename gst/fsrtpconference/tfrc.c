@@ -33,7 +33,7 @@
  */
 
 #if 0
-#define DEBUG(...) g_debug (__VA_ARGS__)
+#define DEBUG(...) g_debug ("TFRC: " __VA_ARGS__)
 #else
 #define DEBUG(...)
 #endif
@@ -492,7 +492,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   if (receiver->received_intervals.length < 2)
     return 0;
 
-  DEBUG ("start loss event rate computation");
+  DEBUG ("start loss event rate computation (rtt: %u)", receiver->sender_rtt);
 
   for (item = g_queue_peek_head_link (&receiver->received_intervals)->next;
        item;
@@ -817,6 +817,9 @@ tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
 
   receiver->feedback_timer_expiry = now + receiver->sender_rtt;
   receiver->feedback_sent_on_last_timer = TRUE;
+
+  DEBUG ("P: %f recv_rate: %u", receiver->loss_event_rate,
+      receiver->receive_rate);
 
   return TRUE;
 }
