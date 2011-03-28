@@ -3539,6 +3539,15 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
   sendcaps = fs_codec_to_gst_caps (ca->send_codec);
 
+  if (session->priv->rtp_tfrc &&
+      fs_rtp_tfrc_is_enabled (session->priv->rtp_tfrc, ca->codec->id))
+  {
+    guint bitrate;
+
+    g_object_get (session->priv->rtp_tfrc, "bitrate", &bitrate, NULL);
+    session->priv->send_bitrate = bitrate;
+  }
+
   if (codecbin)
     codecbin_set_bitrate (codecbin, session->priv->send_bitrate);
 

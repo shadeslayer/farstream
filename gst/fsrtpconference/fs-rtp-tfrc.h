@@ -131,6 +131,7 @@ void fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
     GList *codec_associations,
     GList *header_extensions);
 
+gboolean fs_rtp_tfrc_is_enabled (FsRtpTfrc *self, guint pt);
 
 G_END_DECLS
 

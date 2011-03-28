@@ -920,3 +920,20 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
 
   GST_OBJECT_UNLOCK (self);
 }
+
+
+gboolean
+fs_rtp_tfrc_is_enabled (FsRtpTfrc *self, guint pt)
+{
+  gboolean is_enabled;
+
+  g_return_val_if_fail (pt < 128, FALSE);
+
+
+  GST_OBJECT_LOCK (self);
+  is_enabled = (self->extension_type != EXTENSION_NONE) &&
+      self->pts[pt];
+  GST_OBJECT_UNLOCK (self);
+
+  return is_enabled;
+}
