@@ -885,6 +885,8 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
   GList *item;
   FsRtpHeaderExtension *hdrext;
 
+  GST_OBJECT_LOCK (self);
+
   memset (self->pts, 0, 128);
   for (item = codec_associations; item; item = item->next)
   {
@@ -905,6 +907,7 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
   if (!item)
   {
     self->extension_type = EXTENSION_NONE;
+    GST_OBJECT_UNLOCK (self);
     return;
   }
 
@@ -914,4 +917,6 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
     self->extension_type = EXTENSION_ONE_BYTE;
 
   self->extension_id = hdrext->id;
+
+  GST_OBJECT_UNLOCK (self);
 }
