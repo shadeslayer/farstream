@@ -649,10 +649,12 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
 
   receiver->received_bytes += packet_size;
 
+  if (receiver->sender_rtt)
+    receiver->sender_rtt = (0.9 * receiver->sender_rtt) + (sender_rtt / 10);
+  else
+    receiver->sender_rtt = sender_rtt;
+
   /* RFC 5348 section 6.3: First packet received */
-
-  receiver->sender_rtt = sender_rtt;
-
   if (g_queue_get_length (&receiver->received_intervals) == 0 ||
       receiver->sender_rtt == 0) {
     if (receiver->sender_rtt)
@@ -724,7 +726,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
     if (newest && oldest)
       history_too_short =
         newest->last_timestamp - oldest->first_timestamp <
-        MIN_HISTORY_DURATION * sender_rtt;
+        MIN_HISTORY_DURATION * receiver->sender_rtt;
     else
       history_too_short = TRUE;
   }
