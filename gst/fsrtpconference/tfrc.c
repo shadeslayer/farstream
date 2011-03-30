@@ -38,6 +38,8 @@
 #define DEBUG(...)
 #endif
 
+#define DEFAULT_MSS 1460
+
 /*
  * @s: segment size in bytes
  * @R: RTT in seconds
@@ -99,7 +101,7 @@ tfrc_sender_new (guint segment_size, guint now)
   TfrcSender *sender = g_slice_new0 (TfrcSender);
 
   /* initialized as described in RFC 5348 4.2 */
-  sender->mss = 1460;
+  sender->mss = DEFAULT_MSS;
   sender->segment_size = segment_size;
 
   sender->rate = sender->segment_size;
@@ -376,6 +378,9 @@ guint
 tfrc_sender_get_send_rate (TfrcSender *sender)
 {
   guint rate;
+
+  if (!sender)
+    return DEFAULT_MSS;
 
   if (sender->use_inst_rate)
     rate = sender->inst_rate;
