@@ -84,6 +84,17 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 }
 
 
+static struct TrackedSource *
+tracked_src_new (FsRtpTfrc *self)
+{
+  struct TrackedSource *src;
+
+  src = g_slice_new0 (struct TrackedSource);
+  src->self = self;
+
+  return src;
+}
+
 static void
 tracked_src_free (struct TrackedSource *src)
 {
@@ -203,9 +214,8 @@ fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
     return src;
   }
 
-  src = g_slice_new0 (struct TrackedSource);
 
-  src->self = self;
+  src = tracked_src_new (self);
   src->ssrc = ssrc;
   if (rtpsource)
     src->rtpsource = g_object_ref (rtpsource);
