@@ -733,7 +733,10 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
     self->last_src = tracked_src_new (self);
 
   if (G_UNLIKELY (self->last_src->sender == NULL))
+  {
     self->last_src->sender = tfrc_sender_new (1460, now);
+    fs_rtp_tfrc_update_sender_timer_locked (self, self->last_src, now);
+  }
 
   GST_WRITE_UINT24_BE (data,
       tfrc_sender_get_averaged_rtt (self->last_src->sender));
