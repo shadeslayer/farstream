@@ -85,7 +85,7 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
 
 
 static void
-free_source (struct TrackedSource *src)
+tracked_src_free (struct TrackedSource *src)
 {
   if (src->sender_id)
     gst_clock_id_unschedule (src->sender_id);
@@ -117,7 +117,7 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
   /* member init */
 
   self->tfrc_sources = g_hash_table_new_full (g_direct_hash,
-      g_direct_equal, NULL, (GDestroyNotify) free_source);
+      g_direct_equal, NULL, (GDestroyNotify) tracked_src_free);
 }
 
 void
