@@ -753,6 +753,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
         size += GST_BUFFER_SIZE (buf);
 
       tfrc_is_data_limited_sent_segment (self->last_src->idl, now, size);
+      tfrc_sender_sending_packet (self->last_src->sender, size);
     }
     gst_buffer_list_iterator_free (it);
   }

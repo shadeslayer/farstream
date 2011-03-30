@@ -325,7 +325,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
   guint receive_rate = get_max_receive_rate (sender, 0, FALSE);
   guint recover_rate = sender->initial_rate;
 
-  if (sender->averaged_rtt == 0 /* && has not been idle ever since the nofeedback timer was set */) {
+  if (sender->averaged_rtt == 0 && sender->sent_packet) {
     /* We do not have X_Bps or recover_rate yet.
      * Halve the allowed sending rate.
      */
@@ -356,16 +356,20 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
 
   sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
       1000 * 2 * sender->segment_size / sender->rate);
+  sender->sent_packet = FALSE;
 }
 
 void
-tfrc_sender_sp_sending_packet (TfrcSender *sender, guint size)
+tfrc_sender_sending_packet (TfrcSender *sender, guint size)
 {
   /* this should be:
    * avg = size + (avg * 15/16)
    */
-  sender->average_packet_size =
-      ( size << 4 ) + ((15 * sender->average_packet_size) >> 4);
+  if (sender->sp)
+    sender->average_packet_size =
+        ( size << 4 ) + ((15 * sender->average_packet_size) >> 4);
+
+  sender->sent_packet = TRUE;
 }
 
 guint
