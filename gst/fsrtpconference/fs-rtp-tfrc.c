@@ -214,6 +214,15 @@ fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
     return src;
   }
 
+  if (G_LIKELY (g_hash_table_size (self->tfrc_sources) == 0) &&
+      self->last_src)
+  {
+    src = self->last_src;
+    src->ssrc = ssrc;
+    if (rtpsource && !src->rtpsource)
+      src->rtpsource = g_object_ref (rtpsource);
+    return src;
+  }
 
   src = tracked_src_new (self);
   src->ssrc = ssrc;
@@ -720,11 +729,14 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   list = gst_buffer_list_make_writable (list);
 
-  if (self->last_src)
-    GST_WRITE_UINT24_BE (data,
-        tfrc_sender_get_averaged_rtt (self->last_src->sender));
-  else
-    GST_WRITE_UINT24_BE (data, 0);
+  if (G_UNLIKELY (self->last_src == NULL))
+    self->last_src = tracked_src_new (self);
+
+  if (G_UNLIKELY (self->last_src->sender == NULL))
+    self->last_src->sender = tfrc_sender_new (1460, now);
+
+  GST_WRITE_UINT24_BE (data,
+      tfrc_sender_get_averaged_rtt (self->last_src->sender));
   GST_WRITE_UINT32_BE (data+3, now);
 
   it = gst_buffer_list_iterate (list);
