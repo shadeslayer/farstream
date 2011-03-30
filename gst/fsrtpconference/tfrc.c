@@ -226,9 +226,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 {
   guint recv_limit; /* the limit on the sending rate computed from X_recv_set */
 
-  if (rtt == 0 || rtt > 1000 * 10)
-    return;
-
+  g_return_if_fail (rtt > 0 && rtt <= 1000 * 10);
 
   /* On first feedback packet, set he rate based on the mss and rtt */
   if (sender->tld == 0) {
