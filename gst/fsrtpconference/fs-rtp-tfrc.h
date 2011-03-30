@@ -99,6 +99,7 @@ struct _FsRtpTfrc
   GstElement *packet_modder;
 
   GHashTable *tfrc_sources;
+  struct TrackedSource *initial_src;
   struct TrackedSource *last_src;
 
   ExtensionType extension_type;

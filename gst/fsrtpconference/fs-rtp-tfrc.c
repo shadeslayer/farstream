@@ -160,6 +160,10 @@ fs_rtp_tfrc_dispose (GObject *object)
   self->tfrc_sources = NULL;
   self->last_src = NULL;
 
+  if (self->initial_src)
+    tracked_src_free (self->initial_src);
+  self->initial_src = NULL;
+
   if (self->packet_modder)
     g_object_unref (self->packet_modder);
 
@@ -214,10 +218,10 @@ fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
     return src;
   }
 
-  if (G_LIKELY (g_hash_table_size (self->tfrc_sources) == 0) &&
-      self->last_src)
+  if (self->initial_src)
   {
-    src = self->last_src;
+    src = self->initial_src;
+    self->initial_src = NULL;
     src->ssrc = ssrc;
     if (rtpsource && !src->rtpsource)
       src->rtpsource = g_object_ref (rtpsource);
@@ -522,9 +526,8 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   old_rate = tfrc_sender_get_send_rate (src->sender);
 
   fs_rtp_tfrc_update_sender_timer_locked (td->self, src, now);
-  if (src->idl)
-    tfrc_is_data_limited_set_rate (src->idl,
-        tfrc_sender_get_send_rate (src->sender), now);
+  tfrc_is_data_limited_set_rate (src->idl,
+      tfrc_sender_get_send_rate (src->sender), now);
 
   //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
@@ -570,6 +573,15 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
   if (cret != GST_CLOCK_OK)
     GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
         expiry, now, cret);
+}
+
+static void
+tracked_src_add_sender (struct TrackedSource *src, guint now)
+{
+  src->sender = tfrc_sender_new (1460, now);
+  src->idl = tfrc_is_data_limited_new (now);
+  tfrc_is_data_limited_set_rate (src->idl,
+      tfrc_sender_get_send_rate (src->sender), now);
 }
 
 static gboolean
@@ -653,7 +665,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       GST_LOG ("rtt: %u = now %u - ts %u - delay %u", rtt, now, ts, delay);
 
       if (G_UNLIKELY (!src->sender))
-        src->sender = tfrc_sender_new (1460, now);
+        tracked_src_add_sender (src, now);
 
       if (G_UNLIKELY (tfrc_sender_get_averaged_rtt (src->sender) == 0))
         tfrc_sender_on_first_rtt (src->sender, now);
@@ -661,9 +673,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       if (self->last_src && self->last_src->sender)
         old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
 
-      if (!src->idl)
-        src->idl = tfrc_is_data_limited_new (now);
-      is_data_limited =
+     is_data_limited =
           tfrc_is_data_limited_received_feedback (src->idl, now, ts, rtt);
 
       tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
@@ -730,11 +740,11 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   list = gst_buffer_list_make_writable (list);
 
   if (G_UNLIKELY (self->last_src == NULL))
-    self->last_src = tracked_src_new (self);
+    self->initial_src = self->last_src = tracked_src_new (self);
 
   if (G_UNLIKELY (self->last_src->sender == NULL))
   {
-    self->last_src->sender = tfrc_sender_new (1460, now);
+    tracked_src_add_sender (self->last_src, now);
     fs_rtp_tfrc_update_sender_timer_locked (self, self->last_src, now);
   }
 
@@ -784,8 +794,16 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
       while (g_hash_table_iter_next (&ht_iter, NULL,
               (gpointer *) &src))
       {
-        tfrc_is_data_limited_sent_segment (src->idl, now, size);
-        tfrc_sender_sending_packet (src->sender, size);
+        if (src->sender)
+        {
+          tfrc_is_data_limited_sent_segment (src->idl, now, size);
+          tfrc_sender_sending_packet (src->sender, size);
+        }
+      }
+      if (self->initial_src)
+      {
+        tfrc_is_data_limited_sent_segment (self->initial_src->idl, now, size);
+        tfrc_sender_sending_packet (self->initial_src->sender, size);
       }
     }
     gst_buffer_list_iterator_free (it);
