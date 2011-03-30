@@ -741,19 +741,27 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   gst_buffer_list_iterator_free (it);
 
-  if (self->last_src && self->last_src->idl)
+  if (g_hash_table_size (self->tfrc_sources))
   {
     it = gst_buffer_list_iterate (list);
     while (gst_buffer_list_iterator_next_group (it))
     {
       guint size = 0;
       GstBuffer *buf;
+      GHashTableIter ht_iter;
+      struct TrackedSource *src;
 
       while ((buf = gst_buffer_list_iterator_next (it)))
         size += GST_BUFFER_SIZE (buf);
 
-      tfrc_is_data_limited_sent_segment (self->last_src->idl, now, size);
-      tfrc_sender_sending_packet (self->last_src->sender, size);
+      g_hash_table_iter_init (&ht_iter, self->tfrc_sources);
+
+      while (g_hash_table_iter_next (&ht_iter, NULL,
+              (gpointer *) &src))
+      {
+        tfrc_is_data_limited_sent_segment (src->idl, now, size);
+        tfrc_sender_sending_packet (src->sender, size);
+      }
     }
     gst_buffer_list_iterator_free (it);
   }
