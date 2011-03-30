@@ -195,7 +195,7 @@ fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
 
   src = g_hash_table_lookup (self->tfrc_sources, GUINT_TO_POINTER (ssrc));
 
-  if (src)
+  if (G_LIKELY (src))
   {
     if (G_UNLIKELY (rtpsource && !src->rtpsource))
       src->rtpsource = g_object_ref (rtpsource);
@@ -302,7 +302,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   src = g_hash_table_lookup (td->self->tfrc_sources,
       GUINT_TO_POINTER (td->ssrc));
 
-  if (src)
+  if (G_LIKELY (src))
     fs_rtp_tfrc_receiver_timer_func (td->self, src, now);
 
   GST_OBJECT_UNLOCK (td->self);
