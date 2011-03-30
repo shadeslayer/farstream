@@ -652,11 +652,11 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       GST_LOG ("rtt: %u = now %u - ts %u - delay %u", rtt, now, ts, delay);
 
-      if (!src->sender)
-      {
+      if (G_UNLIKELY (!src->sender))
         src->sender = tfrc_sender_new (1460, now);
+
+      if (G_UNLIKELY (tfrc_sender_get_averaged_rtt (src->sender) == 0))
         tfrc_sender_on_first_rtt (src->sender, now);
-      }
 
       if (self->last_src && self->last_src->sender)
         old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
