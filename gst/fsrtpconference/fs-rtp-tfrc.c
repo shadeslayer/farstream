@@ -658,7 +658,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         tfrc_sender_on_first_rtt (src->sender, now);
       }
 
-      if (self->last_src)
+      if (self->last_src && self->last_src->sender)
         old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
 
       if (!src->idl)
