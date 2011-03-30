@@ -104,8 +104,8 @@ tfrc_sender_new (guint segment_size, guint now)
 
   sender->rate = sender->segment_size;
 
+  sender->retransmission_timeout = 2000;
   sender->nofeedback_timer_expiry = now + 2000; /* 2 seconds */
-
   return sender;
 }
 
@@ -296,7 +296,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 
   /* Step 6: Reset the nofeedback timer to expire after RTO seconds. */
 
-  sender->nofeedback_timer_expiry = now + 2000;
+  sender->nofeedback_timer_expiry = now + sender->retransmission_timeout;
   sender->sent_packet = FALSE;
 
   sender->last_loss_event_rate = loss_event_rate;
