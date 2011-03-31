@@ -438,6 +438,7 @@ struct _TfrcReceiver {
   guint prev_received_bytes_reset_time;
   guint received_bytes;
   guint received_bytes_reset_time;
+  guint sender_rtt_on_last_feedback;
 };
 
 TfrcReceiver *
@@ -821,7 +822,8 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
 
   receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
 
-  if (now - receiver->received_bytes_reset_time > receiver->sender_rtt) {
+  if (now - receiver->received_bytes_reset_time >
+      receiver->sender_rtt_on_last_feedback ) {
     receiver->prev_received_bytes_reset_time =
         receiver->received_bytes_reset_time;
     receiver->prev_received_bytes = receiver->received_bytes;
@@ -839,6 +841,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
       (now - received_bytes_reset_time);
 
   receiver->feedback_timer_expiry = now + receiver->sender_rtt;
+  receiver->sender_rtt_on_last_feedback = receiver->sender_rtt;
   receiver->feedback_sent_on_last_timer = TRUE;
 
   DEBUG ("P: %f recv_rate: %u", receiver->loss_event_rate,
