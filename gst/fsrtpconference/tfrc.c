@@ -800,15 +800,24 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
 gboolean
 tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
 {
-  guint received_bytes = 0;
-  guint received_bytes_reset_time = 0;
-
   if (receiver->received_bytes == 0 ||
       receiver->prev_received_bytes_reset_time == now) {
     receiver->feedback_timer_expiry = now + receiver->sender_rtt;
     receiver->feedback_sent_on_last_timer = FALSE;
     return FALSE;
   }
+  else
+  {
+    return TRUE;
+  }
+}
+
+void
+tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
+    double *loss_event_rate, guint *receive_rate)
+{
+  guint received_bytes = 0;
+  guint received_bytes_reset_time = 0;
 
   receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
 
@@ -835,28 +844,15 @@ tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
   DEBUG ("P: %f recv_rate: %u", receiver->loss_event_rate,
       receiver->receive_rate);
 
-  return TRUE;
+  *receive_rate = receiver->receive_rate;
+  *loss_event_rate = receiver->loss_event_rate;
 }
-
 
 guint
 tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver)
 {
   return receiver->feedback_timer_expiry;
 }
-
-guint
-tfrc_receiver_get_receive_rate (TfrcReceiver *receiver)
-{
-  return receiver->receive_rate;
-}
-
-gdouble
-tfrc_receiver_get_loss_event_rate (TfrcReceiver *receiver)
-{
-  return receiver->loss_event_rate;
-}
-
 
 struct _TfrcIsDataLimited
 {

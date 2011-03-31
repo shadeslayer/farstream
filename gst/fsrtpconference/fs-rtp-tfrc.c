@@ -356,6 +356,8 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   GstRTCPPacket packet;
   guint8 *pdata;
   guint32 now;
+  gdouble loss_event_rate;
+  guint receive_rate;
 
   if (!src->receiver)
     return;
@@ -383,18 +385,15 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   pdata = gst_rtcp_packet_fb_get_fci (&packet);
 
   now = fs_rtp_tfrc_get_now (data->self);
+  tfrc_receiver_send_feedback (src->receiver, now, &loss_event_rate,
+      &receive_rate);
   GST_WRITE_UINT32_BE (pdata, src->last_ts);
   GST_WRITE_UINT32_BE (pdata + 4, now - src->last_now);
-  GST_WRITE_UINT32_BE (pdata + 8,
-      tfrc_receiver_get_receive_rate (src->receiver));
-  GST_WRITE_UINT32_BE (pdata + 12,
-      tfrc_receiver_get_loss_event_rate (src->receiver) * G_MAXUINT);
+  GST_WRITE_UINT32_BE (pdata + 8, receive_rate);
+  GST_WRITE_UINT32_BE (pdata + 12, loss_event_rate * G_MAXUINT);
 
   GST_LOG ("Sending RTCP report last_ts: %d delay: %d, x_recv: %d, rate: %f",
-      src->last_ts, now - src->last_now,
-      tfrc_receiver_get_receive_rate (src->receiver),
-      tfrc_receiver_get_loss_event_rate (src->receiver));
-
+      src->last_ts, now - src->last_now, receive_rate, loss_event_rate);
 
   data->ret = TRUE;
 }
@@ -478,9 +477,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
-  GST_LOG ("Got RTP packet x_recv: %d, rate: %f",
-      tfrc_receiver_get_receive_rate (src->receiver),
-      tfrc_receiver_get_loss_event_rate (src->receiver));
+  GST_LOG ("Got RTP packet");
 
   if (src->last_rtt == 0 && rtt)
     fs_rtp_tfrc_receiver_timer_func (self, src, now);
