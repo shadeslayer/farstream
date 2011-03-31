@@ -294,7 +294,10 @@ fs_rtp_tfrc_receiver_timer_func (FsRtpTfrc *self, struct TrackedSource *src,
   if (expiry <= now)
   {
     if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
+    {
+      src->send_feedback = TRUE;
       g_signal_emit_by_name (self->rtpsession, "send-rtcp", (guint64) 0);
+    }
 
     expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
   }
@@ -365,6 +368,9 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   if (src->got_nohdr_pkt)
     return;
 
+  if (!src->send_feedback)
+    return;
+
   if (!gst_rtcp_buffer_add_packet (data->buffer, GST_RTCP_TYPE_RTPFB, &packet))
     return;
 
@@ -394,6 +400,8 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
 
   GST_LOG ("Sending RTCP report last_ts: %d delay: %d, x_recv: %d, rate: %f",
       src->last_ts, now - src->last_now, receive_rate, loss_event_rate);
+
+  src->send_feedback = FALSE;
 
   data->ret = TRUE;
 }
@@ -490,7 +498,10 @@ out:
   GST_OBJECT_UNLOCK (self);
 
   if (send_rtcp)
+  {
+    src->send_feedback = TRUE;
     g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", (guint64) 0);
+  }
 
   return TRUE;
 
