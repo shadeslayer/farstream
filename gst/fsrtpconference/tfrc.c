@@ -144,17 +144,16 @@ tfrc_sender_on_first_rtt (TfrcSender *sender, guint now)
   sender->receive_rate_history[0].timestamp = now;
 }
 
-static guint get_max_receive_rate (TfrcSender *sender, guint receive_rate,
-  gboolean drop_max_uint)
+static guint get_max_receive_rate (TfrcSender *sender, gboolean ignore_max_uint)
 {
-  guint max_rate = receive_rate;
+  guint max_rate = 0;
   guint i;
 
   for (i = 0; i < RECEIVE_RATE_HISTORY_SIZE; i++)
   {
     if (G_UNLIKELY (sender->receive_rate_history[i].rate == G_MAXUINT))
     {
-      if (drop_max_uint)
+      if (ignore_max_uint)
         return max_rate;
       else
         return G_MAXUINT;
@@ -165,13 +164,26 @@ static guint get_max_receive_rate (TfrcSender *sender, guint receive_rate,
   return max_rate;
 }
 
+static void
+add_to_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
+{
+  memmove (&sender->receive_rate_history[0],
+      &sender->receive_rate_history[1],
+      sizeof(sender->receive_rate_history[0])*(RECEIVE_RATE_HISTORY_SIZE - 1));
+
+  sender->receive_rate_history[0].rate = receive_rate;
+  sender->receive_rate_history[0].timestamp = now;
+}
+
 static guint
 maximize_receive_rate_history (TfrcSender *sender, guint receive_rate,
     guint now)
 {
   guint max_rate;
 
-  max_rate = get_max_receive_rate (sender, receive_rate, TRUE);
+  add_to_receive_rate_history (sender, receive_rate, now);
+
+  max_rate = get_max_receive_rate (sender, TRUE);
 
   memset (sender->receive_rate_history, 0,
       sizeof(struct ReceiveRateItem) * RECEIVE_RATE_HISTORY_SIZE);
@@ -187,12 +199,7 @@ update_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
 {
   guint i;
 
-  memmove (&sender->receive_rate_history[0],
-      &sender->receive_rate_history[1],
-      sizeof(sender->receive_rate_history[0])*(RECEIVE_RATE_HISTORY_SIZE - 1));
-
-  sender->receive_rate_history[0].rate = receive_rate;
-  sender->receive_rate_history[0].timestamp = now;
+  add_to_receive_rate_history (sender, receive_rate, now);
 
   for (i = 1; i < RECEIVE_RATE_HISTORY_SIZE; i++)
     if (sender->receive_rate_history[i].rate &&
@@ -281,7 +288,9 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
   } else {
     /* typical behavior */
     update_receive_rate_history (sender, now, receive_rate);
-    recv_limit = 2 * get_max_receive_rate (sender, 0, FALSE);
+    recv_limit = get_max_receive_rate (sender, FALSE);
+    if (recv_limit != G_MAXUINT)
+      recv_limit *= 2;
   }
 
   recompute_sending_rate (sender, recv_limit, loss_event_rate, now);
@@ -327,7 +336,7 @@ update_limits(TfrcSender *sender, guint timer_limit, guint now)
 void
 tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
 {
-  guint receive_rate = get_max_receive_rate (sender, 0, FALSE);
+  guint receive_rate = get_max_receive_rate (sender, FALSE);
   guint recover_rate = sender->initial_rate;
 
   if (sender->averaged_rtt == 0 && sender->sent_packet) {
@@ -348,7 +357,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
      * Halve the allowed sending rate.
      */
     sender->rate = MAX ( sender->rate / 2, sender->segment_size / t_mbi);
-  } else if (sender->computed_rate > 2 * receive_rate) {
+  } else if (sender->computed_rate / 2 > receive_rate) {
     /* 2 * X_recv was already limiting the sending rate.
      * Halve the allowed sending rate.
    */
