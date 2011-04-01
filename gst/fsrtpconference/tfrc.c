@@ -151,11 +151,16 @@ static guint get_max_receive_rate (TfrcSender *sender, guint receive_rate,
   guint i;
 
   for (i = 0; i < RECEIVE_RATE_HISTORY_SIZE; i++)
-    if (G_UNLIKELY (drop_max_uint &&
-            sender->receive_rate_history[i].rate == G_MAXUINT))
-      sender->receive_rate_history[i].rate = 0;
-    else
-      max_rate = MAX (max_rate, sender->receive_rate_history[i].rate);
+  {
+    if (G_UNLIKELY (sender->receive_rate_history[i].rate == G_MAXUINT))
+    {
+      if (drop_max_uint)
+        return max_rate;
+      else
+        return G_MAXUINT;
+    }
+    max_rate = MAX (max_rate, sender->receive_rate_history[i].rate);
+  }
 
   return max_rate;
 }
