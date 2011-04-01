@@ -187,14 +187,22 @@ fs_rtp_tfrc_get_property (GObject *object,
   switch (prop_id)
   {
     case PROP_BITRATE:
+    {
+      guint byterate;
+
       GST_OBJECT_LOCK (self);
       if (self->last_src && self->last_src->sender)
-        g_value_set_uint (value,
-            tfrc_sender_get_send_rate (self->last_src->sender) * 8);
+        byterate = tfrc_sender_get_send_rate (self->last_src->sender);
       else
-        g_value_set_uint (value, tfrc_sender_get_send_rate (NULL) * 8);
+        byterate = tfrc_sender_get_send_rate (NULL);
       GST_OBJECT_UNLOCK (self);
+
+      if (G_LIKELY (byterate < G_MAXUINT / 8))
+        g_value_set_uint (value, byterate);
+      else
+        g_value_set_uint (value, G_MAXUINT);
       break;
+    }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
