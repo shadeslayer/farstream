@@ -441,7 +441,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   guint8 *data;
   guint size;
   gboolean got_header = FALSE;
-  struct TrackedSource *src;
+  struct TrackedSource *src = NULL;
   guint32 rtt, ts, seq;
   gboolean send_rtcp = FALSE;
   guint now;
@@ -449,7 +449,11 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   GST_OBJECT_LOCK (self);
 
+  ssrc = gst_rtp_buffer_get_ssrc (buffer);
+
+  src = g_hash_table_lookup (self->tfrc_sources, GUINT_TO_POINTER (ssrc));
   pt = gst_rtp_buffer_get_payload_type (buffer);
+
   if (pt > 128 || !self->pts[pt])
     goto out_no_header;
 
@@ -462,7 +466,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
     got_header = gst_rtp_buffer_get_extension_twobytes_header (buffer,
         NULL, self->extension_id, 0, (gpointer *) &data, &size);
 
-  ssrc = gst_rtp_buffer_get_ssrc (buffer);
   seq = gst_rtp_buffer_get_seq (buffer);
 
   src = fs_rtp_tfrc_get_remote_ssrc_locked (self, ssrc, NULL);
@@ -514,7 +517,8 @@ out:
   return TRUE;
 
 out_no_header:
-  src->got_nohdr_pkt = TRUE;
+  if (src)
+    src->got_nohdr_pkt = TRUE;
   goto out;
 }
 
