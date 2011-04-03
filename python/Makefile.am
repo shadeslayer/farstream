@@ -26,9 +26,7 @@ farsight_la_LIBADD =					\
 	$(PYFARSIGHT_LIBS)				\
 	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-@GST_MAJORMINOR@.la
 
-farsight_la_LDFLAGS =					\
-	`python-config --libs`				\
-	-module -avoid-version
+farsight_la_LDFLAGS = -module -avoid-version
 
 pyfarsight.c: pyfarsight.override pyfarsight.defs
 	$(PYCODEGEN)						\
