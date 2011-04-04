@@ -388,6 +388,14 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
     return;
   }
 
+  now = fs_rtp_tfrc_get_now (data->self);
+  if (!tfrc_receiver_send_feedback (src->receiver, now, &loss_event_rate,
+          &receive_rate))
+  {
+    gst_rtcp_packet_remove (&packet);
+    return;
+  }
+
   if (!data->have_ssrc)
     g_object_get (data->self->rtpsession, "internal-ssrc", &data->ssrc, NULL);
   data->have_ssrc = TRUE;
@@ -398,9 +406,6 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   gst_rtcp_packet_fb_set_media_ssrc (&packet, src->ssrc);
   pdata = gst_rtcp_packet_fb_get_fci (&packet);
 
-  now = fs_rtp_tfrc_get_now (data->self);
-  tfrc_receiver_send_feedback (src->receiver, now, &loss_event_rate,
-      &receive_rate);
   GST_WRITE_UINT32_BE (pdata, src->last_ts);
   GST_WRITE_UINT32_BE (pdata + 4, now - src->last_now);
   GST_WRITE_UINT32_BE (pdata + 8, receive_rate);

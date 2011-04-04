@@ -57,7 +57,7 @@ gboolean tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
 gboolean tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver,
     guint now);
 guint tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver);
-void tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
+gboolean tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
     double *loss_event_rate, guint *receive_rate);
 
 TfrcIsDataLimited *tfrc_is_data_limited_new (guint now);

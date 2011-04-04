@@ -827,14 +827,15 @@ tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
   }
 }
 
-void
+gboolean
 tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
     double *loss_event_rate, guint *receive_rate)
 {
   guint received_bytes = 0;
   guint received_bytes_reset_time = 0;
 
-  receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
+  if (now == receiver->prev_received_bytes_reset_time)
+    return FALSE;
 
   if (now - receiver->received_bytes_reset_time >
       receiver->sender_rtt_on_last_feedback ) {
@@ -848,8 +849,11 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
     received_bytes = receiver->prev_received_bytes;
     received_bytes_reset_time = receiver->prev_received_bytes_reset_time;
   }
+
   receiver->received_bytes_reset_time = now;
   receiver->received_bytes = 0;
+
+  receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
 
   receiver->receive_rate = (1000 * received_bytes) /
       (now - received_bytes_reset_time);
@@ -863,6 +867,8 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
 
   *receive_rate = receiver->receive_rate;
   *loss_event_rate = receiver->loss_event_rate;
+
+  return TRUE;
 }
 
 guint
