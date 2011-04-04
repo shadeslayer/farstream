@@ -289,8 +289,10 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
     /* typical behavior */
     update_receive_rate_history (sender, now, receive_rate);
     recv_limit = get_max_receive_rate (sender, FALSE);
-    if (recv_limit != G_MAXUINT)
+    if (recv_limit < G_MAXUINT / 2)
       recv_limit *= 2;
+    else
+      recv_limit = G_MAXUINT;
   }
 
   recompute_sending_rate (sender, recv_limit, loss_event_rate, now);
