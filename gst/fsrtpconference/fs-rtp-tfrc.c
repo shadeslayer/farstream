@@ -698,8 +698,9 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       if (self->last_src && self->last_src->sender)
         old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
 
-     is_data_limited =
-          tfrc_is_data_limited_received_feedback (src->idl, now, ts, rtt);
+      is_data_limited =
+          tfrc_is_data_limited_received_feedback (src->idl, now, ts,
+              tfrc_sender_get_averaged_rtt (src->sender));
 
       tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
           loss_event_rate, is_data_limited);
