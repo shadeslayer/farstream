@@ -676,6 +676,14 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         goto done;
       }
 
+      /* Make sure we only use the RTT from the most recent packets from
+       * the remote side, ignore anything that got delayed in between.
+       */
+      if (ts < src->max_ts &&
+          (src->max_ts < (G_MAXUINT * 9/10) ||
+              ts > (G_MAXUINT / 10)))
+        goto done;
+
       rtt = now - ts - delay;
 
       if (rtt == 0)
@@ -688,6 +696,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       }
 
       GST_LOG ("rtt: %u = now %u - ts %u - delay %u", rtt, now, ts, delay);
+
+      src->max_ts = ts;
 
       if (G_UNLIKELY (!src->sender))
         tracked_src_add_sender (src, now);

@@ -66,6 +66,7 @@ struct TrackedSource {
   TfrcSender *sender;
   GstClockID sender_id;
   TfrcIsDataLimited *idl;
+  guint max_ts;
 
   TfrcReceiver *receiver;
   GstClockID receiver_id;
