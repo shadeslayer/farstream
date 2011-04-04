@@ -167,8 +167,8 @@ static guint get_max_receive_rate (TfrcSender *sender, gboolean ignore_max_uint)
 static void
 add_to_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
 {
-  memmove (&sender->receive_rate_history[0],
-      &sender->receive_rate_history[1],
+  memmove (&sender->receive_rate_history[1],
+      &sender->receive_rate_history[0],
       sizeof(sender->receive_rate_history[0])*(RECEIVE_RATE_HISTORY_SIZE - 1));
 
   sender->receive_rate_history[0].rate = receive_rate;
