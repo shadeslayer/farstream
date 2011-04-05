@@ -34,6 +34,7 @@
 #include "check-threadsafe.h"
 #include "generic.h"
 #include "transmitter/rawudp-upnp.h"
+#include "testutils.h"
 
 #include "stunalternd.h"
 
@@ -967,18 +968,28 @@ rawudptransmitter_suite (void)
   suite_add_tcase (s, tc_chain);
 
 #ifdef HAVE_GUPNP
-  tc_chain = tcase_create ("rawudptransmitter-upnp-discovery");
-  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_discovery);
-  suite_add_tcase (s, tc_chain);
+  {
+    gchar *multicast_addr;
 
-  tc_chain = tcase_create ("rawudptransmitter-upnp-fallback");
-  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_fallback);
-  suite_add_tcase (s, tc_chain);
+    multicast_addr = find_multicast_capable_address ();
+    g_free (multicast_addr);
 
-  tc_chain = tcase_create ("rawudptransmitter-upnp-ignored");
-  tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
-  tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_ignored);
-  suite_add_tcase (s, tc_chain);
+    if (multicast_addr)
+    {
+      tc_chain = tcase_create ("rawudptransmitter-upnp-discovery");
+      tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_discovery);
+      suite_add_tcase (s, tc_chain);
+
+      tc_chain = tcase_create ("rawudptransmitter-upnp-fallback");
+      tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_fallback);
+      suite_add_tcase (s, tc_chain);
+
+      tc_chain = tcase_create ("rawudptransmitter-upnp-ignored");
+      tcase_add_checked_fixture (tc_chain, setup_stund, teardown_stund);
+      tcase_add_test (tc_chain, test_rawudptransmitter_run_upnp_ignored);
+      suite_add_tcase (s, tc_chain);
+    }
+  }
 #endif
 
   tc_chain = tcase_create ("rawudptransmitter-with-filter");

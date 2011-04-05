@@ -83,6 +83,8 @@ transmitter_rawudp_LDADD = $(LDADD) \
 	$(NICE_LIBS)
 transmitter_rawudp_SOURCES = \
 	check-threadsafe.h  \
+	testutils.c \
+	testutils.h \
 	transmitter/generic.c \
 	transmitter/generic.h \
 	transmitter/rawudp.c \
