@@ -563,11 +563,11 @@ fs_shm_stream_transmitter_gather_local_candidates (
           c, path, ready_cb, connected_cb, self, error);
       g_free (path);
 
-      fs_shm_transmitter_sink_set_sending (self->priv->transmitter,
-      self->priv->shm_sink[c], self->priv->sending);
-
       if (self->priv->shm_sink[c] == NULL)
         return FALSE;
+
+      fs_shm_transmitter_sink_set_sending (self->priv->transmitter,
+          self->priv->shm_sink[c], self->priv->sending);
     }
 
     return TRUE;
