@@ -63,6 +63,14 @@ struct _FsRtpPacketModder {
 
   FsRtpPacketModderFunc func;
   gpointer user_data;
+
+  /* for sync */
+  GstSegment segment;
+  GstClockID clock_id;
+  gboolean unscheduled;
+  /* the latency of the upstream peer, we have to take this into account when
+   * synchronizing the buffers. */
+  GstClockTime peer_latency;
 };
 
 struct _FsRtpPacketModderClass {
