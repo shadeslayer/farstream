@@ -554,8 +554,6 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   old_rate = tfrc_sender_get_send_rate (src->sender);
 
   fs_rtp_tfrc_update_sender_timer_locked (td->self, src, now);
-  tfrc_is_data_limited_set_rate (src->idl,
-      tfrc_sender_get_send_rate (src->sender), now);
 
   //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
@@ -608,8 +606,6 @@ tracked_src_add_sender (struct TrackedSource *src, guint now)
 {
   src->sender = tfrc_sender_new (1460, now);
   src->idl = tfrc_is_data_limited_new (now);
-  tfrc_is_data_limited_set_rate (src->idl,
-      tfrc_sender_get_send_rate (src->sender), now);
 }
 
 static gboolean
@@ -661,7 +657,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       x_recv = GST_READ_UINT32_BE (buf);
       buf += 4;
       loss_event_rate = (gdouble) GST_READ_UINT32_BE (buf) / (gdouble) G_MAXUINT;
-
       GST_LOG ("Got RTCP TFRC packet last_sent_ts: %u delay: %u x_recv: %u"
           " loss_event_rate: %f", ts, delay, x_recv, loss_event_rate);
 
@@ -717,9 +712,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
           loss_event_rate, is_data_limited);
-
-      tfrc_is_data_limited_set_rate (src->idl,
-          tfrc_sender_get_send_rate (src->sender), now);
 
       //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
 
@@ -826,6 +818,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
     guint size = 0;
     GstBuffer *buf;
     GstBuffer *headerbuf;
+    gboolean is_data_limited = TRUE;
 
     headerbuf = gst_buffer_list_iterator_next (it);
     size += GST_BUFFER_SIZE (headerbuf);
@@ -868,6 +861,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
           tfrc_sender_get_send_rate (self->last_src->sender));
 
       GST_BUFFER_TIMESTAMP (headerbuf) += diff;
+      is_data_limited = FALSE;
     }
 
     if (g_hash_table_size (self->tfrc_sources))
@@ -882,18 +876,20 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
       {
         if (src->sender)
         {
-          tfrc_is_data_limited_sent_segment (src->idl, now, size);
+          if (!is_data_limited)
+            tfrc_is_data_limited_not_limited_now (src->idl, now);
           tfrc_sender_sending_packet (src->sender, size);
         }
       }
-      if (self->initial_src)
-      {
-        tfrc_is_data_limited_sent_segment (self->initial_src->idl, now, size);
-        tfrc_sender_sending_packet (self->initial_src->sender, size);
-      }
     }
-    gst_buffer_list_iterator_free (it);
+    if (self->initial_src)
+    {
+      if (!is_data_limited)
+        tfrc_is_data_limited_not_limited_now (self->initial_src->idl, now);
+      tfrc_sender_sending_packet (self->initial_src->sender, size);
+    }
   }
+  gst_buffer_list_iterator_free (it);
 
   GST_OBJECT_UNLOCK (self);
 

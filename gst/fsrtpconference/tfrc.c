@@ -886,10 +886,6 @@ struct _TfrcIsDataLimited
   guint not_limited_2;
   guint t_new;
   guint t_next;
-
-  guint last_reset_ts;
-  guint rate;
-  guint sent;
 };
 
 /*
@@ -910,23 +906,8 @@ tfrc_is_data_limited_free (TfrcIsDataLimited *idl)
 }
 
 void
-tfrc_is_data_limited_set_rate (TfrcIsDataLimited *idl, guint rate, guint now)
+tfrc_is_data_limited_not_limited_now (TfrcIsDataLimited *idl, guint now)
 {
-  idl->rate = rate;
-  idl->last_reset_ts = now;
-  idl->sent = 0;
-}
-
-void
-tfrc_is_data_limited_sent_segment (TfrcIsDataLimited *idl, guint now,
-    guint size)
-{
-  idl->sent += size;
-
-  /* if sender has not sent all it is allowed to send */
-  if ((now - idl->last_reset_ts) * idl->rate > idl->sent * 1000)
-    return;
-
   /* Sender is not data-limited at this instant. */
   if (idl->not_limited_1 <= idl->t_new)
     /* Goal: NotLimited1 > t_new. */
@@ -960,9 +941,6 @@ tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl, guint now,
 
   if (idl->not_limited_1 <= idl->t_new && idl->not_limited_2 > idl->t_new)
       idl->not_limited_1 = idl->not_limited_2;
-
-  idl->last_reset_ts = now;
-  idl->sent = 0;
 
   return ret;
 }
