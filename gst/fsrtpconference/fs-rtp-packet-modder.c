@@ -127,7 +127,7 @@ static GstFlowReturn
 fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
 {
   FsRtpPacketModder *self = FS_RTP_PACKET_MODDER (gst_pad_get_parent (pad));
-  GstFlowReturn ret = GST_FLOW_OK;
+  GstFlowReturn ret = GST_FLOW_ERROR;
   gpointer newbuf;
 
   newbuf = self->func (self, buf, self->user_data);
@@ -153,11 +153,12 @@ fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
     buf = newbuf;
   }
 
-invalid:
   if (is_list)
     ret = gst_pad_push_list (self->srcpad, buf);
   else
     ret = gst_pad_push (self->srcpad, buf);
+
+invalid:
 
   gst_object_unref (self);
 
