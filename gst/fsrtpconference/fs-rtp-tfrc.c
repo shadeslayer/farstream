@@ -129,6 +129,9 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
 
   self->tfrc_sources = g_hash_table_new_full (g_direct_hash,
       g_direct_equal, NULL, (GDestroyNotify) tracked_src_free);
+
+  self->last_sent_ts = GST_CLOCK_TIME_NONE;
+  self->byte_reservoir = 1500; /* About one packet */
 }
 
 void
@@ -750,6 +753,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   GstBufferListIterator *it;
   gchar data[7];
   guint now;
+  gint bytes_for_one_rtt;
 
   GST_OBJECT_LOCK (self);
 
@@ -812,18 +816,64 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   gst_buffer_list_iterator_free (it);
 
-  if (g_hash_table_size (self->tfrc_sources))
+  bytes_for_one_rtt =
+      tfrc_sender_get_send_rate (self->last_src->sender) *
+      tfrc_sender_get_averaged_rtt (self->last_src->sender) / 1000;
+
+  it = gst_buffer_list_iterate (list);
+  while (gst_buffer_list_iterator_next_group (it))
   {
-    it = gst_buffer_list_iterate (list);
-    while (gst_buffer_list_iterator_next_group (it))
+    guint size = 0;
+    GstBuffer *buf;
+    GstBuffer *headerbuf;
+
+    headerbuf = gst_buffer_list_iterator_next (it);
+    size += GST_BUFFER_SIZE (headerbuf);
+
+    while ((buf = gst_buffer_list_iterator_next (it)))
+      size += GST_BUFFER_SIZE (buf);
+
+    if (GST_BUFFER_TIMESTAMP_IS_VALID (headerbuf))
     {
-      guint size = 0;
-      GstBuffer *buf;
+      if (GST_CLOCK_TIME_IS_VALID (self->last_sent_ts) &&
+          self->last_sent_ts < GST_BUFFER_TIMESTAMP (headerbuf))
+        self->byte_reservoir +=
+            gst_util_uint64_scale (
+              (GST_BUFFER_TIMESTAMP (headerbuf) - self->last_sent_ts),
+              tfrc_sender_get_send_rate (self->last_src->sender),
+              GST_SECOND);
+      self->last_sent_ts = GST_BUFFER_TIMESTAMP (headerbuf);
+
+      if (bytes_for_one_rtt &&
+          self->byte_reservoir > bytes_for_one_rtt)
+        self->byte_reservoir = bytes_for_one_rtt;
+    }
+
+    self->byte_reservoir -= size;
+
+    if (GST_BUFFER_TIMESTAMP_IS_VALID (headerbuf) &&
+        self->byte_reservoir < 0)
+    {
+      GstClockTimeDiff diff = 0;
+
+      diff = gst_util_uint64_scale_int (GST_SECOND,
+          -self->byte_reservoir,
+          tfrc_sender_get_send_rate (self->last_src->sender));
+      g_assert (diff > 0);
+
+
+      GST_LOG ("Delaying packet by %"GST_TIME_FORMAT
+          " = 1sec * bytes %d / rate %u",
+          GST_TIME_ARGS (diff), self->byte_reservoir,
+          tfrc_sender_get_send_rate (self->last_src->sender));
+
+      GST_BUFFER_TIMESTAMP (headerbuf) += diff;
+    }
+
+    if (g_hash_table_size (self->tfrc_sources))
+    {
       GHashTableIter ht_iter;
       struct TrackedSource *src;
-
-      while ((buf = gst_buffer_list_iterator_next (it)))
-        size += GST_BUFFER_SIZE (buf);
 
       g_hash_table_iter_init (&ht_iter, self->tfrc_sources);
 

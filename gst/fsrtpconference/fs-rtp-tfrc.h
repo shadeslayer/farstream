@@ -104,6 +104,10 @@ struct _FsRtpTfrc
   struct TrackedSource *initial_src;
   struct TrackedSource *last_src;
 
+  /* Sender stuff */
+  gint byte_reservoir;
+  GstClockTime last_sent_ts;
+
   ExtensionType extension_type;
   guint extension_id;
 
