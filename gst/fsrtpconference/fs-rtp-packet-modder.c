@@ -124,6 +124,16 @@ fs_rtp_packet_modder_new (FsRtpPacketModderFunc func, gpointer user_data)
 }
 
 static GstFlowReturn
+fs_rtp_packet_modder_push (FsRtpPacketModder *self, GstBuffer *buf)
+{
+  GstFlowReturn ret = GST_FLOW_OK;
+
+  ret = gst_pad_push (self->srcpad, buf);
+
+  return ret;
+}
+
+static GstFlowReturn
 fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
 {
   FsRtpPacketModder *self = FS_RTP_PACKET_MODDER (gst_pad_get_parent (pad));
@@ -154,9 +164,29 @@ fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
   }
 
   if (is_list)
-    ret = gst_pad_push_list (self->srcpad, buf);
+  {
+    GstBufferListIterator *iter = gst_buffer_list_iterate (buf);
+
+    if (gst_buffer_list_iterator_next_group (iter))
+    {
+      GstBuffer *group;
+
+      gst_buffer_list_iterator_next_group (iter);
+      do {
+        group = gst_buffer_list_iterator_merge_group (iter);
+        if (!group)
+          group = gst_buffer_new ();
+        ret = fs_rtp_packet_modder_push (self, group);
+      } while (ret == GST_FLOW_OK &&
+              gst_buffer_list_iterator_next_group (iter));
+    }
+    gst_buffer_list_iterator_free (iter);
+    gst_buffer_list_unref (buf);
+  }
   else
-    ret = gst_pad_push (self->srcpad, buf);
+  {
+    ret = fs_rtp_packet_modder_push (self, buf);
+  }
 
 invalid:
 
