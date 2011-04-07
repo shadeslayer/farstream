@@ -850,13 +850,6 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   return GST_MINI_OBJECT (list);
 }
 
-/* TODO:
- * - Insert element to insert TFRC header into RTP packets
- * - Hook up to incoming RTP packets to check for TFRC headers
- * - Hook up to incoming RTCP packets
- * - Hook up to outgoing RTCP packets to add extra TFRC package
- * - Set the bitrate when required
- */
 
 FsRtpTfrc *
 fs_rtp_tfrc_new (GObject *rtpsession,
