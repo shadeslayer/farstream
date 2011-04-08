@@ -47,8 +47,8 @@ typedef struct _FsRtpPacketModder          FsRtpPacketModder;
 typedef struct _FsRtpPacketModderClass     FsRtpPacketModderClass;
 
 
-typedef GstMiniObject *(*FsRtpPacketModderFunc) (FsRtpPacketModder *modder,
-    GstMiniObject *buffer_or_list, gpointer user_data);
+typedef GstBuffer *(*FsRtpPacketModderFunc) (FsRtpPacketModder *modder,
+    GstBuffer *buffer, gpointer user_data);
 
 /**
  * FsRtpPacketModder:

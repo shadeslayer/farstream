@@ -736,40 +736,29 @@ out:
   return TRUE;
 }
 
-static GstMiniObject *
+static GstBuffer *
 fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
-    GstMiniObject *buffer_or_list, gpointer user_data)
+    GstBuffer *buffer, gpointer user_data)
 {
   FsRtpTfrc *self = FS_RTP_TFRC (user_data);
-  GstBufferList *list;
-  GstBufferListIterator *it;
   gchar data[7];
   guint now;
   gint bytes_for_one_rtt;
+  GstClockTime first_buffer_ts = GST_CLOCK_TIME_NONE;
+  GstBuffer *newbuf;
+  guint size = 0;
+  gboolean is_data_limited = TRUE;
+  GstClockTimeDiff delay = 0;
 
   GST_OBJECT_LOCK (self);
 
   if (self->extension_type == EXTENSION_NONE)
   {
     GST_OBJECT_UNLOCK (self);
-    return buffer_or_list;
+    return buffer;
   }
 
   now = fs_rtp_tfrc_get_now (self);
-
-  if (GST_IS_BUFFER (buffer_or_list))
-  {
-    GstBuffer *buf = GST_BUFFER (buffer_or_list);
-
-    list = gst_rtp_buffer_list_from_buffer (buf);
-    gst_buffer_unref (buf);
-  }
-  else
-  {
-    list = GST_BUFFER_LIST (buffer_or_list);
-  }
-
-  list = gst_buffer_list_make_writable (list);
 
   if (G_UNLIKELY (self->last_src == NULL))
     self->initial_src = self->last_src = tracked_src_new (self);
@@ -784,116 +773,122 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
       tfrc_sender_get_averaged_rtt (self->last_src->sender));
   GST_WRITE_UINT32_BE (data+3, now);
 
-  it = gst_buffer_list_iterate (list);
-
-  while (gst_buffer_list_iterator_next_group (it))
-  {
-    gst_buffer_list_iterator_next (it);
-
-    if (self->extension_type == EXTENSION_ONE_BYTE)
-    {
-      if (!gst_rtp_buffer_list_add_extension_onebyte_header (it,
-              self->extension_id, data, 7))
-        GST_WARNING_OBJECT (self,
-            "Could not add extension to RTP header in list %p", list);
-    }
-    else if (self->extension_type == EXTENSION_TWO_BYTES)
-    {
-      if (!gst_rtp_buffer_list_add_extension_twobytes_header (it, 0,
-              self->extension_id, data, 7))
-        GST_WARNING_OBJECT (self,
-            "Could not add extension to RTP header in list %p", list);
-    }
-  }
-
-  gst_buffer_list_iterator_free (it);
-
   bytes_for_one_rtt =
       tfrc_sender_get_send_rate (self->last_src->sender) *
       tfrc_sender_get_averaged_rtt (self->last_src->sender) / 1000;
 
-  it = gst_buffer_list_iterate (list);
-  while (gst_buffer_list_iterator_next_group (it))
+  size = GST_BUFFER_SIZE (buffer) + 10;
+
+  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer))
   {
-    guint size = 0;
-    GstBuffer *buf;
-    GstBuffer *headerbuf;
-    gboolean is_data_limited = TRUE;
+    if (GST_CLOCK_TIME_IS_VALID (self->last_sent_ts) &&
+        self->last_sent_ts < GST_BUFFER_TIMESTAMP (buffer))
+      self->byte_reservoir +=
+        gst_util_uint64_scale (
+            (GST_BUFFER_TIMESTAMP (buffer) - self->last_sent_ts),
+            tfrc_sender_get_send_rate (self->last_src->sender),
+            GST_SECOND);
+    self->last_sent_ts = GST_BUFFER_TIMESTAMP (buffer);
 
-    headerbuf = gst_buffer_list_iterator_next (it);
-    size += GST_BUFFER_SIZE (headerbuf);
+    if (bytes_for_one_rtt &&
+        self->byte_reservoir > bytes_for_one_rtt)
+      self->byte_reservoir = bytes_for_one_rtt;
+  }
 
-    while ((buf = gst_buffer_list_iterator_next (it)))
-      size += GST_BUFFER_SIZE (buf);
+  self->byte_reservoir -= size;
 
-    if (GST_BUFFER_TIMESTAMP_IS_VALID (headerbuf))
+  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer) &&
+      self->byte_reservoir < 0)
+  {
+    GstClockTimeDiff diff = 0;
+
+    diff = gst_util_uint64_scale_int (GST_SECOND,
+        -self->byte_reservoir,
+        tfrc_sender_get_send_rate (self->last_src->sender));
+    g_assert (diff > 0);
+
+
+    GST_LOG ("Delaying packet by %"GST_TIME_FORMAT
+        " = 1sec * bytes %d / rate %u",
+        GST_TIME_ARGS (diff), self->byte_reservoir,
+        tfrc_sender_get_send_rate (self->last_src->sender));
+
+    GST_BUFFER_TIMESTAMP (buffer) += diff;
+    is_data_limited = FALSE;
+  }
+
+  if (g_hash_table_size (self->tfrc_sources))
+  {
+    GHashTableIter ht_iter;
+    struct TrackedSource *src;
+
+    g_hash_table_iter_init (&ht_iter, self->tfrc_sources);
+
+    while (g_hash_table_iter_next (&ht_iter, NULL,
+            (gpointer *) &src))
     {
-      if (GST_CLOCK_TIME_IS_VALID (self->last_sent_ts) &&
-          self->last_sent_ts < GST_BUFFER_TIMESTAMP (headerbuf))
-        self->byte_reservoir +=
-            gst_util_uint64_scale (
-              (GST_BUFFER_TIMESTAMP (headerbuf) - self->last_sent_ts),
-              tfrc_sender_get_send_rate (self->last_src->sender),
-              GST_SECOND);
-      self->last_sent_ts = GST_BUFFER_TIMESTAMP (headerbuf);
-
-      if (bytes_for_one_rtt &&
-          self->byte_reservoir > bytes_for_one_rtt)
-        self->byte_reservoir = bytes_for_one_rtt;
-    }
-
-    self->byte_reservoir -= size;
-
-    if (GST_BUFFER_TIMESTAMP_IS_VALID (headerbuf) &&
-        self->byte_reservoir < 0)
-    {
-      GstClockTimeDiff diff = 0;
-
-      diff = gst_util_uint64_scale_int (GST_SECOND,
-          -self->byte_reservoir,
-          tfrc_sender_get_send_rate (self->last_src->sender));
-      g_assert (diff > 0);
-
-
-      GST_LOG ("Delaying packet by %"GST_TIME_FORMAT
-          " = 1sec * bytes %d / rate %u",
-          GST_TIME_ARGS (diff), self->byte_reservoir,
-          tfrc_sender_get_send_rate (self->last_src->sender));
-
-      GST_BUFFER_TIMESTAMP (headerbuf) += diff;
-      is_data_limited = FALSE;
-    }
-
-    if (g_hash_table_size (self->tfrc_sources))
-    {
-      GHashTableIter ht_iter;
-      struct TrackedSource *src;
-
-      g_hash_table_iter_init (&ht_iter, self->tfrc_sources);
-
-      while (g_hash_table_iter_next (&ht_iter, NULL,
-              (gpointer *) &src))
+      if (src->sender)
       {
-        if (src->sender)
-        {
-          if (!is_data_limited)
-            tfrc_is_data_limited_not_limited_now (src->idl, now);
-          tfrc_sender_sending_packet (src->sender, size);
-        }
+        if (!is_data_limited)
+          tfrc_is_data_limited_not_limited_now (src->idl, now);
+        tfrc_sender_sending_packet (src->sender, size);
       }
     }
-    if (self->initial_src)
-    {
-      if (!is_data_limited)
-        tfrc_is_data_limited_not_limited_now (self->initial_src->idl, now);
-      tfrc_sender_sending_packet (self->initial_src->sender, size);
-    }
   }
-  gst_buffer_list_iterator_free (it);
+  if (self->initial_src)
+  {
+    if (!is_data_limited)
+      tfrc_is_data_limited_not_limited_now (self->initial_src->idl, now);
+    tfrc_sender_sending_packet (self->initial_src->sender, size);
+  }
+
+
+  if (GST_CLOCK_TIME_IS_VALID (first_buffer_ts))
+  {
+    delay = GST_BUFFER_TIMESTAMP (buffer) - first_buffer_ts;
+    delay /= GST_MSECOND;
+  }
+
+  GST_WRITE_UINT32_BE (data+3, now + delay);
+
+  newbuf = gst_buffer_new_and_alloc (GST_BUFFER_SIZE (buffer) + 16);
+  gst_buffer_copy_metadata (newbuf, buffer, GST_BUFFER_COPY_ALL);
+
+  memcpy (GST_BUFFER_DATA (newbuf), GST_BUFFER_DATA (buffer),
+      gst_rtp_buffer_get_header_len (buffer));
+
+  if (self->extension_type == EXTENSION_ONE_BYTE)
+  {
+    if (!gst_rtp_buffer_add_extension_onebyte_header (newbuf,
+            self->extension_id, data, 7))
+      GST_WARNING_OBJECT (self,
+          "Could not add extension to RTP header buf %p", newbuf);
+  }
+  else if (self->extension_type == EXTENSION_TWO_BYTES)
+  {
+    if (!gst_rtp_buffer_add_extension_twobytes_header (newbuf, 0,
+            self->extension_id, data, 7))
+      GST_WARNING_OBJECT (self,
+          "Could not add extension to RTP header in list %p", newbuf);
+  }
+
+  /* FIXME:
+   * This will break if any padding is applied
+   */
+
+  GST_BUFFER_SIZE (newbuf) = gst_rtp_buffer_get_header_len (newbuf) +
+    gst_rtp_buffer_get_payload_len (buffer);
+
+  memcpy (gst_rtp_buffer_get_payload (newbuf),
+      gst_rtp_buffer_get_payload (buffer),
+      gst_rtp_buffer_get_payload_len (buffer));
+
 
   GST_OBJECT_UNLOCK (self);
 
-  return GST_MINI_OBJECT (list);
+  gst_buffer_unref (buffer);
+
+  return newbuf;
 }
 
 

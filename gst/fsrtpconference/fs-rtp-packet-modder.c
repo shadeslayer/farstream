@@ -49,8 +49,6 @@ GST_BOILERPLATE (FsRtpPacketModder, fs_rtp_packet_modder, GstElement,
 
 static GstFlowReturn fs_rtp_packet_modder_chain (GstPad *pad,
     GstBuffer *buffer);
-static GstFlowReturn fs_rtp_packet_modder_chain_list (GstPad *pad,
-    GstBufferList *bufferlist);
 static GstCaps *fs_rtp_packet_modder_getcaps (GstPad *pad);
 static GstFlowReturn fs_rtp_packet_modder_bufferalloc (GstPad *pad,
     guint64 offset, guint size, GstCaps *caps, GstBuffer **buf);
@@ -99,8 +97,6 @@ fs_rtp_packet_modder_init (FsRtpPacketModder *self,
   self->sinkpad = gst_pad_new_from_static_template (
     &fs_rtp_packet_modder_sink_template, "sink");
   gst_pad_set_chain_function (self->sinkpad, fs_rtp_packet_modder_chain);
-  gst_pad_set_chain_list_function (self->sinkpad,
-      fs_rtp_packet_modder_chain_list);
   gst_pad_set_setcaps_function (self->sinkpad, gst_pad_proxy_setcaps);
   gst_pad_set_getcaps_function (self->sinkpad, fs_rtp_packet_modder_getcaps);
   gst_pad_set_bufferalloc_function (self->sinkpad,
@@ -174,87 +170,28 @@ again:
 }
 
 static GstFlowReturn
-fs_rtp_packet_modder_push (FsRtpPacketModder *self, GstBuffer *buf)
-{
-  GstFlowReturn ret = GST_FLOW_OK;
-
-  fs_rtp_packet_modder_sync_to_clock (self, buf);
-
-  ret = gst_pad_push (self->srcpad, buf);
-
-  return ret;
-}
-
-static GstFlowReturn
-fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
+fs_rtp_packet_modder_chain (GstPad *pad, GstBuffer *buffer)
 {
   FsRtpPacketModder *self = FS_RTP_PACKET_MODDER (gst_pad_get_parent (pad));
   GstFlowReturn ret = GST_FLOW_ERROR;
-  gpointer newbuf;
 
-  newbuf = self->func (self, buf, self->user_data);
+  buffer = self->func (self, buffer, self->user_data);
 
-  if (!newbuf)
+  if (!buffer)
   {
     GST_LOG_OBJECT (self, "Got NULL from FsRtpPacketModderFunc");
     goto invalid;
   }
 
-  if (newbuf != buf)
-  {
-    if (GST_IS_BUFFER_LIST (newbuf))
-      is_list = TRUE;
-    else if (GST_IS_BUFFER (newbuf))
-      is_list = FALSE;
-    else
-    {
-      GST_LOG_OBJECT (self, "Got non-buffer from FsRtpPacketModderFunc");
-      goto invalid;
-    }
+  fs_rtp_packet_modder_sync_to_clock (self, buffer);
 
-    buf = newbuf;
-  }
-
-  if (is_list)
-  {
-    GstBufferListIterator *iter = gst_buffer_list_iterate (buf);
-
-    if (gst_buffer_list_iterator_next_group (iter))
-    {
-      GstBuffer *group;
-
-      do {
-        group = gst_buffer_list_iterator_merge_group (iter);
-        if (group)
-          ret = fs_rtp_packet_modder_push (self, group);
-      } while (ret == GST_FLOW_OK &&
-          gst_buffer_list_iterator_next_group (iter));
-    }
-    gst_buffer_list_iterator_free (iter);
-    gst_buffer_list_unref (buf);
-  }
-  else
-  {
-    ret = fs_rtp_packet_modder_push (self, buf);
-  }
+  ret = gst_pad_push (self->srcpad, buffer);
 
 invalid:
 
   gst_object_unref (self);
 
   return ret;
-}
-
-static GstFlowReturn
-fs_rtp_packet_modder_chain (GstPad *pad, GstBuffer *buffer)
-{
-  return fs_rtp_packet_modder_chain_common (pad, buffer, FALSE);
-}
-
-static GstFlowReturn
-fs_rtp_packet_modder_chain_list (GstPad *pad, GstBufferList *bufferlist)
-{
-  return fs_rtp_packet_modder_chain_common (pad, bufferlist, TRUE);
 }
 
 
