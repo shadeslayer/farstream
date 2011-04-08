@@ -130,10 +130,9 @@ fs_rtp_packet_modder_new (FsRtpPacketModderFunc func, gpointer user_data)
   return self;
 }
 
-static GstFlowReturn
-fs_rtp_packet_modder_push (FsRtpPacketModder *self, GstBuffer *buf)
+static void
+fs_rtp_packet_modder_sync_to_clock (FsRtpPacketModder *self, GstBuffer *buf)
 {
-  GstFlowReturn ret = GST_FLOW_OK;
   GstClockTime running_time;
   GstClockTime sync_time;
   GstClockID id;
@@ -143,7 +142,6 @@ fs_rtp_packet_modder_push (FsRtpPacketModder *self, GstBuffer *buf)
   GST_OBJECT_LOCK (self);
   running_time =  gst_segment_to_running_time (&self->segment, GST_FORMAT_TIME,
       GST_BUFFER_TIMESTAMP (buf));
-
 again:
 
   sync_time = running_time + GST_ELEMENT_CAST (self)->base_time +
@@ -154,7 +152,7 @@ again:
     GST_OBJECT_UNLOCK (self);
     /* let's just push if there is no clock */
     GST_DEBUG_OBJECT (self, "No clock, push right away");
-    goto push_buffer;
+    return;
   }
 
   GST_DEBUG_OBJECT (self, "sync to running timestamp %" GST_TIME_FORMAT,
@@ -173,9 +171,14 @@ again:
   if (clockret == GST_CLOCK_UNSCHEDULED && !self->unscheduled)
     goto again;
   GST_OBJECT_UNLOCK (self);
+}
 
+static GstFlowReturn
+fs_rtp_packet_modder_push (FsRtpPacketModder *self, GstBuffer *buf)
+{
+  GstFlowReturn ret = GST_FLOW_OK;
 
-push_buffer:
+  fs_rtp_packet_modder_sync_to_clock (self, buf);
 
   ret = gst_pad_push (self->srcpad, buf);
 
@@ -225,7 +228,7 @@ fs_rtp_packet_modder_chain_common (GstPad *pad, gpointer buf, gboolean is_list)
         if (group)
           ret = fs_rtp_packet_modder_push (self, group);
       } while (ret == GST_FLOW_OK &&
-              gst_buffer_list_iterator_next_group (iter));
+          gst_buffer_list_iterator_next_group (iter));
     }
     gst_buffer_list_iterator_free (iter);
     gst_buffer_list_unref (buf);
