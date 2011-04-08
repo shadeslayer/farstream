@@ -635,10 +635,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     DEBUG ("intervals[%u] = %u", max_interval, loss_intervals[max_interval]);
   }
 
-  if (max_index < 1) {
-    g_assert (receiver->loss_event_rate == 0);
+  if (max_index < 1)
     return 0;
-  }
 
   /* Section 5.4: Average loss rate */
   for (i = 1; i < max_interval; i++) {
