@@ -139,34 +139,33 @@ fs_rtp_packet_modder_sync_to_clock (FsRtpPacketModder *self,
   GST_OBJECT_LOCK (self);
   running_time =  gst_segment_to_running_time (&self->segment, GST_FORMAT_TIME,
      buffer_ts);
-again:
 
-  sync_time = running_time + GST_ELEMENT_CAST (self)->base_time +
-      self->peer_latency;
+  do {
+    sync_time = running_time + GST_ELEMENT_CAST (self)->base_time +
+        self->peer_latency;
 
-  clock = GST_ELEMENT_CLOCK (self);
-  if (!clock) {
-    GST_OBJECT_UNLOCK (self);
-    /* let's just push if there is no clock */
-    GST_DEBUG_OBJECT (self, "No clock, push right away");
-    return;
-  }
+    clock = GST_ELEMENT_CLOCK (self);
+    if (!clock) {
+      GST_OBJECT_UNLOCK (self);
+      /* let's just push if there is no clock */
+      GST_DEBUG_OBJECT (self, "No clock, push right away");
+      return;
+    }
 
-  GST_DEBUG_OBJECT (self, "sync to running timestamp %" GST_TIME_FORMAT,
+    GST_DEBUG_OBJECT (self, "sync to running timestamp %" GST_TIME_FORMAT,
         GST_TIME_ARGS (running_time));
 
-  id = self->clock_id = gst_clock_new_single_shot_id (clock, sync_time);
-  self->unscheduled = FALSE;
-  GST_OBJECT_UNLOCK (self);
+    id = self->clock_id = gst_clock_new_single_shot_id (clock, sync_time);
+    self->unscheduled = FALSE;
+    GST_OBJECT_UNLOCK (self);
 
-  clockret = gst_clock_id_wait (id, NULL);
+    clockret = gst_clock_id_wait (id, NULL);
 
-  GST_OBJECT_LOCK (self);
-  gst_clock_id_unref (id);
-  self->clock_id = NULL;
+    GST_OBJECT_LOCK (self);
+    gst_clock_id_unref (id);
+    self->clock_id = NULL;
 
-  if (clockret == GST_CLOCK_UNSCHEDULED && !self->unscheduled)
-    goto again;
+  } while  (clockret == GST_CLOCK_UNSCHEDULED && !self->unscheduled);
   GST_OBJECT_UNLOCK (self);
 }
 
