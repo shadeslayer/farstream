@@ -127,7 +127,8 @@ fs_rtp_packet_modder_new (FsRtpPacketModderFunc func, gpointer user_data)
 }
 
 static void
-fs_rtp_packet_modder_sync_to_clock (FsRtpPacketModder *self, GstBuffer *buf)
+fs_rtp_packet_modder_sync_to_clock (FsRtpPacketModder *self,
+  GstClockTime buffer_ts)
 {
   GstClockTime running_time;
   GstClockTime sync_time;
@@ -137,7 +138,7 @@ fs_rtp_packet_modder_sync_to_clock (FsRtpPacketModder *self, GstBuffer *buf)
 
   GST_OBJECT_LOCK (self);
   running_time =  gst_segment_to_running_time (&self->segment, GST_FORMAT_TIME,
-      GST_BUFFER_TIMESTAMP (buf));
+     buffer_ts);
 again:
 
   sync_time = running_time + GST_ELEMENT_CAST (self)->base_time +
@@ -183,7 +184,7 @@ fs_rtp_packet_modder_chain (GstPad *pad, GstBuffer *buffer)
     goto invalid;
   }
 
-  fs_rtp_packet_modder_sync_to_clock (self, buffer);
+  fs_rtp_packet_modder_sync_to_clock (self, GST_BUFFER_TIMESTAMP (buffer));
 
   ret = gst_pad_push (self->srcpad, buffer);
 
