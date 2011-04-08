@@ -48,7 +48,10 @@ typedef struct _FsRtpPacketModderClass     FsRtpPacketModderClass;
 
 
 typedef GstBuffer *(*FsRtpPacketModderFunc) (FsRtpPacketModder *modder,
-    GstBuffer *buffer, gpointer user_data);
+    GstBuffer *buffer, GstClockTime sync_time, gpointer user_data);
+
+typedef GstClockTime (*FsRtpPacketModderSyncTimeFunc) (
+  FsRtpPacketModder *modder, GstBuffer *buffer, gpointer user_data);
 
 /**
  * FsRtpPacketModder:
@@ -61,7 +64,8 @@ struct _FsRtpPacketModder {
   GstPad *srcpad;
   GstPad *sinkpad;
 
-  FsRtpPacketModderFunc func;
+  FsRtpPacketModderFunc modder_func;
+  FsRtpPacketModderSyncTimeFunc sync_func;
   gpointer user_data;
 
   /* for sync */
@@ -79,8 +83,10 @@ struct _FsRtpPacketModderClass {
 
 GType   fs_rtp_packet_modder_get_type        (void);
 
-FsRtpPacketModder *fs_rtp_packet_modder_new (FsRtpPacketModderFunc func,
-    gpointer user_data);
+FsRtpPacketModder *fs_rtp_packet_modder_new (
+  FsRtpPacketModderFunc modder_func,
+  FsRtpPacketModderSyncTimeFunc sync_func,
+  gpointer user_data);
 
 
 G_END_DECLS

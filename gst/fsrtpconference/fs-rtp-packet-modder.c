@@ -112,15 +112,19 @@ fs_rtp_packet_modder_init (FsRtpPacketModder *self,
 }
 
 FsRtpPacketModder *
-fs_rtp_packet_modder_new (FsRtpPacketModderFunc func, gpointer user_data)
+fs_rtp_packet_modder_new (FsRtpPacketModderFunc modder_func,
+    FsRtpPacketModderSyncTimeFunc sync_func,
+    gpointer user_data)
 {
   FsRtpPacketModder *self;
 
-  g_return_val_if_fail (func != NULL, NULL);
+  g_return_val_if_fail (modder_func != NULL, NULL);
+  g_return_val_if_fail (sync_func != NULL, NULL);
 
   self = g_object_new (FS_TYPE_RTP_PACKET_MODDER, NULL);
 
-  self->func = func;
+  self->modder_func = modder_func;
+  self->sync_func = sync_func;
   self->user_data = user_data;
 
   return self;
@@ -174,16 +178,19 @@ fs_rtp_packet_modder_chain (GstPad *pad, GstBuffer *buffer)
 {
   FsRtpPacketModder *self = FS_RTP_PACKET_MODDER (gst_pad_get_parent (pad));
   GstFlowReturn ret = GST_FLOW_ERROR;
+  GstClockTime buffer_ts = GST_BUFFER_TIMESTAMP (buffer);
 
-  buffer = self->func (self, buffer, self->user_data);
+  buffer_ts = self->sync_func (self, buffer, self->user_data);
+
+  fs_rtp_packet_modder_sync_to_clock (self, buffer_ts);
+
+  buffer = self->modder_func (self, buffer, buffer_ts, self->user_data);
 
   if (!buffer)
   {
     GST_LOG_OBJECT (self, "Got NULL from FsRtpPacketModderFunc");
     goto invalid;
   }
-
-  fs_rtp_packet_modder_sync_to_clock (self, GST_BUFFER_TIMESTAMP (buffer));
 
   ret = gst_pad_push (self->srcpad, buffer);
 

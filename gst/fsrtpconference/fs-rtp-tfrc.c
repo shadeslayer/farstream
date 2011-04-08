@@ -736,19 +736,94 @@ out:
   return TRUE;
 }
 
+static GstClockTime
+fs_rtp_tfrc_get_sync_time (FsRtpPacketModder *modder,
+    GstBuffer *buffer, gpointer user_data)
+{
+  FsRtpTfrc *self = FS_RTP_TFRC (user_data);
+  GstClockTime sync_time = GST_BUFFER_TIMESTAMP (buffer);
+  guint now;
+  gint bytes_for_one_rtt = 0;
+  guint size = 0;
+  guint send_rate;
+
+  GST_OBJECT_LOCK (self);
+
+  if (self->extension_type == EXTENSION_NONE)
+  {
+    GST_OBJECT_UNLOCK (self);
+    return GST_BUFFER_TIMESTAMP (buffer);
+  }
+
+
+  now = fs_rtp_tfrc_get_now (self);
+
+  if (self->last_src && self->last_src->sender)
+  {
+    send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
+    bytes_for_one_rtt = send_rate *
+        tfrc_sender_get_averaged_rtt (self->last_src->sender) / 1000;
+  }
+  else
+  {
+    send_rate = tfrc_sender_get_send_rate (NULL);
+    bytes_for_one_rtt = 0;
+  }
+
+  size = GST_BUFFER_SIZE (buffer) + 10;
+
+  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer))
+  {
+    if (GST_CLOCK_TIME_IS_VALID (self->last_sent_ts) &&
+        self->last_sent_ts < GST_BUFFER_TIMESTAMP (buffer))
+      self->byte_reservoir +=
+        gst_util_uint64_scale (
+            (GST_BUFFER_TIMESTAMP (buffer) - self->last_sent_ts),
+            send_rate,
+            GST_SECOND);
+    self->last_sent_ts = GST_BUFFER_TIMESTAMP (buffer);
+
+    if (bytes_for_one_rtt &&
+        self->byte_reservoir > bytes_for_one_rtt)
+      self->byte_reservoir = bytes_for_one_rtt;
+  }
+
+  self->byte_reservoir -= size;
+
+  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer) &&
+      self->byte_reservoir < 0)
+  {
+    GstClockTimeDiff diff = 0;
+
+    diff = gst_util_uint64_scale_int (GST_SECOND,
+        -self->byte_reservoir, send_rate);
+    g_assert (diff > 0);
+
+
+    GST_LOG ("Delaying packet by %"GST_TIME_FORMAT
+        " = 1sec * bytes %d / rate %u",
+        GST_TIME_ARGS (diff), self->byte_reservoir,
+        send_rate);
+
+    GST_BUFFER_TIMESTAMP (buffer) += diff;
+  }
+
+  GST_OBJECT_UNLOCK (self);
+
+
+  return sync_time;
+}
+
+
 static GstBuffer *
 fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
-    GstBuffer *buffer, gpointer user_data)
+    GstBuffer *buffer, GstClockTime buffer_ts, gpointer user_data)
 {
   FsRtpTfrc *self = FS_RTP_TFRC (user_data);
   gchar data[7];
   guint now;
-  gint bytes_for_one_rtt;
-  GstClockTime first_buffer_ts = GST_CLOCK_TIME_NONE;
   GstBuffer *newbuf;
-  guint size = 0;
-  gboolean is_data_limited = TRUE;
-  GstClockTimeDiff delay = 0;
+  gboolean is_data_limited;
 
   GST_OBJECT_LOCK (self);
 
@@ -773,83 +848,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
       tfrc_sender_get_averaged_rtt (self->last_src->sender));
   GST_WRITE_UINT32_BE (data+3, now);
 
-  bytes_for_one_rtt =
-      tfrc_sender_get_send_rate (self->last_src->sender) *
-      tfrc_sender_get_averaged_rtt (self->last_src->sender) / 1000;
-
-  size = GST_BUFFER_SIZE (buffer) + 10;
-
-  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer))
-  {
-    if (GST_CLOCK_TIME_IS_VALID (self->last_sent_ts) &&
-        self->last_sent_ts < GST_BUFFER_TIMESTAMP (buffer))
-      self->byte_reservoir +=
-        gst_util_uint64_scale (
-            (GST_BUFFER_TIMESTAMP (buffer) - self->last_sent_ts),
-            tfrc_sender_get_send_rate (self->last_src->sender),
-            GST_SECOND);
-    self->last_sent_ts = GST_BUFFER_TIMESTAMP (buffer);
-
-    if (bytes_for_one_rtt &&
-        self->byte_reservoir > bytes_for_one_rtt)
-      self->byte_reservoir = bytes_for_one_rtt;
-  }
-
-  self->byte_reservoir -= size;
-
-  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer) &&
-      self->byte_reservoir < 0)
-  {
-    GstClockTimeDiff diff = 0;
-
-    diff = gst_util_uint64_scale_int (GST_SECOND,
-        -self->byte_reservoir,
-        tfrc_sender_get_send_rate (self->last_src->sender));
-    g_assert (diff > 0);
-
-
-    GST_LOG ("Delaying packet by %"GST_TIME_FORMAT
-        " = 1sec * bytes %d / rate %u",
-        GST_TIME_ARGS (diff), self->byte_reservoir,
-        tfrc_sender_get_send_rate (self->last_src->sender));
-
-    GST_BUFFER_TIMESTAMP (buffer) += diff;
-    is_data_limited = FALSE;
-  }
-
-  if (g_hash_table_size (self->tfrc_sources))
-  {
-    GHashTableIter ht_iter;
-    struct TrackedSource *src;
-
-    g_hash_table_iter_init (&ht_iter, self->tfrc_sources);
-
-    while (g_hash_table_iter_next (&ht_iter, NULL,
-            (gpointer *) &src))
-    {
-      if (src->sender)
-      {
-        if (!is_data_limited)
-          tfrc_is_data_limited_not_limited_now (src->idl, now);
-        tfrc_sender_sending_packet (src->sender, size);
-      }
-    }
-  }
-  if (self->initial_src)
-  {
-    if (!is_data_limited)
-      tfrc_is_data_limited_not_limited_now (self->initial_src->idl, now);
-    tfrc_sender_sending_packet (self->initial_src->sender, size);
-  }
-
-
-  if (GST_CLOCK_TIME_IS_VALID (first_buffer_ts))
-  {
-    delay = GST_BUFFER_TIMESTAMP (buffer) - first_buffer_ts;
-    delay /= GST_MSECOND;
-  }
-
-  GST_WRITE_UINT32_BE (data+3, now + delay);
+  is_data_limited = (GST_BUFFER_TIMESTAMP (buffer) == buffer_ts);
 
   newbuf = gst_buffer_new_and_alloc (GST_BUFFER_SIZE (buffer) + 16);
   gst_buffer_copy_metadata (newbuf, buffer, GST_BUFFER_COPY_ALL);
@@ -882,6 +881,33 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   memcpy (gst_rtp_buffer_get_payload (newbuf),
       gst_rtp_buffer_get_payload (buffer),
       gst_rtp_buffer_get_payload_len (buffer));
+
+
+  if (g_hash_table_size (self->tfrc_sources))
+  {
+    GHashTableIter ht_iter;
+    struct TrackedSource *src;
+
+    g_hash_table_iter_init (&ht_iter, self->tfrc_sources);
+
+    while (g_hash_table_iter_next (&ht_iter, NULL,
+            (gpointer *) &src))
+    {
+      if (src->sender)
+      {
+        if (!is_data_limited)
+          tfrc_is_data_limited_not_limited_now (src->idl, now);
+        tfrc_sender_sending_packet (src->sender, GST_BUFFER_SIZE (newbuf));
+      }
+    }
+  }
+  if (self->initial_src)
+  {
+    if (!is_data_limited)
+      tfrc_is_data_limited_not_limited_now (self->initial_src->idl, now);
+    tfrc_sender_sending_packet (self->initial_src->sender,
+        GST_BUFFER_SIZE (newbuf));
+  }
 
 
   GST_OBJECT_UNLOCK (self);
@@ -929,7 +955,7 @@ fs_rtp_tfrc_new (GObject *rtpsession,
       G_CALLBACK (rtpsession_sending_rtcp), self, 0);
 
   self->packet_modder = GST_ELEMENT (fs_rtp_packet_modder_new (
-        fs_rtp_tfrc_outgoing_packets, self));
+        fs_rtp_tfrc_outgoing_packets, fs_rtp_tfrc_get_sync_time, self));
   g_object_ref (self->packet_modder);
 
   if (send_filter)
