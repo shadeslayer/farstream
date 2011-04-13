@@ -119,14 +119,14 @@ fs_rtp_special_sources_remove (
     GList **current_extra_sources,
     GList **negotiated_codec_associations,
     GMutex *mutex,
-    FsCodec *send_codec);
+    FsCodec *selected_codec);
 
 gboolean
 fs_rtp_special_sources_create (
     GList **extra_sources,
     GList **negotiated_codec_associations,
     GMutex *mutex,
-    FsCodec *send_codec,
+    FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer);
 

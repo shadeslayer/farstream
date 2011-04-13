@@ -358,7 +358,8 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
  * @negotiated_codec_associations: A pointer to the #GList of current negotiated
  * #CodecAssociation
  * @mutex: the mutex protecting the last two things
- * @send_codec: A pointer to the currently selected send codec
+ * @selected_codec: A pointer to the currently selected codec for sending,
+ *   but not send_codec
  *
  * This function removes any special source that are not compatible with the
  * currently selected send codec.
@@ -370,7 +371,7 @@ fs_rtp_special_sources_remove (
     GList **extra_sources,
     GList **negotiated_codec_associations,
     GMutex *mutex,
-    FsCodec *send_codec)
+    FsCodec *selected_codec)
 {
   GList *klass_item = NULL;
   gboolean changed = FALSE;
@@ -401,7 +402,7 @@ fs_rtp_special_sources_remove (
     if (obj_item)
     {
       FsCodec *telephony_codec =  fs_rtp_special_source_class_get_codec (klass,
-          *negotiated_codec_associations, send_codec);
+          *negotiated_codec_associations, selected_codec);
 
       if (!telephony_codec || !fs_codec_are_equal (telephony_codec, obj->codec))
       {
@@ -435,7 +436,8 @@ _source_order_compare_func (gconstpointer item1,gconstpointer item2)
  * @negotiated_codec_associations: A pointer to the #GList of current negotiated
  * #CodecAssociation
  * @mutex: the mutex protecting the last two things
- * @send_codec: The currently selected send codec
+ * @selected_codec: The currently selected codec for sending (but not
+ *    send_codec)
  * @bin: The #GstBin to add the stuff to
  * @rtpmuxer: The rtpmux element
  *
@@ -448,7 +450,7 @@ fs_rtp_special_sources_create (
     GList **extra_sources,
     GList **negotiated_codec_associations,
     GMutex *mutex,
-    FsCodec *send_codec,
+    FsCodec *selected_codec,
     GstElement *bin,
     GstElement *rtpmuxer)
 {
@@ -479,11 +481,11 @@ fs_rtp_special_sources_create (
 
     if (!obj_item &&
         fs_rtp_special_source_class_get_codec (klass,
-            *negotiated_codec_associations, send_codec))
+            *negotiated_codec_associations, selected_codec))
     {
       g_mutex_unlock (mutex);
       obj = fs_rtp_special_source_new (klass, negotiated_codec_associations,
-          mutex, send_codec, bin, rtpmuxer);
+          mutex, selected_codec, bin, rtpmuxer);
       if (!obj)
       {
         GST_WARNING ("Failed to make new special source");

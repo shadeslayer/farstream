@@ -3060,10 +3060,13 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   return FALSE;
 }
 
+/**
+ * @codec: The currently selected codec for sending (but not the send_codec)
+ */
 
 static gboolean
 fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
-    FsCodec *send_codec,
+    FsCodec *codec,
     GstElement *send_codecbin,
     gboolean error_emit)
 {
@@ -3128,12 +3131,12 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
         self->priv->extra_send_capsfilters);
   }
 
-  if (send_codec)
+  if (codec)
     fs_rtp_special_sources_remove (
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
-        send_codec);
+        codec);
 
   return TRUE;
 }
@@ -3377,7 +3380,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
-        send_codec_copy);
+        codec_copy);
     goto skip_main_codec;
   }
 
@@ -3422,7 +3425,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
       &self->priv->extra_sources,
       &self->priv->codec_associations,
       FS_RTP_SESSION_GET_LOCK (self),
-      send_codec_copy,
+      codec_copy,
       GST_ELEMENT (self->priv->conference),
       self->priv->rtpmuxer);
 

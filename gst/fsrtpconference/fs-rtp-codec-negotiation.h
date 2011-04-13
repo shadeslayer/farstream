@@ -31,6 +31,10 @@ G_BEGIN_DECLS
 
 /**
  * CodecAssociation:
+ * @blueprint: Blueprint used to construct this CodecAssociation (or NULL if
+ *  this is strictly from profiles)
+ * @codec: The codec this represents.. With the receive-side paremeters
+ * @send_codec: The same codec, but with the send-side parameters
  * @reserved: Marks a payload-type reserved at the users request
  * @disable: means that its not a real association, just a spot thats disabled,
  *  its marks the PT of a remote codec that has been refused
