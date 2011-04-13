@@ -1686,7 +1686,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                GError **error)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  gboolean ret = TRUE;
+  gboolean ret;
 
   if (fs_rtp_session_has_disposed_enter (self, error))
     return FALSE;
@@ -1708,6 +1708,7 @@ fs_rtp_session_set_send_codec (FsSession *session, FsCodec *send_codec,
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "The passed codec is not part of the list of codecs");
+    ret = FALSE;
   }
 
   FS_RTP_SESSION_UNLOCK (self);
