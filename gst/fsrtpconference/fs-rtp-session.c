@@ -1710,15 +1710,69 @@ fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
                                       guint8 volume, FsDTMFMethod method)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
+  GstElement *rtpmuxer = NULL;
+  GstPad *pad;
   gboolean ret = FALSE;
+  gchar *method_str;
+  gint method_int;
 
   if (fs_rtp_session_has_disposed_enter (self, NULL))
     return FALSE;
 
+  switch (method)
+  {
+    case FS_DTMF_METHOD_AUTO:
+      method_str = "default";
+      method_int = 1;
+      break;
+    case FS_DTMF_METHOD_RTP_RFC4733:
+      method_str="RFC4733";
+      method_int = 1;
+      break;
+    case FS_DTMF_METHOD_IN_BAND:
+      method_str="sound";
+      method_int = 2;
+      break;
+    default:
+      GST_WARNING ("Invalid telephony event method %d", method);
+      goto out;
+  }
+
   FS_RTP_SESSION_LOCK (self);
-  ret = fs_rtp_special_sources_start_telephony_event (
-      self->priv->extra_sources, event, volume, method);
+  g_assert (self->priv->rtpmuxer);
+  rtpmuxer = gst_object_ref (self->priv->rtpmuxer);
   FS_RTP_SESSION_UNLOCK (self);
+
+  GST_DEBUG ("sending telephony event %d using method=%s",
+      event, method_str);
+
+  pad = gst_element_get_static_pad (rtpmuxer, "src");
+
+  ret = gst_pad_send_event (pad,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+          gst_structure_new ("dtmf-event",
+              "number", G_TYPE_INT, event,
+              "volume", G_TYPE_INT, volume,
+              "start", G_TYPE_BOOLEAN, TRUE,
+              "type", G_TYPE_INT, 1,
+              "method", G_TYPE_INT, method_int,
+              NULL)));
+
+  if (!ret && method == FS_DTMF_METHOD_AUTO)
+    ret = gst_pad_send_event (pad,
+        gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+            gst_structure_new ("dtmf-event",
+                "number", G_TYPE_INT, event,
+                "volume", G_TYPE_INT, volume,
+                "start", G_TYPE_BOOLEAN, TRUE,
+                "type", G_TYPE_INT, 1,
+                "method", G_TYPE_INT, 2,
+                NULL)));
+
+  gst_object_unref (pad);
+  gst_object_unref (rtpmuxer);
+
+  out:
 
   fs_rtp_session_has_disposed_exit (self);
   return ret;
@@ -1742,16 +1796,44 @@ static gboolean
 fs_rtp_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
+  GstElement *rtpmuxer = NULL;
+  GstPad *pad;
   gboolean ret = FALSE;
 
   if (fs_rtp_session_has_disposed_enter (self, NULL))
     return FALSE;
 
+  switch (method)
+  {
+    case FS_DTMF_METHOD_AUTO:
+    case FS_DTMF_METHOD_RTP_RFC4733:
+    case FS_DTMF_METHOD_IN_BAND:
+      break;
+    default:
+      GST_WARNING ("Invalid telephony event method %d", method);
+      goto out;
+  }
+
   FS_RTP_SESSION_LOCK (self);
-  ret = fs_rtp_special_sources_stop_telephony_event (
-      self->priv->extra_sources, method);
+  g_assert (self->priv->rtpmuxer);
+  rtpmuxer = gst_object_ref (self->priv->rtpmuxer);
   FS_RTP_SESSION_UNLOCK (self);
 
+  GST_DEBUG ("stopping telephony event");
+
+  pad = gst_element_get_static_pad (rtpmuxer, "src");
+
+  ret = gst_pad_send_event (pad,
+      gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+          gst_structure_new ("dtmf-event",
+              "start", G_TYPE_BOOLEAN, FALSE,
+              "type", G_TYPE_INT, 1,
+              NULL)));
+
+  gst_object_unref (pad);
+  gst_object_unref (rtpmuxer);
+
+out:
   fs_rtp_session_has_disposed_exit (self);
   return ret;
 }

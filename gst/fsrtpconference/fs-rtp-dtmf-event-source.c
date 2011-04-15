@@ -93,11 +93,7 @@ fs_rtp_dtmf_event_source_class_init (FsRtpDtmfEventSourceClass *klass)
 static void
 fs_rtp_dtmf_event_source_init (FsRtpDtmfEventSource *self)
 {
-  FsRtpSpecialSource *source = FS_RTP_SPECIAL_SOURCE (self);
-
   self->priv = FS_RTP_DTMF_EVENT_SOURCE_GET_PRIVATE (self);
-
-  source->order = 1;
 }
 
 /**

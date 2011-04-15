@@ -86,11 +86,7 @@ fs_rtp_dtmf_sound_source_class_init (FsRtpDtmfSoundSourceClass *klass)
 static void
 fs_rtp_dtmf_sound_source_init (FsRtpDtmfSoundSource *self)
 {
-  FsRtpSpecialSource *source = FS_RTP_SPECIAL_SOURCE (self);
-
   self->priv = FS_RTP_DTMF_SOUND_SOURCE_GET_PRIVATE (self);
-
-  source->order = 2;
 }
 
 static gboolean
