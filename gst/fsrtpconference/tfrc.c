@@ -589,16 +589,29 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
           current->first_seqnum - start_seqnum;
         break;
       }
-      do {
-        start_ts += receiver->sender_rtt;
-        start_seqnum = (current->first_seqnum - prev->last_seqnum) *
-            (start_ts - prev->last_timestamp) /
-            (current->first_timestamp - prev->last_timestamp);
-      } while (start_seqnum <= loss_event_seqnums[max_index % LOSS_EVENTS_MAX]);
+
+      start_ts += receiver->sender_rtt;
+      start_seqnum = prev->last_seqnum +
+          (current->first_seqnum - prev->last_seqnum) *
+          (start_ts - prev->last_timestamp) /
+          (current->first_timestamp - prev->last_timestamp);
+
+      /* Make sure our interval has at least one packet in it */
+      if (G_UNLIKELY (start_seqnum <=
+              loss_event_seqnums[max_index % LOSS_EVENTS_MAX]))
+      {
+        start_seqnum = loss_event_seqnums[max_index % LOSS_EVENTS_MAX] + 1;
+        start_ts = prev->last_timestamp +
+            (current->first_timestamp - prev->last_timestamp) *
+            (start_seqnum - prev->last_seqnum) /
+            (current->first_seqnum - prev->last_seqnum);
+      }
+
       if (start_seqnum > current->first_seqnum)
       {
         g_assert (start_ts > current->first_timestamp);
         start_seqnum = current->first_seqnum;
+        /* No need top change start_ts, the loop will stop anyway */
       }
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] = start_seqnum -
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX];
