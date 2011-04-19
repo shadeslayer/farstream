@@ -201,7 +201,7 @@ fs_rtp_tfrc_get_property (GObject *object,
       GST_OBJECT_UNLOCK (self);
 
       if (G_LIKELY (byterate < G_MAXUINT / 8))
-        g_value_set_uint (value, byterate);
+        g_value_set_uint (value, byterate * 8);
       else
         g_value_set_uint (value, G_MAXUINT);
       break;
