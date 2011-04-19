@@ -42,7 +42,7 @@
 
 /*
  * @s: segment size in bytes
- * @R: RTT in seconds
+ * @R: RTT in milli seconds (instead of seconds)
  * @p: loss event per packet transmitted
  *
  *                              s
