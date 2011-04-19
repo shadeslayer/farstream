@@ -54,7 +54,7 @@
 static gdouble
 calculate_bitrate (gdouble s, gdouble R, gdouble p)
 {
-  gdouble f = sqrt (2*p/3) + 12*sqrt (3*p/8)*p*(1+32*pow (p, 2));
+  gdouble f = sqrt (2 * p / 3) + 12 * sqrt (3 * p / 8) * p * (1 + 32 * p * p);
 
   return (1000 * s) / (R * f);
 }
