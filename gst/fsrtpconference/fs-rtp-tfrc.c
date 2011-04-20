@@ -454,6 +454,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   gboolean send_rtcp = FALSE;
   guint now;
   guint8 pt;
+  gint seq_delta;
 
   GST_OBJECT_LOCK (self);
 
@@ -494,7 +495,9 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   if (!src->receiver)
     src->receiver = tfrc_receiver_new (now);
 
-  if (seq < src->last_seq)
+  seq_delta = seq - src->last_seq;
+
+  if (seq < src->last_seq && seq_delta < -3000)
     src->seq_cycles += 1 << 16;
   src->last_seq = seq;
   seq += src->seq_cycles;
