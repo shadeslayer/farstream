@@ -33,9 +33,9 @@
  */
 
 #if 0
-#define DEBUG(...) g_debug ("TFRC: " __VA_ARGS__)
+#define DEBUG_RECEIVER(...) g_debug ("TFRC-R: " __VA_ARGS__)
 #else
-#define DEBUG(...)
+#define DEBUG_RECEIVER(...)
 #endif
 
 #define DEFAULT_MSS 1460
@@ -556,7 +556,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   if (receiver->received_intervals.length < 2)
     return 0;
 
-  DEBUG ("start loss event rate computation (rtt: %u)", receiver->sender_rtt);
+  DEBUG_RECEIVER ("start loss event rate computation (rtt: %u)",
+      receiver->sender_rtt);
 
   for (item = g_queue_peek_head_link (&receiver->received_intervals)->next;
        item;
@@ -568,7 +569,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
 
     max_seqnum = current->last_seqnum;
 
-    DEBUG ("Loss: ts %u->%u seq %u->%u", prev->last_timestamp,
+    DEBUG_RECEIVER ("Loss: ts %u->%u seq %u->%u", prev->last_timestamp,
         current->first_timestamp, prev->last_seqnum, current->first_seqnum);
 
     /* If the current loss is entirely within one RTT of the beginning of the
@@ -578,7 +579,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
         loss_event_times[max_index % LOSS_EVENTS_MAX] + receiver->sender_rtt) {
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
           current->first_seqnum - prev->last_seqnum;
-      DEBUG ("Merged: pktcount[%u] = %u", max_index,
+      DEBUG_RECEIVER ("Merged: pktcount[%u] = %u", max_index,
           loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
       continue;
     }
@@ -596,7 +597,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
           (1 + current->first_timestamp - prev->last_timestamp);
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
           start_seqnum - prev->last_seqnum - 1;
-      DEBUG ("Loss ends inside loss interval pktcount[%u] = %u",
+      DEBUG_RECEIVER ("Loss ends inside loss interval pktcount[%u] = %u",
           max_index, loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
     } else {
       /* this is the case where the packet loss starts an entirely new loss
@@ -608,7 +609,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
       start_seqnum = prev->last_seqnum + 1;
     }
 
-    DEBUG ("start_ts: %u seqnum: %u", start_ts, start_seqnum);
+    DEBUG_RECEIVER ("start_ts: %u seqnum: %u", start_ts, start_seqnum);
 
     /* Now we have one or more loss events that start
      * during this interval of lost packets, if there is more than one
@@ -654,7 +655,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
       }
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] = start_seqnum -
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX];
-      DEBUG ("loss %u times: %u seqnum: %u pktcount: %u",
+      DEBUG_RECEIVER ("loss %u times: %u seqnum: %u pktcount: %u",
           max_index, loss_event_times[max_index % LOSS_EVENTS_MAX],
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX],
           loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
@@ -664,7 +665,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   /* RFC 5348 Section 5.3: The size of loss events */
   loss_intervals[0] =
     max_seqnum - loss_event_seqnums[max_index % LOSS_EVENTS_MAX] + 1;
-  DEBUG ("intervals[0] = %u", loss_intervals[0]);
+  DEBUG_RECEIVER ("intervals[0] = %u", loss_intervals[0]);
   for (i = max_index - 1, max_interval = 1;
        max_interval < LOSS_INTERVALS_MAX &&
          i >= 0 && i > max_index - LOSS_EVENTS_MAX;
@@ -684,7 +685,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     else
       loss_intervals[max_interval] =
         loss_event_seqnums[prev_i] - loss_event_seqnums[cur_i];
-    DEBUG ("intervals[%u] = %u", max_interval, loss_intervals[max_interval]);
+    DEBUG_RECEIVER ("intervals[%u] = %u", max_interval,
+        loss_intervals[max_interval]);
   }
 
   /* If the first loss interval is still used, use the computed
@@ -697,11 +699,11 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
       receiver->first_loss_interval =
           compute_first_loss_interval (1460 /* FIXME */,
               receiver->sender_rtt, receiver->max_receive_rate);
-      DEBUG ("Computed the first loss interval to %u",
+      DEBUG_RECEIVER ("Computed the first loss interval to %u",
           receiver->first_loss_interval);
     }
     loss_intervals[max_interval] = receiver->first_loss_interval;
-    DEBUG ("intervals[%u] = %u", max_interval, loss_intervals[max_interval]);
+    DEBUG_RECEIVER ("intervals[%u] = %u", max_interval, loss_intervals[max_interval]);
     max_interval++;
  }
 
@@ -932,7 +934,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
   receiver->sender_rtt_on_last_feedback = receiver->sender_rtt;
   receiver->feedback_sent_on_last_timer = TRUE;
 
-  DEBUG ("P: %f recv_rate: %u", receiver->loss_event_rate,
+  DEBUG_RECEIVER ("P: %f recv_rate: %u", receiver->loss_event_rate,
       receiver->receive_rate);
 
   *receive_rate = receiver->receive_rate;
