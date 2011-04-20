@@ -89,7 +89,6 @@ struct _TfrcSender {
 
   guint initial_rate; /* Initial sending rate */
 
-  guint segment_size; /* segment size */
   guint nofeedback_timer_expiry;
 
   guint retransmission_timeout; /* RTO */
@@ -108,9 +107,8 @@ tfrc_sender_new (guint segment_size, guint now)
 
   /* initialized as described in RFC 5348 4.2 */
   sender->mss = DEFAULT_MSS;
-  sender->segment_size = segment_size;
-
-  sender->rate = sender->segment_size;
+  sender->average_packet_size = segment_size << 4;
+  sender->rate = segment_size;
 
   sender->retransmission_timeout = 2000;
   sender->nofeedback_timer_expiry = now + 2000; /* 2 seconds */
@@ -125,7 +123,7 @@ tfrc_sender_new_sp (guint now, guint initial_average_packet_size)
   sender->sp = TRUE;
   /* Specified in RFC 4828 Section 3 second bullet */
   sender->header_size = 40;
-  sender->average_packet_size = initial_average_packet_size;
+  sender->average_packet_size = initial_average_packet_size << 4;
 
   return sender;
 }
@@ -141,6 +139,15 @@ void
 tfrc_sender_free (TfrcSender *sender)
 {
   g_slice_free (TfrcSender, sender);
+}
+
+static guint
+sender_get_segment_size (TfrcSender *sender)
+{
+  if (sender->sp)
+    return sender->mss;
+  else
+    return sender->average_packet_size >> 4;
 }
 
 void
@@ -227,12 +234,12 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
 {
   if (loss_event_rate > 0) {
     /* congestion avoidance phase */
-    sender->computed_rate = calculate_bitrate (sender->segment_size,
+    sender->computed_rate = calculate_bitrate (sender_get_segment_size (sender),
         sender->averaged_rtt, loss_event_rate);
     sender->rate = MAX (MIN (sender->computed_rate, recv_limit),
-            sender->segment_size/t_mbi);
-    DEBUG_SENDER ("congestion avoidance: %u (computed: %u)", sender->rate,
-      sender->computed_rate);
+            sender_get_segment_size (sender)/t_mbi);
+    DEBUG_SENDER ("congestion avoidance: %u (computed: %u ss: %u)", sender->rate,
+        sender->computed_rate, sender_get_segment_size (sender));
   } else if (now - sender->tld >= sender->averaged_rtt) {
     /* initial slow-start */
     sender->rate = MAX (MIN (2 * sender->rate, recv_limit),
@@ -273,7 +280,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 
   /* Step 3: Update the timeout interval */
   sender->retransmission_timeout = MAX (4 * sender->averaged_rtt,
-      1000 * 2 * sender->segment_size / sender->rate );
+      1000 * 2 * sender_get_segment_size (sender) / sender->rate );
 
   /* Step 4: Update the allowed sending rate */
 
@@ -327,8 +334,8 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
     sender->sqmean_rtt = sqrt(rtt);
 
   sender->inst_rate = sender->rate * sender->sqmean_rtt / sqrt(rtt);
-  if (sender->inst_rate < sender->segment_size / t_mbi)
-    sender->inst_rate = sender->segment_size / t_mbi;
+  if (sender->inst_rate < sender_get_segment_size (sender) / t_mbi)
+    sender->inst_rate = sender_get_segment_size (sender) / t_mbi;
 
   /* Step 6: Reset the nofeedback timer to expire after RTO seconds. */
 
@@ -341,8 +348,8 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 static void
 update_limits(TfrcSender *sender, guint timer_limit, guint now)
 {
-  if (timer_limit < sender->segment_size / t_mbi)
-    timer_limit = sender->segment_size / t_mbi;
+  if (timer_limit < sender_get_segment_size (sender) / t_mbi)
+    timer_limit = sender_get_segment_size (sender) / t_mbi;
 
   memset (sender->receive_rate_history, 0,
       sizeof(struct ReceiveRateItem) * RECEIVE_RATE_HISTORY_SIZE);
@@ -366,7 +373,8 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
      * Halve the allowed sending rate.
      */
 
-    sender->rate = MAX ( sender->rate / 2, sender->segment_size / t_mbi);
+    sender->rate = MAX ( sender->rate / 2,
+        sender_get_segment_size (sender) / t_mbi);
     DEBUG_SENDER ("no_fb: no p, initial, halve rate: %u", sender->rate);
   } else if (((sender->last_loss_event_rate > 0 &&
               receive_rate < recover_rate) ||
@@ -380,7 +388,8 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
     /* We do not have X_Bps yet.
      * Halve the allowed sending rate.
      */
-    sender->rate = MAX ( sender->rate / 2, sender->segment_size / t_mbi);
+    sender->rate = MAX ( sender->rate / 2,
+        sender_get_segment_size (sender) / t_mbi);
     DEBUG_SENDER ("no_fb: no p, halve rate: %u", sender->rate);
   } else if (sender->computed_rate / 2 > receive_rate) {
     /* 2 * X_recv was already limiting the sending rate.
@@ -397,7 +406,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
   g_assert (sender->rate != 0);
 
   sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
-      1000 * 2 * sender->segment_size / sender->rate);
+      1000 * 2 * sender_get_segment_size (sender) / sender->rate);
   sender->sent_packet = FALSE;
 }
 
@@ -407,9 +416,8 @@ tfrc_sender_sending_packet (TfrcSender *sender, guint size)
   /* this should be:
    * avg = size + (avg * 15/16)
    */
-  if (sender->sp)
-    sender->average_packet_size =
-        ( size << 4 ) + ((15 * sender->average_packet_size) >> 4);
+  sender->average_packet_size =
+      size + ((15 * sender->average_packet_size) >> 4);
 
   sender->sent_packet = TRUE;
 }
@@ -722,7 +730,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     if (!receiver->first_loss_interval)
     {
       receiver->first_loss_interval =
-          compute_first_loss_interval (1460 /* FIXME */,
+          compute_first_loss_interval (DEFAULT_MSS /* FIXME */,
               receiver->sender_rtt, receiver->max_receive_rate);
       DEBUG_RECEIVER ("Computed the first loss interval to %u",
           receiver->first_loss_interval);
