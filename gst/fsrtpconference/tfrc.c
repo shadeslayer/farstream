@@ -445,7 +445,10 @@ struct _TfrcReceiver {
 
   guint sender_rtt;
   guint receive_rate;
+  guint max_receive_rate;
   guint feedback_timer_expiry;
+
+  guint first_loss_interval;
 
   gdouble loss_event_rate;
 
@@ -491,6 +494,42 @@ tfrc_receiver_free (TfrcReceiver *receiver)
 
   g_slice_free (TfrcReceiver, receiver);
 }
+
+/*
+ * @s:  segment size in bytes
+ * @R: RTT in milli seconds (instead of seconds)
+ * @rate: the sending rate
+ *
+ * Returns the 1/p that would produce this sending rate
+ * This is used to compute the first loss interval
+ */
+
+static gdouble
+compute_first_loss_interval (gdouble s, gdouble R, gdouble rate)
+{
+  gdouble p_min = 0;
+  gdouble p_max = 1;
+  gdouble p;
+  gdouble computed_rate;
+
+  /* Use an iterative process to find p
+   * it would be faster to use a table, but I'm lazy
+   */
+
+  do {
+    p = (p_min + p_max) / 2;
+    computed_rate = calculate_bitrate (s, R, p);
+
+    if (computed_rate < rate)
+      p_max = p;
+    else
+      p_min = p;
+
+  } while (computed_rate < 0.95 * rate || computed_rate > 1.05 * rate);
+
+  return 1 / p;
+}
+
 
 /* Implements RFC 5348 section 5 */
 static gdouble
@@ -648,8 +687,23 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     DEBUG ("intervals[%u] = %u", max_interval, loss_intervals[max_interval]);
   }
 
-  if (max_index < 1)
-    return 0;
+  /* If the first loss interval is still used, use the computed
+   * value according to RFC 5348 section 6.3.1
+   */
+  if (max_interval < LOSS_INTERVALS_MAX)
+  {
+    if (!receiver->first_loss_interval)
+    {
+      receiver->first_loss_interval =
+          compute_first_loss_interval (1460 /* FIXME */,
+              receiver->sender_rtt, receiver->max_receive_rate);
+      DEBUG ("Computed the first loss interval to %u",
+          receiver->first_loss_interval);
+    }
+    loss_intervals[max_interval] = receiver->first_loss_interval;
+    DEBUG ("intervals[%u] = %u", max_interval, loss_intervals[max_interval]);
+    max_interval++;
+ }
 
   /* Section 5.4: Average loss rate */
   for (i = 1; i < max_interval; i++) {
@@ -867,10 +921,12 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
   receiver->received_bytes_reset_time = now;
   receiver->received_bytes = 0;
 
-  receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
-
   receiver->receive_rate = (1000 * received_bytes) /
       (now - received_bytes_reset_time);
+  receiver->max_receive_rate = MAX (receiver->max_receive_rate,
+      receiver->receive_rate);
+
+  receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
 
   receiver->feedback_timer_expiry = now + receiver->sender_rtt;
   receiver->sender_rtt_on_last_feedback = receiver->sender_rtt;
