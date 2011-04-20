@@ -558,10 +558,12 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   fs_rtp_tfrc_update_sender_timer_locked (td->self, src, now);
 
-  //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
-
   if (old_rate != tfrc_sender_get_send_rate (src->sender))
+  {
+    GST_DEBUG ("Send rate changed: %u -> %u", old_rate,
+        tfrc_sender_get_send_rate (src->sender));
     notify = TRUE;
+  }
 
 out:
 
@@ -716,14 +718,16 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
           loss_event_rate, is_data_limited);
 
-      //g_debug ("RATE: %u", tfrc_sender_get_send_rate (src->sender));
-
       fs_rtp_tfrc_update_sender_timer_locked (self, src, now);
 
       self->last_src = src;
 
       if (old_send_rate != tfrc_sender_get_send_rate (src->sender))
+      {
+        GST_DEBUG ("Send rate changed: %u -> %u", old_send_rate,
+            tfrc_sender_get_send_rate (src->sender));
         notify = TRUE;
+      }
 
     done:
       GST_OBJECT_UNLOCK (self);
