@@ -479,6 +479,7 @@ struct _TfrcReceiver {
   guint sender_rtt;
   guint receive_rate;
   guint max_receive_rate;
+  guint max_receive_rate_ss;
   guint feedback_timer_expiry;
 
   guint first_loss_interval;
@@ -487,10 +488,12 @@ struct _TfrcReceiver {
 
   gboolean feedback_sent_on_last_timer;
 
-  guint prev_received_bytes;
-  guint prev_received_bytes_reset_time;
   guint received_bytes;
+  guint prev_received_bytes;
   guint received_bytes_reset_time;
+  guint prev_received_bytes_reset_time;
+  guint received_packets;
+  guint prev_received_packets;
   guint sender_rtt_on_last_feedback;
 };
 
@@ -695,6 +698,10 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     }
   }
 
+  if (max_index < 0 || 
+      (max_index < 1 && receiver->max_receive_rate == 0))
+    return 0;
+
   /* RFC 5348 Section 5.3: The size of loss events */
   loss_intervals[0] =
     max_seqnum - loss_event_seqnums[max_index % LOSS_EVENTS_MAX] + 1;
@@ -730,10 +737,15 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     if (!receiver->first_loss_interval)
     {
       receiver->first_loss_interval =
-          compute_first_loss_interval (DEFAULT_MSS /* FIXME */,
+          /* segment size is 1 because we're computing it based on the
+           * X_pps equation.. in packets/s
+           */
+          compute_first_loss_interval (receiver->max_receive_rate_ss,
               receiver->sender_rtt, receiver->max_receive_rate);
-      DEBUG_RECEIVER ("Computed the first loss interval to %u",
-          receiver->first_loss_interval);
+      DEBUG_RECEIVER ("Computed the first loss interval to %u"
+          " (rtt: %u s: %u rate:%u)",
+          receiver->first_loss_interval, receiver->sender_rtt,
+          receiver->max_receive_rate_ss, receiver->max_receive_rate);
     }
     loss_intervals[max_interval] = receiver->first_loss_interval;
     DEBUG_RECEIVER ("intervals[%u] = %u", max_interval,
@@ -774,6 +786,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
   gboolean history_too_short = !sender_rtt; /* No RTT, keep all history */
 
   receiver->received_bytes += packet_size;
+  receiver->received_packets++;
 
   if (receiver->sender_rtt)
     receiver->sender_rtt = (0.9 * receiver->sender_rtt) + (sender_rtt / 10);
@@ -935,8 +948,9 @@ gboolean
 tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
     double *loss_event_rate, guint *receive_rate)
 {
-  guint received_bytes = 0;
-  guint received_bytes_reset_time = 0;
+  guint received_bytes;
+  guint received_bytes_reset_time;
+  guint received_packets;
 
   if (now == receiver->prev_received_bytes_reset_time)
     return FALSE;
@@ -946,21 +960,31 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
     receiver->prev_received_bytes_reset_time =
         receiver->received_bytes_reset_time;
     receiver->prev_received_bytes = receiver->received_bytes;
+    receiver->prev_received_packets = receiver->received_packets;
     received_bytes = receiver->received_bytes;
+    received_packets = receiver->received_packets;
     received_bytes_reset_time = receiver->received_bytes_reset_time;
   } else {
     receiver->prev_received_bytes += receiver->received_bytes;
+    receiver->prev_received_packets += receiver->received_packets;
     received_bytes = receiver->prev_received_bytes;
+    received_packets = receiver->prev_received_packets;
     received_bytes_reset_time = receiver->prev_received_bytes_reset_time;
   }
 
   receiver->received_bytes_reset_time = now;
   receiver->received_bytes = 0;
+  receiver->received_packets = 0;
 
   receiver->receive_rate = (1000 * received_bytes) /
       (now - received_bytes_reset_time);
-  receiver->max_receive_rate = MAX (receiver->max_receive_rate,
-      receiver->receive_rate);
+
+  if (receiver->sender_rtt_on_last_feedback &&
+      receiver->receive_rate > receiver->max_receive_rate)
+  {
+    receiver->max_receive_rate = receiver->receive_rate;
+    receiver->max_receive_rate_ss = received_bytes / received_packets;
+  }
 
   receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
 
