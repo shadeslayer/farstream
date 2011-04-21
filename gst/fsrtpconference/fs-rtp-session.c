@@ -1315,7 +1315,6 @@ fs_rtp_session_constructed (GObject *object)
 
     g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
         G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
-    _rtp_tfrc_bitrate_changed (G_OBJECT (self->priv->rtp_tfrc), NULL, self);
   }
 
   /* Lets now create the RTP muxer */
