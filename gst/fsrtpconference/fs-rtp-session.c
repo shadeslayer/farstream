@@ -2591,9 +2591,8 @@ fs_rtp_session_negotiate_codecs_locked (FsRtpSession *session,
     fs_rtp_special_sources_negotiation_filter (
         new_negotiated_codec_associations);
 
-  if (session->priv->rtp_tfrc)
-    fs_rtp_tfrc_filter_codecs (session->priv->rtp_tfrc,
-        &new_negotiated_codec_associations, &new_hdrexts);
+  fs_rtp_tfrc_filter_codecs (&new_negotiated_codec_associations,
+      &new_hdrexts);
 
   if (session->priv->codec_associations)
     *is_new = ! codec_associations_list_are_equal (

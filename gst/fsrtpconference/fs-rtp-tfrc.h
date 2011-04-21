@@ -129,8 +129,7 @@ FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession,
 
 void fs_rtp_tfrc_destroy (FsRtpTfrc *self);
 
-void fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
-    GList **codec_associations,
+void fs_rtp_tfrc_filter_codecs (GList **codec_associations,
     GList **header_extensions);
 
 void fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,

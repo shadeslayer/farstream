@@ -979,8 +979,7 @@ validate_ca_for_tfrc (CodecAssociation *ca, gpointer user_data)
 }
 
 void
-fs_rtp_tfrc_filter_codecs (FsRtpTfrc *self,
-    GList **codec_associations,
+fs_rtp_tfrc_filter_codecs (GList **codec_associations,
     GList **header_extensions)
 {
   gboolean has_header_ext = FALSE;
