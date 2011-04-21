@@ -564,7 +564,10 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
     stop_and_remove (conferencebin, &self->priv->send_filter, FALSE);
 
   if (self->priv->rtp_tfrc)
+  {
     fs_rtp_tfrc_destroy (self->priv->rtp_tfrc);
+    g_object_unref (self->priv->rtp_tfrc);
+  }
   self->priv->rtp_tfrc = NULL;
 
 
