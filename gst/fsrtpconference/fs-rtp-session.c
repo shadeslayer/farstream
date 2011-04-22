@@ -1196,6 +1196,32 @@ fs_rtp_session_constructed (GObject *object)
 
   gst_element_set_state (funnel, GST_STATE_PLAYING);
 
+  g_signal_emit_by_name (self->priv->conference->gstrtpbin,
+      "get-internal-session", self->id, &self->priv->rtpbin_internal_session);
+
+  if (!self->priv->rtpbin_internal_session)
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION,
+        "Could not get the rtpbin's internal session");
+    return;
+  }
+
+  g_signal_connect (self->priv->rtpbin_internal_session,
+      "notify::internal-ssrc",
+      G_CALLBACK (_rtpbin_internal_session_notify_internal_ssrc), self);
+
+  if (g_object_class_find_property (
+          G_OBJECT_GET_CLASS (self->priv->rtpbin_internal_session),
+          "favor-new"))
+    g_object_set (self->priv->rtpbin_internal_session, "favor-new", TRUE,
+        NULL);
+
+  g_object_set (self->priv->rtpbin_internal_session,
+      "bandwidth", (gdouble) 0,
+      "rtcp-fraction", (gdouble) 0.05,
+      NULL);
+
   /* Lets now create the RTP muxer */
 
   tmp = g_strdup_printf ("send_rtp_muxer_%u", self->id);
@@ -1387,28 +1413,6 @@ fs_rtp_session_constructed (GObject *object)
   }
 
   gst_element_set_state (capsfilter, GST_STATE_PLAYING);
-
-  g_signal_emit_by_name (self->priv->conference->gstrtpbin,
-      "get-internal-session", self->id, &self->priv->rtpbin_internal_session);
-
-  if (!self->priv->rtpbin_internal_session)
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION,
-        "Could not get the rtpbin's internal session");
-    return;
-  }
-
-  g_signal_connect (self->priv->rtpbin_internal_session,
-      "notify::internal-ssrc",
-      G_CALLBACK (_rtpbin_internal_session_notify_internal_ssrc), self);
-
-  if (g_object_class_find_property (
-          G_OBJECT_GET_CLASS (self->priv->rtpbin_internal_session),
-          "favor-new"))
-    g_object_set (self->priv->rtpbin_internal_session, "favor-new", TRUE,
-        NULL);
-
 
   if (!fs_rtp_session_update_codecs (self, NULL, NULL,
           &self->priv->construction_error))
@@ -2525,7 +2529,7 @@ fs_rtp_session_update_minimum_rtcp_interval (FsRtpSession *self,
   FS_RTP_SESSION_UNLOCK (self);
 
   g_object_set (self->priv->rtpbin_internal_session,
-      "rtcp-min-interval", min_interval, NULL);
+      "rtcp-min-interval", (guint64) min_interval * GST_MSECOND, NULL);
 
 }
 
