@@ -66,6 +66,7 @@
 #include <gst/rtp/gstrtcpbuffer.h>
 
 #include <gst/farsight/fs-transmitter.h>
+#include "gst/farsight/fs-utils.h"
 
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
@@ -300,6 +301,10 @@ static void
 _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
     gpointer user_data);
 
+static void
+fs_rtp_session_set_send_bitrate (FsRtpSession *self, guint bitrate);
+static gboolean
+codecbin_set_bitrate (GstElement *codecbin, guint bitrate);
 
 //static guint signals[LAST_SIGNAL] = { 0 };
 
@@ -922,9 +927,7 @@ fs_rtp_session_set_property (GObject *object,
       FS_RTP_SESSION_UNLOCK (self);
       break;
     case PROP_SEND_BITRATE:
-      FS_RTP_SESSION_LOCK (self);
-      self->priv->send_bitrate = g_value_get_uint (value);
-      FS_RTP_SESSION_UNLOCK (self);
+      fs_rtp_session_set_send_bitrate (self, g_value_get_uint (value));
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -3198,6 +3201,9 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
   sendcaps = fs_codec_to_gst_caps (ca->send_codec);
 
+  if (codecbin)
+    codecbin_set_bitrate (codecbin, session->priv->send_bitrate);
+
   FS_RTP_SESSION_UNLOCK (session);
 
   if (!codecbin)
@@ -3299,6 +3305,9 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
 
 
   FS_RTP_SESSION_LOCK (session);
+
+  /* Re-set it here in case in changed while we were unlocked */
+  codecbin_set_bitrate (codecbin, session->priv->send_bitrate);
 
   if (session->priv->streams_sending)
     g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
@@ -4381,4 +4390,58 @@ fs_rtp_session_ssrc_validated (FsRtpSession *session,
               NULL)));
 
   fs_rtp_session_has_disposed_exit (session);
+}
+
+struct CodecBinSetBitrateData
+{
+  guint bitrate;
+  gboolean ret;
+};
+
+static void
+codecbin_set_bitrate_func (gpointer e, gpointer user_data)
+{
+  GstElement *elem = e;
+  struct CodecBinSetBitrateData *data = user_data;
+
+  if (g_object_class_find_property (G_OBJECT_GET_CLASS (elem), "bitrate"))
+  {
+    fs_utils_set_bitrate (elem, data->bitrate);
+    data->ret = TRUE;
+  }
+
+  gst_object_unref (elem);
+}
+
+static gboolean
+codecbin_set_bitrate (GstElement *codecbin, guint bitrate)
+{
+  GstIterator *it;
+  struct CodecBinSetBitrateData data;
+
+  if (bitrate == 0)
+    return FALSE;
+
+  data.bitrate = bitrate;
+  data.ret = FALSE;
+
+  it = gst_bin_iterate_recurse (GST_BIN (codecbin));
+  gst_iterator_foreach (it, codecbin_set_bitrate_func, &data);
+  gst_iterator_free (it);
+
+  return data.ret;
+}
+
+static void
+fs_rtp_session_set_send_bitrate (FsRtpSession *self, guint bitrate)
+{
+  FS_RTP_SESSION_LOCK (self);
+
+  if (bitrate)
+    self->priv->send_bitrate = bitrate;
+
+  if (self->priv->send_codecbin)
+    codecbin_set_bitrate (self->priv->send_codecbin, bitrate);
+
+  FS_RTP_SESSION_UNLOCK (self);
 }
