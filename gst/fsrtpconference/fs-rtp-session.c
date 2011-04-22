@@ -98,7 +98,8 @@ enum
   PROP_CONFERENCE,
   PROP_NO_RTCP_TIMEOUT,
   PROP_SSRC,
-  PROP_TOS
+  PROP_TOS,
+  PROP_SEND_BITRATE
 };
 
 #define DEFAULT_NO_RTCP_TIMEOUT (7000)
@@ -197,6 +198,9 @@ struct _FsRtpSessionPrivate
 
   /* IP Type of Service, protext by session mutex */
   guint tos;
+
+  /* Protected by sessioin mutex */
+  guint send_bitrate;
 
   /* Can only be used while using the lock */
   GStaticRWLock disposed_lock;
@@ -367,6 +371,13 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
           "The SSRC of the sent data",
           "This is the current SSRC used to send data"
           " (defaults to a random value)",
+          0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class,
+      PROP_SEND_BITRATE,
+      g_param_spec_uint ("send-bitrate",
+          "The bitrate at which data will be sent",
+          "The bitrate that the session will try to send at in bits/sec",
           0, G_MAXUINT, 0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gobject_class->dispose = fs_rtp_session_dispose;
@@ -908,6 +919,11 @@ fs_rtp_session_set_property (GObject *object,
       self->priv->tos = g_value_get_uint (value);
       g_hash_table_foreach (self->priv->transmitters, set_tos,
           GUINT_TO_POINTER (self->priv->tos));
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
+    case PROP_SEND_BITRATE:
+      FS_RTP_SESSION_LOCK (self);
+      self->priv->send_bitrate = g_value_get_uint (value);
       FS_RTP_SESSION_UNLOCK (self);
       break;
     default:
