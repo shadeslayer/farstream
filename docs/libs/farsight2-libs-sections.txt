@@ -263,7 +263,9 @@ fs_interfaces_get_local_ips
 
 <SECTION>
 <FILE>fs-utils</FILE>
+<TITLE>Utility functions</TITLE>
 <INCLUDE>gst/farsight/fs-utils.h</INCLUDE>
 fs_utils_get_default_codec_preferences
 fs_utils_get_default_element_properties
+fs_utils_set_bitrate
 </SECTION>

@@ -134,3 +134,77 @@ fs_utils_get_default_element_properties (GstElement *element)
     return NULL;
   }
 }
+
+/**
+ * fs_utils_set_bitrate:
+ * @element: The #GstElement
+ * @bitrate: The bitrate in bits/sec
+ *
+ * This allows setting the bitrate on all elements that have a "bitrate"
+ * property without having to know the type or of the unit used by that element.
+ *
+ * This will be obsolete in 0.11 (when all elements use bit/sec for the
+ * "bitrate" property.
+ */
+
+void
+fs_utils_set_bitrate (GstElement *element, glong bitrate)
+{
+  GParamSpec *spec;
+  const char *elements_in_kbps[] = { "lamemp3enc", "lame", "x264enc", "twolame",
+    "mpeg2enc", NULL
+  };
+  int i;
+  GstElementFactory *factory;
+  const gchar *factory_name = NULL;
+
+  g_return_if_fail (GST_IS_ELEMENT (element));
+
+  spec = g_object_class_find_property (G_OBJECT_GET_CLASS (element), "bitrate");
+  g_return_if_fail (spec != NULL);
+
+  factory = gst_element_get_factory (element);
+  if (factory)
+    factory_name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
+
+  /* divide by 1000 for elements that are known to use kbs */
+  for (i = 0; elements_in_kbps[i]; i++)
+    if (factory_name && !strcmp (factory_name, elements_in_kbps[i]))
+    {
+      bitrate /= 1000;
+      break;
+    }
+
+  if (G_PARAM_SPEC_TYPE (spec) == G_TYPE_LONG)
+  {
+    g_object_set (element, "bitrate", (glong) CLAMP (bitrate,
+            G_PARAM_SPEC_LONG (spec)->minimum,
+            G_PARAM_SPEC_LONG (spec)->maximum), NULL);
+  }
+  else if (G_PARAM_SPEC_VALUE_TYPE (spec) == G_TYPE_ULONG)
+  {
+    g_object_set (element, "bitrate", (gulong) CLAMP (bitrate,
+            G_PARAM_SPEC_ULONG (spec)->minimum,
+            G_PARAM_SPEC_ULONG (spec)->maximum), NULL);
+  }
+  else if (G_PARAM_SPEC_VALUE_TYPE (spec) == G_TYPE_INT)
+  {
+    gint tmp = MIN (bitrate, G_MAXINT);
+
+    g_object_set (element, "bitrate", (gint)  CLAMP (tmp,
+            G_PARAM_SPEC_INT (spec)->minimum,
+            G_PARAM_SPEC_INT (spec)->maximum), NULL);
+  }
+  else if (G_PARAM_SPEC_VALUE_TYPE (spec) == G_TYPE_UINT)
+  {
+    guint tmp = MIN (bitrate, G_MAXUINT);
+
+    g_object_set (element, "bitrate", (guint) CLAMP (tmp,
+            G_PARAM_SPEC_UINT (spec)->minimum,
+            G_PARAM_SPEC_UINT (spec)->maximum), NULL);
+  }
+  else
+  {
+    g_warning ("bitrate parameter of unknown type");
+  }
+}

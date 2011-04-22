@@ -26,6 +26,7 @@
 #define __FS_UTILS_H__
 
 #include <gst/gst.h>
+
 #include <gst/farsight/fs-codec.h>
 
 G_BEGIN_DECLS
@@ -33,6 +34,8 @@ G_BEGIN_DECLS
 GList *fs_utils_get_default_codec_preferences (GstElement *element);
 
 GKeyFile *fs_utils_get_default_element_properties (GstElement *element);
+
+void fs_utils_set_bitrate (GstElement *element, glong bitrate);
 
 G_END_DECLS
 
