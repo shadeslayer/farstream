@@ -1375,7 +1375,7 @@ GST_START_TEST (test_rtpconference_multicast_three_way_ssrc_assoc)
     return;
   g_free (mcast_addr);
 
-  max_src_pads = 3;
+  max_src_pads = 3 * 2; /* x2 because of loopbacks causing fake conflicts */
   nway_test (3, NULL, multicast_ssrc_init, "multicast", 0, NULL);
   max_src_pads = 1;
 }
