@@ -424,7 +424,9 @@ fs_nice_stream_transmitter_stop (FsStreamTransmitter *streamtransmitter)
   gststream = self->priv->gststream;
   self->priv->gststream = NULL;
   stream_id = self->priv->stream_id;
-  self->priv->stream_id = 0;
+  /* We can't unset the stream id because it gets messy fast, just leave it as
+   * is, all calls should fail anyway
+   */
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   if (gststream)

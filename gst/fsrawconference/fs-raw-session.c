@@ -665,6 +665,11 @@ fs_raw_session_constructed (GObject *object)
     return;
   }
 
+  g_object_set (self->priv->fakesink,
+      "sync", FALSE,
+      "async", FALSE,
+      NULL);
+
   gst_object_ref_sink (self->priv->fakesink);
   if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->fakesink))
   {
