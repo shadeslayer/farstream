@@ -142,6 +142,12 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
   self->last_sent_ts = GST_CLOCK_TIME_NONE;
   self->byte_reservoir = 1500; /* About one packet */
   self->send_bitrate = tfrc_sender_get_send_rate (NULL)  * 8;
+
+  self->extension_type = EXTENSION_NONE;
+  self->extension_id = 0;
+  memset (self->pts, 0, 128);
+
+  self->systemclock = gst_system_clock_obtain ();
 }
 
 void
@@ -1034,12 +1040,6 @@ fs_rtp_tfrc_new (GObject *rtpsession,
   g_return_val_if_fail (rtpsession, NULL);
 
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
-
-  self->extension_type = EXTENSION_NONE;
-  self->extension_id = 0;
-  memset (self->pts, 0, 128);
-
-  self->systemclock = gst_system_clock_obtain ();
 
   self->rtpsession = rtpsession;
   self->in_rtp_pad = inrtp;
