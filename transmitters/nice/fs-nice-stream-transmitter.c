@@ -531,9 +531,10 @@ fs_nice_stream_transmitter_set_property (GObject *object,
     case PROP_SENDING:
       FS_NICE_STREAM_TRANSMITTER_LOCK (self);
       self->priv->sending = g_value_get_boolean (value);
+      if (self->priv->gststream)
+        fs_nice_transmitter_set_sending (self->priv->transmitter,
+            self->priv->gststream, g_value_get_boolean (value));
       FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-      fs_nice_transmitter_set_sending (self->priv->transmitter,
-          self->priv->gststream, g_value_get_boolean (value));
       break;
     case PROP_PREFERRED_LOCAL_CANDIDATES:
       self->priv->preferred_local_candidates = g_value_dup_boxed (value);
@@ -1511,8 +1512,13 @@ agent_state_changed (NiceAgent *agent,
       data, free_state_changed_signal_data);
 
   if (fs_state >= FS_STREAM_STATE_CONNECTED)
-    fs_nice_transmitter_request_keyunit (self->priv->transmitter,
-        self->priv->gststream, component_id);
+  {
+    FS_NICE_STREAM_TRANSMITTER_LOCK (self);
+    if (self->priv->gststream)
+      fs_nice_transmitter_request_keyunit (self->priv->transmitter,
+          self->priv->gststream, component_id);
+    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+  }
 }
 
 
