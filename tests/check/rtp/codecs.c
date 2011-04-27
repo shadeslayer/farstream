@@ -1126,6 +1126,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
   codecs = g_list_append (NULL, fs_codec_copy (prefcodec));
   fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
   fail_unless (error == NULL);
+  fs_codec_list_destroy (codecs);
 
   g_object_get (dat->session, "codecs", &codecs, NULL);
   fail_unless (g_list_length (codecs) == 1);
@@ -1172,10 +1173,12 @@ GST_START_TEST (test_rtpcodecs_ptime)
   codecs = g_list_append (NULL, codec);
   fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error));
   fail_unless (error == NULL);
+  fs_codec_list_destroy (codecs);
 
   fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) !=
       GST_STATE_CHANGE_SUCCESS);
 
+  fs_codec_destroy (prefcodec);
   g_object_unref (stream);
   g_object_unref (participant);
   cleanup_simple_conference (dat);
