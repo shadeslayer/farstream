@@ -73,9 +73,11 @@ enum
 {
   PROP_0,
   PROP_RTP_CAPS,
-  PROP_BITRATE
+  PROP_BITRATE,
+  PROP_INTERVAL
 };
 
+#define PROP_INTERVAL_DEFAULT (30 * GST_SECOND)
 
 static void fs_rtp_bitrate_adapter_finalize (GObject *object);
 static void fs_rtp_bitrate_adapter_set_property (GObject *object,
@@ -138,7 +140,39 @@ fs_rtp_bitrate_adapter_class_init (FsRtpBitrateAdapterClass *klass)
           "The bitrate to adapt for (0 means no adaption)",
           0, G_MAXUINT, 0,
           G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
+
+ g_object_class_install_property (gobject_class,
+      PROP_INTERVAL,
+      g_param_spec_uint64 ("interval",
+          "Minimum interval before adaptation",
+          "The minimum interval before adapting after a change",
+          0, G_MAXUINT64, PROP_INTERVAL_DEFAULT,
+          G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 }
+
+struct BitratePoint
+{
+  GstClockTime timestamp;
+  guint bitrate;
+};
+
+static struct BitratePoint *
+bitrate_point_new (GstClockTime timestamp, guint bitrate)
+{
+  struct BitratePoint *bp = g_slice_new (struct BitratePoint);
+
+  bp->timestamp = timestamp;
+  bp->bitrate = bitrate;
+
+  return bp;
+}
+
+static void
+bitrate_point_free (struct BitratePoint *bp)
+{
+  g_slice_free (struct BitratePoint, bp);
+}
+
 
 static void
 fs_rtp_bitrate_adapter_init (FsRtpBitrateAdapter *self,
@@ -159,6 +193,9 @@ fs_rtp_bitrate_adapter_init (FsRtpBitrateAdapter *self,
   gst_pad_set_getcaps_function (self->srcpad,
       fs_rtp_bitrate_adapter_getcaps);
   gst_element_add_pad (GST_ELEMENT (self), self->srcpad);
+
+  g_queue_init (&self->bitrate_history);
+  self->system_clock = gst_system_clock_obtain ();
 }
 
 static void
@@ -172,6 +209,12 @@ fs_rtp_bitrate_adapter_finalize (GObject *object)
     gst_caps_unref (self->last_caps);
   if (self->rtp_caps)
     gst_caps_unref (self->rtp_caps);
+
+  if (self->system_clock)
+    gst_object_unref (self->system_clock);
+
+  g_queue_foreach (&self->bitrate_history, (GFunc) bitrate_point_free, NULL);
+  g_queue_clear(&self->bitrate_history);
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -463,7 +506,7 @@ fs_rtp_bitrate_adapter_bufferalloc (GstPad *pad,
 
     self->new_suggestion = FALSE;
 
-    if (gst_caps_is_equal_fixed (caps, suggested_caps))
+    if (!suggested_caps || gst_caps_is_equal_fixed (caps, suggested_caps))
       ret = gst_pad_alloc_buffer_and_set_caps (self->srcpad, offset, size,
           caps, buf);
     else
@@ -482,6 +525,36 @@ fs_rtp_bitrate_adapter_bufferalloc (GstPad *pad,
   return ret;
 }
 
+
+static void
+find_min_bitrate (struct BitratePoint *bp, struct BitratePoint **accum)
+{
+  if (*accum == NULL || (*accum)->bitrate <= bp->bitrate)
+    *accum = bp;
+}
+
+
+static struct BitratePoint *
+fs_rtp_bitrate_adapter_get_lowest_locked (FsRtpBitrateAdapter *self)
+{
+  struct BitratePoint *bp = NULL;
+
+  g_queue_foreach (&self->bitrate_history, (GFunc) find_min_bitrate, &bp);
+
+  return bp;
+}
+
+static guint
+fs_rtp_bitrate_adapter_get_bitrate_locked (FsRtpBitrateAdapter *self)
+{
+  struct BitratePoint *bp = fs_rtp_bitrate_adapter_get_lowest_locked (self);
+
+  if (bp)
+    return bp->bitrate;
+  else
+    return G_MAXUINT;
+}
+
 static void
 fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
 {
@@ -491,12 +564,12 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
   GstCaps *negotiated_caps;
 
   GST_OBJECT_LOCK (self);
-  bitrate = self->bitrate;
+  bitrate = fs_rtp_bitrate_adapter_get_bitrate_locked (self);
   if (self->caps)
     gst_caps_unref (self->caps);
   self->caps = NULL;
 
-  if (!bitrate)
+  if (bitrate == G_MAXUINT)
   {
     GST_OBJECT_UNLOCK (self);
     return;
@@ -524,6 +597,76 @@ out:
   gst_caps_unref (caps);
 }
 
+static void
+fs_rtp_bitrate_adapter_cleanup (FsRtpBitrateAdapter *self,
+    GstClockTime now)
+{
+  for (;;)
+  {
+    struct BitratePoint *bp = g_queue_peek_head (&self->bitrate_history);
+
+    if (bp && bp->timestamp < now - self->interval)
+    {
+      g_queue_pop_head (&self->bitrate_history);
+      bitrate_point_free (bp);
+    }
+    else
+    {
+      break;
+    }
+  }
+}
+
+static gboolean
+clock_callback (GstClock *clock, GstClockTime now, GstClockID clockid,
+    gpointer user_data)
+{
+  FsRtpBitrateAdapter *self = user_data;
+  struct BitratePoint *bp;
+
+  GST_OBJECT_LOCK (self);
+  if (self->clockid == clockid)
+  {
+    gst_clock_id_unref (self->clockid);
+    self->clockid = NULL;
+  }
+
+  bp = fs_rtp_bitrate_adapter_get_lowest_locked (self);
+
+  if (bp && bp->timestamp + self->interval > now)
+  {
+    self->clockid = gst_clock_new_single_shot_id (self->system_clock,
+        bp->timestamp + self->interval);
+    gst_clock_id_wait_async_full (self->clockid,
+        clock_callback, gst_object_ref (self), gst_object_unref);
+  }
+
+  GST_OBJECT_UNLOCK (self);
+
+  fs_rtp_bitrate_adapter_updated (self);
+
+  return TRUE;
+}
+
+static void
+fs_rtp_bitrate_adapter_add_bitrate_locked (FsRtpBitrateAdapter *self,
+    guint bitrate)
+{
+  GstClockTime now = gst_clock_get_time (self->system_clock);
+
+  g_queue_push_tail (&self->bitrate_history, bitrate_point_new (now, bitrate));
+
+  fs_rtp_bitrate_adapter_cleanup (self, now);
+
+  if (!self->clockid)
+  {
+    self->clockid = gst_clock_new_single_shot_id (self->system_clock,
+        now + self->interval);
+    gst_clock_id_wait_async_full (self->clockid,
+        clock_callback, gst_object_ref (self), gst_object_unref);
+  }
+}
+
 
 static void
 fs_rtp_bitrate_adapter_set_property (GObject *object,
@@ -545,7 +688,11 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
         gst_caps_ref (self->rtp_caps);
       break;
     case PROP_BITRATE:
-      self->bitrate = g_value_get_uint (value);
+      fs_rtp_bitrate_adapter_add_bitrate_locked (self,
+          g_value_get_uint (value));
+      break;
+    case PROP_INTERVAL:
+      self->interval = g_value_get_uint64 (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

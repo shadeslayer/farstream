@@ -59,7 +59,11 @@ struct _FsRtpBitrateAdapter
 
   GstCaps *last_caps;
 
-  guint bitrate;
+  GstClock *system_clock;
+  GstClockTime interval;
+  GQueue bitrate_history;
+  GstClockID clockid;
+
   GstCaps *rtp_caps;
 };
 
