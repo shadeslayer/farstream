@@ -1306,9 +1306,17 @@ fs_rawudp_component_start_stun (FsRawUdpComponent *self, GError **error)
       self->priv->stun_buffer,
       sizeof(self->priv->stun_buffer));
 
-  if (self->priv->stun_timeout_thread == NULL) {
-    /* only create a new thread if the old one was stopped. Otherwise we can
-     * just reuse the currently running one. */
+
+  /* only create a new thread if the old one was stopped. Otherwise we can
+   * just reuse the currently running one. */
+  if (self->priv->stun_timeout_thread == NULL)
+  {
+    if (!fs_rawudp_component_send_stun_locked (self, error))
+    {
+      FS_RAWUDP_COMPONENT_UNLOCK (self);
+      return FALSE;
+    }
+
     self->priv->stun_timeout_thread =
       g_thread_create (stun_timeout_func, self, TRUE, error);
   }
@@ -1465,7 +1473,7 @@ stun_timeout_func (gpointer user_data)
   GError *error = NULL;
   guint timeout_accum_ms = 0;
   guint remainder;
-  StunUsageTimerReturn timer_ret = STUN_USAGE_TIMER_RETURN_RETRANSMIT;
+  StunUsageTimerReturn timer_ret = STUN_USAGE_TIMER_RETURN_SUCCESS;
   StunTransactionId stunid;
   StunTimer stun_timer;
 
