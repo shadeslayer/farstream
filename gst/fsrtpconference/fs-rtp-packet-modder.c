@@ -180,9 +180,11 @@ fs_rtp_packet_modder_chain (GstPad *pad, GstBuffer *buffer)
   GstFlowReturn ret = GST_FLOW_ERROR;
   GstClockTime buffer_ts = GST_BUFFER_TIMESTAMP (buffer);
 
-  buffer_ts = self->sync_func (self, buffer, self->user_data);
+  if (GST_CLOCK_TIME_IS_VALID (buffer_ts))
+    buffer_ts = self->sync_func (self, buffer, self->user_data);
 
-  fs_rtp_packet_modder_sync_to_clock (self, buffer_ts);
+  if (GST_CLOCK_TIME_IS_VALID (buffer_ts))
+    fs_rtp_packet_modder_sync_to_clock (self, buffer_ts);
 
   buffer = self->modder_func (self, buffer, buffer_ts, self->user_data);
 

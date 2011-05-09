@@ -759,7 +759,7 @@ fs_rtp_tfrc_get_sync_time (FsRtpPacketModder *modder,
   if (self->extension_type == EXTENSION_NONE)
   {
     GST_OBJECT_UNLOCK (self);
-    return GST_BUFFER_TIMESTAMP (buffer);
+    return GST_CLOCK_TIME_NONE;
   }
 
 
@@ -831,6 +831,9 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   guint now;
   GstBuffer *newbuf;
   gboolean is_data_limited;
+
+  if (!GST_CLOCK_TIME_IS_VALID (buffer_ts))
+    return buffer;
 
   GST_OBJECT_LOCK (self);
 
