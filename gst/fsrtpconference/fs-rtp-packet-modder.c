@@ -152,11 +152,11 @@ fs_rtp_packet_modder_sync_to_clock (FsRtpPacketModder *self,
     if (!clock) {
       GST_OBJECT_UNLOCK (self);
       /* let's just push if there is no clock */
-      GST_DEBUG_OBJECT (self, "No clock, push right away");
+      GST_LOG_OBJECT (self, "No clock, push right away");
       return;
     }
 
-    GST_DEBUG_OBJECT (self, "sync to running timestamp %" GST_TIME_FORMAT,
+    GST_LOG_OBJECT (self, "sync to running timestamp %" GST_TIME_FORMAT,
         GST_TIME_ARGS (running_time));
 
     id = self->clock_id = gst_clock_new_single_shot_id (clock, sync_time);
