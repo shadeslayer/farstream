@@ -15,8 +15,8 @@ Requirements
 ============
 
 Build time:
- - gstreamer 0.10.26
- - gst-plugins-base 0.10.26
+ - gstreamer 0.10.33
+ - gst-plugins-base 0.10.33
  - glib 2.26
  - Python 2.4
  - libnice 0.1.0
@@ -30,7 +30,7 @@ For the python module:
 
 Run time for the RTP plugin:
  All of the build time requirements (except gtk-doc) plus
- - gst-plugins-good 0.10.17
+ - gst-plugins-good 0.10.29
  - gst-plugins-bad 0.10.20
 
 Run time for the MSN plugin:
