@@ -655,14 +655,10 @@ _create_sinksource (
   }
 
   g_object_set (elem,
+      "auto-multicast", FALSE,
       "closefd", FALSE,
       "sockfd", fd,
       NULL);
-
-  if (g_object_class_find_property (G_OBJECT_GET_CLASS (elem),
-          "auto-multicast"))
-    g_object_set (elem, "auto-multicast", FALSE, NULL);
-
 
   if (!gst_bin_add (bin, elem))
   {

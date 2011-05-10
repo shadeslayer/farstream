@@ -357,23 +357,13 @@ fs_rtp_conference_init (FsRtpConference *conf,
 static void
 rtpbin_get_sdes (FsRtpConference *self, const gchar *prop, GValue *val)
 {
-  if (g_object_class_find_property (G_OBJECT_GET_CLASS (self->gstrtpbin),
-          "sdes"))
-  {
-    GstStructure *s;
-    const GValue *sval;
-    g_object_get (self->gstrtpbin, "sdes", &s, NULL);
-    sval = gst_structure_get_value (s, prop);
-    if (sval)
-      g_value_copy (gst_structure_get_value (s, prop), val);
-    gst_structure_free (s);
-  }
-  else
-  {
-    gchar *str = g_strdup_printf ("sdes-%s", prop);
-    g_object_get_property (G_OBJECT (self->gstrtpbin), str, val);
-    g_free (str);
-  }
+  GstStructure *s;
+  const GValue *sval;
+  g_object_get (self->gstrtpbin, "sdes", &s, NULL);
+  sval = gst_structure_get_value (s, prop);
+  if (sval)
+    g_value_copy (gst_structure_get_value (s, prop), val);
+  gst_structure_free (s);
 }
 
 static void
@@ -419,21 +409,11 @@ fs_rtp_conference_get_property (GObject *object,
 static void
 rtpbin_set_sdes (FsRtpConference *self, const gchar *prop, const GValue *val)
 {
-  if (g_object_class_find_property (G_OBJECT_GET_CLASS (self->gstrtpbin),
-          "sdes"))
-  {
-    GstStructure *s;
-    g_object_get (self->gstrtpbin, "sdes", &s, NULL);
-    gst_structure_set_value (s, prop, val);
-    g_object_set (self->gstrtpbin, "sdes", s, NULL);
-    gst_structure_free (s);
-  }
-  else
-  {
-    gchar *str = g_strdup_printf ("sdes-%s", prop);
-    g_object_set_property (G_OBJECT (self->gstrtpbin), str, val);
-    g_free (str);
-  }
+  GstStructure *s;
+  g_object_get (self->gstrtpbin, "sdes", &s, NULL);
+  gst_structure_set_value (s, prop, val);
+  g_object_set (self->gstrtpbin, "sdes", s, NULL);
+  gst_structure_free (s);
 }
 
 static void
