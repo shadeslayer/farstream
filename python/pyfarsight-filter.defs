@@ -12,7 +12,6 @@
   (release-func fs_codec_destroy)
 )
 
-
 (define-boxed Candidate
   (in-module "Fs")
   (c-name "FsCandidate")

@@ -12,7 +12,6 @@
   (release-func fs_codec_destroy)
 )
 
-
 (define-boxed Candidate
   (in-module "Fs")
   (c-name "FsCandidate")
@@ -129,6 +128,12 @@
   (return-type "gchar*")
 )
 
+(define-method to_string
+  (of-object "FsMediaType")
+  (c-name "fs_media_type_to_string")
+  (return-type "const-gchar*")
+)
+
 (define-method are_equal
   (of-object "FsCodec")
   (c-name "fs_codec_are_equal")
@@ -145,12 +150,6 @@
     '("GList*" "list1")
     '("GList*" "list2")
   )
-)
-
-(define-method to_string
-  (of-object "FsMediaType")
-  (c-name "fs_media_type_to_string")
-  (return-type "const-gchar*")
 )
 
 (define-method add_optional_parameter
@@ -179,6 +178,37 @@
   (parameters
     '("const-gchar*" "name")
     '("const-gchar*" "value")
+  )
+)
+
+(define-method add_feedback_parameter
+  (of-object "FsCodec")
+  (c-name "fs_codec_add_feedback_parameter")
+  (return-type "none")
+  (parameters
+    '("const-gchar*" "type")
+    '("const-gchar*" "subtype")
+    '("const-gchar*" "extra_params")
+  )
+)
+
+(define-method get_feedback_parameter
+  (of-object "FsCodec")
+  (c-name "fs_codec_get_feedback_parameter")
+  (return-type "FsFeedbackParameter*")
+  (parameters
+    '("const-gchar*" "type")
+    '("const-gchar*" "subtype")
+    '("const-gchar*" "extra_params")
+  )
+)
+
+(define-method remove_feedback_parameter
+  (of-object "FsCodec")
+  (c-name "fs_codec_remove_feedback_parameter")
+  (return-type "none")
+  (parameters
+    '("GList*" "item")
   )
 )
 
@@ -620,6 +650,82 @@
   (unblock-threads t)
   (c-name "fs_stream_get_src_pads_iterator")
   (return-type "GstIterator*")
+)
+
+
+;; -*- scheme -*-
+; object definitions ...
+;; Enumerations and flags ...
+
+
+;; From fs-rtp.h
+
+(define-function fs_rtp_header_extension_get_type
+  (c-name "fs_rtp_header_extension_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_rtp_header_extension_list_get_type
+  (c-name "fs_rtp_header_extension_list_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_rtp_header_extension_new
+  (c-name "fs_rtp_header_extension_new")
+  (is-constructor-of "FsRtpHeaderExtension")
+  (return-type "FsRtpHeaderExtension*")
+  (parameters
+    '("guint" "id")
+    '("FsStreamDirection" "direction")
+    '("const-gchar*" "uri")
+  )
+)
+
+(define-method copy
+  (of-object "FsRtpHeaderExtension")
+  (c-name "fs_rtp_header_extension_copy")
+  (return-type "FsRtpHeaderExtension*")
+)
+
+(define-method destroy
+  (of-object "FsRtpHeaderExtension")
+  (c-name "fs_rtp_header_extension_destroy")
+  (return-type "none")
+)
+
+(define-method are_equal
+  (of-object "FsRtpHeaderExtension")
+  (c-name "fs_rtp_header_extension_are_equal")
+  (return-type "gboolean")
+  (parameters
+    '("FsRtpHeaderExtension*" "extension2")
+  )
+)
+
+(define-function fs_rtp_header_extension_list_copy
+  (c-name "fs_rtp_header_extension_list_copy")
+  (return-type "GList*")
+  (parameters
+    '("GList*" "extensions")
+  )
+)
+
+(define-function fs_rtp_header_extension_list_destroy
+  (c-name "fs_rtp_header_extension_list_destroy")
+  (return-type "none")
+  (parameters
+    '("GList*" "extensions")
+  )
+)
+
+(define-function fs_rtp_header_extension_list_from_keyfile
+  (c-name "fs_rtp_header_extension_list_from_keyfile")
+  (return-type "GList*")
+  (parameters
+    '("const-gchar*" "filename")
+    '("FsMediaType" "media_type")
+    '("GError**" "error")
+  )
 )
 
 
