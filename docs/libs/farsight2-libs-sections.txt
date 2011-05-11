@@ -286,6 +286,7 @@ fs_rtp_header_extension_get_type
 fs_rtp_header_extension_list_get_type
 </SECTION>
 
+<SECTION>
 <FILE>fs-utils</FILE>
 <TITLE>Utility functions</TITLE>
 <INCLUDE>gst/farsight/fs-utils.h</INCLUDE>
