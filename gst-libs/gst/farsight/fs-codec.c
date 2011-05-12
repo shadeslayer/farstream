@@ -111,7 +111,7 @@ fs_codec_new (int id, const char *encoding_name,
   codec->encoding_name = g_strdup (encoding_name);
   codec->media_type = media_type;
   codec->clock_rate = clock_rate;
-  codec->ABI.ABI.minimum_reporting_interval = G_MAXUINT;
+  codec->minimum_reporting_interval = G_MAXUINT;
 
   return codec;
 }
@@ -153,9 +153,9 @@ fs_codec_destroy (FsCodec * codec)
         NULL);
   g_list_free (codec->optional_params);
 
-  g_list_foreach (codec->ABI.ABI.feedback_params,
+  g_list_foreach (codec->feedback_params,
       (GFunc) fs_feedback_parameter_free, NULL);
-  g_list_free (codec->ABI.ABI.feedback_params);
+  g_list_free (codec->feedback_params);
 
   g_slice_free (FsCodec, codec);
 }
@@ -182,8 +182,7 @@ fs_codec_copy (const FsCodec * codec)
       codec->clock_rate);
 
   copy->channels = codec->channels;
-  copy->ABI.ABI.minimum_reporting_interval =
-      codec->ABI.ABI.minimum_reporting_interval;
+  copy->minimum_reporting_interval = codec->minimum_reporting_interval;
 
   copy->encoding_name = g_strdup (codec->encoding_name);
 
@@ -201,7 +200,7 @@ fs_codec_copy (const FsCodec * codec)
   copy->optional_params = list_copy.head;
 
   g_queue_init (&list_copy);
-  for (lp = codec->ABI.ABI.feedback_params; lp; lp = g_list_next (lp))
+  for (lp = codec->feedback_params; lp; lp = g_list_next (lp))
   {
     FsFeedbackParameter *param_copy;
     FsFeedbackParameter *param = lp->data;;
@@ -213,7 +212,7 @@ fs_codec_copy (const FsCodec * codec)
 
     g_queue_push_tail (&list_copy, param_copy);
   }
-  copy->ABI.ABI.feedback_params = list_copy.head;
+  copy->feedback_params = list_copy.head;
 
   return copy;
 }
@@ -409,10 +408,10 @@ fs_codec_list_from_keyfile (const gchar *filename, GError **error)
           goto keyerror;
         }
       } else if (!g_ascii_strcasecmp ("trr-int", keys[j])) {
-        codec->ABI.ABI.minimum_reporting_interval =
+        codec->minimum_reporting_interval =
             g_key_file_get_integer (keyfile, groups[i], keys[j], &gerror);
         if (gerror) {
-          codec->ABI.ABI.minimum_reporting_interval = G_MAXUINT;
+          codec->minimum_reporting_interval = G_MAXUINT;
           goto keyerror;
         }
       } else if (g_str_has_prefix (keys[j], "feedback:")) {
@@ -524,9 +523,9 @@ fs_codec_to_string (const FsCodec *codec)
       codec->id, fs_media_type_to_string (codec->media_type),
       codec->encoding_name, codec->clock_rate, codec->channels);
 
-  if (codec->ABI.ABI.minimum_reporting_interval != G_MAXUINT)
+  if (codec->minimum_reporting_interval != G_MAXUINT)
     g_string_append_printf (string, " trr-int=%u",
-        codec->ABI.ABI.minimum_reporting_interval);
+        codec->minimum_reporting_interval);
 
   for (item = codec->optional_params;
        item;
@@ -535,7 +534,7 @@ fs_codec_to_string (const FsCodec *codec)
     g_string_append_printf (string, " %s=%s", param->name, param->value);
   }
 
-  for (item = codec->ABI.ABI.feedback_params;
+  for (item = codec->feedback_params;
        item;
        item = g_list_next (item)) {
     FsFeedbackParameter *param = item->data;
@@ -634,8 +633,8 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
       codec1->media_type != codec2->media_type ||
       codec1->clock_rate != codec2->clock_rate ||
       codec1->channels != codec2->channels ||
-      codec1->ABI.ABI.minimum_reporting_interval !=
-      codec2->ABI.ABI.minimum_reporting_interval ||
+      codec1->minimum_reporting_interval !=
+      codec2->minimum_reporting_interval ||
       codec1->encoding_name == NULL ||
       codec2->encoding_name == NULL ||
       g_ascii_strcasecmp (codec1->encoding_name, codec2->encoding_name))
@@ -651,10 +650,10 @@ fs_codec_are_equal (const FsCodec *codec1, const FsCodec *codec2)
           compare_optional_params))
     return FALSE;
 
-  if (!compare_lists (codec1->ABI.ABI.feedback_params,
-          codec2->ABI.ABI.feedback_params, compare_feedback_params) ||
-      !compare_lists (codec2->ABI.ABI.feedback_params,
-          codec1->ABI.ABI.feedback_params, compare_feedback_params))
+  if (!compare_lists (codec1->feedback_params,
+          codec2->feedback_params, compare_feedback_params) ||
+      !compare_lists (codec2->feedback_params,
+          codec1->feedback_params, compare_feedback_params))
     return FALSE;
 
   return TRUE;
@@ -797,8 +796,7 @@ fs_codec_add_feedback_parameter (FsCodec *codec, const gchar *type,
   param->subtype = g_strdup (subtype);
   param->extra_params = g_strdup (extra_params);
 
-  codec->ABI.ABI.feedback_params =
-      g_list_append (codec->ABI.ABI.feedback_params, param);
+  codec->feedback_params = g_list_append (codec->feedback_params, param);
 }
 
 
@@ -825,7 +823,7 @@ fs_codec_get_feedback_parameter (FsCodec *codec,
   g_return_val_if_fail (codec != NULL, NULL);
   g_return_val_if_fail (type != NULL || subtype != NULL, NULL);
 
-  for (item = g_list_first (codec->ABI.ABI.feedback_params);
+  for (item = g_list_first (codec->feedback_params);
        item;
        item = g_list_next (item))
   {
@@ -862,8 +860,8 @@ fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item)
     return;
 
   fs_feedback_parameter_free (item->data);
-  codec->ABI.ABI.feedback_params =
-      g_list_delete_link (codec->ABI.ABI.feedback_params, item);
+  codec->feedback_params =
+      g_list_delete_link (codec->feedback_params, item);
 }
 
 FsCodecParameter *

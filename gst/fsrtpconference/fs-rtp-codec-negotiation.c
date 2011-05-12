@@ -806,7 +806,7 @@ create_local_codec_associations (
 static void
 intersect_feedback_params (FsCodec *new_codec, FsCodec *orig_codec)
 {
-  GList *item = new_codec->ABI.ABI.feedback_params;
+  GList *item = new_codec->feedback_params;
 
   while (item)
   {
@@ -859,10 +859,10 @@ negotiate_stream_codec (CodecAssociation *old_ca, FsCodec *remote_codec,
 
     if (multi_stream)
     {
-      (*nego_codec)->ABI.ABI.minimum_reporting_interval =
-          old_ca->codec->ABI.ABI.minimum_reporting_interval;
-      (*nego_send_codec)->ABI.ABI.minimum_reporting_interval =
-          old_ca->send_codec->ABI.ABI.minimum_reporting_interval;
+      (*nego_codec)->minimum_reporting_interval =
+          old_ca->codec->minimum_reporting_interval;
+      (*nego_send_codec)->minimum_reporting_interval =
+          old_ca->send_codec->minimum_reporting_interval;
     }
   }
 }

@@ -169,14 +169,14 @@ GST_START_TEST (test_fscodec_are_equal_feedback_params)
       "Identical codecs (with params) not recognized");
 
   fs_codec_remove_feedback_parameter (codec1,
-      g_list_first (codec1->ABI.ABI.feedback_params));
+      g_list_first (codec1->feedback_params));
   fs_codec_add_feedback_parameter (codec1, "aa1", "bb1", "cc1");
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
       "Identical codecs (with params in different order 1) not recognized");
 
   fs_codec_remove_feedback_parameter (codec1,
-      g_list_first (codec1->ABI.ABI.feedback_params));
+      g_list_first (codec1->feedback_params));
   fs_codec_add_feedback_parameter (codec1, "aa2", "bb2", "cc2");
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == TRUE,
@@ -187,7 +187,7 @@ GST_START_TEST (test_fscodec_are_equal_feedback_params)
   codec1 = init_codec_with_three_params ();
 
   fs_codec_remove_feedback_parameter (codec1,
-      g_list_first (codec1->ABI.ABI.feedback_params));
+      g_list_first (codec1->feedback_params));
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Did not detect removal of first parameter of first codec");
@@ -198,7 +198,7 @@ GST_START_TEST (test_fscodec_are_equal_feedback_params)
 
   codec1 = init_codec_with_three_params ();
   fs_codec_remove_feedback_parameter (codec1,
-      g_list_last (codec1->ABI.ABI.feedback_params));
+      g_list_last (codec1->feedback_params));
 
   fail_unless (fs_codec_are_equal (codec1, codec2) == FALSE,
       "Did not detect removal of last parameter of first codec");

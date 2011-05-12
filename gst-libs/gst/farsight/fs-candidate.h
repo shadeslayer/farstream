@@ -121,8 +121,6 @@ struct _FsCandidate
   const gchar *username;
   const gchar *password;
   guint ttl;
-  /*< private >*/
-  gpointer _padding[4];
 };
 
 GType fs_candidate_get_type (void);

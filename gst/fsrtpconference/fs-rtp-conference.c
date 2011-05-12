@@ -778,7 +778,7 @@ fs_codec_to_gst_caps (const FsCodec *codec)
     g_free (lower_name);
   }
 
-  for (item = codec->ABI.ABI.feedback_params;
+  for (item = codec->feedback_params;
        item;
        item = g_list_next (item))
   {

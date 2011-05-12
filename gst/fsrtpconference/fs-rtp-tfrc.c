@@ -1381,7 +1381,7 @@ fs_rtp_tfrc_filter_codecs (GList **codec_associations,
     CodecAssociation *ca = item->data;
     GList *item2;
 
-    for (item2 = ca->codec->ABI.ABI.feedback_params; item2;)
+    for (item2 = ca->codec->feedback_params; item2;)
     {
       GList *next2 = item2->next;
       FsFeedbackParameter *p = item2->data;

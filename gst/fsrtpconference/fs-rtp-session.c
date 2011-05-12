@@ -2736,7 +2736,7 @@ fs_rtp_session_update_minimum_rtcp_interval (FsRtpSession *self,
 
   if (self->priv->current_send_codec)
     min_interval = MIN (min_interval,
-        self->priv->current_send_codec->ABI.ABI.minimum_reporting_interval);
+        self->priv->current_send_codec->minimum_reporting_interval);
 
   for (item = self->priv->free_substreams; item; item = item->next)
   {
@@ -2747,7 +2747,7 @@ fs_rtp_session_update_minimum_rtcp_interval (FsRtpSession *self,
 
     if (substream->codec)
       min_interval = MIN (min_interval,
-          substream->codec->ABI.ABI.minimum_reporting_interval);
+          substream->codec->minimum_reporting_interval);
   }
 
   for (item2 = self->priv->streams; item2; item2 = item2->next)
@@ -2763,7 +2763,7 @@ fs_rtp_session_update_minimum_rtcp_interval (FsRtpSession *self,
 
       if (substream->codec)
         min_interval = MIN (min_interval,
-            substream->codec->ABI.ABI.minimum_reporting_interval);
+            substream->codec->minimum_reporting_interval);
     }
   }
 

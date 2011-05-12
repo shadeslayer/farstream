@@ -316,9 +316,9 @@ _wrap_fs_codec_tp_setattr(PyObject *self, char *attr, PyObject *value)
     }
 
   none2:
-    while (codec->ABI.ABI.feedback_params)
+    while (codec->feedback_params)
       fs_codec_remove_feedback_parameter (codec,
-          codec->ABI.ABI.feedback_params);
+          codec->feedback_params);
 
     if (value == NULL)
       return 0;
@@ -402,7 +402,7 @@ _wrap_fs_codec_tp_getattr(PyObject *self, char *attr)
     PyObject *list = PyList_New (0);
     GList *p;
 
-    for (p = g_list_first (codec->ABI.ABI.feedback_params); p;
+    for (p = g_list_first (codec->feedback_params); p;
          p = g_list_next (p))
     {
       PyObject *tuple = PyTuple_New (3);

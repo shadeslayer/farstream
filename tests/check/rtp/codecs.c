@@ -2122,15 +2122,15 @@ GST_START_TEST (test_rtpcodecs_nego_h264)
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
   outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
-  codec->ABI.ABI.minimum_reporting_interval = 3;
-  outcodec->ABI.ABI.minimum_reporting_interval = 3;
+  codec->minimum_reporting_interval = 3;
+  outcodec->minimum_reporting_interval = 3;
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
       codec, outcodec);
 
   tmp_prefcodec = fs_codec_copy (prefcodec);
   tmp_outprefcodec = fs_codec_copy (outprefcodec);
-  tmp_prefcodec->ABI.ABI.minimum_reporting_interval = 3;
-  tmp_outprefcodec->ABI.ABI.minimum_reporting_interval = 3;
+  tmp_prefcodec->minimum_reporting_interval = 3;
+  tmp_outprefcodec->minimum_reporting_interval = 3;
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
   outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
@@ -2140,8 +2140,8 @@ GST_START_TEST (test_rtpcodecs_nego_h264)
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
   outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
-  codec->ABI.ABI.minimum_reporting_interval = 3;
-  outcodec->ABI.ABI.minimum_reporting_interval = 3;
+  codec->minimum_reporting_interval = 3;
+  outcodec->minimum_reporting_interval = 3;
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
       codec, outcodec);
 
@@ -2181,16 +2181,16 @@ GST_START_TEST (test_rtpcodecs_nego_feedback)
 
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
-  codec->ABI.ABI.minimum_reporting_interval = 0;
+  codec->minimum_reporting_interval = 0;
   outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
-  outcodec->ABI.ABI.minimum_reporting_interval = 0;
+  outcodec->minimum_reporting_interval = 0;
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
       codec, outcodec);
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
-  codec->ABI.ABI.minimum_reporting_interval = 3;
+  codec->minimum_reporting_interval = 3;
   outcodec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
-  outcodec->ABI.ABI.minimum_reporting_interval = 3;
+  outcodec->minimum_reporting_interval = 3;
   test_one_codec (dat->session, participant, prefcodec, outprefcodec,
       codec, outcodec);
 

@@ -98,16 +98,9 @@ struct _FsCodec
   FsMediaType media_type;
   guint clock_rate;
   guint channels;
+  guint minimum_reporting_interval;
   GList *optional_params;
-  /*< private >*/
-  union {
-    struct {
-      guint minimum_reporting_interval;
-      GList *feedback_params;
-    } ABI;
-    gpointer _padding[4];         /* padding for binary-compatible
-                                   expansion*/
-  } ABI;
+  GList *feedback_params;
 };
 
 /**
