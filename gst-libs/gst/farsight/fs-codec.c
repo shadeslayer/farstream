@@ -161,6 +161,7 @@ fs_codec_copy (const FsCodec * codec)
 {
   FsCodec *copy = NULL;
   GList *lp;
+  GQueue list_copy = G_QUEUE_INIT;
 
   if (codec == NULL)
     return NULL;
@@ -184,12 +185,12 @@ fs_codec_copy (const FsCodec * codec)
     param_copy = g_slice_new (FsCodecParameter);
     param_copy->name = g_strdup (param->name);
     param_copy->value = g_strdup (param->value);
-    /* prepend then reverse the list for efficiency */
-    copy->optional_params = g_list_prepend (copy->optional_params,
-        param_copy);
-  }
-  copy->optional_params = g_list_reverse (copy->optional_params);
 
+    g_queue_push_tail (&list_copy, param_copy);
+  }
+  copy->optional_params = list_copy.head;
+
+  g_queue_init (&list_copy);
   for (lp = codec->ABI.ABI.feedback_params; lp; lp = g_list_next (lp))
   {
     FsFeedbackParameter *param_copy;
@@ -199,12 +200,10 @@ fs_codec_copy (const FsCodec * codec)
     param_copy->type = g_strdup (param->type);
     param_copy->subtype = g_strdup (param->subtype);
     param_copy->extra_params = g_strdup (param->extra_params);
-    /* prepend then reverse the list for efficiency */
-    copy->ABI.ABI.feedback_params = g_list_prepend (copy->ABI.ABI.feedback_params,
-        param_copy);
+
+    g_queue_push_tail (&list_copy, param_copy);
   }
-  copy->ABI.ABI.feedback_params =
-      g_list_reverse (copy->ABI.ABI.feedback_params);
+  copy->ABI.ABI.feedback_params = list_copy.head;
 
   return copy;
 }
@@ -241,17 +240,16 @@ fs_codec_list_destroy (GList *codec_list)
 GList *
 fs_codec_list_copy (const GList *codec_list)
 {
-  GList *copy = NULL;
+  GQueue copy = G_QUEUE_INIT;
   const GList *lp;
-  FsCodec *codec;
 
   for (lp = codec_list; lp; lp = g_list_next (lp)) {
-    codec = (FsCodec *) lp->data;
-    /* prepend then reverse the list for efficiency */
-    copy = g_list_prepend (copy, fs_codec_copy (codec));
+    FsCodec *codec = (FsCodec *) lp->data;
+
+    g_queue_push_tail (&copy, fs_codec_copy (codec));
   }
-  copy = g_list_reverse (copy);
-  return copy;
+
+  return copy.head;
 }
 
 /**

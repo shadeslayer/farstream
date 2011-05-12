@@ -798,7 +798,7 @@ GList *
 fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
     GList *codec_associations, FsCodec *main_codec)
 {
-  GList *result = NULL;
+  GQueue result = G_QUEUE_INIT;
 
   for (; special_sources; special_sources = special_sources->next)
   {
@@ -808,11 +808,10 @@ fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
     {
       CodecAssociation *ca =
         lookup_codec_association_by_pt (codec_associations, source->codec->id);
-      result = g_list_prepend (result, fs_codec_copy (ca->codec));
+
+      g_queue_push_tail (&result, fs_codec_copy (ca->codec));
     }
   }
 
-  result = g_list_reverse (result);
-
-  return result;
+  return result.head;
 }

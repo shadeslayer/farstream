@@ -154,17 +154,16 @@ fs_candidate_list_destroy (GList *candidate_list)
 GList *
 fs_candidate_list_copy (const GList *candidate_list)
 {
-  GList *copy = NULL;
+  GQueue copy = G_QUEUE_INIT;
   const GList *lp;
-  FsCandidate *cand;
 
   for (lp = candidate_list; lp; lp = g_list_next (lp)) {
-    cand = (FsCandidate *) lp->data;
-    /* prepend then reverse the list for efficiency */
-    copy = g_list_prepend (copy, fs_candidate_copy (cand));
+    FsCandidate *cand = lp->data;
+
+    g_queue_push_tail (&copy, fs_candidate_copy (cand));
   }
-  copy= g_list_reverse (copy);
-  return copy;
+
+  return copy.head;
 }
 
 /**

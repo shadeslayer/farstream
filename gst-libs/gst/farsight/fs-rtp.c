@@ -143,17 +143,16 @@ fs_rtp_header_extension_destroy (FsRtpHeaderExtension *extension)
 GList *
 fs_rtp_header_extension_list_copy (GList *extensions)
 {
-  GList *copy = NULL;
+  GQueue copy = G_QUEUE_INIT;
   const GList *lp;
-  FsRtpHeaderExtension *ext;
 
   for (lp = extensions; lp; lp = g_list_next (lp)) {
-    ext = (FsRtpHeaderExtension *) lp->data;
-    /* prepend then reverse the list for efficiency */
-    copy = g_list_prepend (copy, fs_rtp_header_extension_copy (ext));
+    FsRtpHeaderExtension *ext = lp->data;
+
+    g_queue_push_tail (&copy, fs_rtp_header_extension_copy (ext));
   }
-  copy = g_list_reverse (copy);
-  return copy;
+
+  return copy.head;
 }
 
 /**
