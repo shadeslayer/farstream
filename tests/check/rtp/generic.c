@@ -217,7 +217,7 @@ pad_count_fold (gpointer pad, GValue *val, gpointer user_data)
 guint
 count_stream_pads (FsStream *stream)
 {
-  GstIterator *iter = fs_stream_get_src_pads_iterator (stream);
+  GstIterator *iter = fs_stream_iterate_src_pads (stream);
   guint count = 0;
 
   fail_if (iter == NULL);

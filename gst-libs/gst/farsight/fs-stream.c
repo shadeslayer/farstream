@@ -577,7 +577,7 @@ src_pad_iterator_item_func (GstIterator*iter, gpointer item)
 }
 
 /**
- * fs_stream_get_src_pads_iterator:
+ * fs_stream_iterate_src_pads:
  * @stream: a #FsStream
  *
  * Creates a #GstIterator that can be used to iterate the src pads of this
@@ -588,7 +588,7 @@ src_pad_iterator_item_func (GstIterator*iter, gpointer item)
  */
 
 GstIterator *
-fs_stream_get_src_pads_iterator (FsStream *stream)
+fs_stream_iterate_src_pads (FsStream *stream)
 {
   return gst_iterator_new_list (GST_TYPE_PAD, stream->priv->mutex,
       &stream->priv->src_pads_cookie, &stream->priv->src_pads,

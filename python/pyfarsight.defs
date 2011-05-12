@@ -638,10 +638,10 @@
   )
 )
 
-(define-method get_src_pads_iterator
+(define-method iterate_src_pads
   (of-object "FsStream")
   (unblock-threads t)
-  (c-name "fs_stream_get_src_pads_iterator")
+  (c-name "fs_stream_iterate_src_pads")
   (return-type "GstIterator*")
 )
 
