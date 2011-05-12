@@ -20,7 +20,7 @@
     <title>User-oriented classes, interfaces and functions</title>
     <chapter>
       <title>Farsight GStreamer Interfaces</title>
-      <xi:include href="xml/fs-conference-iface.xml"/>
+      <xi:include href="xml/fs-conference.xml"/>
     </chapter>
     <chapter>
       <title>Farsight Core Library</title>

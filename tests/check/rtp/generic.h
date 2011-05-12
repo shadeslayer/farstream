@@ -23,7 +23,7 @@
 #define __GENERIC_H__
 
 #include <gst/gst.h>
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 struct SimpleTestConference {
   gint id;

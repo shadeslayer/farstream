@@ -5,7 +5,7 @@
  *  @author: Philippe Kalaf <philippe.kalaf@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-conference-iface.h - Header file for gstreamer interface to be
+ * fs-conference.h - Header file for gstreamer interface to be
  *                         implemented by farsight conference elements
  *
  * This library is free software; you can redistribute it and/or

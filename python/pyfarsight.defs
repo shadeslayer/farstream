@@ -332,7 +332,7 @@
 )
 
 
-;; From fs-conference-iface.h
+;; From fs-conference.h
 
 (define-function fs_conference_get_type
   (c-name "fs_conference_get_type")

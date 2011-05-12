@@ -61,7 +61,7 @@
 #include "fs-multicast-transmitter.h"
 
 #include <gst/farsight/fs-candidate.h>
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #include <gst/gst.h>
 

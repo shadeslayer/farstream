@@ -25,7 +25,7 @@
 #include <gst/check/gstcheck.h>
 #include <gst/rtp/gstrtpbuffer.h>
 
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 #include <gst/farsight/fs-element-added-notifier.h>
 
 #include "check-threadsafe.h"

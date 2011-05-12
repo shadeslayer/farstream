@@ -28,7 +28,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 #include <gst/farsight/fs-session.h>
 #include <gst/farsight/fs-codec.h>
 

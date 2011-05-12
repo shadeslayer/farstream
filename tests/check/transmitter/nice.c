@@ -24,7 +24,7 @@
 
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-transmitter.h>
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #include <unistd.h>
 

@@ -7,7 +7,7 @@ libgstfarsightinclude_HEADERS = \
 		fs-participant.h \
 		fs-session.h \
 		fs-stream.h \
-		fs-conference-iface.h \
+		fs-conference.h \
 		fs-transmitter.h \
 		fs-stream-transmitter.h \
 		fs-plugin.h \
@@ -34,7 +34,7 @@ libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
 		fs-participant.c \
 		fs-session.c \
 		fs-stream.c \
-		fs-conference-iface.c \
+		fs-conference.c \
 		fs-transmitter.c \
 		fs-stream-transmitter.c \
 		fs-plugin.c \
@@ -80,7 +80,7 @@ public_headers = fs-candidate.h \
 		fs-participant.h \
 		fs-session.h \
 		fs-stream.h \
-		fs-conference-iface.h \
+		fs-conference.h \
 		fs-utils.h
 
 glib_enum_headers=$(public_headers)

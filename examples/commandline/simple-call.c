@@ -30,7 +30,7 @@
 
 #include <glib.h>
 #include <gst/gst.h>
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #define DEFAULT_AUDIOSRC       "alsasrc"
 #define DEFAULT_AUDIOSINK      "audioconvert ! audioresample ! audioconvert ! alsasink"

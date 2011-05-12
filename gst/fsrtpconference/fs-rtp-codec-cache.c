@@ -35,7 +35,7 @@
 #endif
 #include <stdio.h>
 
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 

@@ -77,7 +77,7 @@
 
 #include <gst/gst.h>
 
-#include "fs-conference-iface.h"
+#include "fs-conference.h"
 #include "fs-codec.h"
 #include "fs-marshal.h"
 #include "fs-enumtypes.h"

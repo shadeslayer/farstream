@@ -1,7 +1,7 @@
 <SECTION>
 <FILE>fs-participant</FILE>
 <TITLE>FsParticipant</TITLE>
-<INCLUDE>gst/farsight/fs-conference-iface.h</INCLUDE>
+<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
 FsParticipant
 FsParticipantClass
 FS_PARTICIPANT_DATA_LOCK
@@ -21,7 +21,7 @@ FsParticipantPrivate
 <SECTION>
 <FILE>fs-stream</FILE>
 <TITLE>FsStream</TITLE>
-<INCLUDE>gst/farsight/fs-conference-iface.h</INCLUDE>
+<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
 FsStream
 FsStreamClass
 FsStreamDirection
@@ -51,7 +51,7 @@ FsStreamPrivate
 FsDTMFEvent
 FsDTMFMethod
 <TITLE>FsSession</TITLE>
-<INCLUDE>gst/farsight/fs-conference-iface.h</INCLUDE>
+<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
 FsSession
 FsSessionClass
 fs_session_new_stream
@@ -76,9 +76,9 @@ FsSessionPrivate
 </SECTION>
 
 <SECTION>
-<FILE>fs-conference-iface</FILE>
+<FILE>fs-conference</FILE>
 <TITLE>FsConference</TITLE>
-<INCLUDE>gst/farsight/fs-conference-iface.h</INCLUDE>
+<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
 FsConference
 fs_conference_new_session
 fs_conference_new_participant
@@ -98,7 +98,7 @@ fs_error_quark
 <SECTION>
 <FILE>fs-candidate</FILE>
 <TITLE>FsCandidate</TITLE>
-<INCLUDE>gst/farsight/fs-conference-iface.h</INCLUDE>
+<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
 FsCandidate
 FsCandidateType
 FsNetworkProtocol
@@ -118,7 +118,7 @@ fs_candidate_list_get_type
 <SECTION>
 <FILE>fs-codec</FILE>
 <TITLE>FsCodec</TITLE>
-<INCLUDE>gst/farsight/fs-conference-iface.h</INCLUDE>
+<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
 FsCodec
 FsMediaType
 FsCodecParameter

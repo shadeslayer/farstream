@@ -36,7 +36,7 @@
 
 #include <string.h>
 
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-codec-cache.h"

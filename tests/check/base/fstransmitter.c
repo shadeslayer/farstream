@@ -25,7 +25,7 @@
 
 #include <gst/check/gstcheck.h>
 #include <gst/farsight/fs-transmitter.h>
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 
 GST_START_TEST (test_fstransmitter_new_fail)

@@ -109,7 +109,7 @@
 #include "fs-codec.h"
 #include "fs-candidate.h"
 #include "fs-stream-transmitter.h"
-#include "fs-conference-iface.h"
+#include "fs-conference.h"
 #include "fs-enumtypes.h"
 #include "fs-private.h"
 

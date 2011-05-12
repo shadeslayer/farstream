@@ -3,7 +3,7 @@
 HEADERS=" \
     fs-codec.h \
     fs-candidate.h \
-    fs-conference-iface.h \
+    fs-conference.h \
     fs-session.h \
     fs-participant.h \
     fs-stream.h \

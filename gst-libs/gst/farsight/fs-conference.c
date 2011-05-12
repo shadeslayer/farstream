@@ -5,7 +5,7 @@
  *  @author: Philippe Kalaf <philippe.kalaf@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-conference-iface.c - GStreamer interface to be implemented by farsight
+ * fs-conference.c - GStreamer interface to be implemented by farsight
  *                         conference elements
  *
  * This library is free software; you can redistribute it and/or
@@ -27,10 +27,10 @@
 #include "config.h"
 #endif
 
-#include "fs-conference-iface.h"
+#include "fs-conference.h"
 
 /**
- * SECTION:fs-conference-iface
+ * SECTION:fs-conference
  * @short_description: Interface for farsight conference elements
  *
  * This interface is implemented by the FsBaseConference base class element. A

@@ -34,7 +34,7 @@
 #include <gio/gunixinputstream.h>
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #define DEFAULT_AUDIOSRC       "audiotestsrc is-live=1 ! audio/x-raw-int, rate=8000 ! identity"
 #define DEFAULT_AUDIOSINK      "alsasink sync=false async=false"

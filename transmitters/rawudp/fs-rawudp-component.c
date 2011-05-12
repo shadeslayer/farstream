@@ -37,7 +37,7 @@
 #include <nice/address.h>
 #include <nice/interfaces.h>
 
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 
 #include <gst/netbuffer/gstnetbuffer.h>
 

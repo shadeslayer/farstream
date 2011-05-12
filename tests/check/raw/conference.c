@@ -24,7 +24,7 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-conference.h>
 #include <gst/farsight/fs-stream-transmitter.h>
 
 #include "check-threadsafe.h"

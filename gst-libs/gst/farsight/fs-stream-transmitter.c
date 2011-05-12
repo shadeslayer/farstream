@@ -43,7 +43,7 @@
 #include <gst/gst.h>
 
 #include "fs-marshal.h"
-#include "fs-conference-iface.h"
+#include "fs-conference.h"
 #include "fs-private.h"
 
 #define GST_CAT_DEFAULT fs_base_conference_debug

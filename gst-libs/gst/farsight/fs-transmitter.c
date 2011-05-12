@@ -44,7 +44,7 @@
 
 #include "fs-marshal.h"
 #include "fs-plugin.h"
-#include "fs-conference-iface.h"
+#include "fs-conference.h"
 #include "fs-private.h"
 
 /* Signals */
