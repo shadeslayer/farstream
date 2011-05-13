@@ -185,6 +185,8 @@ gboolean fs_stream_set_transmitter (FsStream *stream,
     guint stream_transmitter_n_parameters,
     GError **error);
 
+void fs_stream_destroy (FsStream *stream);
+
 G_END_DECLS
 
 #endif /* __FS_STREAM_H__ */

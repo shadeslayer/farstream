@@ -637,3 +637,24 @@ fs_stream_set_transmitter (FsStream *stream,
 
   return FALSE;
 }
+
+/**
+ * fs_stream_destroy:
+ * @stream: a #FsStream
+ *
+ * This will cause the stream to remove all links to other objects and to
+ * remove itself from the #FsSession. Once a #FsStream has been destroyed, it
+ * can not be used anymore.
+ *
+ * It is strongly recommended to call this function from the main thread because
+ * releasing the application's reference to a stream.
+ */
+
+void
+fs_stream_destroy (FsStream *stream)
+{
+  g_return_if_fail (stream);
+  g_return_if_fail (FS_IS_STREAM (stream));
+
+  g_object_run_dispose (G_OBJECT (stream));
+}
