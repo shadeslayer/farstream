@@ -26,7 +26,7 @@
 #ifndef __FS_RTP_CONFERENCE_H__
 #define __FS_RTP_CONFERENCE_H__
 
-#include <gst/farsight/fs-base-conference.h>
+#include <gst/farsight/fs-conference.h>
 
 G_BEGIN_DECLS
 
@@ -52,7 +52,7 @@ typedef struct _FsRtpConferencePrivate FsRtpConferencePrivate;
 
 struct _FsRtpConference
 {
-  FsBaseConference parent;
+  FsConference parent;
 
   /*< private >*/
   FsRtpConferencePrivate *priv;
@@ -63,7 +63,7 @@ struct _FsRtpConference
 
 struct _FsRtpConferenceClass
 {
-  FsBaseConferenceClass parent_class;
+  FsConferenceClass parent_class;
 };
 
 GType fs_rtp_conference_get_type (void);

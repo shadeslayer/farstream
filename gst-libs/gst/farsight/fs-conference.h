@@ -1,12 +1,11 @@
 /*
- * Farsight2 - GStreamer interfaces
+ * Farsight2 - FsConference Class
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Philippe Kalaf <philippe.kalaf@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-conference.h - Header file for gstreamer interface to be
- *                         implemented by farsight conference elements
+ * fs-conference.h - Header file for farsight Conference base class
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -34,14 +33,21 @@
 
 G_BEGIN_DECLS
 
+
 #define FS_TYPE_CONFERENCE \
   (fs_conference_get_type ())
 #define FS_CONFERENCE(obj) \
-  (GST_IMPLEMENTS_INTERFACE_CHECK_INSTANCE_CAST ((obj), FS_TYPE_CONFERENCE, FsConference))
+  (G_TYPE_CHECK_INSTANCE_CAST((obj),FS_TYPE_CONFERENCE,FsConference))
+#define FS_CONFERENCE_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_CAST((klass),FS_TYPE_CONFERENCE,FsConferenceClass))
+#define FS_CONFERENCE_GET_CLASS(obj) \
+  (G_TYPE_INSTANCE_GET_CLASS((obj),FS_TYPE_CONFERENCE,FsConferenceClass))
 #define FS_IS_CONFERENCE(obj) \
-  (GST_IMPLEMENTS_INTERFACE_CHECK_INSTANCE_TYPE ((obj), FS_TYPE_CONFERENCE))
-#define FS_CONFERENCE_GET_IFACE(inst) \
-  (G_TYPE_INSTANCE_GET_INTERFACE ((inst), FS_TYPE_CONFERENCE, FsConferenceClass))
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),FS_TYPE_CONFERENCE))
+#define FS_IS_CONFERENCE_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass),FS_TYPE_CONFERENCE))
+#define FS_CONFERENCE_CAST(obj) \
+  ((FsConference *)(obj))
 
 /**
  * FsConference:
@@ -49,19 +55,34 @@ G_BEGIN_DECLS
  * Opaque #FsConference data structure.
  */
 typedef struct _FsConference FsConference;
-
 typedef struct _FsConferenceClass FsConferenceClass;
 
 /**
+ * FsConference
+ *
+ * The #FsConference structure, all the members are private
+ */
+
+struct _FsConference
+{
+  GstBin parent;
+
+  /*< private >*/
+
+  gpointer _padding[8];
+};
+
+
+/**
  * FsConferenceClass:
- * @parent: parent interface type.
+ * @parent: parent GstBin class
  * @new_session: virtual method to create a new conference session
  * @new_participant: virtual method to create a new participant
  *
- * #FsConferenceClass interface.
+ * #FsConferenceClass class structure.
  */
 struct _FsConferenceClass {
-  GTypeInterface parent;
+  GstBinClass parent;
 
   /* virtual functions */
   FsSession *(* new_session) (FsConference *conference, FsMediaType media_type,

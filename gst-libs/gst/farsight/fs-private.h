@@ -30,9 +30,9 @@
 
 G_BEGIN_DECLS
 
-void _fs_base_conference_init_debug (void);
+void _fs_conference_init_debug (void);
 
-GST_DEBUG_CATEGORY_EXTERN (fs_base_conference_debug);
+GST_DEBUG_CATEGORY_EXTERN (fs_conference_debug);
 
 G_END_DECLS
 

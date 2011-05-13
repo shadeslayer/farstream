@@ -1,7 +1,6 @@
 libgstfarsightincludedir = $(includedir)/gstreamer-@GST_MAJORMINOR@/gst/farsight
 
 libgstfarsightinclude_HEADERS = \
-		fs-base-conference.h \
 		fs-candidate.h \
 		fs-codec.h \
 		fs-participant.h \
@@ -28,7 +27,6 @@ BUILT_SOURCES = \
 CLEANFILES = $(BUILT_SOURCES) fs-marshal.list
 
 libgstfarsight_@GST_MAJORMINOR@_la_SOURCES = \
-		fs-base-conference.c \
 		fs-candidate.c \
 		fs-codec.c \
 		fs-participant.c \

@@ -27,7 +27,7 @@
 #ifndef __FS_MSN_CONFERENCE_H__
 #define __FS_MSN_CONFERENCE_H__
 
-#include <gst/farsight/fs-base-conference.h>
+#include <gst/farsight/fs-conference.h>
 
 G_BEGIN_DECLS
 
@@ -52,7 +52,7 @@ typedef struct _FsMsnConferencePrivate FsMsnConferencePrivate;
 
 struct _FsMsnConference
 {
-  FsBaseConference parent;
+  FsConference parent;
   FsMsnConferencePrivate *priv;
 
   FsStreamDirection max_direction;
@@ -62,7 +62,7 @@ struct _FsMsnConference
 
 struct _FsMsnConferenceClass
 {
-  FsBaseConferenceClass parent_class;
+  FsConferenceClass parent_class;
 };
 
 GType fs_msn_conference_get_type (void);

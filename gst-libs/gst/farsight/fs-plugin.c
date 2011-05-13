@@ -36,7 +36,7 @@
 #include "fs-conference.h"
 #include "fs-private.h"
 
-#define GST_CAT_DEFAULT fs_base_conference_debug
+#define GST_CAT_DEFAULT fs_conference_debug
 
 /**
  * SECTION:fs-plugin
@@ -227,7 +227,7 @@ fs_plugin_create_valist (const gchar *name, const gchar *type_suffix,
   g_return_val_if_fail (name, NULL);
   g_return_val_if_fail (type_suffix, NULL);
 
-  _fs_base_conference_init_debug ();
+  _fs_conference_init_debug ();
 
   g_static_mutex_lock (&mutex);
 

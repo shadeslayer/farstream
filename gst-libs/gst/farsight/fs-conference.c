@@ -1,9 +1,10 @@
 /*
  * Farsight2 - GStreamer interfaces
  *
- * Copyright 2007 Collabora Ltd.
+ * Copyright 2007-2011 Collabora Ltd.
  *  @author: Philippe Kalaf <philippe.kalaf@collabora.co.uk>
- * Copyright 2007 Nokia Corp.
+ *  @author: Olivier Crete <olivier.crete@collabora.com>
+ * Copyright 2007-2011 Nokia Corp.
  *
  * fs-conference.c - GStreamer interface to be implemented by farsight
  *                         conference elements
@@ -28,17 +29,16 @@
 #endif
 
 #include "fs-conference.h"
+#include "fs-session.h"
+#include "fs-private.h"
 
 /**
  * SECTION:fs-conference
  * @short_description: Interface for farsight conference elements
  *
- * This interface is implemented by the FsBaseConference base class element. A
- * Farsight conference is a conversation space that takes place between 2 or
+ * A Farsight conference is a conversation space that takes place between 2 or
  * more participants. Each conference must have one or more Farsight sessions
- * that are associated to the conference participants. Different protocols
- * simply need to derive from the FsBaseConference class and don't need to
- * implement this interface directly.
+ * that are associated to the conference participants.
  *
  *
  * This will communicate asynchronous events to the user through #GstMessage
@@ -57,34 +57,14 @@
  * <para>
  */
 
-static void fs_conference_iface_init (FsConferenceClass *iface);
 
-GType
-fs_conference_get_type (void)
-{
-  static GType fs_conference_type = 0;
+GST_DEBUG_CATEGORY (fs_conference_debug);
+#define GST_CAT_DEFAULT fs_conference_debug
 
-  if (!fs_conference_type) {
-    static const GTypeInfo fs_conference_info = {
-      sizeof (FsConferenceClass),
-      (GBaseInitFunc) fs_conference_iface_init,
-      NULL,
-      NULL,
-      NULL,
-      NULL,
-      0,
-      0,
-      NULL,
-    };
 
-    fs_conference_type = g_type_register_static (G_TYPE_INTERFACE,
-        "FsConference", &fs_conference_info, 0);
-    g_type_interface_add_prerequisite (fs_conference_type,
-        GST_TYPE_IMPLEMENTS_INTERFACE);
-  }
-
-  return fs_conference_type;
-}
+GST_BOILERPLATE (
+  FsConference, fs_conference,
+  GstBin, GST_TYPE_BIN)
 
 
 GQuark
@@ -93,13 +73,53 @@ fs_error_quark (void)
   return g_quark_from_static_string ("fs-error");
 }
 
+void
+_fs_conference_init_debug (void)
+{
+  GST_DEBUG_CATEGORY_INIT (fs_conference_debug, "fsconference", 0,
+      "farsight base conference library");
+}
 
 static void
-fs_conference_iface_init (FsConferenceClass * iface)
+fs_conference_base_init (gpointer g_class)
 {
-  /* default virtual functions */
-  iface->new_session = NULL;
-  iface->new_participant = NULL;
+  _fs_conference_init_debug ();
+}
+
+
+
+static void
+fs_conference_class_init (FsConferenceClass * klass)
+{
+}
+
+static void
+fs_conference_init (FsConference *conf, FsConferenceClass *bclass)
+{
+  GST_DEBUG ("fs_conference_init");
+}
+
+
+static void
+fs_conference_error (GObject *signal_src,
+    GObject *error_src,
+    FsError error_no,
+    gchar *error_msg,
+    FsConference *conf)
+{
+  GstMessage *gst_msg = NULL;
+  GstStructure *error_struct = NULL;
+
+  error_struct = gst_structure_new ("farsight-error",
+      "src-object", G_TYPE_OBJECT, error_src,
+      "error-no", FS_TYPE_ERROR, error_no,
+      "error-msg", G_TYPE_STRING, error_msg,
+      NULL);
+
+  gst_msg = gst_message_new_element (GST_OBJECT (conf), error_struct);
+
+  if (!gst_element_post_message (GST_ELEMENT (conf), gst_msg))
+    GST_WARNING_OBJECT (conf, "Could not post error on bus");
 }
 
 /**
@@ -113,20 +133,31 @@ fs_conference_iface_init (FsConferenceClass * iface)
  * Returns: (transfer full): the new #FsSession that has been created.
  * The #FsSession must be unref'd by the user when closing the session.
  */
+
 FsSession *
-fs_conference_new_session (FsConference *conference, FsMediaType media_type,
-                           GError **error)
+fs_conference_new_session (FsConference *conf,
+    FsMediaType media_type,
+    GError **error)
 {
-  FsConferenceClass *iface;
+  FsConferenceClass *klass;
+  FsSession *new_session = NULL;
 
-  g_return_val_if_fail (conference, NULL);
-  g_return_val_if_fail (FS_IS_CONFERENCE (conference), NULL);
-  iface = FS_CONFERENCE_GET_IFACE (conference);
-  g_return_val_if_fail (iface->new_session, NULL);
+  g_return_val_if_fail (conf, NULL);
+  g_return_val_if_fail (FS_IS_CONFERENCE (conf), NULL);
+  klass = FS_CONFERENCE_GET_CLASS (conf);
+  g_return_val_if_fail (klass->new_session, NULL);
 
-  return iface->new_session (conference, media_type, error);
+  new_session = klass->new_session (conf, media_type, error);
+
+  if (!new_session)
+    return NULL;
+
+  /* Let's catch all session errors and send them over the GstBus */
+  g_signal_connect_object (new_session, "error",
+      G_CALLBACK (fs_conference_error), conf, 0);
+
+  return new_session;
 }
-
 
 /**
  * fs_conference_new_participant
@@ -140,14 +171,16 @@ fs_conference_new_session (FsConference *conference, FsMediaType media_type,
  * done with it.
  */
 FsParticipant *
-fs_conference_new_participant (FsConference *conference, GError **error)
+fs_conference_new_participant (FsConference *conf,
+    GError **error)
 {
-  FsConferenceClass *iface;
+  FsConferenceClass *klass;
 
-  g_return_val_if_fail (conference, NULL);
-  iface = FS_CONFERENCE_GET_IFACE (conference);
-  g_return_val_if_fail (iface, NULL);
-  g_return_val_if_fail (iface->new_participant, NULL);
+  g_return_val_if_fail (conf, NULL);
+  g_return_val_if_fail (FS_IS_CONFERENCE (conf), NULL);
+  klass = FS_CONFERENCE_GET_CLASS (conf);
+  g_return_val_if_fail (klass->new_participant, NULL);
 
-  return iface->new_participant (conference, error);
+  return klass->new_participant (conf, error);
 }
+

@@ -46,7 +46,7 @@
 #include "fs-conference.h"
 #include "fs-private.h"
 
-#define GST_CAT_DEFAULT fs_base_conference_debug
+#define GST_CAT_DEFAULT fs_conference_debug
 
 /* Signals */
 enum

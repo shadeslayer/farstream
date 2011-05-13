@@ -29,7 +29,7 @@
 
 #include "fs-rtp-dtmf-event-source.h"
 
-#include <gst/farsight/fs-base-conference.h>
+#include <gst/farsight/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"

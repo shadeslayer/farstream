@@ -19,11 +19,8 @@
   <part>
     <title>User-oriented classes, interfaces and functions</title>
     <chapter>
-      <title>Farsight GStreamer Interfaces</title>
-      <xi:include href="xml/fs-conference.xml"/>
-    </chapter>
-    <chapter>
       <title>Farsight Core Library</title>
+      <xi:include href="xml/fs-conference.xml"/>
       <xi:include href="xml/fs-participant.xml"/>
       <xi:include href="xml/fs-session.xml"/>
       <xi:include href="xml/fs-stream.xml"/>
@@ -42,10 +39,6 @@
   </part>
   <part>
     <title>Classes used to implement Farsight plugins</title>
-    <chapter>
-      <title>Farsight Classes Base Implementations</title>
-      <xi:include href="xml/fs-base-conference.xml"/>
-    </chapter>
     <chapter>
       <title>Farsight Transmitter Classes</title> 
       <xi:include href="xml/fs-transmitter.xml"/>

@@ -110,8 +110,8 @@ struct _FsRtpConferencePrivate
 static void fs_rtp_conference_do_init (GType type);
 
 
-GST_BOILERPLATE_FULL (FsRtpConference, fs_rtp_conference, FsBaseConference,
-                      FS_TYPE_BASE_CONFERENCE, fs_rtp_conference_do_init);
+GST_BOILERPLATE_FULL (FsRtpConference, fs_rtp_conference, FsConference,
+                      FS_TYPE_CONFERENCE, fs_rtp_conference_do_init);
 
 static void fs_rtp_conference_get_property (GObject *object,
     guint prop_id,
@@ -123,10 +123,10 @@ static void fs_rtp_conference_set_property (GObject *object,
     GParamSpec *pspec);
 
 static void fs_rtp_conference_finalize (GObject *object);
-static FsSession *fs_rtp_conference_new_session (FsBaseConference *conf,
+static FsSession *fs_rtp_conference_new_session (FsConference *conf,
                                                  FsMediaType media_type,
                                                  GError **error);
-static FsParticipant *fs_rtp_conference_new_participant (FsBaseConference *conf,
+static FsParticipant *fs_rtp_conference_new_participant (FsConference *conf,
     GError **error);
 
 static FsRtpSession *fs_rtp_conference_get_session_by_id_locked (
@@ -230,7 +230,7 @@ fs_rtp_conference_class_init (FsRtpConferenceClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
-  FsBaseConferenceClass *baseconf_class = FS_BASE_CONFERENCE_CLASS (klass);
+  FsConferenceClass *baseconf_class = FS_CONFERENCE_CLASS (klass);
   GstBinClass *gstbin_class = GST_BIN_CLASS (klass);
 
   g_type_class_add_private (klass, sizeof (FsRtpConferencePrivate));
@@ -515,7 +515,7 @@ _remove_participant (gpointer user_data,
 
 
 static FsSession *
-fs_rtp_conference_new_session (FsBaseConference *conf,
+fs_rtp_conference_new_session (FsConference *conf,
                                FsMediaType media_type,
                                GError **error)
 {
@@ -554,7 +554,7 @@ fs_rtp_conference_new_session (FsBaseConference *conf,
 
 
 static FsParticipant *
-fs_rtp_conference_new_participant (FsBaseConference *conf,
+fs_rtp_conference_new_participant (FsConference *conf,
     GError **error)
 {
   FsRtpConference *self = FS_RTP_CONFERENCE (conf);

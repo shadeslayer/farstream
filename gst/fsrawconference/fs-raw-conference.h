@@ -27,7 +27,7 @@
 #ifndef __FS_RAW_CONFERENCE_H__
 #define __FS_RAW_CONFERENCE_H__
 
-#include <gst/farsight/fs-base-conference.h>
+#include <gst/farsight/fs-conference.h>
 
 G_BEGIN_DECLS
 
@@ -52,7 +52,7 @@ typedef struct _FsRawConferencePrivate FsRawConferencePrivate;
 
 struct _FsRawConference
 {
-  FsBaseConference parent;
+  FsConference parent;
 
   /*< private >*/
   FsRawConferencePrivate *priv;
@@ -60,7 +60,7 @@ struct _FsRawConference
 
 struct _FsRawConferenceClass
 {
-  FsBaseConferenceClass parent_class;
+  FsConferenceClass parent_class;
 };
 
 GType fs_raw_conference_get_type (void);
