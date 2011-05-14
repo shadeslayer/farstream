@@ -277,16 +277,10 @@ fs_raw_stream_get_conference (FsRawStream *self, GError **error)
   return conference;
 }
 
-static gpointer
-trigger_dispose (gpointer data)
-{
-  g_object_unref (data);
-  return NULL;
-}
-
 static void
-fs_raw_stream_real_dispose (FsRawStream *self)
+fs_raw_stream_dispose (GObject *obj)
 {
+  FsRawStream *self = FS_RAW_STREAM (obj);
   FsRawConference *conference;
   FsStreamTransmitter *st;
 
@@ -298,6 +292,13 @@ fs_raw_stream_real_dispose (FsRawStream *self)
   if (!conference)
     return;
 
+
+  if (fs_raw_conference_is_internal_thread (conference))
+  {
+    g_critical ("You MUST call fs_stream_destroy() from your main thread, "
+        "this FsStream may now be leaked");
+    return;
+  }
 
   st = self->priv->stream_transmitter;
   self->priv->stream_transmitter = NULL;
@@ -335,43 +336,7 @@ fs_raw_stream_real_dispose (FsRawStream *self)
 
   gst_object_unref (conference);
 
-  G_OBJECT_CLASS (fs_raw_stream_parent_class)->dispose (G_OBJECT (self));
-}
-
-static void
-fs_raw_stream_dispose (GObject *object)
-{
-  FsRawStream *self = FS_RAW_STREAM (object);
-  FsRawConference *conference = fs_raw_stream_get_conference (self, NULL);
-  gboolean is_internal;
-
-  if (!conference)
-    return;
-
-  is_internal = fs_raw_conference_is_internal_thread (conference);
-
-  GST_OBJECT_LOCK (conference);
-  if (self->priv->disposed)
-  {
-    GST_OBJECT_UNLOCK (conference);
-    return;
-  }
-
-  if (is_internal)
-  {
-    GST_OBJECT_UNLOCK (conference);
-    g_object_ref (self);
-    if (!g_thread_create (trigger_dispose, self, FALSE, NULL))
-      g_error ("Could not create dispose thread");
-  }
-  else
-  {
-    self->priv->disposed = TRUE;
-    GST_OBJECT_UNLOCK (conference);
-    fs_raw_stream_real_dispose (self);
-  }
-
-  g_object_unref (conference);
+  G_OBJECT_CLASS (fs_raw_stream_parent_class)->dispose (obj);
 }
 
 static void
