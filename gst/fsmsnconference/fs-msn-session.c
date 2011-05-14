@@ -223,6 +223,13 @@ fs_msn_session_dispose (GObject *object)
   if (!conference)
     goto out;
 
+  if (self->priv->stream)
+  {
+    g_object_weak_unref (G_OBJECT (self->priv->stream), _remove_stream, self);
+    fs_stream_destroy (FS_STREAM (self->priv->stream));
+    self->priv->stream = NULL;
+  }
+
   conferencebin = GST_BIN (conference);
 
   if (!conferencebin)
