@@ -734,7 +734,10 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   for (item = g_list_first (self->priv->streams);
        item;
        item = g_list_next (item))
+  {
     g_object_weak_unref (G_OBJECT (item->data), _remove_stream, self);
+    fs_stream_destroy (item->data);
+  }
   g_list_free (self->priv->streams);
   self->priv->streams = NULL;
   self->priv->streams_cookie++;
