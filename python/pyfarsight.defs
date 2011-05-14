@@ -19,32 +19,6 @@
   (copy-func fs_candidate_copy)
   (release-func fs_candidate_destroy)
 )
-
-(define-method dispose
-  (of-object "FsSession")
-  (unblock-threads t)
-  (unblock-threads t)
-  (c-name "fs_session_dispose")
-  (return-type "gboolean")
-  (return-type "none")
-)
-
-(define-method dispose
-  (of-object "FsStream")
-  (unblock-threads t)
-  (unblock-threads t)
-  (c-name "fs_stream_dispose")
-  (return-type "gboolean")
-  (return-type "none")
-)
-
-(define-method dispose
-  (of-object "FsParticipant")
-  (unblock-threads t)
-  (c-name "fs_participant_dispose")
-  (return-type "gboolean")
-  (return-type "none")
-)
 ;; -*- scheme -*-
 ; object definitions ...
 ;; Enumerations and flags ...
