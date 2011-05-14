@@ -789,12 +789,6 @@ fs_rtp_stream_new (FsRtpSession *session,
   self->priv->ssrc_added_cb = ssrc_added_cb;
   self->priv->user_data_for_cb = user_data_for_cb;
 
-  FS_RTP_SESSION_LOCK (session);
-  if (sending_changed_locked_cb && (direction & FS_DIRECTION_SEND))
-    sending_changed_locked_cb (self, direction & FS_DIRECTION_SEND,
-        user_data_for_cb);
-  FS_RTP_SESSION_UNLOCK (session);
-
   if (self->priv->construction_error) {
     g_propagate_error (error, self->priv->construction_error);
     g_object_unref (self);

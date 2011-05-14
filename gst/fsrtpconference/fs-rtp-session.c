@@ -1549,17 +1549,24 @@ _stream_sending_changed_locked (FsRtpStream *stream, gboolean sending,
   else
     session->priv->streams_sending--;
 
+  if (fs_rtp_session_has_disposed_enter (session, NULL))
+    return;
+
   if (session->priv->streams_sending && session->priv->send_codecbin)
     g_object_set (session->priv->media_sink_valve, "drop", FALSE, NULL);
   else
     g_object_set (session->priv->media_sink_valve, "drop", TRUE, NULL);
 
+  fs_rtp_session_has_disposed_exit (session);
 }
 
 static void
 _stream_ssrc_added_cb (FsRtpStream *stream, guint32 ssrc, gpointer user_data)
 {
   FsRtpSession *self = user_data;
+
+  if (fs_rtp_session_has_disposed_enter (self, NULL))
+    return;
 
   FS_RTP_SESSION_LOCK (self);
   g_hash_table_insert (self->priv->ssrc_streams, GUINT_TO_POINTER (ssrc),
@@ -1569,6 +1576,8 @@ _stream_ssrc_added_cb (FsRtpStream *stream, guint32 ssrc, gpointer user_data)
   FS_RTP_SESSION_UNLOCK (self);
 
   fs_rtp_session_associate_free_substreams (self, stream, ssrc);
+
+  fs_rtp_session_has_disposed_exit (self);
 }
 
 
@@ -1661,6 +1670,13 @@ fs_rtp_session_new_stream (FsSession *session,
   if (new_stream)
   {
     FS_RTP_SESSION_LOCK (self);
+    if (direction & FS_DIRECTION_SEND)
+    {
+      self->priv->streams_sending++;
+      if (self->priv->send_codecbin)
+        g_object_set (self->priv->media_sink_valve, "drop", FALSE, NULL);
+    }
+
     self->priv->streams = g_list_append (self->priv->streams, new_stream);
     self->priv->streams_cookie++;
     FS_RTP_SESSION_UNLOCK (self);
