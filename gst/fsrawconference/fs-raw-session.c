@@ -275,7 +275,6 @@ fs_raw_session_dispose (GObject *object)
   GstElement *send_tee = NULL;
   GstElement *fakesink = NULL;
   GstPad *send_tee_pad = NULL;
-  gulong handler_id = 0;
   FsTransmitter *transmitter = NULL;
   GstPad *media_sink_pad = NULL;
 
@@ -319,12 +318,7 @@ fs_raw_session_dispose (GObject *object)
   }
 
   if (self->priv->stream)
-  {
-    if (handler_id > 0 && self->priv->stream)
-      g_signal_handler_disconnect (self->priv->stream, handler_id);
-
     fs_raw_session_remove_stream(self, FS_STREAM (self->priv->stream));
-  }
 
   GST_OBJECT_LOCK (conference);
   transmitter = self->priv->transmitter;
