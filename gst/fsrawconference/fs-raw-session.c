@@ -318,7 +318,11 @@ fs_raw_session_dispose (GObject *object)
   }
 
   if (self->priv->stream)
-    fs_raw_session_remove_stream(self, FS_STREAM (self->priv->stream));
+  {
+    FsStream *stream = FS_STREAM (self->priv->stream);
+    fs_raw_session_remove_stream(self, stream);
+    fs_stream_destroy (stream);
+  }
 
   GST_OBJECT_LOCK (conference);
   transmitter = self->priv->transmitter;
