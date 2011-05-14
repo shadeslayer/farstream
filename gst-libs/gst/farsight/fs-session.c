@@ -658,3 +658,25 @@ fs_session_codecs_need_resend (FsSession *session,
 
   return NULL;
 }
+
+/**
+ * fs_session_destroy:
+ * @session: a #FsSession
+ *
+ * This will cause the session to remove all links to other objects and to
+ * remove itself from the #FsConference, it will also destroy all #FsStream
+ * inside this #FsSession Once a #FsSession has been destroyed, it
+ * can not be used anymore.
+ *
+ * It is strongly recommended to call this function from the main thread because
+ * releasing the application's reference to a session.
+ */
+
+void
+fs_session_destroy (FsSession *session)
+{
+  g_return_if_fail (session);
+  g_return_if_fail (FS_IS_SESSION (session));
+
+  g_object_run_dispose (G_OBJECT (session));
+}

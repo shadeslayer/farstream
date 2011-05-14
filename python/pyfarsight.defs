@@ -507,6 +507,13 @@
   )
 )
 
+(define-method destroy
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_destroy")
+  (return-type "none")
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...

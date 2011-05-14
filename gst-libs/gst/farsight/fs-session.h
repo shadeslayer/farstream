@@ -196,6 +196,8 @@ GType fs_session_get_stream_transmitter_type (FsSession *session,
 GList* fs_session_codecs_need_resend (FsSession *session,
     GList *old_codecs, GList *new_codecs);
 
+void fs_session_destroy (FsSession *session);
+
 
 G_END_DECLS
 
