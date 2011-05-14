@@ -1655,7 +1655,6 @@ _stream_sending_changed_locked (FsRtpStream *stream, gboolean sending,
     g_object_set (session->priv->rtp_tfrc, "sending",
         session->priv->streams_sending, NULL);
 
-
   fs_rtp_session_has_disposed_exit (session);
 }
 
@@ -2311,15 +2310,23 @@ _stream_get_new_stream_transmitter (FsRtpStream *stream,
   FsStreamTransmitter *st = NULL;
   FsRtpSession *self = user_data;
 
+  if (fs_rtp_session_has_disposed_enter (self, error))
+    return NULL;
+
   transmitter = fs_rtp_session_get_transmitter (self, transmitter_name, error);
 
   if (!transmitter)
+  {
+    fs_rtp_session_has_disposed_exit (self);
     return NULL;
+  }
 
   st = fs_transmitter_new_stream_transmitter (transmitter, participant,
       n_parameters, parameters, error);
 
   g_object_unref (transmitter);
+
+  fs_rtp_session_has_disposed_exit (self);
 
   return st;
 }
