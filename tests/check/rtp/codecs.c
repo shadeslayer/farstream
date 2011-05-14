@@ -540,7 +540,7 @@ GST_START_TEST (test_rtpcodecs_reserved_pt)
 
   fs_codec_list_destroy (codec_prefs);
 
-  g_object_unref (s);
+  fs_stream_destroy (s);
  out:
   cleanup_simple_conference (dat);
 }
@@ -794,6 +794,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
 
   g_object_unref (p2);
+  fs_stream_destroy (stream2);
   g_object_unref (stream2);
 
   g_free (discovered_config);
@@ -913,6 +914,7 @@ run_test_rtpcodecs_config_data (gboolean preset_remotes)
   g_main_loop_unref (loop);
 
   g_object_unref (cd.participant);
+  fs_stream_destroy (cd.stream);
   g_object_unref (cd.stream);
 
   cleanup_simple_conference (cd.dat);
@@ -978,6 +980,7 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
 
   fs_codec_list_destroy (codecs);
 
+  fs_session_destroy (session);
   g_object_unref (session);
   gst_object_unref (conf);
 
@@ -1229,6 +1232,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
       GST_STATE_CHANGE_SUCCESS);
 
   fs_codec_destroy (prefcodec);
+  fs_stream_destroy (stream);
   g_object_unref (stream);
   g_object_unref (participant);
   cleanup_simple_conference (dat);
@@ -1414,6 +1418,7 @@ GST_START_TEST (test_rtpcodecs_telephone_event_nego)
       NULL);
 
   fs_codec_destroy (prefcodec);
+  fs_stream_destroy (stream);
   g_object_unref (stream);
   cleanup_codec_tests (dat, participant);
 }
@@ -1492,6 +1497,7 @@ test_one_codec_internal (const gchar *addr,
     fs_codec_destroy (outcodec);
   }
 
+  fs_stream_destroy (stream);
   g_object_unref (stream);
 }
 
@@ -2328,6 +2334,7 @@ GST_START_TEST (test_rtpcodecs_nego_hdrext)
   fail_unless (hdrexts == NULL);
 
   fs_rtp_header_extension_list_destroy (hdrexts_prefs);
+  fs_stream_destroy (stream);
   g_object_unref (stream);
   g_object_unref (participant);
   cleanup_simple_conference (dat);

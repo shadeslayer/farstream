@@ -209,6 +209,7 @@ GST_START_TEST (test_rtprecv_inband_config_data)
   if (!item)
   {
     GST_INFO ("Skipping %s because THEORA is not detected", G_STRFUNC);
+    fs_session_destroy (session);
     g_object_unref (session);
     gst_object_unref (fspipeline);
     return;

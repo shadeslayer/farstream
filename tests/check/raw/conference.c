@@ -207,7 +207,10 @@ void
 cleanup_simple_stream (struct SimpleTestStream *st)
 {
   if (st->stream)
+  {
+    fs_stream_destroy (st->stream);
     g_object_unref (st->stream);
+  }
   g_object_unref (st->participant);
   g_free (st->transmitter);
   g_free (st);
@@ -221,7 +224,10 @@ cleanup_simple_conference (struct SimpleTestConference *dat)
   g_list_free (dat->streams);
 
   if (dat->session)
+  {
+    fs_session_destroy (dat->session);
     g_object_unref (dat->session);
+  }
   gst_object_unref (dat->pipeline);
   g_free (dat);
 }

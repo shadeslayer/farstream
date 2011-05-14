@@ -1259,6 +1259,7 @@ GST_START_TEST (test_rtpconference_dispose)
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
+  fs_stream_destroy (stream);
   g_object_unref (stream);
 
   stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, &error);
@@ -1292,6 +1293,7 @@ GST_START_TEST (test_rtpconference_dispose)
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
+  fs_session_destroy (session);
   g_object_unref (session);
   g_object_unref (part);
   g_object_unref (stream);
@@ -1404,6 +1406,7 @@ static void unref_session_on_src_pad_added (FsStream *stream,
 {
   TEST_LOCK ();
 
+  fs_session_destroy (st->dat->session);
   g_object_unref (st->dat->session);
   st->dat->session = NULL;
   g_object_unref (st->stream);
@@ -1458,6 +1461,7 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
     struct SimpleTestStream *st = item->data;
     if (st->stream == stream)
     {
+      fs_stream_destroy (stream);
       g_object_unref (stream);
       st->stream = NULL;
       gst_message_unref (message);

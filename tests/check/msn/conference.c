@@ -298,6 +298,7 @@ free_conference (struct SimpleMsnConference *dat)
   ts_fail_if (gst_element_set_state (dat->pipeline, GST_STATE_NULL) ==
       GST_STATE_CHANGE_FAILURE);
 
+  fs_session_destroy (dat->session);
   gst_object_unref (dat->stream);
   gst_object_unref (dat->session);
   gst_object_unref (dat->part);
