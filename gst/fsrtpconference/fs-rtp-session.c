@@ -513,18 +513,24 @@ stop_and_remove (GstBin *conf, GstElement **element, gboolean unref)
 }
 
 
-static gpointer
-trigger_dispose (gpointer data)
-{
-  g_object_unref (data);
-  return NULL;
-}
-
 static void
-fs_rtp_session_real_dispose (FsRtpSession *self)
+fs_rtp_session_dispose (GObject *obj)
 {
+  FsRtpSession *self = FS_RTP_SESSION (obj);
   GList *item = NULL;
   GstBin *conferencebin = NULL;
+
+  if (fs_rtp_session_has_disposed_enter (self, NULL))
+    return;
+
+  if (fs_rtp_conference_is_internal_thread (self->priv->conference))
+  {
+    g_critical ("You MUST call fs_session_destroy() from your main thread, "
+        "this FsSession may now be leaked");
+    fs_rtp_session_has_disposed_exit (self);
+    return;
+  }
+  fs_rtp_session_has_disposed_exit (self);
 
   g_static_rw_lock_writer_lock (&self->priv->disposed_lock);
   if (self->priv->disposed)
@@ -745,29 +751,7 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   g_hash_table_remove_all (self->priv->ssrc_streams_manual);
 
 
-  G_OBJECT_CLASS (fs_rtp_session_parent_class)->dispose (G_OBJECT (self));
-}
-
-static void
-fs_rtp_session_dispose (GObject *object)
-{
-  FsRtpSession *self = FS_RTP_SESSION (object);
-
-  if (fs_rtp_session_has_disposed_enter (self, NULL))
-    return;
-
-  if (fs_rtp_conference_is_internal_thread (self->priv->conference))
-  {
-    g_object_ref (self);
-    if (!g_thread_create (trigger_dispose, self, FALSE, NULL))
-      g_error ("Could not create dispose thread");
-    fs_rtp_session_has_disposed_exit (self);
-  }
-  else
-  {
-    fs_rtp_session_has_disposed_exit (self);
-    fs_rtp_session_real_dispose (self);
-  }
+  G_OBJECT_CLASS (fs_rtp_session_parent_class)->dispose (obj);
 }
 
 static void
