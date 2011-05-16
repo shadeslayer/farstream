@@ -1483,11 +1483,6 @@ fsrawconference_suite (void)
 {
   Suite *s = suite_create ("fsrawconference");
   TCase *tc_chain;
-  GLogLevelFlags fatal_mask;
-
-  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
-  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
-  g_log_set_always_fatal (fatal_mask);
 
   tc_chain = tcase_create ("fsrawconference_base");
   tcase_add_test (tc_chain, test_rawconference_new);
