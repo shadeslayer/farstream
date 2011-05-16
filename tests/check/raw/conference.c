@@ -263,7 +263,8 @@ setup_fakesrc (struct SimpleTestConference *dat)
   gst_object_unref (srcpad);
 
   if (dat->started)
-    gst_element_set_state (dat->pipeline, GST_STATE_PLAYING);
+    fail_if (gst_element_set_state (dat->pipeline, GST_STATE_PLAYING) ==
+        GST_STATE_CHANGE_FAILURE);
 }
 
 static gboolean
