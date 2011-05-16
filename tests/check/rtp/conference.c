@@ -1426,6 +1426,8 @@ GST_START_TEST (test_rtpconference_unref_session_in_pad_added)
 }
 GST_END_TEST;
 
+#if 0
+
 static const gchar *signal_name;
 
 static GstBusSyncReply
@@ -1457,9 +1459,7 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
     struct SimpleTestStream *st = item->data;
     if (st->stream == stream)
     {
-      fs_stream_destroy (stream);
-      g_object_unref (stream);
-      st->stream = NULL;
+      ASSERT_CRITICAL (fs_stream_destroy (stream));
       gst_message_unref (message);
       g_main_loop_quit (loop);
       TEST_UNLOCK ();
@@ -1502,6 +1502,8 @@ GST_START_TEST (test_rtpconference_unref_stream_in_nice_thread_state_changed)
   nway_test (2, unref_stream_init, NULL, "nice", 0, NULL);
 }
 GST_END_TEST;
+
+#endif
 
 static Suite *
 fsrtpconference_suite (void)
@@ -1586,6 +1588,8 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain, test_rtpconference_unref_session_in_pad_added);
   suite_add_tcase (s, tc_chain);
 
+#if 0
+
   tc_chain = tcase_create (
       "fsrtpconference_unref_stream_in_nice_thread_prepared");
   tcase_add_test (tc_chain,
@@ -1603,6 +1607,8 @@ fsrtpconference_suite (void)
   tcase_add_test (tc_chain,
       test_rtpconference_unref_stream_in_nice_thread_state_changed);
   suite_add_tcase (s, tc_chain);
+
+#endif
 
   return s;
 }
