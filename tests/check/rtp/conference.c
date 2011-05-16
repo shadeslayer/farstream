@@ -1406,11 +1406,7 @@ static void unref_session_on_src_pad_added (FsStream *stream,
 {
   TEST_LOCK ();
 
-  fs_session_destroy (st->dat->session);
-  g_object_unref (st->dat->session);
-  st->dat->session = NULL;
-  g_object_unref (st->stream);
-  st->stream = NULL;
+  ASSERT_CRITICAL (fs_session_destroy (st->dat->session));
 
   TEST_UNLOCK ();
 
@@ -1512,11 +1508,6 @@ fsrtpconference_suite (void)
 {
   Suite *s = suite_create ("fsrtpconference");
   TCase *tc_chain;
-  GLogLevelFlags fatal_mask;
-
-  fatal_mask = g_log_set_always_fatal (G_LOG_FATAL_MASK);
-  fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
-  g_log_set_always_fatal (fatal_mask);
 
   tc_chain = tcase_create ("fsrtpconference_base");
   tcase_add_test (tc_chain, test_rtpconference_new);
