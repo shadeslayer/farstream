@@ -42,6 +42,8 @@ struct SimpleTestConference {
 
   gboolean started;
 
+  gboolean destroyed;
+
   GList *streams;
 };
 
@@ -52,6 +54,8 @@ struct SimpleTestStream {
 
   FsParticipant *participant;
   FsStream *stream;
+
+  gboolean destroyed;
 
   gchar *transmitter;
 
@@ -388,14 +392,14 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
 
   TEST_LOCK ();
 
-  if (st->stream == NULL)
+  if (st->destroyed)
   {
     TEST_UNLOCK ();
     return;
   }
 
   other_st = find_pointback_stream (st->target, st->dat);
-  if (other_st->stream == NULL)
+  if (other_st->destroyed)
   {
     TEST_UNLOCK ();
     return;
@@ -674,8 +678,13 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
   gboolean stop = TRUE;
   GList *codecs = NULL;
 
-  if (st->dat->session == NULL)
+  TEST_LOCK ();
+
+  if (st->dat->destroyed)
+  {
+    TEST_UNLOCK ();
     return;
+  }
 
   g_object_get (st->dat->session,
       "codecs", &codecs,
@@ -706,6 +715,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       g_free (str2);
 #endif
       fs_codec_list_destroy (codecs);
+      TEST_UNLOCK ();
       return;
     }
   }
@@ -721,6 +731,7 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
         ts_fail ("The handoff handler got a buffer from the wrong codec"
             " (ie. not the last)");
       fs_codec_list_destroy (codecs);
+      TEST_UNLOCK ();
       return;
     }
   }
@@ -796,6 +807,8 @@ _handoff_handler (GstElement *element, GstBuffer *buffer, GstPad *pad,
       g_main_loop_quit (loop);
     }
   }
+
+  TEST_UNLOCK ();
 }
 
 static void
@@ -985,7 +998,7 @@ set_initial_codecs (
   GList *rcodecs2 = NULL;
   GError *error = NULL;
 
-  if (to->stream == NULL || from->session == NULL)
+  if (to->destroyed || from->destroyed)
     return;
 
   g_object_get (from->session, "codecs", &codecs, NULL);
@@ -1318,7 +1331,7 @@ GST_START_TEST (test_rawconference_dispose)
   stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, &error);
   fail_if (stream == NULL || error != NULL);
 
-  g_object_run_dispose (G_OBJECT (stream));
+  fs_stream_destroy (stream);
 
   fail_if (fs_stream_add_remote_candidates (stream, NULL, &error));
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
@@ -1332,12 +1345,13 @@ GST_START_TEST (test_rawconference_dispose)
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
+  fs_stream_destroy (stream);
   g_object_unref (stream);
 
   stream = fs_session_new_stream (session, part, FS_DIRECTION_BOTH, &error);
   fail_if (stream == NULL || error != NULL);
 
-  g_object_run_dispose (G_OBJECT (stream));
+  fs_stream_destroy (stream);
 
   fail_if (fs_stream_add_remote_candidates (stream, NULL, &error));
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
@@ -1351,7 +1365,7 @@ GST_START_TEST (test_rawconference_dispose)
   fail_unless (error->domain == FS_ERROR && error->code == FS_ERROR_DISPOSED);
   g_clear_error (&error);
 
-  g_object_run_dispose (G_OBJECT (session));
+  fs_session_destroy (session);
 
   fail_if (fs_session_start_telephony_event (session, 1, 2,
           FS_DTMF_METHOD_AUTO));
@@ -1367,6 +1381,7 @@ GST_START_TEST (test_rawconference_dispose)
       error->code == FS_ERROR_NOT_IMPLEMENTED);
   g_clear_error (&error);
 
+  fs_session_destroy (session);
   g_object_unref (session);
   g_object_unref (part);
   g_object_unref (stream);
@@ -1379,10 +1394,12 @@ static void unref_session_on_src_pad_added (FsStream *stream,
 {
   TEST_LOCK ();
 
-  g_object_unref (st->dat->session);
-  st->dat->session = NULL;
-  g_object_unref (st->stream);
-  st->stream = NULL;
+  gst_element_set_locked_state (st->dat->fakesrc, TRUE);
+  gst_element_set_state (st->dat->fakesrc, GST_STATE_NULL);
+  gst_bin_remove (GST_BIN (st->dat->pipeline), st->dat->fakesrc);
+
+  ASSERT_CRITICAL (fs_session_destroy (st->dat->session));
+  st->dat->destroyed = TRUE;
 
   TEST_UNLOCK ();
 
@@ -1433,8 +1450,8 @@ unref_stream_sync_handler (GstBus *bus, GstMessage *message,
     struct SimpleTestStream *st = item->data;
     if (st->stream == stream)
     {
-      g_object_unref (stream);
-      st->stream = NULL;
+      fs_stream_destroy (stream);
+      st->destroyed = TRUE;
       gst_message_unref (message);
       g_main_loop_quit (loop);
       TEST_UNLOCK ();
