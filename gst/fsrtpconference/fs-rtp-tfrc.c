@@ -99,10 +99,16 @@ static void
 tracked_src_free (struct TrackedSource *src)
 {
   if (src->sender_id)
+  {
     gst_clock_id_unschedule (src->sender_id);
+    gst_clock_id_unref (src->sender_id);
+  }
 
   if (src->receiver_id)
+  {
     gst_clock_id_unschedule (src->receiver_id);
+    gst_clock_id_unref (src->receiver_id);
+  }
 
   if (src->rtpsource)
     g_object_unref (src->rtpsource);
@@ -297,8 +303,11 @@ fs_rtp_tfrc_receiver_timer_func (FsRtpTfrc *self, struct TrackedSource *src,
   GstClockReturn cret;
 
   if (src->receiver_id)
+  {
     gst_clock_id_unschedule (src->receiver_id);
-  src->receiver_id = NULL;
+    gst_clock_id_unref (src->receiver_id);
+    src->receiver_id = NULL;
+  }
 
   expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
 
@@ -583,8 +592,11 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
   GstClockReturn cret;
 
   if (src->sender_id)
+  {
     gst_clock_id_unschedule (src->sender_id);
-  src->sender_id = NULL;
+    gst_clock_id_unref (src->sender_id);
+    src->sender_id = NULL;
+  }
 
   expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
 
