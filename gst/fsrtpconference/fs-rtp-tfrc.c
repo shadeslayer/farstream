@@ -598,6 +598,9 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
     src->sender_id = NULL;
   }
 
+  if (src->sender == NULL)
+    return;
+
   expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
 
   if (expiry <= now)
@@ -605,7 +608,6 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
     tfrc_sender_no_feedback_timer_expired (src->sender, now);
     expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
   }
-
 
   src->sender_id = gst_clock_new_single_shot_id (self->systemclock,
       expiry * GST_MSECOND);
