@@ -33,13 +33,15 @@
  */
 
 #if 0
-#define DEBUG_RECEIVER(...) g_debug ("TFRC-R: " __VA_ARGS__)
+#define DEBUG_RECEIVER(receiver, format, ...) \
+  g_debug ("TFRC-R (%p): " format , receiver,  __VA_ARGS__)
 #else
 #define DEBUG_RECEIVER(...)
 #endif
 
 #if 0
-#define DEBUG_SENDER(...) g_debug ("TFRC-S: " __VA_ARGS__)
+#define DEBUG_SENDER(sender, format, ...) \
+  g_debug ("TFRC-S (%p): " format,  sender,  __VA_ARGS__)
 #else
 #define DEBUG_SENDER(...)
 #endif
@@ -195,7 +197,7 @@ maximize_receive_rate_history (TfrcSender *sender, guint receive_rate,
 {
   guint max_rate;
 
-  DEBUG_SENDER ("MAXIMIZE");
+  DEBUG_SENDER (sender, "MAXIMIZE recv: %u", receive_rate);
 
   add_to_receive_rate_history (sender, receive_rate, now);
 
@@ -238,14 +240,14 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
         sender->averaged_rtt, loss_event_rate);
     sender->rate = MAX (MIN (sender->computed_rate, recv_limit),
             sender_get_segment_size (sender)/t_mbi);
-    DEBUG_SENDER ("congestion avoidance: %u (computed: %u ss: %u)", sender->rate,
-        sender->computed_rate, sender_get_segment_size (sender));
+    DEBUG_SENDER (sender, "congestion avoidance: %u (computed: %u ss: %u)",
+        sender->rate, sender->computed_rate, sender_get_segment_size (sender));
   } else if (now - sender->tld >= sender->averaged_rtt) {
     /* initial slow-start */
     sender->rate = MAX (MIN (2 * sender->rate, recv_limit),
             sender->initial_rate);
     sender->tld = now;
-    DEBUG_SENDER ("initial slow start: %u", sender->rate);
+    DEBUG_SENDER (sender, "initial slow start: %u", sender->rate);
   }
 }
 
@@ -265,7 +267,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
         (1000 * MIN (4*sender->mss, MAX (2*sender->mss, 4380))) / rtt;
     sender->rate = sender->initial_rate;
     sender->tld = now;
-    DEBUG_SENDER ("on_fb: initial rate: %u", sender->rate);
+    DEBUG_SENDER (sender, "on_fb: initial rate: %u", sender->rate);
   }
 
   /* Apply the steps from RFC 5348 section 4.3 */
@@ -301,13 +303,13 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 
       recv_limit = maximize_receive_rate_history (sender, receive_rate,
           now);
-      DEBUG_SENDER ("on_fb: data limited, new loss event %f > %f,"
+      DEBUG_SENDER (sender, "on_fb: data limited, new loss event %f > %f,"
           " recv_limit: %u", loss_event_rate, sender->last_loss_event_rate,
           recv_limit);
     } else {
       recv_limit = 2 * maximize_receive_rate_history (sender, receive_rate,
           now);
-      DEBUG_SENDER ("on_fb: data limited, no new loss event %f <= %f,"
+      DEBUG_SENDER (sender, "on_fb: data limited, no new loss event %f <= %f,"
           " recv_limit: %u", loss_event_rate, sender->last_loss_event_rate,
           recv_limit);
     }
@@ -319,7 +321,8 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
       recv_limit *= 2;
     else
       recv_limit = G_MAXUINT;
-    DEBUG_SENDER ("on_fb: not data limited, recv_limit: %u", recv_limit);
+    DEBUG_SENDER (sender, "on_fb: not data limited, recv_limit: %u",
+        recv_limit);
   }
 
   recompute_sending_rate (sender, recv_limit, loss_event_rate, now);
@@ -375,7 +378,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
 
     sender->rate = MAX ( sender->rate / 2,
         sender_get_segment_size (sender) / t_mbi);
-    DEBUG_SENDER ("no_fb: no p, initial, halve rate: %u", sender->rate);
+    DEBUG_SENDER (sender, "no_fb: no p, initial, halve rate: %u", sender->rate);
   } else if (((sender->last_loss_event_rate > 0 &&
               receive_rate < recover_rate) ||
           (sender->last_loss_event_rate == 0 &&
@@ -383,23 +386,24 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
       sender->sent_packet) {
     /* Don't halve the allowed sending rate. */
     /* do nothing */
-    DEBUG_SENDER ("no_fb: have p, do nothing");
+    DEBUG_SENDER (sender, "no_fb: have p, do nothing recv: %u recover: %u",
+        receive_rate, recover_rate);
   } else if (sender->last_loss_event_rate == 0) {
     /* We do not have X_Bps yet.
      * Halve the allowed sending rate.
      */
     sender->rate = MAX ( sender->rate / 2,
         sender_get_segment_size (sender) / t_mbi);
-    DEBUG_SENDER ("no_fb: no p, halve rate: %u", sender->rate);
+    DEBUG_SENDER (sender, "no_fb: no p, halve rate: %u", sender->rate);
   } else if (sender->computed_rate / 2 > receive_rate) {
     /* 2 * X_recv was already limiting the sending rate.
      * Halve the allowed sending rate.
    */
-    DEBUG_SENDER ("no_fb: computed rate %u > 2 * recv_rate %u",
+    DEBUG_SENDER (sender, "no_fb: computed rate %u > 2 * recv_rate %u",
         sender->computed_rate, receive_rate);
     update_limits(sender, receive_rate, now);
   } else {
-    DEBUG_SENDER ("no_fb: ELSE");
+    DEBUG_SENDER (sender, "no_fb: ELSE computed: %u", sender->computed_rate);
     update_limits(sender, sender->computed_rate / 2, now);
   }
 
@@ -592,7 +596,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
   if (receiver->received_intervals.length < 2)
     return 0;
 
-  DEBUG_RECEIVER ("start loss event rate computation (rtt: %u)",
+  DEBUG_RECEIVER (receiver, "start loss event rate computation (rtt: %u)",
       receiver->sender_rtt);
 
   for (item = g_queue_peek_head_link (&receiver->received_intervals)->next;
@@ -605,8 +609,9 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
 
     max_seqnum = current->last_seqnum;
 
-    DEBUG_RECEIVER ("Loss: ts %u->%u seq %u->%u", prev->last_timestamp,
-        current->first_timestamp, prev->last_seqnum, current->first_seqnum);
+    DEBUG_RECEIVER (receiver, "Loss: ts %u->%u seq %u->%u",
+        prev->last_timestamp, current->first_timestamp, prev->last_seqnum,
+        current->first_seqnum);
 
     /* If the current loss is entirely within one RTT of the beginning of the
      * last loss, lets merge it into there
@@ -615,7 +620,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
         loss_event_times[max_index % LOSS_EVENTS_MAX] + receiver->sender_rtt) {
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
           current->first_seqnum - prev->last_seqnum;
-      DEBUG_RECEIVER ("Merged: pktcount[%u] = %u", max_index,
+      DEBUG_RECEIVER (receiver, "Merged: pktcount[%u] = %u", max_index,
           loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
       continue;
     }
@@ -633,7 +638,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
           (1 + current->first_timestamp - prev->last_timestamp);
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
           start_seqnum - prev->last_seqnum - 1;
-      DEBUG_RECEIVER ("Loss ends inside loss interval pktcount[%u] = %u",
+      DEBUG_RECEIVER (receiver,
+          "Loss ends inside loss interval pktcount[%u] = %u",
           max_index, loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
     } else {
       /* this is the case where the packet loss starts an entirely new loss
@@ -645,7 +651,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
       start_seqnum = prev->last_seqnum + 1;
     }
 
-    DEBUG_RECEIVER ("start_ts: %u seqnum: %u", start_ts, start_seqnum);
+    DEBUG_RECEIVER (receiver, "start_ts: %u seqnum: %u", start_ts,
+        start_seqnum);
 
     /* Now we have one or more loss events that start
      * during this interval of lost packets, if there is more than one
@@ -691,21 +698,21 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
       }
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] = start_seqnum -
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX];
-      DEBUG_RECEIVER ("loss %u times: %u seqnum: %u pktcount: %u",
+      DEBUG_RECEIVER (receiver, "loss %u times: %u seqnum: %u pktcount: %u",
           max_index, loss_event_times[max_index % LOSS_EVENTS_MAX],
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX],
           loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
     }
   }
 
-  if (max_index < 0 || 
+  if (max_index < 0 ||
       (max_index < 1 && receiver->max_receive_rate == 0))
     return 0;
 
   /* RFC 5348 Section 5.3: The size of loss events */
   loss_intervals[0] =
     max_seqnum - loss_event_seqnums[max_index % LOSS_EVENTS_MAX] + 1;
-  DEBUG_RECEIVER ("intervals[0] = %u", loss_intervals[0]);
+  DEBUG_RECEIVER (receiver, "intervals[0] = %u", loss_intervals[0]);
   for (i = max_index - 1, max_interval = 1;
        max_interval < LOSS_INTERVALS_MAX &&
          i >= 0 && i > max_index - LOSS_EVENTS_MAX;
@@ -725,7 +732,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
     else
       loss_intervals[max_interval] =
         loss_event_seqnums[prev_i] - loss_event_seqnums[cur_i];
-    DEBUG_RECEIVER ("intervals[%u] = %u", max_interval,
+    DEBUG_RECEIVER (receiver, "intervals[%u] = %u", max_interval,
         loss_intervals[max_interval]);
   }
 
@@ -742,13 +749,13 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
            */
           compute_first_loss_interval (receiver->max_receive_rate_ss,
               receiver->sender_rtt, receiver->max_receive_rate);
-      DEBUG_RECEIVER ("Computed the first loss interval to %u"
+      DEBUG_RECEIVER (receiver, "Computed the first loss interval to %u"
           " (rtt: %u s: %u rate:%u)",
           receiver->first_loss_interval, receiver->sender_rtt,
           receiver->max_receive_rate_ss, receiver->max_receive_rate);
     }
     loss_intervals[max_interval] = receiver->first_loss_interval;
-    DEBUG_RECEIVER ("intervals[%u] = %u", max_interval,
+    DEBUG_RECEIVER (receiver, "intervals[%u] = %u", max_interval,
         loss_intervals[max_interval]);
     max_interval++;
  }
@@ -992,7 +999,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
   receiver->sender_rtt_on_last_feedback = receiver->sender_rtt;
   receiver->feedback_sent_on_last_timer = TRUE;
 
-  DEBUG_RECEIVER ("P: %f recv_rate: %u", receiver->loss_event_rate,
+  DEBUG_RECEIVER (receiver, "P: %f recv_rate: %u", receiver->loss_event_rate,
       receiver->receive_rate);
 
   *receive_rate = receiver->receive_rate;
