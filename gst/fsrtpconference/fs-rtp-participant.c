@@ -64,10 +64,6 @@ struct _FsRtpParticipantPrivate
 static void
 fs_rtp_participant_class_init (FsRtpParticipantClass *klass)
 {
-  GObjectClass *gobject_class;
-
-  gobject_class = (GObjectClass *) klass;
-
   // g_type_class_add_private (klass, sizeof (FsRtpParticipantPrivate));
 }
 

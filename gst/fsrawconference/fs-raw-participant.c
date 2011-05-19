@@ -65,10 +65,6 @@ struct _FsRawParticipantPrivate
 static void
 fs_raw_participant_class_init (FsRawParticipantClass *klass)
 {
-  GObjectClass *gobject_class;
-
-  gobject_class = (GObjectClass *) klass;
-
   // g_type_class_add_private (klass, sizeof (FsRawParticipantPrivate));
 }
 

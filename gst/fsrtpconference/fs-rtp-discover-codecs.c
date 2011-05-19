@@ -214,7 +214,6 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
   GstCaps *caps;
   GList *recv_list = NULL;
   GList *send_list = NULL;
-  gboolean ret;
 
   if (media_type > FS_MEDIA_TYPE_LAST)
   {
@@ -276,7 +275,7 @@ fs_rtp_blueprints_get (FsMediaType media_type, GError **error)
     goto out;
   }
 
-  ret = create_codec_lists (media_type, recv_list, send_list);
+  create_codec_lists (media_type, recv_list, send_list);
 
   /* Save the codecs blueprint cache */
   save_codecs_cache (media_type, list_codec_blueprints[media_type]);
