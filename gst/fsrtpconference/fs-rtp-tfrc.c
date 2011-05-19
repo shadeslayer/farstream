@@ -763,7 +763,6 @@ fs_rtp_tfrc_get_sync_time (FsRtpPacketModder *modder,
 {
   FsRtpTfrc *self = FS_RTP_TFRC (user_data);
   GstClockTime sync_time = GST_BUFFER_TIMESTAMP (buffer);
-  guint now;
   gint bytes_for_one_rtt = 0;
   guint size = 0;
   guint send_rate;
@@ -775,9 +774,6 @@ fs_rtp_tfrc_get_sync_time (FsRtpPacketModder *modder,
     GST_OBJECT_UNLOCK (self);
     return GST_CLOCK_TIME_NONE;
   }
-
-
-  now = fs_rtp_tfrc_get_now (self);
 
   if (self->last_src && self->last_src->sender)
   {
