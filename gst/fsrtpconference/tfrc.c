@@ -386,7 +386,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
               receive_rate < recover_rate) ||
           (sender->last_loss_event_rate == 0 &&
               sender->rate < 2 * recover_rate)) &&
-      sender->sent_packet) {
+      !sender->sent_packet) {
     /* Don't halve the allowed sending rate. */
     /* do nothing */
     DEBUG_SENDER (sender, "no_fb: have p, do nothing recv: %u recover: %u",
