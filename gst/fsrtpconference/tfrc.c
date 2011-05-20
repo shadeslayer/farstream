@@ -267,7 +267,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
         (1000 * MIN (4*sender->mss, MAX (2*sender->mss, 4380))) / rtt;
     sender->rate = sender->initial_rate;
     sender->tld = now;
-    DEBUG_SENDER (sender, "on_fb: initial rate: %u", sender->rate);
+    DEBUG_SENDER (sender, "fb: initial rate: %u", sender->rate);
   }
 
   /* Apply the steps from RFC 5348 section 4.3 */
@@ -306,13 +306,13 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 
       recv_limit = maximize_receive_rate_history (sender, receive_rate,
           now);
-      DEBUG_SENDER (sender, "on_fb: data limited, new loss event %f > %f,"
+      DEBUG_SENDER (sender, "fb: data limited, new loss event %f > %f,"
           " recv_limit: %u", loss_event_rate, sender->last_loss_event_rate,
           recv_limit);
     } else {
       recv_limit = 2 * maximize_receive_rate_history (sender, receive_rate,
           now);
-      DEBUG_SENDER (sender, "on_fb: data limited, no new loss event %f <= %f,"
+      DEBUG_SENDER (sender, "fb: data limited, no new loss event %f <= %f,"
           " recv_limit: %u", loss_event_rate, sender->last_loss_event_rate,
           recv_limit);
     }
@@ -324,7 +324,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
       recv_limit *= 2;
     else
       recv_limit = G_MAXUINT;
-    DEBUG_SENDER (sender, "on_fb: not data limited, recv_limit: %u",
+    DEBUG_SENDER (sender, "fb: not data limited, recv_limit: %u",
         recv_limit);
   }
 
