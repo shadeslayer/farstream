@@ -296,11 +296,38 @@ free_timer_data (gpointer data)
 }
 
 static void
-fs_rtp_tfrc_receiver_timer_func (FsRtpTfrc *self, struct TrackedSource *src,
-    guint now)
+fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
+    struct TrackedSource *src, guint now)
+{
+  guint expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+  GstClockReturn cret;
+
+  if (src->receiver_id)
+  {
+    if (src->next_feedback_timer <= expiry)
+      return;
+
+    gst_clock_id_unschedule (src->receiver_id);
+    gst_clock_id_unref (src->receiver_id);
+    src->receiver_id = NULL;
+  }
+  src->next_feedback_timer = expiry;
+
+  src->receiver_id = gst_clock_new_single_shot_id (self->systemclock,
+      expiry * GST_MSECOND);
+
+  cret = gst_clock_id_wait_async_full (src->receiver_id, feedback_timer_expired,
+      build_timer_data (self, src->ssrc), free_timer_data);
+  if (cret != GST_CLOCK_OK)
+    GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
+        expiry, now, cret);
+}
+
+static void
+fs_rtp_tfrc_receiver_timer_func_locked (FsRtpTfrc *self,
+    struct TrackedSource *src, guint now)
 {
   guint expiry;
-  GstClockReturn cret;
 
   if (src->receiver_id)
   {
@@ -311,25 +338,16 @@ fs_rtp_tfrc_receiver_timer_func (FsRtpTfrc *self, struct TrackedSource *src,
 
   expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
 
-  if (expiry <= now)
+  if (expiry <= now &&
+      tfrc_receiver_feedback_timer_expired (src->receiver, now))
   {
-    if (tfrc_receiver_feedback_timer_expired (src->receiver, now))
-    {
-      src->send_feedback = TRUE;
-      g_signal_emit_by_name (self->rtpsession, "send-rtcp", (guint64) 0);
-    }
-
-    expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+    src->send_feedback = TRUE;
+    g_signal_emit_by_name (self->rtpsession, "send-rtcp", (guint64) 0);
   }
-
-  src->receiver_id = gst_clock_new_single_shot_id (self->systemclock,
-      expiry * GST_MSECOND);
-
-  cret = gst_clock_id_wait_async_full (src->receiver_id, feedback_timer_expired,
-      build_timer_data (self, src->ssrc), free_timer_data);
-  if (cret != GST_CLOCK_OK)
-    GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
-        expiry, now, cret);
+  else
+  {
+    fs_rtp_tfrc_set_receiver_timer_locked (self, src, now);
+  }
 }
 
 static gboolean
@@ -349,7 +367,17 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
       GUINT_TO_POINTER (td->ssrc));
 
   if (G_LIKELY (src))
-    fs_rtp_tfrc_receiver_timer_func (td->self, src, now);
+  {
+    if (src->receiver_id && src->receiver_id != id)
+    {
+      g_warning ("Receiver ID confusion");
+      gst_clock_id_unschedule (src->receiver_id);
+      gst_clock_id_unref (src->receiver_id);
+      src->receiver_id = NULL;
+    }
+
+    fs_rtp_tfrc_receiver_timer_func_locked (td->self, src, now);
+  }
 
   GST_OBJECT_UNLOCK (td->self);
 
@@ -389,15 +417,15 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
     return;
 
   if (!src->send_feedback)
-    return;
+    goto done;
 
   if (!gst_rtcp_buffer_add_packet (data->buffer, GST_RTCP_TYPE_RTPFB, &packet))
-    return;
+    goto done;
 
   if (!gst_rtcp_packet_fb_set_fci_length (&packet, 4))
   {
     gst_rtcp_packet_remove (&packet);
-    return;
+    goto done;
   }
 
   now = fs_rtp_tfrc_get_now (data->self);
@@ -405,7 +433,7 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
           &receive_rate))
   {
     gst_rtcp_packet_remove (&packet);
-    return;
+    goto done;
   }
 
   if (!data->have_ssrc)
@@ -429,6 +457,9 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   src->send_feedback = FALSE;
 
   data->ret = TRUE;
+
+done:
+  fs_rtp_tfrc_set_receiver_timer_locked (data->self, src, now);
 }
 
 static gboolean
@@ -518,8 +549,8 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   GST_LOG ("Got RTP packet");
 
-  if (src->last_rtt == 0 && rtt)
-    fs_rtp_tfrc_receiver_timer_func (self, src, now);
+  if (rtt &&  src->last_rtt == 0)
+    fs_rtp_tfrc_receiver_timer_func_locked (self, src, now);
 
   src->last_ts = ts;
   src->last_now = now;

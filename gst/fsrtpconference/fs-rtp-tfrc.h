@@ -77,6 +77,8 @@ struct TrackedSource {
   guint32 last_rtt;
   gboolean send_feedback;
 
+  guint next_feedback_timer;
+
   gboolean got_nohdr_pkt;
 };
 
