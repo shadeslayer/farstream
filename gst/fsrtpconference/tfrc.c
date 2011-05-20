@@ -278,7 +278,10 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
   if (sender->averaged_rtt == 0)
     sender->averaged_rtt = rtt;
   else
-    sender->averaged_rtt = (sender->averaged_rtt *  9) / 10 + rtt / 10;
+    sender->averaged_rtt = (sender->averaged_rtt * 9 + rtt) / 10;
+
+  if (sender->averaged_rtt == 0)
+    sender->averaged_rtt = 1;
 
   /* Step 3: Update the timeout interval */
   sender->retransmission_timeout = MAX (4 * sender->averaged_rtt,
