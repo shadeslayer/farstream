@@ -526,12 +526,16 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   src->last_rtt = rtt;
 
 out:
-  GST_OBJECT_UNLOCK (self);
 
   if (send_rtcp)
   {
     src->send_feedback = TRUE;
+    GST_OBJECT_UNLOCK (self);
     g_signal_emit_by_name (src->self->rtpsession, "send-rtcp", (guint64) 0);
+  }
+  else
+  {
+    GST_OBJECT_UNLOCK (self);
   }
 
   return TRUE;
