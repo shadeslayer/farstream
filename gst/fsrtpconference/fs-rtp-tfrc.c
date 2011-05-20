@@ -1000,9 +1000,6 @@ fs_rtp_tfrc_new (GObject *rtpsession,
   self->in_rtcp_probe_id = gst_pad_add_buffer_probe (inrtcp,
       G_CALLBACK (incoming_rtcp_probe), self);
 
-  g_signal_connect_object (rtpsession, "on-ssrc-validated",
-      G_CALLBACK (rtpsession_on_ssrc_validated), self, 0);
-
 
   g_signal_connect_object (rtpsession, "on-ssrc-validated",
       G_CALLBACK (rtpsession_on_ssrc_validated), self, 0);
