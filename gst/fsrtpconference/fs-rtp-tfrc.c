@@ -503,7 +503,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   ssrc = gst_rtp_buffer_get_ssrc (buffer);
 
-  src = g_hash_table_lookup (self->tfrc_sources, GUINT_TO_POINTER (ssrc));
   pt = gst_rtp_buffer_get_payload_type (buffer);
 
   if (pt > 128 || !self->pts[pt])
