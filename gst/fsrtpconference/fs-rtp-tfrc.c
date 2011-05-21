@@ -242,6 +242,7 @@ fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
     src->ssrc = ssrc;
     if (rtpsource && !src->rtpsource)
       src->rtpsource = g_object_ref (rtpsource);
+    g_hash_table_insert (self->tfrc_sources, GUINT_TO_POINTER (ssrc), src);
     return src;
   }
 
