@@ -389,7 +389,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
       !sender->sent_packet) {
     /* Don't halve the allowed sending rate. */
     /* do nothing */
-    DEBUG_SENDER (sender, "no_fb: have p, do nothing recv: %u recover: %u",
+    DEBUG_SENDER (sender, "no_fb: idle, do nothing recv: %u recover: %u",
         receive_rate, recover_rate);
   } else if (sender->last_loss_event_rate == 0) {
     /* We do not have X_Bps yet.
