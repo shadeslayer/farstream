@@ -273,7 +273,7 @@ rtpsession_on_ssrc_validated (GObject *rtpsession, GObject *rtpsource,
 
   g_object_get (rtpsource, "ssrc", &ssrc, NULL);
 
-  GST_DEBUG ("ssrc validate: %X", ssrc);
+  GST_DEBUG_OBJECT (self, "ssrc validate: %X", ssrc);
 
   GST_OBJECT_LOCK (self);
   fs_rtp_tfrc_get_remote_ssrc_locked (self, ssrc, rtpsource);
@@ -329,7 +329,8 @@ fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
   cret = gst_clock_id_wait_async_full (src->receiver_id, feedback_timer_expired,
       build_timer_data (self, src->ssrc), free_timer_data);
   if (cret != GST_CLOCK_OK)
-    GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
+    GST_ERROR_OBJECT (self,
+        "Could not schedule feedback time for %u (now %u) error: %d",
         expiry, now, cret);
 }
 
@@ -457,8 +458,9 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   GST_WRITE_UINT32_BE (pdata + 8, receive_rate);
   GST_WRITE_UINT32_BE (pdata + 12, loss_event_rate * G_MAXUINT);
 
-  GST_LOG ("Sending RTCP report last_ts: %d delay: %d, x_recv: %d, rate: %f",
-      src->last_ts, now - src->last_now, receive_rate, loss_event_rate);
+  GST_LOG_OBJECT (data->self, "Sending RTCP report last_ts: %d delay: %d,"
+      " x_recv: %d, rate: %f", src->last_ts, now - src->last_now, receive_rate,
+      loss_event_rate);
 
   src->send_feedback = FALSE;
 
@@ -552,7 +554,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
-  GST_LOG ("Got RTP packet");
+  GST_LOG_OBJECT (self, "Got RTP packet";
 
   if (rtt &&  src->last_rtt == 0)
     fs_rtp_tfrc_receiver_timer_func_locked (self, src, now);
@@ -611,7 +613,7 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   if (old_rate != tfrc_sender_get_send_rate (src->sender))
   {
-    GST_DEBUG ("Send rate changed: %u -> %u", old_rate,
+    GST_DEBUG_OBJECT (td->self, "Send rate changed tm: %u -> %u", old_rate,
         tfrc_sender_get_send_rate (src->sender));
     notify = TRUE;
   }
@@ -658,7 +660,8 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
       no_feedback_timer_expired, build_timer_data (self, src->ssrc),
       free_timer_data);
   if (cret != GST_CLOCK_OK)
-    GST_ERROR ("Could not schedule feedback time for %u (now %u) error: %d",
+    GST_ERROR_OBJECT (self,
+        "Could not schedule feedback time for %u (now %u) error: %d",
         expiry, now, cret);
 }
 
@@ -718,8 +721,9 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       x_recv = GST_READ_UINT32_BE (buf);
       buf += 4;
       loss_event_rate = (gdouble) GST_READ_UINT32_BE (buf) / (gdouble) G_MAXUINT;
-      GST_LOG ("Got RTCP TFRC packet last_sent_ts: %u delay: %u x_recv: %u"
-          " loss_event_rate: %f", ts, delay, x_recv, loss_event_rate);
+      GST_LOG_OBJECT (self, "Got RTCP TFRC packet last_sent_ts: %u"
+          " delay: %u x_recv: %u loss_event_rate: %f", ts, delay, x_recv,
+          loss_event_rate);
 
       GST_OBJECT_LOCK (self);
 
@@ -730,8 +734,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       if (ts > now || now - ts < delay)
       {
-        GST_WARNING ("Ignoring packet because ts > now || now - ts < delay"
-            "(ts: %u now: %u delay:%u", ts, now, delay);
+        GST_WARNING_OBJECT (self, "Ignoring packet because ts > now ||"
+            " now - ts < delay (ts: %u now: %u delay:%u", ts, now, delay);
         goto done;
       }
 
@@ -750,11 +754,12 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       if (rtt > 10 * 1000)
       {
-        GST_WARNING ("Impossible RTT %u ms, ignoring", rtt);
+        GST_WARNING_OBJECT (self, "Impossible RTT %u ms, ignoring", rtt);
         goto done;
       }
 
-      GST_LOG ("rtt: %u = now %u - ts %u - delay %u", rtt, now, ts, delay);
+      GST_LOG_OBJECT (self, "rtt: %u = now %u - ts %u - delay %u", rtt, now,
+          ts, delay);
 
       src->max_ts = ts;
 
@@ -780,7 +785,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       if (old_send_rate != tfrc_sender_get_send_rate (src->sender))
       {
-        GST_DEBUG ("Send rate changed: %u -> %u", old_send_rate,
+        GST_DEBUG_OBJECT (self, "Send rate changed fb: %u -> %u", old_send_rate,
             tfrc_sender_get_send_rate (src->sender));
         notify = TRUE;
       }
@@ -859,7 +864,7 @@ fs_rtp_tfrc_get_sync_time (FsRtpPacketModder *modder,
     g_assert (diff > 0);
 
 
-    GST_LOG ("Delaying packet by %"GST_TIME_FORMAT
+    GST_LOG_OBJECT (self, "Delaying packet by %"GST_TIME_FORMAT
         " = 1sec * bytes %d / rate %u",
         GST_TIME_ARGS (diff), self->byte_reservoir,
         send_rate);
