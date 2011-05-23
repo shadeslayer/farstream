@@ -218,6 +218,12 @@ fs_rtp_tfrc_get_property (GObject *object,
   }
 }
 
+static guint
+fs_rtp_tfrc_get_now (FsRtpTfrc *self)
+{
+  return GST_TIME_AS_MSECONDS (gst_clock_get_time (self->systemclock));
+}
+
 
 static struct TrackedSource *
 fs_rtp_tfrc_get_remote_ssrc_locked (FsRtpTfrc *self, guint ssrc,
@@ -360,7 +366,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 {
   struct TimerData *td = user_data;
   struct TrackedSource *src;
-  guint now = GST_TIME_AS_MSECONDS (time);
+  guint now;
 
   if (time == GST_CLOCK_TIME_NONE)
     return FALSE;
@@ -369,6 +375,8 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   src = g_hash_table_lookup (td->self->tfrc_sources,
       GUINT_TO_POINTER (td->ssrc));
+
+  now = fs_rtp_tfrc_get_now (td->self);
 
   if (G_LIKELY (src))
   {
@@ -388,12 +396,6 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   return FALSE;
 }
 
-
-static guint
-fs_rtp_tfrc_get_now (FsRtpTfrc *self)
-{
-  return GST_TIME_AS_MSECONDS (gst_clock_get_time (self->systemclock));
-}
 
 struct SendingRtcpData {
   FsRtpTfrc *self;
@@ -586,7 +588,7 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 {
   struct TimerData *td = user_data;
   struct TrackedSource *src;
-  guint now = GST_TIME_AS_MSECONDS (time);
+  guint now;
   guint old_rate = 0;
   gboolean notify = FALSE;
 
@@ -600,6 +602,8 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   if (!src)
     goto out;
+
+  now = fs_rtp_tfrc_get_now (td->self);
 
   old_rate = tfrc_sender_get_send_rate (src->sender);
 
