@@ -724,9 +724,9 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       now = fs_rtp_tfrc_get_now (self);
 
-      if (ts >= now || now - ts < delay)
+      if (ts > now || now - ts < delay)
       {
-        GST_DEBUG ("Ignoring packet because ts >= now || now - ts < delay"
+        GST_WARNING ("Ignoring packet because ts > now || now - ts < delay"
             "(ts: %u now: %u delay:%u", ts, now, delay);
         goto done;
       }
