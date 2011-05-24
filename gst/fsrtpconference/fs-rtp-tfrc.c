@@ -379,18 +379,8 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   now = fs_rtp_tfrc_get_now (td->self);
 
-  if (G_LIKELY (src))
-  {
-    if (src->receiver_id && src->receiver_id != id)
-    {
-      g_warning ("Receiver ID confusion");
-      gst_clock_id_unschedule (src->receiver_id);
-      gst_clock_id_unref (src->receiver_id);
-      src->receiver_id = NULL;
-    }
-
+  if (G_LIKELY (src && src->receiver_id == id))
     fs_rtp_tfrc_receiver_timer_func_locked (td->self, src, now);
-  }
 
   GST_OBJECT_UNLOCK (td->self);
 
@@ -603,6 +593,9 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
       GUINT_TO_POINTER (td->ssrc));
 
   if (!src)
+    goto out;
+
+  if (src->sender_id != id)
     goto out;
 
   now = fs_rtp_tfrc_get_now (td->self);
