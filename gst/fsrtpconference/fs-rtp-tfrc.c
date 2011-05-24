@@ -554,7 +554,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
-  GST_LOG_OBJECT (self, "Got RTP packet";
+  GST_LOG_OBJECT (self, "Got RTP packet");
 
   if (rtt &&  src->last_rtt == 0)
     fs_rtp_tfrc_receiver_timer_func_locked (self, src, now);
@@ -949,6 +949,8 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
       gst_rtp_buffer_get_payload (buffer),
       gst_rtp_buffer_get_payload_len (buffer));
 
+
+  GST_LOG_OBJECT (self, "Sending RTP");
 
   if (g_hash_table_size (self->tfrc_sources))
   {
