@@ -89,8 +89,6 @@ struct _TfrcSender {
   guint sqmean_rtt;
   guint tld; /* Time Last Doubled during slow-start */
 
-  guint initial_rate; /* Initial sending rate */
-
   guint nofeedback_timer_expiry;
 
   guint retransmission_timeout; /* RTO */
@@ -228,8 +226,16 @@ update_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
 
 const guint t_mbi = 64; /* the maximum backoff interval of 64 seconds */
 
-/* RFC 5348 section 4.3 step 4 second part */
+static guint
+compute_initial_rate (guint mss, guint rtt)
+{
+  if (G_UNLIKELY (rtt == 0))
+    return 0;
 
+  return (1000 * MIN (4 * mss, MAX (2 * mss, 4380))) / rtt;
+}
+
+/* RFC 5348 section 4.3 step 4 second part */
 static void
 recompute_sending_rate (TfrcSender *sender, guint recv_limit,
     gdouble loss_event_rate, guint now)
@@ -245,12 +251,11 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
   } else if (now - sender->tld >= sender->averaged_rtt) {
     /* initial slow-start */
     sender->rate = MAX (MIN (2 * sender->rate, recv_limit),
-            sender->initial_rate);
+        compute_initial_rate (sender->mss, sender->averaged_rtt));
     sender->tld = now;
     DEBUG_SENDER (sender, "initial slow start: %u", sender->rate);
   }
 }
-
 
 void
 tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
@@ -263,9 +268,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 
   /* On first feedback packet, set he rate based on the mss and rtt */
   if (sender->tld == 0) {
-    sender->initial_rate =
-        (1000 * MIN (4*sender->mss, MAX (2*sender->mss, 4380))) / rtt;
-    sender->rate = sender->initial_rate;
+    sender->rate = compute_initial_rate (sender->mss, rtt);
     sender->tld = now;
     DEBUG_SENDER (sender, "fb: initial rate: %u", sender->rate);
   }
@@ -372,7 +375,7 @@ void
 tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
 {
   guint receive_rate = get_max_receive_rate (sender, FALSE);
-  guint recover_rate = sender->initial_rate;
+  guint recover_rate = compute_initial_rate (sender->mss, sender->averaged_rtt);
 
   if (sender->averaged_rtt == 0 && sender->sent_packet) {
     /* We do not have X_Bps or recover_rate yet.
