@@ -400,7 +400,8 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
      */
     sender->rate = MAX ( sender->rate / 2,
         sender_get_segment_size (sender) / t_mbi);
-    DEBUG_SENDER (sender, "no_fb: no p, halve rate: %u", sender->rate);
+    DEBUG_SENDER (sender, "no_fb: no p, halve rate: %u recover: %u, sent: %u", sender->rate,
+        recover_rate, sender->sent_packet);
   } else if (sender->computed_rate / 2 > receive_rate) {
     /* 2 * X_recv was already limiting the sending rate.
      * Halve the allowed sending rate.
