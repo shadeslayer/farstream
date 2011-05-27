@@ -241,25 +241,30 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
     GstElement *element, gpointer user_data)
 {
   GKeyFile *keyfile = user_data;
-  GstElementFactory *factory = NULL;
-  const gchar *name;
+  const gchar *name = NULL;
+  gchar *free_name = NULL;
   gchar **keys;
   gint i;
+  GstElementFactory *factory = gst_element_get_factory (element);
 
-  factory = gst_element_get_factory (element);
+  if (factory)
+  {
+    name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
+    if (name && !g_key_file_has_group (keyfile, name))
+        name = NULL;
+  }
 
-  if (!factory)
-    return;
-
-  name = gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (factory));
+  if (!name)
+  {
+    GST_OBJECT_LOCK (element);
+    if (GST_OBJECT_NAME (element) &&
+        g_key_file_has_group (keyfile, GST_OBJECT_NAME (element)))
+      name = free_name = g_strdup (GST_OBJECT_NAME (element));
+    GST_OBJECT_UNLOCK (element);
+  }
 
   if (!name)
     return;
-
-
-  if (!g_key_file_has_group (keyfile, name))
-    return;
-
 
   DEBUG ("Found config for %s", name);
   keys = g_key_file_get_keys (keyfile, name, NULL, NULL);
@@ -298,6 +303,7 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
   }
 
   g_strfreev (keys);
+  g_free (free_name);
 }
 
 
@@ -306,10 +312,12 @@ _bin_added_from_keyfile (FsElementAddedNotifier *notifier, GstBin *bin,
  * @notifier: a #FsElementAddedNotifier
  * @keyfile: a #GKeyFile
  *
- * Using a #GKeyFile where the groups are the element's type and the key=value
- * are the property and its value, this function will set the properties
- * on the elements added to this object after this function has been called.
- * It will take ownership of the GKeyFile structure.
+ * Using a #GKeyFile where the groups are the element's type or name
+ * and the key=value are the property and its value, this function
+ * will set the properties on the elements added to this object after
+ * this function has been called.  It will take ownership of the
+ * GKeyFile structure. It will first try the group as the element type, if that
+ * does not match, it will check its name.
  */
 void
 fs_element_added_notifier_set_properties_from_keyfile (
