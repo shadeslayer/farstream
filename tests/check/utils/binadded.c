@@ -186,17 +186,12 @@ GST_START_TEST (test_bin_added_recursive)
 }
 GST_END_TEST;
 
-
-GST_START_TEST (test_bin_keyfile)
+static void
+test_keyfile (FsElementAddedNotifier *notifier)
 {
-  GKeyFile *keyfile = g_key_file_new ();
-  GstElement *pipeline = NULL;
+  GstElement *pipeline;
   GstElement *identity = NULL;
-  FsElementAddedNotifier *notifier = NULL;
   gboolean sync;
-
-  g_key_file_set_boolean (keyfile, "identity", "sync", TRUE);
-  g_key_file_set_boolean (keyfile, "identity", "invalid-property", TRUE);
 
   pipeline = gst_pipeline_new (NULL);
 
@@ -205,10 +200,6 @@ GST_START_TEST (test_bin_keyfile)
 
   g_object_get (identity, "sync", &sync, NULL);
   fail_unless (sync == FALSE, "sync prop on identity does not start at FALSE");
-
-  notifier = fs_element_added_notifier_new ();
-
-  fs_element_added_notifier_set_properties_from_keyfile (notifier, keyfile);
 
   fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
 
@@ -245,24 +236,29 @@ GST_START_TEST (test_bin_keyfile)
   gst_object_unref (identity);
   gst_object_unref (pipeline);
 }
+
+
+GST_START_TEST (test_bin_keyfile)
+{
+  GKeyFile *keyfile = g_key_file_new ();
+  FsElementAddedNotifier *notifier = NULL;
+
+  g_key_file_set_boolean (keyfile, "identity", "sync", TRUE);
+  g_key_file_set_boolean (keyfile, "identity", "invalid-property", TRUE);
+
+  notifier = fs_element_added_notifier_new ();
+
+  fs_element_added_notifier_set_properties_from_keyfile (notifier, keyfile);
+
+  test_keyfile (notifier);
+}
 GST_END_TEST;
 
 GST_START_TEST (test_bin_file)
 {
-  GstElement *pipeline = NULL;
-  GstElement *identity = NULL;
   FsElementAddedNotifier *notifier = NULL;
-  gboolean sync;
   GError *error = NULL;
   gchar *filename = NULL;
-
-  pipeline = gst_pipeline_new (NULL);
-
-  identity = gst_element_factory_make ("identity", NULL);
-  gst_object_ref (identity);
-
-  g_object_get (identity, "sync", &sync, NULL);
-  fail_unless (sync == FALSE, "sync prop on identity does not start at FALSE");
 
   notifier = fs_element_added_notifier_new ();
 
@@ -278,40 +274,7 @@ GST_START_TEST (test_bin_file)
   g_free (filename);
   fail_if (error != NULL);
 
-  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
-
-  fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
-      "Could not add identity to pipeline");
-
-  g_object_get (identity, "sync", &sync, NULL);
-  fail_unless (sync == TRUE, "sync prop on identity is not changed to TRUE");
-
-
-  fail_unless (gst_bin_remove (GST_BIN (pipeline), identity),
-      "Could not remove identity from pipeline");
-
-  g_object_set (identity, "sync", FALSE, NULL);
-
-  g_object_get (identity, "sync", &sync, NULL);
-  fail_unless (sync == FALSE, "sync prop on identity not reset to FALSE");
-
-  fail_unless (
-      fs_element_added_notifier_remove (notifier, GST_BIN (pipeline)),
-      "Could not remove notification");
-
-  fail_unless (gst_bin_add (GST_BIN (pipeline), identity),
-      "Could not add identity to bin");
-
-  g_object_get (identity, "sync", &sync, NULL);
-  fail_if (sync == TRUE, "sync prop on identity changed to TRUE");
-
-  fs_element_added_notifier_add (notifier, GST_BIN (pipeline));
-
-  g_object_get (identity, "sync", &sync, NULL);
-  fail_unless (sync == TRUE, "sync prop on identity is not changed to TRUE");
-
-  gst_object_unref (identity);
-  gst_object_unref (pipeline);
+  test_keyfile (notifier);
 }
 GST_END_TEST;
 
