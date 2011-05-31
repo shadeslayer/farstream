@@ -1519,3 +1519,67 @@ param_h264_min_req_profile (const struct SdpParam *sdp_param,
   return param_minimum (sdp_param, local_codec, local_param,
       remote_codec, remote_param, negotiated_codec);
 }
+
+static gboolean
+has_config_param_changed (FsCodec *codec1, FsCodec *codec2)
+{
+  GList *itemp;
+
+  for (itemp = codec1->optional_params;
+       itemp;
+       itemp = g_list_next (itemp))
+  {
+    FsCodecParameter *param1 = itemp->data;
+
+    if (codec_has_config_data_named (codec1, param1->name))
+    {
+      FsCodecParameter *param2 = fs_codec_get_optional_parameter (codec2,
+          param1->name, NULL);
+
+      if (!param2 || strcmp (param1->value, param2->value))
+        return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * codecs_list_has_codec_config_changed:
+ *
+ * Compares two lists of codecs and returns the codecs present in the
+ * @new list have any of their config param changed since old (meaning that
+ * this list should be sent to the other side in a reliable way).
+ */
+
+GList *
+codecs_list_has_codec_config_changed (GList *old, GList *new)
+{
+  GList *item_new, *item_old;
+  GQueue result = G_QUEUE_INIT;
+
+  for (item_new = new; item_new; item_new = g_list_next (item_new))
+  {
+    FsCodec *codec_new = item_new->data;
+
+    for (item_old = old; item_old; item_old = g_list_next (item_old))
+    {
+      FsCodec *codec_old = item_old->data;
+      FsCodec *nego = sdp_negotiate_codec (codec_new, FS_PARAM_TYPE_BOTH,
+          item_old->data, FS_PARAM_TYPE_BOTH);
+      fs_codec_destroy (nego);
+
+      if (nego)
+      {
+        if (has_config_param_changed (codec_new, codec_old) ||
+            has_config_param_changed (codec_old, codec_new))
+        {
+          g_queue_push_tail (&result, fs_codec_copy (codec_new));
+          break;
+        }
+      }
+    }
+  }
+
+  return result.head;
+}

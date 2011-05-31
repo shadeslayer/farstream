@@ -55,6 +55,9 @@ codec_has_config_data_named (FsCodec *codec, const gchar *name);
 FsCodec *
 codec_copy_filtered (FsCodec *codec, FsParamType types);
 
+GList *
+codecs_list_has_codec_config_changed (GList *old, GList *new);
+
 G_END_DECLS
 
 #endif
