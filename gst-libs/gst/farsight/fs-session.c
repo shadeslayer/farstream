@@ -661,3 +661,32 @@ fs_session_get_stream_transmitter_type (FsSession *session,
 
   return 0;
 }
+
+/**
+ * fs_session_codecs_need_resend:
+ * @session: a #FsSession
+ * @old_codecs: Codecs previously retrieved from the #FsSession:codecs property
+ * @new_codecs: Codecs recently retrieved from the #FsSession:codecs property
+ *
+ * Some codec updates need to be reliably transmitted to the other side
+ * because they contain important parameters required to decode the media.
+ * Other codec updates, caused by user action, don't.
+ *
+ * Returns: A new #GList of #FsCodec that need to be resent or %NULL
+ *  if there are none. This list must be freed with fs_codec_list_destroy().
+ */
+GList *
+fs_session_codecs_need_resend (FsSession *session,
+    GList *old_codecs, GList *new_codecs)
+{
+  FsSessionClass *klass;
+
+  g_return_val_if_fail (session, 0);
+  g_return_val_if_fail (FS_IS_SESSION (session), 0);
+  klass = FS_SESSION_GET_CLASS (session);
+
+  if (klass->codecs_need_resend)
+    return klass->codecs_need_resend (session, old_codecs, new_codecs);
+
+  return NULL;
+}

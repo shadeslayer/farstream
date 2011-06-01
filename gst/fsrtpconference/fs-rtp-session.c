@@ -276,6 +276,10 @@ static FsStreamTransmitter *fs_rtp_session_get_new_stream_transmitter (
     GParameter *parameters,
     GError **error);
 
+static GList *fs_rtp_session_get_codecs_need_resend (FsSession *session,
+    GList *old_codecs, GList *new_codecs);
+
+
 static void _remove_stream (gpointer user_data,
     GObject *where_the_object_was);
 
@@ -336,6 +340,7 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->list_transmitters = fs_rtp_session_list_transmitters;
   session_class->get_stream_transmitter_type =
     fs_rtp_session_get_stream_transmitter_type;
+  session_class->codecs_need_resend = fs_rtp_session_get_codecs_need_resend;
 
   g_object_class_override_property (gobject_class,
     PROP_MEDIA_TYPE, "media-type");
@@ -4560,4 +4565,14 @@ fs_rtp_session_set_send_bitrate (FsRtpSession *self, guint bitrate)
     codecbin_set_bitrate (self->priv->send_codecbin, bitrate);
 
   FS_RTP_SESSION_UNLOCK (self);
+}
+
+
+static GList *
+fs_rtp_session_get_codecs_need_resend (FsSession *session,
+    GList *old_codecs, GList *new_codecs)
+{
+  g_return_val_if_fail (FS_IS_RTP_SESSION (session), FALSE);
+
+  return codecs_list_has_codec_config_changed (old_codecs, new_codecs);
 }

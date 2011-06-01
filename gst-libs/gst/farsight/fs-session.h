@@ -110,6 +110,7 @@ typedef enum
  * @set_codec_preferences: Specifies the codec preferences
  * @list_transmitters: Returns a list of the available transmitters
  * @get_stream_transmitter_type: Returns the GType of the stream transmitter
+ * @codecs_need_resend: Returns the list of codecs that need resending
  *
  * You must override at least new_stream in a subclass.
  */
@@ -143,9 +144,11 @@ struct _FsSessionClass
   GType (* get_stream_transmitter_type) (FsSession *session,
                                          const gchar *transmitter);
 
+  GList* (* codecs_need_resend) (FsSession *session, GList *old_codecs,
+      GList *new_codecs);
 
   /*< private >*/
-  gpointer _padding[7];
+  gpointer _padding[6];
 };
 
 /**
@@ -196,6 +199,9 @@ void fs_session_emit_error (FsSession *session,
 
 GType fs_session_get_stream_transmitter_type (FsSession *session,
     const gchar *transmitter);
+
+GList* fs_session_codecs_need_resend (FsSession *session,
+    GList *old_codecs, GList *new_codecs);
 
 
 G_END_DECLS
