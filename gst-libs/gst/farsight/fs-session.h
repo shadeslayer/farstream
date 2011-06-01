@@ -64,6 +64,7 @@ typedef struct _FsSessionPrivate FsSessionPrivate;
  */
 typedef enum
 {
+  /*< protected >*/
   FS_DTMF_EVENT_0 = 0,
   FS_DTMF_EVENT_1 = 1,
   FS_DTMF_EVENT_2 = 2,

@@ -705,7 +705,7 @@ fs_codec_list_are_equal (GList *list1, GList *list2)
  * fs_codec_add_optional_parameter:
  * @codec: The #FsCodec to add the parameter to
  * @name: The name of the optional parameter
- * @extra_params: The extra_params of the optional parameter
+ * @value: The extra_params of the optional parameter
  *
  * This function adds an new optional parameter to a #FsCodec
  */
@@ -856,7 +856,7 @@ fs_codec_get_feedback_parameter (FsCodec *codec,
 
 
 /**
- * fs_codec_remove_optional_parameter:
+ * fs_codec_remove_feedback_parameter:
  * @codec: a #FsCodec
  * @item: a pointer to the #GList element to remove that contains a
  * #FsFeedbackParameter

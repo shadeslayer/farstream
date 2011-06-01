@@ -52,7 +52,6 @@ typedef struct _FsElementAddedNotifierPrivate FsElementAddedNotifierPrivate;
 
 /**
  * FsElementAddedNotifier:
- * @parent: the #GObject parent
  *
  * All members are private
  */
