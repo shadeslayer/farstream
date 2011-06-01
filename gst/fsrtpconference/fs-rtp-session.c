@@ -3195,7 +3195,7 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   return FALSE;
 }
 
-/**
+/*
  * @codec: The currently selected codec for sending (but not the send_codec)
  */
 

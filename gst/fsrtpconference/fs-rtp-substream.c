@@ -38,7 +38,7 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
-/**
+/*
  * SECTION:fs-rtp-sub-stream
  * @short_description: The receive codec bin for a ssrc and a pt
  *

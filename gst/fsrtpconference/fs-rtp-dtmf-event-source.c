@@ -37,7 +37,7 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
-/**
+/*
  * SECTION:fs-rtp-dtmf-event-source
  * @short_description: Class to create the source of DTMF events
  *

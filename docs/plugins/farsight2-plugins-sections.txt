@@ -507,3 +507,10 @@ fs_raw_participant_get_type
 <SUBSECTION Private>
 fs_raw_participant_new
 </SECTION>
+
+
+<SECTION>
+<FILE>element-fsrtcpfilter</FILE>
+<TITLE>FsRtcpFilter</TITLE>
+FsRtcpFilter
+</SECTION>
