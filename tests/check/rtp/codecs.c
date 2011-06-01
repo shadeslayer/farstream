@@ -2285,6 +2285,50 @@ GST_START_TEST (test_rtpcodecs_nego_hdrext)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_rtpcodecs_codec_need_resend)
+{
+  struct SimpleTestConference *dat;
+  GList *list1, *list2;
+  FsCodec *tmpcodec;
+  GList *res;
+
+  dat = setup_simple_conference_full (1, "fsrtpconference", "bob@127.0.0.1",
+      FS_MEDIA_TYPE_AUDIO);
+
+  tmpcodec = fs_codec_new (96, "VORBIS", FS_MEDIA_TYPE_AUDIO, 90000);
+  fs_codec_add_optional_parameter (tmpcodec, "configuration", "aaa");
+  list1 = g_list_prepend (NULL, tmpcodec);
+  fail_unless (!fs_session_codecs_need_resend (dat->session, list1, list1));
+
+  list2 = fs_codec_list_copy (list1);
+  fail_unless (!fs_session_codecs_need_resend (dat->session, list1, list2));
+  fail_unless (!fs_session_codecs_need_resend (dat->session, list2, list1));
+  fs_codec_list_destroy (list2);
+
+  tmpcodec = fs_codec_new (96, "VORBIS", FS_MEDIA_TYPE_AUDIO, 90000);
+  list2 = g_list_prepend (NULL, tmpcodec);
+  res = fs_session_codecs_need_resend (dat->session, list1, list2);
+  fail_unless (fs_codec_list_are_equal (res, list2));
+  fs_codec_list_destroy (res);
+  res = fs_session_codecs_need_resend (dat->session, list2, list1);
+  fail_unless (fs_codec_list_are_equal (res, list1));
+  fs_codec_list_destroy (res);
+
+  fs_codec_add_optional_parameter (tmpcodec, "configuration", "bbb");
+  res = fs_session_codecs_need_resend (dat->session, list1, list2);
+  fail_unless (fs_codec_list_are_equal (res, list2));
+  fs_codec_list_destroy (res);
+  res = fs_session_codecs_need_resend (dat->session, list2, list1);
+  fail_unless (fs_codec_list_are_equal (res, list1));
+  fs_codec_list_destroy (res);
+
+  fs_codec_list_destroy (list2);
+  fs_codec_list_destroy (list1);
+  cleanup_simple_conference (dat);
+}
+GST_END_TEST;
+
+
 static Suite *
 fsrtpcodecs_suite (void)
 {
@@ -2372,6 +2416,12 @@ fsrtpcodecs_suite (void)
   tc_chain = tcase_create ("fsrtpcodecs_nego_hdrext");
   tcase_add_test (tc_chain, test_rtpcodecs_nego_hdrext);
   suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("fsrtpcodecs_codec_need_resend");
+  tcase_add_test (tc_chain, test_rtpcodecs_codec_need_resend);
+  suite_add_tcase (s, tc_chain);
+
+
 
   return s;
 }
