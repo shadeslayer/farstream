@@ -72,8 +72,9 @@ struct TrackedSource {
   GstClockID receiver_id;
   guint32 seq_cycles;
   guint32 last_seq;
+  guint64 ts_cycles;
   guint32 last_ts;
-  guint32 last_now;
+  guint64 last_now;
   guint32 last_rtt;
   gboolean send_feedback;
 

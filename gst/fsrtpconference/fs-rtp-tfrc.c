@@ -488,7 +488,9 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   guint size;
   gboolean got_header = FALSE;
   struct TrackedSource *src = NULL;
-  guint32 rtt, ts, seq;
+  guint32 rtt, seq;
+  gint64 ts_delta;
+  guint64 ts;
   gboolean send_rtcp = FALSE;
   guint now;
   guint8 pt;
@@ -541,6 +543,16 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   rtt = GST_READ_UINT24_BE (data);
   ts = GST_READ_UINT32_BE (data + 3);
+
+  ts_delta = ts - src->last_ts;
+  /* We declare there has been a cycle if the difference is more than
+   * 5 minutes
+   */
+  if (ts < src->last_ts && ts_delta < -(5 * 60 * 1000 * 1000))
+    src->ts_cycles += ((guint64) 1) << 32;
+  src->last_ts = ts;
+  ts += src->ts_cycles;
+
   send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
       GST_BUFFER_SIZE (buffer));
 
@@ -549,7 +561,6 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   if (rtt &&  src->last_rtt == 0)
     fs_rtp_tfrc_receiver_timer_func_locked (self, src, now);
 
-  src->last_ts = ts;
   src->last_now = now;
   src->last_rtt = rtt;
 
