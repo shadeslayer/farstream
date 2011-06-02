@@ -223,7 +223,7 @@ fs_rtp_tfrc_get_property (GObject *object,
 static guint64
 fs_rtp_tfrc_get_now (FsRtpTfrc *self)
 {
-  return GST_TIME_AS_MSECONDS (gst_clock_get_time (self->systemclock));
+  return GST_TIME_AS_USECONDS (gst_clock_get_time (self->systemclock));
 }
 
 
@@ -311,7 +311,8 @@ static void
 fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
     struct TrackedSource *src, guint64 now)
 {
-  guint64 expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+  guint64 expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver) *
+      1000;
   GstClockReturn cret;
 
   if (src->receiver_id)
@@ -326,7 +327,7 @@ fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
   src->next_feedback_timer = expiry;
 
   src->receiver_id = gst_clock_new_single_shot_id (self->systemclock,
-      expiry * GST_MSECOND);
+      expiry * GST_USECOND);
 
   cret = gst_clock_id_wait_async_full (src->receiver_id, feedback_timer_expired,
       build_timer_data (self, src->ssrc), free_timer_data);
@@ -349,10 +350,10 @@ fs_rtp_tfrc_receiver_timer_func_locked (FsRtpTfrc *self,
     src->receiver_id = NULL;
   }
 
-  expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+  expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver) * 1000;
 
   if (expiry <= now &&
-      tfrc_receiver_feedback_timer_expired (src->receiver, now))
+      tfrc_receiver_feedback_timer_expired (src->receiver, now / 1000))
   {
     src->send_feedback = TRUE;
     g_signal_emit_by_name (self->rtpsession, "send-rtcp", (guint64) 0);
@@ -382,7 +383,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   now = fs_rtp_tfrc_get_now (td->self);
 
   if (G_LIKELY (src && src->receiver_id == id))
-    fs_rtp_tfrc_receiver_timer_func_locked (td->self, src, now);
+    fs_rtp_tfrc_receiver_timer_func_locked (td->self, src, now / 1000);
 
   GST_OBJECT_UNLOCK (td->self);
 
@@ -428,7 +429,7 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   }
 
   now = fs_rtp_tfrc_get_now (data->self);
-  if (!tfrc_receiver_send_feedback (src->receiver, now, &loss_event_rate,
+  if (!tfrc_receiver_send_feedback (src->receiver, now / 1000, &loss_event_rate,
           &receive_rate))
   {
     gst_rtcp_packet_remove (&packet);
@@ -534,7 +535,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   now =  fs_rtp_tfrc_get_now (self);
 
   if (!src->receiver)
-    src->receiver = tfrc_receiver_new (now);
+    src->receiver = tfrc_receiver_new (now / 1000);
 
   seq_delta = seq - src->last_seq;
 
@@ -555,13 +556,13 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   src->last_ts = ts;
   ts += src->ts_cycles;
 
-  send_rtcp = tfrc_receiver_got_packet (src->receiver, ts, now, seq, rtt,
-      GST_BUFFER_SIZE (buffer));
+  send_rtcp = tfrc_receiver_got_packet (src->receiver, ts / 1000, now / 1000,
+      seq, rtt / 1000, GST_BUFFER_SIZE (buffer));
 
   GST_LOG_OBJECT (self, "Got RTP packet");
 
   if (rtt &&  src->last_rtt == 0)
-    fs_rtp_tfrc_receiver_timer_func_locked (self, src, now);
+    fs_rtp_tfrc_receiver_timer_func_locked (self, src, now / 1000);
 
   src->last_now = now;
   src->last_rtt = rtt;
@@ -651,16 +652,16 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
   if (src->sender == NULL)
     return;
 
-  expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
+  expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender) * 1000;
 
   if (expiry <= now)
   {
-    tfrc_sender_no_feedback_timer_expired (src->sender, now);
-    expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender);
+    tfrc_sender_no_feedback_timer_expired (src->sender, now  / 1000);
+    expiry = tfrc_sender_get_no_feedback_timer_expiry (src->sender) * 1000;
   }
 
   src->sender_id = gst_clock_new_single_shot_id (self->systemclock,
-      expiry * GST_MSECOND);
+      expiry * GST_USECOND);
 
   cret = gst_clock_id_wait_async_full (src->sender_id,
       no_feedback_timer_expired, build_timer_data (self, src->ssrc),
@@ -675,7 +676,7 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
 static void
 tracked_src_add_sender (struct TrackedSource *src, guint64 now)
 {
-  src->sender = tfrc_sender_new (1460, now);
+  src->sender = tfrc_sender_new (1460, now / 1000);
   src->idl = tfrc_is_data_limited_new (now);
   src->send_ts_base = now;
 }
@@ -707,7 +708,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       guint8 *buf = GST_BUFFER_DATA (packet.buffer) + packet.offset;
       struct TrackedSource *src;
       guint64 now;
-      guint rtt;
+      guint64 rtt;
       guint32 local_ssrc;
       gboolean is_data_limited;
       guint old_send_rate = 0;
@@ -779,17 +780,19 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       if (rtt == 0)
         rtt = 1;
 
-      if (rtt > 10 * 1000)
+      if (rtt > 10 * 1000 * 1000)
       {
         GST_WARNING_OBJECT (self, "Impossible RTT %u ms, ignoring", rtt);
         goto done;
       }
 
-      GST_LOG_OBJECT (self, "rtt: %u = now %" G_GUINT64_FORMAT
-          " - ts %"G_GUINT64_FORMAT" - delay %u", rtt, now, ts, delay);
+      GST_LOG_OBJECT (self, "rtt: %" G_GUINT64_FORMAT
+          " = now %" G_GUINT64_FORMAT
+          " - ts %"G_GUINT64_FORMAT" - delay %u",
+          rtt, now, ts, delay);
 
       if (G_UNLIKELY (tfrc_sender_get_averaged_rtt (src->sender) == 0))
-        tfrc_sender_on_first_rtt (src->sender, now);
+        tfrc_sender_on_first_rtt (src->sender, now / 1000);
 
       if (self->last_src && self->last_src->sender)
         old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
@@ -798,8 +801,10 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
           tfrc_is_data_limited_received_feedback (src->idl, now, ts,
               tfrc_sender_get_averaged_rtt (src->sender));
 
-      tfrc_sender_on_feedback_packet (src->sender, now, rtt, x_recv,
-          loss_event_rate, is_data_limited);
+      if (rtt < 1000)
+        rtt = 1000;
+      tfrc_sender_on_feedback_packet (src->sender, now / 1000, rtt / 1000,
+          x_recv, loss_event_rate, is_data_limited);
 
       fs_rtp_tfrc_update_sender_timer_locked (self, src, now);
 
@@ -934,7 +939,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   }
 
   GST_WRITE_UINT24_BE (data,
-      tfrc_sender_get_averaged_rtt (self->last_src->sender));
+      tfrc_sender_get_averaged_rtt (self->last_src->sender) * 1000);
   GST_WRITE_UINT32_BE (data+3, now - self->last_src->send_ts_base);
 
   if (now - self->last_src->send_ts_base > self->last_src->send_ts_cycles +
