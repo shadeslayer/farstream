@@ -61,7 +61,7 @@ static void fs_rtp_tfrc_dispose (GObject *object);
 static void fs_rtp_tfrc_update_sender_timer_locked (
   FsRtpTfrc *self,
   struct TrackedSource *src,
-  guint now);
+  guint64 now);
 
 static gboolean feedback_timer_expired (GstClock *clock, GstClockTime time,
     GstClockID id, gpointer user_data);
@@ -220,7 +220,7 @@ fs_rtp_tfrc_get_property (GObject *object,
   }
 }
 
-static guint
+static guint64
 fs_rtp_tfrc_get_now (FsRtpTfrc *self)
 {
   return GST_TIME_AS_MSECONDS (gst_clock_get_time (self->systemclock));
@@ -309,9 +309,9 @@ free_timer_data (gpointer data)
 
 static void
 fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
-    struct TrackedSource *src, guint now)
+    struct TrackedSource *src, guint64 now)
 {
-  guint expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
+  guint64 expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
   GstClockReturn cret;
 
   if (src->receiver_id)
@@ -332,15 +332,15 @@ fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
       build_timer_data (self, src->ssrc), free_timer_data);
   if (cret != GST_CLOCK_OK)
     GST_ERROR_OBJECT (self,
-        "Could not schedule feedback time for %u (now %u) error: %d",
-        expiry, now, cret);
+        "Could not schedule feedback time for %" G_GUINT64_FORMAT
+        " (now %" G_GUINT64_FORMAT ") error: %d", expiry, now, cret);
 }
 
 static void
 fs_rtp_tfrc_receiver_timer_func_locked (FsRtpTfrc *self,
-    struct TrackedSource *src, guint now)
+    struct TrackedSource *src, guint64 now)
 {
-  guint expiry;
+  guint64 expiry;
 
   if (src->receiver_id)
   {
@@ -369,7 +369,7 @@ feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 {
   struct TimerData *td = user_data;
   struct TrackedSource *src;
-  guint now;
+  guint64 now;
 
   if (time == GST_CLOCK_TIME_NONE)
     return FALSE;
@@ -405,7 +405,7 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   struct TrackedSource *src = value;
   GstRTCPPacket packet;
   guint8 *pdata;
-  guint32 now;
+  guint64 now;
   gdouble loss_event_rate;
   guint receive_rate;
 
@@ -450,9 +450,9 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   GST_WRITE_UINT32_BE (pdata + 8, receive_rate);
   GST_WRITE_UINT32_BE (pdata + 12, loss_event_rate * G_MAXUINT);
 
-  GST_LOG_OBJECT (data->self, "Sending RTCP report last_ts: %d delay: %d,"
-      " x_recv: %d, rate: %f", src->last_ts, now - src->last_now, receive_rate,
-      loss_event_rate);
+  GST_LOG_OBJECT (data->self, "Sending RTCP report last_ts: %d delay: %"
+      G_GINT64_FORMAT", x_recv: %d, rate: %f",
+      src->last_ts, now - src->last_now, receive_rate, loss_event_rate);
 
   src->send_feedback = FALSE;
 
@@ -494,7 +494,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   gint64 ts_delta;
   guint64 ts;
   gboolean send_rtcp = FALSE;
-  guint now;
+  guint64 now;
   guint8 pt;
   gint seq_delta;
 
@@ -593,7 +593,7 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 {
   struct TimerData *td = user_data;
   struct TrackedSource *src;
-  guint now;
+  guint64 now;
   guint old_rate = 0;
   gboolean notify = FALSE;
 
@@ -636,9 +636,9 @@ out:
 
 static void
 fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
-    struct TrackedSource *src, guint now)
+    struct TrackedSource *src, guint64 now)
 {
-  guint expiry;
+  guint64 expiry;
   GstClockReturn cret;
 
   if (src->sender_id)
@@ -667,12 +667,13 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
       free_timer_data);
   if (cret != GST_CLOCK_OK)
     GST_ERROR_OBJECT (self,
-        "Could not schedule feedback time for %u (now %u) error: %d",
+        "Could not schedule feedback time for %" G_GUINT64_FORMAT
+        " (now %" G_GUINT64_FORMAT ") error: %d",
         expiry, now, cret);
 }
 
 static void
-tracked_src_add_sender (struct TrackedSource *src, guint now)
+tracked_src_add_sender (struct TrackedSource *src, guint64 now)
 {
   src->sender = tfrc_sender_new (1460, now);
   src->idl = tfrc_is_data_limited_new (now);
@@ -705,7 +706,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       gdouble loss_event_rate;
       guint8 *buf = GST_BUFFER_DATA (packet.buffer) + packet.offset;
       struct TrackedSource *src;
-      guint now, rtt;
+      guint64 now;
+      guint rtt;
       guint32 local_ssrc;
       gboolean is_data_limited;
       guint old_send_rate = 0;
@@ -766,7 +768,9 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       if (ts > now || now - ts < delay)
       {
         GST_ERROR_OBJECT (self, "Ignoring packet because ts > now ||"
-            " now - ts < delay (ts: %u now: %u delay:%u", ts, now, delay);
+            " now - ts < delay (ts: %" G_GUINT64_FORMAT
+            " now: %" G_GUINT64_FORMAT " delay:%u",
+            ts, now, delay);
         goto done;
       }
 
@@ -781,8 +785,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
         goto done;
       }
 
-      GST_LOG_OBJECT (self, "rtt: %u = now %u - ts %u - delay %u", rtt, now,
-          ts, delay);
+      GST_LOG_OBJECT (self, "rtt: %u = now %" G_GUINT64_FORMAT
+          " - ts %"G_GUINT64_FORMAT" - delay %u", rtt, now, ts, delay);
 
       if (G_UNLIKELY (tfrc_sender_get_averaged_rtt (src->sender) == 0))
         tfrc_sender_on_first_rtt (src->sender, now);
@@ -903,7 +907,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 {
   FsRtpTfrc *self = FS_RTP_TFRC (user_data);
   gchar data[7];
-  guint now;
+  guint64 now;
   GstBuffer *newbuf;
   gboolean is_data_limited;
 
