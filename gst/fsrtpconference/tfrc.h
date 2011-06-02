@@ -31,40 +31,40 @@ typedef struct _TfrcSender TfrcSender;
 typedef struct _TfrcReceiver TfrcReceiver;
 typedef struct _TfrcIsDataLimited TfrcIsDataLimited;
 
-TfrcSender *tfrc_sender_new (guint segment_size, guint now);
-TfrcSender *tfrc_sender_new_sp (guint now, guint initial_average_packet_size);
+TfrcSender *tfrc_sender_new (guint segment_size, guint64 now);
+TfrcSender *tfrc_sender_new_sp (guint64 now, guint initial_average_packet_size);
 void tfrc_sender_free (TfrcSender *sender);
 void tfrc_sender_use_inst_rate (TfrcSender *sender, gboolean use_inst_rate);
 
 
-void tfrc_sender_on_first_rtt (TfrcSender *sender, guint now);
-void tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now, guint rtt,
+void tfrc_sender_on_first_rtt (TfrcSender *sender, guint64 now);
+void tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now, guint rtt,
     guint receive_rate, gdouble loss_event_rate, gboolean is_data_limited);
-void tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now);
+void tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now);
 
 void tfrc_sender_sending_packet (TfrcSender *sender, guint size);
 guint tfrc_sender_get_send_rate (TfrcSender *sender);
-guint tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender);
+guint64 tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender);
 guint tfrc_sender_get_averaged_rtt (TfrcSender *sender);
 
 
-TfrcReceiver *tfrc_receiver_new (guint now);
-TfrcReceiver *tfrc_receiver_new_sp (guint now);
+TfrcReceiver *tfrc_receiver_new (guint64 now);
+TfrcReceiver *tfrc_receiver_new_sp (guint64 now);
 void tfrc_receiver_free (TfrcReceiver *receiver);
 
-gboolean tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
-    guint now, guint seqnum, guint sender_rtt, guint packet_size);
+gboolean tfrc_receiver_got_packet (TfrcReceiver *receiver, guint64 timestamp,
+    guint64 now, guint seqnum, guint sender_rtt, guint packet_size);
 gboolean tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver,
-    guint now);
-guint tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver);
-gboolean tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
+    guint64 now);
+guint64 tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver);
+gboolean tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
     double *loss_event_rate, guint *receive_rate);
 
-TfrcIsDataLimited *tfrc_is_data_limited_new (guint now);
+TfrcIsDataLimited *tfrc_is_data_limited_new (guint64 now);
 void tfrc_is_data_limited_free (TfrcIsDataLimited *idl);
-void tfrc_is_data_limited_not_limited_now (TfrcIsDataLimited *idl, guint now);
+void tfrc_is_data_limited_not_limited_now (TfrcIsDataLimited *idl, guint64 now);
 gboolean tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl,
-    guint now, guint last_packet_timestamp, guint rtt);
+    guint64 now, guint64 last_packet_timestamp, guint rtt);
 
 
 

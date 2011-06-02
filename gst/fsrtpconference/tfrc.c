@@ -70,7 +70,7 @@ calculate_bitrate (gdouble s, gdouble R, gdouble p)
 #define RECEIVE_RATE_HISTORY_SIZE      (4)
 
 struct ReceiveRateItem {
-  guint timestamp;
+  guint64 timestamp;
   guint rate;
 };
 
@@ -87,9 +87,9 @@ struct _TfrcSender {
   guint inst_rate; /* corrected maximum allowed sending rate */
   guint averaged_rtt;
   guint sqmean_rtt;
-  guint tld; /* Time Last Doubled during slow-start */
+  guint64 tld; /* Time Last Doubled during slow-start */
 
-  guint nofeedback_timer_expiry;
+  guint64 nofeedback_timer_expiry;
 
   guint retransmission_timeout; /* RTO */
 
@@ -101,7 +101,7 @@ struct _TfrcSender {
 };
 
 TfrcSender *
-tfrc_sender_new (guint segment_size, guint now)
+tfrc_sender_new (guint segment_size, guint64 now)
 {
   TfrcSender *sender = g_slice_new0 (TfrcSender);
 
@@ -116,7 +116,7 @@ tfrc_sender_new (guint segment_size, guint now)
 }
 
 TfrcSender *
-tfrc_sender_new_sp (guint now, guint initial_average_packet_size)
+tfrc_sender_new_sp (guint64 now, guint initial_average_packet_size)
 {
   TfrcSender *sender = tfrc_sender_new (1460, now);
 
@@ -151,7 +151,7 @@ sender_get_segment_size (TfrcSender *sender)
 }
 
 void
-tfrc_sender_on_first_rtt (TfrcSender *sender, guint now)
+tfrc_sender_on_first_rtt (TfrcSender *sender, guint64 now)
 {
   sender->receive_rate_history[0].rate = G_MAXUINT;
   sender->receive_rate_history[0].timestamp = now;
@@ -178,7 +178,8 @@ static guint get_max_receive_rate (TfrcSender *sender, gboolean ignore_max_uint)
 }
 
 static void
-add_to_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
+add_to_receive_rate_history (TfrcSender *sender, guint receive_rate,
+    guint64 now)
 {
   int i;
 
@@ -191,7 +192,7 @@ add_to_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
 
 static guint
 maximize_receive_rate_history (TfrcSender *sender, guint receive_rate,
-    guint now)
+    guint64 now)
 {
   guint max_rate;
 
@@ -211,7 +212,8 @@ maximize_receive_rate_history (TfrcSender *sender, guint receive_rate,
 }
 
 static void
-update_receive_rate_history (TfrcSender *sender, guint receive_rate, guint now)
+update_receive_rate_history (TfrcSender *sender, guint receive_rate,
+    guint64 now)
 {
   guint i;
 
@@ -238,7 +240,7 @@ compute_initial_rate (guint mss, guint rtt)
 /* RFC 5348 section 4.3 step 4 second part */
 static void
 recompute_sending_rate (TfrcSender *sender, guint recv_limit,
-    gdouble loss_event_rate, guint now)
+    gdouble loss_event_rate, guint64 now)
 {
   if (loss_event_rate > 0) {
     /* congestion avoidance phase */
@@ -258,7 +260,7 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
 }
 
 void
-tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
+tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
     guint rtt, guint receive_rate, gdouble loss_event_rate,
     gboolean is_data_limited)
 {
@@ -355,7 +357,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint now,
 }
 
 static void
-update_limits(TfrcSender *sender, guint timer_limit, guint now)
+update_limits(TfrcSender *sender, guint timer_limit, guint64 now)
 {
   if (timer_limit < sender_get_segment_size (sender) / t_mbi)
     timer_limit = sender_get_segment_size (sender) / t_mbi;
@@ -372,7 +374,7 @@ update_limits(TfrcSender *sender, guint timer_limit, guint now)
 
 
 void
-tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint now)
+tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
 {
   guint receive_rate = get_max_receive_rate (sender, FALSE);
   guint recover_rate = compute_initial_rate (sender->mss, sender->averaged_rtt);
@@ -453,7 +455,7 @@ tfrc_sender_get_send_rate (TfrcSender *sender)
     return rate;
 }
 
-guint
+guint64
 tfrc_sender_get_no_feedback_timer_expiry (TfrcSender *sender)
 {
   return sender->nofeedback_timer_expiry;
@@ -473,13 +475,13 @@ tfrc_sender_get_averaged_rtt (TfrcSender *sender)
 #define MIN_HISTORY_DURATION (10)
 
 typedef struct  {
-  guint first_timestamp;
+  guint64 first_timestamp;
   guint first_seqnum;
-  guint first_recvtime;
+  guint64 first_recvtime;
 
-  guint last_timestamp;
+  guint64 last_timestamp;
   guint last_seqnum;
-  guint last_recvtime;
+  guint64 last_recvtime;
 } ReceivedInterval;
 
 struct _TfrcReceiver {
@@ -491,7 +493,7 @@ struct _TfrcReceiver {
   guint receive_rate;
   guint max_receive_rate;
   guint max_receive_rate_ss;
-  guint feedback_timer_expiry;
+  guint64 feedback_timer_expiry;
 
   guint first_loss_interval;
 
@@ -501,15 +503,15 @@ struct _TfrcReceiver {
 
   guint received_bytes;
   guint prev_received_bytes;
-  guint received_bytes_reset_time;
-  guint prev_received_bytes_reset_time;
+  guint64 received_bytes_reset_time;
+  guint64 prev_received_bytes_reset_time;
   guint received_packets;
   guint prev_received_packets;
   guint sender_rtt_on_last_feedback;
 };
 
 TfrcReceiver *
-tfrc_receiver_new (guint now)
+tfrc_receiver_new (guint64 now)
 {
   TfrcReceiver *receiver = g_slice_new0 (TfrcReceiver);
 
@@ -522,7 +524,7 @@ tfrc_receiver_new (guint now)
 
 
 TfrcReceiver *
-tfrc_receiver_new_sp (guint now)
+tfrc_receiver_new_sp (guint64 now)
 {
   TfrcReceiver *receiver = tfrc_receiver_new (now);
 
@@ -580,9 +582,9 @@ compute_first_loss_interval (gdouble s, gdouble R, gdouble rate)
 
 /* Implements RFC 5348 section 5 */
 static gdouble
-calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
+calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
 {
-  guint loss_event_times[LOSS_EVENTS_MAX];
+  guint64 loss_event_times[LOSS_EVENTS_MAX];
   guint loss_event_seqnums[LOSS_EVENTS_MAX];
   guint loss_event_pktcount[LOSS_EVENTS_MAX];
   guint loss_intervals[LOSS_EVENTS_MAX];
@@ -611,12 +613,13 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
        item = item->next) {
     ReceivedInterval *current = item->data;
     ReceivedInterval *prev = item->prev->data;
-    guint start_ts;
+    guint64 start_ts;
     guint start_seqnum;
 
     max_seqnum = current->last_seqnum;
 
-    DEBUG_RECEIVER (receiver, "Loss: ts %u->%u seq %u->%u",
+    DEBUG_RECEIVER (receiver, "Loss: ts %"G_GUINT64_FORMAT
+        "->%"G_GUINT64_FORMAT" seq %"G_GUINT64_FORMAT"->%"G_GUINT64_FORMAT,
         prev->last_timestamp, current->first_timestamp, prev->last_seqnum,
         current->first_seqnum);
 
@@ -705,7 +708,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
       }
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] = start_seqnum -
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX];
-      DEBUG_RECEIVER (receiver, "loss %u times: %u seqnum: %u pktcount: %u",
+      DEBUG_RECEIVER (receiver, "loss %u times: %" G_GUINT64_FORMAT
+          " seqnum: %u pktcount: %u",
           max_index, loss_event_times[max_index % LOSS_EVENTS_MAX],
           loss_event_seqnums[max_index % LOSS_EVENTS_MAX],
           loss_event_pktcount[max_index % LOSS_EVENTS_MAX]);
@@ -789,8 +793,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint now)
 
 /* Implements RFC 5348 section 6.1 */
 gboolean
-tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
-    guint now, guint seqnum, guint sender_rtt, guint packet_size)
+tfrc_receiver_got_packet (TfrcReceiver *receiver, guint64 timestamp,
+    guint64 now, guint seqnum, guint sender_rtt, guint packet_size)
 {
   GList *item = NULL;
   ReceivedInterval *current = NULL;
@@ -944,7 +948,7 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint timestamp,
 }
 
 gboolean
-tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
+tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint64 now)
 {
   if (receiver->received_bytes == 0 ||
       receiver->prev_received_bytes_reset_time == now) {
@@ -959,7 +963,7 @@ tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint now)
 }
 
 gboolean
-tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
+tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
     double *loss_event_rate, guint *receive_rate)
 {
   guint received_bytes;
@@ -1015,7 +1019,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint now,
   return TRUE;
 }
 
-guint
+guint64
 tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver)
 {
   return receiver->feedback_timer_expiry;
@@ -1023,17 +1027,17 @@ tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver)
 
 struct _TfrcIsDataLimited
 {
-  guint not_limited_1;
-  guint not_limited_2;
-  guint t_new;
-  guint t_next;
+  guint64 not_limited_1;
+  guint64 not_limited_2;
+  guint64 t_new;
+  guint64 t_next;
 };
 
 /*
  * This implements the algorithm proposed in RFC 5248 section 8.2.1 */
 
 TfrcIsDataLimited *
-tfrc_is_data_limited_new (guint now)
+tfrc_is_data_limited_new (guint64 now)
 {
   TfrcIsDataLimited *idl = g_slice_new0 (TfrcIsDataLimited);
 
@@ -1047,7 +1051,7 @@ tfrc_is_data_limited_free (TfrcIsDataLimited *idl)
 }
 
 void
-tfrc_is_data_limited_not_limited_now (TfrcIsDataLimited *idl, guint now)
+tfrc_is_data_limited_not_limited_now (TfrcIsDataLimited *idl, guint64 now)
 {
   /* Sender is not data-limited at this instant. */
   if (idl->not_limited_1 <= idl->t_new)
@@ -1063,11 +1067,11 @@ tfrc_is_data_limited_not_limited_now (TfrcIsDataLimited *idl, guint now)
  * was data limited
  */
 gboolean
-tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl, guint now,
-    guint last_packet_timestamp, guint rtt)
+tfrc_is_data_limited_received_feedback (TfrcIsDataLimited *idl, guint64 now,
+    guint64 last_packet_timestamp, guint rtt)
 {
   gboolean ret;
-  guint t_old;
+  guint64 t_old;
 
   idl->t_new = last_packet_timestamp;
   t_old = idl->t_new - rtt;
