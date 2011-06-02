@@ -37,6 +37,8 @@
 #include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
 
+#define ONE_32BIT_CYCLE ((guint64) (((guint64)0xffffffff) + ((guint64)1)))
+
 
 GST_DEBUG_CATEGORY_STATIC (fsrtpconference_tfrc);
 #define GST_CAT_DEFAULT fsrtpconference_tfrc
@@ -549,7 +551,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
    * 5 minutes
    */
   if (ts < src->last_ts && ts_delta < -(5 * 60 * 1000 * 1000))
-    src->ts_cycles += ((guint64) 1) << 32;
+    src->ts_cycles += ONE_32BIT_CYCLE;
   src->last_ts = ts;
   ts += src->ts_cycles;
 
@@ -674,6 +676,7 @@ tracked_src_add_sender (struct TrackedSource *src, guint now)
 {
   src->sender = tfrc_sender_new (1460, now);
   src->idl = tfrc_is_data_limited_new (now);
+  src->send_ts_base = now;
 }
 
 static gboolean
@@ -696,7 +699,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       /* We have a TFRC packet */
       guint32 media_ssrc;
       guint32 sender_ssrc;
-      guint32 ts;
+      guint64 ts;
       guint32 delay;
       guint32 x_recv;
       gdouble loss_event_rate;
@@ -734,22 +737,38 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       src = fs_rtp_tfrc_get_remote_ssrc_locked (self, sender_ssrc,
           NULL);
 
-      now = fs_rtp_tfrc_get_now (self);
-
-      if (ts > now || now - ts < delay)
-      {
-        GST_WARNING_OBJECT (self, "Ignoring packet because ts > now ||"
-            " now - ts < delay (ts: %u now: %u delay:%u", ts, now, delay);
-        goto done;
-      }
+      if (G_UNLIKELY (!src->sender))
+        tracked_src_add_sender (src, now);
 
       /* Make sure we only use the RTT from the most recent packets from
        * the remote side, ignore anything that got delayed in between.
        */
-      if (ts < src->max_ts &&
-          (src->max_ts < (G_MAXUINT * 9/10) ||
-              ts > (G_MAXUINT / 10)))
+      if (ts < src->fb_last_ts)
+      {
+        if (src->fb_ts_cycles + ONE_32BIT_CYCLE == src->send_ts_cycles)
+        {
+          src->fb_ts_cycles = src->send_ts_cycles;
+        }
+        else
+        {
+          GST_DEBUG_OBJECT (self, "Ignoring packet because the timestamp is "
+              "older than one that has already been received,"
+              " probably reordered.");
+          goto done;
+        }
+      }
+
+      src->fb_last_ts = ts;
+      ts += src->fb_ts_cycles + src->send_ts_base;
+
+      now = fs_rtp_tfrc_get_now (self);
+
+      if (ts > now || now - ts < delay)
+      {
+        GST_ERROR_OBJECT (self, "Ignoring packet because ts > now ||"
+            " now - ts < delay (ts: %u now: %u delay:%u", ts, now, delay);
         goto done;
+      }
 
       rtt = now - ts - delay;
 
@@ -764,11 +783,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       GST_LOG_OBJECT (self, "rtt: %u = now %u - ts %u - delay %u", rtt, now,
           ts, delay);
-
-      src->max_ts = ts;
-
-      if (G_UNLIKELY (!src->sender))
-        tracked_src_add_sender (src, now);
 
       if (G_UNLIKELY (tfrc_sender_get_averaged_rtt (src->sender) == 0))
         tfrc_sender_on_first_rtt (src->sender, now);
@@ -917,7 +931,11 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   GST_WRITE_UINT24_BE (data,
       tfrc_sender_get_averaged_rtt (self->last_src->sender));
-  GST_WRITE_UINT32_BE (data+3, now);
+  GST_WRITE_UINT32_BE (data+3, now - self->last_src->send_ts_base);
+
+  if (now - self->last_src->send_ts_base > self->last_src->send_ts_cycles +
+      ONE_32BIT_CYCLE)
+    self->last_src->send_ts_cycles += ONE_32BIT_CYCLE;
 
   is_data_limited = (GST_BUFFER_TIMESTAMP (buffer) == buffer_ts);
 
