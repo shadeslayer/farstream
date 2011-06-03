@@ -27,6 +27,9 @@
 #include <math.h>
 #include <string.h>
 
+/* for gst_util_uint64_scale_round */
+#include <gst/gst.h>
+
 /*
  * ALL TIMES ARE IN MILLISECONDS
  * bitrates are in bytes/sec
@@ -645,9 +648,10 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
       start_ts = loss_event_times[max_index % LOSS_EVENTS_MAX] +
           receiver->sender_rtt;
       start_seqnum = prev->last_seqnum +
-          (current->first_seqnum - prev->last_seqnum) *
-          (start_ts - prev->last_timestamp) /
-          (1 + current->first_timestamp - prev->last_timestamp);
+          gst_util_uint64_scale_round (
+            current->first_seqnum - prev->last_seqnum,
+            start_ts - prev->last_timestamp,
+            1 + current->first_timestamp - prev->last_timestamp);
       loss_event_pktcount[max_index % LOSS_EVENTS_MAX] +=
           start_seqnum - prev->last_seqnum - 1;
       DEBUG_RECEIVER (receiver,
@@ -658,8 +662,9 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
        * event
        */
       start_ts = prev->last_timestamp +
-          ((current->first_timestamp - prev->last_timestamp) /
-              (current->first_seqnum - prev->last_seqnum));
+          gst_util_uint64_scale_round (1,
+              current->first_timestamp - prev->last_timestamp,
+              current->first_seqnum - prev->last_seqnum);
       start_seqnum = prev->last_seqnum + 1;
     }
 
@@ -687,9 +692,10 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
 
       start_ts += receiver->sender_rtt;
       start_seqnum = prev->last_seqnum +
-          (current->first_seqnum - prev->last_seqnum) *
-          (start_ts - prev->last_timestamp) /
-          (current->first_timestamp - prev->last_timestamp);
+          gst_util_uint64_scale_round (
+            current->first_seqnum - prev->last_seqnum,
+            start_ts - prev->last_timestamp,
+            current->first_timestamp - prev->last_timestamp);
 
       /* Make sure our interval has at least one packet in it */
       if (G_UNLIKELY (start_seqnum <=
@@ -697,9 +703,10 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
       {
         start_seqnum = loss_event_seqnums[max_index % LOSS_EVENTS_MAX] + 1;
         start_ts = prev->last_timestamp +
-            (current->first_timestamp - prev->last_timestamp) *
-            (start_seqnum - prev->last_seqnum) /
-            (current->first_seqnum - prev->last_seqnum);
+            gst_util_uint64_scale_round (
+              current->first_timestamp - prev->last_timestamp,
+              start_seqnum - prev->last_seqnum,
+              current->first_seqnum - prev->last_seqnum);
       }
 
       if (start_seqnum > current->first_seqnum)
