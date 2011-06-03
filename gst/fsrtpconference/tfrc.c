@@ -48,6 +48,8 @@
 
 #define DEFAULT_MSS 1460
 
+#define SECOND (1000)
+
 /*
  * @s: segment size in bytes
  * @R: RTT in milli seconds (instead of seconds)
@@ -64,7 +66,7 @@ calculate_bitrate (gdouble s, gdouble R, gdouble p)
 {
   gdouble f = sqrt (2 * p / 3) + 12 * sqrt (3 * p / 8) * p * (1 + 32 * p * p);
 
-  return (1000 * s) / (R * f);
+  return (SECOND * s) / (R * f);
 }
 
 #define RECEIVE_RATE_HISTORY_SIZE      (4)
@@ -110,8 +112,8 @@ tfrc_sender_new (guint segment_size, guint64 now)
   sender->average_packet_size = segment_size << 4;
   sender->rate = segment_size;
 
-  sender->retransmission_timeout = 2000;
-  sender->nofeedback_timer_expiry = now + 2000; /* 2 seconds */
+  sender->retransmission_timeout = 2 * SECOND;
+  sender->nofeedback_timer_expiry = now + (2 * SECOND); /* 2 seconds */
   return sender;
 }
 
@@ -234,7 +236,7 @@ compute_initial_rate (guint mss, guint rtt)
   if (G_UNLIKELY (rtt == 0))
     return 0;
 
-  return (1000 * MIN (4 * mss, MAX (2 * mss, 4380))) / rtt;
+  return (SECOND * MIN (4 * mss, MAX (2 * mss, 4380))) / rtt;
 }
 
 /* RFC 5348 section 4.3 step 4 second part */
@@ -266,7 +268,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
 {
   guint recv_limit; /* the limit on the sending rate computed from X_recv_set */
 
-  g_return_if_fail (rtt > 0 && rtt <= 1000 * 10);
+  g_return_if_fail (rtt > 0 && rtt <= 10 * SECOND);
 
   /* On first feedback packet, set he rate based on the mss and rtt */
   if (sender->tld == 0) {
@@ -290,7 +292,7 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
 
   /* Step 3: Update the timeout interval */
   sender->retransmission_timeout = MAX (4 * sender->averaged_rtt,
-      1000 * 2 * sender_get_segment_size (sender) / sender->rate );
+      SECOND * 2 * sender_get_segment_size (sender) / sender->rate );
 
   /* Step 4: Update the allowed sending rate */
 
@@ -419,7 +421,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
   g_assert (sender->rate != 0);
 
   sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
-      1000 * 2 * sender_get_segment_size (sender) / sender->rate);
+      SECOND * 2 * sender_get_segment_size (sender) / sender->rate);
   sender->sent_packet = FALSE;
 }
 
@@ -994,7 +996,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
   receiver->received_bytes = 0;
   receiver->received_packets = 0;
 
-  receiver->receive_rate = (1000 * received_bytes) /
+  receiver->receive_rate = (SECOND * received_bytes) /
       (now - received_bytes_reset_time);
 
   if (receiver->sender_rtt_on_last_feedback &&
