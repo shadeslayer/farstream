@@ -624,7 +624,7 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
     max_seqnum = current->last_seqnum;
 
     DEBUG_RECEIVER (receiver, "Loss: ts %"G_GUINT64_FORMAT
-        "->%"G_GUINT64_FORMAT" seq %"G_GUINT64_FORMAT"->%"G_GUINT64_FORMAT,
+        "->%"G_GUINT64_FORMAT" seq %u->%u",
         prev->last_timestamp, current->first_timestamp, prev->last_seqnum,
         current->first_seqnum);
 
@@ -668,8 +668,8 @@ calculate_loss_event_rate (TfrcReceiver *receiver, guint64 now)
       start_seqnum = prev->last_seqnum + 1;
     }
 
-    DEBUG_RECEIVER (receiver, "start_ts: %u seqnum: %u", start_ts,
-        start_seqnum);
+    DEBUG_RECEIVER (receiver, "start_ts: %" G_GUINT64_FORMAT " seqnum: %u",
+        start_ts, start_seqnum);
 
     /* Now we have one or more loss events that start
      * during this interval of lost packets, if there is more than one
