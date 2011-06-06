@@ -31,7 +31,7 @@
 #include <gst/gst.h>
 
 /*
- * ALL TIMES ARE IN MILLISECONDS
+ * ALL TIMES ARE IN MICROSECONDS
  * bitrates are in bytes/sec
  */
 
@@ -51,7 +51,7 @@
 
 #define DEFAULT_MSS 1460
 
-#define SECOND (1000)
+#define SECOND (1000 * 1000)
 
 /*
  * @s: segment size in bytes
@@ -976,7 +976,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
     double *loss_event_rate, guint *receive_rate)
 {
   guint received_bytes;
-  guint received_bytes_reset_time;
+  guint64 received_bytes_reset_time;
   guint received_packets;
 
   if (now == receiver->prev_received_bytes_reset_time)
@@ -1003,8 +1003,8 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
   receiver->received_bytes = 0;
   receiver->received_packets = 0;
 
-  receiver->receive_rate = (SECOND * received_bytes) /
-      (now - received_bytes_reset_time);
+  receiver->receive_rate = gst_util_uint64_scale_round (SECOND, received_bytes,
+      now - received_bytes_reset_time);
 
   if (receiver->sender_rtt_on_last_feedback &&
       receiver->receive_rate > receiver->max_receive_rate)
