@@ -233,7 +233,7 @@ update_receive_rate_history (TfrcSender *sender, guint receive_rate,
       sender->receive_rate_history[i].rate = 0;
 }
 
-const guint t_mbi = 64; /* the maximum backoff interval of 64 seconds */
+const guint T_MBI = 64; /* the maximum backoff interval of 64 seconds */
 
 static guint
 compute_initial_rate (guint mss, guint rtt)
@@ -254,7 +254,7 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
     sender->computed_rate = calculate_bitrate (sender_get_segment_size (sender),
         sender->averaged_rtt, loss_event_rate);
     sender->rate = MAX (MIN (sender->computed_rate, recv_limit),
-            sender_get_segment_size (sender)/t_mbi);
+            sender_get_segment_size (sender)/T_MBI);
     DEBUG_SENDER (sender, "congestion avoidance: %u (computed: %u ss: %u)",
         sender->rate, sender->computed_rate, sender_get_segment_size (sender));
   } else if (now - sender->tld >= sender->averaged_rtt) {
@@ -353,8 +353,8 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
     sender->sqmean_rtt = sqrt(rtt);
 
   sender->inst_rate = sender->rate * sender->sqmean_rtt / sqrt(rtt);
-  if (sender->inst_rate < sender_get_segment_size (sender) / t_mbi)
-    sender->inst_rate = sender_get_segment_size (sender) / t_mbi;
+  if (sender->inst_rate < sender_get_segment_size (sender) / T_MBI)
+    sender->inst_rate = sender_get_segment_size (sender) / T_MBI;
 
   /* Step 6: Reset the nofeedback timer to expire after RTO seconds. */
 
@@ -367,8 +367,8 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
 static void
 update_limits(TfrcSender *sender, guint timer_limit, guint64 now)
 {
-  if (timer_limit < sender_get_segment_size (sender) / t_mbi)
-    timer_limit = sender_get_segment_size (sender) / t_mbi;
+  if (timer_limit < sender_get_segment_size (sender) / T_MBI)
+    timer_limit = sender_get_segment_size (sender) / T_MBI;
 
   memset (sender->receive_rate_history, 0,
       sizeof(struct ReceiveRateItem) * RECEIVE_RATE_HISTORY_SIZE);
@@ -393,7 +393,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
      */
 
     sender->rate = MAX ( sender->rate / 2,
-        sender_get_segment_size (sender) / t_mbi);
+        sender_get_segment_size (sender) / T_MBI);
     DEBUG_SENDER (sender, "no_fb: no p, initial, halve rate: %u", sender->rate);
   } else if (((sender->last_loss_event_rate > 0 &&
               receive_rate < recover_rate) ||
@@ -409,7 +409,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
      * Halve the allowed sending rate.
      */
     sender->rate = MAX ( sender->rate / 2,
-        sender_get_segment_size (sender) / t_mbi);
+        sender_get_segment_size (sender) / T_MBI);
     DEBUG_SENDER (sender, "no_fb: no p, halve rate: %u recover: %u, sent: %u", sender->rate,
         recover_rate, sender->sent_packet);
   } else if (sender->computed_rate / 2 > receive_rate) {
