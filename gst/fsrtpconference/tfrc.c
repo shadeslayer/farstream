@@ -53,6 +53,8 @@
 
 #define SECOND (1000 * 1000)
 
+#define MIN_NOFEEDBACK_TIMER (20 * 1000)
+
 /*
  * @s: segment size in bytes
  * @R: RTT in milli seconds (instead of seconds)
@@ -116,7 +118,7 @@ tfrc_sender_new (guint segment_size, guint64 now)
   sender->rate = segment_size;
 
   sender->retransmission_timeout = 2 * SECOND;
-  sender->nofeedback_timer_expiry = now + (2 * SECOND); /* 2 seconds */
+  sender->nofeedback_timer_expiry = now + sender->retransmission_timeout;
   return sender;
 }
 
@@ -294,8 +296,9 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
     sender->averaged_rtt = 1;
 
   /* Step 3: Update the timeout interval */
-  sender->retransmission_timeout = MAX (4 * sender->averaged_rtt,
-      SECOND * 2 * sender_get_segment_size (sender) / sender->rate );
+  sender->retransmission_timeout = MAX (MAX (4 * sender->averaged_rtt,
+          SECOND * 2 * sender_get_segment_size (sender) / sender->rate ),
+      MIN_NOFEEDBACK_TIMER);
 
   /* Step 4: Update the allowed sending rate */
 
@@ -423,8 +426,9 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
 
   g_assert (sender->rate != 0);
 
-  sender->nofeedback_timer_expiry = now + MAX ( 4 * sender->averaged_rtt,
-      SECOND * 2 * sender_get_segment_size (sender) / sender->rate);
+  sender->nofeedback_timer_expiry = now + MAX (MAX ( 4 * sender->averaged_rtt,
+          SECOND * 2 * sender_get_segment_size (sender) / sender->rate),
+      MIN_NOFEEDBACK_TIMER);
   sender->sent_packet = FALSE;
 }
 
