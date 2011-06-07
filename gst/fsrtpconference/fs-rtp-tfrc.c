@@ -314,6 +314,9 @@ fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
   guint64 expiry = tfrc_receiver_get_feedback_timer_expiry (src->receiver);
   GstClockReturn cret;
 
+  if (expiry == 0)
+    return;
+
   if (src->receiver_id)
   {
     if (src->next_feedback_timer <= expiry)
@@ -324,6 +327,8 @@ fs_rtp_tfrc_set_receiver_timer_locked (FsRtpTfrc *self,
     src->receiver_id = NULL;
   }
   src->next_feedback_timer = expiry;
+
+  g_assert (expiry != now);
 
   src->receiver_id = gst_clock_new_single_shot_id (self->systemclock,
       expiry * GST_USECOND);

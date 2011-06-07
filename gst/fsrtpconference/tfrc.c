@@ -203,11 +203,11 @@ maximize_receive_rate_history (TfrcSender *sender, guint receive_rate,
 {
   guint max_rate;
 
-  DEBUG_SENDER (sender, "MAXIMIZE recv: %u", receive_rate);
-
   add_to_receive_rate_history (sender, receive_rate, now);
 
   max_rate = get_max_receive_rate (sender, TRUE);
+
+  DEBUG_SENDER (sender, "MAXIMIZE recv: %u max: %u", receive_rate, max_rate);
 
   memset (sender->receive_rate_history, 0,
       sizeof(struct ReceiveRateItem) * RECEIVE_RATE_HISTORY_SIZE);
@@ -819,6 +819,8 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint64 timestamp,
   receiver->received_bytes += packet_size;
   receiver->received_packets++;
 
+  g_assert (sender_rtt != 0 || receiver->sender_rtt == 0);
+
   if (receiver->sender_rtt)
     receiver->sender_rtt = (0.9 * receiver->sender_rtt) + (sender_rtt / 10);
   else
@@ -949,7 +951,8 @@ tfrc_receiver_got_packet (TfrcReceiver *receiver, guint64 timestamp,
    * and possibly send a feedback message
    */
 
-  if (recalculate_loss_rate || !receiver->feedback_sent_on_last_timer) {
+  if (receiver->sender_rtt &&
+      (recalculate_loss_rate || !receiver->feedback_sent_on_last_timer)) {
     gdouble new_loss_event_rate = calculate_loss_event_rate (receiver, now);
 
     if (new_loss_event_rate > receiver->loss_event_rate ||
@@ -965,6 +968,7 @@ tfrc_receiver_feedback_timer_expired (TfrcReceiver *receiver, guint64 now)
 {
   if (receiver->received_bytes == 0 ||
       receiver->prev_received_bytes_reset_time == now) {
+    g_assert (receiver->sender_rtt != 0);
     receiver->feedback_timer_expiry = now + receiver->sender_rtt;
     receiver->feedback_sent_on_last_timer = FALSE;
     return FALSE;
@@ -1019,7 +1023,8 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
 
   receiver->loss_event_rate = calculate_loss_event_rate (receiver, now);
 
-  receiver->feedback_timer_expiry = now + receiver->sender_rtt;
+  if (receiver->sender_rtt)
+    receiver->feedback_timer_expiry = now + receiver->sender_rtt;
   receiver->sender_rtt_on_last_feedback = receiver->sender_rtt;
   receiver->feedback_sent_on_last_timer = TRUE;
 
@@ -1035,6 +1040,7 @@ tfrc_receiver_send_feedback (TfrcReceiver *receiver, guint64 now,
 guint64
 tfrc_receiver_get_feedback_timer_expiry (TfrcReceiver *receiver)
 {
+  g_assert (receiver->sender_rtt || receiver->feedback_timer_expiry == 0);
   return receiver->feedback_timer_expiry;
 }
 
