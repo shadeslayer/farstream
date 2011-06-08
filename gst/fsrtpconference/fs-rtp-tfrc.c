@@ -93,6 +93,7 @@ tracked_src_new (FsRtpTfrc *self)
 
   src = g_slice_new0 (struct TrackedSource);
   src->self = self;
+  src->next_feedback_timer = G_MAXUINT64;
 
   return src;
 }
