@@ -421,6 +421,8 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
   if (src->got_nohdr_pkt)
     return;
 
+  now = fs_rtp_tfrc_get_now (data->self);
+
   if (!src->send_feedback)
     goto done;
 
@@ -433,7 +435,6 @@ tfrc_sources_process (gpointer key, gpointer value, gpointer user_data)
     goto done;
   }
 
-  now = fs_rtp_tfrc_get_now (data->self);
   if (!tfrc_receiver_send_feedback (src->receiver, now, &loss_event_rate,
           &receive_rate))
   {
@@ -745,6 +746,8 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       src = fs_rtp_tfrc_get_remote_ssrc_locked (self, sender_ssrc,
           NULL);
 
+      now = fs_rtp_tfrc_get_now (self);
+
       if (G_UNLIKELY (!src->sender))
         tracked_src_add_sender (src, now);
 
@@ -768,8 +771,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       src->fb_last_ts = ts;
       ts += src->fb_ts_cycles + src->send_ts_base;
-
-      now = fs_rtp_tfrc_get_now (self);
 
       if (ts > now || now - ts < delay)
       {
