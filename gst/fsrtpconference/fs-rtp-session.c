@@ -903,6 +903,11 @@ fs_rtp_session_get_property (GObject *object,
       g_value_set_uint (value, self->priv->tos);
       FS_RTP_SESSION_UNLOCK (self);
       break;
+    case PROP_SEND_BITRATE:
+      FS_RTP_SESSION_LOCK (self);
+      g_value_set_uint (value, self->priv->send_bitrate);
+      FS_RTP_SESSION_UNLOCK (self);
+      break;
     case PROP_RTP_HEADER_EXTENSIONS:
       FS_RTP_SESSION_LOCK (self);
       g_value_set_boxed (value, self->priv->hdrext_negotiated);
