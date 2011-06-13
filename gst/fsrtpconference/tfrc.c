@@ -452,7 +452,7 @@ tfrc_sender_get_send_rate (TfrcSender *sender)
   if (!sender)
     return DEFAULT_MSS;
 
-  if (sender->use_inst_rate)
+  if (sender->use_inst_rate && sender->inst_rate)
     rate = sender->inst_rate;
   else
     rate = sender->rate;
