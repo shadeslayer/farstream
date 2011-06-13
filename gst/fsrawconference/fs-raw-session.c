@@ -1040,6 +1040,7 @@ _add_transmitter_sink (FsRawSession *self,
 
   if (!gst_element_sync_state_with_parent (transmitter_sink))
   {
+    gst_bin_remove (GST_BIN (self->priv->conference), transmitter_sink);
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not sync the transmitter's sink element"
         " with its parent for session %d", self->id);
@@ -1048,6 +1049,7 @@ _add_transmitter_sink (FsRawSession *self,
 
   if (!gst_element_link (self->priv->send_capsfilter, transmitter_sink))
   {
+    gst_bin_remove (GST_BIN (self->priv->conference), transmitter_sink);
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not link the capsfilter and transmitter's"
         " sink element for session %d", self->id);
