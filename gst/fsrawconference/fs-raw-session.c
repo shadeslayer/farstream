@@ -1030,20 +1030,11 @@ _add_transmitter_sink (FsRawSession *self,
     GstElement *transmitter_sink,
     GError **error)
 {
-  if (!transmitter_sink)
-  {
-    g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-        "Unable to get the sink element from the FsTransmitter");
-    goto error;
-  }
-
   if (!gst_bin_add (GST_BIN (self->priv->conference), transmitter_sink))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
         "Could not add the transmitter's sink element"
         " for session %d to the conference bin", self->id);
-    gst_object_unref (transmitter_sink);
-    transmitter_sink = NULL;
     goto error;
   }
 
@@ -1102,14 +1093,24 @@ fs_raw_session_update_direction (FsRawSession *self,
     GST_OBJECT_UNLOCK (conference);
 
     g_object_get (self->priv->transmitter, "gst-sink", &transmitter_sink, NULL);
+    if (!transmitter_sink)
+    {
+      fs_session_emit_error (FS_SESSION (self), FS_ERROR_CONSTRUCTION,
+          "Unable to get the sink element from the FsTransmitter",
+          "Unable to add transmitter sink");
+      goto out;
+    }
 
     if (!_add_transmitter_sink (self, transmitter_sink, &error))
     {
+      gst_object_unref (transmitter_sink);
       fs_session_emit_error (FS_SESSION (self), error->code, error->message,
           "Unable to add transmitter sink");
       g_clear_error (&error);
       goto out;
     }
+
+    gst_object_unref (transmitter_sink);
 
     GST_OBJECT_LOCK (conference);
     self->priv->transmitter_linked = TRUE;
