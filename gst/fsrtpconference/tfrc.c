@@ -76,6 +76,9 @@ calculate_bitrate (gdouble s, gdouble R, gdouble p)
 
 #define RECEIVE_RATE_HISTORY_SIZE      (4)
 
+/* Specified in RFC 4828 Section 3 second bullet */
+#define HEADER_SIZE     (40)
+
 struct ReceiveRateItem {
   guint64 timestamp;
   guint rate;
@@ -85,7 +88,6 @@ struct _TfrcSender {
   guint computed_rate; /* The rate computer from the TCP throughput equation */
 
   gboolean sp;
-  guint header_size;
   guint average_packet_size; /* 16 times larger */
   gboolean use_inst_rate; /* use inst_rate instead of rate */
 
@@ -131,8 +133,7 @@ tfrc_sender_new_sp (guint64 now, guint initial_average_packet_size)
   TfrcSender *sender = tfrc_sender_new (1460, now, 0);
 
   sender->sp = TRUE;
-  /* Specified in RFC 4828 Section 3 second bullet */
-  sender->header_size = 40;
+
   sender->average_packet_size = initial_average_packet_size << 4;
 
   return sender;
@@ -462,7 +463,7 @@ tfrc_sender_get_send_rate (TfrcSender *sender)
 
   if (sender->sp)
     return rate * (sender->average_packet_size >> 4) /
-        ((sender->average_packet_size >> 4) + sender->header_size);
+        ((sender->average_packet_size >> 4) + HEADER_SIZE);
   else
     return rate;
 }
