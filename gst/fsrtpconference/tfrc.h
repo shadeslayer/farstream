@@ -31,7 +31,8 @@ typedef struct _TfrcSender TfrcSender;
 typedef struct _TfrcReceiver TfrcReceiver;
 typedef struct _TfrcIsDataLimited TfrcIsDataLimited;
 
-TfrcSender *tfrc_sender_new (guint segment_size, guint64 now);
+TfrcSender *tfrc_sender_new (guint segment_size, guint64 now,
+    guint initial_rate);
 TfrcSender *tfrc_sender_new_sp (guint64 now, guint initial_average_packet_size);
 void tfrc_sender_free (TfrcSender *sender);
 void tfrc_sender_use_inst_rate (TfrcSender *sender, gboolean use_inst_rate);

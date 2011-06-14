@@ -108,14 +108,17 @@ struct _TfrcSender {
 };
 
 TfrcSender *
-tfrc_sender_new (guint segment_size, guint64 now)
+tfrc_sender_new (guint segment_size, guint64 now, guint initial_rate)
 {
   TfrcSender *sender = g_slice_new0 (TfrcSender);
 
   /* initialized as described in RFC 5348 4.2 */
   sender->mss = DEFAULT_MSS;
   sender->average_packet_size = segment_size << 4;
-  sender->rate = segment_size;
+  if (initial_rate)
+    sender->rate = initial_rate;
+  else
+    sender->rate = segment_size;
 
   sender->retransmission_timeout = 2 * SECOND;
   sender->nofeedback_timer_expiry = now + sender->retransmission_timeout;
@@ -125,7 +128,7 @@ tfrc_sender_new (guint segment_size, guint64 now)
 TfrcSender *
 tfrc_sender_new_sp (guint64 now, guint initial_average_packet_size)
 {
-  TfrcSender *sender = tfrc_sender_new (1460, now);
+  TfrcSender *sender = tfrc_sender_new (1460, now, 0);
 
   sender->sp = TRUE;
   /* Specified in RFC 4828 Section 3 second bullet */

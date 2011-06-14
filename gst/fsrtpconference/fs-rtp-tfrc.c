@@ -682,7 +682,7 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
 static void
 tracked_src_add_sender (struct TrackedSource *src, guint64 now)
 {
-  src->sender = tfrc_sender_new (1460, now);
+  src->sender = tfrc_sender_new (1460, now, 20000);
   src->idl = tfrc_is_data_limited_new (now);
   src->send_ts_base = now;
 }
