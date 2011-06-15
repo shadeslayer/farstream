@@ -113,6 +113,7 @@ struct _FsRtpTfrc
   /* Sender stuff */
   gint byte_reservoir;
   GstClockTime last_sent_ts;
+  guint send_bitrate;
 
   ExtensionType extension_type;
   guint extension_id;

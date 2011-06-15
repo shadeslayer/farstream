@@ -141,6 +141,7 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
 
   self->last_sent_ts = GST_CLOCK_TIME_NONE;
   self->byte_reservoir = 1500; /* About one packet */
+  self->send_bitrate = tfrc_sender_get_send_rate (NULL)  * 8;
 }
 
 void
@@ -199,26 +200,43 @@ fs_rtp_tfrc_get_property (GObject *object,
   switch (prop_id)
   {
     case PROP_BITRATE:
-    {
-      guint byterate;
-
       GST_OBJECT_LOCK (self);
-      if (self->last_src && self->last_src->sender)
-        byterate = tfrc_sender_get_send_rate (self->last_src->sender);
-      else
-        byterate = tfrc_sender_get_send_rate (NULL);
+      g_value_set_uint (value, self->send_bitrate);
       GST_OBJECT_UNLOCK (self);
-
-      if (G_LIKELY (byterate < G_MAXUINT / 8))
-        g_value_set_uint (value, byterate * 8);
-      else
-        g_value_set_uint (value, G_MAXUINT);
       break;
-    }
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
+}
+
+
+static gboolean
+fs_rtp_tfrc_update_bitrate_locked (FsRtpTfrc *self, const gchar *source)
+{
+  guint byterate;
+  guint new_bitrate;
+  gboolean ret;
+
+  if (self->last_src && self->last_src->sender)
+    byterate = tfrc_sender_get_send_rate (self->last_src->sender);
+  else
+    byterate = tfrc_sender_get_send_rate (NULL);
+
+  if (G_LIKELY (byterate < G_MAXUINT / 8))
+    new_bitrate = byterate * 8;
+  else
+    new_bitrate = G_MAXUINT;
+
+  ret = self->send_bitrate != new_bitrate;
+
+  if (ret)
+    GST_DEBUG_OBJECT (self, "Send rate changed (%s): %u -> %u", source,
+        self->send_bitrate, new_bitrate);
+
+  self->send_bitrate = new_bitrate;
+
+  return ret;
 }
 
 static guint64
@@ -601,7 +619,6 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
   struct TimerData *td = user_data;
   struct TrackedSource *src;
   guint64 now;
-  guint old_rate = 0;
   gboolean notify = FALSE;
 
   if (time == GST_CLOCK_TIME_NONE)
@@ -620,16 +637,10 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   now = fs_rtp_tfrc_get_now (td->self);
 
-  old_rate = tfrc_sender_get_send_rate (src->sender);
-
   fs_rtp_tfrc_update_sender_timer_locked (td->self, src, now);
 
-  if (old_rate != tfrc_sender_get_send_rate (src->sender))
-  {
-    GST_DEBUG_OBJECT (td->self, "Send rate changed tm: %u -> %u", old_rate,
-        tfrc_sender_get_send_rate (src->sender));
+  if (fs_rtp_tfrc_update_bitrate_locked (td->self, "tm"))
     notify = TRUE;
-  }
 
 out:
 
@@ -717,7 +728,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       guint64 rtt;
       guint32 local_ssrc;
       gboolean is_data_limited;
-      guint old_send_rate = 0;
 
       media_ssrc = gst_rtcp_packet_fb_get_media_ssrc (&packet);
 
@@ -800,9 +810,6 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
       if (G_UNLIKELY (tfrc_sender_get_averaged_rtt (src->sender) == 0))
         tfrc_sender_on_first_rtt (src->sender, now);
 
-      if (self->last_src && self->last_src->sender)
-        old_send_rate = tfrc_sender_get_send_rate (self->last_src->sender);
-
       is_data_limited =
           tfrc_is_data_limited_received_feedback (src->idl, now, ts,
               tfrc_sender_get_averaged_rtt (src->sender));
@@ -814,17 +821,11 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       self->last_src = src;
 
-      if (old_send_rate != tfrc_sender_get_send_rate (src->sender))
-      {
-        GST_DEBUG_OBJECT (self, "Send rate changed fb: %u -> %u", old_send_rate,
-            tfrc_sender_get_send_rate (src->sender));
+      if (fs_rtp_tfrc_update_bitrate_locked (self, "fb"))
         notify = TRUE;
-      }
 
     done:
       GST_OBJECT_UNLOCK (self);
-
-
     }
   } while (gst_rtcp_packet_move_to_next (&packet));
 
