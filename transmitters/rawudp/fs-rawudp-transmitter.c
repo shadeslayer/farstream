@@ -660,6 +660,12 @@ _create_sinksource (
       "sockfd", fd,
       NULL);
 
+  if (direction == GST_PAD_SINK)
+    g_object_set (elem,
+        "async", FALSE,
+        "sync", FALSE,
+        NULL);
+
   if (!gst_bin_add (bin, elem))
   {
     g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
@@ -880,11 +886,6 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   if (!udpport->udpsink)
     goto error;
 
-  g_object_set (udpport->udpsink,
-      "async", FALSE,
-      "sync", FALSE,
-      NULL);
-
   udpport->recvonly_filter = fs_transmitter_get_recvonly_filter (
       FS_TRANSMITTER (trans), udpport->component_id);
 
@@ -895,12 +896,6 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
         udpport->fd, GST_PAD_SINK, &udpport->recvonly_requested_pad, error);
     if (!udpport->recvonly_udpsink)
       goto error;
-
-
-    g_object_set (udpport->recvonly_udpsink,
-        "async", FALSE,
-        "sync", FALSE,
-        NULL);
   }
 
   g_mutex_lock (trans->priv->mutex);

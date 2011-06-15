@@ -376,6 +376,11 @@ fs_shm_transmitter_constructed (GObject *object)
       return;
     }
 
+    g_object_set (fakesink,
+        "async", FALSE,
+        "sync" , FALSE,
+        NULL);
+
     if (!gst_bin_add (GST_BIN (self->priv->gst_sink), fakesink))
     {
       gst_object_unref (fakesink);
@@ -384,11 +389,6 @@ fs_shm_transmitter_constructed (GObject *object)
           "Could not add the fakesink element to the transmitter sink bin");
       return;
     }
-
-    g_object_set (fakesink,
-        "async", FALSE,
-        "sync" , FALSE,
-        NULL);
 
     pad = gst_element_get_request_pad (self->priv->tees[c], "src%d");
     pad2 = gst_element_get_static_pad (fakesink, "sink");
