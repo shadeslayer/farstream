@@ -96,6 +96,7 @@ struct _TfrcSender {
   guint inst_rate; /* corrected maximum allowed sending rate */
   guint averaged_rtt;
   guint sqmean_rtt;
+  guint last_sqrt_rtt;
   guint64 tld; /* Time Last Doubled during slow-start */
 
   guint64 nofeedback_timer_expiry;
@@ -270,6 +271,28 @@ recompute_sending_rate (TfrcSender *sender, guint recv_limit,
   }
 }
 
+static void
+tfrc_sender_update_inst_rate (TfrcSender *sender)
+{
+  if (!sender->last_sqrt_rtt)
+    return;
+
+  /*
+   * Update the instantaneous
+   *  transmit rate, X_inst, following RFC 5348 Section 4.5.
+   */
+
+  if (sender->sqmean_rtt)
+    sender->sqmean_rtt = 0.9 * sender->sqmean_rtt + sender->last_sqrt_rtt / 10;
+  else
+    sender->sqmean_rtt = sender->last_sqrt_rtt;
+
+  sender->inst_rate = sender->rate * sender->sqmean_rtt / sender->last_sqrt_rtt;
+  if (sender->inst_rate < sender_get_segment_size (sender) / T_MBI)
+    sender->inst_rate = sender_get_segment_size (sender) / T_MBI;
+
+}
+
 void
 tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
     guint rtt, guint receive_rate, gdouble loss_event_rate,
@@ -347,18 +370,12 @@ tfrc_sender_on_feedback_packet (TfrcSender *sender, guint64 now,
 
   recompute_sending_rate (sender, recv_limit, loss_event_rate, now);
 
-  /* Step 5: calculate the instantaneous
+  /* Step 5: update the instantaneous
      transmit rate, X_inst, following Section 4.5.
   */
 
-  if (sender->sqmean_rtt)
-    sender->sqmean_rtt = 0.9 * sender->sqmean_rtt + sqrt(rtt) / 10;
-  else
-    sender->sqmean_rtt = sqrt(rtt);
-
-  sender->inst_rate = sender->rate * sender->sqmean_rtt / sqrt(rtt);
-  if (sender->inst_rate < sender_get_segment_size (sender) / T_MBI)
-    sender->inst_rate = sender_get_segment_size (sender) / T_MBI;
+  sender->last_sqrt_rtt = sqrt (rtt);
+  tfrc_sender_update_inst_rate (sender);
 
   /* Step 6: Reset the nofeedback timer to expire after RTO seconds. */
 
@@ -399,6 +416,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
     sender->rate = MAX ( sender->rate / 2,
         sender_get_segment_size (sender) / T_MBI);
     DEBUG_SENDER (sender, "no_fb: no p, initial, halve rate: %u", sender->rate);
+    tfrc_sender_update_inst_rate (sender);
   } else if (((sender->last_loss_event_rate > 0 &&
               receive_rate < recover_rate) ||
           (sender->last_loss_event_rate == 0 &&
@@ -416,6 +434,7 @@ tfrc_sender_no_feedback_timer_expired (TfrcSender *sender, guint64 now)
         sender_get_segment_size (sender) / T_MBI);
     DEBUG_SENDER (sender, "no_fb: no p, halve rate: %u recover: %u, sent: %u", sender->rate,
         recover_rate, sender->sent_packet);
+    tfrc_sender_update_inst_rate (sender);
   } else if (sender->computed_rate / 2 > receive_rate) {
     /* 2 * X_recv was already limiting the sending rate.
      * Halve the allowed sending rate.
