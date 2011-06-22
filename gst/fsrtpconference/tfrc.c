@@ -116,6 +116,7 @@ tfrc_sender_new (guint segment_size, guint64 now, guint initial_rate)
   TfrcSender *sender = g_slice_new0 (TfrcSender);
 
   /* initialized as described in RFC 5348 4.2 */
+  sender->use_inst_rate = TRUE;
   sender->mss = DEFAULT_MSS;
   sender->average_packet_size = segment_size << 4;
   if (initial_rate)
