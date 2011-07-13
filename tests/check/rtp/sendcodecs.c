@@ -423,7 +423,7 @@ GST_START_TEST (test_senddtmf_event)
       G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
 
   method = FS_DTMF_METHOD_RTP_RFC4733;
-  g_timeout_add (200, start_stop_sending_dtmf, NULL);
+  g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
 }
 GST_END_TEST;
@@ -436,7 +436,7 @@ GST_START_TEST (test_senddtmf_auto)
       G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
 
   method = FS_DTMF_METHOD_AUTO;
-  g_timeout_add (200, start_stop_sending_dtmf, NULL);
+  g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
 }
 GST_END_TEST;
@@ -501,7 +501,7 @@ GST_START_TEST (test_senddtmf_sound)
   GstElement *recv_pipeline = build_dtmf_sound_recv_pipeline (&port);
 
   method = FS_DTMF_METHOD_IN_BAND;
-  g_timeout_add (200, start_stop_sending_dtmf, NULL);
+  g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
 }
 GST_END_TEST;
@@ -515,7 +515,7 @@ GST_START_TEST (test_senddtmf_change_auto)
 
   method = FS_DTMF_METHOD_AUTO;
   change_codec = TRUE;
-  g_timeout_add (200, start_stop_sending_dtmf, NULL);
+  g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
 }
 GST_END_TEST;
