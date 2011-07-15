@@ -426,6 +426,16 @@ fs_shm_stream_transmitter_add_sink (FsShmStreamTransmitter *self,
   return TRUE;
 }
 
+
+static void
+disconnected_cb (guint component, gint id, gpointer data)
+{
+  FsShmStreamTransmitter *self = data;
+
+  g_signal_emit_by_name (self, "state-changed", component,
+      FS_STREAM_STATE_FAILED);
+}
+
 static gboolean
 fs_shm_stream_transmitter_add_remote_candidate (
     FsShmStreamTransmitter *self, FsCandidate *candidate,
@@ -452,7 +462,8 @@ fs_shm_stream_transmitter_add_remote_candidate (
 
     self->priv->shm_src[candidate->component_id] =
       fs_shm_transmitter_get_shm_src (self->priv->transmitter,
-          candidate->component_id, path, got_buffer_func, self, error);
+          candidate->component_id, path, got_buffer_func, disconnected_cb,
+          self, error);
 
     if (self->priv->shm_src[candidate->component_id] == NULL)
       return FALSE;

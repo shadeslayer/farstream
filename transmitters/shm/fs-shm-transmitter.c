@@ -306,7 +306,7 @@ fs_shm_transmitter_constructed (GObject *object)
 
   /* First we need the src elemnet */
 
-  self->priv->gst_src = gst_bin_new (NULL);
+  self->priv->gst_src = fs_shm_bin_new ();
 
   if (!self->priv->gst_src) {
     trans->construction_error = g_error_new (FS_ERROR,
@@ -552,6 +552,7 @@ struct _ShmSrc {
   GstPad *funnelpad;
 
   got_buffer got_buffer_func;
+  connection disconnected_func;
   gpointer cb_data;
   gulong buffer_probe;
 };
@@ -565,11 +566,23 @@ src_buffer_probe_cb (GstPad *pad, GstBuffer *buffer, ShmSrc *shm)
   return TRUE;
 }
 
+
+static void
+disconnected_cb (GstBin *bin, GstElement *elem, ShmSrc *shm)
+{
+  if (elem != shm->src)
+    return;
+
+  shm->disconnected_func (shm->component, 0, shm->cb_data);
+}
+
+
 ShmSrc *
 fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
     guint component,
     const gchar *path,
     got_buffer got_buffer_func,
+    connection disconnected_func,
     gpointer cb_data,
     GError **error)
 {
@@ -579,6 +592,7 @@ fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
 
   shm->component = component;
   shm->got_buffer_func = got_buffer_func;
+  shm->disconnected_func = disconnected_func;
   shm->cb_data = cb_data;
 
   shm->path = g_strdup (path);
@@ -596,6 +610,10 @@ fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
       "do-timestamp", TRUE,
       "is-live", TRUE,
       NULL);
+
+  if (shm->disconnected_func)
+    g_signal_connect (self->priv->gst_src, "disconnected",
+        G_CALLBACK (disconnected_cb), shm);
 
   if (!gst_bin_add (GST_BIN (self->priv->gst_src), elem))
   {
@@ -685,7 +703,7 @@ struct _ShmSink {
   GstPad *teepad;
 
   ready ready_func;
-  connected connected_func;
+  connection connected_func;
   gpointer cb_data;
 };
 
@@ -715,7 +733,7 @@ fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
     guint component,
     const gchar *path,
     ready ready_func,
-    connected connected_func,
+    connection connected_func,
     gpointer cb_data,
     GError **error)
 {

@@ -89,12 +89,13 @@ typedef struct _ShmSink ShmSink;
 
 typedef void (*got_buffer) (GstBuffer *buffer, guint component, gpointer data);
 typedef void (*ready) (guint component, gchar *path, gpointer data);
-typedef void (*connected) (guint component, gint id, gpointer data);
+typedef void (*connection) (guint component, gint id, gpointer data);
 
 ShmSrc *fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
     guint component,
     const gchar *path,
     got_buffer got_buffer_func,
+    connection disconnected_func,
     gpointer cb_data,
     GError **error);
 
@@ -106,7 +107,7 @@ ShmSink *fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
     guint component,
     const gchar *path,
     ready ready_func,
-    connected connected_func,
+    connection connected_fubnc,
     gpointer cb_data,
     GError **error);
 
