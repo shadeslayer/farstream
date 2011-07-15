@@ -109,6 +109,7 @@ static GObjectClass *parent_class = NULL;
 
 enum {
   BIN_SIGNAL_READY,
+  BIN_SIGNAL_DISCONNECTED,
   BIN_LAST_SIGNAL
 };
 
@@ -140,17 +141,33 @@ static void
 fs_shm_bin_handle_message (GstBin *bin, GstMessage *message)
 {
   GstState old, new, pending;
+  GError *gerror;
+  gchar *msg;
 
-  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_STATE_CHANGED)
-    goto forward;
+  switch (GST_MESSAGE_TYPE (message))
+  {
+    case GST_MESSAGE_STATE_CHANGED:
+      gst_message_parse_state_changed (message, &old, &new, &pending);
 
-  gst_message_parse_state_changed (message, &old, &new, &pending);
+      if (old == GST_STATE_PAUSED && new == GST_STATE_PLAYING)
+        g_signal_emit (bin, bin_signals[BIN_SIGNAL_READY], 0,
+            GST_MESSAGE_SRC (message));
+      break;
+    case GST_MESSAGE_ERROR:
+      gst_message_parse_error (message, &gerror, &msg);
 
-  if (old == GST_STATE_PAUSED && new == GST_STATE_PLAYING)
-    g_signal_emit (bin, bin_signals[BIN_SIGNAL_READY], 0,
-        GST_MESSAGE_SRC (message));
-
- forward:
+      if (g_error_matches (gerror, GST_RESOURCE_ERROR,
+              GST_RESOURCE_ERROR_CLOSE))
+      {
+        g_signal_emit (bin, bin_signals[BIN_SIGNAL_DISCONNECTED], 0,
+            GST_MESSAGE_SRC (message));
+        gst_message_unref (message);
+        return;
+      }
+      break;
+    default:
+      break;
+  }
 
   GST_BIN_CLASS (shm_bin_parent_class)->handle_message (bin, message);
 }
@@ -163,6 +180,11 @@ static void fs_shm_bin_class_init (FsShmBinClass *klass)
 
   bin_signals[BIN_SIGNAL_READY] =
     g_signal_new ("ready", G_TYPE_FROM_CLASS (klass),
+        G_SIGNAL_RUN_LAST, 0, NULL, NULL,
+        g_cclosure_marshal_VOID__OBJECT, G_TYPE_NONE, 1, GST_TYPE_ELEMENT);
+
+  bin_signals[BIN_SIGNAL_DISCONNECTED] =
+    g_signal_new ("disconnected", G_TYPE_FROM_CLASS (klass),
         G_SIGNAL_RUN_LAST, 0, NULL, NULL,
         g_cclosure_marshal_VOID__OBJECT, G_TYPE_NONE, 1, GST_TYPE_ELEMENT);
 
