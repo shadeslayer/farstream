@@ -157,7 +157,7 @@ fs_shm_bin_handle_message (GstBin *bin, GstMessage *message)
       gst_message_parse_error (message, &gerror, &msg);
 
       if (g_error_matches (gerror, GST_RESOURCE_ERROR,
-              GST_RESOURCE_ERROR_CLOSE))
+              GST_RESOURCE_ERROR_READ))
       {
         g_signal_emit (bin, bin_signals[BIN_SIGNAL_DISCONNECTED], 0,
             GST_MESSAGE_SRC (message));
