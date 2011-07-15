@@ -130,6 +130,12 @@ static void fs_shm_bin_init (FsShmBin *self)
 {
 }
 
+static GstElement *
+fs_shm_bin_new (void)
+{
+  return g_object_new (shm_bin_type, NULL);
+}
+
 static void
 fs_shm_bin_handle_message (GstBin *bin, GstMessage *message)
 {
@@ -216,8 +222,6 @@ fs_shm_transmitter_register_type (FsPlugin *module)
   shm_bin_type = g_type_module_register_type (G_TYPE_MODULE (module),
     GST_TYPE_BIN, "FsShmBin", &bin_info, 0);
 
-  gst_element_register (NULL, "fsshmbin", GST_RANK_NONE, shm_bin_type);
-
   return type;
 }
 
@@ -294,7 +298,7 @@ fs_shm_transmitter_constructed (GObject *object)
 
   /* Second, we do the sink element */
 
-  self->priv->gst_sink = gst_element_factory_make ("fsshmbin", NULL);
+  self->priv->gst_sink = fs_shm_bin_new ();
 
   if (!self->priv->gst_sink) {
     trans->construction_error = g_error_new (FS_ERROR,
