@@ -873,4 +873,11 @@ fs_shm_transmitter_sink_set_sending (FsShmTransmitter *self, ShmSink *shm,
     g_object_set (shm->recvonly_filter, "drop", !sending, NULL);
   else if (g_object_class_find_property (klass, "sending"))
     g_object_set (shm->recvonly_filter, "sending", sending, NULL);
+
+  if (sending)
+    gst_element_send_event (shm->sink,
+        gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
+            gst_structure_new ("GstForceKeyUnit",
+              "all-headers", G_TYPE_BOOLEAN, TRUE,
+              NULL)));
 }
