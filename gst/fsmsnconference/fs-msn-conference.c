@@ -37,6 +37,8 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
+
 #include "fs-msn-conference.h"
 
 #include "fs-msn-session.h"
