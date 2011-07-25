@@ -737,10 +737,10 @@ fs_rawudp_stream_transmitter_set_remote_candidates (
       return FALSE;
     }
 
-    if (!candidate->ip || !candidate->port)
+    if (!candidate->ip)
     {
       g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
-          "The candidate passed does not contain a valid ip or port");
+          "The candidate passed does not contain a valid ip");
       return FALSE;
     }
 
