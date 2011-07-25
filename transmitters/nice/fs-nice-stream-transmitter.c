@@ -255,7 +255,7 @@ fs_nice_stream_transmitter_class_init (FsNiceStreamTransmitterClass *klass)
           "stun-port",
           "STUN server port",
           "The STUN server used to obtain server-reflexive candidates",
-          1, 65536,
+          0, 65536,
           3478,
           G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS));
 
@@ -1085,14 +1085,15 @@ fs_nice_stream_transmitter_set_relay_info (FsNiceStreamTransmitter *self,
   const gchar *relay_type_string;
   NiceRelayType relay_type = NICE_RELAY_TYPE_TURN_UDP;
   guint port;
+  gboolean has_port;
 
   ip = gst_structure_get_string (s, "ip");
-  gst_structure_get_uint (s, "port",  &port);
+  has_port = gst_structure_get_uint (s, "port",  &port);
   username = gst_structure_get_string (s, "username");
   password = gst_structure_get_string (s, "password");
   relay_type_string = gst_structure_get_string (s, "relay-type");
 
-  if (!ip || !port || !username || !password)
+  if (!ip || !has_port || !username || !password || port > 65535)
   {
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Need to pass an ip, port, username and password for a relay");

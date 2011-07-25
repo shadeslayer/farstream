@@ -775,7 +775,7 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   va = g_value_array_new (1);
   s = gst_structure_new ("aa",
       "ip", G_TYPE_STRING, "127.0.0.1",
-      "port", G_TYPE_UINT, 0,
+      "port", G_TYPE_UINT, 65536,
       "username", G_TYPE_STRING, "blah",
       "password", G_TYPE_STRING, "blah2",
       NULL);
