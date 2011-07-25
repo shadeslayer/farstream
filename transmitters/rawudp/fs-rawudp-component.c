@@ -330,7 +330,7 @@ fs_rawudp_component_class_init (FsRawUdpComponentClass *klass)
       g_param_spec_uint ("stun-port",
           "The port of the STUN server",
           "The IPv4 UDP port of the STUN server as a ",
-          1, 65535, 3478,
+          0, 65535, 3478,
           G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
@@ -1234,7 +1234,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
   }
 #endif
 
-  if (self->priv->stun_ip && self->priv->stun_port)
+  if (self->priv->stun_ip)
     return fs_rawudp_component_start_stun (self, error);
 #ifdef HAVE_GUPNP
   else if (!self->priv->upnp_signal_id)
