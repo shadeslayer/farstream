@@ -646,6 +646,8 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   GValueArray *va;
   GstStructure *s;
   GValue val = {0};
+  FsCandidate *cand;
+  GList *list;
 
   memset (params, 0, sizeof(GParameter) * 1);
 
@@ -835,12 +837,22 @@ GST_START_TEST (test_nicetransmitter_invalid_arguments)
   st = fs_transmitter_new_stream_transmitter (trans, p, 1, params, &error);
   ts_fail_if (st == NULL);
   ts_fail_unless (error == NULL);
-
-  g_object_unref (st);
-
   g_value_unset (&val);
   g_value_unset (&params[0].value);
 
+  /* Valid candidate, port 0 */
+  cand = fs_candidate_new ("abc", 1,
+      FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, "1.2.3.4", 0);
+  cand->username = g_strdup ("a1");
+  cand->password = g_strdup ("a1");
+  list = g_list_prepend (NULL, cand);
+  ts_fail_unless (fs_stream_transmitter_set_remote_candidates (st, list,
+          &error));
+  ts_fail_unless (error == NULL);
+  fs_candidate_list_destroy (list);
+
+  fs_stream_transmitter_stop (st);
+  g_object_unref (st);
   g_object_unref (p);
   g_object_unref (trans);
 }
