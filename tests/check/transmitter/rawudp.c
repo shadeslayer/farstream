@@ -876,6 +876,41 @@ GST_START_TEST (test_rawudptransmitter_run_stun_altern_to_nowhere)
 }
 GST_END_TEST;
 
+GST_START_TEST (test_rawudptransmitter_strange_arguments)
+{
+  FsTransmitter *trans = NULL;
+  FsStreamTransmitter *st = NULL;
+  GError *error = NULL;
+  guint comps = 0;
+  FsCandidate *cand;
+  GList *list;
+
+  trans = fs_transmitter_new ("rawudp", 3, 0, &error);
+  ts_fail_if (trans == NULL);
+  ts_fail_unless (error == NULL);
+
+  g_object_get (trans, "components", &comps, NULL);
+  ts_fail_unless (comps == 3);
+
+  /* valid */
+  st = fs_transmitter_new_stream_transmitter (trans, NULL, 0, NULL, &error);
+  ts_fail_if (st == NULL);
+  ts_fail_unless (error == NULL);
+
+  /* Valid candidate, port 0 */
+  cand = fs_candidate_new ("abc", 1,
+      FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP, "1.2.3.4", 0);
+  list = g_list_prepend (NULL, cand);
+  ts_fail_unless (fs_stream_transmitter_set_remote_candidates (st, list,
+          &error));
+  ts_fail_unless (error == NULL);
+  fs_candidate_list_destroy (list);
+
+  fs_stream_transmitter_stop (st);
+  g_object_unref (st);
+  g_object_unref (trans);
+}
+GST_END_TEST;
 
 void
 setup_stunalternd_valid (void)
@@ -1019,6 +1054,10 @@ rawudptransmitter_suite (void)
   tcase_add_checked_fixture (tc_chain, setup_stunalternd_loop,
       teardown_stunalternd);
   tcase_add_test (tc_chain, test_rawudptransmitter_run_stun_altern_to_nowhere);
+  suite_add_tcase (s, tc_chain);
+
+  tc_chain = tcase_create ("rawudptransmitter-strange-arguments");
+  tcase_add_test (tc_chain, test_rawudptransmitter_strange_arguments);
   suite_add_tcase (s, tc_chain);
 
   return s;
