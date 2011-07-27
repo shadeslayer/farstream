@@ -74,12 +74,17 @@ enum
   PROP_0,
   PROP_RTP_CAPS,
   PROP_BITRATE,
-  PROP_INTERVAL
+  PROP_INTERVAL,
+  PROP_CAPS,
 };
 
 #define PROP_INTERVAL_DEFAULT (30 * GST_SECOND)
 
 static void fs_rtp_bitrate_adapter_finalize (GObject *object);
+static void fs_rtp_bitrate_adapter_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec);
 static void fs_rtp_bitrate_adapter_set_property (GObject *object,
     guint prop_id,
     const GValue *value,
@@ -92,8 +97,6 @@ GST_BOILERPLATE (FsRtpBitrateAdapter, fs_rtp_bitrate_adapter, GstElement,
 static GstFlowReturn fs_rtp_bitrate_adapter_chain (GstPad *pad,
     GstBuffer *buffer);
 static GstCaps *fs_rtp_bitrate_adapter_getcaps (GstPad *pad);
-static GstFlowReturn fs_rtp_bitrate_adapter_bufferalloc (GstPad *pad,
-    guint64 offset, guint size, GstCaps *caps, GstBuffer **buf);
 
 static void
 fs_rtp_bitrate_adapter_base_init (gpointer klass)
@@ -117,12 +120,14 @@ fs_rtp_bitrate_adapter_base_init (gpointer klass)
       gst_static_pad_template_get (&fs_rtp_bitrate_adapter_src_template));
 }
 
+static GParamSpec *caps_pspec;
 
 static void
 fs_rtp_bitrate_adapter_class_init (FsRtpBitrateAdapterClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
 
+  gobject_class->get_property = fs_rtp_bitrate_adapter_get_property;
   gobject_class->set_property = fs_rtp_bitrate_adapter_set_property;
   gobject_class->finalize = fs_rtp_bitrate_adapter_finalize;
 
@@ -131,7 +136,7 @@ fs_rtp_bitrate_adapter_class_init (FsRtpBitrateAdapterClass *klass)
       g_param_spec_pointer ("rtp-caps",
           "Current RTP Caps",
           "The RTP caps currently used",
-          G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_BITRATE,
@@ -148,6 +153,13 @@ fs_rtp_bitrate_adapter_class_init (FsRtpBitrateAdapterClass *klass)
           "The minimum interval before adapting after a change",
           0, G_MAXUINT64, PROP_INTERVAL_DEFAULT,
           G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
+
+ caps_pspec = g_param_spec_pointer ("caps",
+     "Current input caps",
+     "The caps that getcaps on the sink pad would return",
+     G_PARAM_READABLE | G_PARAM_STATIC_STRINGS);
+ g_object_class_install_property (gobject_class,
+     PROP_CAPS, caps_pspec);
 }
 
 struct BitratePoint
@@ -184,8 +196,6 @@ fs_rtp_bitrate_adapter_init (FsRtpBitrateAdapter *self,
   gst_pad_set_setcaps_function (self->sinkpad, gst_pad_proxy_setcaps);
   gst_pad_set_getcaps_function (self->sinkpad,
       fs_rtp_bitrate_adapter_getcaps);
-  gst_pad_set_bufferalloc_function (self->sinkpad,
-      fs_rtp_bitrate_adapter_bufferalloc);
   gst_element_add_pad (GST_ELEMENT (self), self->sinkpad);
 
   self->srcpad = gst_pad_new_from_static_template (
@@ -205,8 +215,6 @@ fs_rtp_bitrate_adapter_finalize (GObject *object)
 
   if (self->caps)
     gst_caps_unref (self->caps);
-  if (self->last_caps)
-    gst_caps_unref (self->last_caps);
   if (self->rtp_caps)
     gst_caps_unref (self->rtp_caps);
 
@@ -492,39 +500,6 @@ fs_rtp_bitrate_adapter_chain (GstPad *pad, GstBuffer *buffer)
   return ret;
 }
 
-static GstFlowReturn
-fs_rtp_bitrate_adapter_bufferalloc (GstPad *pad,
-    guint64 offset, guint size, GstCaps *caps, GstBuffer **buf)
-{
-  FsRtpBitrateAdapter *self = FS_RTP_BITRATE_ADAPTER (
-    gst_pad_get_parent_element (pad));
-  GstFlowReturn ret;
-
-  if (self->new_suggestion)
-  {
-    GstCaps *suggested_caps = fs_rtp_bitrate_adapter_get_suggested_caps (self);
-
-    self->new_suggestion = FALSE;
-
-    if (!suggested_caps || gst_caps_is_equal_fixed (caps, suggested_caps))
-      ret = gst_pad_alloc_buffer_and_set_caps (self->srcpad, offset, size,
-          caps, buf);
-    else
-      ret = gst_pad_alloc_buffer_and_set_caps (self->srcpad, offset, size,
-          suggested_caps, buf);
-
-    gst_caps_unref (suggested_caps);
-  }
-  else
-  {
-    ret = gst_pad_alloc_buffer_and_set_caps (self->srcpad, offset, size, caps,
-        buf);
-  }
-
-  gst_object_unref (self);
-  return ret;
-}
-
 
 static void
 find_min_bitrate (struct BitratePoint *bp, struct BitratePoint **accum)
@@ -560,7 +535,6 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
 {
   GstCaps *wanted_caps;
   guint bitrate;
-  GstCaps *caps = NULL;
   GstCaps *negotiated_caps;
 
   GST_OBJECT_LOCK (self);
@@ -575,26 +549,20 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
     return;
   }
   self->caps = caps_from_bitrate (bitrate);
-  caps = gst_caps_ref (self->caps);
   GST_OBJECT_UNLOCK (self);
 
   negotiated_caps = gst_pad_get_negotiated_caps (self->sinkpad);
   if (!negotiated_caps)
-    goto out;
+    return;
 
   wanted_caps = fs_rtp_bitrate_adapter_get_suggested_caps (self);
 
-  GST_OBJECT_LOCK (self);
-  if (self->caps == caps &&
-      !gst_caps_is_equal_fixed (negotiated_caps, wanted_caps))
-    self->new_suggestion = TRUE;
-  GST_OBJECT_UNLOCK (self);
+  if (!gst_caps_is_equal_fixed (negotiated_caps, wanted_caps))
+    g_object_notify_by_pspec (G_OBJECT (self), caps_pspec);
 
   gst_caps_unref (wanted_caps);
   gst_caps_unref (negotiated_caps);
 
-out:
-  gst_caps_unref (caps);
 }
 
 static void
@@ -700,6 +668,35 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
   }
 
   GST_OBJECT_UNLOCK (self);
-
-  fs_rtp_bitrate_adapter_updated (self);
 }
+
+
+static void
+fs_rtp_bitrate_adapter_get_property (GObject *object,
+    guint prop_id,
+    GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtpBitrateAdapter *self = FS_RTP_BITRATE_ADAPTER (object);
+
+  GST_OBJECT_LOCK (self);
+
+  switch (prop_id)
+  {
+    case PROP_RTP_CAPS:
+      if (self->rtp_caps)
+        g_value_set_pointer (value, gst_caps_ref (self->rtp_caps));
+      break;
+    case PROP_CAPS:
+      if (self->caps)
+        g_value_set_pointer (value, gst_caps_ref (self->caps));
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+
+  GST_OBJECT_UNLOCK (self);
+
+}
+

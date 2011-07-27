@@ -55,9 +55,6 @@ struct _FsRtpBitrateAdapter
   GstPad *sinkpad;
 
   GstCaps *caps;
-  gboolean new_suggestion;
-
-  GstCaps *last_caps;
 
   GstClock *system_clock;
   GstClockTime interval;
