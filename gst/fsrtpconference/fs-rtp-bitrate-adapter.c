@@ -72,7 +72,6 @@ static GstStaticPadTemplate fs_rtp_bitrate_adapter_src_template =
 enum
 {
   PROP_0,
-  PROP_RTP_CAPS,
   PROP_BITRATE,
   PROP_INTERVAL,
   PROP_CAPS,
@@ -130,13 +129,6 @@ fs_rtp_bitrate_adapter_class_init (FsRtpBitrateAdapterClass *klass)
   gobject_class->get_property = fs_rtp_bitrate_adapter_get_property;
   gobject_class->set_property = fs_rtp_bitrate_adapter_set_property;
   gobject_class->finalize = fs_rtp_bitrate_adapter_finalize;
-
-  g_object_class_install_property (gobject_class,
-      PROP_RTP_CAPS,
-      g_param_spec_pointer ("rtp-caps",
-          "Current RTP Caps",
-          "The RTP caps currently used",
-          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_BITRATE,
@@ -215,8 +207,6 @@ fs_rtp_bitrate_adapter_finalize (GObject *object)
 
   if (self->caps)
     gst_caps_unref (self->caps);
-  if (self->rtp_caps)
-    gst_caps_unref (self->rtp_caps);
 
   if (self->system_clock)
     gst_object_unref (self->system_clock);
@@ -613,13 +603,6 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
 
   switch (prop_id)
   {
-    case PROP_RTP_CAPS:
-      if (self->rtp_caps)
-        gst_caps_unref (self->rtp_caps);
-      self->rtp_caps = g_value_get_pointer (value);
-      if (self->rtp_caps)
-        gst_caps_ref (self->rtp_caps);
-      break;
     case PROP_BITRATE:
       fs_rtp_bitrate_adapter_add_bitrate_locked (self,
           g_value_get_uint (value));
@@ -648,10 +631,6 @@ fs_rtp_bitrate_adapter_get_property (GObject *object,
 
   switch (prop_id)
   {
-    case PROP_RTP_CAPS:
-      if (self->rtp_caps)
-        g_value_set_pointer (value, gst_caps_ref (self->rtp_caps));
-      break;
     case PROP_CAPS:
       if (self->caps)
         g_value_set_pointer (value, gst_caps_ref (self->caps));
@@ -662,6 +641,5 @@ fs_rtp_bitrate_adapter_get_property (GObject *object,
   }
 
   GST_OBJECT_UNLOCK (self);
-
 }
 
