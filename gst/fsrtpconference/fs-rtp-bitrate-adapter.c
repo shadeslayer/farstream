@@ -77,7 +77,7 @@ enum
   PROP_CAPS,
 };
 
-#define PROP_INTERVAL_DEFAULT (30 * GST_SECOND)
+#define PROP_INTERVAL_DEFAULT (20 * GST_SECOND)
 
 static void fs_rtp_bitrate_adapter_finalize (GObject *object);
 static void fs_rtp_bitrate_adapter_get_property (GObject *object,
