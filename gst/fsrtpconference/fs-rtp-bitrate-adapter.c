@@ -545,7 +545,6 @@ clock_callback (GstClock *clock, GstClockTime now, GstClockID clockid,
     gpointer user_data)
 {
   FsRtpBitrateAdapter *self = user_data;
-  struct BitratePoint *bp;
 
   GST_OBJECT_LOCK (self);
   if (self->clockid == clockid)
@@ -553,17 +552,6 @@ clock_callback (GstClock *clock, GstClockTime now, GstClockID clockid,
     gst_clock_id_unref (self->clockid);
     self->clockid = NULL;
   }
-
-  bp = fs_rtp_bitrate_adapter_get_lowest_locked (self);
-
-  if (bp && bp->timestamp + self->interval > now)
-  {
-    self->clockid = gst_clock_new_single_shot_id (self->system_clock,
-        bp->timestamp + self->interval);
-    gst_clock_id_wait_async_full (self->clockid,
-        clock_callback, gst_object_ref (self), gst_object_unref);
-  }
-
   GST_OBJECT_UNLOCK (self);
 
   fs_rtp_bitrate_adapter_updated (self);
