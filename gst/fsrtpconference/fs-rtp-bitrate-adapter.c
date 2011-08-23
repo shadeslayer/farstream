@@ -1,8 +1,8 @@
 /*
  * Farsight Voice+Video library
  *
- *  Copyright 2008 Collabora Ltd,
- *  Copyright 2008 Nokia Corporation
+ *  Copyright 2011 Collabora Ltd,
+ *  Copyright 2011 Nokia Corporation
  *   @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
@@ -28,6 +28,8 @@
 #endif
 
 #include "fs-rtp-bitrate-adapter.h"
+
+#include <math.h>
 
 /* This is a magical value that smarter people discovered */
 #define  H264_MAX_PIXELS_PER_BIT 25
@@ -77,7 +79,7 @@ enum
   PROP_CAPS,
 };
 
-#define PROP_INTERVAL_DEFAULT (20 * GST_SECOND)
+#define PROP_INTERVAL_DEFAULT (10 * GST_SECOND)
 
 static void fs_rtp_bitrate_adapter_finalize (GObject *object);
 static void fs_rtp_bitrate_adapter_get_property (GObject *object,
@@ -198,6 +200,7 @@ fs_rtp_bitrate_adapter_init (FsRtpBitrateAdapter *self,
 
   g_queue_init (&self->bitrate_history);
   self->system_clock = gst_system_clock_obtain ();
+  self->interval = PROP_INTERVAL_DEFAULT;
 }
 
 static void
@@ -226,13 +229,13 @@ static const struct Resolution one_on_one_resolutions[] =
 {
   {1920, 1200},
   {1920, 1080},
-//  {1600, 1200},
-//  {1680, 1050},
+  {1600, 1200},
+  {1680, 1050},
   {1280, 800},
   {1280, 768},
   {1280, 720},
-//  {1024, 768},
-//  {800, 600},
+  {1024, 768},
+  {800, 600},
   {854, 480},
   {800, 480},
   {640, 480},
@@ -362,8 +365,6 @@ caps_from_bitrate (guint bitrate)
 static GstCaps *
 fs_rtp_bitrate_adapter_get_suggested_caps (FsRtpBitrateAdapter *self)
 {
-  GstCaps *sink_allowed_caps;
-  GstCaps *src_allowed_caps;
   GstCaps *allowed_caps;
   GstCaps *wanted_caps;
   GstCaps *caps = NULL;
@@ -376,12 +377,16 @@ fs_rtp_bitrate_adapter_get_suggested_caps (FsRtpBitrateAdapter *self)
   if (!caps)
     return NULL;
 
-  sink_allowed_caps = gst_pad_get_allowed_caps (self->sinkpad);
-  src_allowed_caps = gst_pad_get_allowed_caps (self->srcpad);
+  allowed_caps = gst_pad_get_allowed_caps (self->sinkpad);
 
-  allowed_caps = gst_caps_intersect (sink_allowed_caps, src_allowed_caps);
-  gst_caps_unref (sink_allowed_caps);
-  gst_caps_unref (src_allowed_caps);
+  if (!allowed_caps)
+  {
+    gst_caps_unref (caps);
+    return NULL;
+  }
+
+  g_debug ("suggested_allowed: %p %s", allowed_caps,
+      gst_caps_to_string (allowed_caps));
 
   wanted_caps = gst_caps_intersect_full (caps, allowed_caps,
       GST_CAPS_INTERSECT_FIRST);
@@ -417,18 +422,19 @@ fs_rtp_bitrate_adapter_getcaps (GstPad *pad)
   if (peer_caps)
   {
     if (self->caps)
-    {
       caps = gst_caps_intersect_full (self->caps, peer_caps,
           GST_CAPS_INTERSECT_FIRST);
-      gst_caps_unref (peer_caps);
-    }
     else
-      caps = peer_caps;
+      caps = gst_caps_intersect (peer_caps,
+          gst_pad_get_pad_template_caps (pad));
+
+      gst_caps_unref (peer_caps);
   }
   else
   {
     if (self->caps)
-      caps = gst_caps_ref (self->caps);
+      caps = gst_caps_intersect (self->caps,
+          gst_pad_get_pad_template_caps (pad));
     else
       caps = gst_caps_copy (gst_pad_get_pad_template_caps (pad));
   }
@@ -456,31 +462,33 @@ fs_rtp_bitrate_adapter_chain (GstPad *pad, GstBuffer *buffer)
 }
 
 
-static void
-find_min_bitrate (struct BitratePoint *bp, struct BitratePoint **accum)
-{
-  if (*accum == NULL || (*accum)->bitrate <= bp->bitrate)
-    *accum = bp;
-}
-
-
-static struct BitratePoint *
-fs_rtp_bitrate_adapter_get_lowest_locked (FsRtpBitrateAdapter *self)
-{
-  struct BitratePoint *bp = NULL;
-
-  g_queue_foreach (&self->bitrate_history, (GFunc) find_min_bitrate, &bp);
-
-  return bp;
-}
-
 static guint
 fs_rtp_bitrate_adapter_get_bitrate_locked (FsRtpBitrateAdapter *self)
 {
-  struct BitratePoint *bp = fs_rtp_bitrate_adapter_get_lowest_locked (self);
+  gdouble mean = 0;
+  guint count = 0;
+  gdouble S = 0;
+  GList *item;
+  gdouble stddev;
 
-  if (bp)
-    return bp->bitrate;
+  for (item = self->bitrate_history.head; item ;item = item->next) {
+    struct BitratePoint *bp = item->data;
+    gdouble delta;
+
+    count++;
+    delta = bp->bitrate - mean;
+    mean = mean + delta/count;
+    S = S + delta * (bp->bitrate - mean);
+  }
+
+  if (count == 0)
+    return G_MAXUINT;
+
+  g_assert (S >= 0);
+  stddev = sqrt (S/count);
+
+  if (mean > stddev)
+    return (guint) (mean - stddev);
   else
     return G_MAXUINT;
 }
@@ -498,6 +506,7 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
     gst_caps_unref (self->caps);
   self->caps = NULL;
 
+  GST_DEBUG ("Computed average lower bitrate: %u", bitrate);
   if (bitrate == G_MAXUINT)
   {
     GST_OBJECT_UNLOCK (self);
@@ -512,12 +521,17 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
 
   wanted_caps = fs_rtp_bitrate_adapter_get_suggested_caps (self);
 
+  GST_DEBUG ("wanted: %s", gst_caps_to_string (wanted_caps));
+  GST_DEBUG ("current: %s", gst_caps_to_string (negotiated_caps));
+
   if (!gst_caps_is_equal_fixed (negotiated_caps, wanted_caps))
-    g_object_notify_by_pspec (G_OBJECT (self), caps_pspec);
+    gst_element_post_message (GST_ELEMENT (self),
+        gst_message_new_element (
+          GST_OBJECT (self),
+          gst_structure_new ("fs-rtp-bitrate-adapter-caps-changed", NULL)));
 
   gst_caps_unref (wanted_caps);
   gst_caps_unref (negotiated_caps);
-
 }
 
 static void
@@ -559,13 +573,16 @@ clock_callback (GstClock *clock, GstClockTime now, GstClockID clockid,
   return TRUE;
 }
 
-static void
+static gboolean
 fs_rtp_bitrate_adapter_add_bitrate_locked (FsRtpBitrateAdapter *self,
     guint bitrate)
 {
   GstClockTime now = gst_clock_get_time (self->system_clock);
+  gboolean first = FALSE;
 
   g_queue_push_tail (&self->bitrate_history, bitrate_point_new (now, bitrate));
+
+  first = (g_queue_get_length (&self->bitrate_history) == 1);
 
   fs_rtp_bitrate_adapter_cleanup (self, now);
 
@@ -576,6 +593,8 @@ fs_rtp_bitrate_adapter_add_bitrate_locked (FsRtpBitrateAdapter *self,
     gst_clock_id_wait_async_full (self->clockid,
         clock_callback, gst_object_ref (self), gst_object_unref);
   }
+
+  return first;
 }
 
 
@@ -586,13 +605,13 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
     GParamSpec *pspec)
 {
   FsRtpBitrateAdapter *self = FS_RTP_BITRATE_ADAPTER (object);
+  gboolean updated = FALSE;
 
   GST_OBJECT_LOCK (self);
-
   switch (prop_id)
   {
     case PROP_BITRATE:
-      fs_rtp_bitrate_adapter_add_bitrate_locked (self,
+      updated = fs_rtp_bitrate_adapter_add_bitrate_locked (self,
           g_value_get_uint (value));
       break;
     case PROP_INTERVAL:
@@ -602,8 +621,11 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
-
   GST_OBJECT_UNLOCK (self);
+
+  if (updated)
+    fs_rtp_bitrate_adapter_updated (self);
+
 }
 
 
