@@ -69,6 +69,7 @@
 #include "gst/farsight/fs-utils.h"
 #include <gst/farsight/fs-rtp.h>
 
+#include "fs-rtp-bitrate-adapter.h"
 #include "fs-rtp-stream.h"
 #include "fs-rtp-participant.h"
 #include "fs-rtp-discover-codecs.h"
@@ -122,6 +123,7 @@ struct _FsRtpSessionPrivate
    */
 
   GstElement *media_sink_valve;
+  GstElement *send_bitrate_adapter;
   GstElement *send_tee;
   GstElement *send_capsfilter;
   GstElement *transmitter_rtp_tee;
@@ -636,8 +638,9 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   }
 
   stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
-  stop_and_remove (conferencebin, &self->priv->send_tee, TRUE);
   stop_and_remove (conferencebin, &self->priv->media_sink_valve, TRUE);
+  stop_and_remove (conferencebin, &self->priv->send_tee, TRUE);
+  stop_and_remove (conferencebin, &self->priv->send_bitrate_adapter, TRUE);
 
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
@@ -1089,8 +1092,38 @@ fs_rtp_session_constructed (GObject *object)
 
   self->priv->send_tee = gst_object_ref (tee);
 
+  if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
+  {
+    GstElement *bitrate_adapter = g_object_new (FS_TYPE_RTP_BITRATE_ADAPTER,
+        NULL);
 
-  tee_sink_pad = gst_element_get_static_pad (tee, "sink");
+    if (!gst_bin_add (GST_BIN (self->priv->conference), bitrate_adapter))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION,
+          "Could not add the bitrate adapter to the FsRtpConference");
+      gst_object_unref (bitrate_adapter);
+      return;
+    }
+
+    if (!gst_element_link (bitrate_adapter, tee))
+    {
+      self->priv->construction_error = g_error_new (FS_ERROR,
+          FS_ERROR_CONSTRUCTION, "Could not link bitrate adapter to tee");
+      gst_object_unref (bitrate_adapter);
+      return;
+    }
+
+    gst_element_set_state (bitrate_adapter, GST_STATE_PLAYING);
+
+    self->priv->send_bitrate_adapter = bitrate_adapter;
+
+    tee_sink_pad = gst_element_get_static_pad (bitrate_adapter, "sink");
+  }
+  else
+  {
+    tee_sink_pad = gst_element_get_static_pad (tee, "sink");
+  }
 
   tmp = g_strdup_printf ("sink_%u", self->id);
   self->priv->media_sink_pad = gst_ghost_pad_new (tmp, tee_sink_pad);
@@ -4790,6 +4823,9 @@ fs_rtp_session_set_send_bitrate (FsRtpSession *self, guint bitrate)
 
   if (self->priv->send_codecbin)
     codecbin_set_bitrate (self->priv->send_codecbin, bitrate);
+
+  if (self->priv->send_bitrate_adapter)
+    g_object_set (self->priv->send_bitrate_adapter, "bitrate", bitrate, NULL);
 
   FS_RTP_SESSION_UNLOCK (self);
 }
