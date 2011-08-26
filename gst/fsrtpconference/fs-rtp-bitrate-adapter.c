@@ -653,3 +653,8 @@ fs_rtp_bitrate_adapter_get_property (GObject *object,
   GST_OBJECT_UNLOCK (self);
 }
 
+GstElement *
+fs_rtp_bitrate_adapter_new (void)
+{
+  return g_object_new (FS_TYPE_RTP_BITRATE_ADAPTER, NULL);
+}

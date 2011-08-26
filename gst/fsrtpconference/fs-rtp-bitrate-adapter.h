@@ -69,6 +69,8 @@ struct _FsRtpBitrateAdapterClass
 
 GType fs_rtp_bitrate_adapter_get_type (void);
 
+GstElement *fs_rtp_bitrate_adapter_new (void);
+
 G_END_DECLS
 
 #endif /* __FS_RTP_BITRATE_ADAPTER_H__ */

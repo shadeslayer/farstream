@@ -1094,8 +1094,7 @@ fs_rtp_session_constructed (GObject *object)
 
   if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
   {
-    GstElement *bitrate_adapter = g_object_new (FS_TYPE_RTP_BITRATE_ADAPTER,
-        NULL);
+    GstElement *bitrate_adapter = fs_rtp_bitrate_adapter_new ();
 
     if (!gst_bin_add (GST_BIN (self->priv->conference), bitrate_adapter))
     {
