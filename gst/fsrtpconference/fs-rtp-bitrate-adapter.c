@@ -605,13 +605,13 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
     GParamSpec *pspec)
 {
   FsRtpBitrateAdapter *self = FS_RTP_BITRATE_ADAPTER (object);
-  gboolean updated = FALSE;
+  gboolean first = FALSE;
 
   GST_OBJECT_LOCK (self);
   switch (prop_id)
   {
     case PROP_BITRATE:
-      updated = fs_rtp_bitrate_adapter_add_bitrate_locked (self,
+      first = fs_rtp_bitrate_adapter_add_bitrate_locked (self,
           g_value_get_uint (value));
       break;
     case PROP_INTERVAL:
@@ -623,7 +623,7 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
   }
   GST_OBJECT_UNLOCK (self);
 
-  if (updated)
+  if (first)
     fs_rtp_bitrate_adapter_updated (self);
 
 }
