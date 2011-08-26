@@ -79,6 +79,14 @@ enum
   PROP_CAPS,
 };
 
+enum
+{
+  SIGNAL_RENEGOTIATE,
+  LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL] = { 0 };
+
 #define PROP_INTERVAL_DEFAULT (10 * GST_SECOND)
 
 static void fs_rtp_bitrate_adapter_finalize (GObject *object);
@@ -119,6 +127,15 @@ fs_rtp_bitrate_adapter_base_init (gpointer klass)
       gst_static_pad_template_get (&fs_rtp_bitrate_adapter_sink_template));
   gst_element_class_add_pad_template (gstelement_class,
       gst_static_pad_template_get (&fs_rtp_bitrate_adapter_src_template));
+
+  signals[SIGNAL_RENEGOTIATE] = g_signal_new ("renegotiate",
+      G_TYPE_FROM_CLASS (klass),
+      G_SIGNAL_RUN_LAST,
+      0,
+      NULL,
+      NULL,
+      g_cclosure_marshal_VOID__VOID,
+      G_TYPE_NONE, 0);
 }
 
 static GParamSpec *caps_pspec;
@@ -525,10 +542,7 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
   GST_DEBUG ("current: %s", gst_caps_to_string (negotiated_caps));
 
   if (!gst_caps_is_equal_fixed (negotiated_caps, wanted_caps))
-    gst_element_post_message (GST_ELEMENT (self),
-        gst_message_new_element (
-          GST_OBJECT (self),
-          gst_structure_new ("fs-rtp-bitrate-adapter-caps-changed", NULL)));
+    g_signal_emit (self, signals[SIGNAL_RENEGOTIATE], 0);
 
   gst_caps_unref (wanted_caps);
   gst_caps_unref (negotiated_caps);
@@ -625,7 +639,6 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
 
   if (first)
     fs_rtp_bitrate_adapter_updated (self);
-
 }
 
 

@@ -1031,6 +1031,17 @@ _rtp_tfrc_bitrate_changed (GObject *rtp_tfrc, GParamSpec *pspec,
 }
 
 static void
+_rtp_bitrate_adapter_renegotiate (GstElement *bitrate_adapter,
+    FsRtpSession *self)
+{
+  gst_element_post_message (GST_ELEMENT (self->priv->conference),
+      gst_message_new_element (GST_OBJECT (self->priv->conference),
+          gst_structure_new ("farsight-renegotiate",
+              "session", FS_TYPE_SESSION, self,
+              NULL)));
+}
+
+static void
 fs_rtp_session_constructed (GObject *object)
 {
   FsRtpSession *self = FS_RTP_SESSION_CAST (object);
@@ -1095,6 +1106,9 @@ fs_rtp_session_constructed (GObject *object)
   if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
   {
     GstElement *bitrate_adapter = fs_rtp_bitrate_adapter_new ();
+
+    g_signal_connect_object (bitrate_adapter, "renegotiate",
+        G_CALLBACK (_rtp_bitrate_adapter_renegotiate), self, 0);
 
     if (!gst_bin_add (GST_BIN (self->priv->conference), bitrate_adapter))
     {
