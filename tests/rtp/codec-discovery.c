@@ -63,7 +63,7 @@ debug_blueprint (CodecBlueprint *blueprint)
   debug_pipeline (blueprint->send_pipeline_factory);
 
   g_message ("recv pipeline:");
-  debug_pipeline (blueprint->send_pipeline_factory);
+  debug_pipeline (blueprint->receive_pipeline_factory);
 
   g_message ("================================");
 }
