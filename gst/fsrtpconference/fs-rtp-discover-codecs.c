@@ -648,6 +648,23 @@ parse_codec_cap_list (GList *list, FsMediaType media_type)
             codec_blueprint->send_pipeline_factory,
             g_list_append (NULL, tmpfact));
       }
+
+      tmpfact = gst_element_factory_find ("spanplc");
+      if (tmpfact)
+      {
+        GstElementFactory *tmpfact2;
+
+        tmpfact2 = gst_element_factory_find ("audioconvert");
+        if (tmpfact2)
+        {
+          codec_blueprint->receive_pipeline_factory = g_list_append (
+            codec_blueprint->receive_pipeline_factory,
+            g_list_append (NULL, tmpfact2));
+          codec_blueprint->receive_pipeline_factory = g_list_append (
+            codec_blueprint->receive_pipeline_factory,
+            g_list_append (NULL, tmpfact));
+        }
+      }
     }
 
     /* insert new information into tables */
