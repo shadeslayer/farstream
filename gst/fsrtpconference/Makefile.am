@@ -18,6 +18,7 @@ libfsrtpconference_convenience_la_SOURCES = \
 	fs-rtp-dtmf-event-source.c \
 	fs-rtp-dtmf-sound-source.c \
 	fs-rtp-bitrate-adapter.c \
+	fs-rtp-keyunit-manager.c \
 	fs-rtp-tfrc.c \
 	fs-rtp-packet-modder.c \
 	tfrc.c
@@ -42,6 +43,7 @@ noinst_HEADERS = \
 	fs-rtp-dtmf-event-source.h \
 	fs-rtp-dtmf-sound-source.h \
 	fs-rtp-bitrate-adapter.h \
+	fs-rtp-keyunit-manager.h \
 	fs-rtp-tfrc.h \
 	fs-rtp-packet-modder.h \
 	tfrc.h

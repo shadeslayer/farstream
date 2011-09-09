@@ -1141,7 +1141,12 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
   {
     CodecAssociation *ca = item->data;
 
-    if (fs_codec_get_feedback_parameter (ca->codec, "tfrc", NULL, NULL));
+    /* Also require nack/pli for tfrc to work, we really need to disable
+     * automatic keyframes
+     */
+
+    if (fs_codec_get_feedback_parameter (ca->codec, "tfrc", NULL, NULL) &&
+        fs_rtp_keyunit_manager_has_key_request_feedback (ca->codec))
     self->pts[ca->codec->id] = TRUE;
   }
 

@@ -30,6 +30,8 @@
 
 #include "tfrc.h"
 
+#include "fs-rtp-keyunit-manager.h"
+
 G_BEGIN_DECLS
 
 /* TYPE MACROS */

@@ -215,6 +215,7 @@ struct _FsRtpSessionPrivate
   /* Set at construction time, can not change */
   GstElement *send_filter;
   FsRtpTfrc *rtp_tfrc;
+  FsRtpKeyunitManager *keyunit_manager;
 
   /* Can only be used while using the lock */
   GStaticRWLock disposed_lock;
@@ -546,6 +547,10 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   if (self->priv->rtpbin_internal_session)
     g_object_unref (self->priv->rtpbin_internal_session);
   self->priv->rtpbin_internal_session = NULL;
+
+  if (self->priv->keyunit_manager)
+    g_object_unref (self->priv->keyunit_manager);
+  self->priv->keyunit_manager = NULL;
 
   /* Lets stop all of the elements sink to source */
 
@@ -1358,6 +1363,9 @@ fs_rtp_session_constructed (GObject *object)
     g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
         G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
   }
+
+  self->priv->keyunit_manager = fs_rtp_keyunit_manager_new (
+    self->priv->rtpbin_internal_session);
 
   /* Lets now create the RTP muxer */
 
@@ -3618,6 +3626,9 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
     gst_caps_unref (sendcaps);
     return NULL;
   }
+
+  fs_rtp_keyunit_manager_codecbin_changed (session->priv->keyunit_manager,
+      codecbin, send_codec_copy);
 
   if (!gst_element_link_pads (session->priv->media_sink_valve, "src",
           codecbin, "sink"))
