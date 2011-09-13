@@ -320,14 +320,26 @@ add_one_resolution (GstCaps *caps, GstCaps *caps_gray,
    */
 
   if (max_framerate >= 20)
+  {
     add_one_resolution_inner (caps, caps_gray,
         20, 66, width, height, par_n, par_d);
-  else if (max_framerate >= 10)
     add_one_resolution_inner (lower_caps, lower_caps_gray,
         10, 66, width, height, par_n, par_d);
-  else if (max_framerate > 0)
     add_one_resolution_inner (extra_low_caps, extra_low_caps_gray,
         1, 66, width, height, par_n, par_d);
+  }
+  else if (max_framerate >= 10)
+  {
+    add_one_resolution_inner (lower_caps, lower_caps_gray,
+        10, 66, width, height, par_n, par_d);
+    add_one_resolution_inner (extra_low_caps, extra_low_caps_gray,
+        1, 66, width, height, par_n, par_d);
+  }
+  else if (max_framerate > 0)
+  {
+    add_one_resolution_inner (extra_low_caps, extra_low_caps_gray,
+        1, 66, width, height, par_n, par_d);
+  }
 }
 
 
