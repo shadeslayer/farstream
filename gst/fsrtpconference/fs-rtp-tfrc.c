@@ -1093,6 +1093,9 @@ fs_rtp_tfrc_filter_codecs (GList **codec_associations,
     {
       if (has_header_ext || !has_codec_rtcpfb)
       {
+        GST_WARNING ("Removing rtt-sendts hdrext because matching tfrc"
+            " feedback parameter not found or because rtp-hdrext"
+            " is duplicated");
         fs_rtp_header_extension_destroy (item->data);
         *header_extensions = g_list_remove_link (*header_extensions, item);
       }
@@ -1118,7 +1121,11 @@ fs_rtp_tfrc_filter_codecs (GList **codec_associations,
       FsFeedbackParameter *p = item2->data;
 
       if (!g_ascii_strcasecmp (p->type, "tfrc"))
+      {
+        GST_WARNING ("Removing tfrc from codec because no hdrext:rtt-sendts: "
+            FS_CODEC_FORMAT, FS_CODEC_ARGS (ca->codec));
         fs_codec_remove_feedback_parameter (ca->codec, item2);
+      }
 
       item2 = next2;
     }
