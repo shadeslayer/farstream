@@ -96,7 +96,6 @@ struct _FsRtpSubStreamPrivate {
    * otherwise the rtpbin_pad is blocked */
   /* Protected by the session mutex */
   GstElement *codecbin;
-  GstCaps *caps;
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
@@ -110,6 +109,8 @@ struct _FsRtpSubStreamPrivate {
    * Protected by the session mutex
    */
   gulong blocking_id;
+  /* Pointer to last buffer caps, protected by the session lock */
+  GstCaps *last_buffer_caps;
 
   /* This is protected by the session lock... the caller takes the lock
    * before updating the property.. yea nasty I know
@@ -718,8 +719,8 @@ fs_rtp_sub_stream_finalize (GObject *object)
   if (self->codec)
     fs_codec_destroy (self->codec);
 
-  if (self->priv->caps)
-    gst_caps_unref (self->priv->caps);
+  if (self->priv->last_buffer_caps)
+    gst_caps_unref (self->priv->last_buffer_caps);
 
   if (self->priv->mutex)
     g_mutex_free (self->priv->mutex);
@@ -847,8 +848,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     GstElement *codecbin,
     GError **error)
 {
-  GstCaps *caps = NULL;
-  gchar *tmp;
   gboolean ret = FALSE;
   GstPad *pad;
 
@@ -879,9 +878,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
       substream->codec = NULL;
     }
 
-    if (substream->priv->caps)
-      gst_caps_unref (substream->priv->caps);
-    substream->priv->caps = NULL;
     FS_RTP_SESSION_UNLOCK (substream->priv->session);
   }
 
@@ -920,11 +916,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     goto error;
   }
 
-  caps = fs_codec_to_gst_caps (codec);
-  tmp = gst_caps_to_string (caps);
-  GST_DEBUG ("Setting caps %s on recv substream", tmp);
-  g_free (tmp);
-
   pad = gst_element_get_static_pad (codecbin, "sink");
   if (!pad)
   {
@@ -936,26 +927,13 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   /* This is a non-error error
    * Some codecs require config data to start.. so we should just ignore them
    */
-  if (!gst_pad_set_caps (pad, caps))
-  {
-    ret = TRUE;
-    gst_object_unref (pad);
-    gst_caps_unref (caps);
-
-    GST_DEBUG ("Could not set the caps on the codecbin, waiting on config-data"
-        " for SSRC:%x pt:%d", substream->ssrc, substream->pt);
-
-    /* We call this to drop all buffers until something comes up */
-    fs_rtp_sub_stream_add_probe_locked (substream);
-    goto error;
-  }
+  fs_rtp_sub_stream_add_probe_locked (substream);
 
   GST_DEBUG ("New recv codec accepted");
 
   gst_object_unref (pad);
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
-  substream->priv->caps = caps;
   substream->priv->codecbin = codecbin;
   substream->codec = codec;
   codec = NULL;
@@ -1190,7 +1168,6 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 {
   FsRtpSubStream *self = FS_RTP_SUB_STREAM (user_data);
   gboolean ret = TRUE;
-  gboolean remove = FALSE;
   FsRtpSession *session;
 
   if (fs_rtp_session_has_disposed_enter (self->priv->session, NULL))
@@ -1207,28 +1184,31 @@ _rtpbin_pad_have_data_callback (GstPad *pad, GstMiniObject *miniobj,
 
   FS_RTP_SESSION_LOCK (self->priv->session);
 
-  if (!self->priv->codecbin || !self->codec || !self->priv->caps)
+  if (!self->priv->codecbin || !self->codec)
   {
     ret = FALSE;
   }
   else if (GST_IS_BUFFER (miniobj))
   {
-    if (!gst_caps_is_equal_fixed (GST_BUFFER_CAPS (miniobj), self->priv->caps))
+    if (self->priv->last_buffer_caps == GST_BUFFER_CAPS (miniobj))
     {
-      if (!gst_caps_can_intersect (GST_BUFFER_CAPS (miniobj),
-              self->priv->caps))
-        ret = FALSE;
+      ret = FALSE;
     }
     else
     {
-      remove = TRUE;
-    }
-  }
+      ret = gst_pad_set_caps (pad, GST_BUFFER_CAPS (miniobj));
+      self->priv->last_buffer_caps = gst_caps_ref (GST_BUFFER_CAPS (miniobj));
 
-  if (remove && self->priv->blocking_id)
-  {
-    gst_pad_remove_data_probe (pad, self->priv->blocking_id);
-    self->priv->blocking_id = 0;
+      if (!ret)
+        GST_WARNING ("Caps rejected by codecbin,"
+            " not letting any buffer through");
+
+      if (ret && self->priv->blocking_id)
+      {
+        gst_pad_remove_data_probe (pad, self->priv->blocking_id);
+        self->priv->blocking_id = 0;
+      }
+    }
   }
 
   FS_RTP_SESSION_UNLOCK (self->priv->session);
@@ -1320,6 +1300,10 @@ fs_rtp_sub_stream_add_probe_locked (FsRtpSubStream *substream)
 {
   if (fs_rtp_sub_stream_has_stopped_enter (substream))
     return;
+
+  if (substream->priv->last_buffer_caps)
+    gst_caps_unref (substream->priv->last_buffer_caps);
+  substream->priv->last_buffer_caps = NULL;
 
   if (!substream->priv->blocking_id)
     substream->priv->blocking_id = gst_pad_add_data_probe (
