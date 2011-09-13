@@ -44,7 +44,7 @@
  *
  * This object controls a part of the receive pipeline, with the following shape
  *
- * rtpbin_pad -> input_valve -> capsfilter -> codecbin -> output_valve -> output_ghostad
+ * rtpbin_pad -> input_valve -> codecbin -> output_valve -> output_ghostad
  *
  */
 
@@ -91,8 +91,6 @@ struct _FsRtpSubStreamPrivate {
 
   GstElement *input_valve;
   GstElement *output_valve;
-
-  GstElement *capsfilter;
 
   /* This only exists if the codec is valid,
    * otherwise the rtpbin_pad is blocked */
@@ -599,36 +597,6 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
-  tmp = g_strdup_printf ("recv_capsfilter_%d_%d_%d", self->priv->session->id,
-      self->ssrc, self->pt);
-  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
-  g_free (tmp);
-
-  if (!self->priv->capsfilter) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not create a capsfilter element for"
-      " session substream with ssrc: %u and pt:%d", self->ssrc,
-      self->pt);
-    return;
-  }
-
-  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter)) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for session"
-      " substream with ssrc: %u and pt:%d to the conference bin",
-      self->ssrc, self->pt);
-    return;
-  }
-
-  if (gst_element_set_state (self->priv->capsfilter, GST_STATE_PLAYING) ==
-    GST_STATE_CHANGE_FAILURE) {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-      FS_ERROR_CONSTRUCTION, "Could not set the capsfilter element for session"
-      " substream with ssrc: %u and pt:%d to the playing state",
-      self->ssrc, self->pt);
-    return;
-  }
-
   tmp = g_strdup_printf ("input_recv_valve_%d_%d_%d", self->priv->session->id,
       self->ssrc, self->pt);
   self->priv->input_valve = gst_element_factory_make ("valve", tmp);
@@ -657,14 +625,6 @@ fs_rtp_sub_stream_constructed (GObject *object)
       FS_ERROR_CONSTRUCTION, "Could not set the valve element for session"
       " substream with ssrc: %u and pt:%d to the playing state",
       self->ssrc, self->pt);
-    return;
-  }
-
-  if (!gst_element_link (self->priv->input_valve, self->priv->capsfilter))
-  {
-    self->priv->construction_error = g_error_new (FS_ERROR,
-        FS_ERROR_CONSTRUCTION, "Could not link the input valve"
-        " and the capsfilter");
     return;
   }
 
@@ -726,13 +686,6 @@ fs_rtp_sub_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->codecbin);
     self->priv->codecbin = NULL;
-  }
-
-  if (self->priv->capsfilter) {
-    gst_element_set_locked_state (self->priv->capsfilter, TRUE);
-    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
-    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
-    self->priv->capsfilter = NULL;
   }
 
   if (self->priv->input_valve) {
@@ -958,11 +911,11 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     goto error;
   }
 
-  if (!gst_element_link_pads (substream->priv->capsfilter, "src",
+  if (!gst_element_link_pads (substream->priv->input_valve, "src",
           codecbin, "sink"))
   {
      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-         "Could not link the receive capsfilter and the codecbin for pt %d",
+         "Could not link the receive input valve and the codecbin for pt %d",
          substream->pt);
     goto error;
   }
@@ -971,7 +924,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   tmp = gst_caps_to_string (caps);
   GST_DEBUG ("Setting caps %s on recv substream", tmp);
   g_free (tmp);
-  g_object_set (substream->priv->capsfilter, "caps", caps, NULL);
 
   pad = gst_element_get_static_pad (codecbin, "sink");
   if (!pad)
@@ -1102,12 +1054,6 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
   {
     gst_element_set_locked_state (substream->priv->codecbin, TRUE);
     gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL);
-  }
-
-  if (substream->priv->capsfilter)
-  {
-    gst_element_set_locked_state (substream->priv->capsfilter, TRUE);
-    gst_element_set_state (substream->priv->capsfilter, GST_STATE_NULL);
   }
 
   if (substream->priv->input_valve)
