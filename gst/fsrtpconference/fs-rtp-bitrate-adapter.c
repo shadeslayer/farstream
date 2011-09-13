@@ -420,9 +420,6 @@ fs_rtp_bitrate_adapter_get_suggested_caps (FsRtpBitrateAdapter *self)
     return NULL;
   }
 
-  g_debug ("suggested_allowed: %p %s", allowed_caps,
-      gst_caps_to_string (allowed_caps));
-
   wanted_caps = gst_caps_intersect_full (caps, allowed_caps,
       GST_CAPS_INTERSECT_FIRST);
   gst_caps_unref (allowed_caps);
