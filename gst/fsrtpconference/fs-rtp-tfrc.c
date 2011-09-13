@@ -1089,7 +1089,7 @@ fs_rtp_tfrc_filter_codecs (GList **codec_associations,
     FsRtpHeaderExtension *hdrext = item->data;
     GList *next = item->next;
 
-    if (!strcmp (hdrext->uri, "urn:ietf:params:rtp-hdtext:rtt-sendts"))
+    if (!strcmp (hdrext->uri, "urn:ietf:params:rtp-hdrext:rtt-sendts"))
     {
       if (has_header_ext || !has_codec_rtcpfb)
       {
@@ -1153,7 +1153,7 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
   for (item = header_extensions; item; item = item->next)
   {
     hdrext = item->data;
-    if (!strcmp (hdrext->uri, "urn:ietf:params:rtp-hdtext:rtt-sendts") &&
+    if (!strcmp (hdrext->uri, "urn:ietf:params:rtp-hdrext:rtt-sendts") &&
         hdrext->direction == FS_DIRECTION_BOTH)
       break;
   }

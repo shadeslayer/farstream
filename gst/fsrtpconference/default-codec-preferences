@@ -59,4 +59,4 @@ id=-1
 
 [rtp-hdrext:video:0]
 id=3
-uri=urn:ietf:params:rtp-hdtext:rtt-sendts
+uri=urn:ietf:params:rtp-hdrext:rtt-sendts
