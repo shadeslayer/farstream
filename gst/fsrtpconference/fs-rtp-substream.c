@@ -96,6 +96,7 @@ struct _FsRtpSubStreamPrivate {
    * otherwise the rtpbin_pad is blocked */
   /* Protected by the session mutex */
   GstElement *codecbin;
+  guint builder_hash;
 
   /* This is only created when the substream is associated with a FsRtpStream */
   GstPad *output_ghostpad;
@@ -375,6 +376,9 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
    * @stream: the #FsRtpStream this substream is attached to if any (or %NULL)
    * @current_codec: The current codec
    * @new_codec: A pointer to a location where the codec can be stored
+   * @current_builder_hash: The hash of the current codecbin builder
+   * @new_builder_hash: A location to store the hash of the new codecbin
+   *   builder
    * @error: The location of a GError where an error can be stored
    *
    * This emitted when the substream want to get a codecbin or replace
@@ -388,9 +392,9 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       0,
       NULL,
       NULL,
-      _fs_rtp_marshal_POINTER__POINTER_POINTER_POINTER_POINTER,
-      G_TYPE_POINTER, 4, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER,
-      G_TYPE_POINTER);
+      _fs_rtp_marshal_POINTER__POINTER_POINTER_POINTER_UINT_POINTER_POINTER,
+      G_TYPE_POINTER, 6, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER,
+      G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
 
 
  /**
@@ -846,6 +850,7 @@ static gboolean
 fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     FsCodec *codec,
     GstElement *codecbin,
+    guint builder_hash,
     GError **error)
 {
   gboolean ret = FALSE;
@@ -872,6 +877,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
     FS_RTP_SESSION_LOCK (substream->priv->session);
     substream->priv->codecbin = NULL;
+    substream->priv->builder_hash = 0;
     if (substream->codec)
     {
       fs_codec_destroy (substream->codec);
@@ -935,6 +941,7 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
 
   FS_RTP_SESSION_LOCK (substream->priv->session);
   substream->priv->codecbin = codecbin;
+  substream->priv->builder_hash = builder_hash;
   substream->codec = codec;
   codec = NULL;
 
@@ -1229,6 +1236,7 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   FsRtpSubStream *substream = user_data;
   GError *error = NULL;
   GstElement *codecbin = NULL;
+  guint new_builder_hash = 0;
   FsCodec *codec = NULL;
   FsRtpSession *session;
 
@@ -1251,17 +1259,18 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   GST_DEBUG ("Substream blocked for codec change (session:%d SSRC:%x pt:%d)",
       substream->priv->session->id, substream->ssrc, substream->pt);
 
-
   gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
 
   g_signal_emit (substream, signals[GET_CODEC_BIN], 0,
-      substream->priv->stream, substream->codec, &codec, &error, &codecbin);
+      substream->priv->stream, substream->codec, &codec,
+      substream->priv->builder_hash, &new_builder_hash, &error, &codecbin);
 
   if (error)
     goto error;
 
   if (codecbin)
-    if (!fs_rtp_sub_stream_set_codecbin (substream, codec, codecbin, &error))
+    if (!fs_rtp_sub_stream_set_codecbin (substream, codec, codecbin,
+            new_builder_hash, &error))
       goto error;
 
  out:

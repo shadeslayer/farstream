@@ -262,6 +262,7 @@ static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
 static GstElement *_substream_get_codec_bin (FsRtpSubStream *substream,
     FsRtpStream *stream, FsCodec *current_codec, FsCodec **new_codec,
+    guint current_builder_hash, guint *new_builder_hash,
     GError **error, FsRtpSession *session);
 
 static gboolean _stream_new_remote_codecs (FsRtpStream *stream,
@@ -2905,7 +2906,8 @@ validate_src_pads (gpointer item, GValue *ret, gpointer user_data)
 
 static GstElement *
 _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
-    const gchar *name, gboolean is_send, GList *codecs, GError **error)
+    const gchar *name, gboolean is_send, GList *codecs,
+    guint current_builder_hash, guint *new_builder_hash, GError **error)
 {
   GstElement *codec_bin = NULL;
   gchar *direction_str = (is_send == TRUE) ? "send" : "receive";
@@ -2920,6 +2922,23 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
   {
     GError *tmperror = NULL;
     guint src_pad_count = 0, sink_pad_count = 0;
+
+    /* Return nothing if the builder hash is the same, it would just return
+     * the same thing
+     */
+    if (new_builder_hash)
+    {
+      *new_builder_hash = g_str_hash (profile);
+      if (*new_builder_hash == current_builder_hash)
+      {
+        GST_DEBUG ("profile builder hash is the same for "FS_CODEC_FORMAT,
+            FS_CODEC_ARGS (ca->codec));
+        return NULL;
+      }
+      GST_DEBUG ("profile builder hash is different (new: %u != old: %u)"
+          " for " FS_CODEC_FORMAT,
+          *new_builder_hash, current_builder_hash, FS_CODEC_ARGS (ca->codec));
+    }
 
     codec_bin = parse_bin_from_description_all_linked (profile,
         &src_pad_count, &sink_pad_count, &tmperror);
@@ -2969,6 +2988,23 @@ _create_codec_bin (const CodecAssociation *ca, const FsCodec *codec,
   }
 
  try_factory:
+
+  if (new_builder_hash)
+  {
+    /* If its the same blueprint, it will be the same result,
+     * so return NULL without an error.
+     */
+    *new_builder_hash = g_direct_hash (ca->blueprint);
+    if (ca->blueprint && current_builder_hash == *new_builder_hash)
+    {
+      GST_DEBUG ("blueprint builder hash is the same for "FS_CODEC_FORMAT,
+          FS_CODEC_ARGS (ca->codec));
+      return NULL;
+    }
+    GST_DEBUG ("blueprint builder hash is different (new: %u != old: %u)"
+        " for " FS_CODEC_FORMAT,
+        *new_builder_hash, current_builder_hash, FS_CODEC_ARGS (ca->codec));
+  }
 
   return create_codec_bin_from_blueprint (codec, ca->blueprint, name,
       is_send, error);
@@ -3420,7 +3456,8 @@ fs_rtp_session_add_send_codec_bin_unlock (FsRtpSession *session,
   name = g_strdup_printf ("send_%d_%d", session->id, ca->send_codec->id);
   codecs = codec_associations_to_send_codecs (
       session->priv->codec_associations);
-  codecbin = _create_codec_bin (ca, ca->send_codec, name, TRUE, codecs, error);
+  codecbin = _create_codec_bin (ca, ca->send_codec, name, TRUE, codecs,
+      0, NULL, error);
   g_free (name);
 
   sendcaps = fs_codec_to_gst_caps (ca->send_codec);
@@ -3751,6 +3788,7 @@ fs_rtp_session_verify_send_codec_bin (FsRtpSession *self)
 static GstElement *
 _substream_get_codec_bin (FsRtpSubStream *substream,
     FsRtpStream *stream, FsCodec *current_codec, FsCodec **new_codec,
+    guint current_builder_hash, guint *new_builder_hash,
     GError **error, FsRtpSession *session)
 {
   GstElement *codecbin = NULL;
@@ -3764,20 +3802,20 @@ _substream_get_codec_bin (FsRtpSubStream *substream,
 
   ca = fs_rtp_session_get_recv_codec_locked (session, substream->pt, stream,
       new_codec, error);
-
   if (!ca)
     goto out;
 
-  if (fs_codec_are_equal (*new_codec, current_codec))
-  {
-    g_clear_error (error);
-    goto out;
-  }
-
   name = g_strdup_printf ("recv_%d_%u_%d", session->id, substream->ssrc,
       substream->pt);
-  codecbin = _create_codec_bin (ca, *new_codec, name, FALSE, NULL, error);
+  codecbin = _create_codec_bin (ca, *new_codec, name, FALSE, NULL,
+      current_builder_hash, new_builder_hash, error);
   g_free (name);
+
+  if (!codecbin)
+  {
+    fs_codec_destroy (*new_codec);
+    *new_codec = NULL;
+  }
 
  out:
 
@@ -4214,7 +4252,8 @@ fs_rtp_session_get_codec_params_unlock (FsRtpSession *session,
   session->priv->discovery_codec = NULL;
 
   tmp = g_strdup_printf ("discover_%d_%d", session->id, ca->send_codec->id);
-  codecbin = _create_codec_bin (ca, ca->send_codec, tmp, TRUE, NULL, error);
+  codecbin = _create_codec_bin (ca, ca->send_codec, tmp, TRUE, NULL,
+      0, NULL, error);
   g_free (tmp);
 
   FS_RTP_SESSION_UNLOCK (session);
