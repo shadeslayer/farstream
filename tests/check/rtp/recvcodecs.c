@@ -26,8 +26,11 @@
 #include <gst/rtp/gstrtpbuffer.h>
 
 #include <gst/farsight/fs-conference-iface.h>
+#include <gst/farsight/fs-element-added-notifier.h>
 
 #include "check-threadsafe.h"
+
+#define BUFFER_COUNT 20
 
 GMutex *count_mutex;
 GCond *count_cond;
@@ -43,8 +46,9 @@ handoff_handler (GstElement *fakesink, GstBuffer *buffer, GstPad *pad,
 
   GST_LOG ("buffer %d", buffer_count);
 
-  if (buffer_count >= 50)
+  if (buffer_count == BUFFER_COUNT)
     g_cond_broadcast (count_cond);
+  ts_fail_unless (buffer_count <= BUFFER_COUNT);
   g_mutex_unlock (count_mutex);
 }
 
@@ -71,6 +75,55 @@ src_pad_added_cb (FsStream *self,
   GST_DEBUG ("Pad added");
 }
 
+static guint decoder_count = 0;
+
+static void
+element_added (FsElementAddedNotifier *notif, GstBin *bin, GstElement *element,
+    gpointer user_data)
+{
+  GstElementFactory *fact = gst_element_get_factory (element);
+
+  if (!fact)
+    return;
+
+  if (strcmp (gst_plugin_feature_get_name (GST_PLUGIN_FEATURE (fact)),
+              "theoradec"))
+    return;
+
+  ts_fail_unless (decoder_count == 0);
+  decoder_count++;
+}
+
+static void
+caps_changed (GstPad *pad, GParamSpec *spec, FsStream *stream)
+{
+  GstCaps *caps;
+  GstStructure *s;
+  FsCodec *codec;
+  GList *codecs;
+  const gchar *config;
+  GError *error = NULL;
+
+  g_object_get (pad, "caps", &caps, NULL);
+
+  if (!caps)
+    return;
+
+  s = gst_caps_get_structure (caps, 0);
+
+  codec = fs_codec_new (96, "THEORA", FS_MEDIA_TYPE_VIDEO, 90000);
+
+  config = gst_structure_get_string (s, "configuration");
+  if (config)
+    fs_codec_add_optional_parameter (codec, "configuration", config);
+
+  codecs = g_list_prepend (NULL, codec);
+  fail_unless (fs_stream_set_remote_codecs (stream, codecs, &error),
+      "Unable to set remote codec: %s",
+      error ? error->message : "UNKNOWN");
+  fs_codec_list_destroy (codecs);
+}
+
 GST_START_TEST (test_rtprecv_inband_config_data)
 {
   FsParticipant *participant = NULL;
@@ -86,11 +139,21 @@ GST_START_TEST (test_rtprecv_inband_config_data)
   GstElement *conference;
   FsSession *session;
   GList *item;
+  GstPad *pad;
+  GstElement *pay;
+  FsElementAddedNotifier *notif;
 
   count_mutex = g_mutex_new ();
   count_cond = g_cond_new ();
+  buffer_count = 0;
+  decoder_count = 0;
 
   fspipeline = gst_pipeline_new (NULL);
+
+  notif = fs_element_added_notifier_new ();
+  fs_element_added_notifier_add (notif, GST_BIN (fspipeline));
+  g_signal_connect (notif, "element-added", G_CALLBACK (element_added), NULL);
+
 
   conference = gst_element_factory_make ("fsrtpconference", NULL);
 
@@ -140,23 +203,21 @@ GST_START_TEST (test_rtprecv_inband_config_data)
   g_signal_connect (stream, "src-pad-added",
       G_CALLBACK (src_pad_added_cb), fspipeline);
 
-  g_object_get (session, "codecs-without-config", &codecs, NULL);
-
-
   codecs = g_list_prepend (NULL, fs_codec_new (96, "THEORA",
           FS_MEDIA_TYPE_VIDEO, 90000));
-  fail_unless (fs_session_set_codec_preferences (session, codecs,
+  fail_unless (fs_stream_set_remote_codecs (stream, codecs,
           &error),
-      "Unable to set codec preferences: %s",
+      "Unable to set remote codec: %s",
       error ? error->message : "UNKNOWN");
 
   fs_codec_list_destroy (codecs);
 
 
-  pipeline = gst_parse_launch ("videotestsrc is-live=1 num-buffers=50 !"
+  pipeline = gst_parse_launch (
+      "videotestsrc is-live=1 num-buffers="G_STRINGIFY (BUFFER_COUNT)" !"
       " video/x-raw-yuv, framerate=(fraction)30/1 ! theoraenc !"
-      " rtptheorapay name=pay config-interval=1 !"
-      " application/x-rtp, payload=96 !"
+      " rtptheorapay name=pay config-interval=1 name=pay !"
+      " application/x-rtp, payload=96, ssrc=(uint)12345678 !"
       " udpsink host=127.0.0.1 name=sink", NULL);
 
   gst_element_set_state (fspipeline, GST_STATE_PLAYING);
@@ -211,10 +272,36 @@ GST_START_TEST (test_rtprecv_inband_config_data)
 
 
   g_mutex_lock (count_mutex);
-  while (buffer_count < 50)
+  while (buffer_count < BUFFER_COUNT)
     g_cond_wait (count_cond, count_mutex);
+  buffer_count = 0;
   g_mutex_unlock (count_mutex);
 
+  gst_element_set_state (pipeline, GST_STATE_NULL);
+
+  pay = gst_bin_get_by_name (GST_BIN (pipeline), "pay");
+  ts_fail_unless (pay != NULL);
+  pad = gst_element_get_static_pad (pay, "src");
+  ts_fail_unless (pad != NULL);
+  g_signal_connect (pad, "notify::caps", G_CALLBACK (caps_changed), stream);
+  caps_changed (pad, NULL, stream);
+  gst_object_unref (pad);
+  gst_object_unref (pay);
+
+  gst_element_set_state (pipeline, GST_STATE_PLAYING);
+
+  bus = gst_element_get_bus (pipeline);
+  msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_EOS);
+  gst_message_unref (msg);
+  gst_object_unref (bus);
+
+  g_mutex_lock (count_mutex);
+  while (buffer_count < BUFFER_COUNT)
+    g_cond_wait (count_cond, count_mutex);
+  buffer_count = 0;
+  g_mutex_unlock (count_mutex);
+
+  gst_element_set_state (pipeline, GST_STATE_NULL);
 
   bus = gst_element_get_bus (fspipeline);
   msg = gst_bus_pop_filtered (bus, GST_MESSAGE_ERROR);
@@ -233,7 +320,6 @@ GST_START_TEST (test_rtprecv_inband_config_data)
   }
   gst_object_unref (bus);
 
-  gst_element_set_state (pipeline, GST_STATE_NULL);
 
   gst_object_unref (pipeline);
   gst_object_unref (participant);
