@@ -1048,6 +1048,34 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
   }
 }
 
+static gboolean
+event_probe_drop_newsegment (GstPad *pad, GstEvent *event, gpointer user_data)
+{
+  if (GST_EVENT_TYPE (event) == GST_EVENT_NEWSEGMENT)
+  {
+    gboolean update;
+    GstFormat format;
+    gint64 start;
+    gint64 stop;
+
+    gst_event_parse_new_segment (event, &update, NULL, &format, &start, &stop,
+        NULL);
+
+    /* Drop this one is assumed, so lets drop it to prevent accumulation
+     * If somethign sends something else, lets assume they now
+     * what they are doing
+     */
+    if (!update && format == GST_FORMAT_TIME && start == 0 && stop == -1)
+    {
+      GST_DEBUG ("Dropping newsegment event to prevent accumulation");
+      return FALSE;
+      }
+    GST_INFO ("Letting newsegment event through, be careful what you wish for");
+  }
+
+  return TRUE;
+}
+
 /**
  * fs_rtp_sub_stream_add_output_ghostpad_unlock:
  *
@@ -1108,6 +1136,9 @@ fs_rtp_sub_stream_add_output_ghostpad_unlock (FsRtpSubStream *substream,
         substream->ssrc, substream->pt);
     goto error;
   }
+
+  gst_pad_add_event_probe (ghostpad, G_CALLBACK (event_probe_drop_newsegment),
+      NULL);
 
   if (!gst_pad_set_active (ghostpad, TRUE))
   {
