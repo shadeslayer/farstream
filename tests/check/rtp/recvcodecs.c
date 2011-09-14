@@ -29,6 +29,25 @@
 
 #include "check-threadsafe.h"
 
+GMutex *count_mutex;
+GCond *count_cond;
+guint buffer_count = 0;
+
+
+static void
+handoff_handler (GstElement *fakesink, GstBuffer *buffer, GstPad *pad,
+    gpointer user_data)
+{
+  g_mutex_lock (count_mutex);
+  buffer_count ++;
+
+  GST_LOG ("buffer %d", buffer_count);
+
+  if (buffer_count >= 50)
+    g_cond_broadcast (count_cond);
+  g_mutex_unlock (count_mutex);
+}
+
 static void
 src_pad_added_cb (FsStream *self,
     GstPad   *pad,
@@ -39,7 +58,10 @@ src_pad_added_cb (FsStream *self,
   GstPad *sinkpad;
 
   sink = gst_element_factory_make ("fakesink", NULL);
-  g_object_set (sink, "sync", TRUE, NULL);
+  g_object_set (sink, "sync", TRUE,
+      "signal-handoffs", TRUE,
+      NULL);
+  g_signal_connect (sink, "handoff", G_CALLBACK (handoff_handler), NULL);
   fail_unless (gst_bin_add (GST_BIN (pipeline), sink));
   gst_element_set_state (sink, GST_STATE_PLAYING);
   sinkpad = gst_element_get_static_pad (sink, "sink");
@@ -49,7 +71,7 @@ src_pad_added_cb (FsStream *self,
   GST_DEBUG ("Pad added");
 }
 
-GST_START_TEST (test_rtprecv_no_config_data)
+GST_START_TEST (test_rtprecv_inband_config_data)
 {
   FsParticipant *participant = NULL;
   FsStream *stream = NULL;
@@ -65,6 +87,9 @@ GST_START_TEST (test_rtprecv_no_config_data)
   FsSession *session;
   GList *item;
 
+  count_mutex = g_mutex_new ();
+  count_cond = g_cond_new ();
+
   fspipeline = gst_pipeline_new (NULL);
 
   conference = gst_element_factory_make ("fsrtpconference", NULL);
@@ -77,8 +102,9 @@ GST_START_TEST (test_rtprecv_no_config_data)
     fail ("Error while creating new session (%d): %s",
         error->code, error->message);
   fail_if (session == NULL, "Could not make session, but no GError!");
+  g_object_set (session, "no-rtcp-timeout", 0, NULL);
 
-
+  g_object_get (session, "codecs-without-config", &codecs, NULL);
   for (item = codecs; item; item = item->next)
   {
     FsCodec *codec = item->data;
@@ -129,7 +155,8 @@ GST_START_TEST (test_rtprecv_no_config_data)
 
   pipeline = gst_parse_launch ("videotestsrc is-live=1 num-buffers=50 !"
       " video/x-raw-yuv, framerate=(fraction)30/1 ! theoraenc !"
-      " rtptheorapay name=pay ! application/x-rtp, payload=96 !"
+      " rtptheorapay name=pay config-interval=1 !"
+      " application/x-rtp, payload=96 !"
       " udpsink host=127.0.0.1 name=sink", NULL);
 
   gst_element_set_state (fspipeline, GST_STATE_PLAYING);
@@ -182,6 +209,13 @@ GST_START_TEST (test_rtprecv_no_config_data)
   gst_message_unref (msg);
   gst_object_unref (bus);
 
+
+  g_mutex_lock (count_mutex);
+  while (buffer_count < 50)
+    g_cond_wait (count_cond, count_mutex);
+  g_mutex_unlock (count_mutex);
+
+
   bus = gst_element_get_bus (fspipeline);
   msg = gst_bus_pop_filtered (bus, GST_MESSAGE_ERROR);
   if (msg)
@@ -208,9 +242,10 @@ GST_START_TEST (test_rtprecv_no_config_data)
 
   gst_element_set_state (fspipeline, GST_STATE_NULL);
 
-
-
   gst_object_unref (fspipeline);
+
+  g_mutex_free (count_mutex);
+  g_cond_free (count_cond);
 }
 GST_END_TEST;
 
@@ -226,8 +261,8 @@ fsrtprecvcodecs_suite (void)
   fatal_mask |= G_LOG_LEVEL_WARNING | G_LOG_LEVEL_CRITICAL;
   g_log_set_always_fatal (fatal_mask);
 
-  tc_chain = tcase_create ("fsrtprecv_no_config_data");
-  tcase_add_test (tc_chain, test_rtprecv_no_config_data);
+  tc_chain = tcase_create ("fsrtprecv_inband_config_data");
+  tcase_add_test (tc_chain, test_rtprecv_inband_config_data);
   suite_add_tcase (s, tc_chain);
 
   return s;
