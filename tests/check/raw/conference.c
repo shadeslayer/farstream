@@ -50,7 +50,6 @@ struct SimpleTestStream {
   struct SimpleTestConference *dat;
   struct SimpleTestConference *target;
 
-  FsCandidate *candidate;
   FsParticipant *participant;
   FsStream *stream;
 
@@ -204,7 +203,6 @@ cleanup_simple_stream (struct SimpleTestStream *st)
   if (st->stream)
     g_object_unref (st->stream);
   g_object_unref (st->participant);
-  fs_candidate_destroy (st->candidate);
   g_free (st->transmitter);
   g_free (st);
 }
@@ -373,6 +371,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
   GError *error = NULL;
   struct SimpleTestStream *other_st;
   GList *candidates = NULL;
+  FsCandidate *freecand = NULL;
 
   TEST_LOCK ();
 
@@ -389,9 +388,6 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
     return;
   }
 
-  if (st->candidate)
-    fs_candidate_destroy (st->candidate);
-  st->candidate = fs_candidate_copy (candidate);
   st->got_candidates = TRUE;
 
   GST_DEBUG ("%d:%d: Setting remote candidate for component %d",
@@ -399,12 +395,12 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
       other_st->target->id,
       candidate->component_id);
 
-  if (!strcmp ("shm", st->transmitter) && other_st->candidate)
+  if (!strcmp ("shm", st->transmitter))
   {
-    if (other_st->candidate->username)
-      g_free ((gchar *)other_st->candidate->username);
-    other_st->candidate->username = g_strdup (candidate->ip);
-    candidates = g_list_prepend (NULL, other_st->candidate);
+    freecand = fs_candidate_new (NULL, candidate->component_id,
+        candidate->type, FS_NETWORK_PROTOCOL_UDP, NULL, 0);
+    freecand->username = g_strdup (candidate->ip);
+    candidates = g_list_prepend (NULL, freecand);
   }
   else
   {
@@ -413,6 +409,7 @@ _new_local_candidate (FsStream *stream, FsCandidate *candidate)
 
   ret = fs_stream_set_remote_candidates (other_st->stream, candidates, &error);
   g_list_free (candidates);
+  fs_candidate_destroy (freecand);
 
   if (error)
     ts_fail ("Error while adding candidate: (%s:%d) %s",
@@ -1100,7 +1097,6 @@ nway_test (int in_count, extra_conf_init extra_conf_init,
           FsCandidate *candidate = fs_candidate_new ("1", 1,
               FS_CANDIDATE_TYPE_HOST, FS_NETWORK_PROTOCOL_UDP,
               "/tmp/test-stream", 0);
-          st->candidate = fs_candidate_copy (candidate);
           fs_stream_set_remote_candidates (st->stream,
               g_list_prepend (NULL, candidate), NULL);
         }
