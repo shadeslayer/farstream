@@ -663,6 +663,33 @@ _bus_message_element (GstBus *bus, GstMessage *message,
     fs_codec_list_destroy (codecs);
   }
 
+  /* Test without config in stream */
+
+  codec = fs_codec_new (vorbis_id,  "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+  codecs = g_list_prepend (NULL, codec);
+
+  if (!fs_stream_set_remote_codecs (cd->stream, codecs, &error))
+  {
+    if (error)
+      fail ("Could not set vorbis as remote codec on the stream: %s",
+          error->message);
+    else
+      fail ("Could not set vorbis as remote codec on the stream"
+          " WITHOUT SETTING THE GError");
+  }
+
+  fs_codec_list_destroy (codecs);
+
+
+  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
+  fail_unless (ready, "Codecs became unready after setting new remote codecs");
+
+  g_object_get (cd->dat->session, "codecs", &codecs, NULL);
+  check_vorbis_and_configuration ("session codecs after negotiation",
+      codecs, discovered_config);
+  fs_codec_list_destroy (codecs);
+
+  /* Test with config in stream */
 
   codec = fs_codec_new (vorbis_id,  "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
   fs_codec_add_optional_parameter (codec, "configuration", config);
@@ -694,6 +721,8 @@ _bus_message_element (GstBus *bus, GstMessage *message,
       codecs, config);
   fs_codec_list_destroy (codecs);
 
+  /* Add a second stream */
+
   p2 = fs_conference_new_participant (FS_CONFERENCE (cd->dat->conference),
       "name2", &error);
   if (!p2)
@@ -704,6 +733,36 @@ _bus_message_element (GstBus *bus, GstMessage *message,
 
   fail_if (stream2 == NULL, "Could not second create new stream");
 
+  /* Test with config in second stream */
+
+  codec = fs_codec_new (vorbis_id, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
+  codecs = g_list_prepend (NULL, codec);
+
+  if (!fs_stream_set_remote_codecs (stream2, codecs, &error))
+  {
+    if (error)
+      fail ("Could not set vorbis as remote codec on the stream: %s",
+          error->message);
+    else
+      fail ("Could not set vorbis as remote codec on the stream"
+          " WITHOUT SETTING THE GError");
+  }
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
+  fail_unless (ready, "Codecs became unready after setting new remote codecs");
+
+  g_object_get (cd->dat->session, "codecs", &codecs, NULL);
+  check_vorbis_and_configuration ("session codecs after renegotiation",
+      codecs, discovered_config);
+  fs_codec_list_destroy (codecs);
+
+  g_object_get (cd->stream, "negotiated-codecs", &codecs, NULL);
+  check_vorbis_and_configuration ("stream codecs after renegotiation",
+      codecs, config);
+  fs_codec_list_destroy (codecs);
+
+  /* Test without config in second stream */
 
   codec = fs_codec_new (vorbis_id, "VORBIS", FS_MEDIA_TYPE_AUDIO, 44100);
   fs_codec_add_optional_parameter (codec, "configuration", config2);
@@ -719,8 +778,6 @@ _bus_message_element (GstBus *bus, GstMessage *message,
           " WITHOUT SETTING THE GError");
   }
   fs_codec_list_destroy (codecs);
-
-
 
   g_object_get (cd->dat->session, "codecs-ready", &ready, NULL);
   fail_unless (ready, "Codecs became unready after setting new remote codecs");
