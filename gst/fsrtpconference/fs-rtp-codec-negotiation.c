@@ -619,15 +619,14 @@ create_local_codec_associations (
        * The blueprint has its own id, lets use it */
       if (ca->codec->id == FS_CODEC_ID_ANY &&
           (bp->codec->id >= 0 || bp->codec->id < 128))
-      {
         ca->send_codec->id = ca->codec->id = bp->codec->id;
-      }
 
       if (ca->codec->clock_rate == 0)
-        ca->codec->clock_rate = bp->codec->clock_rate;
+        ca->codec->clock_rate = ca->send_codec->clock_rate =
+            bp->codec->clock_rate;
 
       if (ca->codec->channels == 0)
-        ca->codec->channels = bp->codec->channels;
+        ca->codec->channels = ca->send_codec->channels = bp->codec->channels;
 
       for (bp_param_e = bp->codec->optional_params;
            bp_param_e;
@@ -635,8 +634,12 @@ create_local_codec_associations (
       {
         FsCodecParameter *bp_param = bp_param_e->data;
 
-        if (fs_codec_get_optional_parameter (ca->codec, bp_param->name, NULL))
+        if (!fs_codec_get_optional_parameter (ca->codec, bp_param->name, NULL))
           fs_codec_add_optional_parameter (ca->codec, bp_param->name,
+              bp_param->value);
+        if (!fs_codec_get_optional_parameter (ca->send_codec, bp_param->name,
+                NULL))
+          fs_codec_add_optional_parameter (ca->send_codec, bp_param->name,
               bp_param->value);
       }
     }
@@ -1007,25 +1010,25 @@ keep_config_from_old_codec (FsCodec *new_codec, FsCodec *old_codec)
 static gboolean
 match_send_codec_no_pt (CodecAssociation *old_ca, gpointer user_data)
 {
-  FsCodec *old_codec;
+  FsCodec *old_send_codec;
   FsCodec *tmpcodec = NULL;
   CodecAssociation *new_ca = user_data;
   gboolean ret;
 
-  if (old_ca->disable || old_ca->reserved)
+  if (old_ca->disable || old_ca->reserved || !old_ca->send_codec)
     return FALSE;
 
   if (new_ca->send_codec->id == old_ca->send_codec->id)
   {
-    old_codec = old_ca->send_codec;
+    old_send_codec = old_ca->send_codec;
   }
   else
   {
-    tmpcodec = old_codec = fs_codec_copy (old_ca->send_codec);
-    old_codec->id = new_ca->codec->id;
+    tmpcodec = old_send_codec = fs_codec_copy (old_ca->send_codec);
+    old_send_codec->id = new_ca->codec->id;
   }
 
-  ret = fs_codec_are_equal (old_codec, new_ca->codec);
+  ret = fs_codec_are_equal (old_send_codec, new_ca->send_codec);
   fs_codec_destroy (tmpcodec);
 
   return ret;
@@ -1096,8 +1099,7 @@ finish_codec_negotiation (
 
     old_ca = lookup_codec_association_custom_internal (old_codec_associations,
         TRUE, match_send_codec_no_pt, new_ca);
-    if (old_ca && old_ca->send_codec &&
-        fs_codec_are_equal (new_ca->send_codec, old_ca->send_codec))
+    if (old_ca)
       keep_config_from_old_codec (new_ca->codec, old_ca->codec);
 
     new_ca->need_config = codec_needs_config (new_ca->codec);
