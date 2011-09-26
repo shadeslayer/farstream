@@ -1678,6 +1678,11 @@ _stream_sending_changed_locked (FsRtpStream *stream, gboolean sending,
   else
     g_object_set (session->priv->media_sink_valve, "drop", TRUE, NULL);
 
+  if (session->priv->rtp_tfrc)
+    g_object_set (session->priv->rtp_tfrc, "sending",
+        session->priv->streams_sending, NULL);
+
+
   fs_rtp_session_has_disposed_exit (session);
 }
 

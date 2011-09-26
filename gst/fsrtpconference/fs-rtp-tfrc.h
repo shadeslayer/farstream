@@ -113,6 +113,7 @@ struct _FsRtpTfrc
   struct TrackedSource *last_src;
 
   /* Sender stuff */
+  gboolean sending;
   gint byte_reservoir;
   GstClockTime last_sent_ts;
   guint send_bitrate;

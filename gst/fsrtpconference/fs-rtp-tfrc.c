@@ -49,12 +49,17 @@ G_DEFINE_TYPE (FsRtpTfrc, fs_rtp_tfrc, GST_TYPE_OBJECT);
 enum
 {
   PROP_0,
-  PROP_BITRATE
+  PROP_BITRATE,
+  PROP_SENDING
 };
 
 static void fs_rtp_tfrc_get_property (GObject *object,
     guint prop_id,
     GValue *value,
+    GParamSpec *pspec);
+static void fs_rtp_tfrc_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
     GParamSpec *pspec);
 static void fs_rtp_tfrc_dispose (GObject *object);
 
@@ -75,6 +80,7 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
   gobject_class = (GObjectClass *) klass;
 
   gobject_class->get_property = fs_rtp_tfrc_get_property;
+  gobject_class->set_property = fs_rtp_tfrc_set_property;
   gobject_class->dispose = fs_rtp_tfrc_dispose;
 
   g_object_class_install_property (gobject_class,
@@ -83,6 +89,13 @@ fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
           "The bitrate at which data should be sent",
           "The bitrate that the session should try to send at in bits/sec",
           0, G_MAXUINT, 0, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
+
+ g_object_class_install_property (gobject_class,
+      PROP_SENDING,
+      g_param_spec_boolean ("sending",
+          "The bitrate at which data should be sent",
+          "The bitrate that the session should try to send at in bits/sec",
+          FALSE, G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS));
 }
 
 
@@ -208,6 +221,59 @@ fs_rtp_tfrc_get_property (GObject *object,
     case PROP_BITRATE:
       GST_OBJECT_LOCK (self);
       g_value_set_uint (value, self->send_bitrate);
+      GST_OBJECT_UNLOCK (self);
+      break;
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+      break;
+  }
+}
+
+gboolean
+clear_sender (gpointer key, gpointer value, gpointer user_data)
+{
+  struct TrackedSource *src = value;
+
+  src->send_ts_base = 0;
+  src->send_ts_cycles = 0;
+  src->fb_last_ts = 0;
+  src->fb_ts_cycles = 0;
+
+  if (src->sender_id)
+  {
+    gst_clock_id_unschedule (src->sender_id);
+    gst_clock_id_unref (src->sender_id);
+    src->sender_id = 0;
+  }
+
+  if (src->sender)
+    tfrc_sender_free (src->sender);
+  src->sender = NULL;
+
+  if (src->idl)
+    tfrc_is_data_limited_free (src->idl);
+
+  if (src->receiver)
+    return FALSE;
+  else
+    return TRUE;
+}
+
+static void
+fs_rtp_tfrc_set_property (GObject *object,
+    guint prop_id,
+    const GValue *value,
+    GParamSpec *pspec)
+{
+  FsRtpTfrc *self = FS_RTP_TFRC (object);
+
+  switch (prop_id)
+  {
+    case PROP_SENDING:
+      GST_OBJECT_LOCK (self);
+      self->sending = g_value_get_uint (value);
+      if (!self->sending)
+        g_hash_table_foreach_remove (self->tfrc_sources, clear_sender, NULL);
       GST_OBJECT_UNLOCK (self);
       break;
     default:
@@ -632,6 +698,9 @@ no_feedback_timer_expired (GstClock *clock, GstClockTime time, GstClockID id,
 
   GST_OBJECT_LOCK (td->self);
 
+  if (!td->self->sending)
+    goto out;
+
   src = g_hash_table_lookup (td->self->tfrc_sources,
       GUINT_TO_POINTER (td->ssrc));
 
@@ -697,9 +766,10 @@ fs_rtp_tfrc_update_sender_timer_locked (FsRtpTfrc *self,
 }
 
 static void
-tracked_src_add_sender (struct TrackedSource *src, guint64 now)
+tracked_src_add_sender (struct TrackedSource *src, guint64 now,
+  guint initial_rate)
 {
-  src->sender = tfrc_sender_new (1460, now, 20000);
+  src->sender = tfrc_sender_new (1460, now, initial_rate);
   src->idl = tfrc_is_data_limited_new (now);
   src->send_ts_base = now;
 }
@@ -759,13 +829,16 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       GST_OBJECT_LOCK (self);
 
+      if (!self->sending)
+        goto done;
+
       src = fs_rtp_tfrc_get_remote_ssrc_locked (self, sender_ssrc,
           NULL);
 
       now = fs_rtp_tfrc_get_now (self);
 
       if (G_UNLIKELY (!src->sender))
-        tracked_src_add_sender (src, now);
+        tracked_src_add_sender (src, now, self->send_bitrate);
 
       /* Make sure we only use the RTT from the most recent packets from
        * the remote side, ignore anything that got delayed in between.
@@ -854,7 +927,7 @@ fs_rtp_tfrc_get_sync_time (FsRtpPacketModder *modder,
 
   GST_OBJECT_LOCK (self);
 
-  if (self->extension_type == EXTENSION_NONE)
+  if (self->extension_type == EXTENSION_NONE || !self->sending)
   {
     GST_OBJECT_UNLOCK (self);
     return GST_CLOCK_TIME_NONE;
@@ -932,7 +1005,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   GST_OBJECT_LOCK (self);
 
-  if (self->extension_type == EXTENSION_NONE)
+  if (self->extension_type == EXTENSION_NONE || !self->sending)
   {
     GST_OBJECT_UNLOCK (self);
     return buffer;
@@ -945,7 +1018,7 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   if (G_UNLIKELY (self->last_src->sender == NULL))
   {
-    tracked_src_add_sender (self->last_src, now);
+    tracked_src_add_sender (self->last_src, now, self->send_bitrate);
     fs_rtp_tfrc_update_sender_timer_locked (self, self->last_src, now);
   }
 
@@ -1044,6 +1117,7 @@ fs_rtp_tfrc_new (GObject *rtpsession,
   self->rtpsession = rtpsession;
   self->in_rtp_pad = inrtp;
   self->in_rtcp_pad = inrtcp;
+  self->sending = FALSE;
 
   self->in_rtp_probe_id = gst_pad_add_buffer_probe (inrtp,
       G_CALLBACK (incoming_rtp_probe), self);
