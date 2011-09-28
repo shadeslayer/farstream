@@ -98,10 +98,12 @@ struct _FsRtpTfrc
 
   GstClock *systemclock;
 
+  GstBin *parent_bin;
   GObject *rtpsession;
 
   GstPad *in_rtp_pad;
   GstPad *in_rtcp_pad;
+  GstPad *out_rtp_pad;
 
   gulong in_rtp_probe_id;
   gulong in_rtcp_probe_id;
@@ -133,9 +135,10 @@ struct _FsRtpTfrcClass
 GType fs_rtp_tfrc_get_type (void);
 
 FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession,
+    GstBin *parent_bin,
+    GstPad *outrtp,
     GstPad *inrtp,
-    GstPad *inrtcp,
-    GstElement **send_filter);
+    GstPad *inrtcp);
 
 void fs_rtp_tfrc_destroy (FsRtpTfrc *self);
 

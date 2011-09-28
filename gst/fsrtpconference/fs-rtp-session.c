@@ -213,7 +213,6 @@ struct _FsRtpSessionPrivate
   guint send_bitrate;
 
   /* Set at construction time, can not change */
-  GstElement *send_filter;
   FsRtpTfrc *rtp_tfrc;
   FsRtpKeyunitManager *keyunit_manager;
 
@@ -566,9 +565,6 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
     gst_pad_set_active (self->priv->rtpbin_send_rtcp_src, FALSE);
   if (self->priv->rtpbin_send_rtp_sink)
     gst_pad_set_active (self->priv->rtpbin_send_rtp_sink, FALSE);
-
-  if (self->priv->send_filter)
-    stop_and_remove (conferencebin, &self->priv->send_filter, FALSE);
 
   if (self->priv->rtp_tfrc)
   {
@@ -1353,20 +1349,6 @@ fs_rtp_session_constructed (GObject *object)
       "rtcp-fraction", (gdouble) 0.05,
       NULL);
 
-  if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
-  {
-    self->priv->rtp_tfrc = fs_rtp_tfrc_new (self->priv->rtpbin_internal_session,
-        self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink,
-        &self->priv->send_filter);
-
-
-    g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
-        G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
-  }
-
-  self->priv->keyunit_manager = fs_rtp_keyunit_manager_new (
-    self->priv->rtpbin_internal_session);
-
   /* Lets now create the RTP muxer */
 
   tmp = g_strdup_printf ("send_rtp_muxer_%u", self->id);
@@ -1398,33 +1380,7 @@ fs_rtp_session_constructed (GObject *object)
       tmp);
   g_free (tmp);
 
-  if (self->priv->send_filter)
-  {
-    if (!gst_bin_add (GST_BIN (self->priv->conference),
-            self->priv->send_filter))
-    {
-      self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-          "Could not add the rtp send filter element to the FsRtpConference");
-      return;
-    }
-
-    if (!gst_element_link (muxer, self->priv->send_filter))
-    {
-       self->priv->construction_error = g_error_new (FS_ERROR,
-          FS_ERROR_CONSTRUCTION,
-           "Could not link rtp muxer and send filter ");
-      return;
-    }
-
-    gst_element_set_state (self->priv->send_filter, GST_STATE_PLAYING);
-
-    muxer_src_pad = gst_element_get_static_pad (self->priv->send_filter, "src");
-  }
-  else
-  {
-    muxer_src_pad = gst_element_get_static_pad (muxer, "src");
-  }
+  muxer_src_pad = gst_element_get_static_pad (muxer, "src");
 
   ret = gst_pad_link (muxer_src_pad, self->priv->rtpbin_send_rtp_sink);
 
@@ -1445,6 +1401,23 @@ fs_rtp_session_constructed (GObject *object)
 
   gst_element_set_state (muxer, GST_STATE_PLAYING);
 
+
+  if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
+  {
+    GstPad *muxer_src =
+        gst_element_get_static_pad (self->priv->rtpmuxer, "src");
+
+    self->priv->rtp_tfrc = fs_rtp_tfrc_new (self->priv->rtpbin_internal_session,
+        GST_BIN (self->priv->conference), muxer_src,
+        self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink);
+    gst_object_unref (muxer_src);
+
+    g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
+        G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
+  }
+
+  self->priv->keyunit_manager = fs_rtp_keyunit_manager_new (
+    self->priv->rtpbin_internal_session);
 
   /* Now create the transmitter RTP tee */
 

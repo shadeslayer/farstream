@@ -197,7 +197,14 @@ fs_rtp_tfrc_dispose (GObject *object)
   self->initial_src = NULL;
 
   if (self->packet_modder)
+  {
+    gst_bin_remove (self->parent_bin, self->packet_modder);
+    gst_element_set_state (self->packet_modder, GST_STATE_NULL);
     g_object_unref (self->packet_modder);
+  }
+
+  if (self->parent_bin)
+    gst_object_unref (self->parent_bin);
 
   gst_object_unref (self->systemclock);
   self->systemclock = NULL;
@@ -271,7 +278,7 @@ fs_rtp_tfrc_set_property (GObject *object,
   {
     case PROP_SENDING:
       GST_OBJECT_LOCK (self);
-      self->sending = g_value_get_uint (value);
+      self->sending = g_value_get_boolean (value);
       if (!self->sending)
         g_hash_table_foreach_remove (self->tfrc_sources, clear_sender, NULL);
       GST_OBJECT_UNLOCK (self);
@@ -1101,12 +1108,125 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
   return newbuf;
 }
 
+static void
+pad_block_do_nothing (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+}
+
+static void
+send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
+{
+  FsRtpTfrc *self = user_data;
+  gboolean need_modder;
+  GstPad *peer = NULL;
+
+  GST_OBJECT_LOCK (self);
+  need_modder = self->extension_type != EXTENSION_NONE;
+
+  if (!!self->packet_modder == need_modder)
+    goto out;
+
+  GST_DEBUG ("Pad blocked to possibly %s the tfrc packet modder",
+      need_modder ? "add" : "remove");
+
+  if (need_modder)
+  {
+    GstPadLinkReturn linkret;
+    GstPad *modder_pad;
+
+    self->packet_modder = GST_ELEMENT (fs_rtp_packet_modder_new (
+          fs_rtp_tfrc_outgoing_packets, fs_rtp_tfrc_get_sync_time, self));
+    g_object_ref (self->packet_modder);
+
+    if (!gst_bin_add (self->parent_bin, self->packet_modder))
+    {
+      g_warning ("Could not add tfrc packet modder to the pipeline");
+      goto adding_failed;
+    }
+
+    peer = gst_pad_get_peer (pad);
+    gst_pad_unlink (pad, peer);
+
+    modder_pad = gst_element_get_static_pad (self->packet_modder, "src");
+    linkret = gst_pad_link (modder_pad, peer);
+    gst_object_unref (modder_pad);
+    if (GST_PAD_LINK_FAILED (linkret))
+    {
+      g_warning ("could not link tfrc packet modder to the rtpbin");
+      goto linking_failed;
+    }
+
+    modder_pad = gst_element_get_static_pad (self->packet_modder, "sink");
+    linkret = gst_pad_link (pad, modder_pad);
+    gst_object_unref (modder_pad);
+    if (GST_PAD_LINK_FAILED (linkret))
+    {
+      g_warning ("Could set start tfrc packet modder");
+      goto linking_failed;
+    }
+
+    if (gst_element_set_state (self->packet_modder, GST_STATE_PLAYING) ==
+        GST_STATE_CHANGE_FAILURE)
+    {
+      goto linking_failed;
+    }
+  }
+  else
+  {
+    GstPadLinkReturn linkret;
+    GstPad *modder_src_pad;
+
+    modder_src_pad = gst_element_get_static_pad (self->packet_modder, "src");
+    peer = gst_pad_get_peer (modder_src_pad);
+    gst_object_unref (modder_src_pad);
+
+    gst_bin_remove (self->parent_bin, self->packet_modder);
+    gst_element_set_state (self->packet_modder, GST_STATE_NULL);
+    gst_object_unref (self->packet_modder);
+    self->packet_modder = NULL;
+
+    linkret = gst_pad_link (pad, peer);
+    if (GST_PAD_LINK_FAILED (linkret))
+      g_warning ("Could not re-link after removing tfrc packet modder");
+  }
+
+out:
+  gst_object_unref (peer);
+  GST_OBJECT_UNLOCK (self);
+
+  gst_pad_set_blocked_async (pad, FALSE, pad_block_do_nothing, NULL);
+  return;
+
+linking_failed:
+  gst_bin_remove (self->parent_bin, self->packet_modder);
+  gst_pad_link (pad, peer);
+adding_failed:
+  gst_object_unref (self->packet_modder);
+  self->packet_modder = NULL;
+  goto out;
+}
+
+static void
+fs_rtp_tfrc_check_modder_locked (FsRtpTfrc *self)
+{
+  gboolean need_modder;
+
+  need_modder = self->extension_type != EXTENSION_NONE;
+
+  if (!!self->packet_modder == need_modder)
+    return;
+
+  gst_pad_set_blocked_async_full (self->out_rtp_pad, TRUE, send_rtp_pad_blocked,
+      g_object_ref (self), (GDestroyNotify) g_object_unref);
+}
+
 
 FsRtpTfrc *
 fs_rtp_tfrc_new (GObject *rtpsession,
+    GstBin *parent_bin,
+    GstPad *outrtp,
     GstPad *inrtp,
-    GstPad *inrtcp,
-    GstElement **send_filter)
+    GstPad *inrtcp)
 {
   FsRtpTfrc *self;
 
@@ -1115,6 +1235,8 @@ fs_rtp_tfrc_new (GObject *rtpsession,
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
 
   self->rtpsession = rtpsession;
+  self->parent_bin = gst_object_ref (parent_bin);
+  self->out_rtp_pad = outrtp;
   self->in_rtp_pad = inrtp;
   self->in_rtcp_pad = inrtcp;
   self->sending = FALSE;
@@ -1129,13 +1251,6 @@ fs_rtp_tfrc_new (GObject *rtpsession,
       G_CALLBACK (rtpsession_on_ssrc_validated), self, 0);
   g_signal_connect_object (rtpsession, "on-sending-rtcp",
       G_CALLBACK (rtpsession_sending_rtcp), self, 0);
-
-  self->packet_modder = GST_ELEMENT (fs_rtp_packet_modder_new (
-        fs_rtp_tfrc_outgoing_packets, fs_rtp_tfrc_get_sync_time, self));
-  g_object_ref (self->packet_modder);
-
-  if (send_filter)
-    *send_filter = self->packet_modder;
 
   return self;
 }
@@ -1242,8 +1357,7 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
   if (!item)
   {
     self->extension_type = EXTENSION_NONE;
-    GST_OBJECT_UNLOCK (self);
-    return;
+    goto out;
   }
 
   if (hdrext->id > 15)
@@ -1252,6 +1366,9 @@ fs_rtp_tfrc_codecs_updated (FsRtpTfrc *self,
     self->extension_type = EXTENSION_ONE_BYTE;
 
   self->extension_id = hdrext->id;
+
+out:
+  fs_rtp_tfrc_check_modder_locked (self);
 
   GST_OBJECT_UNLOCK (self);
 }

@@ -133,7 +133,6 @@ gboolean fs_rtp_session_has_disposed_enter (FsRtpSession *self, GError **error);
 void fs_rtp_session_has_disposed_exit (FsRtpSession *self);
 
 
-
 G_END_DECLS
 
 #endif /* __FS_RTP_SESSION_H__ */
