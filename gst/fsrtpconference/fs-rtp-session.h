@@ -132,6 +132,14 @@ void fs_rtp_session_ssrc_validated (FsRtpSession *session,
 gboolean fs_rtp_session_has_disposed_enter (FsRtpSession *self, GError **error);
 void fs_rtp_session_has_disposed_exit (FsRtpSession *self);
 
+/* These functions are to be called from modules in their "new" method
+ * or only when called from the session
+ */
+FsRtpConference *fs_rtp_session_get_conference (FsRtpSession *self);
+GstPad *fs_rtp_session_get_rtpbin_recv_rtp_sink (FsRtpSession *self);
+GstPad *fs_rtp_session_get_rtpbin_recv_rtcp_sink (FsRtpSession *self);
+GObject *fs_rtp_session_get_rtpbin_internal_session (FsRtpSession *self);
+GstElement *fs_rtp_session_get_rtpmuxer(FsRtpSession *self);
 
 G_END_DECLS
 

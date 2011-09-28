@@ -1404,13 +1404,7 @@ fs_rtp_session_constructed (GObject *object)
 
   if (self->priv->media_type == FS_MEDIA_TYPE_VIDEO)
   {
-    GstPad *muxer_src =
-        gst_element_get_static_pad (self->priv->rtpmuxer, "src");
-
-    self->priv->rtp_tfrc = fs_rtp_tfrc_new (self->priv->rtpbin_internal_session,
-        GST_BIN (self->priv->conference), muxer_src,
-        self->priv->rtpbin_recv_rtp_sink, self->priv->rtpbin_recv_rtcp_sink);
-    gst_object_unref (muxer_src);
+    self->priv->rtp_tfrc = fs_rtp_tfrc_new (self);
 
     g_signal_connect_object (self->priv->rtp_tfrc, "notify::bitrate",
         G_CALLBACK (_rtp_tfrc_bitrate_changed), self, 0);
@@ -1568,6 +1562,23 @@ fs_rtp_session_constructed (GObject *object)
   if (G_OBJECT_CLASS (fs_rtp_session_parent_class)->constructed)
     G_OBJECT_CLASS (fs_rtp_session_parent_class)->constructed(object);
 }
+
+#define GET_MEMBER(Type, name)                          \
+  Type *                                                \
+  fs_rtp_session_get_##name (FsRtpSession *self)        \
+  {                                                     \
+    Type *tmp = self->priv->name;                       \
+                                                        \
+    if (tmp)                                            \
+      gst_object_ref (tmp);                             \
+    return tmp;                                         \
+  }
+GET_MEMBER (FsRtpConference, conference)
+GET_MEMBER (GstPad, rtpbin_recv_rtp_sink)
+GET_MEMBER (GstPad, rtpbin_recv_rtcp_sink)
+GET_MEMBER (GObject, rtpbin_internal_session)
+GET_MEMBER (GstElement, rtpmuxer)
+#undef GET_MEMBER
 
 static void
 _stream_known_source_packet_received (FsRtpStream *stream, guint component,

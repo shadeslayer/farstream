@@ -175,7 +175,17 @@ fs_rtp_tfrc_destroy (FsRtpTfrc *self)
     g_signal_handler_disconnect (self->in_rtcp_pad, self->in_rtcp_probe_id);
   self->in_rtcp_probe_id = 0;
 
+
+  if (self->on_ssrc_validated_id)
+    g_signal_handler_disconnect (self->rtpsession, self->on_ssrc_validated_id);
+  self->on_ssrc_validated_id = 0;
+  if (self->on_sending_rtcp_id)
+    g_signal_handler_disconnect (self->rtpsession, self->on_sending_rtcp_id);
+  self->on_sending_rtcp_id = 0;
+
   g_hash_table_destroy (g_hash_table_ref (self->tfrc_sources));
+
+  self->fsrtpsession = NULL;
 
   GST_OBJECT_UNLOCK (self);
 }
@@ -203,6 +213,15 @@ fs_rtp_tfrc_dispose (GObject *object)
     g_object_unref (self->packet_modder);
   }
 
+  if (self->rtpsession)
+      g_object_unref (self->rtpsession);
+  if (self->in_rtp_pad)
+    g_object_unref (self->in_rtp_pad);
+  if (self->in_rtcp_pad)
+    g_object_unref (self->in_rtcp_pad);
+  if (self->out_rtp_pad)
+    g_object_unref (self->out_rtp_pad);
+
   if (self->parent_bin)
     gst_object_unref (self->parent_bin);
 
@@ -214,6 +233,7 @@ fs_rtp_tfrc_dispose (GObject *object)
   if (G_OBJECT_CLASS (fs_rtp_tfrc_parent_class)->dispose)
     G_OBJECT_CLASS (fs_rtp_tfrc_parent_class)->dispose (object);
 }
+
 
 static void
 fs_rtp_tfrc_get_property (GObject *object,
@@ -258,7 +278,10 @@ clear_sender (gpointer key, gpointer value, gpointer user_data)
   src->sender = NULL;
 
   if (src->idl)
+  {
     tfrc_is_data_limited_free (src->idl);
+    src->idl = NULL;
+  }
 
   if (src->receiver)
     return FALSE;
@@ -577,7 +600,6 @@ rtpsession_sending_rtcp (GObject *rtpsession, GstBuffer *buffer,
   data.buffer = buffer;
   data.have_ssrc = FALSE;
 
-
   GST_OBJECT_LOCK (self);
   g_hash_table_foreach (self->tfrc_sources, tfrc_sources_process, &data);
   GST_OBJECT_UNLOCK (self);
@@ -602,7 +624,13 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
   guint8 pt;
   gint seq_delta;
 
+  if (!gst_rtp_buffer_validate (buffer))
+    return TRUE;
+
   GST_OBJECT_LOCK (self);
+
+  if (!self->fsrtpsession)
+    goto out_no_header;
 
   ssrc = gst_rtp_buffer_get_ssrc (buffer);
 
@@ -836,7 +864,7 @@ incoming_rtcp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
       GST_OBJECT_LOCK (self);
 
-      if (!self->sending)
+      if (!self->fsrtpsession || !self->sending)
         goto done;
 
       src = fs_rtp_tfrc_get_remote_ssrc_locked (self, sender_ssrc,
@@ -1012,7 +1040,8 @@ fs_rtp_tfrc_outgoing_packets (FsRtpPacketModder *modder,
 
   GST_OBJECT_LOCK (self);
 
-  if (self->extension_type == EXTENSION_NONE || !self->sending)
+  if (!self->fsrtpsession || self->extension_type == EXTENSION_NONE ||
+      !self->sending)
   {
     GST_OBJECT_UNLOCK (self);
     return buffer;
@@ -1123,7 +1152,7 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
   GST_OBJECT_LOCK (self);
   need_modder = self->extension_type != EXTENSION_NONE;
 
-  if (!!self->packet_modder == need_modder)
+  if (!self->fsrtpsession || !!self->packet_modder == need_modder)
     goto out;
 
   GST_DEBUG ("Pad blocked to possibly %s the tfrc packet modder",
@@ -1140,7 +1169,10 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
 
     if (!gst_bin_add (self->parent_bin, self->packet_modder))
     {
-      g_warning ("Could not add tfrc packet modder to the pipeline");
+      fs_session_emit_error (FS_SESSION (self->fsrtpsession),
+          FS_ERROR_CONSTRUCTION,
+          "Could not add tfrc packet modder",
+          "Could not add tfrc packet modder to the pipeline");
       goto adding_failed;
     }
 
@@ -1152,7 +1184,10 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     gst_object_unref (modder_pad);
     if (GST_PAD_LINK_FAILED (linkret))
     {
-      g_warning ("could not link tfrc packet modder to the rtpbin");
+      fs_session_emit_error (FS_SESSION (self->fsrtpsession),
+          FS_ERROR_CONSTRUCTION,
+          "Could not link tfrc packet modder",
+          "Could not link tfrc packet modder to rtp muxer");
       goto linking_failed;
     }
 
@@ -1161,13 +1196,20 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
     gst_object_unref (modder_pad);
     if (GST_PAD_LINK_FAILED (linkret))
     {
-      g_warning ("Could set start tfrc packet modder");
+      fs_session_emit_error (FS_SESSION (self->fsrtpsession),
+          FS_ERROR_CONSTRUCTION,
+          "Could not link tfrc packet modder",
+          "Could not link tfrc packet modder to the rtpbin");
       goto linking_failed;
     }
 
     if (gst_element_set_state (self->packet_modder, GST_STATE_PLAYING) ==
         GST_STATE_CHANGE_FAILURE)
     {
+      fs_session_emit_error (FS_SESSION (self->fsrtpsession),
+          FS_ERROR_CONSTRUCTION,
+          "Could not start tfrc packet modder",
+          "Could not set the TFRC packet modder to playing");
       goto linking_failed;
     }
   }
@@ -1187,7 +1229,10 @@ send_rtp_pad_blocked (GstPad *pad, gboolean blocked, gpointer user_data)
 
     linkret = gst_pad_link (pad, peer);
     if (GST_PAD_LINK_FAILED (linkret))
-      g_warning ("Could not re-link after removing tfrc packet modder");
+      fs_session_emit_error (FS_SESSION (self->fsrtpsession),
+          FS_ERROR_CONSTRUCTION,
+          "Could not re-link after removing tfrc packet modder",
+          "Could not re-link after removing tfrc packet modder");
   }
 
 out:
@@ -1222,35 +1267,37 @@ fs_rtp_tfrc_check_modder_locked (FsRtpTfrc *self)
 
 
 FsRtpTfrc *
-fs_rtp_tfrc_new (GObject *rtpsession,
-    GstBin *parent_bin,
-    GstPad *outrtp,
-    GstPad *inrtp,
-    GstPad *inrtcp)
+fs_rtp_tfrc_new (FsRtpSession *fsrtpsession)
 {
   FsRtpTfrc *self;
+  GstElement *rtpmuxer;
 
-  g_return_val_if_fail (rtpsession, NULL);
+  g_return_val_if_fail (fsrtpsession, NULL);
 
   self = g_object_new (FS_TYPE_RTP_TFRC, NULL);
 
-  self->rtpsession = rtpsession;
-  self->parent_bin = gst_object_ref (parent_bin);
-  self->out_rtp_pad = outrtp;
-  self->in_rtp_pad = inrtp;
-  self->in_rtcp_pad = inrtcp;
+  self->fsrtpsession = fsrtpsession;
   self->sending = FALSE;
 
-  self->in_rtp_probe_id = gst_pad_add_buffer_probe (inrtp,
+  self->rtpsession = fs_rtp_session_get_rtpbin_internal_session (fsrtpsession);
+  self->parent_bin = GST_BIN (fs_rtp_session_get_conference (fsrtpsession));
+  self->in_rtp_pad = fs_rtp_session_get_rtpbin_recv_rtp_sink (fsrtpsession);;
+  self->in_rtcp_pad = fs_rtp_session_get_rtpbin_recv_rtcp_sink (fsrtpsession);;
+
+  rtpmuxer = fs_rtp_session_get_rtpmuxer (fsrtpsession);
+  self->out_rtp_pad = gst_element_get_static_pad (rtpmuxer, "src");
+  gst_object_unref (rtpmuxer);
+
+  self->in_rtp_probe_id = gst_pad_add_buffer_probe (self->in_rtp_pad,
       G_CALLBACK (incoming_rtp_probe), self);
-  self->in_rtcp_probe_id = gst_pad_add_buffer_probe (inrtcp,
+  self->in_rtcp_probe_id = gst_pad_add_buffer_probe (self->in_rtcp_pad,
       G_CALLBACK (incoming_rtcp_probe), self);
 
 
-  g_signal_connect_object (rtpsession, "on-ssrc-validated",
-      G_CALLBACK (rtpsession_on_ssrc_validated), self, 0);
-  g_signal_connect_object (rtpsession, "on-sending-rtcp",
-      G_CALLBACK (rtpsession_sending_rtcp), self, 0);
+  self->on_ssrc_validated_id = g_signal_connect_object (self->rtpsession,
+      "on-ssrc-validated", G_CALLBACK (rtpsession_on_ssrc_validated), self, 0);
+  self->on_sending_rtcp_id = g_signal_connect_object (self->rtpsession,
+      "on-sending-rtcp", G_CALLBACK (rtpsession_sending_rtcp), self, 0);
 
   return self;
 }

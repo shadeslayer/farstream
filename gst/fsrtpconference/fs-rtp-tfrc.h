@@ -30,6 +30,7 @@
 
 #include "tfrc.h"
 
+#include "fs-rtp-session.h"
 #include "fs-rtp-keyunit-manager.h"
 
 G_BEGIN_DECLS
@@ -98,6 +99,7 @@ struct _FsRtpTfrc
 
   GstClock *systemclock;
 
+  FsRtpSession *fsrtpsession;
   GstBin *parent_bin;
   GObject *rtpsession;
 
@@ -107,6 +109,9 @@ struct _FsRtpTfrc
 
   gulong in_rtp_probe_id;
   gulong in_rtcp_probe_id;
+
+  gulong on_ssrc_validated_id;
+  gulong on_sending_rtcp_id;
 
   GstElement *packet_modder;
 
@@ -134,11 +139,7 @@ struct _FsRtpTfrcClass
 
 GType fs_rtp_tfrc_get_type (void);
 
-FsRtpTfrc *fs_rtp_tfrc_new (GObject *rtpsession,
-    GstBin *parent_bin,
-    GstPad *outrtp,
-    GstPad *inrtp,
-    GstPad *inrtcp);
+FsRtpTfrc *fs_rtp_tfrc_new (FsRtpSession *fsrtpsession);
 
 void fs_rtp_tfrc_destroy (FsRtpTfrc *self);
 
