@@ -107,6 +107,10 @@ static GstFlowReturn fs_rtp_bitrate_adapter_chain (GstPad *pad,
     GstBuffer *buffer);
 static GstCaps *fs_rtp_bitrate_adapter_getcaps (GstPad *pad);
 
+static GstStateChangeReturn
+fs_rtp_bitrate_adapter_change_state (GstElement *element,
+    GstStateChange transition);
+
 static void
 fs_rtp_bitrate_adapter_base_init (gpointer klass)
 {
@@ -144,10 +148,13 @@ static void
 fs_rtp_bitrate_adapter_class_init (FsRtpBitrateAdapterClass *klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
+  GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
 
   gobject_class->get_property = fs_rtp_bitrate_adapter_get_property;
   gobject_class->set_property = fs_rtp_bitrate_adapter_set_property;
   gobject_class->finalize = fs_rtp_bitrate_adapter_finalize;
+
+  gstelement_class->change_state = fs_rtp_bitrate_adapter_change_state;
 
   g_object_class_install_property (gobject_class,
       PROP_BITRATE,
@@ -526,13 +533,12 @@ fs_rtp_bitrate_adapter_get_bitrate_locked (FsRtpBitrateAdapter *self)
 }
 
 static void
-fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
+fs_rtp_bitrate_adapter_updated_unlock (FsRtpBitrateAdapter *self)
 {
   GstCaps *wanted_caps;
   guint bitrate;
   GstCaps *negotiated_caps;
 
-  GST_OBJECT_LOCK (self);
   bitrate = fs_rtp_bitrate_adapter_get_bitrate_locked (self);
   if (self->caps)
     gst_caps_unref (self->caps);
@@ -564,14 +570,16 @@ fs_rtp_bitrate_adapter_updated (FsRtpBitrateAdapter *self)
 }
 
 static void
-fs_rtp_bitrate_adapter_cleanup (FsRtpBitrateAdapter *self,
+fs_rtp_bitrate_adapter_cleanup_locked (FsRtpBitrateAdapter *self,
     GstClockTime now)
 {
   for (;;)
   {
     struct BitratePoint *bp = g_queue_peek_head (&self->bitrate_history);
 
-    if (bp && bp->timestamp < now - self->interval)
+    if (bp && (bp->timestamp < now - self->interval ||
+            (GST_STATE (self) != GST_STATE_PLAYING &&
+                g_queue_get_length (&self->bitrate_history) > 1)))
     {
       g_queue_pop_head (&self->bitrate_history);
       bitrate_point_free (bp);
@@ -593,11 +601,16 @@ clock_callback (GstClock *clock, GstClockTime now, GstClockID clockid,
   if (self->clockid == clockid)
   {
     gst_clock_id_unref (self->clockid);
-    self->clockid = NULL;
   }
-  GST_OBJECT_UNLOCK (self);
+  else
+  {
+    GST_OBJECT_UNLOCK (self);
+    return TRUE;
+  }
+  self->clockid = NULL;
 
-  fs_rtp_bitrate_adapter_updated (self);
+  fs_rtp_bitrate_adapter_updated_unlock (self);
+
 
   return TRUE;
 }
@@ -613,9 +626,9 @@ fs_rtp_bitrate_adapter_add_bitrate_locked (FsRtpBitrateAdapter *self,
 
   first = (g_queue_get_length (&self->bitrate_history) == 1);
 
-  fs_rtp_bitrate_adapter_cleanup (self, now);
+  fs_rtp_bitrate_adapter_cleanup_locked (self, now);
 
-  if (!self->clockid)
+  if (!self->clockid && GST_STATE (self) == GST_STATE_PLAYING)
   {
     self->clockid = gst_clock_new_single_shot_id (self->system_clock,
         now + self->interval);
@@ -650,10 +663,11 @@ fs_rtp_bitrate_adapter_set_property (GObject *object,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
-  GST_OBJECT_UNLOCK (self);
 
   if (first)
-    fs_rtp_bitrate_adapter_updated (self);
+    fs_rtp_bitrate_adapter_updated_unlock (self);
+  else
+    GST_OBJECT_UNLOCK (self);
 }
 
 
@@ -679,6 +693,50 @@ fs_rtp_bitrate_adapter_get_property (GObject *object,
   }
 
   GST_OBJECT_UNLOCK (self);
+}
+
+static GstStateChangeReturn
+fs_rtp_bitrate_adapter_change_state (GstElement *element,
+    GstStateChange transition)
+{
+  FsRtpBitrateAdapter *self = FS_RTP_BITRATE_ADAPTER (element);
+  GstStateChangeReturn result;
+
+  switch (transition) {
+    case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
+      GST_OBJECT_LOCK (self);
+      if (self->clockid)
+      {
+        gst_clock_id_unschedule (self->clockid);
+        gst_clock_id_unref (self->clockid);
+      }
+      self->clockid = NULL;
+      GST_OBJECT_UNLOCK (self);
+
+      break;
+    case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
+      GST_OBJECT_LOCK (self);
+      if (g_queue_get_length (&self->bitrate_history))
+        fs_rtp_bitrate_adapter_updated_unlock (self);
+      else
+        GST_OBJECT_UNLOCK (self);
+      break;
+    default:
+      break;
+  }
+
+  if ((result =
+          GST_ELEMENT_CLASS (parent_class)->change_state (element,
+              transition)) == GST_STATE_CHANGE_FAILURE)
+    goto failure;
+
+  return result;
+
+ failure:
+  {
+    GST_ERROR_OBJECT (element, "parent failed state change");
+    return result;
+  }
 }
 
 GstElement *
