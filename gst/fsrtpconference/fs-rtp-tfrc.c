@@ -681,18 +681,37 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   now =  fs_rtp_tfrc_get_now (self);
 
-  if (!src->receiver)
-    src->receiver = tfrc_receiver_new (now);
+  rtt = GST_READ_UINT24_BE (data);
+  ts = GST_READ_UINT32_BE (data + 3);
 
+
+  if (!src->receiver)
+  {
+    src->receiver = tfrc_receiver_new (now);
+  }
+  else if (rtt == 0 && src->last_rtt != 0)
+  {
+    /* Detect sender reset */
+    src->seq_cycles = 0;
+    src->last_seq = 0;
+    src->ts_cycles = 0;
+    src->last_now = 0;
+    src->last_rtt = 0;
+    tfrc_receiver_free (src->receiver);
+    src->receiver = tfrc_receiver_new (now);
+    if (src->receiver_id)
+    {
+      gst_clock_id_unschedule (src->receiver_id);
+      gst_clock_id_unref (src->receiver_id);
+      src->receiver_id = NULL;
+    }
+  }
   seq_delta = seq - src->last_seq;
 
   if (seq < src->last_seq && seq_delta < -3000)
     src->seq_cycles += 1 << 16;
   src->last_seq = seq;
   seq += src->seq_cycles;
-
-  rtt = GST_READ_UINT24_BE (data);
-  ts = GST_READ_UINT32_BE (data + 3);
 
   ts_delta = ts - src->last_ts;
   /* We declare there has been a cycle if the difference is more than
@@ -708,7 +727,7 @@ incoming_rtp_probe (GstPad *pad, GstBuffer *buffer, FsRtpTfrc *self)
 
   GST_LOG_OBJECT (self, "Got RTP packet");
 
-  if (rtt &&  src->last_rtt == 0)
+  if (rtt && src->last_rtt == 0)
     fs_rtp_tfrc_receiver_timer_func_locked (self, src, now);
 
   src->last_now = now;
@@ -1443,7 +1462,6 @@ fs_rtp_tfrc_is_enabled (FsRtpTfrc *self, guint pt)
   gboolean is_enabled;
 
   g_return_val_if_fail (pt < 128, FALSE);
-
 
   GST_OBJECT_LOCK (self);
   is_enabled = (self->extension_type != EXTENSION_NONE) &&
