@@ -641,7 +641,7 @@ fs_rtp_session_real_dispose (FsRtpSession *self)
   stop_and_remove (conferencebin, &self->priv->send_codecbin, FALSE);
   stop_and_remove (conferencebin, &self->priv->media_sink_valve, TRUE);
   stop_and_remove (conferencebin, &self->priv->send_tee, TRUE);
-  stop_and_remove (conferencebin, &self->priv->send_bitrate_adapter, TRUE);
+  stop_and_remove (conferencebin, &self->priv->send_bitrate_adapter, FALSE);
 
   if (self->priv->media_sink_pad)
     gst_pad_set_active (self->priv->media_sink_pad, FALSE);
