@@ -71,6 +71,7 @@ static void fs_rtp_tfrc_update_sender_timer_locked (
 static gboolean feedback_timer_expired (GstClock *clock, GstClockTime time,
     GstClockID id, gpointer user_data);
 
+static void fs_rtp_tfrc_clear_sender (FsRtpTfrc *self);
 
 static void
 fs_rtp_tfrc_class_init (FsRtpTfrcClass *klass)
@@ -152,8 +153,7 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
   self->tfrc_sources = g_hash_table_new_full (g_direct_hash,
       g_direct_equal, NULL, (GDestroyNotify) tracked_src_free);
 
-  self->last_sent_ts = GST_CLOCK_TIME_NONE;
-  self->byte_reservoir = 1500; /* About one packet */
+  fs_rtp_tfrc_clear_sender (self);
   self->send_bitrate = tfrc_sender_get_send_rate (NULL)  * 8;
 
   self->extension_type = EXTENSION_NONE;
@@ -259,6 +259,7 @@ fs_rtp_tfrc_get_property (GObject *object,
 gboolean
 clear_sender (gpointer key, gpointer value, gpointer user_data)
 {
+  FsRtpTfrc *self = FS_RTP_TFRC (user_data);
   struct TrackedSource *src = value;
 
   src->send_ts_base = 0;
@@ -283,10 +284,25 @@ clear_sender (gpointer key, gpointer value, gpointer user_data)
     src->idl = NULL;
   }
 
+  if (self->last_src == src)
+    self->last_src = NULL;
+
   if (src->receiver)
     return FALSE;
   else
     return TRUE;
+}
+
+static void
+fs_rtp_tfrc_clear_sender (FsRtpTfrc *self)
+{
+  g_hash_table_foreach_remove (self->tfrc_sources, clear_sender, self);
+  if (self->initial_src)
+    if (clear_sender (NULL, self->initial_src, self))
+      self->initial_src = NULL;
+
+  self->last_sent_ts = GST_CLOCK_TIME_NONE;
+  self->byte_reservoir = 1500; /* About one packet */
 }
 
 static void
@@ -303,7 +319,7 @@ fs_rtp_tfrc_set_property (GObject *object,
       GST_OBJECT_LOCK (self);
       self->sending = g_value_get_boolean (value);
       if (!self->sending)
-        g_hash_table_foreach_remove (self->tfrc_sources, clear_sender, NULL);
+        fs_rtp_tfrc_clear_sender (self);
       GST_OBJECT_UNLOCK (self);
       break;
     default:
