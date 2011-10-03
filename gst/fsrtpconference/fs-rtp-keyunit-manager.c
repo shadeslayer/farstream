@@ -32,6 +32,11 @@
 
 #include <gst/rtp/gstrtcpbuffer.h>
 
+/* Remove this line as soon as the types are merged
+ * in gst-plugins-base
+ */
+#define GST_RTCP_PSFB_TYPE_FIR 4
+
 
 struct _FsRtpKeyunitManagerClass
 {
