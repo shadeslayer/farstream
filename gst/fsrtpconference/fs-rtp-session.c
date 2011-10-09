@@ -268,7 +268,7 @@ static GType fs_rtp_session_get_stream_transmitter_type (FsSession *session,
 static void _substream_no_rtcp_timedout_cb (FsRtpSubStream *substream,
     FsRtpSession *session);
 static GstElement *_substream_get_codec_bin (FsRtpSubStream *substream,
-    FsRtpStream *stream, FsCodec *current_codec, FsCodec **new_codec,
+    FsRtpStream *stream, FsCodec **new_codec,
     guint current_builder_hash, guint *new_builder_hash,
     GError **error, FsRtpSession *session);
 
@@ -3916,7 +3916,7 @@ fs_rtp_session_verify_send_codec_bin (FsRtpSession *self)
 
 static GstElement *
 _substream_get_codec_bin (FsRtpSubStream *substream,
-    FsRtpStream *stream, FsCodec *current_codec, FsCodec **new_codec,
+    FsRtpStream *stream, FsCodec **new_codec,
     guint current_builder_hash, guint *new_builder_hash,
     GError **error, FsRtpSession *session)
 {
@@ -3939,12 +3939,6 @@ _substream_get_codec_bin (FsRtpSubStream *substream,
   codecbin = _create_codec_bin (ca, *new_codec, name, FALSE, NULL,
       current_builder_hash, new_builder_hash, error);
   g_free (name);
-
-  if (!codecbin)
-  {
-    fs_codec_destroy (*new_codec);
-    *new_codec = NULL;
-  }
 
  out:
 

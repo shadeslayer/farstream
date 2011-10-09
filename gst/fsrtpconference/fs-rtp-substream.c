@@ -44,7 +44,7 @@
  *
  * This object controls a part of the receive pipeline, with the following shape
  *
- * rtpbin_pad -> input_valve -> codecbin -> output_valve -> output_ghostad
+ * rtpbin_pad -> input_valve -> capsfilter -> codecbin -> output_valve -> output_ghostad
  *
  */
 
@@ -91,6 +91,8 @@ struct _FsRtpSubStreamPrivate {
 
   GstElement *input_valve;
   GstElement *output_valve;
+
+  GstElement *capsfilter;
 
   /* This only exists if the codec is valid,
    * otherwise the rtpbin_pad is blocked */
@@ -392,9 +394,9 @@ fs_rtp_sub_stream_class_init (FsRtpSubStreamClass *klass)
       0,
       NULL,
       NULL,
-      _fs_rtp_marshal_POINTER__POINTER_POINTER_POINTER_UINT_POINTER_POINTER,
-      G_TYPE_POINTER, 6, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_POINTER,
-      G_TYPE_UINT, G_TYPE_POINTER, G_TYPE_POINTER);
+      _fs_rtp_marshal_POINTER__POINTER_POINTER_UINT_POINTER_POINTER,
+      G_TYPE_POINTER, 5, G_TYPE_POINTER, G_TYPE_POINTER, G_TYPE_UINT,
+      G_TYPE_POINTER, G_TYPE_POINTER);
 
 
  /**
@@ -602,6 +604,36 @@ fs_rtp_sub_stream_constructed (GObject *object)
     return;
   }
 
+  tmp = g_strdup_printf ("recv_capsfilter_%d_%d_%d", self->priv->session->id,
+      self->ssrc, self->pt);
+  self->priv->capsfilter = gst_element_factory_make ("capsfilter", tmp);
+  g_free (tmp);
+
+  if (!self->priv->capsfilter) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not create a capsfilter element for"
+      " session substream with ssrc: %u and pt:%d", self->ssrc,
+      self->pt);
+    return;
+  }
+
+  if (!gst_bin_add (GST_BIN (self->priv->conference), self->priv->capsfilter)) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not add the capsfilter element for session"
+      " substream with ssrc: %u and pt:%d to the conference bin",
+      self->ssrc, self->pt);
+    return;
+  }
+
+  if (gst_element_set_state (self->priv->capsfilter, GST_STATE_PLAYING) ==
+    GST_STATE_CHANGE_FAILURE) {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+      FS_ERROR_CONSTRUCTION, "Could not set the capsfilter element for session"
+      " substream with ssrc: %u and pt:%d to the playing state",
+      self->ssrc, self->pt);
+    return;
+  }
+
   tmp = g_strdup_printf ("input_recv_valve_%d_%d_%d", self->priv->session->id,
       self->ssrc, self->pt);
   self->priv->input_valve = gst_element_factory_make ("valve", tmp);
@@ -630,6 +662,14 @@ fs_rtp_sub_stream_constructed (GObject *object)
       FS_ERROR_CONSTRUCTION, "Could not set the valve element for session"
       " substream with ssrc: %u and pt:%d to the playing state",
       self->ssrc, self->pt);
+    return;
+  }
+
+  if (!gst_element_link (self->priv->input_valve, self->priv->capsfilter))
+  {
+    self->priv->construction_error = g_error_new (FS_ERROR,
+        FS_ERROR_CONSTRUCTION, "Could not link the input valve"
+        " and the capsfilter");
     return;
   }
 
@@ -691,6 +731,13 @@ fs_rtp_sub_stream_dispose (GObject *object)
     gst_element_set_state (self->priv->codecbin, GST_STATE_NULL);
     gst_bin_remove (GST_BIN (self->priv->conference), self->priv->codecbin);
     self->priv->codecbin = NULL;
+  }
+
+  if (self->priv->capsfilter) {
+    gst_element_set_locked_state (self->priv->capsfilter, TRUE);
+    gst_element_set_state (self->priv->capsfilter, GST_STATE_NULL);
+    gst_bin_remove (GST_BIN (self->priv->conference), self->priv->capsfilter);
+    self->priv->capsfilter = NULL;
   }
 
   if (self->priv->input_valve) {
@@ -878,12 +925,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     FS_RTP_SESSION_LOCK (substream->priv->session);
     substream->priv->codecbin = NULL;
     substream->priv->builder_hash = 0;
-    if (substream->codec)
-    {
-      fs_codec_destroy (substream->codec);
-      substream->codec = NULL;
-    }
-
     FS_RTP_SESSION_UNLOCK (substream->priv->session);
   }
 
@@ -913,11 +954,11 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
     goto error;
   }
 
-  if (!gst_element_link_pads (substream->priv->input_valve, "src",
+  if (!gst_element_link_pads (substream->priv->capsfilter, "src",
           codecbin, "sink"))
   {
      g_set_error (error, FS_ERROR, FS_ERROR_CONSTRUCTION,
-         "Could not link the receive input valve and the codecbin for pt %d",
+         "Could not link the receive capsfilter and the codecbin for pt %d",
          substream->pt);
     goto error;
   }
@@ -942,7 +983,6 @@ fs_rtp_sub_stream_set_codecbin (FsRtpSubStream *substream,
   FS_RTP_SESSION_LOCK (substream->priv->session);
   substream->priv->codecbin = codecbin;
   substream->priv->builder_hash = builder_hash;
-  substream->codec = codec;
   codec = NULL;
 
   if (substream->priv->stream && !substream->priv->output_ghostpad)
@@ -1039,6 +1079,12 @@ fs_rtp_sub_stream_stop (FsRtpSubStream *substream)
   {
     gst_element_set_locked_state (substream->priv->codecbin, TRUE);
     gst_element_set_state (substream->priv->codecbin, GST_STATE_NULL);
+  }
+
+  if (substream->priv->capsfilter)
+  {
+    gst_element_set_locked_state (substream->priv->capsfilter, TRUE);
+    gst_element_set_state (substream->priv->capsfilter, GST_STATE_NULL);
   }
 
   if (substream->priv->input_valve)
@@ -1293,11 +1339,32 @@ _rtpbin_pad_blocked_callback (GstPad *pad, gboolean blocked, gpointer user_data)
   gst_pad_set_blocked_async (pad, FALSE, do_nothing_blocked_callback, NULL);
 
   g_signal_emit (substream, signals[GET_CODEC_BIN], 0,
-      substream->priv->stream, substream->codec, &codec,
+      substream->priv->stream, &codec,
       substream->priv->builder_hash, &new_builder_hash, &error, &codecbin);
 
   if (error)
     goto error;
+
+  FS_RTP_SESSION_LOCK (substream->priv->session);
+  if (codec &&
+      (!substream->codec || !fs_codec_are_equal (codec, substream->codec)))
+  {
+    GstCaps *caps;
+    gchar *tmp;
+
+    if (substream->codec)
+      fs_codec_destroy (substream->codec);
+    substream->codec = codec;
+
+    caps = fs_codec_to_gst_caps (codec);
+    tmp = gst_caps_to_string (caps);
+    GST_DEBUG ("Setting caps %s on recv substream", tmp);
+    g_free (tmp);
+    g_object_set (substream->priv->capsfilter, "caps", caps, NULL);
+
+    fs_rtp_sub_stream_add_probe_locked (substream);
+  }
+  FS_RTP_SESSION_UNLOCK (substream->priv->session);
 
   if (codecbin)
     if (!fs_rtp_sub_stream_set_codecbin (substream, codec, codecbin,
