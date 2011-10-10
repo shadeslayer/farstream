@@ -154,6 +154,9 @@ rtp_sendcodecs_SOURCES = \
 	rtp/generic.h \
 	rtp/sendcodecs.c
 
+rtp_recvcodecs_CFLAGS = $(AM_CFLAGS)
+rtp_recvcodecs_LDADD = $(LDADD) -lgstrtp-0.10
+
 msn_conference_CFLAGS = $(AM_CFLAGS)
 msn_conference_SOURCES = \
 	msn/conference.c

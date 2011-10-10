@@ -30,6 +30,7 @@
 
 #include "check-threadsafe.h"
 
+#define SEND_BUFFER_COUNT 100
 #define BUFFER_COUNT 20
 
 GMutex *count_mutex;
@@ -48,7 +49,7 @@ handoff_handler (GstElement *fakesink, GstBuffer *buffer, GstPad *pad,
 
   if (buffer_count == BUFFER_COUNT)
     g_cond_broadcast (count_cond);
-  ts_fail_unless (buffer_count <= BUFFER_COUNT);
+  ts_fail_unless (buffer_count <= SEND_BUFFER_COUNT);
   g_mutex_unlock (count_mutex);
 }
 
@@ -124,10 +125,38 @@ caps_changed (GstPad *pad, GParamSpec *spec, FsStream *stream)
   fs_codec_list_destroy (codecs);
 }
 
+static gboolean
+drop_theora_config (GstPad *pad, GstBuffer *buffer, gpointer user_data)
+{
+  guint8 *payload = gst_rtp_buffer_get_payload (buffer);
+  guint32 header;
+  guchar TDT;
+
+  header = GST_READ_UINT32_BE (payload);
+  /*
+   *  0                   1                   2                   3
+   *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   * |                     Ident                     | F |TDT|# pkts.|
+   * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   *
+   * F: Fragment type (0=none, 1=start, 2=cont, 3=end)
+   * TDT: Theora data type (0=theora, 1=config, 2=comment, 3=reserved)
+   * pkts: number of packets.
+   */
+  TDT = (header & 0x30) >> 4;
+
+  if (TDT == 1)
+    return FALSE;
+  else
+    return TRUE;
+}
+
 GST_START_TEST (test_rtprecv_inband_config_data)
 {
   FsParticipant *participant = NULL;
   FsStream *stream = NULL;
+  GstElement *src;
   GstElement *pipeline;
   GstElement *sink;
   GstBus *bus;
@@ -214,9 +243,9 @@ GST_START_TEST (test_rtprecv_inband_config_data)
 
 
   pipeline = gst_parse_launch (
-      "videotestsrc is-live=1 num-buffers="G_STRINGIFY (BUFFER_COUNT)" !"
+      "videotestsrc is-live=1 name=src num-buffers="G_STRINGIFY (BUFFER_COUNT) " !"
       " video/x-raw-yuv, framerate=(fraction)30/1 ! theoraenc !"
-      " rtptheorapay name=pay config-interval=1 name=pay !"
+      " rtptheorapay name=pay config-interval=0 name=pay !"
       " application/x-rtp, payload=96, ssrc=(uint)12345678 !"
       " udpsink host=127.0.0.1 name=sink", NULL);
 
@@ -263,12 +292,18 @@ GST_START_TEST (test_rtprecv_inband_config_data)
   gst_object_unref (sink);
 
 
-  gst_element_set_state (pipeline, GST_STATE_PLAYING);
+  pay = gst_bin_get_by_name (GST_BIN (pipeline), "pay");
+  ts_fail_unless (pay != NULL);
+  pad = gst_element_get_static_pad (pay, "src");
+  ts_fail_unless (pad != NULL);
+  gst_pad_add_buffer_probe (pad, G_CALLBACK (drop_theora_config), NULL);
+  g_signal_connect (pad, "notify::caps", G_CALLBACK (caps_changed), stream);
+  caps_changed (pad, NULL, stream);
+  gst_object_unref (pad);
+  gst_object_unref (pay);
 
-  bus = gst_element_get_bus (pipeline);
-  msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_EOS);
-  gst_message_unref (msg);
-  gst_object_unref (bus);
+
+  gst_element_set_state (pipeline, GST_STATE_PLAYING);
 
 
   g_mutex_lock (count_mutex);
@@ -279,21 +314,11 @@ GST_START_TEST (test_rtprecv_inband_config_data)
 
   gst_element_set_state (pipeline, GST_STATE_NULL);
 
-  pay = gst_bin_get_by_name (GST_BIN (pipeline), "pay");
-  ts_fail_unless (pay != NULL);
-  pad = gst_element_get_static_pad (pay, "src");
-  ts_fail_unless (pad != NULL);
-  g_signal_connect (pad, "notify::caps", G_CALLBACK (caps_changed), stream);
-  caps_changed (pad, NULL, stream);
-  gst_object_unref (pad);
-  gst_object_unref (pay);
+  src = gst_bin_get_by_name (GST_BIN (pipeline), "src");
+  g_object_set (src, "num-buffers", SEND_BUFFER_COUNT, NULL);
+  gst_object_unref (src);
 
   gst_element_set_state (pipeline, GST_STATE_PLAYING);
-
-  bus = gst_element_get_bus (pipeline);
-  msg = gst_bus_timed_pop_filtered (bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_EOS);
-  gst_message_unref (msg);
-  gst_object_unref (bus);
 
   g_mutex_lock (count_mutex);
   while (buffer_count < BUFFER_COUNT)
