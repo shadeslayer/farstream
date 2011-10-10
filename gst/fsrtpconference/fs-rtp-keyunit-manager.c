@@ -203,8 +203,7 @@ on_feedback_rtcp (GObject *rtpsession, GstRTCPType type, GstRTCPFBType fbtype,
   }
 
   GST_OBJECT_LOCK (self);
-  if (self->codecbin)
-    codecbin = self->codecbin;
+  codecbin = self->codecbin;
   self->codecbin = NULL;
   if (self->rtcp_feedback_id)
     g_signal_handler_disconnect (self->rtpbin_internal_session,
