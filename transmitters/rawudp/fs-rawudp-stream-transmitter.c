@@ -66,8 +66,8 @@
 
 #include "fs-rawudp-component.h"
 
-#include <gst/farstream/fs-candidate.h>
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-candidate.h>
+#include <farstream/fs-conference.h>
 
 #ifdef HAVE_GUPNP
 #include <libgupnp-igd/gupnp-simple-igd-thread.h>

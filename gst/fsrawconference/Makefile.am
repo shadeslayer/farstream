@@ -31,7 +31,7 @@ libfsrawconference_la_SOURCES = fs-raw-conference-plugin.c
 libfsrawconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrawconference_la_LIBADD = \
 	libfsrawconference-convenience.la \
-	$(top_builddir)/gst-libs/gst/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-0.10.la \
 	$(FS_LIBS) \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS)

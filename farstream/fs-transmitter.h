@@ -27,9 +27,9 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-participant.h>
-#include <gst/farstream/fs-session.h>
-#include <gst/farstream/fs-stream-transmitter.h>
+#include <farstream/fs-participant.h>
+#include <farstream/fs-session.h>
+#include <farstream/fs-stream-transmitter.h>
 
 G_BEGIN_DECLS
 

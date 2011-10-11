@@ -27,7 +27,7 @@
 #ifndef __FS_RAW_CONFERENCE_H__
 #define __FS_RAW_CONFERENCE_H__
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 G_BEGIN_DECLS
 

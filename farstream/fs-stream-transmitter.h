@@ -27,7 +27,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-candidate.h>
+#include <farstream/fs-candidate.h>
 
 G_BEGIN_DECLS
 

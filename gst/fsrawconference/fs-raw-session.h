@@ -29,7 +29,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-session.h>
+#include <farstream/fs-session.h>
 
 #include "fs-raw-conference.h"
 

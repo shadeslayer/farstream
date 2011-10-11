@@ -28,8 +28,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <gst/farstream/fs-stream-transmitter.h>
-#include <gst/farstream/fs-plugin.h>
+#include <farstream/fs-stream-transmitter.h>
+#include <farstream/fs-plugin.h>
 #include "fs-shm-transmitter.h"
 
 G_BEGIN_DECLS

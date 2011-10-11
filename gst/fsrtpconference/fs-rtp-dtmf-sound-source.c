@@ -29,7 +29,7 @@
 
 #include "fs-rtp-dtmf-sound-source.h"
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"

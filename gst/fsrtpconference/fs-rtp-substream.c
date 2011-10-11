@@ -29,8 +29,8 @@
 
 #include "fs-rtp-substream.h"
 
-#include <gst/farstream/fs-stream.h>
-#include <gst/farstream/fs-session.h>
+#include <farstream/fs-stream.h>
+#include <farstream/fs-session.h>
 
 #include "fs-rtp-stream.h"
 #include "fs-rtp-marshal.h"

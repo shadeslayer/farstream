@@ -13,7 +13,7 @@ TESTS_ENVIRONMENT = \
 	GST_PLUGIN_LOADING_WHITELIST=gstreamer:gst-plugins-base:gst-plugins-good:libnice:valve:siren:autoconvert:rtpmux:dtmf:mimic:shm:farstream@$(top_builddir)/gst \
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
 	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs:$(top_builddir)/transmitters/shm/.libs \
-	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farstream/.libs:${LD_LIBRARY_PATH} \
+	LD_LIBRARY_PATH=$(top_builddir)/farstream/.libs:${LD_LIBRARY_PATH} \
 	UPNP_XML_PATH=$(srcdir)/upnp \
 	SRCDIR=$(srcdir) \
 	XDG_CACHE_HOME=$(builddir)/cache
@@ -67,7 +67,7 @@ AM_CFLAGS = \
 	$(GST_CFLAGS)
 
 LDADD = \
-	$(top_builddir)/gst-libs/gst/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-0.10.la \
 	$(GST_CHECK_LIBS) \
 	$(GST_LIBS)
 

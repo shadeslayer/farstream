@@ -27,7 +27,7 @@
 #ifndef __FS_MSN_CONFERENCE_H__
 #define __FS_MSN_CONFERENCE_H__
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 G_BEGIN_DECLS
 

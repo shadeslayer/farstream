@@ -11,7 +11,7 @@ HEADERS=" \
     fs-element-added-notifier.h \
     fs-enumtypes.h"
 
-srcdir=../gst-libs/gst/farstream/
+srcdir=../farstream/
 
 output=pyfarstream.defs
 filter=pyfarstream-filter.defs

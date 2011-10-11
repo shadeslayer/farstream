@@ -5,9 +5,9 @@ headers
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
-#include <gst/farstream/fs-element-added-notifier.h>
+#include <farstream/fs-element-added-notifier.h>
 
 /* This is new in python 2.5 */
 #if PYTHON_API_VERSION < 1013

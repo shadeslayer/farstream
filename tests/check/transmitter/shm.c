@@ -24,8 +24,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farstream/fs-transmitter.h>
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-transmitter.h>
+#include <farstream/fs-conference.h>
 
 #include <arpa/inet.h>
 #include <netdb.h>

@@ -35,7 +35,7 @@
 #endif
 #include <stdio.h>
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 

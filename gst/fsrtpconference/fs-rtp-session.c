@@ -65,9 +65,9 @@
 #include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
 
-#include <gst/farstream/fs-transmitter.h>
-#include "gst/farstream/fs-utils.h"
-#include <gst/farstream/fs-rtp.h>
+#include <farstream/fs-transmitter.h>
+#include "farstream/fs-utils.h"
+#include <farstream/fs-rtp.h>
 
 #include "fs-rtp-bitrate-adapter.h"
 #include "fs-rtp-stream.h"

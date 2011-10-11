@@ -18,7 +18,7 @@ libnice_transmitter_la_CFLAGS = \
 	$(NICE_CFLAGS)
 libnice_transmitter_la_LDFLAGS = $(FS_PLUGIN_LDFLAGS)
 libnice_transmitter_la_LIBADD = \
-	$(top_builddir)/gst-libs/gst/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-0.10.la \
 	$(FS_LIBS) \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS) \

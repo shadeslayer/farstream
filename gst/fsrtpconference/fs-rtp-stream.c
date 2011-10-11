@@ -39,7 +39,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-rtp.h>
+#include <farstream/fs-rtp.h>
 
 #include "fs-rtp-marshal.h"
 

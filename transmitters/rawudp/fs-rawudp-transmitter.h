@@ -25,7 +25,7 @@
 #ifndef __FS_RAWUDP_TRANSMITTER_H__
 #define __FS_RAWUDP_TRANSMITTER_H__
 
-#include <gst/farstream/fs-transmitter.h>
+#include <farstream/fs-transmitter.h>
 
 #include <gst/netbuffer/gstnetbuffer.h>
 

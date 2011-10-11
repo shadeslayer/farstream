@@ -25,7 +25,7 @@
 #include <gst/check/gstcheck.h>
 #include <gst/rtp/gstrtpbuffer.h>
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 #include "check-threadsafe.h"
 #include "generic.h"

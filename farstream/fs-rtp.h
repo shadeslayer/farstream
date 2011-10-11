@@ -26,7 +26,7 @@
 #define __FS_RTP_H__
 
 #include <gst/gst.h>
-#include <gst/farstream/fs-stream.h>
+#include <farstream/fs-stream.h>
 
 G_BEGIN_DECLS
 

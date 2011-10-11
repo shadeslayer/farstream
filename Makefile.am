@@ -7,7 +7,7 @@ PYTHON_SUBDIR = python
 endif
 
 SUBDIRS = 			\
-	gst-libs 		\
+	farstream 		\
 	gst $(SUBDIRS_EXT)	\
 	transmitters		\
 	$(PYTHON_SUBDIR)	\
@@ -20,7 +20,7 @@ SUBDIRS = 			\
 #	pkgconfig
 
 DIST_SUBDIRS = 			\
-	gst-libs		\
+	farstream		\
 	gst $(SUBDIRS_EXT)	\
 	transmitters		\
 	python			\

@@ -26,7 +26,7 @@
 #define __FS_NICE_AGENT_H__
 
 #include <glib-object.h>
-#include <gst/farstream/fs-plugin.h>
+#include <farstream/fs-plugin.h>
 
 
 G_BEGIN_DECLS

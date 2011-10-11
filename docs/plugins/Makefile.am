@@ -126,7 +126,7 @@ CLEANFILES = farstream-transmitters.types
 # contains GtkObjects/GObjects and you want to document signals and properties.
 GTKDOC_CFLAGS = $(GST_BASE_CFLAGS) -I$(top_builddir) -I$(top_builddir)/gst-libs
 GTKDOC_LIBS = \
-	$(top_builddir)/gst-libs/gst/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-0.10.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/fsrawconference/libfsrawconference_doc.la \
 	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \

@@ -25,8 +25,8 @@
 #ifndef __FS_RTP_STREAM_H__
 #define __FS_RTP_STREAM_H__
 
-#include <gst/farstream/fs-stream.h>
-#include <gst/farstream/fs-stream-transmitter.h>
+#include <farstream/fs-stream.h>
+#include <farstream/fs-stream-transmitter.h>
 
 #include "fs-rtp-participant.h"
 #include "fs-rtp-session.h"

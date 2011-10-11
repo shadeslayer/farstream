@@ -25,7 +25,7 @@
 #ifndef __FS_NICE_TRANSMITTER_H__
 #define __FS_NICE_TRANSMITTER_H__
 
-#include <gst/farstream/fs-transmitter.h>
+#include <farstream/fs-transmitter.h>
 
 #include <gst/gst.h>
 #include <agent.h>

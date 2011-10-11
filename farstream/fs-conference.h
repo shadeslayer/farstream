@@ -27,9 +27,9 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-session.h>
-#include <gst/farstream/fs-codec.h>
-#include <gst/farstream/fs-enumtypes.h>
+#include <farstream/fs-session.h>
+#include <farstream/fs-codec.h>
+#include <farstream/fs-enumtypes.h>
 
 G_BEGIN_DECLS
 

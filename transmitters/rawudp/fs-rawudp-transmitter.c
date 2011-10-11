@@ -37,8 +37,8 @@
 #include "fs-rawudp-transmitter.h"
 #include "fs-rawudp-stream-transmitter.h"
 
-#include <gst/farstream/fs-conference.h>
-#include <gst/farstream/fs-plugin.h>
+#include <farstream/fs-conference.h>
+#include <farstream/fs-plugin.h>
 
 #include <string.h>
 #include <sys/types.h>

@@ -28,7 +28,7 @@
 
 #include "fs-rtp-codec-negotiation.h"
 
-#include <gst/farstream/fs-rtp.h>
+#include <farstream/fs-rtp.h>
 
 #include <string.h>
 

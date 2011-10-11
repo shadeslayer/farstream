@@ -20,7 +20,7 @@
 
 
 #include <gst/gst.h>
-#include <gst/farstream/fs-transmitter.h>
+#include <farstream/fs-transmitter.h>
 
 #ifndef __GENERIC_H__
 #define __GENERIC_H__

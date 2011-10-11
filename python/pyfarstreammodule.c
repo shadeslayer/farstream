@@ -1,5 +1,5 @@
 #include <pygobject.h>
-#include <gst/farstream/fs-codec.h>
+#include <farstream/fs-codec.h>
 
 void fs_register_classes (PyObject *d);
 void fs_add_constants(PyObject *module, const gchar *strip_prefix);

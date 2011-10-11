@@ -36,7 +36,7 @@
 
 #include <string.h>
 
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-codec-cache.h"

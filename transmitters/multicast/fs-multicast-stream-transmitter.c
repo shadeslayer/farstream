@@ -60,8 +60,8 @@
 #include "fs-multicast-stream-transmitter.h"
 #include "fs-multicast-transmitter.h"
 
-#include <gst/farstream/fs-candidate.h>
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-candidate.h>
+#include <farstream/fs-conference.h>
 
 #include <gst/gst.h>
 

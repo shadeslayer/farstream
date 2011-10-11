@@ -26,7 +26,7 @@
 #ifndef __FS_MSN_STREAM_H__
 #define __FS_MSN_STREAM_H__
 
-#include <gst/farstream/fs-stream.h>
+#include <farstream/fs-stream.h>
 
 #include "fs-msn-participant.h"
 #include "fs-msn-session.h"

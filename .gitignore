@@ -22,10 +22,10 @@ gst/*/*.doc.c
 transmitters/rawudp/fs-rawudp-marshal.[ch]
 transmitters/rawudp/fs-rawudp-marshal.list
 
-gst-libs/gst/farstream/fs-marshal.[ch]
-gst-libs/gst/farstream/fs-marshal.list
-gst-libs/gst/farstream/fs-enum-types.h
-gst-libs/gst/farstream/fs-enumtypes.[ch]
+farstream/fs-marshal.[ch]
+farstream/fs-marshal.list
+farstream/fs-enum-types.h
+farstream/fs-enumtypes.[ch]
 
 docs/libs/farstream-libs-decl-list.txt
 docs/libs/farstream-libs-decl-list.txt.bak

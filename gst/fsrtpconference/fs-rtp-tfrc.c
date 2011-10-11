@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "fs-rtp-packet-modder.h"
-#include "gst/farstream/fs-rtp.h"
+#include "farstream/fs-rtp.h"
 #include "fs-rtp-codec-negotiation.h"
 
 #include <gst/rtp/gstrtpbuffer.h>

@@ -3,7 +3,7 @@
 
 DIE=0
 package=farstream
-srcfile=gst-libs/gst/farstream/fs-candidate.c
+srcfile=farstream/fs-candidate.c
 
 # Make sure we have common
 if test ! -f common/gst-autogen.sh;

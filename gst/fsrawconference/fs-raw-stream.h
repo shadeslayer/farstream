@@ -27,8 +27,8 @@
 #ifndef __FS_RAW_STREAM_H__
 #define __FS_RAW_STREAM_H__
 
-#include <gst/farstream/fs-stream.h>
-#include <gst/farstream/fs-stream-transmitter.h>
+#include <farstream/fs-stream.h>
+#include <farstream/fs-stream-transmitter.h>
 
 #include "fs-raw-participant.h"
 #include "fs-raw-session.h"

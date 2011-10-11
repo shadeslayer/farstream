@@ -46,7 +46,7 @@
 #include <string.h>
 
 #include <gst/gst.h>
-#include <gst/farstream/fs-transmitter.h>
+#include <farstream/fs-transmitter.h>
 
 #include "fs-raw-stream.h"
 #include "fs-raw-participant.h"

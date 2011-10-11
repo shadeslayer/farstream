@@ -26,7 +26,7 @@
 #include "generic.h"
 
 #include <gst/check/gstcheck.h>
-#include <gst/farstream/fs-conference.h>
+#include <farstream/fs-conference.h>
 
 
 static GstBusSyncReply

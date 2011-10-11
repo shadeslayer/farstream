@@ -20,7 +20,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-codec.h>
+#include <farstream/fs-codec.h>
 
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-conference.h"

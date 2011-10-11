@@ -24,7 +24,7 @@
 #ifndef __FS_MSN_PARTICIPANT_H__
 #define __FS_MSN_PARTICIPANT_H__
 
-#include <gst/farstream/fs-participant.h>
+#include <farstream/fs-participant.h>
 
 G_BEGIN_DECLS
 

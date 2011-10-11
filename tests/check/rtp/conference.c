@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farstream/fs-conference.h>
-#include <gst/farstream/fs-stream-transmitter.h>
+#include <farstream/fs-conference.h>
+#include <farstream/fs-stream-transmitter.h>
 
 #include "check-threadsafe.h"
 

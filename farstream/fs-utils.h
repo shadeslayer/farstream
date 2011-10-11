@@ -27,7 +27,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-codec.h>
+#include <farstream/fs-codec.h>
 
 G_BEGIN_DECLS
 

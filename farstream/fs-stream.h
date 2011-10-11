@@ -28,8 +28,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <gst/farstream/fs-candidate.h>
-#include <gst/farstream/fs-codec.h>
+#include <farstream/fs-candidate.h>
+#include <farstream/fs-codec.h>
 
 G_BEGIN_DECLS
 

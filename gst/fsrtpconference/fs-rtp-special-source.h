@@ -28,7 +28,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farstream/fs-session.h>
+#include <farstream/fs-session.h>
 
 G_BEGIN_DECLS
 

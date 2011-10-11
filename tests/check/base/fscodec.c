@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include "gst/farstream/fs-codec.h"
-#include "gst/farstream/fs-rtp.h"
+#include "farstream/fs-codec.h"
+#include "farstream/fs-rtp.h"
 
 #include "testutils.h"
 

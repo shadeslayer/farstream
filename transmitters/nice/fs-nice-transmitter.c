@@ -39,8 +39,8 @@
 #include "fs-nice-stream-transmitter.h"
 #include "fs-nice-agent.h"
 
-#include <gst/farstream/fs-conference.h>
-#include <gst/farstream/fs-plugin.h>
+#include <farstream/fs-conference.h>
+#include <farstream/fs-plugin.h>
 
 #include <agent.h>
 

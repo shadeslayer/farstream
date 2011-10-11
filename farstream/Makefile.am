@@ -1,4 +1,4 @@
-libfarstreamincludedir = $(includedir)/gstreamer-@GST_MAJORMINOR@/gst/farstream
+libfarstreamincludedir = $(includedir)/farstream-@FS_MAJORMINOR@/farstream
 
 libfarstreaminclude_HEADERS = \
 		fs-candidate.h \

@@ -6,13 +6,13 @@
 % - change output file name from gstreamer-(whatever).html to (whatever).html
 % - document properties and signals
 
-#include "../../gst-libs/gst/farstream/fs-participant.h"
-#include "../../gst-libs/gst/farstream/fs-session.h"
-#include "../../gst-libs/gst/farstream/fs-stream.h"
-#include "../../gst-libs/gst/farstream/fs-conference.h"
-#include "../../gst-libs/gst/farstream/fs-transmitter.h"
-#include "../../gst-libs/gst/farstream/fs-stream-transmitter.h"
-#include "../../gst-libs/gst/farstream/fs-element-added-notifier.h"
+#include "../../farstream/fs-participant.h"
+#include "../../farstream/fs-session.h"
+#include "../../farstream/fs-stream.h"
+#include "../../farstream/fs-conference.h"
+#include "../../farstream/fs-transmitter.h"
+#include "../../farstream/fs-stream-transmitter.h"
+#include "../../farstream/fs-element-added-notifier.h"
 
 fs_participant_get_type
 fs_session_get_type

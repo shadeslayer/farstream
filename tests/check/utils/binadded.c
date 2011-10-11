@@ -24,7 +24,7 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farstream/fs-element-added-notifier.h>
+#include <farstream/fs-element-added-notifier.h>
 
 #include "testutils.h"
 

@@ -21,7 +21,7 @@ dnl check if this is a release version
 AS_NANO(FS_CVS="no", FS_CVS="yes")
 
 dnl can autoconf find the source ?
-AC_CONFIG_SRCDIR([gst-libs/gst/farstream/fs-candidate.c])
+AC_CONFIG_SRCDIR([farstream/fs-conference.c])
 
 dnl define the output header for config
 AM_CONFIG_HEADER([config.h])
@@ -307,7 +307,7 @@ AC_SUBST(FS_LT_LDFLAGS)
 dnl FS_INTERNAL_CFLAGS
 dnl prefer internal headers to already installed ones
 dnl also add builddir include for enumtypes and marshal
-FS_INTERNAL_CFLAGS="-I\$(top_srcdir)/gst-libs -I\$(top_builddir)/gst-libs"
+FS_INTERNAL_CFLAGS="-I\$(top_srcdir) -I\$(top_builddir)"
 AC_SUBST(FS_INTERNAL_CFLAGS)
 
 dnl FIXME: do we want to rename to GST_ALL_* ?
@@ -402,9 +402,7 @@ gst/fsmsnconference/Makefile
 gst/funnel/Makefile
 gst/rtcpfilter/Makefile
 gst/videoanyrate/Makefile
-gst-libs/Makefile
-gst-libs/gst/Makefile
-gst-libs/gst/farstream/Makefile
+farstream/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
 transmitters/multicast/Makefile

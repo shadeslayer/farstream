@@ -37,8 +37,8 @@
 #include "fs-shm-transmitter.h"
 #include "fs-shm-stream-transmitter.h"
 
-#include <gst/farstream/fs-conference.h>
-#include <gst/farstream/fs-plugin.h>
+#include <farstream/fs-conference.h>
+#include <farstream/fs-plugin.h>
 
 #include <string.h>
 

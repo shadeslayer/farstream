@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farstream/fs-transmitter.h>
-#include <gst/farstream/fs-stream-transmitter.h>
+#include <farstream/fs-transmitter.h>
+#include <farstream/fs-stream-transmitter.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>
