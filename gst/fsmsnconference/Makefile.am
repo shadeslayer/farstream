@@ -38,7 +38,7 @@ libfsmsnconference_la_SOURCES = \
 libfsmsnconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsmsnconference_la_LIBADD = \
 	libfsmsnconference-convenience.la \
-	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-0.10.la \
+	$(top_builddir)/gst-libs/gst/farstream/libfarstream-0.10.la \
 	$(FS_LIBS) \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS) \

@@ -46,7 +46,7 @@ CFILE_GLOB=$(DOC_SOURCE_DIR)/*/*.c
 # this is useful ;)
 
 SCANOBJ_DEPS = \
-	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-@GST_MAJORMINOR@.la
+	$(top_builddir)/gst-libs/gst/farstream/libfarstream-@GST_MAJORMINOR@.la
 
 # Header files to ignore when scanning.
 IGNORE_HFILES = fs-marshal.h fs-enumtypes.h fs-private.h
@@ -64,7 +64,7 @@ extra_files =
 # contains GtkObjects/GObjects and you want to document signals and properties.
 GTKDOC_CFLAGS = $(FS_INTERNAL_CFLAGS) $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS)
 GTKDOC_LIBS = -static \
-	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-0.10.la \
+	$(top_builddir)/gst-libs/gst/farstream/libfarstream-0.10.la \
 	$(GST_BASE_LIBS) \
 	$(GCOV_LIBS)
 

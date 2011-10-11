@@ -24,7 +24,7 @@ nodist_farstream_la_SOURCES = pyfarstream.c
 
 farstream_la_LIBADD =					\
 	$(PYFARSTREAM_LIBS)				\
-	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-@GST_MAJORMINOR@.la
+	$(top_builddir)/gst-libs/gst/farstream/libfarstream-@GST_MAJORMINOR@.la
 
 farstream_la_LDFLAGS = -module -avoid-version
 
