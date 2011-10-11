@@ -10,7 +10,7 @@ AM_CFLAGS = \
 	$(CFLAGS)
 
 LDADD = \
-	$(top_builddir)/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-@FS_MAJORMINOR@.la \
 	$(GST_LIBS) 
 
 

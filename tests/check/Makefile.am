@@ -67,7 +67,7 @@ AM_CFLAGS = \
 	$(GST_CFLAGS)
 
 LDADD = \
-	$(top_builddir)/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-@FS_MAJORMINOR@.la \
 	$(GST_CHECK_LIBS) \
 	$(GST_LIBS)
 
@@ -148,14 +148,14 @@ rtp_codecs_SOURCES = \
 	rtp/codecs.c
 
 rtp_sendcodecs_CFLAGS = $(AM_CFLAGS)
-rtp_sendcodecs_LDADD = $(LDADD) -lgstrtp-0.10
+rtp_sendcodecs_LDADD = $(LDADD) -lgstrtp-@GST_MAJORMINOR@
 rtp_sendcodecs_SOURCES = \
 	rtp/generic.c \
 	rtp/generic.h \
 	rtp/sendcodecs.c
 
 rtp_recvcodecs_CFLAGS = $(AM_CFLAGS)
-rtp_recvcodecs_LDADD = $(LDADD) -lgstrtp-0.10
+rtp_recvcodecs_LDADD = $(LDADD) -lgstrtp-@GST_MAJORMINOR@
 
 msn_conference_CFLAGS = $(AM_CFLAGS)
 msn_conference_SOURCES = \
@@ -169,7 +169,7 @@ utils_binadded_SOURCES = \
 
 elements_rtcpfilter_CFLAGS = $(AM_CFLAGS)
 elements_rtcpfilter_SOURCES = elements/rtcpfilter.c
-elements_rtcpfilter_LDADD = $(LDADD) -lgstrtp-0.10
+elements_rtcpfilter_LDADD = $(LDADD) -lgstrtp-@GST_MAJORMINOR@
 
 elements_funnel_CFLAGS = $(AM_CFLAGS)
 elements_funnel_SOURCES = elements/funnel.c

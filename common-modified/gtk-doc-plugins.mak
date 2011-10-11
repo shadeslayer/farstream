@@ -26,7 +26,7 @@ update:
 GPATH = $(srcdir)
 
 # thomas: make docs parallel installable
-TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@
+TARGET_DIR=$(HTML_DIR)/$(DOC_MODULE)-@FS_MAJORMINOR@
 
 MAINTAINER_DOC_STAMPS =			\
 	scanobj-build.stamp		\
@@ -219,7 +219,7 @@ html-build.stamp: sgml.stamp $(DOC_MAIN_SGML_FILE) $(content_files)
 	cp ../version.entities html
 	cd html && gtkdoc-mkhtml $(DOC_MODULE) $(DOC_MAIN_SGML_FILE)
 	mv html/index.sgml html/index.sgml.bak
-	$(SED) "s/ href=\"$(DOC_MODULE)\// href=\"$(DOC_MODULE)-@GST_MAJORMINOR@\//g" html/index.sgml.bak >html/index.sgml
+	$(SED) "s/ href=\"$(DOC_MODULE)\// href=\"$(DOC_MODULE)-@FS_MAJORMINOR@\//g" html/index.sgml.bak >html/index.sgml
 	rm -f html/index.sgml.bak
 	rm -f html/$(DOC_MAIN_SGML_FILE)
 	rm -rf html/xml
@@ -271,10 +271,10 @@ install-data-local:
 	  fi; \
 	  echo '-- Installing $(srcdir)/html/$(DOC_MODULE).devhelp' ; \
 	  $(INSTALL_DATA) $(srcdir)/html/$(DOC_MODULE).devhelp \
-	    $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp; \
+	    $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@FS_MAJORMINOR@.devhelp; \
 	  if test -e $(srcdir)/html/$(DOC_MODULE).devhelp2; then \
 	            $(INSTALL_DATA) $(srcdir)/html/$(DOC_MODULE).devhelp2 \
-	            $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@GST_MAJORMINOR@.devhelp2; \
+	            $(DESTDIR)$(TARGET_DIR)/$(DOC_MODULE)-@FS_MAJORMINOR@.devhelp2; \
 	  fi; \
 	  (which gtkdoc-rebase >/dev/null && \
 	    gtkdoc-rebase --relative --dest-dir=$(DESTDIR) --html-dir=$(DESTDIR)$(TARGET_DIR)) || true ; \

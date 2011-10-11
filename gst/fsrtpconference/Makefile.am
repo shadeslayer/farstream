@@ -62,7 +62,7 @@ libfsrtpconference_la_SOURCES = fs-rtp-conference-plugin.c
 
 libfsrtpconference_la_LIBADD = \
 	libfsrtpconference-convenience.la \
-	$(top_builddir)/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-@FS_MAJORMINOR@.la \
 	$(FS_LIBS) \
 	$(GST_PLUGINS_BASE_LIBS) \
 	$(GST_LIBS) \

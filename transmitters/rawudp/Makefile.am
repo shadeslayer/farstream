@@ -24,7 +24,7 @@ librawudp_transmitter_la_CFLAGS = \
 	$(GUPNP_CFLAGS)
 librawudp_transmitter_la_LDFLAGS = $(FS_PLUGIN_LDFLAGS)
 librawudp_transmitter_la_LIBADD = \
-	$(top_builddir)/farstream/libfarstream-0.10.la \
+	$(top_builddir)/farstream/libfarstream-@FS_MAJORMINOR@.la \
 	$(FS_LIBS) \
 	$(GST_PLUGINS_BASE_LIBS) \
 	$(GST_LIBS) \
