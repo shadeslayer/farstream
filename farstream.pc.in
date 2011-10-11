@@ -1,7 +1,7 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
-includedir=@includedir@/gstreamer-@GST_MAJORMINOR@
+includedir=@includedir@/farstream-@FS_MAJORMINOR@
 pluginsdir=@libdir@/farstream-@FS_MAJORMINOR@
 
 Name: Farstream
