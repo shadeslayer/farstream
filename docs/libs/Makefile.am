@@ -19,8 +19,8 @@ DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
 # The directory containing the source code. Relative to $(top_srcdir).
 # gtk-doc will search all .c & .h files beneath here for inline comments
 # documenting functions and macros.
-DOC_SOURCE_DIR=$(top_srcdir)/gst-libs/gst
-DOC_BUILD_DIR=$(top_builddir)/gst-libs/gst
+DOC_SOURCE_DIR=$(top_srcdir)/farstream
+DOC_BUILD_DIR=$(top_builddir)/farstream
 
 # Extra options to supply to gtkdoc-scan.
 SCAN_OPTIONS=
@@ -38,8 +38,8 @@ FIXXREF_OPTIONS=--extra-dir=$(GLIB_PREFIX)/share/gtk-doc/html \
 	--extra-dir=$(GST_PREFIX)/share/gtk-doc/html
 
 # Used for dependencies.
-HFILE_GLOB=$(DOC_SOURCE_DIR)/*/*.h
-CFILE_GLOB=$(DOC_SOURCE_DIR)/*/*.c
+HFILE_GLOB=$(DOC_SOURCE_DIR)/*.h
+CFILE_GLOB=$(DOC_SOURCE_DIR)/*.c
 
 # this is a wingo addition
 # thomasvs: another nice wingo addition would be an explanation on why

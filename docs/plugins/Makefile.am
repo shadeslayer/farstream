@@ -62,8 +62,8 @@ SCANOBJ_DEPS = \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \
 	$(top_builddir)/gst/fsrawconference/libfsrawconference_doc.la \
-	$(top_builddir)/gst/funnel/libfsfunnel.la \
-	$(top_builddir)/gst/videoanyrate/libfsvideoanyrate.la 
+	$(top_builddir)/gst/fsfunnel/libfsfunnel.la \
+	$(top_builddir)/gst/fsvideoanyrate/libfsvideoanyrate.la 
 
 # Header files to ignore when scanning.
 IGNORE_HFILES = 
@@ -78,8 +78,8 @@ IGNORE_CFILES =
 # the registry won't have the element
 
 EXTRA_HFILES = \
-	$(top_srcdir)/gst/funnel/fs-funnel.h \
-	$(top_srcdir)/gst/videoanyrate/videoanyrate.h \
+	$(top_srcdir)/gst/fsfunnel/fs-funnel.h \
+	$(top_srcdir)/gst/fsvideoanyrate/videoanyrate.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-conference.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-session.h \
 	$(top_srcdir)/gst/fsrtpconference/fs-rtp-stream.h \

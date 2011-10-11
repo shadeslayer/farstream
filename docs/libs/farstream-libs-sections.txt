@@ -143,9 +143,13 @@ fs_codec_to_string
 fs_codec_add_optional_parameter
 fs_codec_remove_optional_parameter
 fs_codec_get_optional_parameter
+fs_codec_parameter_copy
+fs_codec_parameter_free
 fs_codec_add_feedback_parameter
 fs_codec_get_feedback_parameter
 fs_codec_remove_feedback_parameter
+fs_feedback_parameter_copy
+fs_feedback_parameter_free
 FS_CODEC_FORMAT
 FS_CODEC_ARGS
 fs_media_type_to_string
@@ -154,6 +158,10 @@ FS_TYPE_CODEC
 FS_TYPE_CODEC_LIST
 fs_codec_get_type
 fs_codec_list_get_type
+FS_TYPE_CODEC_PARAMETER
+FS_TYPE_FEEDBACK_PARAMETER
+fs_codec_parameter_get_type
+fs_feedback_parameter_get_type
 </SECTION>
 
 <SECTION>
@@ -234,6 +242,7 @@ fs_element_added_notifier_add
 fs_element_added_notifier_remove
 fs_element_added_notifier_set_properties_from_keyfile
 fs_element_added_notifier_set_properties_from_file
+fs_element_added_notifier_set_default_properties
 <SUBSECTION Standard>
 FsElementAddedNotifierClass
 FsElementAddedNotifierPrivate

@@ -46,6 +46,12 @@ FS_RTP_CONFERENCE_GET_CLASS
 fs_codec_to_gst_caps
 fs_rtp_conference_is_internal_thread
 fs_codec_to_gst_caps_with_ptime
+fs_rtp_session_get_conference
+fs_rtp_session_get_rtpbin_internal_session
+fs_rtp_session_get_rtpbin_recv_rtcp_sink
+fs_rtp_session_get_rtpbin_recv_rtp_sink
+fs_rtp_session_get_rtpmuxer
+stream_get_new_stream_transmitter_cb
 </SECTION>
 
 <SECTION>
@@ -91,7 +97,6 @@ fs_rawudp_stream_transmitter_register_type
 fs_rawudp_stream_transmitter_newv
 stream_known_source_packet_receive_cb
 stream_new_remote_codecs_cb
-fs_rawudp_stream_transmitter_set_remote_candidates
 <SUBSECTION Standard>
 FS_RAWUDP_STREAM_TRANSMITTER_CAST
 FsRawUdpStreamTransmitterClass
@@ -126,7 +131,6 @@ fs_multicast_transmitter_put_udpsock
 fs_multicast_transmitter_udpsock_inc_sending
 fs_multicast_transmitter_udpsock_dec_sending
 fs_multicast_transmitter_udpsock_ref
-fs_multicast_stream_transmitter_set_remote_candidates
 </SECTION>
 
 <SECTION>
@@ -283,7 +287,6 @@ FS_SHM_TRANSMITTER_GET_CLASS
 FsShmTransmitterPrivate
 ShmSink
 ShmSrc
-connected
 fs_shm_transmitter_check_shm_sink
 fs_shm_transmitter_check_shm_src
 fs_shm_transmitter_get_shm_sink
@@ -350,6 +353,7 @@ fs_msn_session_get_type
 <SUBSECTION Private>
 fs_msn_session_new
 fs_msn_session_new_recv_pad
+connection
 </SECTION>
 
 
@@ -371,7 +375,6 @@ fs_msn_stream_get_type
 <SUBSECTION Private>
 fs_msn_stream_new
 fs_msn_stream_set_tos_locked
-fs_msn_stream_set_remote_candidate
 </SECTION>
 
 
@@ -446,6 +449,9 @@ FsRawConferencePrivate
 fs_raw_conference_get_type
 <SUBSECTION Private>
 fs_raw_conference_is_internal_thread
+fs_raw_codec_to_gst_caps
+fs_raw_session_remove_stream
+fs_raw_session_update_direction
 </SECTION>
 
 <SECTION>
@@ -465,7 +471,6 @@ FsRawSessionPrivate
 fs_raw_session_get_type
 <SUBSECTION Private>
 fs_raw_session_new
-raw_session_remove_stream
 </SECTION>
 
 
@@ -486,7 +491,6 @@ FsRawStreamPrivate
 fs_raw_stream_get_type
 <SUBSECTION Private>
 fs_raw_stream_new
-fs_raw_stream_set_remote_candidate
 </SECTION>
 
 <SECTION>
