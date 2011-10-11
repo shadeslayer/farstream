@@ -110,9 +110,9 @@ FS_PLUGINS_ALL=" \
 	fsrawconference \
 	fsrtpconference \
 	fsmsnconference \
-	funnel \
-	rtcpfilter \
- 	videoanyrate
+	fsfunnel \
+	fsrtcpfilter \
+ 	fsvideoanyrate
 	"
 AC_SUBST(FS_PLUGINS_ALL)
 
@@ -399,9 +399,9 @@ gst/Makefile
 gst/fsrawconference/Makefile
 gst/fsrtpconference/Makefile
 gst/fsmsnconference/Makefile
-gst/funnel/Makefile
-gst/rtcpfilter/Makefile
-gst/videoanyrate/Makefile
+gst/fsfunnel/Makefile
+gst/fsrtcpfilter/Makefile
+gst/fsvideoanyrate/Makefile
 farstream/Makefile
 transmitters/Makefile
 transmitters/rawudp/Makefile
