@@ -84,6 +84,12 @@ G_DEFINE_BOXED_TYPE (FsCodecParameter,
     fs_codec_parameter_copy,
     fs_codec_parameter_free);
 
+
+G_DEFINE_BOXED_TYPE (FsFeedbackParameter,
+    fs_feedback_parameter,
+    fs_feedback_parameter_copy,
+    fs_feedback_parameter_free);
+
 /**
  * fs_codec_new:
  * @id: codec identifier, if RTP this should be based on IETF RTP payload types
@@ -120,8 +126,8 @@ fs_codec_parameter_free (FsCodecParameter *param)
 }
 
 
-static void
-free_feedback_parameter (FsFeedbackParameter *param)
+void
+fs_feedback_parameter_free (FsFeedbackParameter *param)
 {
   g_free (param->type);
   g_free (param->subtype);
@@ -148,7 +154,7 @@ fs_codec_destroy (FsCodec * codec)
   g_list_free (codec->optional_params);
 
   g_list_foreach (codec->ABI.ABI.feedback_params,
-      (GFunc) free_feedback_parameter, NULL);
+      (GFunc) fs_feedback_parameter_free, NULL);
   g_list_free (codec->ABI.ABI.feedback_params);
 
   g_slice_free (FsCodec, codec);
@@ -880,7 +886,7 @@ fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item)
   if (!item)
     return;
 
-  free_feedback_parameter (item->data);
+  fs_feedback_parameter_free (item->data);
   codec->ABI.ABI.feedback_params =
       g_list_delete_link (codec->ABI.ABI.feedback_params, item);
 }
@@ -892,6 +898,19 @@ fs_codec_parameter_copy (const FsCodecParameter *param)
 
   outparam->name = g_strdup (param->name);
   outparam->value = g_strdup (param->value);
+
+  return outparam;
+}
+
+
+FsFeedbackParameter *
+fs_feedback_parameter_copy (const FsFeedbackParameter *param)
+{
+  FsFeedbackParameter *outparam = g_slice_new (FsFeedbackParameter);
+
+  outparam->type = g_strdup (param->type);
+  outparam->subtype = g_strdup (param->subtype);
+  outparam->extra_params = g_strdup (param->extra_params);
 
   return outparam;
 }

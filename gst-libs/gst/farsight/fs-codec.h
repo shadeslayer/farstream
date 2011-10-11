@@ -202,6 +202,15 @@ FsFeedbackParameter *fs_codec_get_feedback_parameter (FsCodec *codec,
 void fs_codec_remove_feedback_parameter (FsCodec *codec, GList *item);
 
 
+#define FS_TYPE_FEEDBACK_PARAMETER (fs_feedback_parameter_get_type ())
+GType fs_feedback_parameter_get_type (void);
+
+FsFeedbackParameter *fs_feedback_parameter_copy (
+  const FsFeedbackParameter *param);
+void fs_feedback_parameter_free (FsFeedbackParameter *param);
+
+
+
 G_END_DECLS
 
 #endif /* __FS_CODEC_H__ */
