@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsShmTransmitter
+/* Farstream unit tests for FsShmTransmitter
  *
  * Copyright (C) 2009 Collabora Ltd
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -24,8 +24,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-transmitter.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-transmitter.h>
+#include <gst/farstream/fs-conference.h>
 
 #include <arpa/inet.h>
 #include <netdb.h>

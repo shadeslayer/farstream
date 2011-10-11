@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Sub Stream
+ * Farstream - Farstream RTP Sub Stream
  *
  * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2009 Nokia Corp.
  *
- * fs-rtp-substream.c - A Farsight RTP Substream gobject
+ * fs-rtp-substream.c - A Farstream RTP Substream gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,8 +29,8 @@
 
 #include "fs-rtp-substream.h"
 
-#include <gst/farsight/fs-stream.h>
-#include <gst/farsight/fs-session.h>
+#include <gst/farstream/fs-stream.h>
+#include <gst/farstream/fs-session.h>
 
 #include "fs-rtp-stream.h"
 #include "fs-rtp-marshal.h"

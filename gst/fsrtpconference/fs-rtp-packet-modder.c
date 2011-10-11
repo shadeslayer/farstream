@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight RTP Packet modder
+ * Farstream - Farstream RTP Packet modder
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -69,7 +69,7 @@ fs_rtp_packet_modder_base_init (gpointer g_class)
           "fsrtppacketmodder element");
 
   gst_element_class_set_details_simple (gstelement_class,
-      "Farsight RTP Packet modder",
+      "Farstream RTP Packet modder",
       "Generic",
       "Filter that can modify RTP packets",
       "Olivier Crete <olivier.crete@collabora.co.uk>");

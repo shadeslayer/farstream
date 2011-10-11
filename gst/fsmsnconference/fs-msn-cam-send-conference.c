@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight MSN Conference Implementation
+ * Farstream - Farstream MSN Conference Implementation
  *
  * Copyright 2007 Nokia Corp.
  * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
- * fs-msn-send-conference.c - MSN implementation for Farsight Conference
+ * fs-msn-send-conference.c - MSN implementation for Farstream Conference
  *   Gstreamer Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -25,7 +25,7 @@
 
 /**
  * SECTION:element-fsmsncamsendconference
- * @short_description: Farsight MSN send Conference Gstreamer Element
+ * @short_description: Farstream MSN send Conference Gstreamer Element
  *
  * This element implements the unidirection webcam feature found in various
  * version of MSN Messenger (tm) and Windows Live Messenger (tm). This is
@@ -61,9 +61,9 @@ enum
 
 static GstElementDetails fs_msn_cam_send_conference_details =
 {
-  "Farsight MSN Sending Conference",
+  "Farstream MSN Sending Conference",
   "Generic/Bin/MSN",
-  "A Farsight MSN Sending Conference",
+  "A Farstream MSN Sending Conference",
   "Richard Spiers <richard.spiers@gmail.com>, "
   "Youness Alaoui <youness.alaoui@collabora.co.uk>, "
   "Olivier Crete <olivier.crete@collabora.co.uk>"

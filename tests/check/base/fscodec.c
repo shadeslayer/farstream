@@ -1,4 +1,4 @@
-/* Farsigh2 unit tests for FsCodec
+/* Farstream unit tests for FsCodec
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include "gst/farsight/fs-codec.h"
-#include "gst/farsight/fs-rtp.h"
+#include "gst/farstream/fs-codec.h"
+#include "gst/farstream/fs-rtp.h"
 
 #include "testutils.h"
 

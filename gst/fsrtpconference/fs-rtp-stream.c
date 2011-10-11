@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Stream
+ * Farstream - Farstream RTP Stream
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-stream.c - A Farsight RTP Stream gobject
+ * fs-rtp-stream.c - A Farstream RTP Stream gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,7 +39,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-rtp.h>
+#include <gst/farstream/fs-rtp.h>
 
 #include "fs-rtp-marshal.h"
 
@@ -723,7 +723,7 @@ _local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-local-candidates-prepared",
+          gst_structure_new ("farstream-local-candidates-prepared",
               "stream", FS_TYPE_STREAM, self,
               NULL)));
 
@@ -750,7 +750,7 @@ _new_active_candidate_pair (
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-new-active-candidate-pair",
+          gst_structure_new ("farstream-new-active-candidate-pair",
               "stream", FS_TYPE_STREAM, self,
               "local-candidate", FS_TYPE_CANDIDATE, local_candidate,
               "remote-candidate", FS_TYPE_CANDIDATE, remote_candidate,
@@ -778,7 +778,7 @@ _new_local_candidate (
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-new-local-candidate",
+          gst_structure_new ("farstream-new-local-candidate",
               "stream", FS_TYPE_STREAM, self,
               "candidate", FS_TYPE_CANDIDATE, candidate,
               NULL)));
@@ -826,7 +826,7 @@ _state_changed (FsStreamTransmitter *stream_transmitter,
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-component-state-changed",
+          gst_structure_new ("farstream-component-state-changed",
               "stream", FS_TYPE_STREAM, self,
               "component", G_TYPE_UINT, component,
               "state", FS_TYPE_STREAM_STATE, state,
@@ -999,7 +999,7 @@ _substream_codec_changed (FsRtpSubStream *substream,
 
     gst_element_post_message (conf,
         gst_message_new_element (GST_OBJECT (conf),
-            gst_structure_new ("farsight-recv-codecs-changed",
+            gst_structure_new ("farstream-recv-codecs-changed",
                 "stream", FS_TYPE_STREAM, stream,
                 "codecs", FS_TYPE_CODEC_LIST, codeclist,
                 NULL)));

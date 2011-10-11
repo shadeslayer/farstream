@@ -1,5 +1,5 @@
 
-plugindir = $(FS2_PLUGIN_PATH)
+plugindir = $(FS_PLUGIN_PATH)
 
 plugin_LTLIBRARIES = librawudp-transmitter.la
 
@@ -16,16 +16,16 @@ nodist_librawudp_transmitter_la_SOURCES = \
 
 # flags used to compile this plugin
 librawudp_transmitter_la_CFLAGS = \
-	$(FS2_INTERNAL_CFLAGS) \
-	$(FS2_CFLAGS) \
+	$(FS_INTERNAL_CFLAGS) \
+	$(FS_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_CFLAGS) \
 	$(NICE_CFLAGS) \
 	$(GUPNP_CFLAGS)
-librawudp_transmitter_la_LDFLAGS = $(FS2_PLUGIN_LDFLAGS)
+librawudp_transmitter_la_LDFLAGS = $(FS_PLUGIN_LDFLAGS)
 librawudp_transmitter_la_LIBADD = \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
-	$(FS2_LIBS) \
+	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-0.10.la \
+	$(FS_LIBS) \
 	$(GST_PLUGINS_BASE_LIBS) \
 	$(GST_LIBS) \
 	$(NICE_LIBS) \

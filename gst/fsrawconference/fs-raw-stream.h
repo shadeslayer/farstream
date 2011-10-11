@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight Raw Stream
+ * Farstream - Farstream Raw Stream
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
@@ -7,7 +7,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  *
- * fs-raw-stream.h - A Farsight Raw Stream
+ * fs-raw-stream.h - A Farstream Raw Stream
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,8 +27,8 @@
 #ifndef __FS_RAW_STREAM_H__
 #define __FS_RAW_STREAM_H__
 
-#include <gst/farsight/fs-stream.h>
-#include <gst/farsight/fs-stream-transmitter.h>
+#include <gst/farstream/fs-stream.h>
+#include <gst/farstream/fs-stream-transmitter.h>
 
 #include "fs-raw-participant.h"
 #include "fs-raw-session.h"

@@ -1,4 +1,4 @@
-/* Farsight 2 ad-hoc test for the rtp codec discovery
+/* Farstream ad-hoc test for the rtp codec discovery
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -20,7 +20,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-codec.h>
+#include <gst/farstream/fs-codec.h>
 
 #include "fs-rtp-discover-codecs.h"
 #include "fs-rtp-conference.h"
@@ -76,11 +76,11 @@ int main (int argc, char **argv)
   gst_init (&argc, &argv);
 
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_debug, "fsrtpconference", 0,
-      "Farsight RTP Conference Element");
+      "Farstream RTP Conference Element");
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_disco, "fsrtpconference_disco",
-      0, "Farsight RTP Codec Discovery");
+      0, "Farstream RTP Codec Discovery");
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_nego, "fsrtpconference_nego",
-      0, "Farsight RTP Codec Negotiation");
+      0, "Farstream RTP Codec Negotiation");
 
   gst_debug_set_default_threshold (GST_LEVEL_WARNING);
 

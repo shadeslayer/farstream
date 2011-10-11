@@ -1,4 +1,4 @@
-/* Farsigh2 generic unit tests for conferences
+/* Farstream generic unit tests for conferences
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -23,7 +23,7 @@
 #define __GENERIC_H__
 
 #include <gst/gst.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 struct SimpleTestConference {
   gint id;

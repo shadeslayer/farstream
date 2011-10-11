@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP DTMF Sound Source
+ * Farstream - Farstream RTP DTMF Sound Source
  *
  * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2009 Nokia Corp.
  *
- * fs-rtp-dtmf-sound-source.c - A Farsight RTP Sound Source gobject
+ * fs-rtp-dtmf-sound-source.c - A Farstream RTP Sound Source gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,7 @@
 
 #include "fs-rtp-dtmf-sound-source.h"
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-discover-codecs.h"

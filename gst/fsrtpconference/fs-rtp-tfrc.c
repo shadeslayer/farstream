@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP TFRC support
+ * Farstream - Farstream RTP TFRC support
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2010 Nokia Corp.
  *
- * fs-rtp-tfrc.c - Rate control for Farsight RTP sessions
+ * fs-rtp-tfrc.c - Rate control for Farstream RTP sessions
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -31,7 +31,7 @@
 #include <string.h>
 
 #include "fs-rtp-packet-modder.h"
-#include "gst/farsight/fs-rtp.h"
+#include "gst/farstream/fs-rtp.h"
 #include "fs-rtp-codec-negotiation.h"
 
 #include <gst/rtp/gstrtpbuffer.h>
@@ -146,7 +146,7 @@ fs_rtp_tfrc_init (FsRtpTfrc *self)
 {
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_tfrc,
       "fsrtpconference_tfrc", 0,
-      "Farsight RTP Conference Element Rate Control logic");
+      "Farstream RTP Conference Element Rate Control logic");
 
   /* member init */
 

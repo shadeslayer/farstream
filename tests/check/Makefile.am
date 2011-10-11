@@ -10,10 +10,10 @@ TESTS_ENVIRONMENT = \
 	CK_DEFAULT_TIMEOUT=120					\
 	STATE_IGNORE_ELEMENTS="$(STATE_IGNORE_ELEMENTS)"	\
 	$(REGISTRY_ENVIRONMENT)					\
-	GST_PLUGIN_LOADING_WHITELIST=gstreamer:gst-plugins-base:gst-plugins-good:libnice:valve:siren:autoconvert:rtpmux:dtmf:mimic:shm:farsight2@$(top_builddir)/gst \
+	GST_PLUGIN_LOADING_WHITELIST=gstreamer:gst-plugins-base:gst-plugins-good:libnice:valve:siren:autoconvert:rtpmux:dtmf:mimic:shm:farstream@$(top_builddir)/gst \
 	GST_PLUGIN_PATH=$(top_builddir)/gst:${GST_PLUGIN_PATH}	\
 	FS_PLUGIN_PATH=$(top_builddir)/transmitters/rawudp/.libs:$(top_builddir)/transmitters/multicast/.libs:$(top_builddir)/transmitters/nice/.libs:$(top_builddir)/transmitters/shm/.libs \
-	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farsight/.libs:${LD_LIBRARY_PATH} \
+	LD_LIBRARY_PATH=$(top_builddir)/gst-libs/gst/farstream/.libs:${LD_LIBRARY_PATH} \
 	UPNP_XML_PATH=$(srcdir)/upnp \
 	SRCDIR=$(srcdir) \
 	XDG_CACHE_HOME=$(builddir)/cache
@@ -61,13 +61,13 @@ check_PROGRAMS = \
 
 AM_CFLAGS = \
 	$(CFLAGS) \
-	$(FS2_INTERNAL_CFLAGS) \
-	$(FS2_CFLAGS) \
+	$(FS_INTERNAL_CFLAGS) \
+	$(FS_CFLAGS) \
 	$(GST_CHECK_CFLAGS) \
 	$(GST_CFLAGS)
 
 LDADD = \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
+	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-0.10.la \
 	$(GST_CHECK_LIBS) \
 	$(GST_LIBS)
 
@@ -105,7 +105,7 @@ transmitter_multicast_SOURCES = \
 	transmitter/fake-filter.h \
 	transmitter/multicast.c
 
-transmitter_nice_CFLAGS = $(FS2_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
+transmitter_nice_CFLAGS = $(FS_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_nice_SOURCES = \
 	check-threadsafe.h  \
 	transmitter/generic.c \

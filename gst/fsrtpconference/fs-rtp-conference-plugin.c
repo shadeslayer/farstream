@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Conference Implementation
+ * Farstream - Farstream RTP Conference Implementation
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * gstfsrtpconference.c - RTP implementation for Farsight Conference Gstreamer
+ * gstfsrtpconference.c - RTP implementation for Farstream Conference Gstreamer
  *                        Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -41,10 +41,10 @@ GST_PLUGIN_DEFINE (
   GST_VERSION_MAJOR,
   GST_VERSION_MINOR,
   "fsrtpconference",
-  "Farsight RTP Conference plugin",
+  "Farstream RTP Conference plugin",
   plugin_init,
   VERSION,
   "LGPL",
-  "Farsight",
-  "http://farsight.freedesktop.org/"
+  "Farstream",
+  "http://farstream.freedesktop.org/"
 )

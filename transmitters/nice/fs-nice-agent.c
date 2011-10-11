@@ -32,7 +32,7 @@
 #include "config.h"
 #endif
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "fs-nice-transmitter.h"
 #include "fs-nice-agent.h"

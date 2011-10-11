@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRawUdpTransmitter
+/* Farstream unit tests for FsRawUdpTransmitter
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-transmitter.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-transmitter.h>
+#include <gst/farstream/fs-conference.h>
 
 #include <unistd.h>
 

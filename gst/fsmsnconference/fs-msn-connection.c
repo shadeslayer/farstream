@@ -1,5 +1,5 @@
 /*
- * Farstream2 - Farstream MSN Connection
+ * Farstream - Farstream MSN Connection
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.

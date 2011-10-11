@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Session
+ * Farstream - Farstream RTP Session
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-session.c - A Farsight RTP Session gobject
+ * fs-rtp-session.c - A Farstream RTP Session gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -38,8 +38,8 @@
  * entirely new codecs using this method.
  *
  * To create a profile for a codec, add it to the codec-preferences with
- * special optional parameters called "farsight-send-profile" and
- * "farsight-recv-profile", these should contain gst-launch style descriptions
+ * special optional parameters called "farstream-send-profile" and
+ * "farstream-recv-profile", these should contain gst-launch style descriptions
  * of the encoding or decoding bin.
  *
  * As a special case, encoding profiles can have more than one unconnected
@@ -65,9 +65,9 @@
 #include <gst/rtp/gstrtpbuffer.h>
 #include <gst/rtp/gstrtcpbuffer.h>
 
-#include <gst/farsight/fs-transmitter.h>
-#include "gst/farsight/fs-utils.h"
-#include <gst/farsight/fs-rtp.h>
+#include <gst/farstream/fs-transmitter.h>
+#include "gst/farstream/fs-utils.h"
+#include <gst/farstream/fs-rtp.h>
 
 #include "fs-rtp-bitrate-adapter.h"
 #include "fs-rtp-stream.h"
@@ -1010,7 +1010,7 @@ _rtp_bitrate_adapter_renegotiate (GstElement *bitrate_adapter,
 {
   gst_element_post_message (GST_ELEMENT (self->priv->conference),
       gst_message_new_element (GST_OBJECT (self->priv->conference),
-          gst_structure_new ("farsight-renegotiate",
+          gst_structure_new ("farstream-renegotiate",
               "session", FS_TYPE_SESSION, self,
               NULL)));
 }
@@ -2682,7 +2682,7 @@ fs_rtp_session_update_codecs (FsRtpSession *session,
 
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
-            gst_structure_new ("farsight-codecs-changed",
+            gst_structure_new ("farstream-codecs-changed",
                 "session", FS_TYPE_SESSION, session,
                 NULL)));
   }
@@ -3820,7 +3820,7 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
     g_object_notify (G_OBJECT (self), "current-send-codec");
     gst_element_post_message (GST_ELEMENT (self->priv->conference),
         gst_message_new_element (GST_OBJECT (self->priv->conference),
-            gst_structure_new ("farsight-send-codec-changed",
+            gst_structure_new ("farstream-send-codec-changed",
                 "session", FS_TYPE_SESSION, self,
                 "codec", FS_TYPE_CODEC, codec_copy,
                 "secondary-codecs", FS_TYPE_CODEC_LIST, secondary_codecs,
@@ -4217,7 +4217,7 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
     goto out;
 
   /*
-   * Emit farsight-codecs-changed if the sending thread finds the config
+   * Emit farstream-codecs-changed if the sending thread finds the config
    * for the last codec that needed it
    */
   if (gather_caps_parameters (ca, caps))
@@ -4238,7 +4238,7 @@ _send_caps_changed (GstPad *pad, GParamSpec *pspec, FsRtpSession *session)
       g_object_notify (G_OBJECT (session), "codecs");
       gst_element_post_message (GST_ELEMENT (session->priv->conference),
           gst_message_new_element (GST_OBJECT (session->priv->conference),
-              gst_structure_new ("farsight-codecs-changed",
+              gst_structure_new ("farstream-codecs-changed",
                   "session", FS_TYPE_SESSION, session,
                   NULL)));
 
@@ -4577,7 +4577,7 @@ _discovery_pad_blocked_callback (GstPad *pad, gboolean blocked,
     g_object_notify (G_OBJECT (session), "codecs");
     gst_element_post_message (GST_ELEMENT (session->priv->conference),
         gst_message_new_element (GST_OBJECT (session->priv->conference),
-            gst_structure_new ("farsight-codecs-changed",
+            gst_structure_new ("farstream-codecs-changed",
                 "session", FS_TYPE_SESSION, session,
                 NULL)));
 

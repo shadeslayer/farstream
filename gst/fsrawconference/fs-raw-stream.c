@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight Raw Stream
+ * Farstream - Farstream Raw Stream
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
@@ -8,7 +8,7 @@
  *  @author: Youness Alaoui <youness.alaoui@collabora.co.uk>
  *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  *
- * fs-raw-stream.c - A Farsight Raw Stream gobject
+ * fs-raw-stream.c - A Farstream Raw Stream gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -476,7 +476,7 @@ _local_candidates_prepared (FsStreamTransmitter *stream_transmitter,
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-local-candidates-prepared",
+          gst_structure_new ("farstream-local-candidates-prepared",
               "stream", FS_TYPE_STREAM, self,
               NULL)));
 
@@ -499,7 +499,7 @@ _new_active_candidate_pair (
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-new-active-candidate-pair",
+          gst_structure_new ("farstream-new-active-candidate-pair",
               "stream", FS_TYPE_STREAM, self,
               "local-candidate", FS_TYPE_CANDIDATE, local_candidate,
               "remote-candidate", FS_TYPE_CANDIDATE, remote_candidate,
@@ -523,7 +523,7 @@ _new_local_candidate (
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-new-local-candidate",
+          gst_structure_new ("farstream-new-local-candidate",
               "stream", FS_TYPE_STREAM, self,
               "candidate", FS_TYPE_CANDIDATE, candidate,
               NULL)));
@@ -557,7 +557,7 @@ _state_changed (FsStreamTransmitter *stream_transmitter,
 
   gst_element_post_message (conf,
       gst_message_new_element (GST_OBJECT (conf),
-          gst_structure_new ("farsight-component-state-changed",
+          gst_structure_new ("farstream-component-state-changed",
               "stream", FS_TYPE_STREAM, self,
               "component", G_TYPE_UINT, component,
               "state", FS_TYPE_STREAM_STATE, state,

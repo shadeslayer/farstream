@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight MSN Stream
+ * Farstream - Farstream MSN Stream
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.

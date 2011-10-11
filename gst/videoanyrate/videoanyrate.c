@@ -1,5 +1,5 @@
 /*
- * Farsight Voice+Video library
+ * Farstream Voice+Video library
  *
  *  Copyright 2007 Collabora Ltd, 
  *  Copyright 2007 Nokia Corporation
@@ -191,5 +191,5 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
     "fsvideoanyrate",
     "Videoanyrate",
-    gst_videoanyrate_plugin_init, VERSION, "LGPL", "Farsight",
-    "http://farsight.sf.net")
+    gst_videoanyrate_plugin_init, VERSION, "LGPL", "Farstream",
+    "http://farstream.sf.net")

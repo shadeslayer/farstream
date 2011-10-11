@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight Multicast UDP Stream Transmitter
+ * Farstream - Farstream Multicast UDP Stream Transmitter
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-multicast-stream-transmitter.c - A Farsight Multiast UDP stream transmitter
+ * fs-multicast-stream-transmitter.c - A Farstream Multiast UDP stream transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -60,8 +60,8 @@
 #include "fs-multicast-stream-transmitter.h"
 #include "fs-multicast-transmitter.h"
 
-#include <gst/farsight/fs-candidate.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-candidate.h>
+#include <gst/farstream/fs-conference.h>
 
 #include <gst/gst.h>
 

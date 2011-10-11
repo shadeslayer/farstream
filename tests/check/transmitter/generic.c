@@ -1,4 +1,4 @@
-/* Farsigh2 generic unit tests for transmitters
+/* Farstream generic unit tests for transmitters
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-transmitter.h>
-#include <gst/farsight/fs-stream-transmitter.h>
+#include <gst/farstream/fs-transmitter.h>
+#include <gst/farstream/fs-stream-transmitter.h>
 
 #include <sys/types.h>
 #include <sys/wait.h>

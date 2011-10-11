@@ -19,8 +19,8 @@ noinst_HEADERS = \
 
 
 AM_CFLAGS = \
-	$(FS2_INTERNAL_CFLAGS) \
-	$(FS2_CFLAGS) \
+	$(FS_INTERNAL_CFLAGS) \
+	$(FS_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_CFLAGS)
 
@@ -31,8 +31,8 @@ libfsrawconference_la_SOURCES = fs-raw-conference-plugin.c
 libfsrawconference_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libfsrawconference_la_LIBADD = \
 	libfsrawconference-convenience.la \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
-	$(FS2_LIBS) \
+	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-0.10.la \
+	$(FS_LIBS) \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS)
 

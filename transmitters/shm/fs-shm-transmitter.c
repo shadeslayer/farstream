@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight Shm UDP Transmitter
+ * Farstream - Farstream Shm UDP Transmitter
  *
  * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2008 Nokia Corp.
  *
- * fs-shm-transmitter.c - A Farsight shm UDP transmitter
+ * fs-shm-transmitter.c - A Farstream shm UDP transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,8 +37,8 @@
 #include "fs-shm-transmitter.h"
 #include "fs-shm-stream-transmitter.h"
 
-#include <gst/farsight/fs-conference.h>
-#include <gst/farsight/fs-plugin.h>
+#include <gst/farstream/fs-conference.h>
+#include <gst/farstream/fs-plugin.h>
 
 #include <string.h>
 
@@ -234,7 +234,7 @@ fs_shm_transmitter_register_type (FsPlugin *module)
 
   GST_DEBUG_CATEGORY_INIT (fs_shm_transmitter_debug,
       "fsshmtransmitter", 0,
-      "Farsight shm UDP transmitter");
+      "Farstream shm UDP transmitter");
 
   fs_shm_stream_transmitter_register_type (module);
 

@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests generic utilities
+/* Farstream unit tests generic utilities
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>

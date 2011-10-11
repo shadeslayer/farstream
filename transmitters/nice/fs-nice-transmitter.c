@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight libnice Transmitter
+ * Farstream - Farstream libnice Transmitter
  *
  * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2008 Nokia Corp.
  *
- * fs-nice-transmitter.c - A Farsight libnice transmitter
+ * fs-nice-transmitter.c - A Farstream libnice transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -39,8 +39,8 @@
 #include "fs-nice-stream-transmitter.h"
 #include "fs-nice-agent.h"
 
-#include <gst/farsight/fs-conference.h>
-#include <gst/farsight/fs-plugin.h>
+#include <gst/farstream/fs-conference.h>
+#include <gst/farstream/fs-plugin.h>
 
 #include <agent.h>
 
@@ -142,7 +142,7 @@ fs_nice_transmitter_register_type (FsPlugin *module)
 
   GST_DEBUG_CATEGORY_INIT (fs_nice_transmitter_debug,
       "fsnicetransmitter", 0,
-      "Farsight libnice transmitter");
+      "Farstream libnice transmitter");
 
   fs_nice_stream_transmitter_register_type (module);
   fs_nice_agent_register_type (module);

@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight MSN Stream
+ * Farstream - Farstream MSN Stream
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
@@ -7,7 +7,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Youness Alaoui <youness.alaoui@collabora.co.uk>
  *
- * fs-msn-stream.c - A Farsight MSN Stream gobject
+ * fs-msn-stream.c - A Farstream MSN Stream gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -467,7 +467,7 @@ _local_candidates_prepared (FsMsnConnection *connection,
 
   gst_element_post_message (GST_ELEMENT (conference),
       gst_message_new_element (GST_OBJECT (conference),
-          gst_structure_new ("farsight-local-candidates-prepared",
+          gst_structure_new ("farstream-local-candidates-prepared",
               "stream", FS_TYPE_STREAM, self,
               NULL)));
 
@@ -488,7 +488,7 @@ _new_local_candidate (
 
   gst_element_post_message (GST_ELEMENT (conference),
       gst_message_new_element (GST_OBJECT (conference),
-          gst_structure_new ("farsight-new-local-candidate",
+          gst_structure_new ("farstream-new-local-candidate",
               "stream", FS_TYPE_STREAM, self,
               "candidate", FS_TYPE_CANDIDATE, candidate,
               NULL)));
@@ -520,7 +520,7 @@ _connected (
 
   gst_element_post_message (GST_ELEMENT (conference),
       gst_message_new_element (GST_OBJECT (conference),
-          gst_structure_new ("farsight-component-state-changed",
+          gst_structure_new ("farstream-component-state-changed",
               "stream", FS_TYPE_STREAM, self,
               "component", G_TYPE_UINT, 1,
               "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_READY,
@@ -729,7 +729,7 @@ _connection_failed (FsMsnConnection *connection, FsMsnStream *self)
 
   gst_element_post_message (GST_ELEMENT (conference),
       gst_message_new_element (GST_OBJECT (conference),
-          gst_structure_new ("farsight-component-state-changed",
+          gst_structure_new ("farstream-component-state-changed",
               "stream", FS_TYPE_STREAM, self,
               "component", G_TYPE_UINT, 1,
               "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_FAILED,
@@ -770,7 +770,7 @@ fs_msn_stream_add_remote_candidates (FsStream *stream, GList *candidates,
   if (ret)
     gst_element_post_message (GST_ELEMENT (conference),
         gst_message_new_element (GST_OBJECT (conference),
-            gst_structure_new ("farsight-component-state-changed",
+            gst_structure_new ("farstream-component-state-changed",
                 "stream", FS_TYPE_STREAM, self,
                 "component", G_TYPE_UINT, 1,
                 "state", FS_TYPE_STREAM_STATE, FS_STREAM_STATE_CONNECTING,

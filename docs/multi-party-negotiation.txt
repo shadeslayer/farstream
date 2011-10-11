@@ -11,7 +11,7 @@ RTP multi-party conferencing requires that all parties use the same list of code
 
 - Negotiated the common list in a decentralized manner
 
-Farsight 2 supports the first two techniques, but not the third (which
+Farstream supports the first two techniques, but not the third (which
 is a lot more complicated and error-prone).
 
 To use technique one, one just needs to call

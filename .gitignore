@@ -22,41 +22,41 @@ gst/*/*.doc.c
 transmitters/rawudp/fs-rawudp-marshal.[ch]
 transmitters/rawudp/fs-rawudp-marshal.list
 
-gst-libs/gst/farsight/fs-marshal.[ch]
-gst-libs/gst/farsight/fs-marshal.list
-gst-libs/gst/farsight/fs-enum-types.h
-gst-libs/gst/farsight/fs-enumtypes.[ch]
+gst-libs/gst/farstream/fs-marshal.[ch]
+gst-libs/gst/farstream/fs-marshal.list
+gst-libs/gst/farstream/fs-enum-types.h
+gst-libs/gst/farstream/fs-enumtypes.[ch]
 
-docs/libs/farsight2-libs-decl-list.txt
-docs/libs/farsight2-libs-decl-list.txt.bak
-docs/libs/farsight2-libs-decl.txt
-docs/libs/farsight2-libs-decl.txt.bak
-docs/libs/farsight2-libs-undocumented.txt
-docs/libs/farsight2-libs-unused.txt
-docs/libs/farsight2-libs.args
-docs/libs/farsight2-libs.hierarchy
-docs/libs/farsight2-libs.interfaces
-docs/libs/farsight2-libs.prerequisites
-docs/libs/farsight2-libs.signals
-docs/libs/farsight2-libs-undeclared.txt
+docs/libs/farstream-libs-decl-list.txt
+docs/libs/farstream-libs-decl-list.txt.bak
+docs/libs/farstream-libs-decl.txt
+docs/libs/farstream-libs-decl.txt.bak
+docs/libs/farstream-libs-undocumented.txt
+docs/libs/farstream-libs-unused.txt
+docs/libs/farstream-libs.args
+docs/libs/farstream-libs.hierarchy
+docs/libs/farstream-libs.interfaces
+docs/libs/farstream-libs.prerequisites
+docs/libs/farstream-libs.signals
+docs/libs/farstream-libs-undeclared.txt
 docs/libs/html
 docs/libs/tmpl
 docs/libs/xml
 docs/libs/doc-registry.xml
-docs/plugins/farsight2-plugins-decl-list.txt
-docs/plugins/farsight2-plugins-decl.txt
-docs/plugins/farsight2-plugins-overrides.txt
-docs/plugins/farsight2-plugins-undeclared.txt
-docs/plugins/farsight2-plugins-undocumented.txt
-docs/plugins/farsight2-plugins-unused.txt
-docs/plugins/farsight2-plugins.args
-docs/plugins/farsight2-plugins.args.new
-docs/plugins/farsight2-plugins.hierarchy
-docs/plugins/farsight2-plugins.interfaces
-docs/plugins/farsight2-plugins.prerequisites
-docs/plugins/farsight2-plugins.signals
-docs/plugins/farsight2-plugins.signals.new
-docs/plugins/farsight2-transmitters.types
+docs/plugins/farstream-plugins-decl-list.txt
+docs/plugins/farstream-plugins-decl.txt
+docs/plugins/farstream-plugins-overrides.txt
+docs/plugins/farstream-plugins-undeclared.txt
+docs/plugins/farstream-plugins-undocumented.txt
+docs/plugins/farstream-plugins-unused.txt
+docs/plugins/farstream-plugins.args
+docs/plugins/farstream-plugins.args.new
+docs/plugins/farstream-plugins.hierarchy
+docs/plugins/farstream-plugins.interfaces
+docs/plugins/farstream-plugins.prerequisites
+docs/plugins/farstream-plugins.signals
+docs/plugins/farstream-plugins.signals.new
+docs/plugins/farstream-transmitters.types
 docs/plugins/html/
 docs/plugins/inspect-registry.xml
 docs/plugins/inspect/
@@ -66,7 +66,7 @@ docs/plugins/xml/
 docs/diagrams/*.png
 docs/version.entities
 
-python/pyfarsight.c
+python/pyfarstream.c
 python/*.pyo
 python/*.pyc
 
@@ -114,6 +114,6 @@ missing
 stamp-h.in
 stamp-h1
 
-farsight2-0.10.pc
-farsight2.pc
+farstream-0.10.pc
+farstream.pc
 

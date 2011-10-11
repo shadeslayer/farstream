@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRtpConference
+/* Farstream unit tests for FsRtpConference
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -25,8 +25,8 @@
 #include <gst/check/gstcheck.h>
 #include <gst/rtp/gstrtpbuffer.h>
 
-#include <gst/farsight/fs-conference.h>
-#include <gst/farsight/fs-element-added-notifier.h>
+#include <gst/farstream/fs-conference.h>
+#include <gst/farstream/fs-element-added-notifier.h>
 
 #include "check-threadsafe.h"
 
@@ -266,16 +266,16 @@ GST_START_TEST (test_rtprecv_inband_config_data)
     fail_unless (msg != NULL);
     s = gst_message_get_structure (msg);
 
-    fail_if (gst_structure_has_name (s, "farsight-local-candidates-prepared"));
+    fail_if (gst_structure_has_name (s, "farstream-local-candidates-prepared"));
 
-    if (gst_structure_has_name (s, "farsight-new-local-candidate"))
+    if (gst_structure_has_name (s, "farstream-new-local-candidate"))
     {
       const GValue *value;
       FsCandidate *candidate;
 
       ts_fail_unless (
           gst_structure_has_field_typed (s, "candidate", FS_TYPE_CANDIDATE),
-          "farsight-new-local-candidate structure has no candidate field");
+          "farstream-new-local-candidate structure has no candidate field");
 
       value = gst_structure_get_value (s, "candidate");
       candidate = g_value_get_boxed (value);

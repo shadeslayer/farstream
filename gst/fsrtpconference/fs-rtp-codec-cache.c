@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Discovered Codecs cache
+ * Farstream - Farstream RTP Discovered Codecs cache
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-codec-cache.c - A Farsight RTP Codec Caching gobject
+ * fs-rtp-codec-cache.c - A Farstream RTP Codec Caching gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -35,7 +35,7 @@
 #endif
 #include <stdio.h>
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 
@@ -100,13 +100,13 @@ get_codecs_cache_path (FsMediaType media_type) {
   if (media_type == FS_MEDIA_TYPE_AUDIO) {
     cache_path = g_strdup (g_getenv ("FS_AUDIO_CODECS_CACHE"));
     if (cache_path == NULL) {
-      cache_path = g_build_filename (g_get_user_cache_dir (), "farsight",
+      cache_path = g_build_filename (g_get_user_cache_dir (), "farstream",
           "codecs.audio." HOST_CPU ".cache", NULL);
     }
   } else if (media_type == FS_MEDIA_TYPE_VIDEO) {
     cache_path = g_strdup (g_getenv ("FS_VIDEO_CODECS_CACHE"));
     if (cache_path == NULL) {
-      cache_path = g_build_filename (g_get_user_cache_dir (), "farsight",
+      cache_path = g_build_filename (g_get_user_cache_dir (), "farstream",
           "codecs.video." HOST_CPU ".cache", NULL);
     }
   } else {

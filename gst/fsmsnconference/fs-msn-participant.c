@@ -1,10 +1,10 @@
 /*
- * Farsight2 - Farsight MSN Participant
+ * Farstream - Farstream MSN Participant
  *
  *  @author: Richard Spiers <richard.spiers@gmail.com>
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
- * fs-msn-participant.c - A MSN Farsight Participant gobject
+ * fs-msn-participant.c - A MSN Farstream Participant gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

@@ -1,12 +1,12 @@
 /*
- * Farsight2 - Farsight Raw Conference Implementation
+ * Farstream - Farstream Raw Conference Implementation
  *
  * Copyright 2007,2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * gstfsrawconference.c - Raw implementation for Farsight Conference Gstreamer
+ * gstfsrawconference.c - Raw implementation for Farstream Conference Gstreamer
  *                        Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -42,10 +42,10 @@ GST_PLUGIN_DEFINE (
   GST_VERSION_MAJOR,
   GST_VERSION_MINOR,
   "fsrawconference",
-  "Farsight Raw Conference plugin",
+  "Farstream Raw Conference plugin",
   plugin_init,
   VERSION,
   "LGPL",
-  "Farsight",
-  "http://farsight.freedesktop.org/"
+  "Farstream",
+  "http://farstream.freedesktop.org/"
 )

@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight TFRC implementation
+ * Farstream - Farstream TFRC implementation
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>

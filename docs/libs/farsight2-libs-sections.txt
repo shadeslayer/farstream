@@ -1,7 +1,7 @@
 <SECTION>
 <FILE>fs-participant</FILE>
 <TITLE>FsParticipant</TITLE>
-<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-conference.h</INCLUDE>
 FsParticipant
 FsParticipantClass
 FS_PARTICIPANT_DATA_LOCK
@@ -21,7 +21,7 @@ FsParticipantPrivate
 <SECTION>
 <FILE>fs-stream</FILE>
 <TITLE>FsStream</TITLE>
-<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-conference.h</INCLUDE>
 FsStream
 FsStreamClass
 FsStreamDirection
@@ -52,7 +52,7 @@ FsStreamPrivate
 FsDTMFEvent
 FsDTMFMethod
 <TITLE>FsSession</TITLE>
-<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-conference.h</INCLUDE>
 FsSession
 FsSessionClass
 fs_session_new_stream
@@ -84,7 +84,7 @@ FS_IS_CONFERENCE_CLASS
 <SECTION>
 <FILE>fs-conference</FILE>
 <TITLE>FsConference</TITLE>
-<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-conference.h</INCLUDE>
 FsConference
 fs_conference_new_session
 fs_conference_new_participant
@@ -104,7 +104,7 @@ fs_error_quark
 <SECTION>
 <FILE>fs-candidate</FILE>
 <TITLE>FsCandidate</TITLE>
-<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-conference.h</INCLUDE>
 FsCandidate
 FsCandidateType
 FsNetworkProtocol
@@ -124,7 +124,7 @@ fs_candidate_list_get_type
 <SECTION>
 <FILE>fs-codec</FILE>
 <TITLE>FsCodec</TITLE>
-<INCLUDE>gst/farsight/fs-conference.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-conference.h</INCLUDE>
 FsCodec
 FsMediaType
 FsCodecParameter
@@ -159,7 +159,7 @@ fs_codec_list_get_type
 <SECTION>
 <FILE>fs-transmitter</FILE>
 <TITLE>FsTransmitter</TITLE>
-<INCLUDE>gst/farsight/fs-transmitter.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-transmitter.h</INCLUDE>
 FsTransmitter
 FsTransmitterClass
 fs_transmitter_new
@@ -183,7 +183,7 @@ fs_transmitter_get_type
 <SECTION>
 <FILE>fs-stream-transmitter</FILE>
 <TITLE>FsStreamTransmitter</TITLE>
-<INCLUDE>gst/farsight/fs-transmitter.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-transmitter.h</INCLUDE>
 FsStreamTransmitter
 FsStreamTransmitterClass
 fs_stream_transmitter_add_remote_candidates
@@ -206,7 +206,7 @@ fs_stream_transmitter_get_type
 <SECTION>
 <FILE>fs-plugin</FILE>
 <TITLE>FsPlugin</TITLE>
-<INCLUDE>gst/farsight/fs-plugin.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-plugin.h</INCLUDE>
 FsPlugin
 fs_plugin_create_valist
 fs_plugin_create
@@ -227,7 +227,7 @@ fs_plugin_get_type
 <SECTION>
 <FILE>fs-element-added-notifier</FILE>
 <TITLE>FsElementAddedNotifier</TITLE>
-<INCLUDE>gst/farsight/fs-element-added-notifier.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-element-added-notifier.h</INCLUDE>
 FsElementAddedNotifier
 fs_element_added_notifier_new
 fs_element_added_notifier_add
@@ -249,7 +249,7 @@ fs_element_added_notifier_get_type
 <SECTION>
 <FILE>fs-rtp</FILE>
 <TITLE>RTP Specific types</TITLE>
-<INCLUDE>gst/farsight/fs-rtp.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-rtp.h</INCLUDE>
 FsRtpHeaderExtension
 fs_rtp_header_extension_new
 fs_rtp_header_extension_copy
@@ -270,7 +270,7 @@ fs_rtp_header_extension_list_get_type
 <SECTION>
 <FILE>fs-utils</FILE>
 <TITLE>Utility functions</TITLE>
-<INCLUDE>gst/farsight/fs-utils.h</INCLUDE>
+<INCLUDE>gst/farstream/fs-utils.h</INCLUDE>
 fs_utils_set_bitrate
 fs_utils_get_default_codec_preferences
 fs_utils_get_default_element_properties

@@ -1,5 +1,5 @@
 /*
- * Farsight Voice+Video library
+ * Farstream Voice+Video library
  *
  *  Copyright 2011 Collabora Ltd,
  *  Copyright 2011 Nokia Corporation
@@ -121,7 +121,7 @@ fs_rtp_bitrate_adapter_base_init (gpointer klass)
           "fsrtpbitrateadapter element");
 
   gst_element_class_set_details_simple (gstelement_class,
-      "Farsight RTP Video Bitrate adater",
+      "Farstream RTP Video Bitrate adater",
       "Generic",
       "Filter that can modify the resolution and framerate based"
       " on the bitrate",

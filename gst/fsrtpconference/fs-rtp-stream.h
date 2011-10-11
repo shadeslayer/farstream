@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Stream
+ * Farstream - Farstream RTP Stream
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-stream.h - A Farsight RTP Stream
+ * fs-rtp-stream.h - A Farstream RTP Stream
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,8 +25,8 @@
 #ifndef __FS_RTP_STREAM_H__
 #define __FS_RTP_STREAM_H__
 
-#include <gst/farsight/fs-stream.h>
-#include <gst/farsight/fs-stream-transmitter.h>
+#include <gst/farstream/fs-stream.h>
+#include <gst/farstream/fs-stream-transmitter.h>
 
 #include "fs-rtp-participant.h"
 #include "fs-rtp-session.h"

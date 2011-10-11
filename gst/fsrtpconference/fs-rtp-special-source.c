@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Special Codec
+ * Farstream - Farstream RTP Special Codec
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-special-source.c - A Farsight RTP Special Source gobject
+ * fs-rtp-special-source.c - A Farstream RTP Special Source gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -29,7 +29,7 @@
 
 #include "fs-rtp-special-source.h"
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-codec-negotiation.h"

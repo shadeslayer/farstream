@@ -1,5 +1,5 @@
 /*
- * Farsight Voice+Video library
+ * Farstream Voice+Video library
  *
  *  Copyright 2008 Collabora Ltd,
  *  Copyright 2008 Nokia Corporation
@@ -171,7 +171,7 @@ fs_fake_filter_register (void)
       fs_fake_filter_plugin_init,
       VERSION,
       "LGPL",
-      "Farsight",
-      "Farsight2",
-      "Farsight2 testing suite");
+      "Farstream",
+      "Farstream",
+      "Farstream testing suite");
 }

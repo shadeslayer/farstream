@@ -1,1 +1,1 @@
-#include <gst/farsight/fs-transmitter.h>
+#include <gst/farstream/fs-transmitter.h>

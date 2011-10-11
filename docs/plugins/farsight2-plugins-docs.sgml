@@ -6,14 +6,14 @@
 ]>
 <book id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
   <bookinfo>
-    <title>Farsight2 Plugins Manual</title>
+    <title>Farstream Plugins Manual</title>
     <releaseinfo>
-      for version &FS2_VERSION;.
+      for version &FS_VERSION;.
       The latest version of this documentation can be found on-line at
-      <ulink role="online-location" url="http://farsight.freedesktop.org/apidoc/farsight2-plugins/">http://farsight.freedesktop.org/apidoc/farsight2-plugins/</ulink>.
+      <ulink role="online-location" url="http://farstream.freedesktop.org/apidoc/farstream-plugins/">http://farstream.freedesktop.org/apidoc/farstream-plugins/</ulink>.
       These plugins are to be used with the base classes and other utility
       objects and functions described in the
-      <ulink url="http://farsight.freedesktop.org/apidoc/farsight2/">Farsight2 Reference Manual</ulink>.
+      <ulink url="http://farstream.freedesktop.org/apidoc/farstream/">Farstream Reference Manual</ulink>.
     </releaseinfo>
   </bookinfo>
 

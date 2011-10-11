@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RAW UDP with STUN Transmitter
+ * Farstream - Farstream RAW UDP with STUN Transmitter
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rawudp-transmitter.h - A Farsight UDP transmitter with STUN
+ * fs-rawudp-transmitter.h - A Farstream UDP transmitter with STUN
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@
 #ifndef __FS_RAWUDP_TRANSMITTER_H__
 #define __FS_RAWUDP_TRANSMITTER_H__
 
-#include <gst/farsight/fs-transmitter.h>
+#include <gst/farstream/fs-transmitter.h>
 
 #include <gst/netbuffer/gstnetbuffer.h>
 

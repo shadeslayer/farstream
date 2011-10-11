@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for the fsfunnel
+/* Farstream unit tests for the fsfunnel
  *
  * Copyright (C) 2008 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>

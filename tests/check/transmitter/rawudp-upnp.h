@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRawUdpTransmitter UPnP code
+/* Farstream unit tests for FsRawUdpTransmitter UPnP code
  *
  * Copyright (C) 2008 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>

@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight Shared Memory Stream Transmitter
+ * Farstream - Farstream Shared Memory Stream Transmitter
  *
  * Copyright 2007-2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007-2008 Nokia Corp.
  *
- * fs-shm-stream-transmitter.h - A Farsight Shared Memory stream transmitter
+ * fs-shm-stream-transmitter.h - A Farstream Shared Memory stream transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,8 +28,8 @@
 #include <glib.h>
 #include <glib-object.h>
 
-#include <gst/farsight/fs-stream-transmitter.h>
-#include <gst/farsight/fs-plugin.h>
+#include <gst/farstream/fs-stream-transmitter.h>
+#include <gst/farstream/fs-plugin.h>
 #include "fs-shm-transmitter.h"
 
 G_BEGIN_DECLS

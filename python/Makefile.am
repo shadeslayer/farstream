@@ -5,41 +5,41 @@ AM_CPPFLAGS =						\
 	-I.						\
 	-I$(top_srcdir)/gst-libs/			\
 	-DDATADIR=\""$(datadir)"\"			\
-	$(PYFARSIGHT_CFLAGS)				\
+	$(PYFARSTREAM_CFLAGS)				\
 	$(PYTHON_INCLUDES)				\
-	$(FS2_INTERNAL_CFLAGS) 				\
-	$(FS2_CFLAGS) 					\
+	$(FS_INTERNAL_CFLAGS) 				\
+	$(FS_CFLAGS) 					\
 	$(WARN_CFLAGS)
 
 BUILT_SOURCES =						\
-	pyfarsight.c					 
+	pyfarstream.c					 
 
-pyfarsightdir = $(pyexecdir)
-pyfarsight_LTLIBRARIES = farsight.la
+pyfarstreamdir = $(pyexecdir)
+pyfarstream_LTLIBRARIES = farstream.la
 
-farsight_la_SOURCES =					\
-	pyfarsightmodule.c
+farstream_la_SOURCES =					\
+	pyfarstreammodule.c
 
-nodist_farsight_la_SOURCES = pyfarsight.c
+nodist_farstream_la_SOURCES = pyfarstream.c
 
-farsight_la_LIBADD =					\
-	$(PYFARSIGHT_LIBS)				\
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-@GST_MAJORMINOR@.la
+farstream_la_LIBADD =					\
+	$(PYFARSTREAM_LIBS)				\
+	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-@GST_MAJORMINOR@.la
 
-farsight_la_LDFLAGS = -module -avoid-version
+farstream_la_LDFLAGS = -module -avoid-version
 
-pyfarsight.c: pyfarsight.override pyfarsight.defs
+pyfarstream.c: pyfarstream.override pyfarstream.defs
 	$(PYCODEGEN)						\
 		--prefix fs					\
 		--register $(GSTPYDEFS)/gst-types.defs		\
-		--override $(srcdir)/pyfarsight.override	\
-		$(srcdir)/pyfarsight.defs > $@ 
+		--override $(srcdir)/pyfarstream.override	\
+		$(srcdir)/pyfarstream.defs > $@ 
 
 EXTRA_DIST =			\
-	pyfarsight.override	\
-	pyfarsight.defs		\
+	pyfarstream.override	\
+	pyfarstream.defs		\
 	example.py		\
-	pyfarsight-filter.defs  \
+	pyfarstream-filter.defs  \
 	rebuild-defs.sh
 
 CLEANFILES = $(BUILT_SOURCES)

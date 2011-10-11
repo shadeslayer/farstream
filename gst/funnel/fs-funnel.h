@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight Funnel element
+ * Farstream - Farstream Funnel element
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>

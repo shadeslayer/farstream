@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight MSN Conference Implementation
+ * Farstream - Farstream MSN Conference Implementation
  *
  * Copyright 2007 Nokia Corp.
  * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
- * fs-msn-send-conference.h - MSN implementation for Farsight Conference
+ * fs-msn-send-conference.h - MSN implementation for Farstream Conference
  * Gstreamer Elements
  *
  * This library is free software; you can redistribute it and/or

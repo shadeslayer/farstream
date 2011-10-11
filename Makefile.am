@@ -49,8 +49,8 @@ check-torture:
 	true
 endif
 
-pcverfiles = farsight2-@GST_MAJORMINOR@.pc
-pcinfiles = farsight2.pc.in
+pcverfiles = farstream-@GST_MAJORMINOR@.pc
+pcinfiles = farstream.pc.in
 
 %-@GST_MAJORMINOR@.pc: %.pc
 	cp $< $@

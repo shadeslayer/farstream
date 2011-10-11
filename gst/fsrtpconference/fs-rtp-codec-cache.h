@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Discovered Codecs cache
+ * Farstream - Farstream RTP Discovered Codecs cache
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-codec-cache.c - A Farsight RTP Codec Caching gobject
+ * fs-rtp-codec-cache.c - A Farstream RTP Codec Caching gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight RTP Discover Codecs
+ * Farstream - Farstream RTP Discover Codecs
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -9,7 +9,7 @@
  * Copyright 2005 INdT
  *   @author Andre Moreira Magalhaes <andre.magalhaes@indt.org.br>
  *
- * fs-discover-codecs.c - A Farsight RTP Codec Discovery
+ * fs-discover-codecs.c - A Farstream RTP Codec Discovery
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,7 @@
 
 #include <string.h>
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "fs-rtp-conference.h"
 #include "fs-rtp-codec-cache.h"
@@ -1297,7 +1297,7 @@ get_plugins_filtered_from_caps (FilterFunc filter,
 }
 
 /*
- *  fill FarsightCodec fields based on payloader capabilities
+ *  fill FarstreamCodec fields based on payloader capabilities
  *  TODO: optimise using quarks
  */
 static gboolean
@@ -1363,7 +1363,7 @@ extract_field_data (GQuark field_id,
     if (type == GST_TYPE_INT_RANGE)
     {
       /* set to 0, this should be checked by the optional parameters code later
-       * in Farsight */
+       * in Farstream */
       codec->clock_rate = 0;
       return TRUE;
     }

@@ -6,20 +6,20 @@
 ]>
 <book id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
   <bookinfo>
-    <title>Farsight2 Reference Manual</title>
+    <title>Farstream Reference Manual</title>
     <releaseinfo>
-      for version &FS2_VERSION;.
+      for version &FS_VERSION;.
       The latest version of this documentation can be found on-line at
-      <ulink role="online-location" url="http://farsight.freedesktop.org/apidoc/farsight2/">http://farsight.freedesktop.org/apidoc/farsight2/</ulink>.
+      <ulink role="online-location" url="http://farstream.freedesktop.org/apidoc/farstream/">http://farstream.freedesktop.org/apidoc/farstream/</ulink>.
       The bases classes are implemented by multiple plugins described in
-      the <ulink url="http://farsight.freedesktop.org/apidoc/farsight2-plugins/">Farsight2 Plugins Manual</ulink>.
+      the <ulink url="http://farstream.freedesktop.org/apidoc/farstream-plugins/">Farstream Plugins Manual</ulink>.
     </releaseinfo>
   </bookinfo>
 
   <part>
     <title>User-oriented classes, interfaces and functions</title>
     <chapter>
-      <title>Farsight Core Library</title>
+      <title>Farstream Core Library</title>
       <xi:include href="xml/fs-conference.xml"/>
       <xi:include href="xml/fs-participant.xml"/>
       <xi:include href="xml/fs-session.xml"/>
@@ -32,20 +32,20 @@
       <xi:include href="xml/fs-rtp.xml"/>
     </chapter>
     <chapter>
-      <title>Farsight Utility Functions and Objects</title>
+      <title>Farstream Utility Functions and Objects</title>
       <xi:include href="xml/fs-element-added-notifier.xml"/>
       <xi:include href="xml/fs-utils.xml"/>
     </chapter>
   </part>
   <part>
-    <title>Classes used to implement Farsight plugins</title>
+    <title>Classes used to implement Farstream plugins</title>
     <chapter>
-      <title>Farsight Transmitter Classes</title> 
+      <title>Farstream Transmitter Classes</title> 
       <xi:include href="xml/fs-transmitter.xml"/>
       <xi:include href="xml/fs-stream-transmitter.xml"/>
     </chapter>
     <chapter>
-      <title>Farsight Plugins Infrastructure</title>
+      <title>Farstream Plugins Infrastructure</title>
       <xi:include href="xml/fs-plugin.xml"/>
     </chapter>
   </part>

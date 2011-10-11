@@ -1,12 +1,12 @@
 /*
- * Farsight2 - Farsight Raw Participant
+ * Farstream - Farstream Raw Participant
  *
  * Copyright 2007,2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-raw-participant.h - A Farsight Raw Participant gobject
+ * fs-raw-participant.h - A Farstream Raw Participant gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@
 #ifndef __FS_RAW_PARTICIPANT_H__
 #define __FS_RAW_PARTICIPANT_H__
 
-#include <gst/farsight/fs-participant.h>
+#include <gst/farstream/fs-participant.h>
 
 G_BEGIN_DECLS
 

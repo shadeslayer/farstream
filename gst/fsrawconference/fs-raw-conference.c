@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight Raw Conference Implementation
+ * Farstream - Farstream Raw Conference Implementation
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
@@ -7,7 +7,7 @@
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  *
- * fs-raw-conference.c - Raw implementation for Farsight Conference Gstreamer
+ * fs-raw-conference.c - Raw implementation for Farstream Conference Gstreamer
  *                       Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -27,7 +27,7 @@
 
 /**
  * SECTION:element-fsrawconference
- * @short_description: Farsight Raw Conference Gstreamer Elements Base class
+ * @short_description: Farstream Raw Conference Gstreamer Elements Base class
  *
  * This element implements a raw content stream over which any Gstreamer
  * content may travel.
@@ -117,7 +117,7 @@ static void
 fs_raw_conference_do_init (GType type)
 {
   GST_DEBUG_CATEGORY_INIT (fsrawconference_debug, "fsrawconference", 0,
-                           "Farsight Raw Conference Element");
+                           "Farstream Raw Conference Element");
 }
 
 static void

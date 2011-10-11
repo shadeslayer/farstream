@@ -1,7 +1,7 @@
-This page describes the Farsight2 coding style. Respect it or die.
+This page describes the Farstream coding style. Respect it or die.
 
 It is a copy of
-http://farsight.freedesktop.org/wiki/Fs2CodingStyle
+http://farstream.freedesktop.org/wiki/Fs2CodingStyle
 
 They should both be in sync
 
@@ -27,7 +27,7 @@ Base indent unit is 2 spaces.
 
 The first parameter is on the same line as the function only if the function is a method.
 
-static void farsight_rtp_stream_get_property (GObject *object,
+static void farstream_rtp_stream_get_property (GObject *object,
     guint prop_id,
     GValue *value,
     GParamSpec *pspec);
@@ -37,7 +37,7 @@ static void farsight_rtp_stream_get_property (GObject *object,
 The first parameter is on the same line as the function only if the function is a method.
 
 static void 
-farsight_rtp_stream_get_property (GObject * object,
+farstream_rtp_stream_get_property (GObject * object,
     guint prop_id,
     GValue * value,
     GParamSpec * pspec)
@@ -90,7 +90,7 @@ switch (var)
 
 ==== Casting ====
 
-FarsightRTPStream *self = (FarsightRTPStream *) stream;
+FarstreamRTPStream *self = (FarstreamRTPStream *) stream;
 
 ==== #includes ====
 
@@ -106,8 +106,8 @@ Finally, #include any private (non-installed) headers from the library or progra
 
 ==== Emacs mode ====
 
-(defun farsight2-c-mode ()
-  "C mode with farsight2 style"
+(defun farstream-c-mode ()
+  "C mode with farstream style"
   (interactive)
   (c-mode)
   (c-set-style "GNU")

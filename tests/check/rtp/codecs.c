@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRtpConferenceu
+/* Farstream unit tests for FsRtpConferenceu
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -23,8 +23,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-conference.h>
-#include <gst/farsight/fs-rtp.h>
+#include <gst/farstream/fs-conference.h>
+#include <gst/farstream/fs-rtp.h>
 
 #include "generic.h"
 
@@ -608,7 +608,7 @@ _bus_message_element (GstBus *bus, GstMessage *message,
   FsCodecParameter *param;
   guint vorbis_id;
 
-  if (!gst_structure_has_name (s, "farsight-codecs-changed"))
+  if (!gst_structure_has_name (s, "farstream-codecs-changed"))
     return;
 
   g_object_get (cd->dat->session, "codecs", &codecs, NULL);
@@ -947,10 +947,10 @@ profile_test (const gchar *send_profile, const gchar *recv_profile,
   GList *item;
 
   if (send_profile)
-    fs_codec_add_optional_parameter (pref_codec, "farsight-send-profile",
+    fs_codec_add_optional_parameter (pref_codec, "farstream-send-profile",
         send_profile);
   if (recv_profile)
-    fs_codec_add_optional_parameter (pref_codec, "farsight-recv-profile",
+    fs_codec_add_optional_parameter (pref_codec, "farstream-recv-profile",
         recv_profile);
 
   conf = gst_element_factory_make ("fsrtpconference", NULL);
@@ -1204,7 +1204,7 @@ GST_START_TEST (test_rtpcodecs_ptime)
   {
     const GstStructure *s = gst_message_get_structure (message);
 
-    if (gst_structure_has_name (s, "farsight-send-codec-changed"))
+    if (gst_structure_has_name (s, "farstream-send-codec-changed"))
     {
       const GValue *val;
       val = gst_structure_get_value (s, "codec");
@@ -1520,9 +1520,9 @@ GST_START_TEST (test_rtpcodecs_nego_ilbc)
   fs_codec_add_optional_parameter (outprefcodec, "mode", "20");
 
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "rtpilbcdepay ! identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity ! rtpilbcpay");
 
   codec = fs_codec_new (100, "ILBC", FS_MEDIA_TYPE_AUDIO, 8000);
@@ -1618,9 +1618,9 @@ GST_START_TEST (test_rtpcodecs_nego_g729)
       8000);
 
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "rtpg729depay ! identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity ! rtpg729pay");
 
   codec = fs_codec_new (18, "G729", FS_MEDIA_TYPE_AUDIO, 8000);
@@ -1717,9 +1717,9 @@ GST_START_TEST (test_rtpcodecs_nego_h261)
   outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H261", FS_MEDIA_TYPE_VIDEO,
       90000);
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity");
 
   codec = fs_codec_new (31, "H261", FS_MEDIA_TYPE_VIDEO, 90000);
@@ -1795,9 +1795,9 @@ GST_START_TEST (test_rtpcodecs_nego_h263_1998)
   outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H263-1998",
       FS_MEDIA_TYPE_VIDEO, 90000);
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity");
 
   codec = fs_codec_new (96, "H263-1998", FS_MEDIA_TYPE_VIDEO, 90000);
@@ -1957,9 +1957,9 @@ GST_START_TEST (test_rtpcodecs_nego_h263_2000)
   outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H263-2000",
       FS_MEDIA_TYPE_VIDEO, 90000);
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity");
 
   codec = fs_codec_new (96, "H263-2000", FS_MEDIA_TYPE_VIDEO, 90000);
@@ -2043,9 +2043,9 @@ GST_START_TEST (test_rtpcodecs_nego_h264)
   outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H264",
       FS_MEDIA_TYPE_VIDEO, 90000);
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity");
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);
@@ -2175,9 +2175,9 @@ GST_START_TEST (test_rtpcodecs_nego_feedback)
   outprefcodec = fs_codec_new (FS_CODEC_ID_ANY, "H264",
       FS_MEDIA_TYPE_VIDEO, 90000);
   prefcodec = fs_codec_copy (outprefcodec);
-  fs_codec_add_optional_parameter (prefcodec, "farsight-recv-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-recv-profile",
       "identity");
-  fs_codec_add_optional_parameter (prefcodec, "farsight-send-profile",
+  fs_codec_add_optional_parameter (prefcodec, "farstream-send-profile",
       "identity");
 
   codec = fs_codec_new (96, "H264", FS_MEDIA_TYPE_VIDEO, 90000);

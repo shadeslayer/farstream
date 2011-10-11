@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRtpConference
+/* Farstream unit tests for FsRtpConference
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -25,7 +25,7 @@
 #include <gst/check/gstcheck.h>
 #include <gst/rtp/gstrtpbuffer.h>
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "check-threadsafe.h"
 #include "generic.h"
@@ -72,7 +72,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
 
         if (gst_implements_interface_check (GST_MESSAGE_SRC (message),
                 FS_TYPE_CONFERENCE) &&
-            gst_structure_has_name (s, "farsight-error"))
+            gst_structure_has_name (s, "farstream-error"))
         {
           const GValue *value;
           FsError errorno;
@@ -83,17 +83,17 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (
               gst_implements_interface_check (GST_MESSAGE_SRC (message),
                   FS_TYPE_CONFERENCE),
-              "Received farsight-error from non-farsight element");
+              "Received farstream-error from non-farstream element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "src-object", G_TYPE_OBJECT),
-              "farsight-error structure has no src-object field");
+              "farstream-error structure has no src-object field");
           ts_fail_unless (
               gst_structure_has_field_typed (s, "error-no", FS_TYPE_ERROR),
-              "farsight-error structure has no src-object field");
+              "farstream-error structure has no src-object field");
           ts_fail_unless (
               gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
-              "farsight-error structure has no src-object field");
+              "farstream-error structure has no src-object field");
 
           value = gst_structure_get_value (s, "error-no");
           errorno = g_value_get_enum (value);
@@ -106,7 +106,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
               error);
           g_type_class_unref (enumclass);
         }
-        else if (gst_structure_has_name (s, "farsight-send-codec-changed"))
+        else if (gst_structure_has_name (s, "farstream-send-codec-changed"))
         {
           FsCodec *codec = NULL;
           GList *secondary_codec_list = NULL;

@@ -1,4 +1,4 @@
-/* Farsigh2 generic unit tests for conferences
+/* Farstream generic unit tests for conferences
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -26,7 +26,7 @@
 #include "generic.h"
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 
 static GstBusSyncReply

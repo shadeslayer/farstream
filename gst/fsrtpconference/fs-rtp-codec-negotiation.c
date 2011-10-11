@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Codec Negotiation
+ * Farstream - Farstream RTP Codec Negotiation
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-discover-codecs.h - A Farsight RTP Codec Negotiation
+ * fs-discover-codecs.h - A Farstream RTP Codec Negotiation
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@
 
 #include "fs-rtp-codec-negotiation.h"
 
-#include <gst/farsight/fs-rtp.h>
+#include <gst/farstream/fs-rtp.h>
 
 #include <string.h>
 
@@ -38,8 +38,8 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_nego
 
-#define SEND_PROFILE_ARG "farsight-send-profile"
-#define RECV_PROFILE_ARG "farsight-recv-profile"
+#define SEND_PROFILE_ARG "farstream-send-profile"
+#define RECV_PROFILE_ARG "farstream-recv-profile"
 
 
 static CodecAssociation *
@@ -237,7 +237,7 @@ codec_sdp_compare (FsCodec *local_codec, FsCodec *remote_codec)
  * @blueprints: A #GList of #CodecBlueprints to validate the codecs agsint
  * @codecs: a #GList of #FsCodec that represent the preferences
  *
- * This function validates a GList of passed FarsightCodec structures
+ * This function validates a GList of passed FarstreamCodec structures
  * against the valid discovered payloaders
  * It removes all "invalid" codecs from the list, it modifies the list
  * passed in as an argument.

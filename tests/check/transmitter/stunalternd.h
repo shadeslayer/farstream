@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsRawUdpTransmitter
+/* Farstream unit tests for FsRawUdpTransmitter
  * This file is taken from the Nice GLib ICE library. 
  *
  * (C) 2007-2009 Nokia Corporation

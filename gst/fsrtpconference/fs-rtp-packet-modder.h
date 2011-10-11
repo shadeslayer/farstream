@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight RTP Packet modder
+ * Farstream - Farstream RTP Packet modder
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>

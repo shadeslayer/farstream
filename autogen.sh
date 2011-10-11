@@ -2,8 +2,8 @@
 # Run this to generate all the initial makefiles, etc.
 
 DIE=0
-package=farsight2
-srcfile=gst-libs/gst/farsight/fs-candidate.c
+package=farstream
+srcfile=gst-libs/gst/farstream/fs-candidate.c
 
 # Make sure we have common
 if test ! -f common/gst-autogen.sh;

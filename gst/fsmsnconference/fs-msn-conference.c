@@ -1,12 +1,12 @@
 /*
- * Farsight2 - Farsight MSN Conference Implementation
+ * Farstream - Farstream MSN Conference Implementation
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
  * Copyright 2007-2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
- * fs-msn-conference.c - MSN implementation for Farsight Conference Gstreamer
+ * fs-msn-conference.c - MSN implementation for Farstream Conference Gstreamer
  *                       Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -26,7 +26,7 @@
 
 /**
  * SECTION:fs-msn-conference
- * @short_description: Farsight MSN Conference Gstreamer Elements Base class
+ * @short_description: Farstream MSN Conference Gstreamer Elements Base class
  *
  * This element implements the unidirection webcam feature found in various
  * version of MSN Messenger (tm) and Windows Live Messenger (tm).
@@ -110,7 +110,7 @@ static void
 fs_msn_conference_do_init (GType type)
 {
   GST_DEBUG_CATEGORY_INIT (fsmsnconference_debug, "fsmsnconference", 0,
-                           "Farsight MSN Conference Element");
+                           "Farstream MSN Conference Element");
 }
 
 static void
@@ -299,10 +299,10 @@ GST_PLUGIN_DEFINE (
   GST_VERSION_MAJOR,
   GST_VERSION_MINOR,
   "fsmsnconference",
-  "Farsight MSN Conference plugin",
+  "Farstream MSN Conference plugin",
   plugin_init,
   VERSION,
   "LGPL",
-  "Farsight",
-  "http://farsight.freedesktop.org/"
+  "Farstream",
+  "http://farstream.freedesktop.org/"
 )

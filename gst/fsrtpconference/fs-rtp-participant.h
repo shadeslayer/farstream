@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Participant
+ * Farstream - Farstream RTP Participant
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-participant.h - A Farsight RTP Participant gobject
+ * fs-rtp-participant.h - A Farstream RTP Participant gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,7 +25,7 @@
 #ifndef __FS_RTP_PARTICIPANT_H__
 #define __FS_RTP_PARTICIPANT_H__
 
-#include <gst/farsight/fs-participant.h>
+#include <gst/farstream/fs-participant.h>
 
 G_BEGIN_DECLS
 

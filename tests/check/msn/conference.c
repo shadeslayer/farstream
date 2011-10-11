@@ -1,4 +1,4 @@
-/* Farsight 2 unit tests for FsMsnConference
+/* Farstream unit tests for FsMsnConference
  *
  * Copyright (C) 2009 Collabora
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -23,7 +23,7 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include "check-threadsafe.h"
 
@@ -59,7 +59,7 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
       {
         const GstStructure *s = gst_message_get_structure (message);
         ts_fail_if (s==NULL, "NULL structure in element message");
-        if (gst_structure_has_name (s, "farsight-error"))
+        if (gst_structure_has_name (s, "farstream-error"))
         {
           const GValue *value;
           FsError errorno;
@@ -68,17 +68,17 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (
               gst_implements_interface_check (GST_MESSAGE_SRC (message),
                   FS_TYPE_CONFERENCE),
-              "Received farsight-error from non-farsight element");
+              "Received farstream-error from non-farstream element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "src-object", G_TYPE_OBJECT),
-              "farsight-error structure has no src-object field");
+              "farstream-error structure has no src-object field");
           ts_fail_unless (
               gst_structure_has_field_typed (s, "error-no", FS_TYPE_ERROR),
-              "farsight-error structure has no src-object field");
+              "farstream-error structure has no src-object field");
           ts_fail_unless (
               gst_structure_has_field_typed (s, "error-msg", G_TYPE_STRING),
-              "farsight-error structure has no src-object field");
+              "farstream-error structure has no src-object field");
 
           value = gst_structure_get_value (s, "error-no");
           errorno = g_value_get_enum (value);
@@ -86,7 +86,7 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
 
           ts_fail ("Error on BUS (%d) %s", errorno, error);
         }
-        else if (gst_structure_has_name (s, "farsight-new-local-candidate"))
+        else if (gst_structure_has_name (s, "farstream-new-local-candidate"))
         {
           FsStream *stream;
           FsCandidate *candidate;
@@ -95,14 +95,14 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
           ts_fail_unless (
               gst_implements_interface_check (GST_MESSAGE_SRC (message),
                   FS_TYPE_CONFERENCE),
-              "Received farsight-error from non-farsight element");
+              "Received farstream-error from non-farstream element");
 
           ts_fail_unless (
               gst_structure_has_field_typed (s, "stream", FS_TYPE_STREAM),
-              "farsight-new-local-candidate structure has no stream field");
+              "farstream-new-local-candidate structure has no stream field");
           ts_fail_unless (
               gst_structure_has_field_typed (s, "candidate", FS_TYPE_CANDIDATE),
-              "farsight-new-local-candidate structure has no candidate field");
+              "farstream-new-local-candidate structure has no candidate field");
 
           value = gst_structure_get_value (s, "stream");
           stream = g_value_get_object (value);

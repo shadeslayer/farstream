@@ -1,7 +1,7 @@
 /*
  * fs-rtp-codec-specific.h - Per-codec SDP negotiation
  *
- * Farsight RTP/AVP/SAVP/AVPF Module
+ * Farstream RTP/AVP/SAVP/AVPF Module
  * Copyright (C) 2007-2010 Collabora Ltd.
  * Copyright (C) 2007-2010 Nokia Corporation
  *   @author Olivier Crete <olivier.crete@collabora.co.uk>
@@ -27,7 +27,7 @@
 #include <glib.h>
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-codec.h>
+#include <gst/farstream/fs-codec.h>
 
 G_BEGIN_DECLS
 

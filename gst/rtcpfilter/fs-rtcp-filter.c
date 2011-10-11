@@ -1,5 +1,5 @@
 /*
- * Farsight Voice+Video library
+ * Farstream Voice+Video library
  *
  *  Copyright 2008 Collabora Ltd,
  *  Copyright 2008 Nokia Corporation
@@ -261,5 +261,5 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
     "fsrtcpfilter",
     "RtcpFilter",
-    fs_rtcp_filter_plugin_init, VERSION, "LGPL", "Farsight",
-    "http://farsight.sf.net")
+    fs_rtcp_filter_plugin_init, VERSION, "LGPL", "Farstream",
+    "http://farstream.sf.net")

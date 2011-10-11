@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RAW UDP with STUN Component Transmitter
+ * Farstream - Farstream RAW UDP with STUN Component Transmitter
  *
  * Copyright 2008 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2008 Nokia Corp.
  *
- * fs-rawudp-transmitter.c - A Farsight UDP transmitter with STUN
+ * fs-rawudp-transmitter.c - A Farstream UDP transmitter with STUN
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,7 +37,7 @@
 #include <nice/address.h>
 #include <nice/interfaces.h>
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 #include <gst/netbuffer/gstnetbuffer.h>
 
@@ -1229,7 +1229,7 @@ fs_rawudp_component_gather_local_candidates (FsRawUdpComponent *self,
 
       gupnp_simple_igd_add_port (GUPNP_SIMPLE_IGD (self->priv->upnp_igd),
           "UDP", port, ip, port, self->priv->upnp_mapping_timeout,
-          "Farsight Raw UDP transmitter " PACKAGE_VERSION);
+          "Farstream Raw UDP transmitter " PACKAGE_VERSION);
 
 
       if (self->priv->upnp_discovery)

@@ -1,12 +1,12 @@
 /*
- * Farsight2 - Farsight MSN Session
+ * Farstream - Farstream MSN Session
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
- * fs-msn-session.h - A Farsight Msn Session gobject
+ * fs-msn-session.h - A Farstream Msn Session gobject
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-session.h>
+#include <gst/farstream/fs-session.h>
 
 #include "fs-msn-conference.h"
 

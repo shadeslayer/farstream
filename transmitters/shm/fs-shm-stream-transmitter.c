@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight Shared Memory Stream Transmitter
+ * Farstream - Farstream Shared Memory Stream Transmitter
  *
  * Copyright 2009 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2009 Nokia Corp.
  *
- * fs-shm-stream-transmitter.c - A Farsight Shared memory stream transmitter
+ * fs-shm-stream-transmitter.c - A Farstream Shared memory stream transmitter
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -66,8 +66,8 @@
 #include "fs-shm-stream-transmitter.h"
 #include "fs-shm-transmitter.h"
 
-#include <gst/farsight/fs-candidate.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-candidate.h>
+#include <gst/farstream/fs-conference.h>
 
 #include <gst/gst.h>
 
@@ -558,7 +558,7 @@ fs_shm_stream_transmitter_gather_local_candidates (
     gchar *socket_dir;
 
     socket_dir = g_build_filename (g_get_tmp_dir (),
-      "farsight-shm-XXXXXX", NULL);
+      "farstream-shm-XXXXXX", NULL);
 
     if (mkdtemp (socket_dir) == NULL)
       return FALSE;

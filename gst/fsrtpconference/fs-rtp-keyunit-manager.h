@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Keyunit request manager
+ * Farstream - Farstream RTP Keyunit request manager
  *
  * Copyright 2011 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2011 Nokia Corp.
  *
- * fs-rtp-keyunit-request.h - A Farsight RTP Key Unit request manager
+ * fs-rtp-keyunit-request.h - A Farstream RTP Key Unit request manager
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-codec.h>
+#include <gst/farstream/fs-codec.h>
 
 G_BEGIN_DECLS
 

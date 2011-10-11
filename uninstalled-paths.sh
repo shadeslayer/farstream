@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Generate environment for using Farsight 2 from Git checkout.
+# Generate environment for using Farstream from Git checkout.
 
 realpath_ ()
 {

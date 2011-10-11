@@ -11,10 +11,10 @@ HEADERS=" \
     fs-element-added-notifier.h \
     fs-enumtypes.h"
 
-srcdir=../gst-libs/gst/farsight/
+srcdir=../gst-libs/gst/farstream/
 
-output=pyfarsight.defs
-filter=pyfarsight-filter.defs
+output=pyfarstream.defs
+filter=pyfarstream-filter.defs
 
 cat ${filter} > ${output}
 

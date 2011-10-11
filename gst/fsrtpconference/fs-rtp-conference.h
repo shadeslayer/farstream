@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Conference Implementation
+ * Farstream - Farstream RTP Conference Implementation
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * gstfsrtpconference.h - RTP implementation for Farsight Conference Gstreamer
+ * gstfsrtpconference.h - RTP implementation for Farstream Conference Gstreamer
  *                        Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -26,7 +26,7 @@
 #ifndef __FS_RTP_CONFERENCE_H__
 #define __FS_RTP_CONFERENCE_H__
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 G_BEGIN_DECLS
 

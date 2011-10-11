@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Conference Implementation
+ * Farstream - Farstream RTP Conference Implementation
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-rtp-conference.c - RTP implementation for Farsight Conference Gstreamer
+ * fs-rtp-conference.c - RTP implementation for Farstream Conference Gstreamer
  *                       Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -25,7 +25,7 @@
 
 /**
  * SECTION:element-fsrtpconference
- * @short_description: Farsight RTP Conference Gstreamer Elements
+ * @short_description: Farstream RTP Conference Gstreamer Elements
  *
  * This is the core gstreamer element for a RTP conference. It must be added
  * to your pipeline before anything else is done. Then you create the session,
@@ -71,9 +71,9 @@ enum
 
 static const GstElementDetails fs_rtp_conference_details =
 GST_ELEMENT_DETAILS (
-  "Farsight RTP Conference",
+  "Farstream RTP Conference",
   "Generic/Bin/RTP",
-  "A Farsight RTP Conference",
+  "A Farstream RTP Conference",
   "Olivier Crete <olivier.crete@collabora.co.uk>");
 
 
@@ -171,11 +171,11 @@ static void
 fs_rtp_conference_do_init (GType type)
 {
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_debug, "fsrtpconference", 0,
-      "Farsight RTP Conference Element");
+      "Farstream RTP Conference Element");
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_disco, "fsrtpconference_disco",
-      0, "Farsight RTP Codec Discovery");
+      0, "Farstream RTP Codec Discovery");
   GST_DEBUG_CATEGORY_INIT (fsrtpconference_nego, "fsrtpconference_nego",
-      0, "Farsight RTP Codec Negotiation");
+      0, "Farstream RTP Codec Negotiation");
 }
 
 static void

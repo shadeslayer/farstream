@@ -4,7 +4,7 @@ GST_DOC_SCANOBJ = $(top_srcdir)/common/gstdoc-scangobj
 
 # The name of the module, e.g. 'glib'.
 #DOC_MODULE=gst-plugins-libs-@GST_MAJORMINOR@
-MODULE=farsight2
+MODULE=farstream
 DOC_MODULE=$(MODULE)-plugins
 
 # generated basefiles
@@ -111,22 +111,22 @@ content_files =
 
 # Other files to distribute.
 extra_files = \
-	farsight2-transmitters.types.in \
+	farstream-transmitters.types.in \
 	gtkdoc-scangobj-transmitters
 
-farsight2-transmitters.types: farsight2-transmitters.types.in Makefile
+farstream-transmitters.types: farstream-transmitters.types.in Makefile
 	cat $< > $@
-	for i in "$(FS2_TRANSMITTER_PLUGINS_SELECTED)"; do \
+	for i in "$(FS_TRANSMITTER_PLUGINS_SELECTED)"; do \
 		echo "${i}" >> $@ ;\
 	done
 
-CLEANFILES = farsight2-transmitters.types
+CLEANFILES = farstream-transmitters.types
 
 # CFLAGS and LDFLAGS for compiling scan program. Only needed if your app/lib
 # contains GtkObjects/GObjects and you want to document signals and properties.
 GTKDOC_CFLAGS = $(GST_BASE_CFLAGS) -I$(top_builddir) -I$(top_builddir)/gst-libs
 GTKDOC_LIBS = \
-	$(top_builddir)/gst-libs/gst/farsight/libgstfarsight-0.10.la \
+	$(top_builddir)/gst-libs/gst/farstream/libgstfarstream-0.10.la \
 	$(top_builddir)/gst/fsrtpconference/libfsrtpconference_doc.la \
 	$(top_builddir)/gst/fsrawconference/libfsrawconference_doc.la \
 	$(top_builddir)/gst/fsmsnconference/libfsmsnconference_doc.la \

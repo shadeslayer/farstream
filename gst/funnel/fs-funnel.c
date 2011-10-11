@@ -1,5 +1,5 @@
 /*
- * Farsight2 - Farsight Funnel element
+ * Farstream - Farstream Funnel element
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -40,7 +40,7 @@ GST_DEBUG_CATEGORY_STATIC (fs_funnel_debug);
 
 static const GstElementDetails fs_funnel_details =
 GST_ELEMENT_DETAILS(
-  "Farsight Funnel pipe fitting",
+  "Farstream Funnel pipe fitting",
   "Generic",
   "N-to-1 pipe fitting",
   "Olivier Crete <olivier.crete@collabora.co.uk>");
@@ -434,10 +434,10 @@ GST_PLUGIN_DEFINE (
   GST_VERSION_MAJOR,
   GST_VERSION_MINOR,
   "fsfunnel",
-  "Farsight Funnel plugin",
+  "Farstream Funnel plugin",
   plugin_init,
   VERSION,
   "LGPL",
-  "Farsight",
-  "http://farsight.freedesktop.org/"
+  "Farstream",
+  "http://farstream.freedesktop.org/"
 )

@@ -1,12 +1,12 @@
 /*
- * Farsight2 - Farsight Raw Conference Implementation
+ * Farstream - Farstream Raw Conference Implementation
  *
  * Copyright 2007,2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *  @author: Mike Ruprecht <mike.ruprecht@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * gstfsrawconference.h - Raw implementation for Farsight Conference Gstreamer
+ * gstfsrawconference.h - Raw implementation for Farstream Conference Gstreamer
  *                        Elements
  *
  * This library is free software; you can redistribute it and/or
@@ -27,7 +27,7 @@
 #ifndef __FS_RAW_CONFERENCE_H__
 #define __FS_RAW_CONFERENCE_H__
 
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-conference.h>
 
 G_BEGIN_DECLS
 

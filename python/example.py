@@ -1,6 +1,6 @@
 import pygst
 pygst.require('0.10')
-import farsight, gst, gobject, sys
+import farstream, gst, gobject, sys
 
 loop = gobject.MainLoop()
 pipeline = gst.Pipeline()
@@ -9,24 +9,24 @@ conference = gst.element_factory_make ("fsrtpconference")
 conference.set_property ("sdes-cname", sys.argv[1] + "@1.2.3.4")
 pipeline.add (conference)
 
-session = conference.new_session (farsight.MEDIA_TYPE_VIDEO)
+session = conference.new_session (farstream.MEDIA_TYPE_VIDEO)
 participant = conference.new_participant ()
-stream = session.new_stream (participant, farsight.DIRECTION_BOTH, "multicast")
+stream = session.new_stream (participant, farstream.DIRECTION_BOTH, "multicast")
 
-stream.set_remote_codecs([farsight.Codec(96, "H263-1998",
-                                         farsight.MEDIA_TYPE_VIDEO,
+stream.set_remote_codecs([farstream.Codec(96, "H263-1998",
+                                         farstream.MEDIA_TYPE_VIDEO,
                                          90000)])
-candidate = farsight.Candidate()
+candidate = farstream.Candidate()
 candidate.ip = "224.0.0.110"
 candidate.port = 3442
-candidate.component_id = farsight.COMPONENT_RTP
-candidate.proto = farsight.NETWORK_PROTOCOL_UDP
-candidate.type = farsight.CANDIDATE_TYPE_MULTICAST
+candidate.component_id = farstream.COMPONENT_RTP
+candidate.proto = farstream.NETWORK_PROTOCOL_UDP
+candidate.type = farstream.CANDIDATE_TYPE_MULTICAST
 candidate.ttl = 1
 
 candidate2 = candidate.copy()
 candidate2.port = 3443
-candidate2.component_id = farsight.COMPONENT_RTCP
+candidate2.component_id = farstream.COMPONENT_RTCP
 stream.set_remote_candidates ([candidate, candidate2])
 
 videosource = gst.parse_bin_from_description (sys.argv[3] + " ! videoscale", True)

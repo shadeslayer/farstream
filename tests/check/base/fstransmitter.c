@@ -1,4 +1,4 @@
-/* Farsigh2 unit tests for FsTransmitter
+/* Farstream unit tests for FsTransmitter
  *
  * Copyright (C) 2007 Collabora, Nokia
  * @author: Olivier Crete <olivier.crete@collabora.co.uk>
@@ -24,8 +24,8 @@
 #endif
 
 #include <gst/check/gstcheck.h>
-#include <gst/farsight/fs-transmitter.h>
-#include <gst/farsight/fs-conference.h>
+#include <gst/farstream/fs-transmitter.h>
+#include <gst/farstream/fs-conference.h>
 
 
 GST_START_TEST (test_fstransmitter_new_fail)

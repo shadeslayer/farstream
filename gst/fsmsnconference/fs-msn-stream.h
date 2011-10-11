@@ -1,12 +1,12 @@
 /*
- * Farsight2 - Farsight MSN Stream
+ * Farstream - Farstream MSN Stream
  *
  * Copyright 2008 Richard Spiers <richard.spiers@gmail.com>
  * Copyright 2007 Nokia Corp.
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  *
- * fs-msn-stream.h - A Farsight MSN Stream
+ * fs-msn-stream.h - A Farstream MSN Stream
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -26,7 +26,7 @@
 #ifndef __FS_MSN_STREAM_H__
 #define __FS_MSN_STREAM_H__
 
-#include <gst/farsight/fs-stream.h>
+#include <gst/farstream/fs-stream.h>
 
 #include "fs-msn-participant.h"
 #include "fs-msn-session.h"

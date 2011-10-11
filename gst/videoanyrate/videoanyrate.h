@@ -1,5 +1,5 @@
 /*
- * Farsight Voice+Video library
+ * Farstream Voice+Video library
  *
  *  Copyright 2008 Collabora Ltd, 
  *  Copyright 2008 Nokia Corporation

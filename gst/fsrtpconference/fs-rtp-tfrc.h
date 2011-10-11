@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP TFRC Support
+ * Farstream - Farstream RTP TFRC Support
  *
  * Copyright 2010 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2010 Nokia Corp.
  *
- * fs-rtp-tfrc.h - Rate control for Farsight RTP sessions
+ * fs-rtp-tfrc.h - Rate control for Farstream RTP sessions
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

@@ -1,11 +1,11 @@
 /*
- * Farsight2 - Farsight RTP Discover Codecs
+ * Farstream - Farstream RTP Discover Codecs
  *
  * Copyright 2007 Collabora Ltd.
  *  @author: Olivier Crete <olivier.crete@collabora.co.uk>
  * Copyright 2007 Nokia Corp.
  *
- * fs-discover-codecs.h - A Farsight RTP Codec Discovery
+ * fs-discover-codecs.h - A Farstream RTP Codec Discovery
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -27,7 +27,7 @@
 
 #include <gst/gst.h>
 
-#include <gst/farsight/fs-codec.h>
+#include <gst/farstream/fs-codec.h>
 
 G_BEGIN_DECLS
 
