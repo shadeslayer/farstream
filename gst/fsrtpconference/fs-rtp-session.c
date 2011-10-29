@@ -3374,6 +3374,21 @@ link_other_pads (gpointer item, GValue *ret, gpointer user_data)
   return FALSE;
 }
 
+static void
+special_source_stopped (FsRtpSpecialSource *source, gpointer data)
+{
+  FsRtpSession *self = FS_RTP_SESSION (data);
+
+  if (fs_rtp_session_has_disposed_enter (self, NULL))
+    return;
+
+  fs_rtp_special_sources_remove_finish (&self->priv->extra_sources,
+      FS_RTP_SESSION_GET_LOCK (self),
+      source);
+
+  fs_rtp_session_has_disposed_exit (self);
+}
+
 /*
  * @codec: The currently selected codec for sending (but not the send_codec)
  */
@@ -3449,7 +3464,8 @@ fs_rtp_session_remove_send_codec_bin (FsRtpSession *self,
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
-        codec);
+        codec,
+        special_source_stopped, self);
 
   return TRUE;
 }
@@ -3712,7 +3728,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
         &self->priv->extra_sources,
         &self->priv->codec_associations,
         FS_RTP_SESSION_GET_LOCK (self),
-        codec_copy);
+        codec_copy,
+        special_source_stopped, self);
     goto skip_main_codec;
   }
 

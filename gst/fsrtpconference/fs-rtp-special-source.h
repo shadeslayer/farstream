@@ -109,12 +109,24 @@ struct _FsRtpSpecialSource
 
 GType fs_rtp_special_source_get_type (void);
 
+typedef void (*fs_rtp_special_source_stopped_callback) (
+  FsRtpSpecialSource *self,
+  gpointer data);
+
 gboolean
 fs_rtp_special_sources_remove (
     GList **current_extra_sources,
     GList **negotiated_codec_associations,
     GMutex *mutex,
-    FsCodec *selected_codec);
+    FsCodec *selected_codec,
+    fs_rtp_special_source_stopped_callback stopped_callback,
+    gpointer stopped_data);
+
+
+void
+fs_rtp_special_sources_remove_finish (GList **extra_sources,
+    GMutex *mutex,
+    FsRtpSpecialSource *source);
 
 gboolean
 fs_rtp_special_sources_create (

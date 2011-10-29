@@ -66,6 +66,9 @@ struct _FsRtpSpecialSourcePrivate {
 
   GThread *stop_thread;
 
+  fs_rtp_special_source_stopped_callback stopped_callback;
+  gpointer stopped_data;
+
   /* Protects the content of this struct after object has been disposed of */
   GMutex *mutex;
 };
@@ -170,9 +173,61 @@ stop_source_thread (gpointer data)
   self->priv->src = NULL;
   FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
 
+  if (self->priv->stopped_callback)
+    self->priv->stopped_callback (self, self->priv->stopped_data);
+
   g_object_unref (self);
 
   return NULL;
+}
+
+static gboolean
+fs_rtp_special_source_is_stopping (FsRtpSpecialSource *self)
+{
+  gboolean stopping;
+
+  FS_RTP_SPECIAL_SOURCE_LOCK (self);
+  stopping = !!self->priv->stop_thread;
+  FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
+
+  return stopping;
+}
+
+/*
+ * Returns TRUE if the source is already stopped
+ */
+
+static gboolean
+fs_rtp_special_source_stop_locked (FsRtpSpecialSource *self)
+{
+
+  if (self->priv->src)
+  {
+    GError *error = NULL;
+
+    if (self->priv->stop_thread)
+    {
+      GST_DEBUG ("stopping thread for special source already running");
+      return TRUE;
+    }
+
+    g_object_ref (self);
+    self->priv->stop_thread = g_thread_create (stop_source_thread, self, FALSE,
+        &error);
+
+    if (!self->priv->stop_thread)
+    {
+      GST_WARNING ("Could not start stopping thread for FsRtpSpecialSource:"
+          " %s", error->message);
+    }
+    g_clear_error (&error);
+    return TRUE;
+  }
+  else
+  {
+    self->priv->stop_thread = GUINT_TO_POINTER (1);
+    return FALSE;
+  }
 }
 
 static void
@@ -192,27 +247,9 @@ fs_rtp_special_source_dispose (GObject *object)
     return;
   }
 
-  if (self->priv->src)
+
+  if (fs_rtp_special_source_stop_locked (self))
   {
-    GError *error = NULL;
-
-    if (self->priv->stop_thread)
-    {
-      GST_DEBUG ("stopping thread for special source already running");
-      return;
-    }
-
-    g_object_ref (self);
-    self->priv->stop_thread = g_thread_create (stop_source_thread, self, FALSE,
-        &error);
-
-    if (!self->priv->stop_thread)
-    {
-      GST_WARNING ("Could not start stopping thread for FsRtpSpecialSource:"
-          " %s", error->message);
-    }
-    g_clear_error (&error);
-
     FS_RTP_SPECIAL_SOURCE_UNLOCK (self);
     return;
   }
@@ -351,6 +388,18 @@ fs_rtp_special_sources_negotiation_filter (GList *codec_associations)
   return codec_associations;
 }
 
+void
+fs_rtp_special_sources_remove_finish (GList **extra_sources,
+    GMutex *mutex,
+    FsRtpSpecialSource *source)
+{
+  g_mutex_lock (mutex);
+  *extra_sources = g_list_remove (*extra_sources, source);
+  g_mutex_unlock (mutex);
+  g_object_unref (source);
+}
+
+
 /**
  * fs_rtp_special_sources_remove:
  * @extra_sources: A pointer to the #GList returned by previous calls to this
@@ -371,7 +420,9 @@ fs_rtp_special_sources_remove (
     GList **extra_sources,
     GList **negotiated_codec_associations,
     GMutex *mutex,
-    FsCodec *selected_codec)
+    FsCodec *selected_codec,
+    fs_rtp_special_source_stopped_callback stopped_callback,
+    gpointer stopped_data)
 {
   GList *klass_item = NULL;
   gboolean changed = FALSE;
@@ -395,22 +446,30 @@ fs_rtp_special_sources_remove (
          obj_item = g_list_next (obj_item))
     {
       obj = obj_item->data;
-      if (G_OBJECT_TYPE(obj) == G_OBJECT_CLASS_TYPE(klass))
+      if (G_OBJECT_TYPE(obj) == G_OBJECT_CLASS_TYPE(klass) &&
+          !fs_rtp_special_source_is_stopping (obj))
         break;
     }
 
     if (obj_item)
     {
-      FsCodec *telephony_codec =  fs_rtp_special_source_class_get_codec (klass,
+      FsCodec *telephony_codec = fs_rtp_special_source_class_get_codec (klass,
           *negotiated_codec_associations, selected_codec);
 
       if (!telephony_codec || !fs_codec_are_equal (telephony_codec, obj->codec))
       {
-        *extra_sources = g_list_remove (*extra_sources, obj);
-        changed = TRUE;
-        g_mutex_unlock (mutex);
-        g_object_unref (obj);
-        goto restart;
+        FsRtpSpecialSource *self = FS_RTP_SPECIAL_SOURCE (obj);
+
+        self->priv->stopped_callback = stopped_callback;
+        self->priv->stopped_data = stopped_data;
+        if (!fs_rtp_special_source_stop_locked (self))
+        {
+          *extra_sources = g_list_remove (*extra_sources, obj);
+          changed = TRUE;
+          g_mutex_unlock (mutex);
+          g_object_unref (obj);
+          goto restart;
+        }
       }
     }
 
@@ -466,7 +525,8 @@ fs_rtp_special_sources_create (
          obj_item = g_list_next (obj_item))
     {
       obj = obj_item->data;
-      if (G_OBJECT_TYPE(obj) == G_OBJECT_CLASS_TYPE(klass))
+      if (G_OBJECT_TYPE(obj) == G_OBJECT_CLASS_TYPE(klass) &&
+          !fs_rtp_special_source_is_stopping (obj))
         break;
     }
 
@@ -489,7 +549,8 @@ fs_rtp_special_sources_create (
       for (obj_item = g_list_first (*extra_sources);
            obj_item;
            obj_item = g_list_next (obj_item))
-        if (G_OBJECT_TYPE(obj_item->data) == G_OBJECT_CLASS_TYPE(klass))
+        if (G_OBJECT_TYPE(obj_item->data) == G_OBJECT_CLASS_TYPE(klass) &&
+            !fs_rtp_special_source_is_stopping (obj_item->data))
           break;
       if (obj_item)
       {
@@ -594,8 +655,15 @@ fs_rtp_special_source_new (FsRtpSpecialSourceClass *klass,
 GList *
 fs_rtp_special_sources_destroy (GList *current_extra_sources)
 {
-  g_list_foreach (current_extra_sources, (GFunc) g_object_unref, NULL);
-  g_list_free (current_extra_sources);
+
+  while (current_extra_sources)
+  {
+    FsRtpSpecialSource *self = current_extra_sources->data;
+
+    self->priv->stopped_callback = NULL;
+    g_object_unref (self);
+    current_extra_sources = g_list_remove (current_extra_sources, self);
+  }
 
   return NULL;
 }
@@ -639,6 +707,9 @@ fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
   for (; special_sources; special_sources = special_sources->next)
   {
     FsRtpSpecialSource *source = special_sources->data;
+
+    if (fs_rtp_special_source_is_stopping (source))
+      continue;
 
     if (main_codec->id != source->codec->id)
     {
