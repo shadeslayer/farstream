@@ -84,23 +84,6 @@ typedef enum _FsDTMFEvent
 } FsDTMFEvent;
 
 /**
- * FsDTMFMethod:
- * @FS_DTMF_METHOD_AUTO: Send in any possible way
- * @FS_DTMF_METHOD_RTP_RFC4733: Send as a special payload type defined by RFC 4733
- * (which obsoletes RFC 2833)
- * @FS_DTMF_METHOD_SOUND: Send as tones as in-band audio sound
- *
- * An enum that represents the different ways a DTMF event can be sent
- *
- */
-typedef enum _FsDTMFMethod
-{
-  FS_DTMF_METHOD_AUTO = 0,
-  FS_DTMF_METHOD_RTP_RFC4733,
-  FS_DTMF_METHOD_SOUND
-} FsDTMFMethod;
-
-/**
  * FsSessionClass:
  * @parent_class: Our parent
  * @new_stream: Create a new #FsStream
@@ -127,8 +110,8 @@ struct _FsSessionClass
                             GError **error);
 
   gboolean (* start_telephony_event) (FsSession *session, guint8 event,
-                                      guint8 volume, FsDTMFMethod method);
-  gboolean (* stop_telephony_event) (FsSession *session, FsDTMFMethod method);
+                                      guint8 volume);
+  gboolean (* stop_telephony_event) (FsSession *session);
 
   gboolean (* set_send_codec) (FsSession *session, FsCodec *send_codec,
                                GError **error);
@@ -172,10 +155,9 @@ FsStream *fs_session_new_stream (FsSession *session,
                                  GError **error);
 
 gboolean fs_session_start_telephony_event (FsSession *session, guint8 event,
-                                           guint8 volume, FsDTMFMethod method);
+                                           guint8 volume);
 
-gboolean fs_session_stop_telephony_event (FsSession *session,
-                                          FsDTMFMethod method);
+gboolean fs_session_stop_telephony_event (FsSession *session);
 
 gboolean fs_session_set_send_codec (FsSession *session, FsCodec *send_codec,
                                     GError **error);

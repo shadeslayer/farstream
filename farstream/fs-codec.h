@@ -81,16 +81,15 @@ typedef enum _FsMediaType
  * @media_type: type of media this codec is for
  * @clock_rate: clock rate of this stream
  * @channels: Number of channels codec should decode
- * @ptime: The preferred duration (in ms) of a packet
- * @maxptime: The maximum duration (in ms) of a packet
  * @optional_params: (element-type FsCodecParameter): key pairs of param name to param data
  * @minimum_reporting_interval: The minimum interval between two RTCP reports,
  *  If it is not specified (G_MAXUINT), it is up to the protocol to decide
  * (it is 5 seconds for RTP).
+ * @feedback_params: (element-type FsFeedbackParameter): key triplets of
+ * feedbck param type, subtype and extra string that is supported for this codec
  *
  * This structure reprensents one codec that can be offered or received
  */
-/* TODO Should this be made into a GstStructure? */
 struct _FsCodec
 {
   gint id;

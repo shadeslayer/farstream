@@ -50,7 +50,6 @@ FsStreamPrivate
 <SECTION>
 <FILE>fs-session</FILE>
 FsDTMFEvent
-FsDTMFMethod
 <TITLE>FsSession</TITLE>
 <INCLUDE>farstream/fs-conference.h</INCLUDE>
 FsSession

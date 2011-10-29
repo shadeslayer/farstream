@@ -431,17 +431,17 @@ class FsUISession:
         self.streams.append(weakref.ref(stream, self.__stream_finalized))
         return stream
 
-    def dtmf_start(self, event, method):
+    def dtmf_start(self, event):
         if (event == "*"):
             event = farstream.DTMF_EVENT_STAR
         elif (event == "#"):
             event = farstream.DTMF_EVENT_POUND
         else:
             event = int(event)
-        self.fssession.start_telephony_event(event, 2, method)
+        self.fssession.start_telephony_event(event, 2)
         
-    def dtmf_stop(self, method):
-        self.fssession.stop_telephony_event(method)
+    def dtmf_stop(self):
+        self.fssession.stop_telephony_event()
 
     def codecs_changed(self):
         "Callback from FsSession"
@@ -860,20 +860,11 @@ class FsMainUI:
             
 
     def dtmf_start(self, button):
-        if (self.dtmf_builder.get_object("dtmf_as_event").get_active()):
-            self.dtmf_last_method = farstream.DTMF_METHOD_RTP_RFC4733
-        elif (self.dtmf_builder.get_object("dtmf_as_sound").get_active()):
-            self.dtmf_last_method = farstream.DTMF_METHOD_IN_BAND
-        else:
-            print "Invalid DTMF Method"
-            return
-        self.pipeline.audiosession.dtmf_start(button.get_label(), \
-                                              self.dtmf_last_method)
+        self.pipeline.audiosession.dtmf_start(button.get_label())
                                               
     def dtmf_stop(self, button):
         try:
-            self.pipeline.audiosession.dtmf_stop(self.dtmf_last_method)
-            del self.dtmf_last_method
+            self.pipeline.audiosession.dtmf_stop()
         except AttributeError:
             pass
     def dtmf_destroy(self, button):

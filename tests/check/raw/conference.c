@@ -1367,9 +1367,8 @@ GST_START_TEST (test_rawconference_dispose)
 
   fs_session_destroy (session);
 
-  fail_if (fs_session_start_telephony_event (session, 1, 2,
-          FS_DTMF_METHOD_AUTO));
-  fail_if (fs_session_stop_telephony_event (session, FS_DTMF_METHOD_AUTO));
+  fail_if (fs_session_start_telephony_event (session, 1, 2));
+  fail_if (fs_session_stop_telephony_event (session));
 
   fail_if (fs_session_set_send_codec (session, NULL, &error));
   fail_unless (error->domain == FS_ERROR &&

@@ -418,20 +418,17 @@ fs_session_new_stream (FsSession *session,
  * http://www.iana.org/assignments/audio-telephone-event-registry
  * @volume: The volume in dBm0 without the negative sign. Should be between
  * 0 and 36. Higher values mean lower volume
- * @method: The method used to send the event
  *
  * This function will start sending a telephony event (such as a DTMF
  * tone) on the #FsSession. You have to call the function
  * fs_session_stop_telephony_event() to stop it.
- * This function will use any available method, if you want to use a specific
- * method only, use fs_session_start_telephony_event_full()
  *
  * Returns: %TRUE if sucessful, it can return %FALSE if the #FsStream
  * does not support this telephony event.
  */
 gboolean
 fs_session_start_telephony_event (FsSession *session, guint8 event,
-                                  guint8 volume, FsDTMFMethod method)
+                                  guint8 volume)
 {
   FsSessionClass *klass;
 
@@ -440,7 +437,7 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
   klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->start_telephony_event) {
-    return klass->start_telephony_event (session, event, volume, method);
+    return klass->start_telephony_event (session, event, volume);
   } else {
     GST_WARNING ("start_telephony_event not defined in class");
   }
@@ -450,7 +447,6 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
 /**
  * fs_session_stop_telephony_event:
  * @session: an #FsSession
- * @method: The method used to send the event
  *
  * This function will stop sending a telephony event started by
  * fs_session_start_telephony_event(). If the event was being sent
@@ -462,7 +458,7 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
  * does not support telephony events or if no telephony event is being sent
  */
 gboolean
-fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
+fs_session_stop_telephony_event (FsSession *session)
 {
   FsSessionClass *klass;
 
@@ -471,7 +467,7 @@ fs_session_stop_telephony_event (FsSession *session, FsDTMFMethod method)
   klass = FS_SESSION_GET_CLASS (session);
 
   if (klass->stop_telephony_event) {
-    return klass->stop_telephony_event (session, method);
+    return klass->stop_telephony_event (session);
   } else {
     GST_WARNING ("stop_telephony_event not defined in class");
   }

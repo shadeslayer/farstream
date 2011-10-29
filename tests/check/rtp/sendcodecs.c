@@ -32,13 +32,13 @@
 
 GMainLoop *loop = NULL;
 
-FsDTMFMethod method = FS_DTMF_METHOD_AUTO;
 guint dtmf_id = 0;
 gint digit = 0;
 gboolean sending = FALSE;
 gboolean received = FALSE;
 gboolean ready_to_send = FALSE;
 gboolean change_codec = FALSE;
+gboolean filter_telephone_event = FALSE;
 
 struct SimpleTestConference *dat = NULL;
 FsStream *stream = NULL;
@@ -118,21 +118,24 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
                   NULL));
 
           ts_fail_unless (codec != NULL);
-          ts_fail_unless (secondary_codec_list != NULL);
-
-          for (item = secondary_codec_list; item; item = item->next)
+          if (!filter_telephone_event)
           {
-            FsCodec *codec = item->data;
+            ts_fail_unless (secondary_codec_list != NULL);
 
-            if (codec->clock_rate == 8000 &&
-                !g_strcasecmp ("telephone-event", codec->encoding_name))
+            for (item = secondary_codec_list; item; item = item->next)
             {
-              ts_fail_unless (codec->id == dtmf_id);
-              ready_to_send = TRUE;
-            }
-          }
+              FsCodec *codec = item->data;
 
-          fail_unless (ready_to_send == TRUE);
+              if (codec->clock_rate == 8000 &&
+                  !g_strcasecmp ("telephone-event", codec->encoding_name))
+              {
+                ts_fail_unless (codec->id == dtmf_id);
+                ready_to_send = TRUE;
+              }
+            }
+
+            fail_unless (ready_to_send == TRUE);
+          }
 
           fs_codec_list_destroy (secondary_codec_list);
           fs_codec_destroy (codec);
@@ -235,7 +238,8 @@ set_codecs (struct SimpleTestConference *dat, FsStream *stream)
       ts_fail_unless (dtmf_codec == NULL,
           "More than one copy of telephone-event");
       dtmf_codec = codec;
-      filtered_codecs = g_list_append (filtered_codecs, codec);
+      if (!filter_telephone_event)
+        filtered_codecs = g_list_append (filtered_codecs, codec);
     }
   }
 
@@ -272,7 +276,7 @@ one_way (GstElement *recv_pipeline, gint port)
   digit = 0;
   sending = FALSE;
   received = FALSE;
-  ready_to_send = FALSE;
+  ready_to_send = filter_telephone_event;
 
   loop = g_main_loop_new (NULL, FALSE);
 
@@ -376,7 +380,7 @@ start_stop_sending_dtmf (gpointer data)
 
   if (sending)
   {
-    ts_fail_unless (fs_session_stop_telephony_event (dat->session, method),
+    ts_fail_unless (fs_session_stop_telephony_event (dat->session),
         "Could not stop telephony event");
     sending = FALSE;
   }
@@ -407,7 +411,7 @@ start_stop_sending_dtmf (gpointer data)
 
     received = FALSE;
     ts_fail_unless (fs_session_start_telephony_event (dat->session,
-            digit, digit, method),
+            digit, digit),
         "Could not start telephony event");
     sending = TRUE;
   }
@@ -421,20 +425,6 @@ GST_START_TEST (test_senddtmf_event)
   GstElement *recv_pipeline = build_recv_pipeline (
       G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
 
-  method = FS_DTMF_METHOD_RTP_RFC4733;
-  g_timeout_add (350, start_stop_sending_dtmf, NULL);
-  one_way (recv_pipeline, port);
-}
-GST_END_TEST;
-
-
-GST_START_TEST (test_senddtmf_auto)
-{
-  gint port;
-  GstElement *recv_pipeline = build_recv_pipeline (
-      G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
-
-  method = FS_DTMF_METHOD_AUTO;
   g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
 }
@@ -499,9 +489,10 @@ GST_START_TEST (test_senddtmf_sound)
   gint port = 0;
   GstElement *recv_pipeline = build_dtmf_sound_recv_pipeline (&port);
 
-  method = FS_DTMF_METHOD_SOUND;
   g_timeout_add (350, start_stop_sending_dtmf, NULL);
+  filter_telephone_event = TRUE;
   one_way (recv_pipeline, port);
+  filter_telephone_event = FALSE;
 }
 GST_END_TEST;
 
@@ -512,7 +503,6 @@ GST_START_TEST (test_senddtmf_change_auto)
   GstElement *recv_pipeline = build_recv_pipeline (
       G_CALLBACK (send_dmtf_havedata_handler), NULL, &port);
 
-  method = FS_DTMF_METHOD_AUTO;
   change_codec = TRUE;
   g_timeout_add (350, start_stop_sending_dtmf, NULL);
   one_way (recv_pipeline, port);
@@ -584,10 +574,6 @@ fsrtpsendcodecs_suite (void)
 
   tc_chain = tcase_create ("fsrtpsenddtmf_event");
   tcase_add_test (tc_chain, test_senddtmf_event);
-  suite_add_tcase (s, tc_chain);
-
-  tc_chain = tcase_create ("fsrtpsenddtmf_auto");
-  tcase_add_test (tc_chain, test_senddtmf_auto);
   suite_add_tcase (s, tc_chain);
 
   tc_chain = tcase_create ("fsrtpsenddtmf_sound");

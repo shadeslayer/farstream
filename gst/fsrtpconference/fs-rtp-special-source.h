@@ -131,16 +131,6 @@ fs_rtp_special_sources_destroy (GList *current_extra_sources);
 GList *
 fs_rtp_special_sources_add_blueprints (GList *blueprints);
 
-gboolean
-fs_rtp_special_sources_start_telephony_event (GList *current_extra_sources,
-      guint8 event,
-      guint8 volume,
-      FsDTMFMethod method);
-
-gboolean
-fs_rtp_special_sources_stop_telephony_event (GList *current_extra_sources,
-    FsDTMFMethod method);
-
 GList *
 fs_rtp_special_sources_negotiation_filter (GList *codec_associations);
 

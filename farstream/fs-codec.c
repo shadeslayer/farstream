@@ -136,7 +136,7 @@ fs_feedback_parameter_free (FsFeedbackParameter *param)
 }
 
 /**
- * fs_codec_destroy: (skip): 
+ * fs_codec_destroy: (skip):
  * @codec: #FsCodec structure to free
  *
  * Deletes a #FsCodec structure and all its data. Is a no-op on %NULL codec
