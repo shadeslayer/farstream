@@ -99,6 +99,7 @@ struct _FsRtpConferencePrivate
 
   /* Protected by GST_OBJECT_LOCK */
   GList *sessions;
+  guint sessions_cookie;
   guint max_session_id;
 
   GList *participants;
@@ -198,6 +199,7 @@ fs_rtp_conference_dispose (GObject * object)
     g_object_weak_unref (G_OBJECT (item->data), _remove_session, self);
   g_list_free (self->priv->sessions);
   self->priv->sessions = NULL;
+  self->priv->sessions_cookie++;
 
   for (item = g_list_first (self->priv->participants);
        item;
@@ -498,6 +500,7 @@ _remove_session (gpointer user_data,
   GST_OBJECT_LOCK (self);
   self->priv->sessions =
     g_list_remove_all (self->priv->sessions, where_the_object_was);
+  self->priv->sessions_cookie++;
   GST_OBJECT_UNLOCK (self);
 }
 
@@ -545,6 +548,7 @@ fs_rtp_conference_new_session (FsConference *conf,
 
   GST_OBJECT_LOCK (self);
   self->priv->sessions = g_list_append (self->priv->sessions, new_session);
+  self->priv->sessions_cookie++;
   GST_OBJECT_UNLOCK (self);
 
   g_object_weak_ref (G_OBJECT (new_session), _remove_session, self);
@@ -634,6 +638,32 @@ fs_rtp_conference_handle_message (
               session_id, ssrc, cname);
         }
       }
+      else if (gst_structure_has_name (s, "dtmf-event-processed") ||
+          gst_structure_has_name (s, "dtmf-event-dropped"))
+      {
+        GList *item;
+        guint cookie;
+
+
+        GST_OBJECT_LOCK (self);
+      restart:
+        cookie = self->priv->sessions_cookie;
+        for (item = self->priv->sessions; item; item = item->next)
+        {
+          GST_OBJECT_UNLOCK (self);
+          if (fs_rtp_session_handle_dtmf_event_message (item->data, message))
+          {
+            gst_message_unref (message);
+            message = NULL;
+            goto out;
+          }
+          GST_OBJECT_LOCK (self);
+          if (cookie != self->priv->sessions_cookie)
+            goto restart;
+        }
+        GST_OBJECT_UNLOCK (self);
+
+      }
     }
     break;
     case GST_MESSAGE_STREAM_STATUS:
@@ -677,7 +707,8 @@ fs_rtp_conference_handle_message (
 
  out:
   /* forward all messages to the parent */
-  GST_BIN_CLASS (parent_class)->handle_message (bin, message);
+  if (message)
+    GST_BIN_CLASS (parent_class)->handle_message (bin, message);
 }
 
 static GstStateChangeReturn

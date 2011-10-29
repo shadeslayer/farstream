@@ -150,6 +150,10 @@ GList *
 fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
     GList *codec_associations, FsCodec *main_codec);
 
+gboolean
+fs_rtp_special_sources_claim_message_locked (GList *special_sources,
+    GstMessage *message);
+
 G_END_DECLS
 
 #endif /* __FS_RTP_SPECIAL_SOURCE_H__ */

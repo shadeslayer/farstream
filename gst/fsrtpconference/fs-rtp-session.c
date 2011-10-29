@@ -193,6 +193,9 @@ struct _FsRtpSessionPrivate
   /* Protected by the session mutex */
   gint no_rtcp_timeout;
 
+  GQueue telephony_events;
+  GstObject *running_telephony_src;
+  gboolean telephony_event_running;
   GList *extra_sources;
 
   /* This is a ht of ssrc->streams
@@ -444,6 +447,8 @@ fs_rtp_session_init (FsRtpSession *self)
   self->priv->ssrc_streams = g_hash_table_new (g_direct_hash, g_direct_equal);
   self->priv->ssrc_streams_manual = g_hash_table_new (g_direct_hash,
       g_direct_equal);
+
+  g_queue_init (&self->priv->telephony_events);
 }
 
 static gboolean
@@ -664,6 +669,9 @@ fs_rtp_session_dispose (GObject *obj)
   self->priv->extra_sources =
     fs_rtp_special_sources_destroy (self->priv->extra_sources);
 
+  if (self->priv->running_telephony_src)
+    gst_object_unref (self->priv->running_telephony_src);
+
   /* Now they should all be stopped, we can remove them in peace */
 
 
@@ -780,13 +788,14 @@ fs_rtp_session_finalize (GObject *object)
 
   if (self->priv->ssrc_streams)
     g_hash_table_destroy (self->priv->ssrc_streams);
-
   if (self->priv->ssrc_streams_manual)
     g_hash_table_destroy (self->priv->ssrc_streams_manual);
 
   g_mutex_free (self->priv->send_pad_blocked_mutex);
   g_mutex_free (self->priv->discovery_pad_blocked_mutex);
 
+  g_queue_foreach (&self->priv->telephony_events, (GFunc) gst_event_unref,
+      NULL);
 
   g_static_rw_lock_free (&self->priv->disposed_lock);
 
@@ -1757,6 +1766,102 @@ fs_rtp_session_new_stream (FsSession *session,
   return new_stream;
 }
 
+static GstEvent *
+fs_rtp_session_set_next_telephony_method (FsRtpSession *self,
+    gint method)
+{
+  GstEvent *event;
+  GstStructure *s;
+  gboolean start;
+
+  FS_RTP_SESSION_LOCK (self);
+
+  event = g_queue_peek_tail (&self->priv->telephony_events);
+
+  if (gst_structure_get_boolean (gst_event_get_structure (event),
+          "start", &start) && !start)
+    goto out;
+
+  g_queue_pop_tail (&self->priv->telephony_events);
+  event = GST_EVENT (gst_mini_object_make_writable (GST_MINI_OBJECT (event)));
+  s = (GstStructure *) gst_event_get_structure (event);
+  gst_structure_set (s, "method", G_TYPE_INT, method, NULL);
+  g_queue_push_tail (&self->priv->telephony_events, event);
+
+out:
+
+  gst_event_ref (event);
+  self->priv->telephony_event_running = TRUE;
+  FS_RTP_SESSION_UNLOCK (self);
+
+  return event;
+}
+
+static void
+fs_rtp_session_try_sending_dtmf_event (FsRtpSession *self)
+{
+  GstElement *rtpmuxer = NULL;
+  GstPad *pad;
+  gboolean ret = FALSE;
+  GstEvent *event;
+
+  FS_RTP_SESSION_LOCK (self);
+  if (self->priv->telephony_event_running ||
+      g_queue_get_length (&self->priv->telephony_events) == 0)
+  {
+    FS_RTP_SESSION_UNLOCK (self);
+    return;
+  }
+
+
+  g_assert (self->priv->rtpmuxer);
+  rtpmuxer = gst_object_ref (self->priv->rtpmuxer);
+  FS_RTP_SESSION_UNLOCK (self);
+
+  pad = gst_element_get_static_pad (rtpmuxer, "src");
+
+  event = fs_rtp_session_set_next_telephony_method (self, 1);
+  ret = gst_pad_send_event (pad, event);
+  if (!ret)
+  {
+    event = fs_rtp_session_set_next_telephony_method (self, 2);
+    ret = gst_pad_send_event (pad, event);
+  }
+
+  if (!ret)
+  {
+    FS_RTP_SESSION_LOCK (self);
+    self->priv->telephony_event_running = FALSE;
+    FS_RTP_SESSION_UNLOCK (self);
+  }
+
+  gst_object_unref (pad);
+  gst_object_unref (rtpmuxer);
+}
+
+static gboolean
+fs_rtp_session_check_telephony_event_queue_start_locked (FsRtpSession *self,
+    gboolean desired_start)
+{
+  GstEvent *event = g_queue_peek_head (&self->priv->telephony_events);
+
+  if (event)
+  {
+    const GstStructure *s = gst_event_get_structure (event);
+    gboolean start;
+
+    if (gst_structure_get_boolean (s, "start", &start) &&
+        start != desired_start)
+    {
+      GST_WARNING ("Tried to start an event while another is playing");
+      return FALSE;
+    }
+
+  }
+
+  return TRUE;
+}
+
 /**
  * fs_rtp_session_start_telephony_event:
  * @session: an #FsRtpSession
@@ -1777,49 +1882,41 @@ fs_rtp_session_start_telephony_event (FsSession *session, guint8 event,
                                       guint8 volume)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  GstElement *rtpmuxer = NULL;
-  GstPad *pad;
   gboolean ret = FALSE;
 
   if (fs_rtp_session_has_disposed_enter (self, NULL))
     return FALSE;
 
   FS_RTP_SESSION_LOCK (self);
-  g_assert (self->priv->rtpmuxer);
-  rtpmuxer = gst_object_ref (self->priv->rtpmuxer);
-  FS_RTP_SESSION_UNLOCK (self);
+
+  if (!fs_rtp_session_check_telephony_event_queue_start_locked (self, FALSE))
+  {
+    GST_WARNING ("Tried to start an event without stopping the previous one");
+    goto out;
+  }
 
   GST_DEBUG ("sending telephony event %d", event);
 
-  pad = gst_element_get_static_pad (rtpmuxer, "src");
-
-  ret = gst_pad_send_event (pad,
+  g_queue_push_head (&self->priv->telephony_events,
       gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
           gst_structure_new ("dtmf-event",
               "number", G_TYPE_INT, event,
               "volume", G_TYPE_INT, volume,
               "start", G_TYPE_BOOLEAN, TRUE,
               "type", G_TYPE_INT, 1,
-              "method", G_TYPE_INT, 1,
               NULL)));
+  ret = TRUE;
 
-  if (!ret)
-    ret = gst_pad_send_event (pad,
-        gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
-            gst_structure_new ("dtmf-event",
-                "number", G_TYPE_INT, event,
-                "volume", G_TYPE_INT, volume,
-                "start", G_TYPE_BOOLEAN, TRUE,
-                "type", G_TYPE_INT, 1,
-                "method", G_TYPE_INT, 2,
-                NULL)));
+out:
+  FS_RTP_SESSION_UNLOCK (self);
 
-  gst_object_unref (pad);
-  gst_object_unref (rtpmuxer);
+  if (ret)
+    fs_rtp_session_try_sending_dtmf_event (self);
 
   fs_rtp_session_has_disposed_exit (self);
   return ret;
 }
+
 
 /**
  * fs_rtp_session_stop_telephony_event:
@@ -1838,31 +1935,36 @@ static gboolean
 fs_rtp_session_stop_telephony_event (FsSession *session)
 {
   FsRtpSession *self = FS_RTP_SESSION (session);
-  GstElement *rtpmuxer = NULL;
-  GstPad *pad;
   gboolean ret = FALSE;
 
   if (fs_rtp_session_has_disposed_enter (self, NULL))
     return FALSE;
 
+
   FS_RTP_SESSION_LOCK (self);
-  g_assert (self->priv->rtpmuxer);
-  rtpmuxer = gst_object_ref (self->priv->rtpmuxer);
-  FS_RTP_SESSION_UNLOCK (self);
+
+  if (!fs_rtp_session_check_telephony_event_queue_start_locked (self, TRUE))
+  {
+    GST_WARNING ("Tried to stop a telephony event without starting one first");
+    goto out;
+  }
 
   GST_DEBUG ("stopping telephony event");
 
-  pad = gst_element_get_static_pad (rtpmuxer, "src");
-
-  ret = gst_pad_send_event (pad,
+  g_queue_push_head (&self->priv->telephony_events,
       gst_event_new_custom (GST_EVENT_CUSTOM_UPSTREAM,
           gst_structure_new ("dtmf-event",
               "start", G_TYPE_BOOLEAN, FALSE,
               "type", G_TYPE_INT, 1,
               NULL)));
 
-  gst_object_unref (pad);
-  gst_object_unref (rtpmuxer);
+  ret = TRUE;
+
+out:
+  FS_RTP_SESSION_UNLOCK (self);
+
+  if (ret)
+    fs_rtp_session_try_sending_dtmf_event (self);
 
   fs_rtp_session_has_disposed_exit (self);
   return ret;
@@ -3802,6 +3904,8 @@ _send_src_pad_blocked_callback (GstPad *pad, gboolean blocked,
                 NULL)));
 
     fs_codec_list_destroy (secondary_codecs);
+
+    fs_rtp_session_try_sending_dtmf_event (self);
   }
 
  done:
@@ -4785,4 +4889,163 @@ fs_rtp_session_get_codecs_need_resend (FsSession *session,
   g_return_val_if_fail (FS_IS_RTP_SESSION (session), FALSE);
 
   return codecs_list_has_codec_config_changed (old_codecs, new_codecs);
+}
+
+
+gboolean
+fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
+    GstMessage *message)
+{
+  GstEvent *event;
+  const GstStructure *ms;
+  const GstStructure *es;
+  gboolean m_start, e_start;
+  gint m_method, e_method;
+  gint m_number = -1, e_number = -1;
+  gint m_volume;
+  gboolean matching;
+  GstMessage *post_message = NULL;
+
+  FS_RTP_SESSION_LOCK (self);
+  if (g_queue_get_length (&self->priv->telephony_events) == 0 ||
+      !fs_rtp_special_sources_claim_message_locked (
+        self->priv->extra_sources, message))
+  {
+    FS_RTP_SESSION_UNLOCK (self);
+    return FALSE;
+  }
+
+  event = g_queue_peek_tail (&self->priv->telephony_events);
+
+  ms = gst_message_get_structure (message);
+  es = gst_event_get_structure (event);
+
+  if (!gst_structure_get_boolean (ms, "start", &m_start))
+    goto invalid;
+  gst_structure_get_boolean (es, "start", &e_start);
+
+  if (m_start)
+  {
+    if (!gst_structure_get_int (ms, "method", &m_method))
+      goto invalid;
+    gst_structure_get_int (es, "method", &e_method);
+
+
+    if (!gst_structure_get_int (ms, "number", &m_number))
+      goto invalid;
+    gst_structure_get_int (es, "number", &e_number);
+
+    if (!gst_structure_get_int (ms, "volume", &m_volume))
+      goto invalid;
+  }
+
+  matching = ((!m_start && !e_start) ||
+      (m_start == e_start && m_method == e_method && m_number == e_number));
+
+  if (gst_structure_has_name (ms, "dtmf-event-processed"))
+  {
+    if (matching)
+    {
+      if (m_start)
+      {
+        if (self->priv->running_telephony_src)
+        {
+          GST_WARNING ("Got a second start from %s",
+              self->priv->running_telephony_src == GST_MESSAGE_SRC (message) ?
+              "the same source" : "a different source");
+          gst_object_unref (self->priv->running_telephony_src);
+        }
+        self->priv->running_telephony_src = gst_object_ref (
+          GST_MESSAGE_SRC (message));
+      }
+      else /* is a stop */
+      {
+        if (self->priv->running_telephony_src)
+        {
+          if (self->priv->running_telephony_src == GST_MESSAGE_SRC (message))
+          {
+            gst_object_unref (self->priv->running_telephony_src);
+            self->priv->running_telephony_src = NULL;
+          }
+          else
+          {
+            GST_DEBUG ("Received stop event from another source, ignoring");
+            return TRUE;
+          }
+        }
+      }
+
+      g_queue_pop_tail (&self->priv->telephony_events);
+      gst_event_unref (event);
+      self->priv->telephony_event_running = FALSE;
+      GST_DEBUG ("Got processed telepathy event %s for %d",
+          m_start ? "start" : "stop", m_number);
+
+      if (m_start)
+        post_message = gst_message_new_element (
+          GST_OBJECT (self->priv->conference),
+          gst_structure_new ("farstream-telephony-event-started",
+              "session", FS_TYPE_SESSION, self,
+              "type", G_TYPE_INT, 1,
+              "method", G_TYPE_INT, m_method,
+              "event", G_TYPE_INT, m_number,
+              "volume", G_TYPE_INT, m_volume,
+              NULL));
+      else
+        post_message = gst_message_new_element (
+          GST_OBJECT (self->priv->conference),
+          gst_structure_new ("farstream-telephony-event-stopped",
+              "session", FS_TYPE_SESSION, self,
+              "type", G_TYPE_INT, 1,
+              "method", G_TYPE_INT, m_method,
+              NULL));
+    }
+    else
+    {
+      GST_ERROR ("Got dtmf-event-processed message that does not match the"
+          " currently running event");
+    }
+  }
+  else if (gst_structure_has_name (ms, "dtmf-event-dropped"))
+  {
+    if (m_start == FALSE && e_start == FALSE)
+    {
+      if (self->priv->running_telephony_src == GST_MESSAGE_SRC (message))
+      {
+        gst_object_unref (self->priv->running_telephony_src);
+        self->priv->running_telephony_src = NULL;
+      }
+      g_queue_pop_tail (&self->priv->telephony_events);
+      gst_event_unref (event);
+      self->priv->telephony_event_running = FALSE;
+      post_message = gst_message_new_element (
+        GST_OBJECT (self->priv->conference),
+        gst_structure_new ("farstream-telephony-event-stopped",
+              "session", FS_TYPE_SESSION, self,
+              "type", G_TYPE_INT, 1,
+              "method", G_TYPE_INT, m_method,
+              NULL));
+    }
+    else if (matching)
+    {
+      self->priv->telephony_event_running = FALSE;
+    }
+    else
+    {
+      GST_ERROR ("Got dtmf-event-dropped message that does not match the"
+          " currently running event");
+    }
+  }
+
+invalid:
+
+  FS_RTP_SESSION_UNLOCK (self);
+
+  if (post_message)
+    gst_element_post_message (GST_ELEMENT (self->priv->conference),
+        post_message);
+
+  fs_rtp_session_try_sending_dtmf_event (self);
+
+  return TRUE;
 }

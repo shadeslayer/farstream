@@ -722,3 +722,21 @@ fs_rtp_special_sources_get_codecs_locked (GList *special_sources,
 
   return result.head;
 }
+
+gboolean
+fs_rtp_special_sources_claim_message_locked (GList *special_sources,
+    GstMessage *message)
+{
+  GList *item;
+
+  for (item = special_sources; item; item = item->next)
+  {
+    FsRtpSpecialSource *source = item->data;
+
+    if (gst_object_has_ancestor (GST_OBJECT (GST_MESSAGE_SRC (message)),
+            GST_OBJECT (source->priv->src)))
+      return TRUE;
+  }
+
+  return FALSE;
+}
