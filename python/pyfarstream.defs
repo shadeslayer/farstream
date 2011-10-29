@@ -23,17 +23,6 @@
 ; object definitions ...
 ;; Enumerations and flags ...
 
-(define-enum MediaType
-  (in-module "Fs")
-  (c-name "FsMediaType")
-  (gtype-id "FS_TYPE_MEDIA_TYPE")
-  (values
-    '("audio" "FS_MEDIA_TYPE_AUDIO")
-    '("video" "FS_MEDIA_TYPE_VIDEO")
-    '("last" "FS_MEDIA_TYPE_LAST")
-  )
-)
-
 
 ;; From fs-codec.h
 
@@ -155,6 +144,23 @@
   )
 )
 
+(define-function fs_codec_parameter_get_type
+  (c-name "fs_codec_parameter_get_type")
+  (return-type "GType")
+)
+
+(define-method copy
+  (of-object "FsCodecParameter")
+  (c-name "fs_codec_parameter_copy")
+  (return-type "FsCodecParameter*")
+)
+
+(define-method free
+  (of-object "FsCodecParameter")
+  (c-name "fs_codec_parameter_free")
+  (return-type "none")
+)
+
 (define-method add_feedback_parameter
   (of-object "FsCodec")
   (c-name "fs_codec_add_feedback_parameter")
@@ -186,44 +192,27 @@
   )
 )
 
+(define-function fs_feedback_parameter_get_type
+  (c-name "fs_feedback_parameter_get_type")
+  (return-type "GType")
+)
+
+(define-method copy
+  (of-object "FsFeedbackParameter")
+  (c-name "fs_feedback_parameter_copy")
+  (return-type "FsFeedbackParameter*")
+)
+
+(define-method free
+  (of-object "FsFeedbackParameter")
+  (c-name "fs_feedback_parameter_free")
+  (return-type "none")
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...
 ;; Enumerations and flags ...
-
-(define-enum CandidateType
-  (in-module "Fs")
-  (c-name "FsCandidateType")
-  (gtype-id "FS_TYPE_CANDIDATE_TYPE")
-  (values
-    '("host" "FS_CANDIDATE_TYPE_HOST")
-    '("srflx" "FS_CANDIDATE_TYPE_SRFLX")
-    '("prflx" "FS_CANDIDATE_TYPE_PRFLX")
-    '("relay" "FS_CANDIDATE_TYPE_RELAY")
-    '("multicast" "FS_CANDIDATE_TYPE_MULTICAST")
-  )
-)
-
-(define-enum NetworkProtocol
-  (in-module "Fs")
-  (c-name "FsNetworkProtocol")
-  (gtype-id "FS_TYPE_NETWORK_PROTOCOL")
-  (values
-    '("udp" "FS_NETWORK_PROTOCOL_UDP")
-    '("tcp" "FS_NETWORK_PROTOCOL_TCP")
-  )
-)
-
-(define-enum ComponentType
-  (in-module "Fs")
-  (c-name "FsComponentType")
-  (gtype-id "FS_TYPE_COMPONENT_TYPE")
-  (values
-    '("none" "FS_COMPONENT_NONE")
-    '("rtp" "FS_COMPONENT_RTP")
-    '("rtcp" "FS_COMPONENT_RTCP")
-  )
-)
 
 
 ;; From fs-candidate.h
@@ -285,26 +274,6 @@
 ; object definitions ...
 ;; Enumerations and flags ...
 
-(define-enum Error
-  (in-module "Fs")
-  (c-name "FsError")
-  (gtype-id "FS_TYPE_ERROR")
-  (values
-    '("construction" "FS_ERROR_CONSTRUCTION")
-    '("internal" "FS_ERROR_INTERNAL")
-    '("invalid-arguments" "FS_ERROR_INVALID_ARGUMENTS")
-    '("network" "FS_ERROR_NETWORK")
-    '("not-implemented" "FS_ERROR_NOT_IMPLEMENTED")
-    '("negotiation-failed" "FS_ERROR_NEGOTIATION_FAILED")
-    '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
-    '("no-codecs" "FS_ERROR_NO_CODECS")
-    '("no-codecs-left" "FS_ERROR_NO_CODECS_LEFT")
-    '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
-    '("disposed" "FS_ERROR_DISPOSED")
-    '("already-exists" "FS_ERROR_ALREADY_EXISTS")
-  )
-)
-
 
 ;; From fs-conference.h
 
@@ -352,41 +321,6 @@
 )
 
 ;; Enumerations and flags ...
-
-(define-enum DTMFEvent
-  (in-module "Fs")
-  (c-name "FsDTMFEvent")
-  (gtype-id "FS_TYPE_DTMF_EVENT")
-  (values
-    '("0" "FS_DTMF_EVENT_0")
-    '("1" "FS_DTMF_EVENT_1")
-    '("2" "FS_DTMF_EVENT_2")
-    '("3" "FS_DTMF_EVENT_3")
-    '("4" "FS_DTMF_EVENT_4")
-    '("5" "FS_DTMF_EVENT_5")
-    '("6" "FS_DTMF_EVENT_6")
-    '("7" "FS_DTMF_EVENT_7")
-    '("8" "FS_DTMF_EVENT_8")
-    '("9" "FS_DTMF_EVENT_9")
-    '("star" "FS_DTMF_EVENT_STAR")
-    '("pound" "FS_DTMF_EVENT_POUND")
-    '("a" "FS_DTMF_EVENT_A")
-    '("b" "FS_DTMF_EVENT_B")
-    '("c" "FS_DTMF_EVENT_C")
-    '("d" "FS_DTMF_EVENT_D")
-  )
-)
-
-(define-enum DTMFMethod
-  (in-module "Fs")
-  (c-name "FsDTMFMethod")
-  (gtype-id "FS_TYPE_DTMF_METHOD")
-  (values
-    '("auto" "FS_DTMF_METHOD_AUTO")
-    '("rtp-rfc4733" "FS_DTMF_METHOD_RTP_RFC4733")
-    '("sound" "FS_DTMF_METHOD_SOUND")
-  )
-)
 
 
 ;; From fs-session.h
@@ -530,32 +464,6 @@
 )
 
 ;; Enumerations and flags ...
-
-(define-flags StreamDirection
-  (in-module "Fs")
-  (c-name "FsStreamDirection")
-  (gtype-id "FS_TYPE_STREAM_DIRECTION")
-  (values
-    '("none" "FS_DIRECTION_NONE")
-    '("send" "FS_DIRECTION_SEND")
-    '("recv" "FS_DIRECTION_RECV")
-    '("both" "FS_DIRECTION_BOTH")
-  )
-)
-
-(define-enum StreamState
-  (in-module "Fs")
-  (c-name "FsStreamState")
-  (gtype-id "FS_TYPE_STREAM_STATE")
-  (values
-    '("failed" "FS_STREAM_STATE_FAILED")
-    '("disconnected" "FS_STREAM_STATE_DISCONNECTED")
-    '("gathering" "FS_STREAM_STATE_GATHERING")
-    '("connecting" "FS_STREAM_STATE_CONNECTING")
-    '("connected" "FS_STREAM_STATE_CONNECTED")
-    '("ready" "FS_STREAM_STATE_READY")
-  )
-)
 
 
 ;; From fs-stream.h
@@ -796,6 +704,15 @@
   )
 )
 
+(define-method set_default_properties
+  (of-object "FsElementAddedNotifier")
+  (c-name "fs_element_added_notifier_set_default_properties")
+  (return-type "none")
+  (parameters
+    '("GstElement*" "element")
+  )
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...
@@ -826,11 +743,6 @@
 
 (define-function fs_dtmf_event_get_type
   (c-name "fs_dtmf_event_get_type")
-  (return-type "GType")
-)
-
-(define-function fs_dtmf_method_get_type
-  (c-name "fs_dtmf_method_get_type")
   (return-type "GType")
 )
 

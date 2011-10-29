@@ -160,6 +160,7 @@ ignore
 %%
 import gobject.GObject as PyGObject_Type
 import gst.GstObject as PyGstObject_Type
+import gst.GstElement as PyGstElement_Type
 import gst.Pad as PyGstPad_Type
 import gst.Bin as PyGstBin_Type
 import gst.Iterator as PyGstIterator_Type
