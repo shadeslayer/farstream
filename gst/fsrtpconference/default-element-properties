@@ -47,3 +47,14 @@ ptime-multiple=20000000
 
 [rtppcmapay]
 ptime-multiple=20000000
+
+# Set appropriate buffer/latency parameters for voip. The key parameter is
+# buffer-time, which determines the latency in the conventional sense (X us of
+# buffering between client and playback/capture. We take a conservatively high
+# value for these to lower CPU load on less powerful systems.
+[pulsesink]
+buffer-time=50000
+latency-time=25000
+
+[pulsesrc]
+buffer-time=50000
