@@ -611,6 +611,9 @@ fs_stream_iterate_src_pads (FsStream *stream)
  * Set the transmitter to use for this stream. This function will only succeed
  * once.
  *
+ * The parameters correspond to the varios GObject properties of the
+ * selected stream transmitter.
+ *
  * Returns: %TRUE if the transmitter could be set, %FALSE otherwise
  */
 
