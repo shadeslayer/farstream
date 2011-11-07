@@ -4990,9 +4990,8 @@ fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
           GST_OBJECT (self->priv->conference),
           gst_structure_new ("farstream-telephony-event-started",
               "session", FS_TYPE_SESSION, self,
-              "type", G_TYPE_INT, 1,
-              "method", G_TYPE_INT, m_method,
-              "event", G_TYPE_INT, m_number,
+              "method", FS_TYPE_DTMF_METHOD, m_method,
+              "event", FS_TYPE_DTMF_EVENT, m_number,
               "volume", G_TYPE_INT, m_volume,
               NULL));
       else
@@ -5000,8 +4999,7 @@ fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
           GST_OBJECT (self->priv->conference),
           gst_structure_new ("farstream-telephony-event-stopped",
               "session", FS_TYPE_SESSION, self,
-              "type", G_TYPE_INT, 1,
-              "method", G_TYPE_INT, m_method,
+              "method", FS_TYPE_DTMF_METHOD, m_method,
               NULL));
     }
     else

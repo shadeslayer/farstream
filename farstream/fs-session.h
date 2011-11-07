@@ -84,6 +84,21 @@ typedef enum _FsDTMFEvent
 } FsDTMFEvent;
 
 /**
+ * FsDTMFMethod:
+ * @FS_DTMF_METHOD_RTP_RFC4733: Send as a special payload type defined by RFC 4733
+ * (which obsoletes RFC 2833)
+ * @FS_DTMF_METHOD_SOUND: Send as tones as in-band audio sound
+ *
+ * An enum that represents the different ways a DTMF event can be sent
+ *
+ */
+typedef enum _FsDTMFMethod
+{
+  FS_DTMF_METHOD_RTP_RFC4733 = 1,
+  FS_DTMF_METHOD_SOUND = 2
+} FsDTMFMethod;
+
+/**
  * FsSessionClass:
  * @parent_class: Our parent
  * @new_stream: Create a new #FsStream

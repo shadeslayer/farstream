@@ -66,6 +66,32 @@
  * #FsSession:codecs-without-config should be enough.
  * </para>
  * </refsect2>
+ * <refsect2><title>The "<literal>farstream-telephony-event-started</literal>"
+ *  message</title>
+ * |[
+ * "session"          #FsSession          The session that emits the message
+ * "method"           #FsDTMFMethod       The method used to send the DTMF
+ * "event"            #FSDTMFEvent        The event number
+ * "volume"           gint                The volume of the event
+ * ]|
+ * <para>
+ * This message is emitted after a succesful call to
+ * fs_session_start_telephony_event() to inform the application that the
+ * telephony event has started.
+ * </para>
+ * </refsect2>
+ * <refsect2><title>The "<literal>farstream-telephony-event-stopped</literal>"
+ *  message</title>
+ * |[
+ * "session"          #FsSession          The session that emits the message
+ * "method"           #FsDTMFMethod       The method used to send the DTMF
+ * ]|
+ * <para>
+ * This message is emitted after a succesful call to
+ * fs_session_stop_telephony_event() to inform the application that the
+ * telephony event has stopped.
+ * </para>
+ * </refsect2>
  * <para>
  */
 
@@ -423,6 +449,9 @@ fs_session_new_stream (FsSession *session,
  * tone) on the #FsSession. You have to call the function
  * fs_session_stop_telephony_event() to stop it.
  *
+ * If this function returns %TRUE, a "farstream-telephony-event-started" will
+ * always be emitted when the event is actually played out.
+ *
  * Returns: %TRUE if sucessful, it can return %FALSE if the #FsStream
  * does not support this telephony event.
  */
@@ -454,6 +483,9 @@ fs_session_start_telephony_event (FsSession *session, guint8 event,
  * duration was a positive and the event is not over, it will cut it
  * short.
  *
+ * If this function returns %TRUE, a "farstream-telephony-event-stopped" will
+ * always be emitted when the event is actually stopped.
+
  * Returns: %TRUE if sucessful, it can return %FALSE if the #FsSession
  * does not support telephony events or if no telephony event is being sent
  */
