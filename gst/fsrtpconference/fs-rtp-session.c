@@ -4891,6 +4891,10 @@ fs_rtp_session_get_codecs_need_resend (FsSession *session,
   return codecs_list_has_codec_config_changed (old_codecs, new_codecs);
 }
 
+/*
+ * TODO: This is horribly too complicated.
+ * What is need is a real async API on dtmfsrc and rtpdtmfsrc
+ */
 
 gboolean
 fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
@@ -5002,8 +5006,8 @@ fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
     }
     else
     {
-      GST_ERROR ("Got dtmf-event-processed message that does not match the"
-          " currently running event");
+      GST_WARNING ("Got dtmf-event-processed message that does not match the"
+          " currently running event, ignoring");
     }
   }
   else if (gst_structure_has_name (ms, "dtmf-event-dropped"))
@@ -5032,7 +5036,7 @@ fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
     }
     else
     {
-      GST_ERROR ("Got dtmf-event-dropped message that does not match the"
+      GST_WARNING ("Got dtmf-event-dropped message that does not match the"
           " currently running event");
     }
   }
