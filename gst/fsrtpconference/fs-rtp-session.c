@@ -4992,7 +4992,7 @@ fs_rtp_session_handle_dtmf_event_message (FsRtpSession *self,
               "session", FS_TYPE_SESSION, self,
               "method", FS_TYPE_DTMF_METHOD, m_method,
               "event", FS_TYPE_DTMF_EVENT, m_number,
-              "volume", G_TYPE_INT, m_volume,
+              "volume", G_TYPE_UCHAR, m_volume,
               NULL));
       else
         post_message = gst_message_new_element (

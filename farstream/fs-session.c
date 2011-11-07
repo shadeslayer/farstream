@@ -72,7 +72,7 @@
  * "session"          #FsSession          The session that emits the message
  * "method"           #FsDTMFMethod       The method used to send the DTMF
  * "event"            #FSDTMFEvent        The event number
- * "volume"           gint                The volume of the event
+ * "volume"           guchar              The volume of the event
  * ]|
  * <para>
  * This message is emitted after a succesful call to
