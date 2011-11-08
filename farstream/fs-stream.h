@@ -187,6 +187,24 @@ gboolean fs_stream_set_transmitter (FsStream *stream,
 
 void fs_stream_destroy (FsStream *stream);
 
+gboolean fs_stream_parse_new_local_candidate (FsStream *stream,
+    GstMessage *message,
+    FsCandidate **candidate);
+gboolean fs_stream_parse_local_candidates_prepared (FsStream *stream,
+    GstMessage *message);
+gboolean fs_stream_parse_new_active_candidate_pair (FsStream *stream,
+    GstMessage *message,
+    FsCandidate **local_candidate,
+    FsCandidate **remote_candidate);
+gboolean fs_stream_parse_recv_codecs_changed (FsStream *stream,
+    GstMessage *message,
+    GList **codecs);
+gboolean fs_stream_parse_component_state_changed (FsStream *stream,
+    GstMessage *message,
+    guint *component,
+    FsStreamState *state);
+
+
 G_END_DECLS
 
 #endif /* __FS_STREAM_H__ */

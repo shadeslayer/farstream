@@ -184,3 +184,60 @@ fs_conference_new_participant (FsConference *conf,
   return klass->new_participant (conf, error);
 }
 
+
+/**
+ * fs_parse_error:
+ * @object: a #GObject to match against the message
+ * @message: a #GstMessage to parse
+ * @error: (out): Returns the #FsError error number in
+ * the message if not %NULL.
+ * @error_msg: (out) (transfer none):Returns the error message if not %NULL
+ *
+ * Parses a "farstream-farstream" message and checks if it matches
+ * the @object parameters.
+ *
+ * Returns: %TRUE if the message matches the object and is valid.
+ */
+gboolean
+fs_parse_error (GObject *object,
+    GstMessage *message,
+    FsError *error,
+    const gchar **error_msg)
+
+{
+  const GstStructure *s;
+  const GValue *value;
+  GObject *message_object;
+
+  g_return_val_if_fail (object != NULL, FALSE);
+
+  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_ELEMENT)
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_name (s, "farstream-error"))
+    return FALSE;
+
+  value = gst_structure_get_value (s, "src-object");
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_OBJECT))
+    return FALSE;
+  message_object = g_value_get_object (value);
+
+  if (object != message_object)
+    return FALSE;
+
+  value = gst_structure_get_value (s, "error-no");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_ERROR))
+    return FALSE;
+  if (error)
+    *error = g_value_get_enum (value);
+
+  value = gst_structure_get_value (s, "error-msg");
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_STRING))
+    return FALSE;
+  if (error_msg)
+    *error_msg = g_value_get_string (value);
+
+  return TRUE;
+}

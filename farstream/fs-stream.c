@@ -661,3 +661,220 @@ fs_stream_destroy (FsStream *stream)
 
   g_object_run_dispose (G_OBJECT (stream));
 }
+
+
+
+static gboolean
+check_message (GstMessage *message,
+    FsStream *stream,
+    const gchar *message_name)
+{
+  const GstStructure *s;
+  const GValue *value;
+  FsStream *message_stream;
+
+  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_ELEMENT)
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_name (s, message_name))
+    return FALSE;
+
+  value = gst_structure_get_value (s, "stream");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_STREAM))
+    return FALSE;
+  message_stream = g_value_get_object (value);
+
+  if (stream != message_stream)
+    return FALSE;
+
+  return TRUE;
+}
+
+/**
+ * fs_stream_parse_new_local_candidate:
+ * @stream: a #FsStream to match against the message
+ * @message: a #GstMessage to parse
+ * @candidate: (out) (transfer none): Returns the #FsCandidate in the message
+ *  if not %NULL.
+ *
+ * Parses a "farstream-new-local-candidate" message and checks if it matches
+ * the @stream parameters.
+ *
+ * Returns: %TRUE if the message matches the stream and is valid.
+ */
+gboolean
+fs_stream_parse_new_local_candidate (FsStream *stream,
+    GstMessage *message,
+    FsCandidate **candidate)
+{
+  const GstStructure *s;
+  const GValue *value;
+
+  g_return_val_if_fail (stream != NULL, FALSE);
+
+  if (!check_message (message, stream, "farstream-new-local-candidate"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  value = gst_structure_get_value (s, "candidate");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_CANDIDATE))
+    return FALSE;
+  if (candidate)
+    *candidate = g_value_get_boxed (value);
+
+  return TRUE;
+}
+
+
+/**
+ * fs_stream_parse_local_candidates_prepared:
+ * @stream: a #FsStream to match against the message
+ * @message: a #GstMessage to parse
+ *
+ * Parses a "farstream-local-candidates-prepared" message and checks if it matches
+ * the @stream parameters.
+ *
+ * Returns: %TRUE if the message matches the stream and is valid.
+ */
+gboolean
+fs_stream_parse_local_candidates_prepared (FsStream *stream,
+    GstMessage *message)
+{
+  g_return_val_if_fail (stream != NULL, FALSE);
+
+  return check_message (message, stream, "farstream-local-candidates-prepared");
+}
+
+
+/**
+ * fs_stream_parse_new_active_candidate_pair:
+ * @stream: a #FsStream to match against the message
+ * @message: a #GstMessage to parse
+ * @local_candidate: (out) (transfer none): Returns the local #FsCandidate in
+ *  the message if not %NULL.
+ * @remote_candidate: (out) (transfer none): Returns the remote #FsCandidate in
+ *  the message if not %NULL.
+ *
+ * Parses a "farstream-new-active-candidate-pair" message and checks
+ * if it matches the @stream parameters.
+ *
+ * Returns: %TRUE if the message matches the stream and is valid.
+ */
+gboolean
+fs_stream_parse_new_active_candidate_pair (FsStream *stream,
+    GstMessage *message,
+    FsCandidate **local_candidate,
+    FsCandidate **remote_candidate)
+{
+  const GstStructure *s;
+  const GValue *value;
+
+  g_return_val_if_fail (stream != NULL, FALSE);
+
+  if (!check_message (message, stream, "farstream-new-active-candidate-pair"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  value = gst_structure_get_value (s, "local-candidate");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_CANDIDATE))
+    return FALSE;
+  if (local_candidate)
+    *local_candidate = g_value_get_boxed (value);
+
+
+  value = gst_structure_get_value (s, "remote-candidate");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_CANDIDATE))
+    return FALSE;
+  if (remote_candidate)
+    *remote_candidate = g_value_get_boxed (value);
+
+  return TRUE;
+}
+
+
+/**
+ * fs_stream_parse_recv_codecs_changed:
+ * @stream: a #FsStream to match against the message
+ * @message: a #GstMessage to parse
+ * @codecs: (out) (transfer none) (element-type FsCodec):
+ *  Returns a #GList of #FsCodec of the message if not %NULL
+ *
+ * Parses a "farstream-recv-codecs-changed" message and checks if it matches
+ * the @stream parameters.
+ *
+ * Returns: %TRUE if the message matches the stream and is valid.
+ */
+gboolean
+fs_stream_parse_recv_codecs_changed (FsStream *stream,
+    GstMessage *message,
+    GList **codecs)
+{
+  const GstStructure *s;
+  const GValue *value;
+
+  g_return_val_if_fail (stream != NULL, FALSE);
+
+  if (!check_message (message, stream, "farstream-recv-codecs-changed"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  value = gst_structure_get_value (s, "codecs");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_CODEC_LIST))
+    return FALSE;
+  if (codecs)
+    *codecs = g_value_get_boxed (value);
+
+  return TRUE;
+}
+
+
+
+/**
+ * fs_stream_parse_component_state_changed:
+ * @stream: a #FsStream to match against the message
+ * @message: a #GstMessage to parse
+ * @component: (out): Returns the component from the #GstMessage if not %NULL
+ * @state: (out): Returns the #FsStreamState from the #GstMessage if not %NULL
+ *
+ * Parses a "farstream-recv-codec-changed" message and checks if it matches
+ * the @stream parameters.
+ *
+ * Returns: %TRUE if the message matches the stream and is valid.
+ */
+gboolean
+fs_stream_parse_component_state_changed (FsStream *stream,
+    GstMessage *message,
+    guint *component,
+    FsStreamState *state)
+{
+  const GstStructure *s;
+  const GValue *value;
+
+  g_return_val_if_fail (stream != NULL, FALSE);
+
+  if (!check_message (message, stream, "farstream-recv-codec-changed"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  value = gst_structure_get_value (s, "component");
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_UINT))
+    return FALSE;
+  if (component)
+    *component = g_value_get_uint (value);
+
+
+  value = gst_structure_get_value (s, "state");
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_UINT))
+    return FALSE;
+  if (state)
+    *state = g_value_get_uint (value);
+
+  return TRUE;
+}
+

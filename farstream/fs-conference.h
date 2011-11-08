@@ -176,6 +176,12 @@ FsSession *fs_conference_new_session (FsConference *conference,
 FsParticipant *fs_conference_new_participant (FsConference *conference,
     GError **error);
 
+gboolean fs_parse_error (GObject *object,
+    GstMessage *message,
+    FsError *error,
+    const gchar **error_msg);
+
+
 
 G_END_DECLS
 
