@@ -42,12 +42,24 @@
  * </para>
  * <refsect2><title>The "<literal>farstream-send-codec-changed</literal>"
  *   message</title>
- * |[
- * "session"          #FsSession          The session that emits the message
- * "codec"            #FsCodec            The new send codec
- * "secondary-codecs" #GList              A #GList of #FsCodec (to be freed
- *                                        with fs_codec_list_destroy())
- * ]|
+ * <table>
+ *  <tr>
+ *   <td><code>"session"</code></td>
+ *   <td>#FsSession</td>
+ *   <td>The session that emits the message</td>
+ *  </tr>
+ *  <tr>
+ *   <td><code>"codec"</code></td>
+ *   <td>#FsCodec</td>
+ *   <td>The new send codec</td>
+ *  </tr>
+ *  <tr>
+ *   <td><code>"secondary-codecs"</code></td>
+ *   <td>#GList</td>
+ *   <td>A #GList of #FsCodec (to be freed with fs_codec_list_destroy())
+ *   </td>
+ *  </tr>
+ * </table>
  * <para>
  * This message is sent on the bus when the value of the
  * #FsSession:current-send-codec property changes.
@@ -55,9 +67,13 @@
  * </refsect2>
  * <refsect2><title>The "<literal>farstream-codecs-changed</literal>"
  *  message</title>
- * |[
- * "session"          #FsSession          The session that emits the message
- * ]|
+ * <table>
+ *  <tr>
+ *   <td><code>"session"</code></td>
+ *   <td>#FsSession</td>
+ *   <td>The session that emits the message</td>
+ *  </tr>
+ * </table>
  * <para>
  * This message is sent on the bus when the value of the
  * #FsSession:codecs or #FsSession:codecs-without-config properties change.
@@ -68,12 +84,28 @@
  * </refsect2>
  * <refsect2><title>The "<literal>farstream-telephony-event-started</literal>"
  *  message</title>
- * |[
- * "session"          #FsSession          The session that emits the message
- * "method"           #FsDTMFMethod       The method used to send the DTMF
- * "event"            #FSDTMFEvent        The event number
- * "volume"           guchar              The volume of the event
- * ]|
+ * <table>
+ *  <tr>
+ *   <td><code>"session"</code></td>
+ *   <td>#FsSession</td>
+ *   <td>The session that emits the message</td>
+ *  </tr>
+ *  <tr>
+ *   <td><code>"method"</code></td>
+ *   <td>#FsDTMFMethod</td>
+ *   <td>The method used to send the DTMF</td>
+ *  </tr>
+ *  <tr>
+ *   <td><code>"event"</code></td>
+ *   <td>#FSDTMFEvent</td>
+ *   <td>The event number</td>
+ *  </tr>
+ *  <tr>
+ *   <td><code>"volume"</code></td>
+ *   <td>guchar</td>
+ *   <td>The volume of the event</td>
+ *  </tr>
+ * </table>
  * <para>
  * This message is emitted after a succesful call to
  * fs_session_start_telephony_event() to inform the application that the
@@ -82,10 +114,18 @@
  * </refsect2>
  * <refsect2><title>The "<literal>farstream-telephony-event-stopped</literal>"
  *  message</title>
- * |[
- * "session"          #FsSession          The session that emits the message
- * "method"           #FsDTMFMethod       The method used to send the DTMF
- * ]|
+ * <table>
+ *  <tr>
+ *   <td><code>"session"</code></td>
+ *   <td>#FsSession</td>
+ *   <td>The session that emits the message</td>
+ *  </tr>
+ *  <tr>
+ *   <td><code>"method"</code></td>
+ *   <td>#FsDTMFMethod</td>
+ *   <td>The method used to send the DTMF</td>
+ *  </tr>
+ * </table>
  * <para>
  * This message is emitted after a succesful call to
  * fs_session_stop_telephony_event() to inform the application that the
@@ -213,7 +253,7 @@ fs_session_class_init (FsSessionClass *klass)
   /**
    * FsSession:codec-preferences:
    *
-   * Type: GLib.List<FsCodec>
+   * Type: GLib.List(FsCodec)
    * Transfer: full
    *
    * This is the current preferences list for the local codecs. It is
@@ -239,7 +279,7 @@ fs_session_class_init (FsSessionClass *klass)
   /**
    * FsSession:codecs:
    *
-   * Type: GLib.List<FsCodec>
+   * Type: GLib.List(FsCodec)
    * Transfer: full
    *
    * This is the list of codecs used for this session. It will include the
@@ -272,7 +312,7 @@ fs_session_class_init (FsSessionClass *klass)
   /**
    * FsSession:codecs-without-config:
    *
-   * Type: GLib.List<FsCodec>
+   * Type: GLib.List(FsCodec)
    * Transfer: full
    *
    * This is the same list of codecs as #FsSession:codecs without
