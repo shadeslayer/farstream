@@ -98,6 +98,7 @@ enum
   PROP_SENDING,
   PROP_PREFERRED_LOCAL_CANDIDATES,
   PROP_CREATE_LOCAL_CANDIDATES,
+  PROP_BUFFER_TIME,
 };
 
 struct _FsShmStreamTransmitterPrivate
@@ -127,6 +128,8 @@ struct _FsShmStreamTransmitterPrivate
 
   ShmSrc **shm_src;
   ShmSink **shm_sink;
+
+  guint64 buffer_time;
 };
 
 #define FS_SHM_STREAM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -227,6 +230,12 @@ fs_shm_stream_transmitter_class_init (FsShmStreamTransmitterClass *klass)
     PROP_CREATE_LOCAL_CANDIDATES,
     pspec);
 
+  pspec = g_param_spec_uint64 ("buffer-time",
+    "BufferTime",
+    "Maximum Size of the outgoing buffer in nanoseconds",
+    0, G_MAXUINT64, 20 * GST_MSECOND,
+    G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY | G_PARAM_STATIC_STRINGS);
+  g_object_class_install_property (gobject_class, PROP_BUFFER_TIME, pspec);
 
   gobject_class->dispose = fs_shm_stream_transmitter_dispose;
   gobject_class->finalize = fs_shm_stream_transmitter_finalize;
@@ -309,6 +318,9 @@ fs_shm_stream_transmitter_get_property (GObject *object,
     case PROP_CREATE_LOCAL_CANDIDATES:
       g_value_set_boolean (value, self->priv->create_local_candidates);
       break;
+    case PROP_BUFFER_TIME:
+      g_value_set_uint64 (value, self->priv->buffer_time);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -343,6 +355,9 @@ fs_shm_stream_transmitter_set_property (GObject *object,
       break;
     case PROP_CREATE_LOCAL_CANDIDATES:
       self->priv->create_local_candidates = g_value_get_boolean (value);
+      break;
+    case PROP_BUFFER_TIME:
+      self->priv->buffer_time = g_value_get_uint64 (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -414,7 +429,8 @@ fs_shm_stream_transmitter_add_sink (FsShmStreamTransmitter *self,
 
   self->priv->shm_sink[candidate->component_id] =
     fs_shm_transmitter_get_shm_sink (self->priv->transmitter,
-        candidate->component_id, candidate->ip, ready_cb, connected_cb,
+        candidate->component_id, candidate->ip, self->priv->buffer_time,
+        ready_cb, connected_cb,
         self, error);
 
   if (self->priv->shm_sink[candidate->component_id] == NULL)
@@ -571,7 +587,8 @@ fs_shm_stream_transmitter_gather_local_candidates (
 
       self->priv->shm_sink[c] =
         fs_shm_transmitter_get_shm_sink (self->priv->transmitter,
-          c, path, ready_cb, connected_cb, self, error);
+          c, path, self->priv->buffer_time,
+          ready_cb, connected_cb, self, error);
       g_free (path);
 
       if (self->priv->shm_sink[c] == NULL)
