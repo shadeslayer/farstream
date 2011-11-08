@@ -708,3 +708,173 @@ fs_session_destroy (FsSession *session)
 
   g_object_run_dispose (G_OBJECT (session));
 }
+
+static gboolean
+check_message (GstMessage *message,
+    FsSession *session,
+    const gchar *message_name)
+{
+  const GstStructure *s;
+  const GValue *value;
+  FsSession *message_session;
+
+  if (GST_MESSAGE_TYPE (message) != GST_MESSAGE_ELEMENT)
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_name (s, message_name))
+    return FALSE;
+
+  value = gst_structure_get_value (s, "session");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_SESSION))
+    return FALSE;
+  message_session = g_value_get_object (value);
+
+  if (session != message_session)
+    return FALSE;
+
+  return TRUE;
+}
+
+/**
+ * fs_session_parse_send_codec_changed:
+ * @message: a #GstMessage to parse
+ * @session: a #FsSession to match against the message
+ * @codec: (out) (transfer none): Returns the #FsCodec in the message if not
+ *   %NULL.
+ * @secondary_codec: (out) (transfer none) (element-type FsCodec):
+ *  Returns a #GList of #FsCodec of the message if not %NULL
+ *
+ * Parses a "farstream-send-codec-changed" message and checks if it matches
+ * the @session parameters.
+ *
+ * Returns: %TRUE if the message matches the session and is valid.
+ */
+gboolean
+fs_session_parse_send_codec_changed (GstMessage *message, FsSession *session,
+    FsCodec **codec, GList **secondary_codecs)
+{
+  const GstStructure *s;
+  const GValue *value;
+
+  g_return_val_if_fail (session != NULL, FALSE);
+
+  if (!check_message (message, session, "farstream-send-codec-changed"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  value = gst_structure_get_value (s, "codec");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_CODEC))
+    return FALSE;
+  if (codec)
+    *codec = g_value_get_boxed (value);
+
+  value = gst_structure_get_value (s, "secondary-codecs");
+  if (!value || !G_VALUE_HOLDS (value, FS_TYPE_CODEC_LIST))
+    return FALSE;
+  if (secondary_codecs)
+    *secondary_codecs = g_value_get_boxed (value);
+
+  return TRUE;
+}
+
+
+/**
+ * fs_session_parse_codecs_changed:
+ * @message: a #GstMessage to parse
+ * @session: a #FsSession to match against the message
+ *
+ * Parses a "farstream-codecs-changed" message and checks if it matches
+ * the @session parameters.
+ *
+ * Returns: %TRUE if the message matches the session and is valid.
+ */
+gboolean
+fs_session_parse_codecs_changed (GstMessage *message, FsSession *session)
+{
+  g_return_val_if_fail (session != NULL, FALSE);
+
+  return check_message (message, session, "farstream-codecs-changed");
+}
+
+/**
+ * fs_session_parse_telephony_event_started:
+ * @message: a #GstMessage to parse
+ * @session: a #FsSession to match against the message
+ * @method: (out): Returns the #FsDTMFMethod in the message if not %NULL.
+ * @event: (out): Returns the #FsDTMFEvent in the message if not %NULL.
+ * @volume: (out): Returns the volume in the message if not %NULL.
+ *
+ * Parses a "farstream-telephony-event-started" message and checks if it matches
+ * the @session parameters.
+ *
+ * Returns: %TRUE if the message matches the session and is valid.
+ */
+gboolean
+fs_session_parse_telephony_event_started (GstMessage *message,
+    FsSession *session, FsDTMFMethod *method, FsDTMFEvent *event,
+    guint8 *volume)
+{
+  const GstStructure *s;
+  const GValue *value;
+
+  g_return_val_if_fail (session != NULL, FALSE);
+
+  if (!check_message (message, session, "farstream-telephony-event-started"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_field_typed (s, "method", FS_TYPE_DTMF_METHOD))
+    return FALSE;
+  if (method)
+    gst_structure_get_enum (s, "method", FS_TYPE_DTMF_METHOD, (gint*) method);
+
+  if (!gst_structure_has_field_typed (s, "event", FS_TYPE_DTMF_EVENT))
+    return FALSE;
+  if (event)
+    gst_structure_get_enum (s, "event", FS_TYPE_DTMF_EVENT, (gint*) event);
+
+  value = gst_structure_get_value (s, "volume");
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_UCHAR));
+    return FALSE;
+  if (volume)
+    *volume = g_value_get_uchar (value);
+
+  return TRUE;
+}
+
+
+/**
+ * fs_session_parse_telephony_event_stopped:
+ * @message: a #GstMessage to parse
+ * @session: a #FsSession to match against the message
+ * @method: (out): Returns the #FsDTMFMethod in the message if not %NULL.
+ *
+ * Parses a "farstream-telephony-event-stopped" message and checks if it matches
+ * the @session parameters.
+ *
+ * Returns: %TRUE if the message matches the session and is valid.
+ */
+gboolean
+fs_session_parse_telephony_event_stopped (GstMessage *message,
+    FsSession *session, FsDTMFMethod *method)
+{
+  const GstStructure *s;
+
+  g_return_val_if_fail (session != NULL, FALSE);
+
+  if (!check_message (message, session, "farstream-telephony-event-stopped"))
+    return FALSE;
+
+  s = gst_message_get_structure (message);
+
+  if (!gst_structure_has_field_typed (s, "method", FS_TYPE_DTMF_METHOD))
+    return FALSE;
+  if (method)
+    gst_structure_get_enum (s, "method", FS_TYPE_DTMF_METHOD, (gint*) method);
+
+  return TRUE;
+}

@@ -65,6 +65,10 @@ fs_session_list_transmitters
 fs_session_get_stream_transmitter_type
 fs_session_codecs_need_resend
 fs_session_emit_error
+fs_session_parse_codecs_changed
+fs_session_parse_send_codec_changed
+fs_session_parse_telephony_event_started
+fs_session_parse_telephony_event_stopped
 <SUBSECTION Standard>
 FS_SESSION
 FS_IS_SESSION

@@ -196,6 +196,26 @@ GList* fs_session_codecs_need_resend (FsSession *session,
 void fs_session_destroy (FsSession *session);
 
 
+gboolean fs_session_parse_send_codec_changed (GstMessage *message,
+    FsSession *session,
+    FsCodec **codec,
+    GList **secondary_codecs);
+
+gboolean fs_session_parse_codecs_changed (GstMessage *message,
+    FsSession *session);
+
+gboolean fs_session_parse_telephony_event_started (GstMessage *message,
+    FsSession *session,
+    FsDTMFMethod *method,
+    FsDTMFEvent *event,
+    guint8 *volume);
+
+gboolean fs_session_parse_telephony_event_stopped (GstMessage *message,
+    FsSession *session,
+    FsDTMFMethod *method);
+
+
+
 G_END_DECLS
 
 #endif /* __FS_SESSION_H__ */
