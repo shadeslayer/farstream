@@ -259,7 +259,7 @@ fs_rtp_stream_get_stream_transmitter (FsRtpStream *self, GError **error)
 
   if (!st)
     g_set_error (error, FS_ERROR, FS_ERROR_DISPOSED,
-        "Called function after stream has been disposed");
+        "Stream transmitter not set (or stream has been disposed)");
 
   g_object_unref (session);
   return st;
