@@ -841,7 +841,7 @@ fs_stream_parse_recv_codecs_changed (FsStream *stream,
  * @component: (out): Returns the component from the #GstMessage if not %NULL
  * @state: (out): Returns the #FsStreamState from the #GstMessage if not %NULL
  *
- * Parses a "farstream-recv-codec-changed" message and checks if it matches
+ * Parses a "farstream-component-state-changed" message and checks if it matches
  * the @stream parameters.
  *
  * Returns: %TRUE if the message matches the stream and is valid.
@@ -857,7 +857,7 @@ fs_stream_parse_component_state_changed (FsStream *stream,
 
   g_return_val_if_fail (stream != NULL, FALSE);
 
-  if (!check_message (message, stream, "farstream-recv-codec-changed"))
+  if (!check_message (message, stream, "farstream-component-state-changed"))
     return FALSE;
 
   s = gst_message_get_structure (message);
@@ -870,10 +870,10 @@ fs_stream_parse_component_state_changed (FsStream *stream,
 
 
   value = gst_structure_get_value (s, "state");
-  if (!value || !G_VALUE_HOLDS (value, G_TYPE_UINT))
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_ENUM))
     return FALSE;
   if (state)
-    *state = g_value_get_uint (value);
+    *state = g_value_get_enum (value);
 
   return TRUE;
 }
