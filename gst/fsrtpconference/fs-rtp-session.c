@@ -1644,7 +1644,7 @@ _stream_sending_changed_locked (FsRtpStream *stream, gboolean sending,
 
   if (session->priv->rtp_tfrc)
     g_object_set (session->priv->rtp_tfrc, "sending",
-        session->priv->streams_sending, NULL);
+        (session->priv->streams_sending > 0), NULL);
 
   fs_rtp_session_has_disposed_exit (session);
 }
