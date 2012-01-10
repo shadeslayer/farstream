@@ -91,6 +91,7 @@ enum
 enum
 {
   PROP_0,
+  PROP_CONFERENCE,
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
@@ -98,7 +99,6 @@ enum
   PROP_CODECS,
   PROP_CODECS_WITHOUT_CONFIG,
   PROP_CURRENT_SEND_CODEC,
-  PROP_CONFERENCE,
   PROP_NO_RTCP_TIMEOUT,
   PROP_SSRC,
   PROP_TOS,
@@ -348,6 +348,8 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
   session_class->codecs_need_resend = fs_rtp_session_get_codecs_need_resend;
 
   g_object_class_override_property (gobject_class,
+    PROP_CONFERENCE, "conference");
+  g_object_class_override_property (gobject_class,
     PROP_MEDIA_TYPE, "media-type");
   g_object_class_override_property (gobject_class,
     PROP_ID, "id");
@@ -363,14 +365,6 @@ fs_rtp_session_class_init (FsRtpSessionClass *klass)
     PROP_CURRENT_SEND_CODEC, "current-send-codec");
   g_object_class_override_property (gobject_class,
     PROP_TOS, "tos");
-
-  g_object_class_install_property (gobject_class,
-    PROP_CONFERENCE,
-    g_param_spec_object ("conference",
-      "The Conference this stream refers to",
-      "This is a convience pointer for the Conference",
-      FS_TYPE_RTP_CONFERENCE,
-      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class,
       PROP_NO_RTCP_TIMEOUT,

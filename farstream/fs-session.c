@@ -162,6 +162,7 @@ enum
 enum
 {
   PROP_0,
+  PROP_CONFERENCE,
   PROP_MEDIA_TYPE,
   PROP_ID,
   PROP_SINK_PAD,
@@ -203,6 +204,22 @@ fs_session_class_init (FsSessionClass *klass)
 
   gobject_class->set_property = fs_session_set_property;
   gobject_class->get_property = fs_session_get_property;
+
+
+  /**
+   * FsSession:conference:
+   *
+   * The #FsConference parent of this session. This property is a
+   * construct param and is read-only.
+   *
+   */
+  g_object_class_install_property (gobject_class,
+    PROP_CONFERENCE,
+    g_param_spec_object ("conference",
+      "The FsConference",
+      "The Conference this stream refers to",
+      FS_TYPE_CONFERENCE,
+      G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * FsSession:media-type:

@@ -217,14 +217,8 @@ fs_raw_session_class_init (FsRawSessionClass *klass)
       PROP_CURRENT_SEND_CODEC, "current-send-codec");
   g_object_class_override_property (gobject_class,
       PROP_TOS, "tos");
-
-  g_object_class_install_property (gobject_class,
-      PROP_CONFERENCE,
-      g_param_spec_object ("conference",
-          "The Conference this stream refers to",
-          "This is a convience pointer for the Conference",
-          FS_TYPE_RAW_CONFERENCE,
-          G_PARAM_CONSTRUCT_ONLY | G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+  g_object_class_override_property (gobject_class,
+      PROP_CONFERENCE, "conference");
 
   gobject_class->dispose = fs_raw_session_dispose;
   gobject_class->finalize = fs_raw_session_finalize;
