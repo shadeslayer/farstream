@@ -95,6 +95,7 @@ fs_conference_new_participant
 FS_ERROR
 FsError
 FS_ERROR_IS_FATAL
+fs_parse_error
 <SUBSECTION Standard>
 FS_CONFERENCE
 FS_IS_CONFERENCE
@@ -203,6 +204,11 @@ fs_stream_transmitter_gather_local_candidates
 fs_stream_transmitter_force_remote_candidates
 fs_stream_transmitter_stop
 fs_stream_transmitter_emit_error
+fs_stream_parse_component_state_changed
+fs_stream_parse_local_candidates_prepared
+fs_stream_parse_new_active_candidate_pair
+fs_stream_parse_new_local_candidate
+fs_stream_parse_recv_codecs_changed
 <SUBSECTION Standard>
 FS_IS_STREAM_TRANSMITTER
 FS_IS_STREAM_TRANSMITTER_CLASS
