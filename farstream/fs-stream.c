@@ -176,7 +176,7 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream:remote-codecs:
    *
-   * Type: GLib.List<FsCodec>
+   * Type: GLib.List(FsCodec)
    * Transfer: full
    *
    * This is the list of remote codecs for this stream. They must be set by the
@@ -195,7 +195,7 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream:negotiated-codecs:
    *
-   * Type: GLib.List<FsCodec>
+   * Type: GLib.List(FsCodec)
    * Transfer: full
    *
    * This is the list of negotiatied codecs, it is the same list as the list
@@ -216,7 +216,7 @@ fs_stream_class_init (FsStreamClass *klass)
   /**
    * FsStream:current-recv-codecs:
    *
-   * Type: GLib.List<FsCodec>
+   * Type: GLib.List(FsCodec)
    * Transfer: full
    *
    * This is the list of codecs that have been received by this stream.

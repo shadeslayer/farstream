@@ -717,8 +717,10 @@ fs_session_get_stream_transmitter_type (FsSession *session,
 /**
  * fs_session_codecs_need_resend:
  * @session: a #FsSession
- * @old_codecs: Codecs previously retrieved from the #FsSession:codecs property
- * @new_codecs: Codecs recently retrieved from the #FsSession:codecs property
+ * @old_codecs: (element-type FsCodec) (transfer none):
+ *  Codecs previously retrieved from the #FsSession:codecs property
+ * @new_codecs: (element-type FsCodec) (transfer none):
+ *   Codecs recently retrieved from the #FsSession:codecs property
  *
  * Some codec updates need to be reliably transmitted to the other side
  * because they contain important parameters required to decode the media.
@@ -800,7 +802,7 @@ check_message (GstMessage *message,
  * @message: a #GstMessage to parse
  * @codec: (out) (transfer none): Returns the #FsCodec in the message if not
  *   %NULL.
- * @secondary_codec: (out) (transfer none) (element-type FsCodec):
+ * @secondary_codecs: (out) (transfer none) (element-type FsCodec):
  *  Returns a #GList of #FsCodec of the message if not %NULL
  *
  * Parses a "farstream-send-codec-changed" message and checks if it matches

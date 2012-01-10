@@ -39,7 +39,7 @@
 
 #define GST_CAT_DEFAULT fsrtpconference_debug
 
-/**
+/*
  * SECTION:fs-rtp-special-source
  * @short_description: Base class to abstract how special sources are handled
  *

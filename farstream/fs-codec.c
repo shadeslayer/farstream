@@ -240,7 +240,8 @@ fs_codec_list_destroy (GList *codec_list)
 
 /**
  * fs_codec_list_copy:
- * @codec_list: a GList of #FsCodec to copy
+ * @codec_list: (transfer none) (element-type FsCodec):
+ *   a GList of #FsCodec to copy
  *
  * Copies a list of #FsCodec structures.
  *
@@ -843,7 +844,8 @@ fs_codec_get_feedback_parameter (FsCodec *codec,
 /**
  * fs_codec_remove_feedback_parameter:
  * @codec: a #FsCodec
- * @item: a pointer to the #GList element to remove that contains a
+ * @item: (transfer none) (element-type FsFeedbackParameter):
+ *    a pointer to the #GList element to remove that contains a
  * #FsFeedbackParameter
  *
  * Removes an optional parameter from a codec.
