@@ -445,7 +445,7 @@ fs_rtp_session_init (FsRtpSession *self)
   g_queue_init (&self->priv->telephony_events);
 }
 
-static gboolean
+static void
 _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
 {
   FsRtpSession *self = FS_RTP_SESSION (user_data);
@@ -464,8 +464,6 @@ _remove_transmitter (gpointer key, gpointer value, gpointer user_data)
 
   gst_object_unref (src);
   gst_object_unref (sink);
-
-  return TRUE;
 }
 
 static void
@@ -716,11 +714,8 @@ fs_rtp_session_dispose (GObject *obj)
 
   if (self->priv->transmitters)
   {
-    g_hash_table_foreach_remove (self->priv->transmitters, _remove_transmitter,
+    g_hash_table_foreach (self->priv->transmitters, _remove_transmitter,
       self);
-
-    g_hash_table_destroy (self->priv->transmitters);
-    self->priv->transmitters = NULL;
   }
 
   if (self->priv->free_substreams)
@@ -750,6 +745,11 @@ fs_rtp_session_dispose (GObject *obj)
   g_hash_table_remove_all (self->priv->ssrc_streams);
   g_hash_table_remove_all (self->priv->ssrc_streams_manual);
 
+  if (self->priv->transmitters)
+  {
+    g_hash_table_destroy (self->priv->transmitters);
+    self->priv->transmitters = NULL;
+  }
 
   G_OBJECT_CLASS (fs_rtp_session_parent_class)->dispose (obj);
 }
