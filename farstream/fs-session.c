@@ -901,7 +901,7 @@ fs_session_parse_telephony_event_started (FsSession *session,
     gst_structure_get_enum (s, "event", FS_TYPE_DTMF_EVENT, (gint*) event);
 
   value = gst_structure_get_value (s, "volume");
-  if (!value || !G_VALUE_HOLDS (value, G_TYPE_UCHAR));
+  if (!value || !G_VALUE_HOLDS (value, G_TYPE_UCHAR))
     return FALSE;
   if (volume)
     *volume = g_value_get_uchar (value);
