@@ -310,6 +310,17 @@
   )
 )
 
+(define-function fs_parse_error
+  (c-name "fs_parse_error")
+  (return-type "gboolean")
+  (parameters
+    '("GObject*" "object")
+    '("GstMessage*" "message")
+    '("FsError*" "error")
+    '("const-gchar**" "error_msg")
+  )
+)
+
 
 ;; -*- scheme -*-
 ; object definitions ...
@@ -427,6 +438,52 @@
   (unblock-threads t)
   (c-name "fs_session_destroy")
   (return-type "none")
+)
+
+(define-method parse_send_codec_changed
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_parse_send_codec_changed")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("FsCodec**" "codec")
+    '("GList**" "secondary_codecs")
+  )
+)
+
+(define-method parse_codecs_changed
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_parse_codecs_changed")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+  )
+)
+
+(define-method parse_telephony_event_started
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_parse_telephony_event_started")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("FsDTMFMethod*" "method")
+    '("FsDTMFEvent*" "event")
+    '("guint8*" "volume")
+  )
+)
+
+(define-method parse_telephony_event_stopped
+  (of-object "FsSession")
+  (unblock-threads t)
+  (c-name "fs_session_parse_telephony_event_stopped")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("FsDTMFMethod*" "method")
+  )
 )
 
 
@@ -559,6 +616,62 @@
   (unblock-threads t)
   (c-name "fs_stream_destroy")
   (return-type "none")
+)
+
+(define-method parse_new_local_candidate
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_parse_new_local_candidate")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("FsCandidate**" "candidate")
+  )
+)
+
+(define-method parse_local_candidates_prepared
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_parse_local_candidates_prepared")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+  )
+)
+
+(define-method parse_new_active_candidate_pair
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_parse_new_active_candidate_pair")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("FsCandidate**" "local_candidate")
+    '("FsCandidate**" "remote_candidate")
+  )
+)
+
+(define-method parse_recv_codecs_changed
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_parse_recv_codecs_changed")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("GList**" "codecs")
+  )
+)
+
+(define-method parse_component_state_changed
+  (of-object "FsStream")
+  (unblock-threads t)
+  (c-name "fs_stream_parse_component_state_changed")
+  (return-type "gboolean")
+  (parameters
+    '("GstMessage*" "message")
+    '("guint*" "component")
+    '("FsStreamState*" "state")
+  )
 )
 
 
@@ -739,6 +852,11 @@
 
 (define-function fs_dtmf_event_get_type
   (c-name "fs_dtmf_event_get_type")
+  (return-type "GType")
+)
+
+(define-function fs_dtmf_method_get_type
+  (c-name "fs_dtmf_method_get_type")
   (return-type "GType")
 )
 
