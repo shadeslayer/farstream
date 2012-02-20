@@ -47,7 +47,7 @@ G_BEGIN_DECLS
  *
  * An enum for the type of candidate used/reported
  */
-typedef enum _FsCandidateType
+typedef enum
 {
   FS_CANDIDATE_TYPE_HOST,
   FS_CANDIDATE_TYPE_SRFLX,
@@ -63,7 +63,7 @@ typedef enum _FsCandidateType
  *
  * An enum for the base IP protocol
  */
-typedef enum _FsNetworkProtocol
+typedef enum
 {
   FS_NETWORK_PROTOCOL_UDP,
   FS_NETWORK_PROTOCOL_TCP
@@ -78,7 +78,7 @@ typedef enum _FsNetworkProtocol
  * This enum contains the component IDs defined in ICE-19
  */
 
-typedef enum _FsComponentType
+typedef enum
 {
   FS_COMPONENT_NONE = 0,
   FS_COMPONENT_RTP = 1,

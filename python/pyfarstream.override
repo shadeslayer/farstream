@@ -159,8 +159,8 @@ ignore
 	fs_codec_list_are_equal
 %%
 import gobject.GObject as PyGObject_Type
-import gst.GstObject as PyGstObject_Type
-import gst.GstElement as PyGstElement_Type
+import gst.Object as PyGstObject_Type
+import gst.Element as PyGstElement_Type
 import gst.Pad as PyGstPad_Type
 import gst.Bin as PyGstBin_Type
 import gst.Iterator as PyGstIterator_Type
@@ -172,6 +172,8 @@ pyg_register_gtype_custom (FS_TYPE_CODEC_LIST,
 pyg_register_gtype_custom (FS_TYPE_CANDIDATE_LIST,
     _fs_candidate_list_from_value,
     _fs_candidate_list_to_value);
+%%
+dynamicnamespace
 %%
 override-slot FsCodec.tp_setattr
 static int
@@ -896,7 +898,7 @@ _wrap_fs_stream_set_transmitter(PyGObject *self, PyObject *args,
     Py_BEGIN_ALLOW_THREADS
     g_object_get (pygobject_get (self), "session", &session, NULL);
     st_type = fs_session_get_stream_transmitter_type (
-        FS_SESSION (pygobject_get (self)), transmitter_name);
+        FS_SESSION (session), transmitter_name);
     g_object_unref (session);
     Py_END_ALLOW_THREADS
 

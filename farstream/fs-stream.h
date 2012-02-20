@@ -43,7 +43,7 @@ G_BEGIN_DECLS
  * An enum for specifying the direction of a stream
  *
  */
-typedef enum _FsStreamDirection
+typedef enum
 {
   FS_DIRECTION_NONE = 0,
   FS_DIRECTION_SEND = 1<<0,
@@ -66,7 +66,7 @@ typedef enum _FsStreamDirection
  * An stream using an ICE transmitter would use all of these.
  */
 
-typedef enum _FsStreamState
+typedef enum
 {
   FS_STREAM_STATE_FAILED,
   FS_STREAM_STATE_DISCONNECTED,

@@ -1,9 +1,3 @@
-(define-interface Conference
-  (in-module "Fs")
-  (c-name "FsConference")
-  (gtype-id "FS_TYPE_CONFERENCE")
-)
-
 (define-boxed Codec
   (in-module "Fs")
   (c-name "FsCodec")

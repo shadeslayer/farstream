@@ -1,9 +1,3 @@
-(define-interface Conference
-  (in-module "Fs")
-  (c-name "FsConference")
-  (gtype-id "FS_TYPE_CONFERENCE")
-)
-
 (define-boxed Codec
   (in-module "Fs")
   (c-name "FsCodec")
@@ -22,6 +16,17 @@
 ;; -*- scheme -*-
 ; object definitions ...
 ;; Enumerations and flags ...
+
+(define-enum MediaType
+  (in-module "Fs")
+  (c-name "FsMediaType")
+  (gtype-id "FS_TYPE_MEDIA_TYPE")
+  (values
+    '("audio" "FS_MEDIA_TYPE_AUDIO")
+    '("video" "FS_MEDIA_TYPE_VIDEO")
+    '("last" "FS_MEDIA_TYPE_LAST")
+  )
+)
 
 
 ;; From fs-codec.h
@@ -214,6 +219,40 @@
 ; object definitions ...
 ;; Enumerations and flags ...
 
+(define-enum CandidateType
+  (in-module "Fs")
+  (c-name "FsCandidateType")
+  (gtype-id "FS_TYPE_CANDIDATE_TYPE")
+  (values
+    '("host" "FS_CANDIDATE_TYPE_HOST")
+    '("srflx" "FS_CANDIDATE_TYPE_SRFLX")
+    '("prflx" "FS_CANDIDATE_TYPE_PRFLX")
+    '("relay" "FS_CANDIDATE_TYPE_RELAY")
+    '("multicast" "FS_CANDIDATE_TYPE_MULTICAST")
+  )
+)
+
+(define-enum NetworkProtocol
+  (in-module "Fs")
+  (c-name "FsNetworkProtocol")
+  (gtype-id "FS_TYPE_NETWORK_PROTOCOL")
+  (values
+    '("udp" "FS_NETWORK_PROTOCOL_UDP")
+    '("tcp" "FS_NETWORK_PROTOCOL_TCP")
+  )
+)
+
+(define-enum ComponentType
+  (in-module "Fs")
+  (c-name "FsComponentType")
+  (gtype-id "FS_TYPE_COMPONENT_TYPE")
+  (values
+    '("none" "FS_COMPONENT_NONE")
+    '("rtp" "FS_COMPONENT_RTP")
+    '("rtcp" "FS_COMPONENT_RTCP")
+  )
+)
+
 
 ;; From fs-candidate.h
 
@@ -272,7 +311,34 @@
 
 ;; -*- scheme -*-
 ; object definitions ...
+(define-object Conference
+  (in-module "Fs")
+  (parent "GstBin")
+  (c-name "FsConference")
+  (gtype-id "FS_TYPE_CONFERENCE")
+)
+
 ;; Enumerations and flags ...
+
+(define-enum Error
+  (in-module "Fs")
+  (c-name "FsError")
+  (gtype-id "FS_TYPE_ERROR")
+  (values
+    '("construction" "FS_ERROR_CONSTRUCTION")
+    '("internal" "FS_ERROR_INTERNAL")
+    '("invalid-arguments" "FS_ERROR_INVALID_ARGUMENTS")
+    '("network" "FS_ERROR_NETWORK")
+    '("not-implemented" "FS_ERROR_NOT_IMPLEMENTED")
+    '("negotiation-failed" "FS_ERROR_NEGOTIATION_FAILED")
+    '("unknown-codec" "FS_ERROR_UNKNOWN_CODEC")
+    '("no-codecs" "FS_ERROR_NO_CODECS")
+    '("no-codecs-left" "FS_ERROR_NO_CODECS_LEFT")
+    '("connection-failed" "FS_ERROR_CONNECTION_FAILED")
+    '("disposed" "FS_ERROR_DISPOSED")
+    '("already-exists" "FS_ERROR_ALREADY_EXISTS")
+  )
+)
 
 
 ;; From fs-conference.h
@@ -517,6 +583,32 @@
 )
 
 ;; Enumerations and flags ...
+
+(define-flags StreamDirection
+  (in-module "Fs")
+  (c-name "FsStreamDirection")
+  (gtype-id "FS_TYPE_STREAM_DIRECTION")
+  (values
+    '("none" "FS_DIRECTION_NONE")
+    '("send" "FS_DIRECTION_SEND")
+    '("recv" "FS_DIRECTION_RECV")
+    '("both" "FS_DIRECTION_BOTH")
+  )
+)
+
+(define-enum StreamState
+  (in-module "Fs")
+  (c-name "FsStreamState")
+  (gtype-id "FS_TYPE_STREAM_STATE")
+  (values
+    '("failed" "FS_STREAM_STATE_FAILED")
+    '("disconnected" "FS_STREAM_STATE_DISCONNECTED")
+    '("gathering" "FS_STREAM_STATE_GATHERING")
+    '("connecting" "FS_STREAM_STATE_CONNECTING")
+    '("connected" "FS_STREAM_STATE_CONNECTED")
+    '("ready" "FS_STREAM_STATE_READY")
+  )
+)
 
 
 ;; From fs-stream.h
