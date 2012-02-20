@@ -11,7 +11,8 @@ pipeline.add (conference)
 
 session = conference.new_session (farstream.MEDIA_TYPE_VIDEO)
 participant = conference.new_participant ()
-stream = session.new_stream (participant, farstream.DIRECTION_BOTH, "multicast")
+stream = session.new_stream (participant, farstream.DIRECTION_BOTH)
+stream.set_transmitter("multicast")
 
 stream.set_remote_codecs([farstream.Codec(96, "H263-1998",
                                          farstream.MEDIA_TYPE_VIDEO,

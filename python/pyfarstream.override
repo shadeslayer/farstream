@@ -862,3 +862,112 @@ _wrap_fs_stream_force_remote_candidates (PyGObject *self, PyObject *arg)
   return PyBool_FromLong (ret);
 }
 %%
+override fs_stream_set_transmitter kwargs
+static PyObject *
+_wrap_fs_stream_set_transmitter(PyGObject *self, PyObject *args,
+    PyObject *kwargs)
+{
+  static char *kwlist[] = {"transmitter", "transmitter_parameters", NULL};
+  const gchar *transmitter_name = NULL;
+  PyObject *st_params = NULL;
+  Py_ssize_t pos = 0, i = 0;
+  PyObject *key, *value;
+  GObjectClass *st_class  = NULL;
+  GError *error = NULL;
+  FsSession *session = NULL;
+  guint n_parameters = 0;
+  GParameter *parameters = NULL;
+  gboolean ret = FALSE;
+
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs,
+          "z|O!:FsStream.set_transmitter",
+          kwlist,
+          &transmitter_name,
+          &PyDict_Type, &st_params))
+    return NULL;
+
+  if (!transmitter_name)
+    return NULL;
+
+  if (st_params)
+  {
+    GType st_type = 0;
+
+    Py_BEGIN_ALLOW_THREADS
+    g_object_get (pygobject_get (self), "session", &session, NULL);
+    st_type = fs_session_get_stream_transmitter_type (
+        FS_SESSION (pygobject_get (self)), transmitter_name);
+    g_object_unref (session);
+    Py_END_ALLOW_THREADS
+
+    if (!st_type)
+      goto error;
+
+    st_class = g_type_class_ref (st_type);
+
+    n_parameters = PyDict_Size (st_params);
+    parameters = g_new0 (GParameter, n_parameters);
+    while (PyDict_Next(st_params, &pos, &key, &value))
+    {
+      GParamSpec *spec;
+
+      if (!PyString_Check (key))
+      {
+        PyErr_SetString (PyExc_TypeError,
+            "Expected Stream Parameter key to be a string");
+        goto error;
+      }
+
+      spec = g_object_class_find_property (st_class, PyString_AsString (key));
+
+      if (!spec)
+      {
+        PyErr_Format (PyExc_TypeError, "Received unknown key %s",
+            PyString_AsString (key));
+        goto error;
+     }
+
+      g_value_init (&parameters[i].value, G_PARAM_SPEC_VALUE_TYPE(spec));
+
+      parameters[i].name = PyString_AsString (key);
+
+      if (pyg_value_from_pyobject (&parameters[i].value , value) < 0)
+      {
+        PyErr_Format (PyExc_TypeError, "Expected parameter %s to be a %s",
+            PyString_AsString (key),
+            g_type_name (G_PARAM_SPEC_VALUE_TYPE(spec)));
+        goto error;
+      }
+
+      i++;
+    }
+  }
+
+  Py_BEGIN_ALLOW_THREADS
+  ret = fs_stream_set_transmitter (FS_STREAM (pygobject_get (self)),
+      transmitter_name, parameters, n_parameters, &error);
+  Py_END_ALLOW_THREADS
+
+  if (!ret)
+   goto error;
+
+  if (parameters)
+  {
+    g_type_class_unref (st_class);
+    g_free (parameters);
+  }
+
+  return PyBool_FromLong (ret);
+
+ error:
+  if (error)
+    pyg_error_check (&error);
+
+  if (st_class)
+    g_type_class_unref (st_class);
+  if (parameters)
+    g_free (parameters);
+
+  return PyBool_FromLong (ret);
+}
+%%
