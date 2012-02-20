@@ -1,0 +1,43 @@
+farstream 0.1.1 (February 20, 2012)
+===================================
+
+- Initial release of Farstream
+- Not parallel installable with Farsight2
+- Added GObject Introspection annotations
+- Added parser functions for the GstMessages
+- shm transmiiter:Add a property to control the maximum bufferring time
+- API changes from Farsight2:
+
+ * Remove the "error" signal from the participants (they have no
+   methods, no behavior, and emit no errors)
+ * Remove the "cname" parameter from the participant constructor and
+   make the "cname" property specific to RTP and remove it from
+   fs_conference_new_participant()
+ * Remove the debug msg in the error messages
+ * Remove the special hack for ptime in FsCodec and make it a regular
+   parameter
+ * Pass sdes struct as-is to fsrtpconference
+ * Replace FS_DTMF_METHOD_IN_BAND with FS_DTMF_METHOD_SOUND
+ * Return NULL in "codecs" unless they are ready (and "codecs-ready"
+   is not needed anymore)
+ * Replace set_candidates by add_candidates and use force_candidates
+   for rawudp
+ * Set transmitter after creating stream
+   * Fixes possible race: One has a session with one stream, the user
+     creates a new stream, then packets in the new stream come in
+     (with the new stream's cname/ssrc) before the "src-pad-added"
+     signal is connected... ie doesn't link... failure
+     ensues.... solution? Giving the user a chance to link
+     src-pad-added before setting the transmitter ?
+ * Remove fs-interfaces (moved to libnice)
+ * Renamed fs-enum-types.h to fs-enumtypes.h for consistency
+ * Renamed fs-conference-iface.h to fs-conference.h
+ * Rename fs_stream_get_src_pads_iterator() to
+   fs_stream_iterate_src_pads() for consistency
+ * Remove the FS_ERROR_UNKNOWN_CNAME error entirely
+ * Add a _destroy method to session/stream and have the parent keep a
+   ref.. so the session/stream need to be destroyed/closed and we can
+   simplify the teardown code quite a bit
+ * Moved the header files from <gst/farsight/.. to <farstream/...> 
+
+- Now requires gst-plugins-bad 0.10.23
