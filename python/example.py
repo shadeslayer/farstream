@@ -6,7 +6,8 @@ loop = gobject.MainLoop()
 pipeline = gst.Pipeline()
 
 conference = gst.element_factory_make ("fsrtpconference")
-conference.set_property ("sdes-cname", sys.argv[1] + "@1.2.3.4")
+sdes = conference.get_property("sdes")
+conference.set_property ("sdes",conference.get_property("sdes").copy().set_value("cname", sys.argv[1] + "@1.2.3.4"))
 pipeline.add (conference)
 
 session = conference.new_session (farstream.MEDIA_TYPE_VIDEO)
@@ -28,9 +29,9 @@ candidate.ttl = 1
 candidate2 = candidate.copy()
 candidate2.port = 3443
 candidate2.component_id = farstream.COMPONENT_RTCP
-stream.set_remote_candidates ([candidate, candidate2])
+stream.force_remote_candidates ([candidate, candidate2])
 
-videosource = gst.parse_bin_from_description (sys.argv[3] + " ! videoscale", True)
+videosource = gst.parse_bin_from_description (sys.argv[2] + " ! videoscale", True)
 pipeline.add (videosource)
 videosource.get_pad ("src").link(session.get_property ("sink-pad"))
 

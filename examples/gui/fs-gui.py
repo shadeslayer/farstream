@@ -425,8 +425,8 @@ class FsUISession:
             cand.port = 9078
             transmitter_params["preferred-local-candidates"] = [cand]
         realstream = self.fssession.new_stream(participant.fsparticipant,
-                                             farstream.DIRECTION_BOTH,
-                                             TRANSMITTER, transmitter_params)
+                                             farstream.DIRECTION_BOTH)
+        realstream.set_transmitter(TRANSMITTER, transmitter_params)
         stream = FsUIStream(id, self, participant, realstream)
         self.streams.append(weakref.ref(stream, self.__stream_finalized))
         return stream
@@ -503,7 +503,7 @@ class FsUIStream:
         if TRANSMITTER == "rawudp":
             self.fsstream.force_remote_candidates(self.candidates)
         else:
-            self.fsstream.set_remote_candidates(self.candidates)
+            self.fsstream.add_remote_candidates(self.candidates)
         self.candidates = []
     def codecs(self, codecs):
         "Callback for the network object. Set the codecs"
@@ -516,7 +516,7 @@ class FsUIStream:
         if oldcodecs == codecs:
             return
         try:
-            self.fsstream.set_remote_codecs(codecs)
+            self.fsstream.add_remote_codecs(codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
         self.send_local_codecs()
@@ -587,7 +587,7 @@ class FsUIParticipant:
         self.streams = {}
         if VIDEO:
             self.streams[int(farstream.MEDIA_TYPE_VIDEO)] = \
-              pipeline.videosession.new_stream(
+                pipeline.videosession.new_stream(
                 int(farstream.MEDIA_TYPE_VIDEO), self)
         if AUDIO:
             self.streams[int(farstream.MEDIA_TYPE_AUDIO)] = \
@@ -804,6 +804,7 @@ class FsMainUI:
         iter = combobox.get_active_iter()
         if iter:
             codec = liststore.get_value(iter, 1)
+            print codec.to_string()
             fssession.set_send_codec(codec)
 
     def audio_combobox_changed_cb(self, combobox):

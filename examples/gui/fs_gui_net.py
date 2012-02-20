@@ -147,8 +147,8 @@ class FsUIConnect:
 
     def send_error(self, dest, src):
         self.__send_data(dest, self.ERROR, src=src)
-    def send_intro(self, dest, cname, src=None):
-        self.__send_data(dest, self.INTRO, data=cname, src=src)
+    def send_intro(self, dest, src=None):
+        self.__send_data(dest, self.INTRO, src=src)
     def send_codecs(self, dest, media, codecs, src=None):
         self.__send_data(dest, self.CODECS,
                          media=media,
@@ -270,17 +270,16 @@ class FsUIListener:
         return True
     
 class FsUIClient:
-    def __init__(self, ip, port, cname, get_participant, *args):
+    def __init__(self, ip, port, get_participant, *args):
         self.participants = {}
         self.get_participant = get_participant
         self.args = args
-        self.cname = cname
         self.connect = FsUIConnectClient(ip, port, (self.__error,
                                                     self.__codecs,
                                                     self.__candidate,
                                                     self.__candidate_done,
                                                     self.__intro))
-        self.connect.send_intro(1, cname)
+        self.connect.send_intro(1)
 
     def __codecs(self, src, dest, media, data):
         print "Got codec Src:%d dest:%d data:%s" % (src, dest, data)
@@ -289,15 +288,14 @@ class FsUIClient:
         self.participants[src].candidate(media, data)
     def __candidate_done(self, src, dest, media, data):
         self.participants[src].candidates_done(media)
-    def __intro(self, src, dest, media, cname):
+    def __intro(self, src, dest, media, data):
         print "Got Intro from %s, I am %d" % (src, dest)
         if src == 1:
             self.connect.myid = dest
         if not self.participants.has_key(src):
             if src != 1:
-                self.connect.send_intro(src, self.cname)
+                self.connect.send_intro(src)
             self.participants[src] = self.get_participant(self.connect, src,
-                                                          cname,
                                                           *self.args)
     def __error(self, participantid, *arg):
         print "Client Error", participantid
@@ -314,8 +312,7 @@ class FsUIServer:
     nextid = 2
     participants = {}
 
-    def __init__(self, sock, cname, get_participant, *args):
-        self.cname = cname
+    def __init__(self, sock, get_participant, *args):
         self.get_participant = get_participant
         self.args = args
         self.connect = FsUIConnect(sock, (self.__error,
@@ -341,27 +338,23 @@ class FsUIServer:
             FsUIServer.participants[dest].connect.send_candidates_done(dest,
                                                                        media,
                                                                        src)
-    def __intro(self, src, dest, media, cname):
+    def __intro(self, src, dest, media, data):
         print "Got Intro from %s to %s" % (src, dest)
         if src == 0 and dest == 1:
             newid = FsUIServer.nextid
             # Forward the introduction to all other participants
             for pid in FsUIServer.participants:
                 print "Sending from %d to %d" % (newid, pid)
-                FsUIServer.participants[pid].connect.send_intro(pid, cname,
-                                                                newid)
-            self.connect.send_intro(newid, self.cname)
+                FsUIServer.participants[pid].connect.send_intro(pid, newid)
+            self.connect.send_intro(newid)
             self.connect.partid = newid
             FsUIServer.participants[newid] = self.get_participant(self.connect,
                                                                   newid,
-                                                                  cname,
                                                                   *self.args)
             FsUIServer.participants[newid].send_local_codecs()
             FsUIServer.nextid += 1
         elif dest != 1:
-            FsUIServer.participants[dest].connect.send_intro(dest,
-                                                             cname,
-                                                             src)
+            FsUIServer.participants[dest].connect.send_intro(dest, src)
             FsUIServer.participants[src].send_codecs_to(
                         FsUIServer.participants[dest])
         else:
@@ -412,13 +405,12 @@ if __name__ == "__main__":
             
             
     class TestParticipant:
-        def __init__(self, connect, id, cname, *args):
+        def __init__(self, connect, id, *args):
             self.id = id
             self.streams = {1: TestMedia(id, 1, connect),
                             2: TestMedia(id, 2, connect)}
-            self.cname = cname
             self.connect = connect
-            print "New Participant %s and cname %s" % (id,cname)
+            print "New Participant %s" % (id)
         def candidate(self, media, candidate):
             self.streams[media].candidate(candidate)
         def candidates_done(self, media):
@@ -444,13 +436,11 @@ if __name__ == "__main__":
             passs
             
 
-    mycname = "test"
     mainloop = gobject.MainLoop()
     gobject.threads_init()
     if len(sys.argv) > 1:
         client = FsUIClient("127.0.0.1", int(sys.argv[1]),
-                            "cname" + sys.argv[1],
                             TestParticipant)
     else:
-        listener = FsUIListener(9893, FsUIServer, "cnameServ", TestParticipant)
+        listener = FsUIListener(9893, FsUIServer, TestParticipant)
     mainloop.run()
