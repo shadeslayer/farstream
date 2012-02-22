@@ -1354,7 +1354,10 @@ static FsStreamTransmitter *_stream_get_stream_transmitter (FsRawStream *stream,
   if (!fstransmitter)
     goto error;
 
-  g_object_set (fstransmitter, "tos", self->priv->tos, NULL);
+  g_object_set (fstransmitter,
+      "tos", self->priv->tos,
+      "do-timestamp", FALSE,
+      NULL);
 
   stream_transmitter = fs_transmitter_new_stream_transmitter (fstransmitter,
       participant, n_parameters, parameters, error);

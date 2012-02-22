@@ -62,7 +62,8 @@ enum
   PROP_GST_SINK,
   PROP_GST_SRC,
   PROP_COMPONENTS,
-  PROP_TYPE_OF_SERVICE
+  PROP_TYPE_OF_SERVICE,
+  PROP_DO_TIMESTAMP,
 };
 
 /*
@@ -163,6 +164,20 @@ fs_transmitter_class_init (FsTransmitterClass *klass)
           "IP Type of Service",
           "The IP Type of Service to set on sent packets",
           0, 255, 0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * FsTransmitter:do-timestamp:
+   *
+   * Apply current stream time to buffers or provide buffers without
+   * timestamps. Must be set before creating a stream transmitter.
+   */
+  g_object_class_install_property (gobject_class,
+      PROP_DO_TIMESTAMP,
+      g_param_spec_boolean ("do-timestamp",
+          "Do Timestamp",
+          "Apply current stream time to buffers",
+          TRUE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**

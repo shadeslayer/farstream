@@ -57,7 +57,8 @@ enum
   PROP_0,
   PROP_GST_SINK,
   PROP_GST_SRC,
-  PROP_COMPONENTS
+  PROP_COMPONENTS,
+  PROP_DO_TIMESTAMP,
 };
 
 struct _FsShmTransmitterPrivate
@@ -71,6 +72,8 @@ struct _FsShmTransmitterPrivate
   /* They are tables of pointers, one per component */
   GstElement **funnels;
   GstElement **tees;
+
+  gboolean do_timestamp;
 };
 
 #define FS_SHM_TRANSMITTER_GET_PRIVATE(o)  \
@@ -266,6 +269,8 @@ fs_shm_transmitter_class_init (FsShmTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_GST_SINK, "gst-sink");
   g_object_class_override_property (gobject_class, PROP_COMPONENTS,
     "components");
+  g_object_class_override_property (gobject_class, PROP_DO_TIMESTAMP,
+    "do-timestamp");
 
   transmitter_class->new_stream_transmitter =
     fs_shm_transmitter_new_stream_transmitter;
@@ -286,6 +291,7 @@ fs_shm_transmitter_init (FsShmTransmitter *self)
   self->priv = FS_SHM_TRANSMITTER_GET_PRIVATE (self);
 
   self->components = 2;
+  self->priv->do_timestamp = TRUE;
 }
 
 static void
@@ -489,6 +495,9 @@ fs_shm_transmitter_get_property (GObject *object,
     case PROP_COMPONENTS:
       g_value_set_uint (value, self->components);
       break;
+    case PROP_DO_TIMESTAMP:
+      g_value_set_boolean (value, self->priv->do_timestamp);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -506,6 +515,9 @@ fs_shm_transmitter_set_property (GObject *object,
   switch (prop_id) {
     case PROP_COMPONENTS:
       self->components = g_value_get_uint (value);
+      break;
+    case PROP_DO_TIMESTAMP:
+      self->priv->do_timestamp = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -607,7 +619,7 @@ fs_shm_transmitter_get_shm_src (FsShmTransmitter *self,
 
   g_object_set (elem,
       "socket-path", path,
-      "do-timestamp", TRUE,
+      "do-timestamp", self->priv->do_timestamp,
       "is-live", TRUE,
       NULL);
 

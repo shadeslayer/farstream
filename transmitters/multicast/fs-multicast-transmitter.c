@@ -73,7 +73,8 @@ enum
   PROP_GST_SINK,
   PROP_GST_SRC,
   PROP_COMPONENTS,
-  PROP_TYPE_OF_SERVICE
+  PROP_TYPE_OF_SERVICE,
+  PROP_DO_TIMESTAMP
 };
 
 struct _FsMulticastTransmitterPrivate
@@ -92,6 +93,7 @@ struct _FsMulticastTransmitterPrivate
   GList **udpsocks;
 
   gint type_of_service;
+  gboolean do_timestamp;
 
   gboolean disposed;
 };
@@ -192,6 +194,8 @@ fs_multicast_transmitter_class_init (FsMulticastTransmitterClass *klass)
     "components");
   g_object_class_override_property (gobject_class, PROP_TYPE_OF_SERVICE,
     "tos");
+  g_object_class_override_property (gobject_class, PROP_DO_TIMESTAMP,
+    "do-timestamp");
 
   transmitter_class->new_stream_transmitter =
     fs_multicast_transmitter_new_stream_transmitter;
@@ -214,6 +218,7 @@ fs_multicast_transmitter_init (FsMulticastTransmitter *self)
 
   self->components = 2;
   self->priv->mutex = g_mutex_new ();
+  self->priv->do_timestamp = TRUE;
 }
 
 static void
@@ -438,6 +443,9 @@ fs_multicast_transmitter_get_property (GObject *object,
       g_value_set_uint (value, self->priv->type_of_service);
       g_mutex_unlock (self->priv->mutex);
       break;
+    case PROP_DO_TIMESTAMP:
+      g_value_set_boolean (value, self->priv->do_timestamp);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -459,6 +467,9 @@ fs_multicast_transmitter_set_property (GObject *object,
     case PROP_TYPE_OF_SERVICE:
       fs_multicast_transmitter_set_type_of_service (self,
           g_value_get_uint (value));
+      break;
+    case PROP_DO_TIMESTAMP:
+      self->priv->do_timestamp = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);

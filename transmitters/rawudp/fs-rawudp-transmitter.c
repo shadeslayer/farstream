@@ -73,7 +73,8 @@ enum
   PROP_GST_SINK,
   PROP_GST_SRC,
   PROP_COMPONENTS,
-  PROP_TYPE_OF_SERVICE
+  PROP_TYPE_OF_SERVICE,
+  PROP_DO_TIMESTAMP
 };
 
 struct _FsRawUdpTransmitterPrivate
@@ -93,6 +94,7 @@ struct _FsRawUdpTransmitterPrivate
   GList **udpports;
 
   gint type_of_service;
+  gboolean do_timestamp;
 
   gboolean disposed;
 };
@@ -196,6 +198,8 @@ fs_rawudp_transmitter_class_init (FsRawUdpTransmitterClass *klass)
       "components");
   g_object_class_override_property (gobject_class, PROP_TYPE_OF_SERVICE,
       "tos");
+  g_object_class_override_property (gobject_class, PROP_DO_TIMESTAMP,
+      "do-timestamp");
 
   transmitter_class->new_stream_transmitter =
     fs_rawudp_transmitter_new_stream_transmitter;
@@ -218,6 +222,7 @@ fs_rawudp_transmitter_init (FsRawUdpTransmitter *self)
 
   self->components = 2;
   self->priv->mutex = g_mutex_new ();
+  self->priv->do_timestamp = TRUE;
 }
 
 static void
@@ -456,6 +461,9 @@ fs_rawudp_transmitter_get_property (GObject *object,
       g_value_set_uint (value, self->priv->type_of_service);
       g_mutex_unlock (self->priv->mutex);
       break;
+    case PROP_DO_TIMESTAMP:
+      g_value_set_boolean (value, self->priv->do_timestamp);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -478,6 +486,9 @@ fs_rawudp_transmitter_set_property (GObject *object,
     case PROP_TYPE_OF_SERVICE:
       fs_rawudp_transmitter_set_type_of_service (self,
           g_value_get_uint (value));
+      break;
+    case PROP_DO_TIMESTAMP:
+      self->priv->do_timestamp = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -636,6 +647,7 @@ _create_sinksource (
     GstElement *filter,
     gint fd,
     GstPadDirection direction,
+    gboolean do_timestamp,
     GstPad **requested_pad,
     GError **error)
 {
@@ -655,15 +667,19 @@ _create_sinksource (
   }
 
   g_object_set (elem,
+      "sockfd", fd,
       "auto-multicast", FALSE,
       "closefd", FALSE,
-      "sockfd", fd,
       NULL);
 
   if (direction == GST_PAD_SINK)
     g_object_set (elem,
         "async", FALSE,
         "sync", FALSE,
+        NULL);
+  else
+    g_object_set (elem,
+        "do-timestamp", do_timestamp,
         NULL);
 
   if (!gst_bin_add (bin, elem))
@@ -876,13 +892,14 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
 
   udpport->udpsrc = _create_sinksource ("udpsrc",
       GST_BIN (trans->priv->gst_src), udpport->funnel, NULL,
-      udpport->fd, GST_PAD_SRC, &udpport->udpsrc_requested_pad, error);
+      udpport->fd, GST_PAD_SRC, trans->priv->do_timestamp,
+      &udpport->udpsrc_requested_pad, error);
   if (!udpport->udpsrc)
     goto error;
 
   udpport->udpsink = _create_sinksource ("multiudpsink",
       GST_BIN (trans->priv->gst_sink), udpport->tee, NULL,
-      udpport->fd, GST_PAD_SINK, &udpport->udpsink_requested_pad, error);
+      udpport->fd, GST_PAD_SINK, FALSE, &udpport->udpsink_requested_pad, error);
   if (!udpport->udpsink)
     goto error;
 
@@ -893,7 +910,7 @@ fs_rawudp_transmitter_get_udpport (FsRawUdpTransmitter *trans,
   {
     udpport->recvonly_udpsink = _create_sinksource ("multiudpsink",
         GST_BIN (trans->priv->gst_sink), udpport->tee, udpport->recvonly_filter,
-        udpport->fd, GST_PAD_SINK, &udpport->recvonly_requested_pad, error);
+        udpport->fd, GST_PAD_SINK, FALSE, &udpport->recvonly_requested_pad, error);
     if (!udpport->recvonly_udpsink)
       goto error;
   }

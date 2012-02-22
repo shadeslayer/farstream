@@ -63,7 +63,8 @@ enum
   PROP_GST_SINK,
   PROP_GST_SRC,
   PROP_COMPONENTS,
-  PROP_TOS
+  PROP_TOS,
+  PROP_DO_TIMESTAMP
 };
 
 struct _FsNiceTransmitterPrivate
@@ -79,6 +80,7 @@ struct _FsNiceTransmitterPrivate
   GstElement **sink_tees;
 
   gint tos;
+  gboolean do_timestamp;
 };
 
 #define FS_NICE_TRANSMITTER_GET_PRIVATE(o)  \
@@ -173,6 +175,8 @@ fs_nice_transmitter_class_init (FsNiceTransmitterClass *klass)
   g_object_class_override_property (gobject_class, PROP_COMPONENTS,
     "components");
   g_object_class_override_property (gobject_class, PROP_TOS, "tos");
+  g_object_class_override_property (gobject_class, PROP_DO_TIMESTAMP,
+      "do-timestamp");
 
   transmitter_class->new_stream_transmitter =
     fs_nice_transmitter_new_stream_transmitter;
@@ -193,6 +197,7 @@ fs_nice_transmitter_init (FsNiceTransmitter *self)
   self->priv = FS_NICE_TRANSMITTER_GET_PRIVATE (self);
 
   self->components = 2;
+  self->priv->do_timestamp = TRUE;
 }
 
 static void
@@ -413,6 +418,9 @@ fs_nice_transmitter_get_property (GObject *object,
     case PROP_TOS:
       g_value_set_uint (value, self->priv->tos);
       break;
+    case PROP_DO_TIMESTAMP:
+      g_value_set_boolean (value, self->priv->do_timestamp);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -434,6 +442,9 @@ fs_nice_transmitter_set_property (GObject *object,
       break;
     case PROP_TOS:
       self->priv->tos = g_value_get_uint (value);
+      break;
+    case PROP_DO_TIMESTAMP:
+      self->priv->do_timestamp = g_value_get_boolean (value);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -483,6 +494,7 @@ _create_sinksource (
     guint stream_id,
     guint component_id,
     GstPadDirection direction,
+    gboolean do_timestamp,
     GCallback have_buffer_callback,
     gpointer have_buffer_user_data,
     gulong *buffer_probe_id,
@@ -515,6 +527,10 @@ _create_sinksource (
     g_object_set (elem,
         "async", FALSE,
         "sync", FALSE,
+        NULL);
+  else
+    g_object_set (elem,
+        "do-timestamp", do_timestamp,
         NULL);
 
   if (!gst_bin_add (bin, elem))
@@ -721,6 +737,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
         stream_id,
         c,
         GST_PAD_SRC,
+        self->priv->do_timestamp,
         have_buffer_callback,
         have_buffer_user_data,
         &ns->probe_ids[c],
@@ -744,7 +761,7 @@ fs_nice_transmitter_add_gst_stream (FsNiceTransmitter *self,
         stream_id,
         c,
         GST_PAD_SINK,
-        NULL, NULL, NULL,
+        FALSE, NULL, NULL, NULL,
         &ns->requested_tee_pads[c],
         error);
 
