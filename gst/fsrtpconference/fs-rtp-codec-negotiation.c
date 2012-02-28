@@ -1393,17 +1393,24 @@ lookup_codec_association_by_codec_for_sending (GList *codec_associations,
     FsCodec *codec)
 {
   GList *item;
+  CodecAssociation *res = NULL;
+  FsCodec *tmpcodec = codec_copy_filtered (codec, FS_PARAM_TYPE_CONFIG);
 
   for (item = codec_associations; item; item = g_list_next (item))
   {
     CodecAssociation *ca = item->data;
 
     if (codec_association_is_valid_for_sending (ca, FALSE) &&
-        fs_codec_are_equal (ca->codec, codec))
-      return ca;
+        fs_codec_are_equal (ca->send_codec, tmpcodec))
+    {
+      res = ca;
+      break;
+    }
   }
 
-  return NULL;
+  fs_codec_destroy (tmpcodec);
+
+  return res;
 }
 
 FsRtpHeaderExtension *
