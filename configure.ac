@@ -383,14 +383,6 @@ if test "x$WANT_GUPNP" = "xyes" && test "x$HAVE_GUPNP" = "xno"; then
    AC_ERROR([Requested GUPnP IGD, but it is not available])
 fi
 
-if test "x$HAVE_GUPNP" = "xyes"; then
-   AC_DEFINE(HAVE_GUPNP,,[Have the GUPnP IGD library])
-
-   PKG_CHECK_MODULES(GUPNP_013, gupnp-1.0 >= 0.13,
-	 [AC_DEFINE([HAVE_GUPNP_013], [1], [Have GUPnP 0.13 or higher])],
-	 [true])
-fi
-
 dnl *** output files ***
 
 AC_CONFIG_FILES(

@@ -137,12 +137,8 @@ start_upnp_server (void)
 
   gupnp_context_host_path (context, upnp_xml_path, "");
 
-#ifdef HAVE_GUPNP_013
   dev = gupnp_root_device_new (context, "InternetGatewayDevice.xml",
       upnp_xml_path);
-#else
-  dev = gupnp_root_device_new (context, "/InternetGatewayDevice.xml");
-#endif
   ts_fail_if (dev == NULL, "could not get root dev");
 
   subdev1 = gupnp_device_info_get_device (GUPNP_DEVICE_INFO (dev),
