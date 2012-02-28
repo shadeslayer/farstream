@@ -418,7 +418,8 @@ _element_added_callback (GstBin *parent, GstElement *element,
     gst_iterator_free (iter);
   }
 
-  g_signal_emit (notifier, signals[ELEMENT_ADDED], 0, parent, element);
+  if (parent)
+    g_signal_emit (notifier, signals[ELEMENT_ADDED], 0, parent, element);
 }
 
 
