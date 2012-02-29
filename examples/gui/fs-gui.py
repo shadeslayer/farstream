@@ -516,7 +516,7 @@ class FsUIStream:
         if oldcodecs == codecs:
             return
         try:
-            self.fsstream.add_remote_codecs(codecs)
+            self.fsstream.set_remote_codecs(codecs)
         except AttributeError:
             print "Tried to set codecs with 0 codec"
         self.send_local_codecs()
