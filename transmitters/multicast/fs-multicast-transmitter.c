@@ -1132,7 +1132,7 @@ fs_multicast_transmitter_put_udpsock (FsMulticastTransmitter *trans,
 void
 fs_multicast_transmitter_udpsock_inc_sending (UdpSock *udpsock)
 {
-  if (g_atomic_int_exchange_and_add (&udpsock->sendcount, 1) == 0)
+  if (g_atomic_int_add (&udpsock->sendcount, 1) == 0)
   {
     if (udpsock->udpsink_recvonly_filter)
       g_object_set (udpsock->udpsink_recvonly_filter, "sending", TRUE, NULL);
