@@ -53,8 +53,9 @@ ptime-multiple=20000000
 # buffering between client and playback/capture. We take a conservatively high
 # value for these to lower CPU load on less powerful systems.
 [pulsesink]
-buffer-time=50000
-latency-time=25000
+latency-time=20000
+buffer-time=60000
 
 [pulsesrc]
-buffer-time=50000
+latency-time=20000
+buffer-time=40000
