@@ -1,0 +1,16 @@
+# Put the desired properties in the style of
+#
+# [element name]
+# prop1=val1
+
+# Set appropriate buffer/latency parameters for voip. The key parameter is
+# buffer-time, which determines the latency in the conventional sense (X us of
+# buffering between client and playback/capture. We take a conservatively high
+# value for these to lower CPU load on less powerful systems.
+[pulsesink]
+latency-time=20000
+buffer-time=60000
+
+[pulsesrc]
+latency-time=20000
+buffer-time=40000

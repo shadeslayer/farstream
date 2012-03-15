@@ -36,7 +36,11 @@ libfsrawconference_la_LIBADD = \
 	$(GST_BASE_LIBS) \
 	$(GST_LIBS)
 
+preferencesdir = $(datadir)/$(PACKAGE_TARNAME)/$(FS_MAJORMINOR)/fsrawconference
+preferences_DATA = \
+	default-element-properties
 
+EXTRA_DIST = $(preferences_DATA)
 
 # Optionally build a library to allow building the gtk-doc
 
