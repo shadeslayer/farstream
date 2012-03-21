@@ -541,6 +541,7 @@ create_local_codec_associations (
       ca->codec = fs_codec_copy (codec_pref);
       ca->reserved = TRUE;
       codec_associations = g_list_append (codec_associations, ca);
+      GST_DEBUG ("Add reserved payload type %d", codec_pref->id);
       continue;
     }
 
@@ -775,6 +776,12 @@ create_local_codec_associations (
     }
 
     ca->send_codec = codec_copy_filtered (ca->codec, FS_PARAM_TYPE_CONFIG);
+
+    {
+      gchar *tmp = fs_codec_to_string (ca->codec);
+      GST_LOG ("Added discovered codec %s from blueprint", tmp);
+      g_free (tmp);
+    }
 
     codec_associations = list_insert_local_ca (codec_associations, ca);
   }
