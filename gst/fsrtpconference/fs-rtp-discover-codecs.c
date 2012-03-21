@@ -68,6 +68,7 @@ typedef gboolean (FilterFunc) (GstElementFactory *factory);
 static gboolean create_codec_lists (FsMediaType media_type,
   GList *recv_list, GList *send_list);
 static GList *remove_dynamic_duplicates (GList *list);
+static GList *remove_duplicates (GList *list);
 static void parse_codec_cap_list (GList *list, FsMediaType media_type);
 static GList *detect_send_codecs (GstCaps *caps);
 static GList *detect_recv_codecs (GstCaps *caps);
@@ -309,6 +310,7 @@ create_codec_lists (FsMediaType media_type,
   debug_codec_cap_list (duplex_list);
 
   duplex_list = remove_dynamic_duplicates (duplex_list);
+  duplex_list = remove_duplicates (duplex_list);
 
   if (!duplex_list) {
     GST_WARNING ("Dynamic duplicate removal left us with nothing");
@@ -512,6 +514,33 @@ remove_dynamic_duplicates (GList *list)
     codec_cap_free (walk1->data);
   }
   g_list_free (remove_us);
+
+  return list;
+}
+
+/* Removes duplicate codecs that have the same RTP expression */
+static GList *
+remove_duplicates (GList *list)
+{
+  GList *walk1, *walk2;
+
+  for (walk1 = list; walk1; walk1 = g_list_next (walk1))
+  {
+    CodecCap *codec_cap1 = walk1->data;
+
+  again:
+    for (walk2 = walk1->next; walk2; walk2 = g_list_next (walk2))
+    {
+      CodecCap *codec_cap2 = walk2->data;
+
+      if (gst_caps_is_equal (codec_cap1->rtp_caps, codec_cap2->rtp_caps))
+      {
+        codec_cap_free (codec_cap2);
+        walk1 = g_list_remove_link (walk1, walk2);
+        goto again;
+      }
+    }
+  }
 
   return list;
 }
