@@ -104,6 +104,7 @@ transmitter_multicast_SOURCES = \
 	transmitter/fake-filter.c \
 	transmitter/fake-filter.h \
 	transmitter/multicast.c
+transmitter_multicast_LDADD = $(LDADD) $(GST_BASE_LIBS)
 
 transmitter_nice_CFLAGS = $(FS_INTERNAL_CFLAGS) $(CFLAGS) $(AM_CFLAGS)
 transmitter_nice_SOURCES = \
@@ -113,6 +114,7 @@ transmitter_nice_SOURCES = \
 	transmitter/fake-filter.c \
 	transmitter/fake-filter.h \
 	transmitter/nice.c 
+transmitter_nice_LDADD = $(LDADD) $(GST_BASE_LIBS)
 
 
 transmitter_shm_CFLAGS = $(AM_CFLAGS) $(GUPNP_CFLAGS) $(NICE_CFLAGS)
