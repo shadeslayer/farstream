@@ -119,7 +119,7 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
             GList *list = g_list_append (NULL, candidate);
             gboolean add_remote_candidates_res;
 
-            g_debug ("Setting candidate: %s %d",
+            GST_DEBUG ("Setting candidate: %s %d",
                 candidate->ip, candidate->port);
             add_remote_candidates_res = fs_stream_add_remote_candidates (
                 dat->target->stream, list, &error);
@@ -150,7 +150,7 @@ bus_watch (GstBus *bus, GstMessage *message, gpointer user_data)
         gchar *debug = NULL;
         gst_message_parse_warning (message, &error, &debug);
 
-        g_debug ("%d: Got a warning on the BUS: %s (%s)",
+        GST_DEBUG ("%d: Got a warning on the BUS: %s (%s)",
             error->code,
             error->message, debug);
         g_error_free (error);
@@ -180,7 +180,7 @@ stream_src_pad_added (FsStream *stream, GstPad *pad, FsCodec *codec,
   GstElement *sink = gst_element_factory_make ("fakesink", NULL);
   GstPad *sinkpad;
 
-  g_debug ("pad added");
+  GST_DEBUG ("pad added");
 
   ts_fail_unless (sink != NULL);
 
