@@ -744,7 +744,6 @@ ShmSink *
 fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
     guint component,
     const gchar *path,
-    guint64 buffer_time,
     ready ready_func,
     connection connected_func,
     gpointer cb_data,
@@ -779,17 +778,6 @@ fs_shm_transmitter_get_shm_sink (FsShmTransmitter *self,
       "async", FALSE,
       "sync" , FALSE,
       NULL);
-
-  if (g_object_class_find_property (G_OBJECT_GET_CLASS (elem), "buffer-time"))
-  {
-    GST_DEBUG ("Configured shmsink with a %"G_GUINT64_FORMAT" buffer-time",
-      buffer_time);
-    g_object_set (elem, "buffer-time", buffer_time, NULL);
-  }
-  else
-  {
-    GST_DEBUG ("No buffer-time property in shmsink, not setting");
-  }
 
   if (ready_func)
     g_signal_connect (self->priv->gst_sink, "ready", G_CALLBACK (ready_cb),
