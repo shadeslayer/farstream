@@ -127,7 +127,7 @@ _bus_callback (GstBus *bus, GstMessage *message, gpointer user_data)
               FsCodec *codec = item->data;
 
               if (codec->clock_rate == 8000 &&
-                  !g_strcasecmp ("telephone-event", codec->encoding_name))
+                  !g_ascii_strcasecmp ("telephone-event", codec->encoding_name))
               {
                 ts_fail_unless (codec->id == dtmf_id);
                 ready_to_send = TRUE;
