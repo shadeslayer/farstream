@@ -5,7 +5,7 @@ dnl please read gstreamer/docs/random/autotools before changing this file
 dnl initialize autoconf
 dnl releases only do -Wall, cvs and prerelease does -Werror too
 dnl use a three digit version number for releases, and four for cvs/prerelease
-AC_INIT(Farstream, 0.1.1.1,
+AC_INIT(Farstream, 0.1.2,
     https://bugs.freedesktop.org/enter_bug.cgi?product=Farstream,
     farstream)
 
@@ -56,7 +56,7 @@ dnl - interfaces added/removed/changed -> increment CURRENT, REVISION = 0
 dnl - interfaces added -> increment AGE
 dnl - interfaces removed -> AGE = 0
 dnl sets FS_LT_LDFLAGS
-AS_LIBTOOL(FS, 0, 0, 0)
+AS_LIBTOOL(FS, 0, 1, 0)
 
 dnl FIXME: this macro doesn't actually work;
 dnl the generated libtool script has no support for the listed tags.

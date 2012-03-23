@@ -1,3 +1,16 @@
+farstream 0.1.2 (March 23, 2012)
+================================
+
+- Ignore config while comparing send codecs, fixes H.264 and Theora
+  negotation
+- Require GLib 2.30, do not allow APIs added after and ignore later
+  deprecations
+- Add default element properties for rawconference
+- Set better latency/buffer time for pulse src/sink
+- Remove the buffer-time property on the shm transmitter, because the
+  gst-plugins-bad plugin has a bug, we will restore it once a new
+  gst-plugins-bad version has been released
+
 farstream 0.1.1 (February 20, 2012)
 ===================================
 
