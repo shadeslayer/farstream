@@ -45,7 +45,6 @@ docs/libs/xml
 docs/libs/doc-registry.xml
 docs/plugins/farstream-plugins-decl-list.txt
 docs/plugins/farstream-plugins-decl.txt
-docs/plugins/farstream-plugins-overrides.txt
 docs/plugins/farstream-plugins-undeclared.txt
 docs/plugins/farstream-plugins-undocumented.txt
 docs/plugins/farstream-plugins-unused.txt
