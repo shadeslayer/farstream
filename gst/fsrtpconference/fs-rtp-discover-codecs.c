@@ -1296,7 +1296,8 @@ get_plugins_filtered_from_caps (FilterFunc filter,
     GstElementFactory *factory = GST_ELEMENT_FACTORY (walk->data);
 
     /* Ignore unranked plugins */
-    if (gst_plugin_feature_get_rank (factory) == GST_RANK_NONE)
+    if (gst_plugin_feature_get_rank (GST_PLUGIN_FEATURE (factory)) ==
+        GST_RANK_NONE)
       continue;
 
     if (!filter (factory))
