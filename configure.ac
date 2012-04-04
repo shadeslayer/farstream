@@ -247,7 +247,7 @@ dnl *** checks for dependency libraries ***
 dnl GLib is required
 AG_GST_GLIB_CHECK([2.30])
 AC_DEFINE(GLIB_VERSION_MIN_REQUIRED, GLIB_VERSION_2_30, [Ignore post 2.30 deprecations])
-AC_DEFINE(GLIB_VERSION_MAX_REQUIRED, GLIB_VERSION_2_30, [Prevent post 2.30 APIs])
+AC_DEFINE(GLIB_VERSION_MAX_ALLOWED, GLIB_VERSION_2_30, [Prevent post 2.30 APIs])
 
 
 PKG_CHECK_MODULES(GIO_UNIX, gio-unix-2.0 >= 2.16)
