@@ -106,8 +106,6 @@ struct _FsNiceStreamTransmitterPrivate
   gboolean sending;
 
   gboolean forced_candidates;
-  GList *remote_candidates;
-  GList *local_candidates;
 
   /* These are fixed and must be identical in the latest draft */
   gchar *username;
@@ -442,9 +440,6 @@ fs_nice_stream_transmitter_finalize (GObject *object)
 
   fs_candidate_list_destroy (self->priv->preferred_local_candidates);
 
-  fs_candidate_list_destroy (self->priv->remote_candidates);
-  fs_candidate_list_destroy (self->priv->local_candidates);
-
   if (self->priv->relay_info)
     g_value_array_free (self->priv->relay_info);
 
@@ -665,9 +660,6 @@ fs_nice_stream_transmitter_add_remote_candidates (
   {
     GST_DEBUG ("NULL candidates passed, lets do an ICE restart");
     FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-    if (self->priv->remote_candidates)
-      fs_candidate_list_destroy (self->priv->remote_candidates);
-    self->priv->remote_candidates = NULL;
     self->priv->forced_candidates = FALSE;
     g_free (self->priv->username);
     g_free (self->priv->password);
@@ -776,15 +768,6 @@ fs_nice_stream_transmitter_add_remote_candidates (
     g_set_error (error, FS_ERROR, FS_ERROR_INVALID_ARGUMENTS,
         "Candidates have been forced, can't set remote candidates");
     return FALSE;
-  }
-
-  if (!self->priv->gathered)
-  {
-    self->priv->remote_candidates = g_list_concat (
-        self->priv->remote_candidates,
-        fs_candidate_list_copy (candidates));
-    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    return TRUE;
   }
 
   if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
@@ -932,19 +915,9 @@ fs_nice_stream_transmitter_force_remote_candidates (
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   self->priv->forced_candidates = TRUE;
-  if (self->priv->gathered)
-  {
-    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    res = fs_nice_stream_transmitter_force_remote_candidates_act (self,
-        remote_candidates);
-  }
-  else
-  {
-    if (self->priv->remote_candidates)
-      fs_candidate_list_destroy (self->priv->remote_candidates);
-    self->priv->remote_candidates = fs_candidate_list_copy (remote_candidates);
-    FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-  }
+  FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
+  res = fs_nice_stream_transmitter_force_remote_candidates_act (self,
+      remote_candidates);
 
   if (!res)
     g_set_error (error, FS_ERROR, FS_ERROR_INTERNAL,
@@ -1647,52 +1620,19 @@ agent_new_candidate (NiceAgent *agent,
     if (!strcmp (candidate->foundation, foundation))
     {
       fscandidate = nice_candidate_to_fs_candidate (agent, candidate, TRUE);
+      g_signal_emit_by_name (self, "new-local-candidate", fscandidate);
+      fs_candidate_destroy (fscandidate);
+
       break;
     }
   }
   g_slist_foreach (candidates, (GFunc) nice_candidate_free, NULL);
   g_slist_free (candidates);
 
-  if (fscandidate)
-  {
-    FS_NICE_STREAM_TRANSMITTER_LOCK (self);
-    if (!self->priv->gathered)
-    {
-      /* Nice doesn't do connchecks while gathering, so don't tell the upper
-       * layers about the candidates untill gathering is finished.
-       * Also older versions of farstream would fail the connection right away
-       * when the first candidate given failed immediately (e.g. ipv6 on a
-       * non-ipv6 capable host, so we order ipv6 candidates after ipv4 ones */
-
-       if (strchr (fscandidate->ip, ':'))
-        self->priv->local_candidates = g_list_append
-          (self->priv->local_candidates, fscandidate);
-      else
-        self->priv->local_candidates = g_list_prepend
-          (self->priv->local_candidates, fscandidate);
-      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-    }
-    else
-    {
-      struct candidate_signal_data *data =
-        g_slice_new (struct candidate_signal_data);
-
-      FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
-
-      data->self = g_object_ref (self);
-      data->signal_name = "new-local-candidate";
-      data->candidate1 = fscandidate;
-      data->candidate2 = NULL;
-      fs_nice_agent_add_idle (self->priv->agent, agent_candidate_signal_idle,
-        data, free_candidate_signal_data);
-    }
-  }
-  else
-  {
+  if (!fscandidate)
     GST_WARNING ("Could not find local candidate with foundation %s"
         " for component_ %d in stream %d", foundation, component_id,
         stream_id);
-  }
 }
 
 
@@ -1700,9 +1640,6 @@ static gboolean
 agent_gathering_done_idle (gpointer data)
 {
   FsNiceStreamTransmitter *self = data;
-  GList *remote_candidates = NULL;
-  GList *local_candidates = NULL;
-  gboolean forced_candidates;
 
   FS_NICE_STREAM_TRANSMITTER_LOCK (self);
   if (self->priv->gathered)
@@ -1712,71 +1649,11 @@ agent_gathering_done_idle (gpointer data)
   }
 
   self->priv->gathered = TRUE;
-  remote_candidates = self->priv->remote_candidates;
-  self->priv->remote_candidates = NULL;
-  local_candidates = self->priv->local_candidates;
-  self->priv->local_candidates = NULL;
-  forced_candidates = self->priv->forced_candidates;
   FS_NICE_STREAM_TRANSMITTER_UNLOCK (self);
 
   GST_DEBUG ("Candidates gathered for stream %u", self->priv->stream_id);
 
-  if (local_candidates)
-  {
-    GList *l;
-
-    for (l = local_candidates ; l != NULL; l = g_list_next (l))
-      g_signal_emit_by_name (self, "new-local-candidate", l->data);
-    fs_candidate_list_destroy (local_candidates);
-  }
-
   g_signal_emit_by_name (self, "local-candidates-prepared");
-
-  if (remote_candidates)
-  {
-    if (forced_candidates)
-    {
-      if (!fs_nice_stream_transmitter_force_remote_candidates_act (self,
-              remote_candidates))
-      {
-        fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-            FS_ERROR_INTERNAL,
-            "Error setting delayed forced remote candidates");
-      }
-    }
-    else
-    {
-      GError *error = NULL;
-
-      if (self->priv->compatibility_mode != NICE_COMPATIBILITY_GOOGLE &&
-          self->priv->compatibility_mode != NICE_COMPATIBILITY_MSN &&
-          self->priv->compatibility_mode != NICE_COMPATIBILITY_OC2007)
-      {
-        if (!nice_agent_set_remote_credentials (self->priv->agent->agent,
-                self->priv->stream_id, self->priv->username,
-                self->priv->password))
-        {
-          fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-              FS_ERROR_INTERNAL,
-              "Could not set the security credentials");
-          fs_candidate_list_destroy (remote_candidates);
-          return FALSE;
-        }
-      }
-
-
-      if (!fs_nice_stream_transmitter_add_remote_candidates (
-              FS_STREAM_TRANSMITTER_CAST (self),
-              remote_candidates, &error))
-      {
-        fs_stream_transmitter_emit_error (FS_STREAM_TRANSMITTER (self),
-            error->code, error->message);
-      }
-      g_clear_error (&error);
-    }
-
-    fs_candidate_list_destroy (remote_candidates);
-  }
 
   return FALSE;
 }
